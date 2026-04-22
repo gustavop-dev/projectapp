@@ -1,6 +1,7 @@
 <template>
-  <div class="space-y-8">
-
+  <div>
+    <TabSplitLayout>
+      <template #main>
     <!-- ── Email composer ── -->
     <section class="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5">
       <div class="flex items-center gap-2 mb-5">
@@ -87,21 +88,44 @@
         <div>
           <label class="block text-xs text-gray-500 dark:text-white/70 mb-1">Adjuntos</label>
           <div class="flex flex-col items-start gap-3">
-            <button v-if="canCreateMarkdownAttachment" type="button" @click="showMarkdownModal = true"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Crear documento desde markdown
-            </button>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" @click="showAttachFromDocsModal = true"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+                Adjuntar desde Documentos
+              </button>
+              <button v-if="canCreateMarkdownAttachment" type="button" @click="showMarkdownModal = true"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Crear documento desde markdown
+              </button>
+            </div>
             <input ref="fileInput" type="file" multiple
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
               class="text-xs dark:text-white/70 file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-emerald-50 dark:file:bg-emerald-900/20 file:text-emerald-700 dark:file:text-emerald-400 file:rounded-lg hover:file:bg-emerald-100 dark:hover:file:bg-emerald-900/30"
               @change="handleFilesChange" />
           </div>
-          <div v-if="attachments.length" class="mt-2 space-y-1">
-            <div v-for="(file, idx) in attachments" :key="idx"
+          <div v-if="docRefs.length || attachments.length" class="mt-2 space-y-1">
+            <div v-for="(ref, idx) in docRefs" :key="`ref-${ref.key}`"
+              class="flex items-center justify-between py-1.5 px-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 rounded-lg">
+              <span class="flex items-center gap-2 min-w-0">
+                <span class="px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded text-[10px] font-medium">Documento</span>
+                <span class="text-xs text-gray-700 dark:text-white/70 truncate">{{ ref.label }}</span>
+              </span>
+              <button type="button" @click="removeDocRef(idx)"
+                class="text-gray-400 hover:text-red-500 transition-colors p-0.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div v-for="(file, idx) in attachments" :key="`file-${idx}`"
               class="flex items-center justify-between py-1.5 px-3 bg-gray-50 dark:bg-white/[0.03] rounded-lg">
               <span class="text-xs text-gray-700 dark:text-white/70 truncate">{{ file.name }}</span>
               <button type="button" @click="removeAttachment(idx)"
@@ -112,17 +136,6 @@
               </button>
             </div>
           </div>
-        </div>
-
-        <div class="flex items-start gap-2">
-          <input id="attach-nda" v-model="attachConfidentiality" type="checkbox"
-            class="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-          <label for="attach-nda" class="text-xs text-gray-600 dark:text-white/70 leading-relaxed">
-            Adjuntar acuerdo de confidencialidad
-            <span class="block text-[11px] text-gray-400 dark:text-white/40">
-              Se generará y anexará al correo como PDF.
-            </span>
-          </label>
         </div>
 
         <div class="flex items-center justify-between pt-2">
@@ -197,6 +210,9 @@
       </div>
     </section>
 
+      </template>
+
+      <template #aside>
     <!-- ── History ── -->
     <section class="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-5">
       <div class="flex items-center gap-2 mb-4">
@@ -273,6 +289,8 @@
         </div>
       </div>
     </section>
+      </template>
+    </TabSplitLayout>
 
     <MarkdownAttachmentModal
       :open="showMarkdownModal"
@@ -280,6 +298,16 @@
       show-diagnostic-templates
       @close="showMarkdownModal = false"
       @attach="handleMarkdownAttach"
+    />
+
+    <AttachFromDocumentsModal
+      :open="showAttachFromDocsModal"
+      source="diagnostic"
+      :entity="diagnostic"
+      :templates="diagnosticTemplates"
+      :preselected="docRefs.map(r => r.key)"
+      @close="showAttachFromDocsModal = false"
+      @attach="handleDocRefsAttach"
     />
   </div>
 </template>
@@ -290,8 +318,12 @@ import draggable from 'vuedraggable';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 import { DIAGNOSTIC_STATUS } from '~/stores/diagnostics_constants';
 import MarkdownAttachmentModal from '~/components/MarkdownAttachmentModal.vue';
+import AttachFromDocumentsModal from '~/components/AttachFromDocumentsModal.vue';
+import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import { useMarkdownAttachmentHandler } from '~/composables/useMarkdownAttachmentHandler';
+import { useDocRefsAttachment } from '~/composables/useDocRefsAttachment';
 import { validateEmailAttachments } from '~/utils/emailAttachments';
+import { get_request } from '~/stores/services/request_http';
 
 const props = defineProps({
   diagnostic: { type: Object, required: true },
@@ -313,7 +345,10 @@ const greeting = ref(defaultGreeting.value);
 const sections = ref([{ id: nextSectionId(), text: '' }]);
 const footer = ref(defaultFooter.value);
 const attachments = ref([]);
-const attachConfidentiality = ref(false);
+const { docRefs, removeDocRef, handleDocRefsAttach, appendDocRefsToFormData, resetDocRefs }
+  = useDocRefsAttachment();
+const showAttachFromDocsModal = ref(false);
+const diagnosticTemplates = ref([]);
 const fileInput = ref(null);
 const sending = ref(false);
 const sendSuccess = ref(false);
@@ -376,9 +411,7 @@ async function handleSend() {
   for (const file of attachments.value) {
     formData.append('attachments', file);
   }
-  if (attachConfidentiality.value) {
-    formData.append('attach_confidentiality', '1');
-  }
+  appendDocRefsToFormData(formData);
 
   const result = await store.sendCustomEmail(props.diagnostic.id, formData);
   sending.value = false;
@@ -402,7 +435,7 @@ function resetForm() {
   footer.value = defaultFooter.value;
   sections.value = [{ id: nextSectionId(), text: '' }];
   attachments.value = [];
-  attachConfidentiality.value = false;
+  resetDocRefs();
   if (fileInput.value) fileInput.value.value = '';
 }
 
@@ -458,7 +491,16 @@ async function loadDefaults() {
   }
 }
 
+async function loadDiagnosticTemplates() {
+  try {
+    const res = await get_request('diagnostic-templates/');
+    diagnosticTemplates.value = res.data || [];
+  } catch (e) {
+    diagnosticTemplates.value = [];
+  }
+}
+
 onMounted(() => {
-  Promise.all([loadDefaults(), loadHistory()]);
+  Promise.all([loadDefaults(), loadHistory(), loadDiagnosticTemplates()]);
 });
 </script>

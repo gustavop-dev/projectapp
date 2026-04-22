@@ -102,7 +102,8 @@ from content.views.diagnostic import (
     download_confidentiality_pdf, download_draft_confidentiality_pdf,
     send_diagnostic_email, get_diagnostic_email_defaults,
     list_diagnostic_emails, generate_diagnostic_email_markdown_attachment,
-    retrieve_public_diagnostic, track_public_diagnostic,
+    retrieve_public_diagnostic, retrieve_public_diagnostic_by_slug,
+    track_public_diagnostic,
     track_diagnostic_section_view, respond_public_diagnostic,
     download_public_diagnostic_pdf,
     diagnostic_defaults, reset_diagnostic_defaults,
@@ -283,6 +284,7 @@ urlpatterns = [
     # ── Web App Diagnostics ───────────────────────────────────────
     # Public (UUID-based)
     path('diagnostics/public/<uuid:diagnostic_uuid>/', retrieve_public_diagnostic, name='retrieve-public-diagnostic'),
+    path('diagnostics/public/by-slug/<slug:diagnostic_slug>/', retrieve_public_diagnostic_by_slug, name='retrieve-public-diagnostic-by-slug'),
     path('diagnostics/public/<uuid:diagnostic_uuid>/track/', track_public_diagnostic, name='track-public-diagnostic'),
     path('diagnostics/public/<uuid:diagnostic_uuid>/track-section/', track_diagnostic_section_view, name='track-diagnostic-section-view'),
     path('diagnostics/public/<uuid:diagnostic_uuid>/respond/', respond_public_diagnostic, name='respond-public-diagnostic'),

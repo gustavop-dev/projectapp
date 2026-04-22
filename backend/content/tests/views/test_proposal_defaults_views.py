@@ -154,6 +154,50 @@ class TestPutProposalDefaults:
         response = api_client.put(url, payload, format='json')
         assert response.status_code == 401
 
+    def test_persists_all_general_fields_round_trip(self, admin_client):
+        url = reverse('proposal-defaults')
+        payload = {
+            'language': 'es',
+            'sections_json': SAMPLE_SECTIONS,
+            'default_currency': 'USD',
+            'default_total_investment': '1234.50',
+            'hosting_percent': 45,
+            'hosting_discount_semiannual': 25,
+            'hosting_discount_quarterly': 12,
+            'expiration_days': 30,
+            'reminder_days': 5,
+            'urgency_reminder_days': 10,
+            'default_discount_percent': 15,
+            'default_slug_pattern': 'Mi Propuesta Especial',
+        }
+        put_resp = admin_client.put(url, payload, format='json')
+        assert put_resp.status_code == 200, put_resp.content
+
+        get_resp = admin_client.get(url, {'lang': 'es'})
+        assert get_resp.status_code == 200
+        data = get_resp.json()
+        assert data['default_currency'] == 'USD'
+        assert float(data['default_total_investment']) == 1234.50
+        assert data['hosting_percent'] == 45
+        assert data['hosting_discount_semiannual'] == 25
+        assert data['hosting_discount_quarterly'] == 12
+        assert data['expiration_days'] == 30
+        assert data['reminder_days'] == 5
+        assert data['urgency_reminder_days'] == 10
+        assert data['default_discount_percent'] == 15
+        assert data['default_slug_pattern'] == 'Mi Propuesta Especial'
+
+    def test_rejects_hosting_percent_out_of_range(self, admin_client):
+        url = reverse('proposal-defaults')
+        payload = {
+            'language': 'es',
+            'sections_json': SAMPLE_SECTIONS,
+            'hosting_percent': 150,
+        }
+        response = admin_client.put(url, payload, format='json')
+        assert response.status_code == 400
+        assert 'hosting_percent' in response.json()
+
 
 # ---------------------------------------------------------------------------
 # POST /api/proposals/defaults/reset/

@@ -4469,7 +4469,15 @@ def proposal_defaults(request):
             'id': None,
             'language': lang,
             'sections_json': hardcoded,
+            'default_currency': ProposalDefaultConfig.Currency.COP,
+            'default_total_investment': '0.00',
+            'hosting_percent': 30,
+            'hosting_discount_semiannual': 20,
+            'hosting_discount_quarterly': 10,
             'expiration_days': ProposalService.DEFAULT_EXPIRATION_DAYS,
+            'reminder_days': 3,
+            'urgency_reminder_days': 7,
+            'default_discount_percent': 0,
             'default_slug_pattern': '{client_name}',
             'created_at': None,
             'updated_at': None,
@@ -4997,6 +5005,97 @@ def send_documents_to_client(request, proposal_id):
 _COMPOSED_EMAIL_ALLOWED_EXT = {'.pdf', '.doc', '.docx', '.xls', '.xlsx', '.png', '.jpg', '.jpeg'}
 _COMPOSED_EMAIL_MAX_FILE = 15 * 1024 * 1024  # 15 MB
 
+
+def _resolve_proposal_doc_refs(proposal, doc_refs):
+    """
+    Resolve a list of doc_refs into email attachment tuples.
+
+    Each ref is ``{'source': str, 'id'?: int}``. Supported sources:
+      - ``contract_pdf``    → generated contract (final PDF)
+      - ``contract_draft``  → freshly generated draft with watermark
+      - ``commercial_pdf``  → commercial proposal PDF (ProposalPdfService)
+      - ``technical_pdf``   → technical document PDF
+      - ``proposal_document`` (with ``id``) → uploaded ProposalDocument file
+    """
+    import mimetypes
+
+    from content.models import ProposalDocument
+    from content.services.contract_pdf_service import generate_contract_pdf
+    from content.services.pdf_utils import add_watermark_to_pdf, safe_pdf_filename
+    from content.services.proposal_pdf_service import ProposalPdfService
+    from content.services.technical_document_pdf import generate_technical_document_pdf
+    from content.views._doc_refs import DocRefError
+
+    doc_ids = [r.get('id') for r in doc_refs
+               if isinstance(r, dict) and r.get('source') == 'proposal_document']
+    docs_by_id = {
+        doc.pk: doc
+        for doc in ProposalDocument.objects.filter(proposal=proposal, pk__in=doc_ids)
+    } if doc_ids else {}
+
+    out = []
+    date_str = (proposal.created_at or timezone.now()).strftime('%Y-%m-%d')
+    client_title = proposal.client_name or proposal.title or 'cliente'
+
+    for ref in doc_refs:
+        if not isinstance(ref, dict):
+            raise DocRefError('Cada doc_ref debe ser un objeto.')
+        source = ref.get('source')
+
+        if source == 'contract_pdf':
+            pdf_bytes = generate_contract_pdf(proposal, draft=False)
+            if not pdf_bytes:
+                raise DocRefError('El contrato aún no ha sido generado.')
+            out.append((
+                safe_pdf_filename('Contrato', client_title, date_str),
+                pdf_bytes,
+                'application/pdf',
+            ))
+        elif source == 'contract_draft':
+            pdf_bytes = generate_contract_pdf(proposal, draft=True)
+            if not pdf_bytes:
+                raise DocRefError('No se pudo generar el borrador del contrato.')
+            out.append((
+                safe_pdf_filename('Borrador_Contrato', client_title, date_str),
+                add_watermark_to_pdf(pdf_bytes),
+                'application/pdf',
+            ))
+        elif source == 'commercial_pdf':
+            pdf_bytes = ProposalPdfService.generate(proposal)
+            if not pdf_bytes:
+                raise DocRefError('No se pudo generar la propuesta comercial.')
+            out.append((
+                safe_pdf_filename('Propuesta_Comercial', client_title, date_str),
+                pdf_bytes,
+                'application/pdf',
+            ))
+        elif source == 'technical_pdf':
+            pdf_bytes = generate_technical_document_pdf(proposal)
+            if not pdf_bytes:
+                raise DocRefError('No se pudo generar el detalle técnico.')
+            out.append((
+                safe_pdf_filename('Detalle_Tecnico', client_title, date_str),
+                pdf_bytes,
+                'application/pdf',
+            ))
+        elif source == 'proposal_document':
+            doc_id = ref.get('id')
+            doc = docs_by_id.get(doc_id)
+            if doc is None:
+                raise DocRefError(f'Documento {doc_id} no existe.')
+            if not doc.file:
+                raise DocRefError(f'Documento "{doc.title}" no tiene archivo.')
+            with doc.file.open('rb') as fh:
+                data = fh.read()
+            name = doc.file.name.rsplit('/', 1)[-1]
+            mime = mimetypes.guess_type(name)[0] or 'application/octet-stream'
+            out.append((name, data, mime))
+        else:
+            raise DocRefError(f'Fuente de documento desconocida: {source!r}.')
+
+    return out
+
+
 def _parse_composed_email(request, proposal, template_key):
     """
     Validate and parse a composed-email request.
@@ -5082,6 +5181,20 @@ def _parse_composed_email(request, proposal, template_key):
             )
         mime_type = mimetypes.guess_type(f.name)[0] or 'application/octet-stream'
         attachments.append((f.name, f.read(), mime_type))
+
+    # ── References to existing documents (contract, PDFs, templates, uploads) ──
+    from content.views._doc_refs import DocRefError, parse_doc_refs_field
+
+    doc_refs, error_response = parse_doc_refs_field(request)
+    if error_response:
+        return None, error_response
+    try:
+        attachments.extend(_resolve_proposal_doc_refs(proposal, doc_refs))
+    except DocRefError as err:
+        return None, Response(
+            {'error': str(err)},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     return {
         'recipient_email': recipient_email,

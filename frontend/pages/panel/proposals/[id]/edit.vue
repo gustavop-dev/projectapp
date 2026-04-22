@@ -71,7 +71,9 @@
       <ResponsiveTabs v-model="activeTab" :tabs="tabs" />
 
       <!-- Tab: General -->
-      <div v-show="activeTab === 'general'" class="max-w-2xl">
+      <div v-show="activeTab === 'general'">
+        <TabSplitLayout ratio="3:2">
+          <template #aside>
         <!-- Editable slug (URL personalizada) -->
         <div class="bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06] rounded-xl p-4 sm:p-5 mb-4">
           <label class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" for="proposal-slug-input">
@@ -253,6 +255,9 @@
           </div>
         </div>
 
+          </template>
+
+          <template #main>
         <!-- Editable form -->
         <form class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06]" @submit.prevent="handleUpdate">
           <div class="p-4 sm:p-8 space-y-6">
@@ -617,16 +622,17 @@
             </div>
           </div>
         </form>
+          </template>
+        </TabSplitLayout>
       </div>
 
       <!-- Tab: Correos -->
-      <div v-show="activeTab === 'emails'" class="max-w-4xl">
+      <div v-show="activeTab === 'emails'">
         <ProposalEmailsTab v-if="proposal" :proposal="proposal" />
       </div>
 
-      <!-- Tab: Documentos & Plantillas -->
-      <div v-show="activeTab === 'documents'" class="max-w-4xl space-y-8">
-        <ProposalDiagnosticTemplatesSection />
+      <!-- Tab: Documentos -->
+      <div v-show="activeTab === 'documents'" class="max-w-7xl mx-auto">
         <ProposalDocumentsTab
           v-if="hasProposalDocuments"
           :proposal="proposal"
@@ -638,12 +644,12 @@
       </div>
 
       <!-- Tab: Cronograma -->
-      <div v-show="activeTab === 'schedule'" class="max-w-4xl">
+      <div v-show="activeTab === 'schedule'" class="max-w-7xl mx-auto">
         <ProjectScheduleEditor v-if="proposal" :proposal="proposal" />
       </div>
 
       <!-- Tab: Prompt Proposal -->
-      <div v-show="activeTab === 'prompt'" class="max-w-4xl">
+      <div v-show="activeTab === 'prompt'" class="max-w-7xl mx-auto">
         <PromptSubTabsPanel v-model="promptSubTab">
           <template #commercial>
           <p class="text-sm text-gray-500 mb-6">
@@ -799,9 +805,11 @@
       </div>
 
       <!-- Tab: JSON -->
-      <div v-show="activeTab === 'json'" class="max-w-4xl">
+      <div v-show="activeTab === 'json'">
+        <TabSplitLayout>
+          <template #main>
         <!-- Current JSON (read-only) -->
-        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6 mb-6">
+        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
               <h3 class="text-sm font-medium text-gray-900 dark:text-white">JSON de la propuesta</h3>
@@ -851,6 +859,9 @@
           />
         </div>
 
+          </template>
+
+          <template #aside>
         <!-- Import JSON -->
         <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6">
           <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-1">Importar JSON</h3>
@@ -922,10 +933,12 @@
           </div>
 
         </div>
+          </template>
+        </TabSplitLayout>
       </div>
 
       <!-- Tab: Activity -->
-      <div v-show="activeTab === 'activity'">
+      <div v-show="activeTab === 'activity'" class="max-w-5xl mx-auto">
         <!-- Log activity form -->
         <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-5 mb-6">
           <div class="flex items-center gap-1.5 mb-3">
@@ -983,12 +996,12 @@
       </div>
 
       <!-- Tab: Analytics -->
-      <div v-show="activeTab === 'analytics'">
+      <div v-show="activeTab === 'analytics'" class="max-w-screen-2xl mx-auto">
         <ProposalAnalytics :proposalId="proposal.id" :proposal="proposal" />
       </div>
 
       <!-- Tab: Detalle técnico -->
-      <div v-show="activeTab === 'technical'" class="max-w-5xl">
+      <div v-show="activeTab === 'technical'" class="max-w-7xl mx-auto">
         <div class="flex gap-1 mb-4 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 max-w-sm">
           <button
             type="button"
@@ -1054,7 +1067,7 @@
       </div>
 
       <!-- Tab: Sections -->
-      <div v-show="activeTab === 'sections'">
+      <div v-show="activeTab === 'sections'" class="max-w-7xl mx-auto">
         <!-- F10: Section completeness indicator -->
         <div v-if="allSections.length" class="mb-4 bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] px-5 py-4">
           <div class="flex items-center justify-between mb-2">
@@ -1234,10 +1247,10 @@ import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnaly
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
 import ProposalActionsModal from '~/components/BusinessProposal/admin/ProposalActionsModal.vue';
 import ProposalDocumentsTab from '~/components/BusinessProposal/admin/ProposalDocumentsTab.vue';
-import ProposalDiagnosticTemplatesSection from '~/components/BusinessProposal/admin/ProposalDiagnosticTemplatesSection.vue';
 import ProposalEmailsTab from '~/components/BusinessProposal/admin/ProposalEmailsTab.vue';
 import ProjectScheduleEditor from '~/components/BusinessProposal/admin/ProjectScheduleEditor.vue';
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
+import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
@@ -1399,7 +1412,7 @@ const tabs = computed(() => {
     base.push({ id: 'emails', label: 'Correos' });
   }
   if (hasDocumentsTab.value) {
-    base.push({ id: 'documents', label: 'Documentos & Plantillas' });
+    base.push({ id: 'documents', label: 'Documentos' });
   }
   if (hasScheduleTab.value) {
     base.push({ id: 'schedule', label: 'Cronograma' });

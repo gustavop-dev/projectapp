@@ -289,7 +289,7 @@ class BusinessProposal(models.Model):
             pattern = cfg.default_slug_pattern if cfg else None
 
             if pattern:
-                base = render_slug_pattern(pattern, self)
+                base = render_slug_pattern(pattern, self, fallback='propuesta')
             else:
                 slug_source = self.client_name
                 if not slug_source and self.client_id:

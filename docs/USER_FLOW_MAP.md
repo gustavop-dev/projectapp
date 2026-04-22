@@ -718,8 +718,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch B — Invalid format] Red error message blocks save.
   - [Branch C — Duplicate slug] Server 400 → "Esa URL ya está en uso" message.
   - [Branch D — Regenerate] Slug input pre-filled with `toSlug(clientName)`; admin can still modify before saving.
-- **Coverage:** ❌ Not covered
-- **E2E Spec:** *(pending `e2e/admin/admin-proposal-slug-edit.spec.js`)*
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-slug-edit.spec.js`
 
 ### FLOW: `admin-proposal-section-edit-form`
 
@@ -2108,7 +2108,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-client-autocomplete` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-client-autocomplete.spec.js` |
 | `admin-proposal-client-no-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-client-autocomplete.spec.js` |
 | `admin-proposal-edit` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-edit.spec.js` |
-| `admin-proposal-slug-edit` | admin | admin | P1 | ❌ Missing | pending `e2e/admin/admin-proposal-slug-edit.spec.js` |
+| `admin-proposal-slug-edit` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-slug-edit.spec.js` |
 | `admin-proposal-section-edit-form` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-section-form.spec.js` |
 | `admin-proposal-section-edit-paste` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-section-paste.spec.js` |
 | `admin-proposal-section-reorder` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-section-reorder.spec.js` |
@@ -3179,8 +3179,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   6. Admin edits email fields as needed.
   7. Admin clicks "Enviar documentos" → API call to `POST /api/proposals/:id/documents/send/`.
   8. Success message: "Documentos enviados correctamente."
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-proposal-documents-send.spec.js`
+- **Coverage:** ⚠️ Superseded — replaced by `admin-proposal-attach-from-documents` (Apr 22, 2026). The "Enviar documentos" section was removed from the Documents tab; document attachment now happens in the Correos tab via `doc_refs`.
+- **E2E Spec:** *(spec deleted; see `e2e/admin/admin-proposal-attach-from-documents.spec.js`)*
 
 ### 10.3 Composed Email Flows
 
@@ -3251,7 +3251,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-contract-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-contract-edit.spec.js` |
 | `admin-proposal-contract-download` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-contract-download.spec.js` |
 | `admin-proposal-documents-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-documents-manage.spec.js` |
-| `admin-proposal-documents-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-documents-send.spec.js` |
+| `admin-proposal-documents-send` | admin | admin | P1 | ⚠️ Superseded | replaced by `admin-proposal-attach-from-documents` (Apr 22, 2026) |
 | `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `admin-send-proposal-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `admin-standalone-email-composer` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-standalone-email-composer.spec.js` |
@@ -4466,3 +4466,83 @@ Two transitions that were previously bundled into other flows now have their own
 **Known gaps:** `admin-proposal-section-reorder` covers drag reorder only. No E2E explicitly asserts that toggling `is_enabled` removes a section from the public proposal view.
 
 **Flow tag:** `ADMIN_PROPOSAL_SECTION_DISABLE`
+
+---
+
+## Section 21 — Documents Tab Reorganization & doc_refs Attachment (Apr 22, 2026)
+
+> Flows registered during the Apr 22, 2026 reorganization. The Documents tab now serves as a read-only document viewer; sending files is done from the Correos tab using `doc_refs` references — no re-upload needed. The old `admin-proposal-documents-send` flow is superseded.
+
+---
+
+### 21.1 Proposal — Adjuntar desde Documentos
+
+#### FLOW: `admin-proposal-attach-from-documents`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-proposal-attach-from-documents` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P1 |
+| **Status** | ✅ Covered |
+
+**Routes:** `/panel/proposals/:id/edit` (Correos tab)
+
+**Description:** Admin attaches existing proposal documents to the email composer without re-uploading them. The "Adjuntar desde Documentos" button opens `AttachFromDocumentsModal` which lists: contract PDF + draft (if a generated contract exists), commercial PDF, technical PDF, and any uploaded `proposal_documents`. Selected items become `doc_refs` badges in the composer. On send, `doc_refs` is included in the POST body and the backend resolves each reference to a real file attachment.
+
+**Steps:**
+1. Admin opens the Correos tab of a proposal (status `sent`, `viewed`, `negotiating`, `accepted`, or `rejected`).
+2. Admin clicks **"Adjuntar desde Documentos"** button.
+3. `AttachFromDocumentsModal` opens with a list of available documents.
+4. Admin checks one or more documents; confirm button shows count: "Adjuntar (N)".
+5. Admin clicks confirm → modal closes; emerald ref badges appear in the composer attachment area.
+6. Admin completes the email and clicks "Enviar correo" → `POST /api/proposals/:id/branded-email/send/` with `doc_refs=[{source, id?}]`.
+7. Backend resolves each `doc_refs` entry to a file binary and attaches it to the email.
+
+**E2E Spec:** `e2e/admin/admin-proposal-attach-from-documents.spec.js`
+
+**Flow tag:** `ADMIN_PROPOSAL_ATTACH_FROM_DOCUMENTS`
+
+---
+
+### 21.2 Diagnostic — Adjuntar desde Documentos
+
+#### FLOW: `admin-diagnostic-attach-from-documents`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-attach-from-documents` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ✅ Covered |
+
+**Routes:** `/panel/diagnostics/:id/edit` (Correos tab)
+
+**Description:** Admin attaches existing diagnostic documents to the email composer without re-uploading. The "Adjuntar desde Documentos" button opens `AttachFromDocumentsModal` with: NDA final + NDA draft (if a generated `confidentiality_agreement` attachment exists), all diagnostic MD templates (Diagnóstico de Aplicación, Diagnóstico Técnico, Anexo — Dimensionamiento), and any uploaded `DiagnosticAttachment` files. Selected items become `doc_refs` badges. On send, `doc_refs` is included and the backend resolves each reference.
+
+**Steps:**
+1. Admin opens the Correos tab of a diagnostic (status `sent`, `viewed`, `negotiating`, `accepted`, `rejected`, or `finished`).
+2. Composer loads `diagnostic-templates/` to populate available MD templates.
+3. Admin clicks **"Adjuntar desde Documentos"** button.
+4. `AttachFromDocumentsModal` opens; NDA items appear only if a generated `confidentiality_agreement` attachment exists.
+5. Admin checks one or more items; confirm button shows count.
+6. Admin clicks confirm → badges appear in the composer.
+7. Admin completes the email and clicks "Enviar correo" → `POST /api/diagnostics/:id/email/send/` with `doc_refs=[{source, slug?, id?}]`.
+8. Backend resolves: `nda_final`/`nda_draft` generate PDF; `template:<slug>` resolves MD; `attachment:<id>` reads the uploaded file.
+
+**E2E Spec:** `e2e/admin/admin-diagnostic-attach-from-documents.spec.js`
+
+**Flow tag:** `ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS`
+
+---
+
+### 21.3 Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `admin-proposal-attach-from-documents` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-attach-from-documents.spec.js` |
+| `admin-diagnostic-attach-from-documents` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-attach-from-documents.spec.js` |
+| `admin-proposal-documents-send` | admin | admin | P1 | ⚠️ Superseded | Replaced by `admin-proposal-attach-from-documents` (Apr 22, 2026); `expectedSpecs: 0` |
+| `admin-proposal-slug-edit` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-slug-edit.spec.js` |

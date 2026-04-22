@@ -6,6 +6,7 @@ import {
   patch_request,
   delete_request,
 } from './services/request_http';
+import { isUuid } from '~/utils/slugify';
 
 export const useDiagnosticsStore = defineStore('diagnostics', {
   state: () => ({
@@ -428,11 +429,18 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
     },
 
     // ── Public ──────────────────────────────────────────────────────
-    async fetchPublic(uuid) {
+    /**
+     * fetchPublic: Retrieve a diagnostic by UUID or slug for client viewing.
+     * Detects the identifier format and routes to the correct endpoint.
+     */
+    async fetchPublic(identifier) {
       this.isLoading = true;
       this.error = null;
+      const path = isUuid(identifier)
+        ? `diagnostics/public/${identifier}/`
+        : `diagnostics/public/by-slug/${identifier}/`;
       try {
-        const response = await get_request(`diagnostics/public/${uuid}/`);
+        const response = await get_request(path);
         this.current = response.data;
         return { success: true, data: response.data };
       } catch (error) {
@@ -519,6 +527,7 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
             'expiration_days',
             'reminder_days',
             'urgency_reminder_days',
+            'default_slug_pattern',
           ];
           for (const key of passthrough) {
             if (generalConfig[key] !== undefined && generalConfig[key] !== null) {

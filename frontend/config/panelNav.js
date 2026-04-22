@@ -41,10 +41,11 @@ export function getPanelNavSections(localePath) {
       label: 'Sales',
       items: [
         { label: 'Defaults', href: lp('/panel/defaults'), icon: 'settings' },
-        { label: 'Proposals', href: lp('/panel/proposals'), icon: 'folder' },
-        { label: 'New proposal', href: lp('/panel/proposals/create'), icon: 'plus' },
         { label: 'Clients', href: lp('/panel/clients'), icon: 'users' },
         { label: 'Email deliverability', href: lp('/panel/proposals/email-deliverability'), icon: 'mail' },
+        { label: 'Proposals', href: lp('/panel/proposals'), icon: 'folder' },
+        { label: 'New proposal', href: lp('/panel/proposals/create'), icon: 'plus' },
+        { divider: true },
         { label: 'Diagnostics', href: lp('/panel/diagnostics'), icon: 'file' },
         { label: 'New diagnostic', href: lp('/panel/diagnostics/create'), icon: 'plus' },
       ],

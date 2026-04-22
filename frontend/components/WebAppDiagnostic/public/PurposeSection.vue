@@ -8,7 +8,7 @@
 
     <blockquote
       v-if="content.scopeNote"
-      class="border-l-4 border-esmerald bg-bone/60 text-esmerald italic px-4 py-3 rounded-r-lg"
+      class="border-l-4 border-esmerald bg-esmerald/5 text-esmerald italic px-4 py-3 rounded-r-lg"
     >
       <strong class="not-italic">Alcance:</strong> {{ content.scopeNote }}
     </blockquote>

@@ -3,6 +3,12 @@ import uuid
 from django.conf import settings
 from django.db import models
 
+from content.utils import (
+    render_slug_pattern,
+    resolve_unique_slug,
+    safe_slug,
+)
+
 
 class WebAppDiagnostic(models.Model):
     """Diagnóstico técnico ofrecido a clientes que ya tienen una aplicación web.
@@ -57,6 +63,10 @@ class WebAppDiagnostic(models.Model):
     # Identidad
     uuid = models.UUIDField(
         default=uuid.uuid4, unique=True, editable=False, db_index=True,
+    )
+    slug = models.SlugField(
+        max_length=120, unique=True, blank=True, db_index=True,
+        help_text='Personal, human-friendly handle used in the public URL /diagnostic/<slug>/.',
     )
     title = models.CharField(max_length=255)
     client = models.ForeignKey(
@@ -133,7 +143,26 @@ class WebAppDiagnostic(models.Model):
     @property
     def public_url(self):
         base = getattr(settings, 'FRONTEND_BASE_URL', '').rstrip('/')
-        return f'{base}/diagnostic/{self.uuid}/'
+        identifier = self.slug or self.uuid
+        return f'{base}/diagnostic/{identifier}/'
 
     def can_transition_to(self, new_status):
         return new_status in self.ALLOWED_TRANSITIONS.get(self.status, frozenset())
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            from content.models.diagnostic_default_config import DiagnosticDefaultConfig
+
+            cfg = DiagnosticDefaultConfig.objects.filter(language=self.language).first()
+            pattern = cfg.default_slug_pattern if cfg else None
+
+            if pattern:
+                base = render_slug_pattern(pattern, self, fallback='diagnostico')
+            else:
+                slug_source = self.client_name
+                if not slug_source and self.client_id:
+                    slug_source = self.client.user.get_full_name() or self.client.user.email
+                base = safe_slug(slug_source, 'diagnostico')
+
+            self.slug = resolve_unique_slug(base, type(self), exclude_pk=self.pk)
+        super().save(*args, **kwargs)

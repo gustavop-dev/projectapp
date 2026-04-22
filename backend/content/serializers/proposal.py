@@ -1,4 +1,3 @@
-from django.utils.text import slugify
 from rest_framework import serializers
 
 from accounts.models import UserProfile
@@ -18,7 +17,7 @@ from content.models import (
     ProposalDefaultConfig,
 )
 from content.serializers.proposal_clients import ProposalClientSerializer
-from content.utils import validate_email_domain_mx
+from content.utils import validate_editable_slug, validate_email_domain_mx
 
 
 def _validate_client_email_mx(value):
@@ -360,27 +359,9 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
         return _validate_client_email_mx(value)
 
     def validate_slug(self, value):
-        """Validate user-supplied slugs: format + uniqueness."""
-        value = (value or '').strip()
-        if not value:
-            return value
-        normalized = slugify(value)
-        if normalized != value:
-            raise serializers.ValidationError(
-                'Solo se permiten minúsculas, números y guiones (sin espacios ni acentos).'
-            )
-        if len(value) > 120:
-            raise serializers.ValidationError(
-                'La URL personalizada no puede superar 120 caracteres.'
-            )
-        qs = BusinessProposal.objects.filter(slug=value)
-        if self.instance is not None:
-            qs = qs.exclude(pk=self.instance.pk)
-        if qs.exists():
-            raise serializers.ValidationError(
-                'Esa URL ya está en uso por otra propuesta. Elige una distinta.'
-            )
-        return value
+        return validate_editable_slug(
+            value, BusinessProposal, self.instance, conflict_phrase='otra propuesta',
+        )
 
     def validate_expires_at(self, value):
         """Ensure expiration date is in the future when provided."""
@@ -626,12 +607,29 @@ class ProposalDefaultConfigSerializer(serializers.ModelSerializer):
             'id',
             'language',
             'sections_json',
+            'default_currency',
+            'default_total_investment',
+            'hosting_percent',
+            'hosting_discount_semiannual',
+            'hosting_discount_quarterly',
             'expiration_days',
+            'reminder_days',
+            'urgency_reminder_days',
+            'default_discount_percent',
             'default_slug_pattern',
             'created_at',
             'updated_at',
         )
         read_only_fields = ('id', 'created_at', 'updated_at')
+        extra_kwargs = {
+            'hosting_percent': {'min_value': 0, 'max_value': 100},
+            'hosting_discount_semiannual': {'min_value': 0, 'max_value': 100},
+            'hosting_discount_quarterly': {'min_value': 0, 'max_value': 100},
+            'default_discount_percent': {'min_value': 0, 'max_value': 100},
+            'reminder_days': {'min_value': 0, 'max_value': 365},
+            'urgency_reminder_days': {'min_value': 0, 'max_value': 365},
+            'default_total_investment': {'min_value': 0},
+        }
 
     def validate_language(self, value):
         if value not in ('es', 'en'):

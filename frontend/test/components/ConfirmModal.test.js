@@ -110,4 +110,69 @@ describe('ConfirmModal', () => {
     expect(wrapper.html()).toContain('bg-lemon/30');
     warnSpy.mockRestore();
   });
+
+  describe('requireTypeText', () => {
+    it('renders the type-to-confirm input when requireTypeText is set', () => {
+      const wrapper = mountModal({ requireTypeText: 'DELETE' });
+
+      const input = wrapper.find('[data-testid="confirm-type-input"]');
+      expect(input.exists()).toBe(true);
+    });
+
+    it('disables the confirm button until the typed value matches exactly', async () => {
+      const wrapper = mountModal({ requireTypeText: 'DELETE' });
+
+      const confirmBtn = wrapper.find('[data-testid="confirm-modal-confirm"]');
+      expect(confirmBtn.attributes('disabled')).toBeDefined();
+
+      const input = wrapper.find('[data-testid="confirm-type-input"]');
+      await input.setValue('delete');
+      expect(confirmBtn.attributes('disabled')).toBeDefined();
+
+      await input.setValue('DELETE');
+      expect(confirmBtn.attributes('disabled')).toBeUndefined();
+
+      await confirmBtn.trigger('click');
+      expect(wrapper.emitted('confirm')).toEqual([[]]);
+    });
+
+    it('does not emit confirm when clicking while disabled', async () => {
+      const wrapper = mountModal({ requireTypeText: 'DELETE' });
+
+      await wrapper.find('[data-testid="confirm-modal-confirm"]').trigger('click');
+      expect(wrapper.emitted('confirm')).toBeUndefined();
+    });
+
+    it('clears the typed value when the modal reopens', async () => {
+      const wrapper = mountModal({ modelValue: false, requireTypeText: 'DELETE' });
+      await wrapper.setProps({ modelValue: true });
+      await nextTick();
+
+      const input = wrapper.find('[data-testid="confirm-type-input"]');
+      await input.setValue('DELETE');
+      expect(input.element.value).toBe('DELETE');
+
+      await wrapper.setProps({ modelValue: false });
+      await nextTick();
+      await wrapper.setProps({ modelValue: true });
+      await nextTick();
+
+      expect(wrapper.find('[data-testid="confirm-type-input"]').element.value).toBe('');
+    });
+  });
+
+  describe('hideCancel', () => {
+    it('hides the cancel button when hideCancel is true', () => {
+      const wrapper = mountModal({ hideCancel: true });
+
+      const buttons = wrapper.findAll('button').filter((b) => b.text() === 'Cancelar');
+      expect(buttons.length).toBe(0);
+    });
+
+    it('still shows the confirm button when hideCancel is true', () => {
+      const wrapper = mountModal({ hideCancel: true });
+
+      expect(wrapper.find('[data-testid="confirm-modal-confirm"]').exists()).toBe(true);
+    });
+  });
 });

@@ -18,7 +18,7 @@
     <ResponsiveTabs v-model="activeTab" :tabs="tabs" />
 
     <!-- ═══ TAB: Vista General ═══ -->
-    <div v-show="activeTab === 'general'" class="max-w-2xl">
+    <div v-show="activeTab === 'general'" class="max-w-5xl mx-auto">
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
         Estos son los valores por defecto que se aplican al crear una nueva propuesta. Puedes modificarlos aquí para que se pre-llenen automáticamente.
       </p>
@@ -96,7 +96,27 @@
           <p class="text-xs text-gray-400 mt-1">0 = sin descuento en email de urgencia.</p>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Patrón de URL personalizada</label>
+          <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Patrón de URL personalizada
+            <UiTooltip position="right" width="max-w-xs">
+              <div class="space-y-2 text-left">
+                <p>Puedes usar <strong>texto libre</strong> o combinarlo con placeholders.</p>
+                <p>
+                  Placeholders disponibles:
+                  <code>{client_name}</code>, <code>{project_type}</code>, <code>{year}</code>.
+                </p>
+                <p class="text-xs opacity-80">Reglas (se aplican automáticamente):</p>
+                <ul class="list-disc pl-4 text-xs opacity-80 space-y-0.5">
+                  <li>Se convierte a minúsculas</li>
+                  <li>Los espacios se reemplazan por guiones <code>-</code></li>
+                  <li>Se eliminan tildes y caracteres especiales</li>
+                </ul>
+                <p class="text-xs opacity-80">
+                  Ejemplos: <code>mi-propuesta</code>, <code>{client_name}-2026</code>, <code>promo especial</code>.
+                </p>
+              </div>
+            </UiTooltip>
+          </label>
           <input
             v-model="generalForm.default_slug_pattern"
             type="text"
@@ -105,10 +125,7 @@
             placeholder="{client_name}"
           />
           <p class="text-xs text-gray-400 mt-1">
-            Placeholders: <code class="px-1 bg-gray-100 dark:bg-gray-700 rounded">{client_name}</code>,
-            <code class="px-1 bg-gray-100 dark:bg-gray-700 rounded">{project_type}</code>,
-            <code class="px-1 bg-gray-100 dark:bg-gray-700 rounded">{year}</code>.
-            Se aplica al crear una propuesta si el vendedor no escribe una URL manualmente.
+            Texto libre permitido. Se aplica al crear una propuesta si el vendedor no escribe una URL manualmente.
           </p>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Vista previa: <span class="font-mono text-emerald-600 dark:text-emerald-400">/proposal/{{ slugPatternPreview }}</span>
@@ -124,7 +141,7 @@
     </div>
 
     <!-- ═══ TAB: Secciones ═══ -->
-    <div v-show="activeTab === 'sections'">
+    <div v-show="activeTab === 'sections'" class="max-w-7xl mx-auto">
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-4 max-w-3xl">
         Edita las secciones comerciales del modelo por defecto. El
         <strong class="text-gray-700 dark:text-gray-300">detalle técnico</strong>
@@ -247,7 +264,7 @@
     </div>
 
     <!-- ═══ TAB: Det. técnico (misma UX que editar propuesta) ═══ -->
-    <div v-show="activeTab === 'technical'" class="max-w-5xl">
+    <div v-show="activeTab === 'technical'" class="max-w-7xl mx-auto">
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
         Valores por defecto del bloque técnico (nuevas propuestas). Idioma actual:
         <strong>{{ selectedLang === 'es' ? 'Español' : 'English' }}</strong> — cambia el idioma en la pestaña Secciones si necesitas la otra plantilla.
@@ -328,178 +345,191 @@
 
     <!-- ═══ TAB: Plantillas de Email ═══ -->
     <div v-show="activeTab === 'emails'">
-      <!-- Category filter -->
-      <div class="mb-6 flex flex-wrap items-center gap-3">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Filtrar:</span>
-        <button
-          v-for="cat in emailCategoryOptions"
-          :key="cat.value"
-          type="button"
-          class="px-4 py-2 rounded-xl text-sm font-medium border transition-colors"
-          :class="emailSelectedCategory === cat.value
-            ? 'bg-emerald-600 text-white border-emerald-600'
-            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:border-gray-500'"
-          @click="emailSelectedCategory = cat.value"
-        >
-          {{ cat.label }}
-          <span class="ml-1 text-xs opacity-70">({{ countByCategory(cat.value) }})</span>
-        </button>
-      </div>
+      <TabSplitLayout ratio="2:3">
+        <template #main>
+          <div class="mb-4 flex flex-wrap items-center gap-2">
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mr-1">Filtrar:</span>
+            <button
+              v-for="cat in emailCategoryOptions"
+              :key="cat.value"
+              type="button"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors"
+              :class="emailSelectedCategory === cat.value
+                ? 'bg-emerald-600 text-white border-emerald-600'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:border-gray-500'"
+              @click="emailSelectedCategory = cat.value"
+            >
+              {{ cat.label }}
+              <span class="ml-1 opacity-70">({{ countByCategory(cat.value) }})</span>
+            </button>
+          </div>
 
-      <div v-if="emailIsLoading" class="text-center py-12 text-gray-400 text-sm">
-        Cargando plantillas...
-      </div>
+          <div v-if="emailIsLoading" class="text-center py-12 text-gray-400 text-sm">
+            Cargando plantillas...
+          </div>
 
-      <div v-else-if="filteredEmailTemplates.length" class="space-y-3">
-        <div
-          v-for="tpl in filteredEmailTemplates"
-          :key="tpl.template_key"
-          class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
-        >
-          <div
-            class="px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-            @click="toggleEmailTemplate(tpl.template_key)"
-          >
-            <div class="flex items-center gap-3 min-w-0">
-              <span class="text-lg flex-shrink-0">{{ emailCategoryIcon(tpl.category) }}</span>
-              <div class="min-w-0">
-                <span class="text-sm font-medium text-gray-900 dark:text-gray-100 block truncate">{{ tpl.name }}</span>
-                <span class="text-xs text-gray-400 block truncate">{{ tpl.description }}</span>
+          <div v-else-if="filteredEmailTemplates.length" class="space-y-2">
+            <button
+              v-for="tpl in filteredEmailTemplates"
+              :key="tpl.template_key"
+              type="button"
+              class="w-full text-left bg-white dark:bg-gray-800 rounded-xl shadow-sm border transition-colors px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
+              :class="emailSelectedTemplate === tpl.template_key
+                ? 'border-emerald-500 ring-1 ring-emerald-500'
+                : 'border-gray-100 dark:border-gray-700'"
+              @click="selectEmailTemplate(tpl.template_key)"
+            >
+              <div class="flex items-start gap-3 min-w-0">
+                <span class="text-lg flex-shrink-0">{{ emailCategoryIcon(tpl.category) }}</span>
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ tpl.name }}</div>
+                  <div class="text-xs text-gray-400 truncate">{{ tpl.description }}</div>
+                  <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <span v-if="tpl.is_customized" class="text-[10px] text-emerald-600 font-medium bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 px-1.5 py-0.5 rounded-full">Personalizado</span>
+                    <span v-if="!tpl.is_active" class="text-[10px] text-red-600 font-medium bg-red-50 dark:bg-red-900/20 dark:text-red-400 px-1.5 py-0.5 rounded-full">Desactivado</span>
+                    <span class="text-[10px] text-gray-400">{{ tpl.editable_fields_count }} campos</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div class="flex items-center gap-3 flex-shrink-0">
-              <span v-if="tpl.is_customized" class="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full">Personalizado</span>
-              <span v-if="!tpl.is_active" class="text-xs text-red-600 font-medium bg-red-50 px-2 py-0.5 rounded-full">Desactivado</span>
-              <span class="text-xs text-gray-400">{{ tpl.editable_fields_count }} campos</span>
+            </button>
+          </div>
+
+          <div v-else class="text-center py-16">
+            <p class="text-gray-500 text-sm">No se encontraron plantillas de email.</p>
+          </div>
+        </template>
+
+        <template #aside>
+          <div
+            v-if="!emailSelectedTemplate"
+            class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-dashed border-gray-200 dark:border-gray-700 px-6 py-16 text-center"
+          >
+            <p class="text-sm text-gray-400">Selecciona una plantilla a la izquierda para editar sus campos.</p>
+          </div>
+          <div
+            v-else-if="emailIsLoadingDetail && !emailTemplateDetail"
+            class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 px-6 py-12 text-center text-gray-400 text-sm"
+          >
+            Cargando campos editables...
+          </div>
+          <div
+            v-else-if="emailTemplateDetail"
+            class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 px-4 sm:px-6 py-4 sm:py-6 space-y-5"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-gray-100 dark:border-gray-700">
+              <div class="flex items-start gap-3 min-w-0">
+                <span class="text-2xl flex-shrink-0">{{ emailCategoryIcon(emailTemplateDetail.category) }}</span>
+                <div class="min-w-0">
+                  <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 truncate">{{ emailTemplateDetail.name }}</h3>
+                  <p class="text-xs text-gray-400 mt-0.5">{{ emailTemplateDetail.description }}</p>
+                </div>
+              </div>
               <button
                 type="button"
-                class="p-1.5 rounded-lg text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
-                title="Vista previa"
+                class="px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
                 :disabled="emailIsPreviewLoading"
-                @click.stop="handleEmailPreview(tpl.template_key)"
+                @click="handleEmailPreview(emailSelectedTemplate)"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
+                {{ emailIsPreviewLoading ? 'Cargando...' : '👁 Vista previa' }}
               </button>
-              <svg
-                class="w-4 h-4 text-gray-400 transition-transform"
-                :class="{ 'rotate-180': emailExpandedTemplate === tpl.template_key }"
-                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">Estado del email</span>
+                <p class="text-xs text-gray-400 mt-0.5">Desactiva para dejar de enviar este correo.</p>
+              </div>
+              <button
+                type="button"
+                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                :class="emailEditIsActive ? 'bg-emerald-600' : 'bg-gray-200'"
+                @click="emailEditIsActive = !emailEditIsActive"
               >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
+                <span
+                  class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                  :class="emailEditIsActive ? 'translate-x-5' : 'translate-x-0'"
+                />
+              </button>
             </div>
-          </div>
 
-          <!-- Expanded editor -->
-          <div v-if="emailExpandedTemplate === tpl.template_key" class="border-t border-gray-100 dark:border-gray-700">
-            <div v-if="emailIsLoadingDetail" class="px-6 py-8 text-center text-gray-400 text-sm">
-              Cargando campos editables...
-            </div>
-            <div v-else-if="emailTemplateDetail" class="px-4 sm:px-6 py-4 sm:py-6 space-y-5">
-              <!-- Active toggle -->
-              <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
-                <div>
-                  <span class="text-sm font-medium text-gray-900 dark:text-gray-100">Estado del email</span>
-                  <p class="text-xs text-gray-400 mt-0.5">Desactiva para dejar de enviar este correo.</p>
-                </div>
+            <div v-for="field in emailTemplateDetail.editable_fields" :key="field.key" class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                  {{ field.label }}
+                  <span v-if="field.is_overridden" class="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full normal-case tracking-normal">modificado</span>
+                </label>
                 <button
+                  v-if="emailEditFields[field.key] && emailEditFields[field.key] !== field.default_value"
                   type="button"
-                  class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                  :class="emailEditIsActive ? 'bg-emerald-600' : 'bg-gray-200'"
-                  @click="emailEditIsActive = !emailEditIsActive"
+                  class="text-[10px] text-gray-400 hover:text-red-500 transition-colors"
+                  @click="emailEditFields[field.key] = field.default_value || ''"
+                >restaurar campo</button>
+              </div>
+              <input
+                v-if="field.type === 'text'"
+                v-model="emailEditFields[field.key]"
+                type="text"
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors dark:bg-gray-700"
+                :placeholder="field.default_value"
+                :ref="el => { if (el) emailFieldRefs[field.key] = el }"
+                @focus="emailLastFocusedField = field.key"
+              />
+              <textarea
+                v-else
+                v-model="emailEditFields[field.key]"
+                rows="3"
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors resize-y dark:bg-gray-700"
+                :placeholder="field.default_value"
+                :ref="el => { if (el) emailFieldRefs[field.key] = el }"
+                @focus="emailLastFocusedField = field.key"
+              />
+              <p v-if="field.default_value" class="text-[11px] text-gray-400">
+                Por defecto: {{ truncateText(field.default_value, 100) }}
+              </p>
+            </div>
+
+            <div v-if="emailTemplateDetail.available_variables?.length" class="pt-3 border-t border-gray-100 dark:border-gray-700">
+              <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                Variables disponibles
+                <span v-if="emailLastFocusedField" class="text-emerald-500 font-normal">(click para insertar en {{ emailLastFocusedField }})</span>
+                <span v-else class="text-gray-400 font-normal">(haz clic en un campo primero)</span>
+              </p>
+              <div class="flex flex-wrap gap-1.5">
+                <code
+                  v-for="v in emailTemplateDetail.available_variables"
+                  :key="v"
+                  class="text-[11px] bg-gray-100 text-gray-600 px-2 py-1 rounded-lg cursor-pointer hover:bg-emerald-50 hover:text-emerald-700 transition-colors dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400"
+                  @click="emailInsertVariable(v)"
                 >
-                  <span
-                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                    :class="emailEditIsActive ? 'translate-x-5' : 'translate-x-0'"
-                  />
-                </button>
-              </div>
-
-              <!-- Editable fields -->
-              <div v-for="field in emailTemplateDetail.editable_fields" :key="field.key" class="space-y-1.5">
-                <div class="flex items-center justify-between">
-                  <label class="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                    {{ field.label }}
-                    <span v-if="field.is_overridden" class="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full normal-case tracking-normal">modificado</span>
-                  </label>
-                  <button
-                    v-if="emailEditFields[field.key] && emailEditFields[field.key] !== field.default_value"
-                    type="button"
-                    class="text-[10px] text-gray-400 hover:text-red-500 transition-colors"
-                    @click="emailEditFields[field.key] = field.default_value || ''"
-                  >restaurar campo</button>
-                </div>
-                <input
-                  v-if="field.type === 'text'"
-                  v-model="emailEditFields[field.key]"
-                  type="text"
-                  class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors dark:bg-gray-700"
-                  :placeholder="field.default_value"
-                  :ref="el => { if (el) emailFieldRefs[field.key] = el }"
-                  @focus="emailLastFocusedField = field.key"
-                />
-                <textarea
-                  v-else
-                  v-model="emailEditFields[field.key]"
-                  rows="3"
-                  class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors resize-y dark:bg-gray-700"
-                  :placeholder="field.default_value"
-                  :ref="el => { if (el) emailFieldRefs[field.key] = el }"
-                  @focus="emailLastFocusedField = field.key"
-                />
-                <p v-if="field.default_value" class="text-[11px] text-gray-400">
-                  Por defecto: {{ truncateText(field.default_value, 100) }}
-                </p>
-              </div>
-
-              <!-- Available variables -->
-              <div v-if="emailTemplateDetail.available_variables?.length" class="pt-3 border-t border-gray-100 dark:border-gray-700">
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-                  Variables disponibles
-                  <span v-if="emailLastFocusedField" class="text-emerald-500 font-normal">(click para insertar en {{ emailLastFocusedField }})</span>
-                  <span v-else class="text-gray-400 font-normal">(haz clic en un campo primero)</span>
-                </p>
-                <div class="flex flex-wrap gap-1.5">
-                  <code
-                    v-for="v in emailTemplateDetail.available_variables"
-                    :key="v"
-                    class="text-[11px] bg-gray-100 text-gray-600 px-2 py-1 rounded-lg cursor-pointer hover:bg-emerald-50 hover:text-emerald-700 transition-colors dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400"
-                    @click="emailInsertVariable(v)"
-                  >
-                    {<span>{{ v }}</span>}
-                  </code>
-                </div>
-              </div>
-
-              <!-- Action buttons -->
-              <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-                <div class="flex items-center gap-2">
-                  <button type="button" class="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-colors" :disabled="emailIsPreviewLoading" @click="handleEmailPreview(tpl.template_key)">
-                    {{ emailIsPreviewLoading ? 'Cargando...' : '👁 Vista previa' }}
-                  </button>
-                  <button type="button" class="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors" @click="handleResetEmailTemplate(tpl.template_key)">
-                    Restaurar
-                  </button>
-                </div>
-                <button type="button" class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50" :disabled="isSaving" @click="handleSaveEmailTemplate(tpl.template_key)">
-                  {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
-                </button>
+                  {<span>{{ v }}</span>}
+                </code>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <div v-else class="text-center py-16">
-        <p class="text-gray-500 text-sm">No se encontraron plantillas de email.</p>
-      </div>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+              <button
+                type="button"
+                class="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                @click="handleResetEmailTemplate(emailSelectedTemplate)"
+              >
+                Restaurar
+              </button>
+              <button
+                type="button"
+                class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+                :disabled="isSaving"
+                @click="handleSaveEmailTemplate(emailSelectedTemplate)"
+              >
+                {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
+              </button>
+            </div>
+          </div>
+        </template>
+      </TabSplitLayout>
     </div>
 
     <!-- ═══ TAB: Prompt IA ═══ -->
-    <div v-show="activeTab === 'prompt'" class="max-w-4xl">
+    <div v-show="activeTab === 'prompt'" class="max-w-7xl mx-auto">
       <PromptSubTabsPanel v-model="defaultsPromptSubTab" dark-track>
         <template #commercial>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
@@ -658,7 +688,7 @@
     </div>
 
     <!-- ═══ TAB: JSON ═══ -->
-    <div v-show="activeTab === 'json'" class="max-w-4xl">
+    <div v-show="activeTab === 'json'" class="max-w-7xl mx-auto">
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
         Representación JSON de la configuración por defecto (secciones plantilla). Puedes editar directamente el JSON y guardar los cambios.
       </p>
@@ -868,6 +898,7 @@ import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue
 import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
 import SectionPreviewModal from '~/components/BusinessProposal/admin/SectionPreviewModal.vue';
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
+import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
@@ -1117,14 +1148,25 @@ async function loadDefaults(lang) {
     if (result.success && result.data) {
       sections.value = result.data.sections_json || [];
       configUpdatedAt.value = result.data.updated_at;
+      const d = result.data;
+      const num = (v, fallback) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : fallback;
+      };
       generalForm.value = {
         ...generalForm.value,
         language: lang,
-        expiration_days: Number.isInteger(Number(result.data.expiration_days))
-          ? Number(result.data.expiration_days)
-          : 21,
-        default_slug_pattern: typeof result.data.default_slug_pattern === 'string'
-          ? result.data.default_slug_pattern
+        currency: typeof d.default_currency === 'string' ? d.default_currency : 'COP',
+        total_investment: num(d.default_total_investment, 0),
+        hosting_percent: num(d.hosting_percent, 30),
+        hosting_discount_semiannual: num(d.hosting_discount_semiannual, 20),
+        hosting_discount_quarterly: num(d.hosting_discount_quarterly, 10),
+        expiration_days: num(d.expiration_days, 21),
+        reminder_days: num(d.reminder_days, 3),
+        urgency_reminder_days: num(d.urgency_reminder_days, 7),
+        discount_percent: num(d.default_discount_percent, 0),
+        default_slug_pattern: typeof d.default_slug_pattern === 'string'
+          ? d.default_slug_pattern
           : '{client_name}',
       };
     }
@@ -1199,7 +1241,7 @@ const emailCategoryOptions = [
 
 const emailTemplates = ref([]);
 const emailSelectedCategory = ref('all');
-const emailExpandedTemplate = ref(null);
+const emailSelectedTemplate = ref(null);
 const emailTemplateDetail = ref(null);
 const emailEditFields = ref({});
 const emailEditIsActive = ref(true);
@@ -1245,15 +1287,9 @@ function truncateText(str, len) {
   return str.length > len ? str.slice(0, len) + '...' : str;
 }
 
-async function toggleEmailTemplate(key) {
-  if (emailExpandedTemplate.value === key) {
-    emailExpandedTemplate.value = null;
-    emailTemplateDetail.value = null;
-    return;
-  }
-  emailExpandedTemplate.value = key;
-  emailTemplateDetail.value = null;
+async function loadEmailTemplateDetail(key) {
   emailLastFocusedField.value = '';
+  emailFieldRefs.value = {};
   emailIsLoadingDetail.value = true;
   try {
     const result = await proposalStore.fetchEmailTemplateDetail(key);
@@ -1268,6 +1304,13 @@ async function toggleEmailTemplate(key) {
   } finally {
     emailIsLoadingDetail.value = false;
   }
+}
+
+async function selectEmailTemplate(key) {
+  if (emailSelectedTemplate.value === key && emailTemplateDetail.value) return;
+  emailSelectedTemplate.value = key;
+  emailTemplateDetail.value = null;
+  await loadEmailTemplateDetail(key);
 }
 
 async function handleSaveEmailTemplate(templateKey) {
@@ -1317,9 +1360,8 @@ async function confirmResetEmailTemplate() {
       emailShowResetConfirm.value = false;
       showFeedback('Plantilla restaurada a los valores originales.', 'success');
       await loadEmailTemplates();
-      if (emailExpandedTemplate.value === emailResetTargetKey.value) {
-        await toggleEmailTemplate(emailResetTargetKey.value);
-        await toggleEmailTemplate(emailResetTargetKey.value);
+      if (emailSelectedTemplate.value === emailResetTargetKey.value) {
+        await loadEmailTemplateDetail(emailResetTargetKey.value);
       }
     } else {
       showFeedback('Error al restaurar la plantilla.', 'error');

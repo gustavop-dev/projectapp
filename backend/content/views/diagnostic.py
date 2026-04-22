@@ -796,6 +796,20 @@ def retrieve_public_diagnostic(request, diagnostic_uuid):
     return Response(PublicDiagnosticSerializer(diagnostic).data)
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def retrieve_public_diagnostic_by_slug(request, diagnostic_slug):
+    """Retrieve a diagnostic by its editable slug for client viewing."""
+    diagnostic = get_object_or_404(
+        WebAppDiagnostic.objects.select_related('client__user')
+        .prefetch_related('sections'),
+        slug=diagnostic_slug,
+    )
+    if diagnostic.status in diagnostic_service.PUBLIC_VISIBLE_STATUSES:
+        diagnostic_service.register_view(diagnostic)
+    return Response(PublicDiagnosticSerializer(diagnostic).data)
+
+
 def _ensure_view_event(diagnostic, request, session_id):
     """Return the existing ViewEvent for (diagnostic, session) or create one."""
     existing = (
@@ -1244,6 +1258,90 @@ _COMPOSED_EMAIL_ALLOWED_EXT = {
 _COMPOSED_EMAIL_MAX_FILE = 15 * 1024 * 1024  # 15 MB
 
 
+def _resolve_diagnostic_doc_refs(diagnostic, doc_refs):
+    """
+    Resolve diagnostic doc_refs into email attachment tuples.
+
+    Supported sources:
+      - ``nda_final``            → NDA PDF (final, from DiagnosticAttachment)
+      - ``nda_draft``            → NDA draft PDF (watermarked, freshly generated)
+      - ``template`` (slug)      → static markdown diagnostic template
+      - ``attachment`` (id)      → uploaded DiagnosticAttachment file
+    """
+    import mimetypes
+
+    from content.services.confidentiality_pdf_service import generate_confidentiality_pdf
+    from content.services.pdf_utils import add_watermark_to_pdf
+    from content.views._doc_refs import DocRefError
+    from content.views.diagnostic_template import TEMPLATES as DIAGNOSTIC_TEMPLATES
+    from content.views.diagnostic_template import TEMPLATES_DIR as DIAGNOSTIC_TEMPLATES_DIR
+
+    attachment_ids = [r.get('id') for r in doc_refs
+                      if isinstance(r, dict) and r.get('source') == 'attachment']
+    attachments_by_id = {
+        att.pk: att
+        for att in diagnostic.attachments.filter(pk__in=attachment_ids)
+    } if attachment_ids else {}
+
+    out = []
+
+    for ref in doc_refs:
+        if not isinstance(ref, dict):
+            raise DocRefError('Cada doc_ref debe ser un objeto.')
+        source = ref.get('source')
+
+        if source == 'nda_final':
+            pdf_bytes = generate_confidentiality_pdf(diagnostic)
+            if not pdf_bytes:
+                raise DocRefError(
+                    'No se pudo generar el acuerdo de confidencialidad. '
+                    'Completa los parámetros en la pestaña Documentos.',
+                )
+            out.append((
+                _confidentiality_filename(diagnostic, 'Acuerdo_Confidencialidad'),
+                pdf_bytes,
+                'application/pdf',
+            ))
+        elif source == 'nda_draft':
+            pdf_bytes = generate_confidentiality_pdf(diagnostic, draft=True)
+            if not pdf_bytes:
+                raise DocRefError(
+                    'No se pudo generar el borrador del acuerdo.',
+                )
+            out.append((
+                _confidentiality_filename(diagnostic, 'Borrador_Acuerdo_Confidencialidad'),
+                add_watermark_to_pdf(pdf_bytes),
+                'application/pdf',
+            ))
+        elif source == 'template':
+            slug = ref.get('slug')
+            meta = DIAGNOSTIC_TEMPLATES.get(slug)
+            if meta is None:
+                raise DocRefError(f'Plantilla {slug!r} no existe.')
+            path = DIAGNOSTIC_TEMPLATES_DIR / meta['filename']
+            try:
+                content_bytes = path.read_bytes()
+            except (FileNotFoundError, OSError):
+                raise DocRefError(f'No se pudo leer la plantilla {slug!r}.')
+            out.append((meta['filename'], content_bytes, 'text/markdown'))
+        elif source == 'attachment':
+            attachment_id = ref.get('id')
+            attachment = attachments_by_id.get(attachment_id)
+            if attachment is None:
+                raise DocRefError(f'Adjunto {attachment_id} no existe.')
+            if not attachment.file:
+                raise DocRefError(f'Adjunto "{attachment.title}" no tiene archivo.')
+            with attachment.file.open('rb') as fh:
+                data = fh.read()
+            name = attachment.file.name.rsplit('/', 1)[-1]
+            mime = mimetypes.guess_type(name)[0] or 'application/octet-stream'
+            out.append((name, data, mime))
+        else:
+            raise DocRefError(f'Fuente de documento desconocida: {source!r}.')
+
+    return out
+
+
 def _parse_diagnostic_email(request, diagnostic):
     import json
     import mimetypes
@@ -1344,6 +1442,20 @@ def _parse_diagnostic_email(request, diagnostic):
             )
         nda_filename = _confidentiality_filename(diagnostic, 'Acuerdo_Confidencialidad')
         attachments.append((nda_filename, pdf_bytes, 'application/pdf'))
+
+    # ── References to existing documents (NDA, MD templates, uploads) ──
+    from content.views._doc_refs import DocRefError, parse_doc_refs_field
+
+    doc_refs, error_response = parse_doc_refs_field(request)
+    if error_response:
+        return None, error_response
+    try:
+        attachments.extend(_resolve_diagnostic_doc_refs(diagnostic, doc_refs))
+    except DocRefError as err:
+        return None, Response(
+            {'error': str(err)},
+            status=http_status.HTTP_400_BAD_REQUEST,
+        )
 
     return {
         'recipient_email': recipient_email,

@@ -1,8 +1,9 @@
 /**
- * E2E tests for admin Proposal — "Documentos & Plantillas" tab.
+ * E2E tests for admin Proposal — "Documentos" tab.
  *
- * Covers: tab visibility based on proposal status, template list render,
- * and copy-to-clipboard interaction.
+ * Covers: tab visibility based on proposal status, unified documents list
+ * (contract + commercial PDF + technical PDF), "Documentos adjuntos" section,
+ * and absence of "Enviar al cliente" section (removed in Apr 22 reorganization).
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -20,26 +21,29 @@ const authOk = {
   body: JSON.stringify({ user: { username: 'admin', is_staff: true } }),
 };
 
-const templatesList = [
-  { slug: 'diagnostico-aplicacion', title: 'Diagnóstico de Aplicación', filename: 'diagnostico_aplicacion_es.md', size_bytes: 4096, updated_at: '2026-04-01T10:00:00Z' },
-  { slug: 'diagnostico-tecnico', title: 'Diagnóstico Técnico', filename: 'diagnostico_tecnico_es.md', size_bytes: 5120, updated_at: '2026-04-01T10:00:00Z' },
-  { slug: 'anexo', title: 'Anexo — Dimensionamiento', filename: 'anexo_es.md', size_bytes: 3072, updated_at: '2026-04-01T10:00:00Z' },
-];
+const generatedContractDoc = {
+  id: 10,
+  document_type: 'contract',
+  document_type_display: 'Contrato',
+  title: 'Contrato de desarrollo',
+  file: '/media/contracts/contract.pdf',
+  is_generated: true,
+};
 
-const templateDetail = {
-  slug: 'diagnostico-aplicacion',
-  title: 'Diagnóstico de Aplicación',
-  filename: 'diagnostico_aplicacion_es.md',
-  size_bytes: 4096,
-  updated_at: '2026-04-01T10:00:00Z',
-  content_markdown: '# Diagnóstico de Aplicación\n\nContenido de diagnóstico.',
+const uploadedDoc = {
+  id: 21,
+  document_type: 'amendment',
+  document_type_display: 'Otrosí',
+  title: 'Otrosí No. 1',
+  file: '/media/docs/otrosi-1.pdf',
+  is_generated: false,
 };
 
 function makeProposal(overrides = {}) {
   return {
     id: PROPOSAL_ID,
-    uuid: 'diag-templates-test-uuid',
-    title: 'Templates Test Proposal',
+    uuid: 'doc-tab-test-uuid',
+    title: 'Documents Tab Test Proposal',
     client_name: 'Templates Client',
     client_email: 'client@templates.com',
     status: 'sent',
@@ -58,26 +62,17 @@ function makeProposal(overrides = {}) {
   };
 }
 
-function baseHandler(proposal, extra = {}) {
+function baseHandler(proposal) {
   return async ({ apiPath }) => {
     if (apiPath === 'auth/check/') return authOk;
     if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(proposal) };
     }
-    if (apiPath === 'diagnostic-templates/') {
-      return { status: 200, contentType: 'application/json', body: JSON.stringify(templatesList) };
-    }
-    if (apiPath === 'diagnostic-templates/diagnostico-aplicacion/') {
-      return { status: 200, contentType: 'application/json', body: JSON.stringify(templateDetail) };
-    }
-    for (const [path, response] of Object.entries(extra)) {
-      if (apiPath === path) return response;
-    }
     return null;
   };
 }
 
-test.describe('Admin Proposal — Documentos & Plantillas tab', () => {
+test.describe('Admin Proposal — Documentos tab', () => {
   test.setTimeout(60_000);
 
   test.beforeEach(async ({ page }) => {
@@ -87,75 +82,85 @@ test.describe('Admin Proposal — Documentos & Plantillas tab', () => {
     });
   });
 
-  test('tab is hidden for draft proposals', {
+  test('Documentos tab is hidden for draft proposals', {
     tag: [...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(makeProposal({ status: 'draft' })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
     await expect(page.getByRole('button', { name: 'General' })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('button', { name: 'Documentos & Plantillas' })).not.toBeVisible();
+    await expect(page.getByRole('button', { name: 'Documentos' })).not.toBeVisible();
   });
 
-  test('tab is visible for sent proposals', {
+  test('Documentos tab is visible for sent proposals', {
     tag: [...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(makeProposal({ status: 'sent' })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.getByRole('button', { name: 'Documentos & Plantillas' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible({ timeout: 15000 });
   });
 
-  test('tab is visible for negotiating proposals', {
+  test('documents tab renders unified list with contract, commercial and technical entries', {
     tag: [...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(makeProposal({ status: 'negotiating' })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.getByRole('button', { name: 'Documentos & Plantillas' })).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: 'Documentos' }).click();
+
+    await expect(page.getByText('Contrato de desarrollo')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Propuesta comercial')).toBeVisible();
+    await expect(page.getByText('Detalle técnico')).toBeVisible();
   });
 
-  test('template list renders three template titles after clicking tab', {
+  test('documents tab shows generate contract button when no contract doc exists', {
     tag: [...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
   }, async ({ page }) => {
-    await mockApi(page, baseHandler(makeProposal({ status: 'sent' })));
+    await mockApi(page, baseHandler(makeProposal({ status: 'negotiating', proposal_documents: [] })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Documentos & Plantillas' }).click();
+    await page.getByRole('button', { name: 'Documentos' }).click();
 
-    await expect(page.getByText('Diagnóstico de Aplicación')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('Diagnóstico Técnico')).toBeVisible();
-    await expect(page.getByText('Anexo — Dimensionamiento')).toBeVisible();
+    await expect(page.getByText('Generar contrato')).toBeVisible({ timeout: 10000 });
   });
 
-  test('copy button triggers detail API call', {
+  test('documents tab shows Documentos adjuntos section with upload form', {
     tag: [...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
   }, async ({ page }) => {
-    let detailFetched = false;
-    await mockApi(page, async ({ apiPath }) => {
-      if (apiPath === 'auth/check/') return authOk;
-      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
-        return { status: 200, contentType: 'application/json', body: JSON.stringify(makeProposal({ status: 'sent' })) };
-      }
-      if (apiPath === 'diagnostic-templates/') {
-        return { status: 200, contentType: 'application/json', body: JSON.stringify(templatesList) };
-      }
-      if (apiPath === 'diagnostic-templates/diagnostico-aplicacion/') {
-        detailFetched = true;
-        return { status: 200, contentType: 'application/json', body: JSON.stringify(templateDetail) };
-      }
-      return null;
+    await mockApi(page, baseHandler(makeProposal({ status: 'negotiating' })));
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+
+    await page.getByRole('button', { name: 'Documentos' }).click();
+
+    await expect(page.getByText('Documentos adjuntos')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder(/Ej: Anexo técnico/i)).toBeVisible();
+  });
+
+  test('documents tab does not show Enviar al cliente section', {
+    tag: [...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, baseHandler(makeProposal({ status: 'negotiating' })));
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+
+    await page.getByRole('button', { name: 'Documentos' }).click();
+    await expect(page.getByText('Contrato de desarrollo')).toBeVisible({ timeout: 10000 });
+
+    await expect(page.getByText('Enviar documentos al cliente')).not.toBeVisible();
+  });
+
+  test('uploaded non-contract documents appear in the adjuntos list', {
+    tag: [...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
+  }, async ({ page }) => {
+    const proposal = makeProposal({
+      status: 'negotiating',
+      proposal_documents: [generatedContractDoc, uploadedDoc],
     });
-
-    await page.context().grantPermissions(['clipboard-write', 'clipboard-read']);
+    await mockApi(page, baseHandler(proposal));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Documentos & Plantillas' }).click();
-    await expect(page.getByText('Diagnóstico de Aplicación')).toBeVisible({ timeout: 10000 });
+    await page.getByRole('button', { name: 'Documentos' }).click();
 
-    const copyBtns = page.getByRole('button', { name: 'Copiar contenido' });
-    await copyBtns.first().click();
-
-    await expect(() => expect(detailFetched).toBe(true)).toPass({ timeout: 5000 });
+    await expect(page.getByText('Otrosí No. 1')).toBeVisible({ timeout: 10000 });
   });
 });

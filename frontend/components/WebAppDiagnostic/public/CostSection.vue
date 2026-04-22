@@ -28,7 +28,7 @@
       </li>
     </ul>
 
-    <blockquote v-if="content.note" class="mt-6 border-l-4 border-amber-400 bg-amber-50 text-amber-900 italic px-4 py-3 rounded-r-lg text-sm">
+    <blockquote v-if="content.note" class="mt-6 border-l-4 border-esmerald/40 bg-esmerald/5 text-esmerald/80 italic px-4 py-3 rounded-r-lg text-sm">
       <strong class="not-italic">Nota:</strong> {{ content.note }}
     </blockquote>
   </section>

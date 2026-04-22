@@ -63,7 +63,51 @@
       <ResponsiveTabs :tabs="tabs" v-model="activeTab" />
 
       <!-- General -->
-      <section v-if="activeTab === 'general'" class="max-w-2xl">
+      <section v-if="activeTab === 'general'">
+        <TabSplitLayout ratio="3:2">
+          <template #aside>
+        <!-- Editable slug (URL personalizada) -->
+        <div class="bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06] rounded-xl p-4 sm:p-5 mb-4">
+          <label class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" for="diagnostic-slug-input">
+            URL personalizada
+          </label>
+          <div class="mt-2 flex flex-wrap items-stretch gap-2">
+            <div class="flex-1 min-w-[260px] flex items-stretch rounded-lg border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.03] focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
+              <span class="px-3 flex items-center text-xs text-gray-400 border-r border-gray-200 dark:border-white/[0.08] select-none">/diagnostic/</span>
+              <input
+                id="diagnostic-slug-input"
+                v-model="slugDraft"
+                type="text"
+                data-testid="diagnostic-slug-input"
+                class="flex-1 bg-transparent px-3 py-2 text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none font-mono"
+                placeholder="maria-lopez"
+                maxlength="120"
+                @keydown.enter.prevent="saveSlug"
+              />
+            </div>
+            <button
+              type="button"
+              class="px-3 py-2 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+              :disabled="slugSaving || slugDraft === (store.current?.slug || '')"
+              @click="saveSlug"
+            >
+              {{ slugSaving ? 'Guardando…' : (slugSaved ? 'Guardado' : 'Guardar') }}
+            </button>
+            <button
+              type="button"
+              class="px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 dark:border-white/[0.08] text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/[0.2]"
+              title="Regenerar desde el nombre del cliente"
+              @click="regenerateSlugFromName"
+            >
+              Regenerar
+            </button>
+          </div>
+          <p v-if="slugError" class="text-xs text-rose-500 mt-2">{{ slugError }}</p>
+          <p v-else class="text-xs text-gray-400 mt-2">
+            Solo minúsculas, números y guiones. El cliente verá esta URL en el enlace.
+          </p>
+        </div>
+
         <!-- Read-only info grid -->
         <div class="bg-gray-50 dark:bg-white/[0.03] rounded-xl p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
@@ -117,6 +161,9 @@
           </div>
         </div>
 
+          </template>
+
+          <template #main>
         <!-- Editable form -->
         <form class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06]" @submit.prevent="handleUpdate">
           <div class="p-4 sm:p-8 space-y-6">
@@ -283,20 +330,22 @@
             </div>
           </div>
         </form>
+          </template>
+        </TabSplitLayout>
       </section>
 
       <!-- Correos -->
-      <div v-if="activeTab === 'emails'" class="max-w-4xl">
+      <div v-if="activeTab === 'emails'">
         <DiagnosticEmailsTab :diagnostic="store.current" />
       </div>
 
       <!-- Documentos (adjuntos) -->
-      <div v-if="activeTab === 'documents'" class="max-w-4xl">
+      <div v-if="activeTab === 'documents'" class="max-w-7xl mx-auto">
         <DiagnosticDocumentsTab :diagnostic="store.current" />
       </div>
 
       <!-- Secciones (JSON-driven content) -->
-      <section v-if="activeTab === 'sections'">
+      <section v-if="activeTab === 'sections'" class="max-w-7xl mx-auto">
         <div v-if="orderedSections.length" class="mb-4 bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] px-5 py-4">
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Completitud de secciones</span>
@@ -334,12 +383,12 @@
       </section>
 
       <!-- Prompt -->
-      <section v-if="activeTab === 'prompt'" class="max-w-4xl">
+      <section v-if="activeTab === 'prompt'" class="max-w-7xl mx-auto">
         <DiagnosticPromptPanel />
       </section>
 
       <!-- JSON (export + import) -->
-      <section v-if="activeTab === 'json'" class="max-w-4xl">
+      <section v-if="activeTab === 'json'" class="max-w-screen-2xl mx-auto">
         <!-- Summary metrics -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4">
@@ -380,8 +429,10 @@
           </div>
         </div>
 
+        <TabSplitLayout>
+          <template #main>
         <!-- Current JSON (read-only) -->
-        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6 mb-6">
+        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
               <h3 class="text-sm font-medium text-gray-900 dark:text-white">JSON del diagnóstico</h3>
@@ -425,6 +476,9 @@
           />
         </div>
 
+          </template>
+
+          <template #aside>
         <!-- Import JSON -->
         <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6">
           <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-1">Importar JSON</h3>
@@ -486,10 +540,12 @@
             {{ jsonImportMsg.text }}
           </div>
         </div>
+          </template>
+        </TabSplitLayout>
       </section>
 
       <!-- Actividad -->
-      <div v-if="activeTab === 'activity'">
+      <div v-if="activeTab === 'activity'" class="max-w-5xl mx-auto">
         <DiagnosticActivityTab
           :diagnostic="store.current"
           @log="onLogActivity"
@@ -497,7 +553,7 @@
       </div>
 
       <!-- Analytics -->
-      <div v-if="activeTab === 'analytics'">
+      <div v-if="activeTab === 'analytics'" class="max-w-screen-2xl mx-auto">
         <DiagnosticAnalytics
           :diagnostic-id="id"
           :loader="() => store.fetchAnalytics(id)"
@@ -525,10 +581,12 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import PanelToast from '~/components/panel/PanelToast.vue';
+import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import { DocumentDuplicateIcon, CheckIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelToast } from '~/composables/usePanelToast';
 import { getDiagnosticNextAction } from '~/utils/diagnosticNextAction';
+import { toSlug } from '~/utils/slugify';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -613,6 +671,54 @@ watch(() => route.query.tab, (raw) => {
     activeTab.value = LEGACY_TAB_REDIRECTS[raw];
   }
 });
+
+const slugDraft = ref('');
+const slugError = ref('');
+const slugSaving = ref(false);
+const slugSaved = ref(false);
+let slugSavedTimer = null;
+const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+watch(
+  () => store.current?.slug,
+  (value) => { slugDraft.value = value || ''; },
+  { immediate: true },
+);
+
+function regenerateSlugFromName() {
+  slugDraft.value = toSlug(store.current?.client_name, { fallback: 'diagnostico' });
+  slugError.value = '';
+}
+
+async function saveSlug() {
+  const value = (slugDraft.value || '').trim();
+  slugError.value = '';
+  slugSaved.value = false;
+  if (value === (store.current?.slug || '')) return;
+  if (value && !slugRegex.test(value)) {
+    slugError.value = 'Solo minúsculas, números y guiones (sin espacios ni acentos).';
+    return;
+  }
+  if (value.length > 120) {
+    slugError.value = 'La URL personalizada no puede superar 120 caracteres.';
+    return;
+  }
+  slugSaving.value = true;
+  try {
+    const result = await store.update(id.value, { slug: value });
+    if (result?.success) {
+      slugDraft.value = store.current?.slug || value;
+      slugSaved.value = true;
+      if (slugSavedTimer) clearTimeout(slugSavedTimer);
+      slugSavedTimer = setTimeout(() => { slugSaved.value = false; }, 2000);
+    } else {
+      const errors = result?.errors || {};
+      slugError.value = errors.slug?.[0] || result?.error || 'No se pudo guardar la URL.';
+    }
+  } finally {
+    slugSaving.value = false;
+  }
+}
 
 // ── Public URL copy ───────────────────────────────────────────────────
 const urlCopied = ref(false);

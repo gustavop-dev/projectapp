@@ -45,7 +45,7 @@
               </button>
             </div>
 
-            <div class="bg-bone/60 border border-esmerald/10 rounded-xl p-3 sm:p-4 flex items-center gap-3 mb-4">
+            <div class="bg-esmerald/5 border border-esmerald/10 rounded-xl p-3 sm:p-4 flex items-center gap-3 mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-[11px] text-esmerald/55 mb-0.5 font-medium uppercase tracking-wider">{{ t.linkLabel }}</p>
                 <p class="text-sm text-esmerald/80 truncate">{{ currentUrl }}</p>

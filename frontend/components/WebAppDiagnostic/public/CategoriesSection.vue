@@ -7,15 +7,15 @@
       <details
         v-for="(cat, idx) in content.categories"
         :key="cat.key || idx"
-        class="group border border-esmerald/10 rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow"
+        class="group border-2 border-esmerald/10 rounded-2xl bg-esmerald/5 hover:border-esmerald/30 transition-all"
       >
-        <summary class="px-5 py-4 cursor-pointer select-none flex items-center justify-between">
+        <summary class="px-6 py-5 cursor-pointer select-none flex items-center justify-between">
           <span class="font-semibold text-esmerald text-base">
             <span class="text-esmerald/50 mr-2 font-mono text-sm">{{ idx + 1 }}.</span>
             {{ cat.title }}
           </span>
           <span class="text-xs text-esmerald/60 flex gap-2 items-center">
-            <span v-if="cat.findings?.length" class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">
+            <span v-if="cat.findings?.length" class="font-bold text-white bg-esmerald/70 px-2.5 py-1 rounded-full">
               {{ cat.findings.length }} hallazgo(s)
             </span>
             <svg class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -23,7 +23,7 @@
             </svg>
           </span>
         </summary>
-        <div class="px-5 pb-5 border-t border-esmerald/10 space-y-4 text-sm">
+        <div class="px-6 pb-6 border-t border-esmerald/15 bg-white/50 space-y-4 text-sm">
           <p v-if="cat.description" class="text-esmerald/70 leading-relaxed pt-3">{{ cat.description }}</p>
 
           <div v-if="cat.strengths?.length">

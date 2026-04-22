@@ -42,7 +42,7 @@
       <p v-if="content.classificationNote" class="text-xs text-esmerald/55 mt-2 italic">{{ content.classificationNote }}</p>
     </div>
 
-    <div v-if="renderContext && hasStack" class="mt-8 bg-bone/50 border border-esmerald/10 rounded-xl p-4 text-sm">
+    <div v-if="renderContext && hasStack" class="mt-8 bg-esmerald/5 border border-esmerald/10 rounded-xl p-4 text-sm">
       <h3 class="text-sm font-semibold text-esmerald mb-2">Stack detectado</h3>
       <ul class="space-y-1 text-esmerald/80">
         <li v-if="renderContext.stack_backend_name">

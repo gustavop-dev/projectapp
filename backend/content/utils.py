@@ -262,8 +262,8 @@ def safe_slug(value, fallback='document'):
     return slugify(value or '') or fallback
 
 
-def render_slug_pattern(pattern, proposal):
-    """Render a slug pattern against a BusinessProposal instance.
+def render_slug_pattern(pattern, instance, fallback):
+    """Render a slug pattern against a model instance (BusinessProposal or WebAppDiagnostic).
 
     Supported placeholders: ``{client_name}``, ``{project_type}``, ``{year}``.
     Unknown placeholders are left as-is so slugify strips them cleanly.
@@ -271,14 +271,47 @@ def render_slug_pattern(pattern, proposal):
     """
     pattern = (pattern or '').strip() or '{client_name}'
     mapping = {
-        'client_name': proposal.client_name or '',
-        'project_type': proposal.get_project_type_display() if getattr(proposal, 'project_type', '') else '',
-        'year': str(proposal.created_at.year) if getattr(proposal, 'created_at', None) else '',
+        'client_name': getattr(instance, 'client_name', '') or '',
+        'project_type': instance.get_project_type_display() if getattr(instance, 'project_type', '') else '',
+        'year': str(instance.created_at.year) if getattr(instance, 'created_at', None) else '',
     }
     rendered = pattern
     for key, val in mapping.items():
         rendered = rendered.replace('{' + key + '}', str(val))
-    return safe_slug(rendered, 'propuesta')
+    return safe_slug(rendered, fallback)
+
+
+def validate_editable_slug(value, model, instance=None, conflict_phrase='otra propuesta'):
+    """Validate a user-supplied slug for editable public URLs.
+
+    Checks format (lowercase alnum + hyphens), length (≤120) and uniqueness
+    on ``model`` excluding ``instance``. ``conflict_phrase`` is the Spanish
+    article+noun used after "por" in the conflict message (e.g.
+    ``'otra propuesta'`` or ``'otro diagnóstico'``). Raises
+    ``rest_framework.serializers.ValidationError`` on failure; returns the
+    stripped value on success (empty string is allowed and returned as-is).
+    """
+    from rest_framework import serializers
+
+    value = (value or '').strip()
+    if not value:
+        return value
+    if slugify(value) != value:
+        raise serializers.ValidationError(
+            'Solo se permiten minúsculas, números y guiones (sin espacios ni acentos).'
+        )
+    if len(value) > 120:
+        raise serializers.ValidationError(
+            'La URL personalizada no puede superar 120 caracteres.'
+        )
+    qs = model.objects.filter(slug=value)
+    if instance is not None:
+        qs = qs.exclude(pk=instance.pk)
+    if qs.exists():
+        raise serializers.ValidationError(
+            f'Esa URL ya está en uso por {conflict_phrase}. Elige una distinta.'
+        )
+    return value
 
 
 def resolve_unique_slug(base, model, exclude_pk=None, slug_field='slug'):

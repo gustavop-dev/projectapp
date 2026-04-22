@@ -1,8 +1,8 @@
 import { mount } from '@vue/test-utils';
 
 global.useProposalStore = jest.fn(() => ({
-  uploadAdditionalDocument: jest.fn().mockResolvedValue({ success: true }),
-  deleteAdditionalDocument: jest.fn().mockResolvedValue({ success: true }),
+  uploadProposalDocument: jest.fn().mockResolvedValue({ success: true }),
+  deleteProposalDocument: jest.fn().mockResolvedValue({ success: true }),
 }));
 
 import ProposalDocumentsTab from '../../components/BusinessProposal/admin/ProposalDocumentsTab.vue';
@@ -21,19 +21,16 @@ function mountProposalDocumentsTab(props = {}) {
       documents: [],
       ...props,
     },
-    global: {
-      stubs: {
-        SendDocumentsModal: { template: '<div class="send-modal-stub" />' },
-      },
-    },
   });
 }
 
 describe('ProposalDocumentsTab', () => {
-  it('renders contract section', () => {
+  it('renders the documents list with contract, commercial and technical entries', () => {
     const wrapper = mountProposalDocumentsTab();
 
     expect(wrapper.text()).toContain('Contrato de desarrollo');
+    expect(wrapper.text()).toContain('Propuesta comercial');
+    expect(wrapper.text()).toContain('Detalle técnico');
   });
 
   it('shows generate contract button when no contract doc exists', () => {
@@ -42,16 +39,16 @@ describe('ProposalDocumentsTab', () => {
     expect(wrapper.text()).toContain('Generar contrato');
   });
 
-  it('renders proposal PDFs section', () => {
+  it('renders the documentos adjuntos section', () => {
     const wrapper = mountProposalDocumentsTab();
 
-    expect(wrapper.text()).toContain('PDFs de la propuesta');
+    expect(wrapper.text()).toContain('Documentos adjuntos');
   });
 
-  it('renders the send documents section', () => {
+  it('does not render the removed "Enviar documentos al cliente" section', () => {
     const wrapper = mountProposalDocumentsTab();
 
-    expect(wrapper.text()).toContain('Enviar documentos al cliente');
+    expect(wrapper.text()).not.toContain('Enviar documentos al cliente');
   });
 
   it('emits generateContract when generate button is clicked', async () => {

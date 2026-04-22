@@ -76,7 +76,7 @@ test.describe('Admin Proposal Documents Manage', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Additional docs section header
-    await expect(page.getByText('Documentos adicionales').first()).toBeVisible();
+    await expect(page.getByText('Documentos adjuntos').first()).toBeVisible();
     // Document type badge
     await expect(page.getByText('Otrosí').first()).toBeVisible();
     // Document title link
@@ -120,7 +120,7 @@ test.describe('Admin Proposal Documents Manage', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // The additional docs section should have at least one delete button (for the non-generated doc)
-    const additionalSection = page.locator('section').filter({ hasText: 'Documentos adicionales' });
+    const additionalSection = page.locator('section').filter({ hasText: 'Documentos adjuntos' });
     const deleteButtons = additionalSection.locator('button').filter({ has: page.locator('svg path[d*="M19 7l"]') });
     await expect(deleteButtons).toHaveCount(1);
   });
@@ -143,6 +143,6 @@ test.describe('Admin Proposal Documents Manage', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByText('No hay documentos adicionales')).toBeVisible();
+    await expect(page.getByText('No hay documentos adjuntos.')).toBeVisible();
   });
 });

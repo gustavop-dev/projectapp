@@ -165,9 +165,8 @@
               <PencilSquareIcon class="w-4 h-4" />
             </button>
 
-            <!-- Trash button (orphans only) -->
+            <!-- Trash button -->
             <button
-              v-if="client.is_orphan"
               type="button"
               :data-testid="`client-delete-${client.id}`"
               class="p-1.5 rounded-lg text-gray-400 dark:text-green-light/60 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
@@ -414,6 +413,8 @@
       :confirm-text="confirmState.confirmText"
       :cancel-text="confirmState.cancelText"
       :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :hide-cancel="confirmState.hideCancel"
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
@@ -622,15 +623,38 @@ async function submitEdit() {
 }
 
 // -------------------------------------------------------------------
-// Delete (orphan only)
+// Delete
 // -------------------------------------------------------------------
 
+function buildBlockedMessage(client) {
+  const proposals = client.total_proposals || 0;
+  // Backend orphan check also covers projects and diagnostics, but the list
+  // serializer only ships the proposal count — fall back to a generic phrase.
+  const reason = proposals > 0
+    ? `${proposals} propuesta${proposals === 1 ? '' : 's'}`
+    : 'proyectos o diagnósticos asociados';
+  return `No se puede eliminar a "${client.name}" porque tiene ${reason}. Elimina o archiva esos elementos antes de borrar el cliente.`;
+}
+
 function confirmDelete(client) {
+  if (!client.is_orphan) {
+    requestConfirm({
+      title: 'No se puede eliminar',
+      message: buildBlockedMessage(client),
+      variant: 'info',
+      hideCancel: true,
+      confirmText: 'Entendido',
+    });
+    return;
+  }
+
   requestConfirm({
     title: 'Eliminar cliente',
-    message: `¿Eliminar a "${client.name}" permanentemente? Esto borrará también su cuenta de plataforma.`,
+    message: `Esto eliminará a "${client.name}" y su cuenta de plataforma de forma permanente. Esta acción no se puede deshacer.`,
     variant: 'danger',
     confirmText: 'Eliminar',
+    cancelText: 'Cancelar',
+    requireTypeText: 'DELETE',
     onConfirm: async () => {
       const result = await clientsStore.deleteClient(client.id);
       if (!result.success) {

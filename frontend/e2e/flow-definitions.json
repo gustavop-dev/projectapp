@@ -1,6 +1,6 @@
 {
-  "version": "2.32.0",
-  "lastUpdated": "2026-04-21",
+  "version": "2.33.0",
+  "lastUpdated": "2026-04-22",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1506,14 +1506,14 @@
       "expectedSpecs": 1
     },
     "admin-proposal-documents-send": {
-      "name": "Admin Proposal Documents Send",
+      "name": "Admin Proposal Documents Send (SUPERSEDED)",
       "module": "admin",
       "roles": [
         "admin"
       ],
       "priority": "P1",
-      "description": "Admin selects documents to send (draft contract, commercial PDF, technical PDF, additional docs via checkboxes), clicks 'Enviar al cliente', edits email subject/greeting/body/footer/document descriptions in SendDocumentsModal, submits to send API. Disabled when no client email or no docs selected.",
-      "expectedSpecs": 1
+      "description": "SUPERSEDED Apr 22 2026: The 'Enviar al cliente' section was removed from the Documents tab. Documents are now attached from the Correos tab via 'Adjuntar desde Documentos' (see admin-proposal-attach-from-documents). The spec admin-proposal-documents-send.spec.js was deleted. This flow entry is kept for historical traceability only.",
+      "expectedSpecs": 0
     },
     "admin-send-branded-email": {
       "name": "Send Branded Email",
@@ -1533,6 +1533,26 @@
       ],
       "priority": "P2",
       "description": "Admin sends a proposal email logged as activity from proposal edit page Enviar correo tab. Same composer UI, each send creates ProposalChangeLog entry.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-attach-from-documents": {
+      "name": "Admin Proposal — Adjuntar desde Documentos",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "From the Correos tab of the proposal edit page, admin clicks 'Adjuntar desde Documentos'. A modal opens listing all available documents: contract PDF + draft (if contract exists), commercial PDF, technical PDF, and any uploaded proposal_documents. Admin selects one or more items and clicks 'Adjuntar (N)'. Selected refs appear as emerald badges below the attachments block. On send, the POST body includes a doc_refs JSON field with the resolved refs. Sending is handled by admin-send-branded-email / admin-send-proposal-email; this flow covers only the selection UX.",
+      "expectedSpecs": 1
+    },
+    "admin-diagnostic-attach-from-documents": {
+      "name": "Admin Diagnostic — Adjuntar desde Documentos",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "From the Correos tab of the diagnostic edit page, admin clicks 'Adjuntar desde Documentos'. A modal opens listing: NDA final + draft (if NDA generated), the 3 static MD templates fetched from GET /api/diagnostic-templates/, and any uploaded diagnostic attachments. Admin selects and confirms. Selected refs appear as emerald badges in the composer. On send, POST body includes doc_refs. This flow covers only the selection UX.",
       "expectedSpecs": 1
     },
     "platform-project-data-model": {
@@ -1982,13 +2002,13 @@
       "expectedSpecs": 1
     },
     "admin-proposal-diagnostic-templates": {
-      "name": "Proposal — Diagnostic Templates Tab",
+      "name": "Proposal — Documentos Tab",
       "module": "admin",
       "roles": [
         "admin"
       ],
       "priority": "P2",
-      "description": "Admin accesses 3 static markdown diagnostic templates (Diagnóstico de Aplicación, Diagnóstico Técnico, Anexo — Dimensionamiento) from the 'Documentos & Plantillas' tab of the proposal edit page. Tab is visible for proposals in sent|viewed|negotiating|accepted|rejected status. Each template card shows title, filename, and last modified date, with Copy (fetches GET /api/diagnostic-templates/:slug/ and writes to clipboard), Download (.md Blob), and inline Preview (expands a <pre> block) buttons. Per-slug content is cached client-side to avoid duplicate requests.",
+      "description": "Admin views the 'Documentos' tab on the proposal edit page. Tab is visible for proposals in sent|viewed|negotiating|accepted|rejected status. Shows a unified document list (Contrato de desarrollo, Propuesta comercial PDF, Detalle técnico PDF) plus a 'Documentos adjuntos' section with upload form. Does NOT show 'Enviar documentos al cliente' (that section was removed Apr 22 2026 — sending is done from the Correos tab).",
       "expectedSpecs": 1
     },
     "admin-diagnostic-markdown-attachment": {

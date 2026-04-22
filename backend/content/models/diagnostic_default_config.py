@@ -48,6 +48,16 @@ class DiagnosticDefaultConfig(models.Model):
     expiration_days = models.PositiveIntegerField(default=21)
     reminder_days = models.PositiveIntegerField(default=7)
     urgency_reminder_days = models.PositiveIntegerField(default=14)
+    default_slug_pattern = models.CharField(
+        max_length=200,
+        default='{client_name}',
+        blank=True,
+        help_text=(
+            'Template used to auto-generate the public slug when an admin does not '
+            'provide one at creation time. Placeholders: {client_name}, {year}. '
+            'The rendered value is slugified and deduplicated with numeric suffixes.'
+        ),
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

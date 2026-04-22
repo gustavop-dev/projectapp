@@ -40,14 +40,26 @@
           {{ section.label }}
         </p>
         <div class="flex flex-col gap-0.5">
-          <SidebarItem
-            v-for="item in section.items"
-            :key="item.href + item.label"
-            :item="item"
-            :is-collapsed="isCollapsed"
-            :is-active="isItemActive(item)"
-            :disabled="item.disabled"
-          />
+          <template
+            v-for="(item, idx) in section.items"
+            :key="item.divider ? `div-${section.id}-${idx}` : item.href + item.label"
+          >
+            <div
+              v-if="item.divider"
+              aria-hidden="true"
+              :class="[
+                'my-2 h-px bg-esmerald/[0.08] dark:bg-white/[0.08]',
+                isCollapsed ? 'mx-2' : 'mx-3',
+              ]"
+            />
+            <SidebarItem
+              v-else
+              :item="item"
+              :is-collapsed="isCollapsed"
+              :is-active="isItemActive(item)"
+              :disabled="item.disabled"
+            />
+          </template>
         </div>
       </div>
     </nav>

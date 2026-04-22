@@ -1,166 +1,102 @@
 <template>
   <div class="space-y-8">
-    <!-- Contract section -->
+    <!-- ── Documentos (lista unificada) ── -->
     <section class="bg-white dark:bg-esmerald border border-gray-100 dark:border-white/[0.06] rounded-xl p-5">
-      <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Contrato de desarrollo</h3>
-        </div>
-        <div v-if="contractDoc" class="flex items-center gap-2">
-          <a :href="contractPdfUrl" target="_blank"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Descargar
-          </a>
-          <a :href="draftContractPdfUrl" target="_blank"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Borrador
-          </a>
-          <button type="button" @click="$emit('editContract')"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/[0.03] text-gray-600 dark:text-green-light rounded-lg text-xs font-medium hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Editar parámetros
-          </button>
-        </div>
-        <div v-else class="flex items-center gap-2">
-          <span class="text-xs text-gray-400 dark:text-green-light/40">No generado</span>
-          <button type="button" @click="$emit('generateContract')"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
-            Generar contrato
-          </button>
-        </div>
-      </div>
-      <p v-if="contractDoc" class="text-xs text-gray-500 dark:text-green-light/60">
-        Generado el {{ formatDate(contractDoc.created_at) }}
-      </p>
-    </section>
-
-    <!-- Proposal PDFs section -->
-    <section class="bg-white dark:bg-esmerald border border-gray-100 dark:border-white/[0.06] rounded-xl p-5">
-      <div class="flex items-center gap-2 mb-4">
-        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-white">PDFs de la propuesta</h3>
-      </div>
-      <div class="flex flex-wrap items-center gap-3">
-        <a :href="'/api/proposals/' + proposal.uuid + '/pdf/'" target="_blank"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          Propuesta comercial
-        </a>
-        <a :href="'/api/proposals/' + proposal.uuid + '/pdf/?doc=technical'" target="_blank"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          Detalle técnico
-        </a>
-      </div>
-    </section>
-
-    <!-- Send documents to client section -->
-    <section class="bg-white dark:bg-esmerald border border-emerald-100 dark:border-emerald-700/30 rounded-xl p-5">
       <div class="flex items-center gap-2 mb-4">
         <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Enviar documentos al cliente</h3>
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Documentos</h3>
       </div>
 
-      <!-- Main documents checkboxes -->
-      <div class="space-y-2 mb-4">
-        <label class="flex items-center gap-2 cursor-pointer"
-          :class="{ 'opacity-50 cursor-not-allowed': !contractDoc }">
-          <input type="checkbox" value="draft_contract"
-            v-model="selectedMainDocs"
-            :disabled="!contractDoc"
-            class="rounded border-gray-300 dark:border-white/[0.15] text-emerald-600 focus:ring-emerald-500" />
-          <span class="text-xs text-gray-700 dark:text-white/70">Contrato de desarrollo (borrador)</span>
-          <span v-if="!contractDoc" class="text-[10px] text-gray-400 dark:text-green-light/40">(no generado)</span>
-        </label>
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" value="commercial"
-            v-model="selectedMainDocs"
-            class="rounded border-gray-300 dark:border-white/[0.15] text-emerald-600 focus:ring-emerald-500" />
-          <span class="text-xs text-gray-700 dark:text-white/70">Propuesta comercial</span>
-        </label>
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" value="technical"
-            v-model="selectedMainDocs"
-            class="rounded border-gray-300 dark:border-white/[0.15] text-emerald-600 focus:ring-emerald-500" />
-          <span class="text-xs text-gray-700 dark:text-white/70">Detalle técnico</span>
-        </label>
-      </div>
+      <ul class="divide-y divide-gray-100 dark:divide-white/[0.06]">
+        <!-- Contrato de desarrollo -->
+        <li class="py-3 flex items-start justify-between gap-3 flex-wrap">
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-gray-800 dark:text-white">Contrato de desarrollo</div>
+            <div class="text-xs text-gray-400 dark:text-green-light/40 mt-0.5">
+              <template v-if="contractDoc">PDF · Generado el {{ formatDate(contractDoc.created_at) }}</template>
+              <template v-else>PDF · No generado</template>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <template v-if="contractDoc">
+              <a :href="contractPdfUrl" target="_blank"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Descargar PDF
+              </a>
+              <a :href="draftContractPdfUrl" target="_blank"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
+                Borrador
+              </a>
+              <button type="button" @click="$emit('editContract')"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/[0.03] text-gray-600 dark:text-green-light rounded-lg text-xs font-medium hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
+                Editar parámetros
+              </button>
+            </template>
+            <button v-else type="button" @click="$emit('generateContract')"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
+              Generar contrato
+            </button>
+          </div>
+        </li>
 
-      <!-- Additional documents checkboxes -->
-      <div v-if="additionalDocs.length" class="border-t border-gray-100 dark:border-white/[0.06] pt-3 mb-4">
-        <p class="text-[10px] text-gray-400 dark:text-green-light/40 uppercase tracking-wide mb-2">Documentos adicionales</p>
-        <div class="space-y-2">
-          <label v-for="doc in additionalDocs" :key="doc.id"
-            class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" :value="doc.id"
-              v-model="selectedAdditionalDocIds"
-              class="rounded border-gray-300 dark:border-white/[0.15] text-emerald-600 focus:ring-emerald-500" />
-            <span class="px-1.5 py-0.5 bg-gray-200 dark:bg-white/[0.08] text-gray-600 dark:text-green-light/60 rounded text-[10px] font-medium">
-              {{ doc.document_type_display }}
-            </span>
-            <span class="text-xs text-gray-700 dark:text-white/70">{{ doc.title }}</span>
-          </label>
-        </div>
-      </div>
+        <!-- Propuesta comercial -->
+        <li class="py-3 flex items-start justify-between gap-3 flex-wrap">
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-gray-800 dark:text-white">Propuesta comercial</div>
+            <div class="text-xs text-gray-400 dark:text-green-light/40 mt-0.5">PDF con branding</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <a :href="commercialPdfUrl" target="_blank"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Descargar PDF
+            </a>
+          </div>
+        </li>
 
-      <!-- Send button and client email -->
-      <div class="flex items-center justify-between pt-2">
-        <p v-if="proposal.client_email" class="text-xs text-gray-400 dark:text-green-light/40">
-          Se enviará a: <span class="font-medium text-gray-600 dark:text-green-light">{{ proposal.client_email }}</span>
-        </p>
-        <p v-else class="text-xs text-red-400">No hay email del cliente configurado</p>
-        <button type="button"
-          :disabled="!hasSelectedDocs || !proposal.client_email"
-          @click="showSendModal = true"
-          class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-          </svg>
-          Enviar al cliente
-        </button>
-      </div>
-
+        <!-- Detalle técnico -->
+        <li class="py-3 flex items-start justify-between gap-3 flex-wrap">
+          <div class="min-w-0">
+            <div class="text-sm font-medium text-gray-800 dark:text-white">Detalle técnico</div>
+            <div class="text-xs text-gray-400 dark:text-green-light/40 mt-0.5">PDF con branding</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <a :href="technicalPdfUrl" target="_blank"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Descargar PDF
+            </a>
+          </div>
+        </li>
+      </ul>
     </section>
 
-    <!-- Additional documents section -->
+    <!-- ── Documentos adjuntos ── -->
     <section class="bg-white dark:bg-esmerald border border-gray-100 dark:border-white/[0.06] rounded-xl p-5">
-      <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
-          <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Documentos adicionales</h3>
-        </div>
+      <div class="flex items-center gap-2 mb-4">
+        <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Documentos adjuntos</h3>
       </div>
 
-      <!-- Existing documents list -->
       <div v-if="additionalDocs.length" class="space-y-2 mb-4">
         <div v-for="doc in additionalDocs" :key="doc.id"
           class="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-white/[0.03] rounded-lg">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 min-w-0">
             <span class="px-2 py-0.5 bg-gray-200 dark:bg-white/[0.08] text-gray-600 dark:text-green-light/60 rounded text-[10px] font-medium">
               {{ doc.document_type_display }}
             </span>
-            <a :href="doc.file" target="_blank" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
+            <a :href="doc.file" target="_blank" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium truncate">
               {{ doc.title }}
             </a>
           </div>
@@ -172,7 +108,7 @@
           </button>
         </div>
       </div>
-      <p v-else class="text-xs text-gray-400 dark:text-green-light/40 mb-4">No hay documentos adicionales.</p>
+      <p v-else class="text-xs text-gray-400 dark:text-green-light/40 mb-4">No hay documentos adjuntos.</p>
 
       <!-- Upload form -->
       <div class="border-t border-gray-100 dark:border-white/[0.06] pt-4">
@@ -210,21 +146,11 @@
         </div>
       </div>
     </section>
-    <!-- Send documents modal -->
-    <SendDocumentsModal
-      :visible="showSendModal"
-      :proposal="proposal"
-      :selected-main-docs="selectedMainDocs"
-      :selected-additional-docs="selectedAdditionalDocsList"
-      @cancel="showSendModal = false"
-      @sent="handleDocumentsSent"
-    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
-import SendDocumentsModal from '~/components/BusinessProposal/admin/SendDocumentsModal.vue';
 import { usePanelToast } from '~/composables/usePanelToast';
 
 const { showToast } = usePanelToast();
@@ -243,11 +169,6 @@ const uploadType = ref('other');
 const uploadCustomLabel = ref('');
 const fileInput = ref(null);
 
-// Send documents state
-const selectedMainDocs = ref(['draft_contract', 'commercial', 'technical']);
-const selectedAdditionalDocIds = ref([]);
-const showSendModal = ref(false);
-
 const contractDoc = computed(() =>
   props.documents.find(d => d.document_type === 'contract'),
 );
@@ -255,17 +176,18 @@ const contractDoc = computed(() =>
 const contractPdfUrl = computed(() =>
   `/api/proposals/${props.proposal.id}/contract/pdf/`,
 );
-
 const draftContractPdfUrl = computed(() =>
   `/api/proposals/${props.proposal.id}/contract/draft-pdf/`,
+);
+const commercialPdfUrl = computed(() =>
+  `/api/proposals/${props.proposal.uuid}/pdf/`,
+);
+const technicalPdfUrl = computed(() =>
+  `/api/proposals/${props.proposal.uuid}/pdf/?doc=technical`,
 );
 
 const additionalDocs = computed(() =>
   props.documents.filter(d => d.document_type !== 'contract'),
-);
-
-const hasSelectedDocs = computed(() =>
-  selectedMainDocs.value.length > 0 || selectedAdditionalDocIds.value.length > 0,
 );
 
 function formatDate(isoString) {
@@ -273,15 +195,6 @@ function formatDate(isoString) {
   return new Date(isoString).toLocaleDateString('es-CO', {
     day: 'numeric', month: 'long', year: 'numeric',
   });
-}
-
-const selectedAdditionalDocsList = computed(() =>
-  additionalDocs.value.filter(d => selectedAdditionalDocIds.value.includes(d.id)),
-);
-
-function handleDocumentsSent() {
-  showSendModal.value = false;
-  showToast({ type: 'success', text: 'Documentos enviados correctamente.' });
 }
 
 async function handleUpload() {

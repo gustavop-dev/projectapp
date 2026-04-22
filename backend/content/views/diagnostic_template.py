@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 
-_TEMPLATES_DIR = (
+TEMPLATES_DIR = (
     Path(__file__).resolve().parent.parent / 'templates' / 'diagnostics'
 )
 
@@ -30,7 +30,7 @@ TEMPLATES = {
 
 
 def _stat(slug, meta):
-    path = _TEMPLATES_DIR / meta['filename']
+    path = TEMPLATES_DIR / meta['filename']
     try:
         stat = path.stat()
     except (FileNotFoundError, OSError):
@@ -63,7 +63,7 @@ def get_diagnostic_template(request, slug):
             {'error': 'template_not_found'},
             status=http_status.HTTP_404_NOT_FOUND,
         )
-    path = _TEMPLATES_DIR / meta['filename']
+    path = TEMPLATES_DIR / meta['filename']
     try:
         content = path.read_text(encoding='utf-8')
         stat = path.stat()

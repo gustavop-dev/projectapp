@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { get_request, create_request, put_request, patch_request, delete_request } from './services/request_http';
+import { isUuid } from '~/utils/slugify';
 
 export const useProposalStore = defineStore('proposals', {
   /**
@@ -56,10 +57,7 @@ export const useProposalStore = defineStore('proposals', {
       this.isLoading = true;
       this.error = null;
       const uuid = identifier;
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        String(identifier || '')
-      );
-      const path = isUuid
+      const path = isUuid(identifier)
         ? `proposals/${identifier}/`
         : `proposals/by-slug/${identifier}/`;
       try {
@@ -885,12 +883,25 @@ export const useProposalStore = defineStore('proposals', {
         if (Array.isArray(sectionsJson)) {
           payload.sections_json = sectionsJson;
         }
-        const expirationDays = Number(generalConfig?.expiration_days);
-        if (Number.isInteger(expirationDays) && expirationDays > 0) {
-          payload.expiration_days = expirationDays;
-        }
-        if (typeof generalConfig?.default_slug_pattern === 'string') {
-          payload.default_slug_pattern = generalConfig.default_slug_pattern;
+        if (generalConfig && typeof generalConfig === 'object') {
+          const fieldMap = {
+            currency: 'default_currency',
+            total_investment: 'default_total_investment',
+            hosting_percent: 'hosting_percent',
+            hosting_discount_semiannual: 'hosting_discount_semiannual',
+            hosting_discount_quarterly: 'hosting_discount_quarterly',
+            expiration_days: 'expiration_days',
+            reminder_days: 'reminder_days',
+            urgency_reminder_days: 'urgency_reminder_days',
+            discount_percent: 'default_discount_percent',
+            default_slug_pattern: 'default_slug_pattern',
+          };
+          for (const [formKey, backendKey] of Object.entries(fieldMap)) {
+            const value = generalConfig[formKey];
+            if (value !== undefined && value !== null) {
+              payload[backendKey] = value;
+            }
+          }
         }
         const response = await put_request('proposals/defaults/', {
           ...payload,

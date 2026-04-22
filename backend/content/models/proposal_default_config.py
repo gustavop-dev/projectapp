@@ -14,6 +14,10 @@ class ProposalDefaultConfig(models.Model):
         ES = 'es', 'Español'
         EN = 'en', 'English'
 
+    class Currency(models.TextChoices):
+        COP = 'COP', 'COP'
+        USD = 'USD', 'USD'
+
     language = models.CharField(
         max_length=2,
         choices=Language.choices,
@@ -24,10 +28,26 @@ class ProposalDefaultConfig(models.Model):
         default=list,
         help_text='Full array of default section dicts (same structure as DEFAULT_SECTIONS).',
     )
+    default_currency = models.CharField(
+        max_length=3,
+        choices=Currency.choices,
+        default=Currency.COP,
+    )
+    default_total_investment = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+    )
+    hosting_percent = models.PositiveSmallIntegerField(default=30)
+    hosting_discount_semiannual = models.PositiveSmallIntegerField(default=20)
+    hosting_discount_quarterly = models.PositiveSmallIntegerField(default=10)
     expiration_days = models.PositiveIntegerField(
         default=21,
         help_text='Default proposal expiration period in days.',
     )
+    reminder_days = models.PositiveIntegerField(default=3)
+    urgency_reminder_days = models.PositiveIntegerField(default=7)
+    default_discount_percent = models.PositiveSmallIntegerField(default=0)
     default_slug_pattern = models.CharField(
         max_length=200,
         default='{client_name}',

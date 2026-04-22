@@ -12,6 +12,7 @@ from content.models import (
     WebAppDiagnostic,
 )
 from content.services import diagnostic_service
+from content.utils import validate_editable_slug
 
 # Whitelist of render_context keys that are safe to expose on the public
 # client-facing endpoint. Everything else (e.g. controllers_disconnected,
@@ -130,7 +131,7 @@ class DiagnosticListSerializer(serializers.ModelSerializer):
     class Meta:
         model = WebAppDiagnostic
         fields = [
-            'id', 'uuid', 'title', 'status', 'language',
+            'id', 'uuid', 'slug', 'title', 'status', 'language',
             'client', 'public_url',
             'client_name', 'client_email', 'client_phone', 'client_company',
             'investment_amount', 'currency', 'duration_label',
@@ -206,7 +207,7 @@ class DiagnosticUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = WebAppDiagnostic
         fields = [
-            'title', 'language',
+            'title', 'language', 'slug',
             'investment_amount', 'currency', 'payment_terms',
             'duration_label', 'size_category', 'radiography',
             'client_id',
@@ -216,11 +217,17 @@ class DiagnosticUpdateSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'title': {'required': False},
             'language': {'required': False},
+            'slug': {'required': False, 'allow_blank': True},
             'client_name': {'required': False, 'allow_blank': True},
             'client_email': {'required': False, 'allow_blank': True},
             'client_phone': {'required': False, 'allow_blank': True},
             'client_company': {'required': False, 'allow_blank': True},
         }
+
+    def validate_slug(self, value):
+        return validate_editable_slug(
+            value, WebAppDiagnostic, self.instance, conflict_phrase='otro diagnóstico',
+        )
 
     def update(self, instance, validated_data):
         validated_data.pop('propagate_client_updates', None)
@@ -235,7 +242,7 @@ class PublicDiagnosticSerializer(serializers.ModelSerializer):
     class Meta:
         model = WebAppDiagnostic
         fields = [
-            'uuid', 'title', 'status', 'language',
+            'uuid', 'slug', 'title', 'status', 'language',
             'client_name', 'investment_amount', 'currency',
             'duration_label', 'size_category',
             'initial_sent_at', 'final_sent_at', 'responded_at',
@@ -294,6 +301,7 @@ class DiagnosticDefaultConfigSerializer(serializers.ModelSerializer):
             'expiration_days',
             'reminder_days',
             'urgency_reminder_days',
+            'default_slug_pattern',
             'created_at',
             'updated_at',
         )

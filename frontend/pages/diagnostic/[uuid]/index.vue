@@ -251,10 +251,10 @@ onBeforeUnmount(() => flushSectionTracking({ beacon: true }));
 
 <style scoped>
 .diagnostic-public {
-  background-color: #FAF3E0;
+  background-color: #ffffff;
   background-image:
-    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0, 41, 33, 0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(0, 41, 33, 0.04) 0%, transparent 55%);
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0, 41, 33, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(0, 41, 33, 0.03) 0%, transparent 55%);
   background-attachment: fixed;
   transition: background-color 0.25s ease;
 }
@@ -288,10 +288,6 @@ onBeforeUnmount(() => flushSectionTracking({ beacon: true }));
 }
 [data-diagnostic-wrapper][data-theme="dark"] :deep(.bg-white) {
   background-color: #143d35 !important;
-}
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.bg-bone\/60),
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.bg-bone\/50) {
-  background-color: rgba(250, 243, 224, 0.08) !important;
 }
 [data-diagnostic-wrapper][data-theme="dark"] :deep(.bg-esmerald\/5) {
   background-color: rgba(230, 239, 239, 0.05) !important;

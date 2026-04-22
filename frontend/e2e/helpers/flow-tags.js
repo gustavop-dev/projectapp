@@ -292,3 +292,7 @@ export const ADMIN_PROPOSAL_SECTION_DISABLE       = ['@flow:admin-proposal-secti
 export const PROPOSAL_SLUG_ACCESS               = ['@flow:proposal-slug-access',                    '@module:proposal', '@priority:P1'];
 export const ADMIN_PROPOSAL_SLUG_EDIT           = ['@flow:admin-proposal-slug-edit',                '@module:admin',    '@priority:P1'];
 export const ADMIN_PROPOSAL_DEFAULTS_SLUG_PATTERN = ['@flow:admin-proposal-defaults-slug-pattern', '@module:admin',    '@priority:P2'];
+
+// ── Documents Tab Reorganization — Adjuntar desde Documentos (Apr 22, 2026) ──
+export const ADMIN_PROPOSAL_ATTACH_FROM_DOCUMENTS   = ['@flow:admin-proposal-attach-from-documents',   '@module:admin', '@priority:P1'];
+export const ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS = ['@flow:admin-diagnostic-attach-from-documents', '@module:admin', '@priority:P2'];

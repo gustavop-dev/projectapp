@@ -34,6 +34,8 @@ export function useConfirmModal() {
     confirmText: 'Confirmar',
     cancelText: 'Cancelar',
     variant: 'warning',
+    requireTypeText: '',
+    hideCancel: false,
     onConfirm: null,
     _resolve: null,
   })
@@ -43,7 +45,7 @@ export function useConfirmModal() {
    * When `onConfirm` callback is provided, it runs on confirm.
    * Always returns a Promise<boolean> that resolves to true on confirm, false on cancel.
    */
-  function requestConfirm({ title, message, confirmText, cancelText, variant, onConfirm }) {
+  function requestConfirm({ title, message, confirmText, cancelText, variant, requireTypeText, hideCancel, onConfirm }) {
     return new Promise((resolve) => {
       confirmState.value = {
         open: true,
@@ -52,6 +54,8 @@ export function useConfirmModal() {
         confirmText: confirmText || 'Confirmar',
         cancelText: cancelText || 'Cancelar',
         variant: variant || 'warning',
+        requireTypeText: requireTypeText || '',
+        hideCancel: Boolean(hideCancel),
         onConfirm: onConfirm || null,
         _resolve: resolve,
       }

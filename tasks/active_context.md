@@ -8,6 +8,22 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ## Recent Focus Areas
 
+- **Documents Tab Reorganization & doc_refs Email Attachment** (Apr 22, 2026):
+  - **Motivation**: "Documentos" and "Documentos & Plantillas" tabs were mixing concerns — listing documents, sending emails, and showing unrelated template sections. Separation of concerns: the Documents tab is purely for listing/downloading/uploading documents; sending belongs exclusively in the Emails tab. The proposal's aside with diagnostic templates (Diagnóstico de Aplicación, Diagnóstico Técnico, Anexo) was moved to the Diagnostic Documents tab where it belongs.
+  - **Proposal — `ProposalDocumentsTab.vue` rewrite**: Section 1 = unified list (Contract with generate/download/draft actions + Propuesta Comercial PDF + Detalle Técnico PDF). Section 2 = "Documentos adjuntos" list + upload form. Removed: "Enviar documentos al cliente" section, `SendDocumentsModal` usage, `selectedMainDocs`/`selectedAdditionalDocIds` state. Tab label changed from `'Documentos & Plantillas'` → `'Documentos'`. `TabSplitLayout` wrapper + `ProposalDiagnosticTemplatesSection` aside removed from `panel/proposals/[id]/edit.vue`.
+  - **Diagnostic — `DiagnosticDocumentsTab.vue` rewrite**: Section 1 = unified list (NDA with PDF download/draft/edit params + 3 MD templates loaded from `GET /api/diagnostic-templates/`). MD actions: copy content, download .md, vista previa. Section 2 = "Documentos adjuntos" list + upload form (unchanged). Removed: "Enviar documentos al cliente", `SendDiagnosticDocumentsModal`, `attachConfidentiality` checkbox (user picks NDA via modal instead).
+  - **New `AttachFromDocumentsModal.vue`**: shared modal (props: `open`, `source: 'proposal'|'diagnostic'`, `entity`, `templates`, `preselected`; emits `@close`, `@attach(picked: [{key, label, ref}])`). `proposalDocs()` builds contract/draft/PDFs/uploaded docs. `diagnosticDocs()` builds NDA variants/template slugs/uploaded attachments. Checklist UI with confirm button.
+  - **New `useDocRefsAttachment.js` composable**: `docRefs`, `removeDocRef`, `handleDocRefsAttach` (merge-by-key), `appendDocRefsToFormData`, `resetDocRefs`. Shared by both email tabs.
+  - **ProposalEmailsTab + DiagnosticEmailsTab updated**: "Adjuntar desde Documentos" button opens `AttachFromDocumentsModal`. Doc refs rendered with emerald badge. `handleSend()` calls `appendDocRefsToFormData(formData)`; `resetForm` calls `resetDocRefs`.
+  - **Backend — new `backend/content/views/_doc_refs.py`**: shared `DocRefError` exception + `parse_doc_refs_field(request)` that handles JSON parsing and list validation (eliminates ~22 duplicated lines from both proposal.py and diagnostic.py).
+  - **Backend — `_resolve_proposal_doc_refs(proposal, doc_refs)`**: pre-batches `ProposalDocument` queries; supports `contract_pdf`, `contract_draft`, `commercial_pdf`, `technical_pdf`, `proposal_document:<id>`. Integrated into `_parse_composed_email`.
+  - **Backend — `_resolve_diagnostic_doc_refs(diagnostic, doc_refs)`**: pre-batches `DiagnosticAttachment` queries; supports `nda_final`, `nda_draft`, `template:<slug>`, `attachment:<id>`. Integrated into `_parse_diagnostic_email`.
+  - **`diagnostic_template.py`**: `_TEMPLATES_DIR` renamed to `TEMPLATES_DIR` (public) to avoid private-symbol cross-module import.
+  - **Deleted**: `SendDocumentsModal.vue`, `ProposalDiagnosticTemplatesSection.vue`, `SendDiagnosticDocumentsModal.vue`, `frontend/test/components/admin-SendDocumentsModal.test.js`, `frontend/test/components/ProposalDiagnosticTemplatesSection.test.js`, `frontend/e2e/admin/admin-proposal-documents-send.spec.js`.
+  - **Tests updated**: `admin-ProposalDocumentsTab.test.js` updated (store mock: `uploadProposalDocument`/`deleteProposalDocument`; no `SendDocumentsModal`; asserts unified list + "Documentos adjuntos"; confirms "Enviar documentos al cliente" absent). `admin-diagnostic-email-documents.spec.js` pruned (removed NDA checkbox, attach_confidentiality POST, send-to-client section tests; added "documents tab renders Documentos list and uploader" test).
+  - **Verification**: 59 backend tests green (composed email views + diagnostic email markdown attachment + diagnostic template views + diagnostic attachments/emails). 23 frontend tests green (ProposalDocumentsTab + ProposalEmailsTab).
+  - **Pending**: Orphaned store actions `sendProposalDocuments` (proposals.js) and `sendDiagnosticAttachments` (diagnostics.js) still exist but are unused by UI — cleanup deferred. Backend endpoints `POST /api/proposals/{id}/documents/send/` and `POST /api/diagnostics/{id}/attachments/send/` still registered but no longer called from frontend.
+
 - **UX — Dynamic Browser Tab Titles & Task Board Order** (Apr 20, 2026):
   - **`layouts/admin.vue`**: added `useHead(() => ({ title: ... }))` with a reactive inline route map (`_panelRouteMap`, `_panelDynamic`) covering all 24 static panel routes and 5 dynamic `[id]/edit` routes. Title format: `Project App (ViewName)` when on a named view, `Project App.` otherwise. Updates reactively on navigation.
   - **`layouts/platform.vue`**: same pattern — `_platformRouteMap` (12 routes) + `_platformDynamic` (11 regex patterns for project sub-routes and collection account/client detail pages).
@@ -355,32 +371,34 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ---
 
-## Verified Codebase Metrics (April 20, 2026 — refreshed post-Diagnostic-Public-Redesign)
+## Verified Codebase Metrics (April 22, 2026 — refreshed post-Documents-Reorganization)
 
 | Metric | Count |
 |--------|-------|
 | Backend test files | 157 |
-| Frontend unit test files | 202 (+DefaultsShell.test.js + TimelineSectionDiagnostic.test.js) |
-| E2E spec files | 155 (+admin-defaults-unified.spec.js) |
-| Vue components | 170 (+DownloadDiagnosticPdfButton + ShareDiagnosticButton, +ProposalDefaultsPanel + DiagnosticDefaultsPanel) |
-| Pages | 72 (+panel/defaults.vue) |
+| Frontend unit test files | ~200 (-admin-SendDocumentsModal.test.js -ProposalDiagnosticTemplatesSection.test.js) |
+| E2E spec files | ~153 (-admin-proposal-documents-send.spec.js) |
+| Vue components | ~168 (-SendDocumentsModal -ProposalDiagnosticTemplatesSection -SendDiagnosticDocumentsModal +AttachFromDocumentsModal) |
+| Pages | 72 |
 | Pinia stores | 27 |
-| Composables | 41 (+useDiagnosticDarkMode.js) |
+| Composables | 42 (+useDocRefsAttachment.js) |
 | Content model files | 30 |
 | Accounts model classes | 21 |
 | Accounts URL patterns | 65 |
-| Content URL patterns | ~148 (+proposals/by-slug/<slug>/ + public diagnostic pdf) |
+| Content URL patterns | ~150 (+proposals/by-slug/<slug>/ + public diagnostic pdf + doc_refs backend helpers) |
 | Email templates | 61 (32 HTML + 29 TXT across `accounts` + `content`) |
-| Content services | 20 (+diagnostic_pdf_service.py) |
+| Content services | 20 |
 | Accounts services | 11 |
-| Content migrations | 105 (0103 swap + 0104 slug populate/unique + 0105 slug pattern field) |
+| Content migrations | 107 (0106 + 0107 pending apply for slug/diagnostic-slug features) |
 | Quality gate score | 100/100 |
 
 ---
 
 ## Next Steps
 
-- **Run pending frontend unit tests** — `npm --prefix frontend test -- test/components/ProposalDiagnosticTemplatesSection.test.js test/components/ValueAddedModules.test.js` — `MarkdownAttachmentModal.test.js` is now verified (12/14 pass; 2 pre-existing failures at HEAD). `ProposalDiagnosticTemplatesSection.test.js` and `ValueAddedModules.test.js` still untested locally.
+- **Manual browser verification** — Start dev servers (`npm --prefix frontend run dev` + `source backend/venv/bin/activate && cd backend && python manage.py runserver`). Verify: (1) Proposal "Documentos" tab shows unified list + adjuntos + uploader; no templates aside; no "Enviar" section. (2) Diagnostic "Documentos" tab shows NDA + 3 MD templates + adjuntos; (3) Both Emails tabs: "Adjuntar desde Documentos" button opens modal, selected refs appear in composer, send includes them in the email.
+- **Cleanup orphaned store actions** — `sendProposalDocuments` in `frontend/stores/proposals.js` and `sendDiagnosticAttachments` in `frontend/stores/diagnostics.js` are no longer called by any UI. Remove both actions and their corresponding backend endpoints (`POST /api/proposals/{id}/documents/send/` and `POST /api/diagnostics/{id}/attachments/send/`) + URL patterns in `content/urls.py`. Run `grep -rn "documents/send\|attachments/send"` before deleting to confirm no other callers.
+- **Run pending frontend unit tests** — `npm --prefix frontend test -- test/components/ValueAddedModules.test.js` — `MarkdownAttachmentModal.test.js` is now verified (12/14 pass; 2 pre-existing failures at HEAD). `ValueAddedModules.test.js` still untested locally.
 - **Deploy 3 pending commits to production** — commits `e2f3785a` (module reorder + auto-select), `22512aac` (slug URL), and `5c7ba3fe` (simplify refactor) are on local `main` but not yet pushed. Run `git push`, then `/deploy-and-check`.
 - **Apply pending migrations in production** — `python manage.py migrate` — required to activate the Kanban board (`0087_task.py`), the Web App Diagnostics module (`0090_web_app_diagnostic.py`), the new Diagnostic Defaults table (`0101_diagnostic_default_config.py`), the Value Added Modules section type (`0102_value_added_modules_section.py`), the order swap (`0103_swap_value_added_modules_order.py`), and the new slug migrations (`0104` + `0105`).
 - **Set `NOTIFICATION_EMAIL` in production env** to `team@projectapp.co,carlos18bp@gmail.com` so the new stage warning + overdue alerts reach the right inbox.

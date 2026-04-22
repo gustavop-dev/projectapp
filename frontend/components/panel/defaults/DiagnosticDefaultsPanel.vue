@@ -19,7 +19,7 @@
     <PanelToast />
 
     <!-- ═══ TAB: Vista General ═══ -->
-    <section v-show="activeTab === 'general'" class="max-w-2xl">
+    <section v-show="activeTab === 'general'" class="max-w-5xl mx-auto">
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
         Estos valores se aplican al crear cada nuevo diagnóstico. Puedes seguir ajustándolos por diagnóstico.
       </p>
@@ -156,6 +156,43 @@
           </div>
         </div>
 
+        <div>
+          <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Patrón de URL personalizada
+            <UiTooltip position="right" width="max-w-xs">
+              <div class="space-y-2 text-left">
+                <p>Puedes usar <strong>texto libre</strong> o combinarlo con placeholders.</p>
+                <p>
+                  Placeholders disponibles:
+                  <code>{client_name}</code>, <code>{year}</code>.
+                </p>
+                <p class="text-xs opacity-80">Reglas (se aplican automáticamente):</p>
+                <ul class="list-disc pl-4 text-xs opacity-80 space-y-0.5">
+                  <li>Se convierte a minúsculas</li>
+                  <li>Los espacios se reemplazan por guiones <code>-</code></li>
+                  <li>Se eliminan tildes y caracteres especiales</li>
+                </ul>
+                <p class="text-xs opacity-80">
+                  Ejemplos: <code>mi-diagnostico</code>, <code>{client_name}-2026</code>.
+                </p>
+              </div>
+            </UiTooltip>
+          </label>
+          <input
+            v-model="generalForm.default_slug_pattern"
+            type="text"
+            data-testid="diagnostic-defaults-slug-pattern"
+            class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100"
+            placeholder="{client_name}"
+          />
+          <p class="text-xs text-gray-400 mt-1">
+            Texto libre permitido. Se aplica al crear un diagnóstico si el admin no escribe una URL manualmente.
+          </p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Vista previa: <span class="font-mono text-emerald-600 dark:text-emerald-400">/diagnostic/{{ slugPatternPreview }}</span>
+          </p>
+        </div>
+
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
           <button
             type="button"
@@ -176,7 +213,7 @@
     </section>
 
     <!-- ═══ TAB: Secciones ═══ -->
-    <section v-show="activeTab === 'sections'">
+    <section v-show="activeTab === 'sections'" class="max-w-7xl mx-auto">
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
         Lista de las secciones que se sembrarán en cada nuevo diagnóstico para el idioma seleccionado.
         Para editar el contenido detallado, abre un diagnóstico real y modifícalo allí — el editor por
@@ -237,7 +274,7 @@
     </section>
 
     <!-- ═══ TAB: JSON ═══ -->
-    <section v-show="activeTab === 'json'" class="max-w-4xl">
+    <section v-show="activeTab === 'json'" class="max-w-7xl mx-auto">
       <div class="flex items-center justify-between mb-2">
         <h2 class="text-sm text-gray-500 dark:text-gray-400">JSON crudo del config activo</h2>
         <span v-if="rawConfig?.updated_at" class="text-xs text-gray-400">
@@ -260,6 +297,7 @@ import PanelToast from '~/components/panel/PanelToast.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelToast } from '~/composables/usePanelToast';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
+import { toSlug } from '~/utils/slugify';
 
 const localePath = useLocalePath();
 const route = useRoute();
@@ -290,6 +328,18 @@ const generalForm = ref({
   reminder_days: 7,
   urgency_reminder_days: 14,
   expiration_days: 21,
+  default_slug_pattern: '{client_name}',
+});
+
+const slugPatternPreview = computed(() => {
+  const pattern = (generalForm.value.default_slug_pattern || '').trim() || '{client_name}';
+  const sample = {
+    '{client_name}': 'María López',
+    '{year}': String(new Date().getFullYear()),
+  };
+  let rendered = pattern;
+  for (const [key, val] of Object.entries(sample)) rendered = rendered.split(key).join(val);
+  return toSlug(rendered, { fallback: 'diagnostico' });
 });
 
 const sectionsList = ref([]);
@@ -329,6 +379,9 @@ function applyConfig(data) {
     reminder_days: Number(data.reminder_days ?? 7),
     urgency_reminder_days: Number(data.urgency_reminder_days ?? 14),
     expiration_days: Number(data.expiration_days ?? 21),
+    default_slug_pattern: typeof data.default_slug_pattern === 'string'
+      ? data.default_slug_pattern
+      : '{client_name}',
   };
 }
 
