@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0020_archived_soft_delete_protect_payments'),
+        ('accounts', '0022_project_data_model_entity'),
     ]
 
     operations = [

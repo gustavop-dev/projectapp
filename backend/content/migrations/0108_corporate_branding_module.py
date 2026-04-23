@@ -81,7 +81,7 @@ def remove_corporate_branding(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('content', '0064_seed_default_contract_template'),
+        ('content', '0107_diagnostic_slug_and_default_pattern'),
     ]
 
     operations = [
