@@ -482,19 +482,30 @@ def send_scheduled_followup(proposal_id):
 def publish_scheduled_blog_posts():
     """
     Periodic task (every 15 minutes): publish blog posts whose
-    published_at datetime has passed but are still marked as drafts.
+    published_at datetime has passed but are still marked as drafts,
+    and fire the LinkedIn auto-publish pipeline for each one.
 
     This enables scheduled/future publishing from the admin panel.
     """
     from content.models import BlogPost
+    from content.views.blog import auto_publish_blog_to_linkedin
 
     now = timezone.now()
-    scheduled_qs = BlogPost.objects.filter(
+    scheduled = BlogPost.objects.filter(
         is_published=False,
         published_at__isnull=False,
         published_at__lte=now,
     )
-    count = scheduled_qs.update(is_published=True)
+
+    count = 0
+    for post in scheduled:
+        try:
+            post.is_published = True
+            post.save(update_fields=['is_published'])
+            auto_publish_blog_to_linkedin(post)
+            count += 1
+        except Exception:
+            logger.exception('Failed to publish scheduled blog post %s', post.id)
 
     if count > 0:
         logger.info('Published %d scheduled blog post(s).', count)

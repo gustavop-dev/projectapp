@@ -31,7 +31,7 @@ BASE_URL = 'https://projectapp.co'
 BLOG_PUBLIC_BASE = f'{BASE_URL}/blog'
 
 
-def _auto_publish_to_linkedin(post):
+def auto_publish_blog_to_linkedin(post):
     """
     Publish a blog post to LinkedIn if conditions are met:
     - Post is published (is_published=True)
@@ -284,7 +284,7 @@ def create_blog_post(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     post = serializer.save()
-    _auto_publish_to_linkedin(post)
+    auto_publish_blog_to_linkedin(post)
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_201_CREATED)
 
@@ -318,7 +318,7 @@ def update_blog_post(request, post_id):
     serializer.save()
     # Auto-publish to LinkedIn when post transitions to published
     if post.is_published and not was_published:
-        _auto_publish_to_linkedin(post)
+        auto_publish_blog_to_linkedin(post)
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_200_OK)
 
@@ -361,6 +361,7 @@ def create_blog_post_from_json(request):
         read_time_minutes=data.get('read_time_minutes', 0),
         is_featured=data.get('is_featured', False),
         is_published=data.get('is_published', False),
+        published_at=data.get('published_at'),
         author=data.get('author', 'projectapp-team'),
         meta_title_es=data.get('meta_title_es', ''),
         meta_title_en=data.get('meta_title_en', ''),
@@ -374,7 +375,7 @@ def create_blog_post_from_json(request):
         linkedin_summary_en=data.get('linkedin_summary_en', ''),
     )
 
-    _auto_publish_to_linkedin(post)
+    auto_publish_blog_to_linkedin(post)
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_201_CREATED)
 

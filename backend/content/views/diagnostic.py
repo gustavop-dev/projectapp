@@ -10,10 +10,13 @@ from django.db.models import Avg, Count, Min, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework import status as http_status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
+
+from content.throttles import TrackingAnonThrottle
 
 from accounts.models import UserProfile
 from accounts.services.proposal_client_service import update_client_profile
@@ -791,8 +794,7 @@ def retrieve_public_diagnostic(request, diagnostic_uuid):
         .prefetch_related('sections'),
         uuid=diagnostic_uuid,
     )
-    if diagnostic.status in diagnostic_service.PUBLIC_VISIBLE_STATUSES:
-        diagnostic_service.register_view(diagnostic)
+    # view_count is bumped only by POST /track/ to avoid double-counting.
     return Response(PublicDiagnosticSerializer(diagnostic).data)
 
 
@@ -805,31 +807,29 @@ def retrieve_public_diagnostic_by_slug(request, diagnostic_slug):
         .prefetch_related('sections'),
         slug=diagnostic_slug,
     )
-    if diagnostic.status in diagnostic_service.PUBLIC_VISIBLE_STATUSES:
-        diagnostic_service.register_view(diagnostic)
     return Response(PublicDiagnosticSerializer(diagnostic).data)
 
 
 def _ensure_view_event(diagnostic, request, session_id):
-    """Return the existing ViewEvent for (diagnostic, session) or create one."""
-    existing = (
-        DiagnosticViewEvent.objects
-        .filter(diagnostic=diagnostic, session_id=session_id)
-        .order_by('-viewed_at')
-        .first()
-    )
-    if existing is not None:
-        return existing
-    return DiagnosticViewEvent.objects.create(
+    """Return the existing ViewEvent for (diagnostic, session) or create one.
+
+    Safe under concurrency: (diagnostic, session_id) has a UniqueConstraint,
+    so get_or_create collapses racing requests to a single row.
+    """
+    event, _ = DiagnosticViewEvent.objects.get_or_create(
         diagnostic=diagnostic,
         session_id=session_id,
-        ip_address=get_client_ip(request),
-        user_agent=request.META.get('HTTP_USER_AGENT', '')[:2000],
+        defaults={
+            'ip_address': get_client_ip(request),
+            'user_agent': request.META.get('HTTP_USER_AGENT', '')[:2000],
+        },
     )
+    return event
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([TrackingAnonThrottle])
 def track_public_diagnostic(request, diagnostic_uuid):
     """Create (or reuse) a DiagnosticViewEvent for this public visit."""
     diagnostic = get_object_or_404(WebAppDiagnostic, uuid=diagnostic_uuid)
@@ -841,13 +841,21 @@ def track_public_diagnostic(request, diagnostic_uuid):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([TrackingAnonThrottle])
 def track_diagnostic_section_view(request, diagnostic_uuid):
     """Record per-section time spent during a public visit."""
     diagnostic = get_object_or_404(WebAppDiagnostic, uuid=diagnostic_uuid)
     session_id = (request.data.get('session_id') or '')[:64]
     section_type = (request.data.get('section_type') or '')[:50]
     section_title = (request.data.get('section_title') or '')[:255]
-    time_spent = float(request.data.get('time_spent_seconds') or 0)
+
+    try:
+        time_spent = float(request.data.get('time_spent_seconds') or 0)
+    except (TypeError, ValueError):
+        return Response(
+            {'error': 'invalid_time_spent_seconds'},
+            status=http_status.HTTP_400_BAD_REQUEST,
+        )
 
     if not session_id or not section_type:
         return Response(
@@ -855,13 +863,20 @@ def track_diagnostic_section_view(request, diagnostic_uuid):
             status=http_status.HTTP_400_BAD_REQUEST,
         )
 
+    entered_at = None
+    raw_entered_at = request.data.get('entered_at')
+    if raw_entered_at:
+        entered_at = parse_datetime(raw_entered_at)
+    if entered_at is None:
+        entered_at = timezone.now()
+
     view_event = _ensure_view_event(diagnostic, request, session_id)
     DiagnosticSectionView.objects.create(
         view_event=view_event,
         section_type=section_type,
         section_title=section_title,
         time_spent_seconds=max(0.0, time_spent),
-        entered_at=timezone.now(),
+        entered_at=entered_at,
     )
     return Response({'ok': True})
 

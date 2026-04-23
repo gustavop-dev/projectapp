@@ -1,7 +1,6 @@
 import copy
 import logging
 import re
-from datetime import timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from django.conf import settings
@@ -9,9 +8,17 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import status
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+    throttle_classes,
+)
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+
+from content.throttles import TrackingAnonThrottle
+from content.utils import get_client_ip
 
 from content.models import (
     BusinessProposal, ProposalAlert, ProposalSection,
@@ -52,7 +59,6 @@ _KEY_PROPOSAL_SECTIONS = frozenset({
 
 # Spanish labels for the three client-selectable view modes.
 VIEW_MODE_LABELS = {'executive': 'ejecutiva', 'detailed': 'completa', 'technical': 'técnica'}
-CLIENT_VIEW_ACTIVITY_COOLDOWN = timedelta(hours=3)
 
 # Ordered fragments of the technical document panel, matching frontend utils/technicalProposalPanels.js
 _TECHNICAL_FRAGMENT_ORDER = [
@@ -2260,6 +2266,7 @@ def check_admin_auth(request):
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([AllowAny])
+@throttle_classes([TrackingAnonThrottle])
 def track_proposal_engagement(request, proposal_uuid):
     """
     Record section-level engagement data from the client's browser.
@@ -2311,7 +2318,7 @@ def track_proposal_engagement(request, proposal_uuid):
         )
 
     # Get or create the view event for this session
-    ip_address = _get_client_ip(request)
+    ip_address = get_client_ip(request)
     user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]
     view_mode = request.data.get('view_mode', 'unknown')
     if view_mode not in VIEW_MODE_LABELS:
@@ -2332,24 +2339,19 @@ def track_proposal_engagement(request, proposal_uuid):
         view_event.save(update_fields=['view_mode'])
 
     if _created:
-        recent_view_log = ProposalChangeLog.objects.filter(
+        # UniqueConstraint on (proposal, session_id) prevents same-session floods,
+        # so every _created=True is a distinct session worth logging.
+        mode_label = VIEW_MODE_LABELS.get(view_mode)
+        ProposalChangeLog.objects.create(
             proposal=proposal,
             change_type=ProposalChangeLog.ChangeType.VIEWED,
             actor_type=ProposalChangeLog.ActorType.CLIENT,
-            created_at__gt=timezone.now() - CLIENT_VIEW_ACTIVITY_COOLDOWN,
-        ).exists()
-        if not recent_view_log:
-            mode_label = VIEW_MODE_LABELS.get(view_mode)
-            ProposalChangeLog.objects.create(
-                proposal=proposal,
-                change_type=ProposalChangeLog.ChangeType.VIEWED,
-                actor_type=ProposalChangeLog.ActorType.CLIENT,
-                description=(
-                    f'Vista en modo {mode_label}.'
-                    if mode_label
-                    else 'El cliente visitó la propuesta.'
-                ),
-            )
+            description=(
+                f'Vista en modo {mode_label}.'
+                if mode_label
+                else 'El cliente visitó la propuesta.'
+            ),
+        )
 
     # --- Stakeholder detection ---
     # If this is a new session from a different IP than previous sessions,
@@ -2540,6 +2542,7 @@ def track_proposal_engagement(request, proposal_uuid):
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([AllowAny])
+@throttle_classes([TrackingAnonThrottle])
 def track_calculator_interaction(request, proposal_uuid):
     """
     Track calculator interactions: confirmed selections or abandonment.
@@ -2611,6 +2614,7 @@ def track_calculator_interaction(request, proposal_uuid):
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([AllowAny])
+@throttle_classes([TrackingAnonThrottle])
 def track_requirement_click(request, proposal_uuid):
     """
     Track when a client clicks on a functional requirements group card.
@@ -2901,14 +2905,6 @@ def request_magic_link(request):
 
     # Always return 200 to prevent email enumeration
     return Response({'status': 'ok'}, status=status.HTTP_200_OK)
-
-
-def _get_client_ip(request):
-    """Extract client IP from request, checking X-Forwarded-For first."""
-    xff = request.META.get('HTTP_X_FORWARDED_FOR')
-    if xff:
-        return xff.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR')
 
 
 # ---------------------------------------------------------------------------

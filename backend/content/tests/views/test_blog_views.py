@@ -3,7 +3,7 @@
 Covers: public GET list/detail with ?lang=, admin CRUD (auth required),
 happy path, 404s, validation errors, permission checks.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 from django.urls import reverse
@@ -267,6 +267,50 @@ class TestAdminCreateFromJSON:
             reverse('create-blog-post-from-json'), payload, format='json'
         )
         assert response.status_code == 400
+
+    def test_persists_scheduled_published_at_as_draft(self, admin_client):
+        """Scheduling from JSON: is_published=False + future published_at is stored
+        so the periodic task can pick it up when the time arrives."""
+        scheduled = dj_timezone.now() + timedelta(hours=2)
+        payload = {
+            'title_es': 'Programado',
+            'title_en': 'Scheduled',
+            'excerpt_es': 'E', 'excerpt_en': 'E',
+            'content_json_es': {
+                'intro': 'I',
+                'sections': [{'heading': 'S', 'content': 'C'}],
+            },
+            'is_published': False,
+            'published_at': scheduled.isoformat(),
+        }
+        response = admin_client.post(
+            reverse('create-blog-post-from-json'), payload, format='json',
+        )
+        assert response.status_code == 201
+        post = BlogPost.objects.get(pk=response.data['id'])
+        assert post.is_published is False
+        assert post.published_at is not None
+        assert abs((post.published_at - scheduled).total_seconds()) < 2
+
+    def test_publish_now_sets_published_at_via_model_hook(self, admin_client):
+        """is_published=True without an explicit published_at still gets timestamped
+        by the model save hook."""
+        payload = {
+            'title_es': 'Ahora', 'title_en': 'Now',
+            'excerpt_es': 'E', 'excerpt_en': 'E',
+            'content_json_es': {
+                'intro': 'I',
+                'sections': [{'heading': 'S', 'content': 'C'}],
+            },
+            'is_published': True,
+        }
+        response = admin_client.post(
+            reverse('create-blog-post-from-json'), payload, format='json',
+        )
+        assert response.status_code == 201
+        post = BlogPost.objects.get(pk=response.data['id'])
+        assert post.is_published is True
+        assert post.published_at is not None
 
 
 class TestAdminBlogJSONTemplate:

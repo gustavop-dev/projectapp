@@ -37,6 +37,15 @@ class ProposalViewEvent(models.Model):
         ordering = ['-viewed_at']
         verbose_name = 'Proposal View Event'
         verbose_name_plural = 'Proposal View Events'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['proposal', 'session_id'],
+                name='uniq_proposalviewevent_proposal_session',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['proposal', 'viewed_at']),
+        ]
 
     def __str__(self):
         return (

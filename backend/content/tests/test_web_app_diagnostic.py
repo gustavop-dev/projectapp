@@ -140,26 +140,82 @@ def test_send_initial_transitions_status(admin_client, diagnostic, mailoutbox):
     assert 'diag@example.com' in mailoutbox[0].to
 
 
-def test_public_retrieve_increments_view_count(api_client, diagnostic):
+def test_public_retrieve_does_not_increment_view_count(api_client, diagnostic):
+    """GET /public/ only returns data; only POST /track/ bumps view_count.
+
+    This avoids double-counting (frontend always does GET + POST /track/).
+    """
     diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
     response = api_client.get(f'/api/diagnostics/public/{diagnostic.uuid}/')
     assert response.status_code == 200
     body = response.json()
     assert body['client_name']
-    # Initial phase: exposes sections with visibility ∈ {initial, both}.
     returned_types = {s['section_type'] for s in body['sections']}
     assert 'executive_summary' not in returned_types
     diagnostic.refresh_from_db()
-    assert diagnostic.view_count == 1
+    assert diagnostic.view_count == 0
 
-    # Explicit track endpoint creates a view event + bumps counter.
+    # The track endpoint is what creates the event + bumps the counter.
     api_client.post(
         f'/api/diagnostics/public/{diagnostic.uuid}/track/',
         {'session_id': 'abc123'}, format='json',
     )
     diagnostic.refresh_from_db()
-    assert diagnostic.view_count == 2
+    assert diagnostic.view_count == 1
     assert diagnostic.view_events.count() == 1
+
+
+def test_track_section_rejects_non_numeric_time_spent(api_client, diagnostic):
+    """Passing a non-numeric time_spent_seconds returns 400, not 500."""
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
+    response = api_client.post(
+        f'/api/diagnostics/public/{diagnostic.uuid}/track-section/',
+        {
+            'session_id': 'abc123',
+            'section_type': 'purpose',
+            'section_title': 'Propósito',
+            'time_spent_seconds': 'abc',
+        },
+        format='json',
+    )
+    assert response.status_code == 400
+    assert response.json().get('error') == 'invalid_time_spent_seconds'
+
+
+def test_track_section_respects_client_entered_at(api_client, diagnostic):
+    """entered_at from payload is stored verbatim; fallback is now() if missing."""
+    from content.models import DiagnosticSectionView
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
+    response = api_client.post(
+        f'/api/diagnostics/public/{diagnostic.uuid}/track-section/',
+        {
+            'session_id': 'abc123',
+            'section_type': 'purpose',
+            'section_title': 'Propósito',
+            'time_spent_seconds': 5,
+            'entered_at': '2026-04-01T10:30:00Z',
+        },
+        format='json',
+    )
+    assert response.status_code == 200
+    section_view = DiagnosticSectionView.objects.filter(
+        view_event__diagnostic=diagnostic, section_type='purpose',
+    ).first()
+    assert section_view is not None
+    assert section_view.entered_at.isoformat().startswith('2026-04-01T10:30:00')
+
+
+def test_track_reuses_view_event_for_same_session(api_client, diagnostic):
+    """Two POST /track/ with the same session_id collapse to one event row."""
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
+    url = f'/api/diagnostics/public/{diagnostic.uuid}/track/'
+    r1 = api_client.post(url, {'session_id': 'session-xyz'}, format='json')
+    r2 = api_client.post(url, {'session_id': 'session-xyz'}, format='json')
+    assert r1.status_code == 200 and r2.status_code == 200
+    diagnostic.refresh_from_db()
+    # view_count is bumped on each register_view call (second-click re-visit
+    # is a real signal), but the view_event row is unique per session.
+    assert diagnostic.view_events.filter(session_id='session-xyz').count() == 1
 
 
 def test_public_respond_accept_finalizes_status(api_client, diagnostic):

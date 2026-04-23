@@ -116,6 +116,130 @@
           </p>
         </div>
 
+        <div data-testid="general-finance-sidebar" class="bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06] rounded-xl p-4 sm:p-5 mb-4 space-y-5">
+          <h3 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Inversión, pagos y hosting
+          </h3>
+          <div data-testid="general-finance-investment-card" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Inversión total</label>
+              <input v-model.number="form.total_investment" data-testid="general-finance-total-investment" type="number" min="0" step="0.01"
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Moneda</label>
+              <select v-model="form.currency" data-testid="general-finance-currency"
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+                <option value="COP">COP</option>
+                <option value="USD">USD</option>
+              </select>
+            </div>
+          </div>
+          <div v-if="investmentSection" class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/30 rounded-xl px-4 py-3">
+            <label class="block text-sm font-medium text-emerald-900 dark:text-emerald-200 mb-2">Porcentajes de pago (sección Inversión)</label>
+            <div v-if="investmentPaymentPercentages.length" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label
+                v-for="(_, idx) in investmentPaymentPercentages"
+                :key="`payment-percent-${idx}`"
+                class="block"
+              >
+                <span class="block text-xs text-emerald-700 dark:text-emerald-300 mb-1">Pago {{ idx + 1 }}</span>
+                <div class="flex items-center gap-2">
+                  <input
+                    v-model.number="investmentPaymentPercentages[idx]"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    class="w-full px-3 py-2 border border-emerald-200 dark:border-emerald-700/30 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white dark:bg-esmerald-dark dark:text-white"
+                    @blur="normalizeGeneralPaymentPercentage(idx)"
+                  />
+                  <span class="text-sm text-emerald-700 dark:text-emerald-300">%</span>
+                </div>
+                <span
+                  v-if="form.total_investment > 0 && investmentPaymentPercentages[idx] > 0"
+                  class="block text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium"
+                >
+                  {{ paymentAmounts[idx] }}
+                </span>
+              </label>
+            </div>
+            <p v-else class="text-xs text-emerald-700 dark:text-emerald-300">No se detectaron porcentajes en "Secciones → Inversión → Opciones de pago".</p>
+            <p class="text-xs text-emerald-700 dark:text-emerald-300 mt-2">Se sincroniza con los porcentajes definidos en "Secciones → Inversión → Opciones de pago".</p>
+          </div>
+          <div data-testid="general-finance-hosting-card">
+            <div class="flex items-center gap-1.5 mb-1">
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70">Hosting (% de inversión total)</label>
+              <UiTooltip position="right">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                </template>
+                {{ tt.hostingPercent }}
+              </UiTooltip>
+            </div>
+            <div class="flex items-center gap-3">
+              <input v-model.number="form.hosting_percent" data-testid="general-finance-hosting-percent" type="number" min="0" max="100"
+                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              <span class="text-sm text-gray-500">%</span>
+            </div>
+            <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-700/30 rounded-xl overflow-hidden">
+              <div class="px-4 py-2 text-[11px] uppercase tracking-wider text-blue-600 dark:text-blue-300/70 border-b border-blue-100 dark:border-blue-900/30">
+                Precio que verá el cliente (por mes)
+              </div>
+              <div class="grid grid-cols-[1fr_auto_auto] gap-x-4 text-sm divide-y divide-blue-100 dark:divide-blue-900/30">
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Mensual</div>
+                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right whitespace-nowrap">
+                  ${{ hostingMonthlyBase.toLocaleString() }} {{ form.currency }}/mes
+                </div>
+                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">facturado mensual</div>
+
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
+                  Trimestral
+                  <span v-if="form.hosting_discount_quarterly" class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_quarterly }}% dcto)</span>
+                </div>
+                <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
+                     :class="form.hosting_discount_quarterly ? 'text-emerald-700 dark:text-emerald-300' : 'text-blue-800 dark:text-blue-200'">
+                  ${{ hostingMonthlyWithDiscount(form.hosting_discount_quarterly).toLocaleString() }} {{ form.currency }}/mes
+                </div>
+                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
+                  total ${{ hostingPeriodTotal(form.hosting_discount_quarterly, 3).toLocaleString() }} / 3 meses
+                </div>
+
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
+                  Semestral
+                  <span v-if="form.hosting_discount_semiannual" class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_semiannual }}% dcto)</span>
+                </div>
+                <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
+                     :class="form.hosting_discount_semiannual ? 'text-emerald-700 dark:text-emerald-300' : 'text-blue-800 dark:text-blue-200'">
+                  ${{ hostingMonthlyWithDiscount(form.hosting_discount_semiannual).toLocaleString() }} {{ form.currency }}/mes
+                </div>
+                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
+                  total ${{ hostingPeriodTotal(form.hosting_discount_semiannual, 6).toLocaleString() }} / 6 meses
+                </div>
+
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">☁️ Anual (referencia)</div>
+                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right whitespace-nowrap">
+                  ${{ hostingAnnualAmount.toLocaleString() }} {{ form.currency }}
+                </div>
+                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">sin descuento</div>
+              </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">Sincronizado automáticamente con el Plan de Hosting que ve el cliente en "Tu inversión y cómo pagar".</p>
+          </div>
+          <div data-testid="general-finance-discounts-card" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. semestral (%)</label>
+              <input v-model.number="form.hosting_discount_semiannual" data-testid="general-finance-semiannual-discount" type="number" min="0" max="100"
+                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. trimestral (%)</label>
+              <input v-model.number="form.hosting_discount_quarterly" data-testid="general-finance-quarterly-discount" type="number" min="0" max="100"
+                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+            </div>
+          </div>
+        </div>
+
         <!-- Read-only info -->
         <div class="bg-gray-50 dark:bg-white/[0.03] rounded-xl p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
@@ -420,126 +544,6 @@
               <option value="en">English</option>
             </select>
             <p class="text-xs text-gray-400 mt-1">Solo afecta los títulos por defecto al crear. Cambiar aquí no regenera las secciones existentes.</p>
-          </div>
-          <div data-testid="general-finance-sidebar">
-            <div data-testid="general-finance-investment-card" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Inversión total</label>
-                <input v-model.number="form.total_investment" data-testid="general-finance-total-investment" type="number" min="0" step="0.01"
-                  class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Moneda</label>
-                <select v-model="form.currency" data-testid="general-finance-currency"
-                  class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
-                  <option value="COP">COP</option>
-                  <option value="USD">USD</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div v-if="investmentSection" class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/30 rounded-xl px-4 py-3">
-            <label class="block text-sm font-medium text-emerald-900 dark:text-emerald-200 mb-2">Porcentajes de pago (sección Inversión)</label>
-            <div v-if="investmentPaymentPercentages.length" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <label
-                v-for="(_, idx) in investmentPaymentPercentages"
-                :key="`payment-percent-${idx}`"
-                class="block"
-              >
-                <span class="block text-xs text-emerald-700 dark:text-emerald-300 mb-1">Pago {{ idx + 1 }}</span>
-                <div class="flex items-center gap-2">
-                  <input
-                    v-model.number="investmentPaymentPercentages[idx]"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    class="w-full px-3 py-2 border border-emerald-200 dark:border-emerald-700/30 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white dark:bg-esmerald-dark dark:text-white"
-                    @blur="normalizeGeneralPaymentPercentage(idx)"
-                  />
-                  <span class="text-sm text-emerald-700 dark:text-emerald-300">%</span>
-                </div>
-                <span
-                  v-if="form.total_investment > 0 && investmentPaymentPercentages[idx] > 0"
-                  class="block text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium"
-                >
-                  {{ paymentAmounts[idx] }}
-                </span>
-              </label>
-            </div>
-            <p v-else class="text-xs text-emerald-700 dark:text-emerald-300">No se detectaron porcentajes en "Secciones → Inversión → Opciones de pago".</p>
-            <p class="text-xs text-emerald-700 dark:text-emerald-300 mt-2">Se sincroniza con los porcentajes definidos en "Secciones → Inversión → Opciones de pago".</p>
-          </div>
-          <div data-testid="general-finance-hosting-card">
-            <div class="flex items-center gap-1.5 mb-1">
-              <label class="block text-sm font-medium text-gray-700">Hosting (% de inversión total)</label>
-              <UiTooltip position="right">
-                <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
-                </template>
-                {{ tt.hostingPercent }}
-              </UiTooltip>
-            </div>
-            <div class="flex items-center gap-3">
-              <input v-model.number="form.hosting_percent" data-testid="general-finance-hosting-percent" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-              <span class="text-sm text-gray-500">%</span>
-            </div>
-            <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-700/30 rounded-xl overflow-hidden">
-              <div class="px-4 py-2 text-[11px] uppercase tracking-wider text-blue-600 dark:text-blue-300/70 border-b border-blue-100 dark:border-blue-900/30">
-                Precio que verá el cliente (por mes)
-              </div>
-              <div class="grid grid-cols-[1fr_auto_auto] gap-x-4 text-sm divide-y divide-blue-100 dark:divide-blue-900/30">
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Mensual</div>
-                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right whitespace-nowrap">
-                  ${{ hostingMonthlyBase.toLocaleString() }} {{ form.currency }}/mes
-                </div>
-                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">facturado mensual</div>
-
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
-                  Trimestral
-                  <span v-if="form.hosting_discount_quarterly" class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_quarterly }}% dcto)</span>
-                </div>
-                <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
-                     :class="form.hosting_discount_quarterly ? 'text-emerald-700 dark:text-emerald-300' : 'text-blue-800 dark:text-blue-200'">
-                  ${{ hostingMonthlyWithDiscount(form.hosting_discount_quarterly).toLocaleString() }} {{ form.currency }}/mes
-                </div>
-                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
-                  total ${{ hostingPeriodTotal(form.hosting_discount_quarterly, 3).toLocaleString() }} / 3 meses
-                </div>
-
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
-                  Semestral
-                  <span v-if="form.hosting_discount_semiannual" class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_semiannual }}% dcto)</span>
-                </div>
-                <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
-                     :class="form.hosting_discount_semiannual ? 'text-emerald-700 dark:text-emerald-300' : 'text-blue-800 dark:text-blue-200'">
-                  ${{ hostingMonthlyWithDiscount(form.hosting_discount_semiannual).toLocaleString() }} {{ form.currency }}/mes
-                </div>
-                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
-                  total ${{ hostingPeriodTotal(form.hosting_discount_semiannual, 6).toLocaleString() }} / 6 meses
-                </div>
-
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">☁️ Anual (referencia)</div>
-                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right whitespace-nowrap">
-                  ${{ hostingAnnualAmount.toLocaleString() }} {{ form.currency }}
-                </div>
-                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">sin descuento</div>
-              </div>
-            </div>
-            <p class="text-xs text-gray-400 mt-1">Sincronizado automáticamente con el Plan de Hosting que ve el cliente en "Tu inversión y cómo pagar".</p>
-          </div>
-          <div data-testid="general-finance-discounts-card" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. semestral (%)</label>
-              <input v-model.number="form.hosting_discount_semiannual" data-testid="general-finance-semiannual-discount" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. trimestral (%)</label>
-              <input v-model.number="form.hosting_discount_quarterly" data-testid="general-finance-quarterly-discount" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-            </div>
           </div>
           <div>
             <div class="flex items-center gap-1.5 mb-1">

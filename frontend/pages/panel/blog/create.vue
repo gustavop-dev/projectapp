@@ -444,7 +444,7 @@ async function handleJsonSubmit() {
 
   const result = await blogStore.createPostFromJSON(payload);
   if (result.success) {
-    navigateTo(localePath(`/panel/blog/${result.data.id}/edit`));
+    navigateTo(localePath('/panel/blog'));
   } else {
     errorMsg.value = 'Error al crear el post desde JSON. Revisa los campos.';
   }

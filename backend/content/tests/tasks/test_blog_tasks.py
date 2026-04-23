@@ -3,6 +3,7 @@
 Covers: publish_scheduled_blog_posts periodic task.
 """
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
@@ -97,3 +98,22 @@ class TestPublishScheduledBlogPosts:
         for p in posts:
             p.refresh_from_db()
             assert p.is_published is True
+
+    @freeze_time('2026-01-15 12:00:00')
+    def test_scheduled_publish_triggers_linkedin_auto_publish(self):
+        """Scheduled publication also fires the LinkedIn auto-publish pipeline,
+        so the post reaches LinkedIn without admins having to manually re-publish."""
+        post = BlogPost.objects.create(
+            **BLOG_POST_BASE,
+            is_published=False,
+            published_at=timezone.now() - timedelta(minutes=1),
+            linkedin_summary_es='Resumen para LinkedIn.',
+        )
+        with patch('content.views.blog.auto_publish_blog_to_linkedin') as mock_auto:
+            _run_publish_task()
+            mock_auto.assert_called_once()
+            called_post = mock_auto.call_args[0][0]
+            assert called_post.id == post.id
+
+        post.refresh_from_db()
+        assert post.is_published is True

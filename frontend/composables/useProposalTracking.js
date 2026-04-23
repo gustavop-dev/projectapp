@@ -33,6 +33,12 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
   let visibilityHandler = null;
 
   function generateSessionId() {
+    // Prefer crypto.randomUUID for collision-resistant IDs; fall back to
+    // a time + Math.random mix on older browsers / jsdom.
+    /* c8 ignore next 3 */
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return 'ses_' + crypto.randomUUID();
+    }
     return 'ses_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
   }
 
