@@ -411,6 +411,10 @@ const props = defineProps({
   viewMode: {
     type: String,
     default: 'detailed'
+  },
+  initialCustomTotal: {
+    type: Number,
+    default: null
   }
 });
 
@@ -443,6 +447,12 @@ onMounted(() => {
             try { localStorage.setItem(`proposal-${props.proposalUuid}-total`, String(customTotal.value)); } catch { /* noop */ }
             emit('updateCustomTotal', customTotal.value);
           }
+        }
+      } else if (props.initialCustomTotal != null) {
+        const base = parseInvestment(props.totalInvestment);
+        if (base > 0 && props.initialCustomTotal !== base) {
+          customTotal.value = props.initialCustomTotal;
+          emit('updateCustomTotal', customTotal.value);
         }
       }
     } catch (_e) { /* ignore */ }

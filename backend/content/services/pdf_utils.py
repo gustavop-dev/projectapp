@@ -1007,15 +1007,17 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None):
     y = _draw_header_row(c, y)
 
     # Draw data rows
+    chars = max(int((col_w - 2 * cell_pad_h) / (data_font_size * 0.48)), 10)
     for ri, row in enumerate(rows or []):
-        # Calculate row height
+        # Wrap each cell once and reuse for height + render.
+        wrapped = []
         max_lines = 1
         for cell in row:
-            clean = _strip_emoji(str(cell))
-            chars = int((col_w - 2 * cell_pad_h) / (data_font_size * 0.48))
-            lines = _md_wrap(clean, max(chars, 10))
-            lines = _break_long_tokens(lines, max(chars, 10))
-            max_lines = max(max_lines, len(lines) if lines else 1)
+            lines = _break_long_tokens(
+                _md_wrap(_strip_emoji(str(cell)), chars), chars,
+            )
+            wrapped.append(lines)
+            max_lines = max(max_lines, len(lines) or 1)
         row_h = max_lines * leading + 2 * cell_pad_v
 
         # Check pagination
@@ -1033,15 +1035,15 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None):
         c.setLineWidth(0.4)
         c.line(x_start, y - row_h, x_start + max_width, y - row_h)
 
-        # Cell text
-        for ci, cell in enumerate(row):
+        # Cell text — vertically centered within the row so short cells
+        # (e.g. single-line "#" column) align with the mid-line of taller
+        # multi-line cells instead of sitting flush with the top.
+        fn = _font('regular')
+        for ci, lines in enumerate(wrapped):
             cx = x_start + ci * col_w + cell_pad_h
-            clean = _strip_emoji(str(cell))
-            chars = int((col_w - 2 * cell_pad_h) / (data_font_size * 0.48))
-            lines = _md_wrap(clean, max(chars, 10))
-            lines = _break_long_tokens(lines, max(chars, 10))
-            ty = y - cell_pad_v - data_font_size + 2
-            fn = _font('regular')
+            cell_lines = len(lines) or 1
+            v_offset = (max_lines - cell_lines) * leading / 2
+            ty = y - cell_pad_v - v_offset - data_font_size + 2
             for line in lines:
                 _draw_line_with_links(c, cx, ty, line, fn, data_font_size, ESMERALD_80)
                 ty -= leading

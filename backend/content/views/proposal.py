@@ -627,15 +627,6 @@ def download_proposal_pdf(request, proposal_uuid):
     if doc_variant == 'technical':
         from content.services.technical_document_pdf import generate_technical_document_pdf
 
-        selected_modules_param = request.query_params.get('selected_modules', '')
-        selected_modules = (
-            [m.strip() for m in selected_modules_param.split(',') if m.strip()]
-            if selected_modules_param
-            else None
-        )
-        if selected_modules is None and proposal.has_confirmed_module_selection:
-            selected_modules = proposal.selected_modules
-
         pdf_bytes = generate_technical_document_pdf(
             proposal, selected_modules=selected_modules
         )
@@ -645,17 +636,6 @@ def download_proposal_pdf(request, proposal_uuid):
                 status=status.HTTP_404_NOT_FOUND,
             )
     else:
-        selected_modules_param = request.query_params.get('selected_modules', '')
-        selected_modules = (
-            [m.strip() for m in selected_modules_param.split(',') if m.strip()]
-            if selected_modules_param
-            else None
-        )
-        # Fallback to persisted selections from the model
-        if selected_modules is None and proposal.has_confirmed_module_selection:
-            selected_modules = proposal.selected_modules
-
-        from content.services.proposal_pdf_service import ProposalPdfService
         pdf_bytes = ProposalPdfService.generate(
             proposal, selected_modules=selected_modules
         )

@@ -729,6 +729,56 @@ const nextPanelTitle = computed(() => {
   return next?.title || '';
 });
 
+// Seed selectedCalculatorModuleIds and customizedTotal from admin/client
+// preselections on first load, so the Investment section reflects the effective
+// total from the moment the page renders. Mirrors the priority used by the
+// backend's `default_selected_modules_from_content` helper.
+function computeInitialSelection() {
+  if (!proposal.value) return;
+  const uuid = proposal.value.uuid || '';
+  try {
+    if (uuid && hasStoredConfirmedProposalModuleSelection(uuid)) return;
+  } catch { /* noop */ }
+
+  const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
+  const investmentModules = investmentSection?.content_json?.modules || [];
+  const calcItems = allGroupCalculatorItems.value;
+
+  const persisted = Array.isArray(proposal.value.selected_modules) ? proposal.value.selected_modules : [];
+  let selectedIds;
+  if (persisted.length) {
+    selectedIds = new Set(persisted);
+  } else {
+    const derived = [];
+    for (const m of investmentModules) {
+      if (m.is_required === true || m.default_selected !== false) derived.push(m.id);
+    }
+    for (const m of calcItems) {
+      if (m.default_selected === true) derived.push(m.id);
+    }
+    selectedIds = new Set(derived);
+  }
+
+  selectedCalculatorModuleIds.value = new Set(
+    calcItems.filter(m => selectedIds.has(m.id)).map(m => m.id),
+  );
+
+  const base = Number(proposal.value.total_investment || 0);
+  if (base <= 0) return;
+
+  const deselectedSum = investmentModules
+    .filter(m => m.is_required !== true && !selectedIds.has(m.id))
+    .reduce((sum, m) => sum + (Number(m.price) || 0), 0);
+  const addedSum = calcItems
+    .filter(m => selectedIds.has(m.id))
+    .reduce((sum, m) => sum + (Number(m.price) || 0), 0);
+
+  const effective = base - deselectedSum + addedSum;
+  if (effective !== base) {
+    customizedTotal.value = effective;
+  }
+}
+
 // --- Fetch proposal on mount ---
 const isExpired = ref(false);
 
@@ -739,6 +789,8 @@ onMounted(async () => {
     loadError.value = result.error;
   } else if (result.expired) {
     isExpired.value = true;
+  } else {
+    computeInitialSelection();
   }
 });
 
@@ -893,6 +945,7 @@ function getSectionProps(section) {
       baseWeeks,
       sentAt: proposal.value?.sent_at || '',
       viewMode: viewMode.value || 'detailed',
+      initialCustomTotal: customizedTotal.value,
     };
   }
 

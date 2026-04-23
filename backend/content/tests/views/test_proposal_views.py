@@ -228,6 +228,101 @@ class TestDownloadProposalPdf:
         response = api_client.get(url, {'doc': 'technical'})
         assert response.status_code == 404
 
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate')
+    def test_commercial_pdf_resolves_admin_toggled_calculator_modules(
+        self, mock_generate, api_client, sent_proposal,
+    ):
+        """Admin-toggled calc modules in content_json must reach the PDF service
+        even when the client never confirmed the calculator (ruta A).
+        """
+        ProposalSection.objects.create(
+            proposal=sent_proposal,
+            section_type='functional_requirements',
+            title='FR',
+            order=0,
+            is_enabled=True,
+            content_json={
+                'additionalModules': [
+                    {
+                        'id': 'extra_ai',
+                        'is_calculator_module': True,
+                        'selected': True,
+                        'price_percent': 35,
+                    },
+                    {
+                        'id': 'extra_unselected',
+                        'is_calculator_module': True,
+                        'selected': False,
+                        'price_percent': 20,
+                    },
+                ],
+            },
+        )
+        assert sent_proposal.selected_modules == []
+        assert sent_proposal.has_confirmed_module_selection is False
+
+        mock_generate.return_value = b'%PDF-fake'
+        url = reverse('download-proposal-pdf', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.get(url)
+
+        assert response.status_code == 200
+        mock_generate.assert_called_once()
+        _, kwargs = mock_generate.call_args
+        assert 'module-extra_ai' in kwargs['selected_modules']
+        assert 'module-extra_unselected' not in kwargs['selected_modules']
+
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate')
+    def test_commercial_pdf_prefers_persisted_selected_modules(
+        self, mock_generate, api_client, sent_proposal,
+    ):
+        """When BusinessProposal.selected_modules is populated it takes
+        priority over content_json toggles (ruta B / client confirmation).
+        """
+        sent_proposal.selected_modules = ['module-persisted_a', 'group-persisted_b']
+        sent_proposal.save(update_fields=['selected_modules'])
+        ProposalSection.objects.create(
+            proposal=sent_proposal,
+            section_type='functional_requirements',
+            title='FR',
+            order=0,
+            is_enabled=True,
+            content_json={
+                'additionalModules': [
+                    {
+                        'id': 'extra_ai',
+                        'is_calculator_module': True,
+                        'selected': True,
+                        'price_percent': 35,
+                    },
+                ],
+            },
+        )
+
+        mock_generate.return_value = b'%PDF-fake'
+        url = reverse('download-proposal-pdf', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.get(url)
+
+        assert response.status_code == 200
+        _, kwargs = mock_generate.call_args
+        assert kwargs['selected_modules'] == ['module-persisted_a', 'group-persisted_b']
+
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate')
+    def test_commercial_pdf_query_param_overrides_resolution(
+        self, mock_generate, api_client, sent_proposal,
+    ):
+        """Explicit ?selected_modules= still wins over any persisted or
+        content_json resolution (calculator personalization flow)."""
+        sent_proposal.selected_modules = ['module-persisted_a']
+        sent_proposal.save(update_fields=['selected_modules'])
+
+        mock_generate.return_value = b'%PDF-fake'
+        url = reverse('download-proposal-pdf', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.get(url, {'selected_modules': 'module-query_x,group-query_y'})
+
+        assert response.status_code == 200
+        _, kwargs = mock_generate.call_args
+        assert kwargs['selected_modules'] == ['module-query_x', 'group-query_y']
+
 
 class TestTechnicalFragmentHasContent:
     def test_api_fragment_detects_content_from_domain_rows(self):
