@@ -271,15 +271,8 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         """
         # Deferred import — views/proposal.py imports from this module at
         # load time, so a top-level import would be circular.
-        from content.views.proposal import _calculate_effective_total_investment
-        fr_section = obj.sections.filter(
-            section_type=ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS,
-        ).only('content_json').first()
-        fr_content = fr_section.content_json if fr_section else None
-        effective = _calculate_effective_total_investment(
-            obj.total_investment, obj.selected_modules, fr_content,
-        )
-        return str(effective)
+        from content.views.proposal import _effective_total_for_proposal
+        return str(_effective_total_for_proposal(obj))
 
     def get_available_transitions(self, obj):
         return obj.available_transitions

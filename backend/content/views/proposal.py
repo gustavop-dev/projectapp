@@ -328,31 +328,28 @@ def _calculate_effective_total_investment(
     base_total,
     selected_modules,
     fr_content_json,
+    has_confirmed,
 ):
     """
     Compute effective investment shown in panel metrics:
     base investment + selected additional calculator modules.
 
-    When *selected_modules* is empty (client never confirmed in the
-    calculator), falls back to modules marked ``selected=True`` or
-    ``default_selected=True`` by the admin in the FR content JSON.
+    The ``has_confirmed`` flag determines whether ``selected_modules`` is the
+    source of truth. When ``True``, the persisted list is used literally
+    (an empty list means "client confirmed zero modules"). When ``False``,
+    the list is ignored and the admin's ``selected`` / ``default_selected``
+    flags in the FR content JSON are used as the initial scope — the client
+    has not customized yet, so they will see the admin-configured defaults.
     """
     base = _safe_decimal(base_total).quantize(Decimal('0.01'))
-    selected_group_ids = _selected_group_ids_from_modules(selected_modules)
 
-    # Fallback: when no explicit client selections, use modules marked
-    # as selected/default_selected by the admin in FR content.
-    if not selected_group_ids and isinstance(fr_content_json, dict):
-        for arr_key in ('groups', 'additionalModules'):
-            for group in (fr_content_json.get(arr_key) or []):
-                if not isinstance(group, dict):
-                    continue
-                if not group.get('is_calculator_module'):
-                    continue
-                if group.get('selected') or group.get('default_selected'):
-                    gid = str(group.get('id') or '').strip()
-                    if gid:
-                        selected_group_ids.add(gid)
+    if has_confirmed:
+        selected_group_ids = _selected_group_ids_from_modules(selected_modules)
+    else:
+        from content.services.proposal_service import (
+            admin_default_calculator_group_ids,
+        )
+        selected_group_ids = admin_default_calculator_group_ids(fr_content_json)
 
     if not selected_group_ids:
         return base
@@ -373,6 +370,20 @@ def _calculate_effective_total_investment(
     return (base + extras).quantize(Decimal('0.01'))
 
 
+def _effective_total_for_proposal(proposal):
+    """Single-proposal version of :func:`_build_effective_totals_map`."""
+    fr_section = proposal.sections.filter(
+        section_type=ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS,
+    ).only('content_json').first()
+    fr_content = fr_section.content_json if fr_section else None
+    return _calculate_effective_total_investment(
+        proposal.total_investment,
+        proposal.selected_modules,
+        fr_content,
+        has_confirmed=proposal.has_confirmed_module_selection,
+    )
+
+
 def _build_effective_totals_map(proposals):
     """Return {proposal_id: effective_total_decimal} for a proposal iterable."""
     proposal_list = list(proposals)
@@ -388,12 +399,21 @@ def _build_effective_totals_map(proposals):
         )
         .values_list('proposal_id', 'content_json')
     )
+    # Batch the confirmed-selection check so the per-proposal property
+    # access below does not issue one EXISTS query per row.
+    confirmed_ids = set(
+        ProposalChangeLog.objects
+        .filter(proposal_id__in=proposal_ids, change_type='calc_confirmed')
+        .values_list('proposal_id', flat=True)
+        .distinct()
+    )
 
     return {
         p.id: _calculate_effective_total_investment(
             p.total_investment,
             p.selected_modules,
             fr_content_by_proposal.get(p.id),
+            has_confirmed=p.id in confirmed_ids,
         )
         for p in proposal_list
     }
@@ -415,6 +435,7 @@ def _resync_investment_from_modules(proposal, fr_content_json):
         proposal.total_investment,
         proposal.selected_modules,
         fr_content_json,
+        has_confirmed=proposal.has_confirmed_module_selection,
     )
     inv_section = proposal.sections.filter(section_type=ProposalSection.SectionType.INVESTMENT).first()
     if not inv_section or not inv_section.content_json:

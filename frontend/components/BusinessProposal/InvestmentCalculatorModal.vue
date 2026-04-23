@@ -12,6 +12,7 @@
             </div>
             <button
               class="w-8 h-8 rounded-lg flex items-center justify-center text-esmerald-light/60 hover:text-white hover:bg-white/10 transition-colors"
+              :aria-label="t.close"
               @click="$emit('close')"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -240,6 +241,7 @@ const i18n = {
   es: {
     title: 'Personaliza tu inversión',
     subtitle: 'Selecciona los módulos que necesitas',
+    close: 'Cerrar',
     selectedModules: 'Módulos seleccionados:',
     estimatedTotal: 'Total inversión',
     confirm: 'Confirmar selección',
@@ -269,6 +271,7 @@ const i18n = {
   en: {
     title: 'Customize your investment',
     subtitle: 'Select the modules you need',
+    close: 'Close',
     selectedModules: 'Selected modules:',
     estimatedTotal: 'Total investment',
     confirm: 'Confirm selection',
@@ -304,13 +307,11 @@ const initialGroupOrder = ref([]);
 
 watch(() => props.visible, (val) => {
   if (val) {
-    // Use whichever selection the page is currently tracking (updated live on
-    // every toggle). Falls back to per-module defaults only when the page has
-    // no selection state yet (e.g., page just loaded and the user hasn't
-    // touched the calculator).
-    const saved = Array.isArray(props.selectedIds) && props.selectedIds.length
-      ? props.selectedIds
-      : null;
+    // The page always passes the current selection (initialized from backend
+    // or updated live on every toggle) as an array — an empty array means
+    // "everything deselected", not "fall back to defaults". Only a non-array
+    // prop is treated as unset.
+    const saved = Array.isArray(props.selectedIds) ? props.selectedIds : null;
 
     localModules.value = props.modules.map(m => {
       const locked = m.is_required === true;

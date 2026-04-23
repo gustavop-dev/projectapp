@@ -767,13 +767,16 @@ function computeInitialSelection() {
   const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
   const investmentModules = investmentSection?.content_json?.modules || [];
 
+  const hasConfirmed = proposal.value.has_confirmed_module_selection === true;
   const persistedRaw = Array.isArray(proposal.value.selected_modules)
     ? proposal.value.selected_modules
     : [];
   const persisted = normalizePersistedSelectedIds(persistedRaw, calcItems);
 
   let selectedIds;
-  if (persisted.length) {
+  if (hasConfirmed) {
+    // Client has confirmed a selection — trust the persisted list literally,
+    // including an empty array (meaning "client confirmed zero modules").
     selectedIds = new Set(persisted);
   } else {
     const derived = [];
@@ -787,7 +790,7 @@ function computeInitialSelection() {
   }
 
   selectedCalculatorModuleIds.value = new Set(selectedIds);
-  hasConfirmedModuleSelection.value = proposal.value.has_confirmed_module_selection === true;
+  hasConfirmedModuleSelection.value = hasConfirmed;
   customizedTotal.value = null;
 
   const base = Number(proposal.value.total_investment || 0);

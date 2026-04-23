@@ -275,11 +275,15 @@ class TestDownloadProposalPdf:
     def test_commercial_pdf_prefers_persisted_selected_modules(
         self, mock_generate, api_client, sent_proposal,
     ):
-        """When BusinessProposal.selected_modules is populated it takes
-        priority over content_json toggles (ruta B / client confirmation).
-        """
+        """When BusinessProposal.selected_modules is populated and the client
+        confirmed, it takes priority over content_json toggles (ruta B /
+        client confirmation)."""
         sent_proposal.selected_modules = ['module-persisted_a', 'group-persisted_b']
         sent_proposal.save(update_fields=['selected_modules'])
+        ProposalChangeLog.objects.create(
+            proposal=sent_proposal,
+            change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
+        )
         ProposalSection.objects.create(
             proposal=sent_proposal,
             section_type='functional_requirements',
@@ -460,6 +464,10 @@ class TestAdminListProposals:
             total_investment=1000,
             selected_modules=['module-extra'],
         )
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
+        )
         ProposalSection.objects.create(
             proposal=proposal,
             section_type='functional_requirements',
@@ -524,13 +532,18 @@ class TestAdminListProposals:
         assert item['effective_total_investment'] == '1150.00'
 
     def test_effective_total_explicit_selection_overrides_fr_defaults(self, admin_client, db):
-        """When selected_modules is populated, FR selected/default_selected is ignored."""
+        """When the client confirmed with an explicit selection, FR
+        selected/default_selected is ignored."""
         proposal = BusinessProposal.objects.create(
             title='Explicit override',
             client_name='Override',
             status='sent',
             total_investment=1000,
             selected_modules=['module-pwa'],
+        )
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
         )
         ProposalSection.objects.create(
             proposal=proposal,
@@ -2129,6 +2142,10 @@ class TestProposalDashboardExtended:
             total_investment=1000,
             selected_modules=['module-extra'],
         )
+        ProposalChangeLog.objects.create(
+            proposal=with_module,
+            change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
+        )
         ProposalSection.objects.create(
             proposal=with_module,
             section_type='functional_requirements',
@@ -2164,6 +2181,10 @@ class TestProposalDashboardExtended:
             is_active=True,
             total_investment=1000,
             selected_modules=['module-extra'],
+        )
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
         )
         ProposalSection.objects.create(
             proposal=proposal,

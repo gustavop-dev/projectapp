@@ -18,6 +18,7 @@ from reportlab.pdfgen import canvas
 
 from content.models import (
     BusinessProposal,
+    ProposalChangeLog,
     ProposalRequirementGroup,
     ProposalRequirementItem,
     ProposalSection,
@@ -2537,7 +2538,13 @@ class TestDefaultSelectedModulesFromContent:
     to the PDF immediately.
     """
 
-    def _make_proposal(self, fr_content=None, investment_content=None, persisted=None):
+    def _make_proposal(
+        self,
+        fr_content=None,
+        investment_content=None,
+        persisted=None,
+        confirmed=False,
+    ):
         proposal = BusinessProposal.objects.create(
             title='Selection Defaults',
             client_name='Client',
@@ -2562,6 +2569,11 @@ class TestDefaultSelectedModulesFromContent:
                 section_type='investment',
                 title='Inversión', order=2, is_enabled=True,
                 content_json=investment_content,
+            )
+        if confirmed:
+            ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
             )
         return proposal
 
@@ -2598,23 +2610,24 @@ class TestDefaultSelectedModulesFromContent:
 
         assert 'module-hidden' not in result
 
-    def test_persisted_selected_modules_wins_over_content_json(self):
-        """When BusinessProposal.selected_modules is populated, it overrides
-        the content_json derivation — mirrors the frontend behaviour in
-        pages/proposal/[uuid]/index.vue (effectiveSelectedModuleIdsForTechnical).
+    def test_confirmed_persisted_selected_modules_wins_over_content_json(self):
+        """Once the client confirmed a selection, the persisted list is the
+        source of truth and overrides the admin's content_json defaults —
+        mirrors the frontend behaviour in pages/proposal/[uuid]/index.vue.
         """
         proposal = self._make_proposal(
             fr_content=_fr_section_content_json(additionalModules=[
                 _calculator_module_group(id='pwa', selected=False),
             ]),
             persisted=['module-pwa'],
+            confirmed=True,
         )
 
         result = default_selected_modules_from_content(proposal)
 
         assert result == ['module-pwa']
 
-    def test_persisted_bare_ids_are_normalized_to_canonical_prefixed_form(self):
+    def test_confirmed_persisted_bare_ids_are_normalized_to_canonical_prefixed_form(self):
         """Legacy payloads without the module-/group- prefix must still match
         the prefixed ids the PDF renderer builds internally; otherwise the
         additional-module prices never sum into the client-facing total.
@@ -2624,13 +2637,34 @@ class TestDefaultSelectedModulesFromContent:
                 _calculator_module_group(id='pwa', selected=False),
             ]),
             persisted=['pwa'],
+            confirmed=True,
         )
 
         result = default_selected_modules_from_content(proposal)
 
         assert result == ['module-pwa']
 
-    def test_empty_persisted_falls_back_to_content_json(self):
+    def test_confirmed_with_empty_selection_returns_empty(self):
+        """When the client confirmed an empty selection, the PDF must not
+        fall back to the admin's default_selected modules — the empty list
+        is the literal source of truth.
+        """
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='pwa', selected=True),
+            ]),
+            persisted=[],
+            confirmed=True,
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert result == []
+
+    def test_unconfirmed_empty_persisted_falls_back_to_content_json(self):
+        """Without a confirmation log, the admin's content_json defaults
+        drive the PDF — the selected_modules field is ignored.
+        """
         proposal = self._make_proposal(
             fr_content=_fr_section_content_json(additionalModules=[
                 _calculator_module_group(id='pwa', selected=True),

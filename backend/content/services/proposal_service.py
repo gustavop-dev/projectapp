@@ -2304,6 +2304,34 @@ def normalize_selected_module_ids(selected, fr_content_json):
     return normalized
 
 
+def admin_default_calculator_group_ids(fr_content_json):
+    """Return the bare ids of calculator modules the admin marked as selected
+    in the FR content JSON.
+
+    A calculator module (``is_calculator_module=True``) counts as an admin
+    default when it carries ``selected=True`` or ``default_selected=True``.
+    Returns a set of bare ids (no ``module-`` prefix) so callers can shape
+    them as needed.
+
+    Pure function: no ORM queries, no side effects.
+    """
+    ids = set()
+    if not isinstance(fr_content_json, dict):
+        return ids
+    for arr_key in ('groups', 'additionalModules'):
+        for group in (fr_content_json.get(arr_key) or []):
+            if not isinstance(group, dict):
+                continue
+            if not group.get('is_calculator_module'):
+                continue
+            if not (group.get('selected') or group.get('default_selected')):
+                continue
+            gid = str(group.get('id') or '').strip()
+            if gid:
+                ids.add(gid)
+    return ids
+
+
 class ProposalService:
     """
     Business logic for proposal lifecycle management.

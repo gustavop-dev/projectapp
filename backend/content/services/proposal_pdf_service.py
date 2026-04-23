@@ -108,26 +108,29 @@ def _filter_calculator_groups(groups, sel_ids):
     ]
 
 
-def default_selected_modules_from_content(proposal):
+def default_selected_modules_from_content(proposal, has_confirmed=None):
     """Resolve default selected module IDs for a PDF render.
 
-    Priority:
-    1. ``BusinessProposal.selected_modules`` when non-empty — this mirrors
-       what the frontend does at ``pages/proposal/[uuid]/index.vue``
-       (``effectiveSelectedModuleIdsForTechnical``) and covers both client
-       confirmations via the calculator modal and admin-driven edits to
-       that field. Legacy payloads may store bare group ids, so we run
-       them through the shared normalizer to restore the canonical
-       ``module-<id>`` / ``group-<id>`` form the renderer expects.
-    2. Derive from the current ``content_json``
-       (``additionalModules[*].selected`` + ``default_selected``) so admin
-       toggles in the editor still propagate to the PDF when the DB field
-       is empty.
+    The ``has_confirmed`` flag determines whether
+    ``BusinessProposal.selected_modules`` is authoritative. When ``True``,
+    the persisted list is used literally (an empty list means "client
+    confirmed zero modules" — the PDF must hide all optional sections).
+    When ``False``, the list is ignored and the admin's
+    ``selected`` / ``default_selected`` flags in ``content_json`` are used
+    as the initial scope — the client has not customized yet.
 
-    Returns a list of module IDs ready to be passed as ``selected_modules``
-    to :meth:`ProposalPdfService.generate`.
+    If ``has_confirmed`` is ``None`` (default), it is resolved from the
+    model property so external callers without the flag in hand keep
+    working.
+
+    Returns a list of canonical module IDs (``module-<id>`` / ``group-<id>``)
+    ready to be passed as ``selected_modules`` to
+    :meth:`ProposalPdfService.generate`.
     """
     from content.services.proposal_service import normalize_selected_module_ids
+
+    if has_confirmed is None:
+        has_confirmed = proposal.has_confirmed_module_selection
 
     sections = list(proposal.sections.all())
     fr = next(
@@ -136,9 +139,11 @@ def default_selected_modules_from_content(proposal):
     )
     fr_content = fr.content_json if fr else None
 
-    persisted = getattr(proposal, 'selected_modules', None)
-    if persisted:
-        return normalize_selected_module_ids(persisted, fr_content)
+    if has_confirmed:
+        return normalize_selected_module_ids(
+            getattr(proposal, 'selected_modules', None) or [],
+            fr_content,
+        )
 
     selected = []
 

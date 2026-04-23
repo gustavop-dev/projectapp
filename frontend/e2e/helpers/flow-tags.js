@@ -100,6 +100,7 @@ export const ADMIN_PROPOSAL_ACTIVITY_LOG = ['@flow:admin-proposal-log-activity',
 
 // ── Calculator modules (PWA, AI, Reports & Alerts) ──
 export const PROPOSAL_CALCULATOR_MODULES = ['@flow:proposal-calculator-modules', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_CALCULATOR_REOPEN_AFTER_NAV = ['@flow:proposal-calculator-reopen-after-nav', '@module:proposal', '@priority:P1'];
 
 // ── v1.7.0 new flows ──
 export const PROPOSAL_EXPIRED_GRACEFUL = ['@flow:proposal-expired-graceful', '@module:proposal', '@priority:P1'];
