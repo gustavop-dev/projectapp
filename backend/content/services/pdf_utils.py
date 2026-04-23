@@ -339,6 +339,41 @@ def _md_wrap(text, chars_per_line):
     return lines or [text]
 
 
+_HARD_SEP_RE = re.compile(r'[/|._\-,]')
+
+
+def _break_long_tokens(lines, chars_per_line):
+    """Break tokens too long for a space-only wrapper.
+
+    _md_wrap (and textwrap) only split on whitespace. Enum-like strings
+    such as "recibido/en_revision/diagnostico/reparado" have no spaces
+    and therefore stay on one line, overflowing narrow table cells.
+    This helper scans each produced line and, when it exceeds
+    chars_per_line, breaks at the rightmost separator (/ | _ - . ,)
+    within the budget — falling back to a hard char boundary when no
+    usable separator is found.
+    """
+    if not lines or chars_per_line <= 0:
+        return lines
+    result = []
+    for line in lines:
+        pending = line
+        while len(pending) > chars_per_line:
+            window = pending[:chars_per_line]
+            best = -1
+            for m in _HARD_SEP_RE.finditer(window):
+                best = m.end()
+            if best >= max(8, chars_per_line // 3):
+                result.append(pending[:best])
+                pending = pending[best:]
+            else:
+                result.append(pending[:chars_per_line])
+                pending = pending[chars_per_line:]
+        if pending:
+            result.append(pending)
+    return result
+
+
 # Compiled once at module level — used by _tokenize_inline
 _INLINE_RE = re.compile(
     r'(?P<bold_italic>\*{3}(?P<bi_text>.+?)\*{3})'
@@ -979,6 +1014,7 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None):
             clean = _strip_emoji(str(cell))
             chars = int((col_w - 2 * cell_pad_h) / (data_font_size * 0.48))
             lines = _md_wrap(clean, max(chars, 10))
+            lines = _break_long_tokens(lines, max(chars, 10))
             max_lines = max(max_lines, len(lines) if lines else 1)
         row_h = max_lines * leading + 2 * cell_pad_v
 
@@ -1003,6 +1039,7 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None):
             clean = _strip_emoji(str(cell))
             chars = int((col_w - 2 * cell_pad_h) / (data_font_size * 0.48))
             lines = _md_wrap(clean, max(chars, 10))
+            lines = _break_long_tokens(lines, max(chars, 10))
             ty = y - cell_pad_v - data_font_size + 2
             fn = _font('regular')
             for line in lines:

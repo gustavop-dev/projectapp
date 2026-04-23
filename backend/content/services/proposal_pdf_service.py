@@ -109,16 +109,26 @@ def _filter_calculator_groups(groups, sel_ids):
 
 
 def default_selected_modules_from_content(proposal):
-    """Derive default selected module IDs from the current ``content_json``.
+    """Resolve default selected module IDs for a PDF render.
 
-    Mirrors the frontend ``computeAllModuleIds`` / ``allGroupCalculatorItems``
-    logic so the PDF renders the same selection an admin currently has in the
-    editor — independent of the stale ``BusinessProposal.selected_modules``
-    field, which is only updated by client-side calculator interactions.
+    Priority:
+    1. ``BusinessProposal.selected_modules`` when non-empty — this mirrors
+       what the frontend does at ``pages/proposal/[uuid]/index.vue``
+       (``effectiveSelectedModuleIdsForTechnical``) and covers both client
+       confirmations via the calculator modal and admin-driven edits to
+       that field.
+    2. Derive from the current ``content_json``
+       (``additionalModules[*].selected`` + ``default_selected``) so admin
+       toggles in the editor still propagate to the PDF when the DB field
+       is empty.
 
     Returns a list of module IDs ready to be passed as ``selected_modules``
     to :meth:`ProposalPdfService.generate`.
     """
+    persisted = getattr(proposal, 'selected_modules', None)
+    if persisted:
+        return list(persisted)
+
     selected = []
     sections = list(proposal.sections.all())
 
@@ -719,7 +729,10 @@ def _render_requirement_group_page(c, grp, ps=None, y=None,
     hdr_bottom = row_y - hdr_h
     c.setFillColor(ESMERALD_DARK)
     c.rect(MARGIN_L, hdr_bottom, CONTENT_W, hdr_h, fill=1, stroke=0)
-    hdr_text_y = hdr_bottom + (hdr_h - 8) / 2
+    # Offset +2 aligns the optical midline of the glyphs with the rect's
+    # vertical center (without it, the text sits low because the descender
+    # makes the geometric baseline fall below the cap-height midpoint).
+    hdr_text_y = hdr_bottom + (hdr_h - 8) / 2 + 2
     c.setFont(_font('bold'), 8)
     c.setFillColor(WHITE)
     c.drawCentredString(MARGIN_L + num_col_w / 2, hdr_text_y, '#')
@@ -908,8 +921,13 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
 
     intro = _safe(data, 'introText')
     included = _safe(data, 'whatsIncluded', [])
-    total = _safe(data, 'totalInvestment')
-    currency = _safe(data, 'currency')
+    # BusinessProposal fields are the source of truth; content_json is the
+    # stale mirror (matches frontend override in pages/proposal/[uuid]/index.vue).
+    _model_total = getattr(_proposal, 'total_investment', None)
+    total = (_format_cop(int(_model_total))
+             if _model_total else _safe(data, 'totalInvestment'))
+    currency = (getattr(_proposal, 'currency', None)
+                or _safe(data, 'currency'))
     options = _safe(data, 'paymentOptions', [])
 
     # ── Pre-calculate adjusted total (needed for payment options too) ──
@@ -1416,18 +1434,19 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
 
 
 def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
-    """Render the "Incluido sin costo adicional" section.
+    """Render the "Incluido sin costo adicional" section as cards.
 
     Mirrors frontend/components/BusinessProposal/ValueAddedModules.vue:
     resolves each module_id against the functional_requirements catalog
-    (pre-computed in ps['_value_added_catalog']) and prints title + icon,
-    a "Sin costo adicional" pill, the admin-written justification, and a
-    final footer note.
+    (ps['_value_added_catalog']) and renders one tinted card per module
+    with title, top-right "Sin costo adicional" pill, justification
+    (primary) and optional description (secondary). Each card's full
+    height is pre-computed so it never splits across a page break.
     """
     if y is None:
         y = PAGE_H - MARGIN_T
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
-    y -= 8
+    y -= 12
 
     intro = _safe(data, 'intro')
     if intro:
@@ -1438,48 +1457,119 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
     module_ids = _safe(data, 'module_ids', []) or []
     justifications = _safe(data, 'justifications', {}) or {}
 
+    card_pad_x = 14
+    card_pad_y = 12
+    icon_size = 22
+    icon_gap = 10
+    title_font_size = 11
+    just_font_size = 9
+    just_leading = 13
+    desc_font_size = 8
+    desc_leading = 11
+    pill_font_size = 7
+    pill_text = 'Sin costo adicional'
+
+    pill_w = (c.stringWidth(pill_text, _font('medium'), pill_font_size)
+              + 8 * 2)  # padding_h*2 in _draw_pill
+    content_area_w = CONTENT_W - card_pad_x * 2 - icon_size - icon_gap
+    title_max_w = content_area_w - pill_w - 8  # gap before pill
+    title_chars = max(int(title_max_w / (title_font_size * 0.55)), 10)
+
     for mid in module_ids:
         module = catalog.get(mid)
         if not module:
             continue
-        title = _strip_emoji(_safe(module, 'title'))
-        icon = _safe(module, 'icon')
-        description = _safe(module, 'description')
-        justification = justifications.get(mid) if isinstance(justifications, dict) else None
+        title = _strip_emoji(_safe(module, 'title')) or 'Módulo'
+        description = _strip_emoji(_safe(module, 'description'))
+        justification = (justifications.get(mid)
+                         if isinstance(justifications, dict) else None)
+
+        title_lines = textwrap.wrap(title, width=title_chars)[:2] or [title]
+        just_h = (_estimate_text_height(
+                      [justification], max_width=content_area_w,
+                      font_size=just_font_size, leading=just_leading)
+                  if justification else 0)
+        desc_h = (_estimate_text_height(
+                      [description], max_width=content_area_w,
+                      font_size=desc_font_size, leading=desc_leading)
+                  if description else 0)
+        card_h = (
+            card_pad_y
+            + len(title_lines) * 14
+            + (6 + just_h if justification else 0)
+            + (4 + desc_h if description else 0)
+            + card_pad_y
+        )
 
         if ps:
-            y = _check_y(c, y, ps, need=60)
+            y = _check_y(c, y, ps, need=card_h + 14)
 
-        header = f'{icon} {title}' if icon else title
-        c.setFont(_font('bold'), 11)
+        card_top = y
+        card_bottom = y - card_h
+        c.setFillColor(ESMERALD_LIGHT)
+        c.roundRect(MARGIN_L, card_bottom, CONTENT_W, card_h, 8,
+                    fill=1, stroke=0)
+
+        # Decorative icon square — emoji glyphs don't render in Ubuntu,
+        # so we fall back to the title's first letter.
+        icon_x = MARGIN_L + card_pad_x
+        icon_y = card_top - card_pad_y - icon_size
+        c.setFillColor(BONE)
+        c.roundRect(icon_x, icon_y, icon_size, icon_size, 5,
+                    fill=1, stroke=0)
         c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L, y, header)
-        title_w = c.stringWidth(header, _font('bold'), 11)
-        _draw_pill(c, MARGIN_L + title_w + 8, y + 1, 'Sin costo adicional',
-                   bg_color=LEMON, text_color=ESMERALD, font_size=7)
-        y -= 14
+        c.setFont(_font('bold'), 11)
+        c.drawCentredString(icon_x + icon_size / 2,
+                            icon_y + icon_size / 2 - 3.5,
+                            title[:1].upper() if title else '•')
 
-        if description:
-            c.setFont(_font('regular'), 9)
-            c.setFillColor(GRAY_700)
-            y = _draw_paragraphs(c, y, [str(description)], ps=ps)
-            y -= 2
+        # Right-aligned pill guarantees no overlap with long titles.
+        pill_x = MARGIN_L + CONTENT_W - card_pad_x - pill_w
+        pill_baseline_y = card_top - card_pad_y - 10
+        _draw_pill(c, pill_x, pill_baseline_y, pill_text,
+                   bg_color=LEMON, text_color=ESMERALD,
+                   font_size=pill_font_size)
+
+        text_x = icon_x + icon_size + icon_gap
+        title_y = card_top - card_pad_y - 10
+        c.setFont(_font('bold'), title_font_size)
+        c.setFillColor(ESMERALD)
+        for line in title_lines:
+            c.drawString(text_x, title_y, line)
+            title_y -= 14
+
+        next_y = title_y - 2
 
         if justification:
-            y = _draw_banner_box(
-                c, MARGIN_L, y, CONTENT_W, str(justification),
-                bg_color=ESMERALD_LIGHT, text_color=ESMERALD,
-                font_size=9, icon_text='→', ps=ps,
+            next_y -= 4
+            next_y = _draw_paragraphs(
+                c, next_y, [str(justification)],
+                max_width=content_area_w,
+                font_size=just_font_size, leading=just_leading,
+                color=ESMERALD, x=text_x,
             )
-            y -= 4
-        else:
-            y -= 6
+
+        if description:
+            next_y -= 2
+            next_y = _draw_paragraphs(
+                c, next_y, [str(description)],
+                max_width=content_area_w,
+                font_size=desc_font_size, leading=desc_leading,
+                color=ESMERALD_80, x=text_x,
+                font_name=_font('italic'),
+            )
+
+        y = card_bottom - 12
 
     footer_note = _safe(data, 'footer_note')
     if footer_note:
+        footer_h = _estimate_text_height(
+            [str(footer_note)], max_width=CONTENT_W - 24,
+            font_size=9, leading=12,
+        )
         if ps:
-            y = _check_y(c, y, ps, need=40)
-        y -= 6
+            y = _check_y(c, y, ps, need=footer_h + 32)
+        y -= 4
         y = _draw_banner_box(
             c, MARGIN_L, y, CONTENT_W, str(footer_note),
             bg_color=BONE, text_color=ESMERALD,

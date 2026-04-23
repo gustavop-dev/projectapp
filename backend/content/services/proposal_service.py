@@ -2213,6 +2213,10 @@ def normalize_hosting_plan(proposal, hosting_plan_json):
 
     Pure function: no ORM queries, no side effects.
     """
+    # Deferred import — avoids coupling content package load order to
+    # accounts during app initialization.
+    from accounts.models import HostingSubscription
+
     base = dict(hosting_plan_json or {})
 
     model_percent = getattr(proposal, 'hosting_percent', None)
@@ -2221,8 +2225,10 @@ def normalize_hosting_plan(proposal, hosting_plan_json):
     )
 
     discount_overrides = {
-        'semiannual': getattr(proposal, 'hosting_discount_semiannual', None),
-        'quarterly': getattr(proposal, 'hosting_discount_quarterly', None),
+        HostingSubscription.PLAN_SEMIANNUAL:
+            getattr(proposal, 'hosting_discount_semiannual', None),
+        HostingSubscription.PLAN_QUARTERLY:
+            getattr(proposal, 'hosting_discount_quarterly', None),
     }
     normalized_tiers = []
     for tier in base.get('billingTiers', []) or []:

@@ -2598,7 +2598,11 @@ class TestDefaultSelectedModulesFromContent:
 
         assert 'module-hidden' not in result
 
-    def test_ignores_stale_persisted_selected_modules_field(self):
+    def test_persisted_selected_modules_wins_over_content_json(self):
+        """When BusinessProposal.selected_modules is populated, it overrides
+        the content_json derivation — mirrors the frontend behaviour in
+        pages/proposal/[uuid]/index.vue (effectiveSelectedModuleIdsForTechnical).
+        """
         proposal = self._make_proposal(
             fr_content=_fr_section_content_json(additionalModules=[
                 _calculator_module_group(id='pwa', selected=False),
@@ -2608,7 +2612,19 @@ class TestDefaultSelectedModulesFromContent:
 
         result = default_selected_modules_from_content(proposal)
 
-        assert 'module-pwa' not in result
+        assert result == ['module-pwa']
+
+    def test_empty_persisted_falls_back_to_content_json(self):
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='pwa', selected=True),
+            ]),
+            persisted=[],
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'module-pwa' in result
 
     def test_includes_all_investment_modules_by_default(self):
         proposal = self._make_proposal(
@@ -2731,6 +2747,55 @@ class TestInvestmentHostingModelOverride:
 
 
 # ── value_added_modules: dedicated "Sin costo adicional" section ──
+
+class TestInvestmentModelTotalOverride:
+    """BusinessProposal.total_investment and .currency must override
+    content_json mirrors in the PDF, matching the frontend override in
+    pages/proposal/[uuid]/index.vue. Prevents the staleness bug reported
+    for proposal id=41 (PDF showed JSON total, UI showed model total).
+    """
+
+    def test_model_total_investment_overrides_content_json(
+        self, pdf_canvas, db,
+    ):
+        from content.services.proposal_pdf_service import _render_investment
+
+        proposal = BusinessProposal.objects.create(
+            title='Total override', client_name='Client',
+            client_email='c@c.co', language='es', currency='COP',
+            status='sent',
+            total_investment=Decimal('7500000'),
+        )
+        data = _investment_content_json(
+            totalInvestment='$2.000.000',  # stale JSON
+            currency='USD',                 # stale JSON
+        )
+
+        drawn = []
+
+        def _wrap(method_name):
+            original = getattr(pdf_canvas, method_name)
+
+            def _spy(x, y, text, *a, **kw):
+                drawn.append(text)
+                return original(x, y, text, *a, **kw)
+
+            setattr(pdf_canvas, method_name, _spy)
+
+        for name in ('drawString', 'drawRightString', 'drawCentredString'):
+            _wrap(name)
+
+        _render_investment(pdf_canvas, data, proposal)
+
+        joined = '\n'.join(drawn)
+        assert '$7.500.000' in joined, (
+            f'Expected model total $7.500.000 in PDF; '
+            f'got drawn strings: {drawn}'
+        )
+        assert '$2.000.000' not in joined, (
+            'Stale content_json total leaked into PDF'
+        )
+
 
 class TestValueAddedModulesSection:
     """The PDF must render value_added_modules in its own section with the

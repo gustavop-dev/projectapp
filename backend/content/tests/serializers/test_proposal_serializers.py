@@ -857,3 +857,69 @@ class TestSlugValidation:
         s = ProposalCreateUpdateSerializer(data={'slug': ''}, partial=True)
         s.is_valid()
         assert 'slug' not in s.errors
+
+
+class TestProposalSectionDetailSerializerHostingNormalization:
+    """Investment.hostingPlan must be normalized against BusinessProposal
+    model fields in the API response so the public UI doesn't have to
+    re-implement the override client-side.
+    """
+
+    def test_investment_section_hosting_plan_is_normalized(self):
+        from decimal import Decimal
+        from content.models import BusinessProposal, ProposalSection
+        from content.serializers.proposal import ProposalSectionDetailSerializer
+
+        proposal = BusinessProposal.objects.create(
+            title='Hosting normalization',
+            client_name='Client', client_email='c@c.co',
+            language='es', currency='COP',
+            total_investment=Decimal('5000000'),
+            hosting_percent=45,
+            hosting_discount_semiannual=22,
+            hosting_discount_quarterly=11,
+        )
+        section = ProposalSection.objects.create(
+            proposal=proposal, section_type='investment',
+            title='Inv', order=9, is_enabled=True,
+            content_json={
+                'hostingPlan': {
+                    'hostingPercent': 30,
+                    'billingTiers': [
+                        {'frequency': 'semiannual', 'months': 6,
+                         'discountPercent': 20},
+                        {'frequency': 'quarterly', 'months': 3,
+                         'discountPercent': 10},
+                        {'frequency': 'monthly', 'months': 1,
+                         'discountPercent': 0},
+                    ],
+                },
+            },
+        )
+
+        data = ProposalSectionDetailSerializer(section).data
+        plan = data['content_json']['hostingPlan']
+
+        assert plan['hostingPercent'] == 45
+        discounts = {t['frequency']: t['discountPercent']
+                     for t in plan['billingTiers']}
+        assert discounts['semiannual'] == 22
+        assert discounts['quarterly'] == 11
+        assert discounts['monthly'] == 0
+
+    def test_non_investment_section_is_not_mutated(self):
+        from content.models import BusinessProposal, ProposalSection
+        from content.serializers.proposal import ProposalSectionDetailSerializer
+
+        proposal = BusinessProposal.objects.create(
+            title='Other section', client_name='Client',
+            client_email='c@c.co',
+        )
+        section = ProposalSection.objects.create(
+            proposal=proposal, section_type='greeting',
+            title='Hi', order=0, is_enabled=True,
+            content_json={'hostingPlan': {'hostingPercent': 99}},
+        )
+
+        data = ProposalSectionDetailSerializer(section).data
+        assert data['content_json']['hostingPlan']['hostingPercent'] == 99

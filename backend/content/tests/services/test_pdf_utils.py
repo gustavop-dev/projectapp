@@ -660,3 +660,85 @@ class TestBoldMarkdownIntegration:
 
         assert new_y < 700
         assert buf.getvalue()
+
+
+# ── _break_long_tokens ────────────────────────────────────────
+
+class TestBreakLongTokens:
+    def test_single_short_line_is_unchanged(self):
+        from content.services.pdf_utils import _break_long_tokens
+
+        assert _break_long_tokens(['short line'], 40) == ['short line']
+
+    def test_line_without_separators_is_hard_split(self):
+        from content.services.pdf_utils import _break_long_tokens
+
+        lines = _break_long_tokens(['a' * 80], 40)
+        assert all(len(line) <= 40 for line in lines)
+        assert ''.join(lines) == 'a' * 80
+
+    def test_line_breaks_at_slash(self):
+        from content.services.pdf_utils import _break_long_tokens
+
+        lines = _break_long_tokens(
+            ['(recibido/en_revision/diagnostico/reparado/entregado),'],
+            chars_per_line=30,
+        )
+        assert all(len(line) <= 30 for line in lines)
+        # Every piece ends at a separator or is the final tail.
+        joined = ''.join(lines)
+        assert joined == '(recibido/en_revision/diagnostico/reparado/entregado),'
+
+    def test_line_breaks_preserve_content(self):
+        from content.services.pdf_utils import _break_long_tokens
+
+        lines = _break_long_tokens(
+            ['reparar/reemplazar/no_reparable/mantenimiento),'],
+            chars_per_line=25,
+        )
+        assert all(len(line) <= 25 for line in lines)
+        assert ''.join(lines) == 'reparar/reemplazar/no_reparable/mantenimiento),'
+
+    def test_mixed_short_and_long_lines(self):
+        from content.services.pdf_utils import _break_long_tokens
+
+        lines = _break_long_tokens(
+            ['ok', 'too/long/to/fit/in/cell', 'also ok'],
+            chars_per_line=10,
+        )
+        assert lines[0] == 'ok'
+        assert lines[-1] == 'also ok'
+        assert all(len(line) <= 10 for line in lines)
+
+    def test_empty_input_returns_empty(self):
+        from content.services.pdf_utils import _break_long_tokens
+
+        assert _break_long_tokens([], 40) == []
+        assert _break_long_tokens(None, 40) is None
+
+    def test_zero_budget_returns_input_unchanged(self):
+        from content.services.pdf_utils import _break_long_tokens
+
+        assert _break_long_tokens(['anything'], 0) == ['anything']
+
+    def test_draw_table_wraps_narrow_column_enum_values(self):
+        """Regression: slash-joined enums in data-model tables must wrap."""
+        from content.services.pdf_utils import _draw_table
+
+        c, _ = _make_canvas()
+        new_y = _draw_table(
+            c, y=700,
+            headers=['Entidad', 'Descripción', 'Campos clave'],
+            rows=[[
+                'Reparación',
+                'Proceso de reparación con estados '
+                '(recibido/en_revision/diagnostico/reparado/entregado), '
+                'decisión (reparar/reemplazar/no_reparable/mantenimiento), '
+                'y costos asociados.',
+                'id, estado, decision, costo',
+            ]],
+        )
+        # Row is forced to wrap (multiple lines), so new_y drops more than a
+        # single-line row would. A single-line row leaves ~y=680; multi-line
+        # must leave noticeably less.
+        assert new_y < 670

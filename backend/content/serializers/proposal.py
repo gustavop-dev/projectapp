@@ -104,6 +104,23 @@ class ProposalSectionDetailSerializer(serializers.ModelSerializer):
         model = ProposalSection
         fields = '__all__'
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # The investment section's hostingPlan mirrors fields that live on
+        # BusinessProposal (hosting_percent, hosting_discount_*). Normalize
+        # here so every consumer — public UI, PDF renderer, platform
+        # onboarding — reads the same numbers without re-implementing the
+        # override locally.
+        if (instance.section_type == 'investment'
+                and isinstance(data.get('content_json'), dict)):
+            from content.services.proposal_service import normalize_hosting_plan
+            cj = data['content_json']
+            if isinstance(cj.get('hostingPlan'), dict):
+                cj['hostingPlan'] = normalize_hosting_plan(
+                    instance.proposal, cj['hostingPlan']
+                )
+        return data
+
 
 class ProposalListSerializer(serializers.ModelSerializer):
     """
