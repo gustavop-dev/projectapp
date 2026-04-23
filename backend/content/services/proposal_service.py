@@ -2200,6 +2200,44 @@ DEFAULT_SECTIONS_EN = [
 ]
 
 
+def normalize_hosting_plan(proposal, hosting_plan_json):
+    """Merge BusinessProposal model fields with content_json.hostingPlan.
+
+    Model fields (hosting_percent, hosting_discount_semiannual,
+    hosting_discount_quarterly) are the source of truth; the JSON mirror
+    only contributes presentation (title, specs, labels, badges) and
+    serves as fallback when the model field is unset. Mirrors the
+    override in frontend/pages/proposal/[uuid]/index.vue so every
+    backend consumer (PDF renderer, platform onboarding API) produces
+    numbers consistent with what the client sees.
+
+    Pure function: no ORM queries, no side effects.
+    """
+    base = dict(hosting_plan_json or {})
+
+    model_percent = getattr(proposal, 'hosting_percent', None)
+    base['hostingPercent'] = (
+        model_percent if model_percent else base.get('hostingPercent', 30)
+    )
+
+    discount_overrides = {
+        'semiannual': getattr(proposal, 'hosting_discount_semiannual', None),
+        'quarterly': getattr(proposal, 'hosting_discount_quarterly', None),
+    }
+    normalized_tiers = []
+    for tier in base.get('billingTiers', []) or []:
+        if not isinstance(tier, dict):
+            continue
+        override = discount_overrides.get(tier.get('frequency'))
+        discount = (
+            override if override is not None
+            else tier.get('discountPercent', 0)
+        )
+        normalized_tiers.append({**tier, 'discountPercent': discount})
+    base['billingTiers'] = normalized_tiers
+    return base
+
+
 class ProposalService:
     """
     Business logic for proposal lifecycle management.

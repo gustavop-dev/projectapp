@@ -2653,3 +2653,208 @@ class TestDefaultSelectedModulesFromContent:
         result = default_selected_modules_from_content(proposal)
 
         assert result == []
+
+
+# ── Hosting: model fields override content_json ───────────────
+
+class TestInvestmentHostingModelOverride:
+    """BusinessProposal.hosting_* fields must override content_json.hostingPlan
+    in the PDF (mirrors the public UI in frontend/pages/proposal/[uuid]/index.vue).
+    Prevents regression of the stale-hosting bug introduced by d793ac79.
+    """
+
+    def test_model_hosting_percent_and_discount_override_content_json(
+        self, pdf_canvas, db,
+    ):
+        from content.services.proposal_pdf_service import _render_investment
+
+        proposal = BusinessProposal.objects.create(
+            title='Hosting override',
+            client_name='Test', client_email='t@t.co',
+            language='es', currency='COP', status='sent',
+            total_investment=Decimal('6000000'),
+            hosting_percent=40,
+            hosting_discount_semiannual=25,
+            hosting_discount_quarterly=15,
+        )
+        data = _investment_content_json(
+            totalInvestment='$6.000.000',
+            hostingPlan={
+                'title': 'Cloud', 'description': 'Managed.',
+                'hostingPercent': 30,
+                'billingTiers': [
+                    {'frequency': 'semiannual', 'months': 6,
+                     'discountPercent': 20, 'label': 'Semestral'},
+                    {'frequency': 'quarterly', 'months': 3,
+                     'discountPercent': 10, 'label': 'Trimestral'},
+                    {'frequency': 'monthly', 'months': 1,
+                     'discountPercent': 0, 'label': 'Mensual'},
+                ],
+            },
+        )
+
+        drawn = []
+        original_draw = pdf_canvas.drawString
+
+        def _spy(x, y, text):
+            drawn.append(text)
+            return original_draw(x, y, text)
+
+        pdf_canvas.drawString = _spy
+
+        _render_investment(pdf_canvas, data, proposal)
+
+        monthly_strings = [t for t in drawn if '/mes' in t]
+        # Model values: 6_000_000 × 40% / 12 = 200_000 monthly base
+        #   semiannual (25%): 150_000, quarterly (15%): 170_000, monthly (0%): 200_000
+        assert any('$200.000' in t for t in monthly_strings), (
+            f'Expected monthly tier $200.000/mes from model hosting_percent=40; '
+            f'got: {monthly_strings}'
+        )
+        assert any('$170.000' in t for t in monthly_strings), (
+            f'Expected quarterly tier $170.000/mes from model discount=15; '
+            f'got: {monthly_strings}'
+        )
+        assert any('$150.000' in t for t in monthly_strings), (
+            f'Expected semiannual tier $150.000/mes from model discount=25; '
+            f'got: {monthly_strings}'
+        )
+        # Stale JSON (30% × 10% quarterly = $135.000/mes; 30% monthly base =
+        # $125.000/mes) must not leak. $150.000 is excluded because it
+        # collides with the model's semiannual value.
+        assert not any('$135.000 /mes' in t for t in monthly_strings), (
+            'Stale content_json quarterly discount leaked into PDF'
+        )
+        assert not any('$125.000 /mes' in t for t in monthly_strings), (
+            'Stale content_json hostingPercent leaked into PDF'
+        )
+
+
+# ── value_added_modules: dedicated "Sin costo adicional" section ──
+
+class TestValueAddedModulesSection:
+    """The PDF must render value_added_modules in its own section with the
+    admin-written justifications, dedupe those IDs from functional_requirements,
+    and exclude unselected calculator modules.
+    """
+
+    def _proposal_with_value_added(self, *, selected_modules=None):
+        p = BusinessProposal.objects.create(
+            title='Value Added',
+            client_name='Client', client_email='c@c.co',
+            language='es', currency='COP', status='sent',
+            total_investment=Decimal('5000000'),
+            expires_at=timezone.now() + timezone.timedelta(days=20),
+        )
+        ProposalSection.objects.create(
+            proposal=p, section_type='functional_requirements',
+            title='FR', order=9, is_enabled=True,
+            content_json={
+                'index': '9', 'title': 'Requerimientos',
+                'intro': 'Detalle.',
+                'groups': [
+                    {
+                        'id': 'admin_module', 'title': 'Panel administrativo',
+                        'icon': '🛠', 'is_visible': True, 'price_percent': 0,
+                        'description': 'Panel para gestionar contenido.',
+                        'items': [],
+                    },
+                    {
+                        'id': 'analytics_dashboard', 'title': 'Dashboard analítico',
+                        'icon': '📊', 'is_visible': True, 'price_percent': 0,
+                        'description': 'Métricas de comportamiento.',
+                        'items': [],
+                    },
+                ],
+                'additionalModules': [
+                    {
+                        'id': 'pwa_module', 'title': 'Aplicación PWA',
+                        'icon': '📱', 'is_visible': True,
+                        'is_calculator_module': True, 'price_percent': 20,
+                        'description': 'Convierte el sitio en PWA.',
+                        'items': [],
+                    },
+                ],
+            },
+        )
+        ProposalSection.objects.create(
+            proposal=p, section_type='value_added_modules',
+            title='Incluido sin costo', order=10, is_enabled=True,
+            content_json={
+                'index': '10',
+                'title': 'Incluido sin costo adicional',
+                'intro': 'Módulos que ya están cotizados dentro del precio.',
+                'module_ids': ['admin_module', 'analytics_dashboard'],
+                'justifications': {
+                    'admin_module': 'Para independencia editorial del cliente.',
+                    'analytics_dashboard': 'Para decisiones basadas en datos.',
+                },
+                'footer_note': 'Total adicional: $0.',
+            },
+        )
+        return p, selected_modules
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_value_added_section_renders_justifications(
+        self, _mock_back, _mock_cover,
+    ):
+        proposal, _ = self._proposal_with_value_added()
+        pdf_bytes = ProposalPdfService.generate(proposal)
+
+        assert pdf_bytes is not None
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        text = '\n'.join(p.extract_text() or '' for p in reader.pages)
+
+        assert 'Panel administrativo' in text
+        assert 'Dashboard analítico' in text
+        assert 'Para independencia editorial del cliente.' in text
+        assert 'Para decisiones basadas en datos.' in text
+        assert 'Total adicional: $0.' in text
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_functional_requirements_excludes_value_added_ids(
+        self, _mock_back, _mock_cover,
+    ):
+        proposal, _ = self._proposal_with_value_added()
+        pdf_bytes = ProposalPdfService.generate(proposal)
+
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        text = '\n'.join(p.extract_text() or '' for p in reader.pages)
+
+        # Each value-added title should appear exactly once: in the dedicated
+        # section, not duplicated inside the functional requirements overview.
+        assert text.count('Panel administrativo') == 1
+        assert text.count('Dashboard analítico') == 1
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_unselected_calculator_module_absent_from_pdf(
+        self, _mock_back, _mock_cover,
+    ):
+        proposal, _ = self._proposal_with_value_added()
+        pdf_bytes = ProposalPdfService.generate(proposal, selected_modules=[])
+
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        text = '\n'.join(p.extract_text() or '' for p in reader.pages)
+
+        assert 'Aplicación PWA' not in text

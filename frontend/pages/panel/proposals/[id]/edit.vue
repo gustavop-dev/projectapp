@@ -72,7 +72,7 @@
 
       <!-- Tab: General -->
       <div v-show="activeTab === 'general'">
-        <TabSplitLayout ratio="3:2">
+        <TabSplitLayout ratio="5:4">
           <template #aside>
         <!-- Editable slug (URL personalizada) -->
         <div class="bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06] rounded-xl p-4 sm:p-5 mb-4">
@@ -114,6 +114,152 @@
           <p v-else class="text-xs text-gray-400 mt-2">
             Solo minúsculas, números y guiones. El cliente verá esta URL en el enlace.
           </p>
+        </div>
+
+        <div
+          class="mb-4 rounded-xl border border-emerald-200/70 dark:border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-500/[0.06] px-4 py-3 sm:px-5 sm:py-4 text-sm"
+          aria-label="Identificación y estado de la propuesta"
+        >
+          <span class="inline-flex items-center gap-1 mb-3 px-2 py-0.5 rounded-full bg-emerald-100/80 dark:bg-emerald-500/15 text-[10px] font-medium uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+            Identificación
+          </span>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <span class="text-gray-400 text-xs">UUID</span>
+              <p class="text-gray-700 dark:text-green-light/60 font-mono text-xs mt-0.5">{{ proposal.uuid }}</p>
+            </div>
+            <div>
+              <div class="flex items-center gap-1">
+                <span class="text-gray-400 text-xs">URL pública</span>
+                <button type="button"
+                  :title="copied ? 'Copiado!' : 'Copiar URL'"
+                  @click="copyUrl"
+                  class="text-gray-400 hover:text-emerald-600 transition-colors">
+                  <DocumentDuplicateIcon v-if="!copied" class="w-3.5 h-3.5" />
+                  <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
+                </button>
+              </div>
+              <p class="mt-0.5">
+                <a :href="'/proposal/' + publicIdentifier" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
+                  /proposal/{{ publicIdentifier }}
+                </a>
+              </p>
+              <div v-for="link in proposalModeLinks" :key="link.mode" class="mt-2">
+                <div class="flex items-center gap-1">
+                  <span class="text-gray-400 text-xs">{{ link.labelUrl }}</span>
+                  <button type="button"
+                    :title="copiedMode === link.mode ? 'Copiado!' : 'Copiar URL'"
+                    @click="copyModeUrl(link.mode)"
+                    class="text-gray-400 hover:text-emerald-600 transition-colors">
+                    <DocumentDuplicateIcon v-if="copiedMode !== link.mode" class="w-3.5 h-3.5" />
+                    <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
+                  </button>
+                </div>
+                <p class="mt-0.5">
+                  <a :href="'/proposal/' + publicIdentifier + '?mode=' + link.mode" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
+                    /proposal/{{ publicIdentifier }}?mode={{ link.mode }}
+                  </a>
+                </p>
+              </div>
+            </div>
+            <div>
+              <span class="text-gray-400 text-xs">Vistas</span>
+              <p class="text-gray-700 dark:text-green-light/60 mt-0.5">{{ proposal.view_count }}</p>
+            </div>
+            <div>
+              <span class="text-gray-400 text-xs">Enviada</span>
+              <p class="text-gray-700 dark:text-green-light/60 mt-0.5">
+                {{ proposal.sent_at ? new Date(proposal.sent_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : '—' }}
+              </p>
+            </div>
+            <div v-if="proposal.platform_onboarding_completed_at">
+              <span class="text-gray-400 text-xs">Plataforma lanzada</span>
+              <p class="text-gray-700 dark:text-green-light/60 mt-0.5 text-xs">
+                {{ new Date(proposal.platform_onboarding_completed_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
+              </p>
+            </div>
+            <div v-if="!hasDocumentsTab">
+              <span class="text-gray-400 text-xs">PDFs</span>
+              <div class="flex items-center gap-3 mt-0.5 flex-wrap">
+                <a :href="'/api/proposals/' + proposal.uuid + '/pdf/'"
+                   target="_blank"
+                   class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Propuesta comercial
+                </a>
+                <span class="text-gray-300 text-xs">|</span>
+                <a :href="'/api/proposals/' + proposal.uuid + '/pdf/?doc=technical'"
+                   target="_blank"
+                   class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Detalle técnico
+                </a>
+              </div>
+            </div>
+            <div class="sm:col-span-2">
+              <div class="flex items-start gap-6 flex-wrap">
+                <div>
+                  <div class="flex items-center gap-1">
+                    <span class="text-gray-400 text-xs">Estado activo</span>
+                    <UiTooltip position="right">
+                      <template #trigger>
+                        <QuestionMarkCircleIcon class="w-3 h-3 text-gray-300 hover:text-gray-500 transition-colors" />
+                      </template>
+                      {{ tt.activeStatus }}
+                    </UiTooltip>
+                  </div>
+                  <div class="flex items-center gap-2 mt-1">
+                    <button
+                      type="button"
+                      class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                      :class="proposal.is_active ? 'bg-emerald-600' : 'bg-gray-200 dark:bg-white/[0.15]'"
+                      @click="handleToggleActive"
+                    >
+                      <span
+                        class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                        :class="proposal.is_active ? 'translate-x-4' : 'translate-x-0'"
+                      />
+                    </button>
+                    <span class="text-xs" :class="proposal.is_active ? 'text-emerald-600' : 'text-gray-400'">
+                      {{ proposal.is_active ? 'Activa' : 'Inactiva' }}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex items-center gap-1">
+                    <span class="text-gray-400 text-xs">Automatizaciones</span>
+                    <UiTooltip position="right">
+                      <template #trigger>
+                        <QuestionMarkCircleIcon class="w-3 h-3 text-gray-300 hover:text-gray-500 transition-colors" />
+                      </template>
+                      {{ tt.automations }}
+                    </UiTooltip>
+                  </div>
+                  <div class="flex items-center gap-2 mt-1">
+                    <button
+                      type="button"
+                      class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                      :class="form.automations_paused ? 'bg-amber-500' : 'bg-emerald-600'"
+                      @click="toggleAutomationsPaused"
+                    >
+                      <span
+                        class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                        :class="form.automations_paused ? 'translate-x-4' : 'translate-x-0'"
+                      />
+                    </button>
+                    <span class="text-xs" :class="form.automations_paused ? 'text-amber-600' : 'text-emerald-600'">
+                      {{ form.automations_paused ? '⏸ Pausadas' : 'Activas' }}
+                    </span>
+                  </div>
+                  <p class="text-[10px] text-gray-400 mt-1">Pausar emails automáticos (recordatorio, urgencia, inactividad).</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div data-testid="general-finance-sidebar" class="bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06] rounded-xl p-4 sm:p-5 mb-4 space-y-5">
@@ -236,145 +382,6 @@
               <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. trimestral (%)</label>
               <input v-model.number="form.hosting_discount_quarterly" data-testid="general-finance-quarterly-discount" type="number" min="0" max="100"
                 class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Read-only info -->
-        <div class="bg-gray-50 dark:bg-white/[0.03] rounded-xl p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div>
-            <span class="text-gray-400 text-xs">UUID</span>
-            <p class="text-gray-700 dark:text-green-light/60 font-mono text-xs mt-0.5">{{ proposal.uuid }}</p>
-          </div>
-          <div>
-            <div class="flex items-center gap-1">
-              <span class="text-gray-400 text-xs">URL pública</span>
-              <button type="button"
-                :title="copied ? 'Copiado!' : 'Copiar URL'"
-                @click="copyUrl"
-                class="text-gray-400 hover:text-emerald-600 transition-colors">
-                <DocumentDuplicateIcon v-if="!copied" class="w-3.5 h-3.5" />
-                <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
-              </button>
-            </div>
-            <p class="mt-0.5">
-              <a :href="'/proposal/' + publicIdentifier" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
-                /proposal/{{ publicIdentifier }}
-              </a>
-            </p>
-            <div v-for="link in proposalModeLinks" :key="link.mode" class="mt-2">
-              <div class="flex items-center gap-1">
-                <span class="text-gray-400 text-xs">{{ link.labelUrl }}</span>
-                <button type="button"
-                  :title="copiedMode === link.mode ? 'Copiado!' : 'Copiar URL'"
-                  @click="copyModeUrl(link.mode)"
-                  class="text-gray-400 hover:text-emerald-600 transition-colors">
-                  <DocumentDuplicateIcon v-if="copiedMode !== link.mode" class="w-3.5 h-3.5" />
-                  <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
-                </button>
-              </div>
-              <p class="mt-0.5">
-                <a :href="'/proposal/' + publicIdentifier + '?mode=' + link.mode" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
-                  /proposal/{{ publicIdentifier }}?mode={{ link.mode }}
-                </a>
-              </p>
-            </div>
-          </div>
-          <div>
-            <span class="text-gray-400 text-xs">Vistas</span>
-            <p class="text-gray-700 dark:text-green-light/60 mt-0.5">{{ proposal.view_count }}</p>
-          </div>
-          <div>
-            <span class="text-gray-400 text-xs">Enviada</span>
-            <p class="text-gray-700 dark:text-green-light/60 mt-0.5">
-              {{ proposal.sent_at ? new Date(proposal.sent_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : '—' }}
-            </p>
-          </div>
-          <div v-if="proposal.platform_onboarding_completed_at">
-            <span class="text-gray-400 text-xs">Plataforma lanzada</span>
-            <p class="text-gray-700 dark:text-green-light/60 mt-0.5 text-xs">
-              {{ new Date(proposal.platform_onboarding_completed_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
-            </p>
-          </div>
-          <div v-if="!hasDocumentsTab">
-            <span class="text-gray-400 text-xs">PDFs</span>
-            <div class="flex items-center gap-3 mt-0.5 flex-wrap">
-              <a :href="'/api/proposals/' + proposal.uuid + '/pdf/'"
-                 target="_blank"
-                 class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Propuesta comercial
-              </a>
-              <span class="text-gray-300 text-xs">|</span>
-              <a :href="'/api/proposals/' + proposal.uuid + '/pdf/?doc=technical'"
-                 target="_blank"
-                 class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Detalle técnico
-              </a>
-            </div>
-          </div>
-          <div class="sm:col-span-2">
-            <div class="flex items-start gap-6 flex-wrap">
-              <div>
-                <div class="flex items-center gap-1">
-                  <span class="text-gray-400 text-xs">Estado activo</span>
-                  <UiTooltip position="right">
-                    <template #trigger>
-                      <QuestionMarkCircleIcon class="w-3 h-3 text-gray-300 hover:text-gray-500 transition-colors" />
-                    </template>
-                    {{ tt.activeStatus }}
-                  </UiTooltip>
-                </div>
-                <div class="flex items-center gap-2 mt-1">
-                  <button
-                    type="button"
-                    class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                    :class="proposal.is_active ? 'bg-emerald-600' : 'bg-gray-200 dark:bg-white/[0.15]'"
-                    @click="handleToggleActive"
-                  >
-                    <span
-                      class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                      :class="proposal.is_active ? 'translate-x-4' : 'translate-x-0'"
-                    />
-                  </button>
-                  <span class="text-xs" :class="proposal.is_active ? 'text-emerald-600' : 'text-gray-400'">
-                    {{ proposal.is_active ? 'Activa' : 'Inactiva' }}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <div class="flex items-center gap-1">
-                  <span class="text-gray-400 text-xs">Automatizaciones</span>
-                  <UiTooltip position="right">
-                    <template #trigger>
-                      <QuestionMarkCircleIcon class="w-3 h-3 text-gray-300 hover:text-gray-500 transition-colors" />
-                    </template>
-                    {{ tt.automations }}
-                  </UiTooltip>
-                </div>
-                <div class="flex items-center gap-2 mt-1">
-                  <button
-                    type="button"
-                    class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                    :class="form.automations_paused ? 'bg-amber-500' : 'bg-emerald-600'"
-                    @click="toggleAutomationsPaused"
-                  >
-                    <span
-                      class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                      :class="form.automations_paused ? 'translate-x-4' : 'translate-x-0'"
-                    />
-                  </button>
-                  <span class="text-xs" :class="form.automations_paused ? 'text-amber-600' : 'text-emerald-600'">
-                    {{ form.automations_paused ? '⏸ Pausadas' : 'Activas' }}
-                  </span>
-                </div>
-                <p class="text-[10px] text-gray-400 mt-1">Pausar emails automáticos (recordatorio, urgencia, inactividad).</p>
-              </div>
             </div>
           </div>
         </div>

@@ -2625,6 +2625,7 @@ def _extract_proposal_financial_data(proposal):
     Returns (payment_milestones, hosting_tiers) as plain lists.
     """
     from content.models import ProposalSection
+    from content.services.proposal_service import normalize_hosting_plan
     from decimal import Decimal
 
     payment_milestones = []
@@ -2647,52 +2648,41 @@ def _extract_proposal_financial_data(proposal):
         })
 
     # --- Hosting tiers (pricing for client plan selection) ---
-    hosting_plan = cj.get('hostingPlan', {})
-    base_percent = hosting_plan.get('hostingPercent', proposal.hosting_percent)
+    normalized = normalize_hosting_plan(proposal, cj.get('hostingPlan', {}))
+    base_percent = normalized['hostingPercent']
     hosting_annual = float(proposal.total_investment) * base_percent / 100
     base_monthly = round(hosting_annual / 12, 2)
     currency = str(cj.get('currency', proposal.currency))
 
-    billing_tiers = hosting_plan.get('billingTiers', [])
-
-    if billing_tiers:
-        for tier in billing_tiers:
-            discount = tier.get('discountPercent', 0)
-            effective_monthly = round(base_monthly * (100 - discount) / 100, 2)
-            months = tier.get('months', 1)
-            hosting_tiers.append({
-                'frequency': tier.get('frequency', ''),
-                'months': months,
-                'label': tier.get('label', ''),
-                'badge': tier.get('badge', ''),
-                'discount_percent': discount,
-                'base_monthly': base_monthly,
-                'effective_monthly': effective_monthly,
-                'billing_amount': round(effective_monthly * months, 2),
-                'currency': currency,
-            })
-    else:
-        # Compute default tiers from proposal model fields
-        default_tiers = [
-            {'frequency': 'semiannual', 'months': 6, 'label': 'Semestral', 'badge': 'Mejor precio', 'discount': proposal.hosting_discount_semiannual},
-            {'frequency': 'quarterly', 'months': 3, 'label': 'Trimestral', 'badge': f'{proposal.hosting_discount_quarterly}% dcto' if proposal.hosting_discount_quarterly else '', 'discount': proposal.hosting_discount_quarterly},
-            {'frequency': 'monthly', 'months': 1, 'label': 'Mensual', 'badge': '', 'discount': 0},
+    billing_tiers = normalized['billingTiers']
+    if not billing_tiers:
+        billing_tiers = [
+            {'frequency': 'semiannual', 'months': 6, 'label': 'Semestral',
+             'badge': 'Mejor precio',
+             'discountPercent': proposal.hosting_discount_semiannual},
+            {'frequency': 'quarterly', 'months': 3, 'label': 'Trimestral',
+             'badge': (f'{proposal.hosting_discount_quarterly}% dcto'
+                       if proposal.hosting_discount_quarterly else ''),
+             'discountPercent': proposal.hosting_discount_quarterly},
+            {'frequency': 'monthly', 'months': 1, 'label': 'Mensual',
+             'badge': '', 'discountPercent': 0},
         ]
-        for tier in default_tiers:
-            discount = tier['discount']
-            effective_monthly = round(base_monthly * (100 - discount) / 100, 2)
-            months = tier['months']
-            hosting_tiers.append({
-                'frequency': tier['frequency'],
-                'months': months,
-                'label': tier['label'],
-                'badge': tier['badge'],
-                'discount_percent': discount,
-                'base_monthly': base_monthly,
-                'effective_monthly': effective_monthly,
-                'billing_amount': round(effective_monthly * months, 2),
-                'currency': currency,
-            })
+
+    for tier in billing_tiers:
+        discount = tier.get('discountPercent', 0)
+        months = tier.get('months', 1)
+        effective_monthly = round(base_monthly * (100 - discount) / 100, 2)
+        hosting_tiers.append({
+            'frequency': tier.get('frequency', ''),
+            'months': months,
+            'label': tier.get('label', ''),
+            'badge': tier.get('badge', ''),
+            'discount_percent': discount,
+            'base_monthly': base_monthly,
+            'effective_monthly': effective_monthly,
+            'billing_amount': round(effective_monthly * months, 2),
+            'currency': currency,
+        })
 
     return payment_milestones, hosting_tiers
 
