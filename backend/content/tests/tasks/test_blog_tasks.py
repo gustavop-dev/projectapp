@@ -117,3 +117,53 @@ class TestPublishScheduledBlogPosts:
 
         post.refresh_from_db()
         assert post.is_published is True
+
+
+def _run_single_publish(post_id):
+    """Execute the publish_single_scheduled_blog one-shot task synchronously."""
+    import content.tasks as tasks_module
+    tasks_module.publish_single_scheduled_blog.call_local(post_id)
+
+
+class TestPublishSingleScheduledBlog:
+    def test_publishes_draft_and_triggers_linkedin(self):
+        post = BlogPost.objects.create(
+            **BLOG_POST_BASE,
+            is_published=False,
+            published_at=timezone.now() - timedelta(seconds=1),
+            linkedin_summary_es='Resumen.',
+        )
+        with patch('content.views.blog.auto_publish_blog_to_linkedin') as mock_auto:
+            _run_single_publish(post.id)
+            mock_auto.assert_called_once()
+            assert mock_auto.call_args[0][0].id == post.id
+
+        post.refresh_from_db()
+        assert post.is_published is True
+
+    def test_skips_if_already_published(self):
+        post = BlogPost.objects.create(
+            **BLOG_POST_BASE,
+            is_published=True,
+            published_at=timezone.now() - timedelta(days=1),
+        )
+        with patch('content.views.blog.auto_publish_blog_to_linkedin') as mock_auto:
+            _run_single_publish(post.id)
+            mock_auto.assert_not_called()
+
+    def test_skips_when_post_missing(self):
+        with patch('content.views.blog.auto_publish_blog_to_linkedin') as mock_auto:
+            _run_single_publish(999999)
+            mock_auto.assert_not_called()
+
+    def test_skips_when_no_published_at(self):
+        post = BlogPost.objects.create(
+            **BLOG_POST_BASE,
+            is_published=False,
+            published_at=None,
+        )
+        with patch('content.views.blog.auto_publish_blog_to_linkedin') as mock_auto:
+            _run_single_publish(post.id)
+            mock_auto.assert_not_called()
+        post.refresh_from_db()
+        assert post.is_published is False
