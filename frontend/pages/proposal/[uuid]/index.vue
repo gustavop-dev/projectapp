@@ -965,7 +965,6 @@ function getSectionProps(section) {
       effectiveTotal: resolvedInvestmentTotal.value || effectiveBaselineTotal.value,
       isCustomized: isInvestmentCustomized.value,
       selectedModuleIds: [...selectedCalculatorModuleIds.value],
-      hasConfirmedSelection: hasConfirmedModuleSelection.value,
     };
   }
 
@@ -1134,10 +1133,11 @@ function onCustomTotalUpdate(total) {
 }
 
 function onCalculatorModulesUpdate(selectedIds) {
-  if (!selectedIds) return;
-  const allIds = allGroupCalculatorItems.value.map(m => m.id);
-  const selected = new Set(allIds.filter(id => selectedIds.includes(id)));
-  selectedCalculatorModuleIds.value = selected;
+  if (!Array.isArray(selectedIds)) return;
+  // Store the full live selection — both investment-type and calculator-type
+  // module IDs — so the modal can reopen in the same state after the user
+  // navigates between sections, even if they didn't explicitly confirm.
+  selectedCalculatorModuleIds.value = new Set(selectedIds);
 }
 
 function onModuleSelectionConfirmed({ selectedIds } = {}) {

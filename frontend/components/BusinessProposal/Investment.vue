@@ -267,7 +267,6 @@
       :discountPercent="discountPercent"
       :discountedInvestment="discountedInvestment"
       :selectedIds="selectedModuleIds"
-      :hasConfirmedSelection="hasConfirmedSelection"
       @close="calculatorOpen = false"
       @update:selection="onSelectionUpdate"
       @navigateToRequirements="$emit('navigateToRequirements'); calculatorOpen = false"
@@ -415,10 +414,6 @@ const props = defineProps({
   selectedModuleIds: {
     type: Array,
     default: () => []
-  },
-  hasConfirmedSelection: {
-    type: Boolean,
-    default: false
   }
 });
 

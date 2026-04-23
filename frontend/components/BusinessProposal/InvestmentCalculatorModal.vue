@@ -203,7 +203,6 @@ const props = defineProps({
   discountPercent: { type: Number, default: 0 },
   discountedInvestment: { type: String, default: '' },
   selectedIds: { type: Array, default: () => [] },
-  hasConfirmedSelection: { type: Boolean, default: false },
 });
 
 const hasActiveDiscount = computed(() => {
@@ -305,10 +304,11 @@ const initialGroupOrder = ref([]);
 
 watch(() => props.visible, (val) => {
   if (val) {
-    // Initial selection comes from the page (in-memory). If the client has
-    // confirmed a selection during this session, use it; otherwise fall back
-    // to each module's backend-driven default_selected flag.
-    const saved = props.hasConfirmedSelection && Array.isArray(props.selectedIds) && props.selectedIds.length
+    // Use whichever selection the page is currently tracking (updated live on
+    // every toggle). Falls back to per-module defaults only when the page has
+    // no selection state yet (e.g., page just loaded and the user hasn't
+    // touched the calculator).
+    const saved = Array.isArray(props.selectedIds) && props.selectedIds.length
       ? props.selectedIds
       : null;
 
