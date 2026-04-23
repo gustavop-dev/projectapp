@@ -2614,6 +2614,22 @@ class TestDefaultSelectedModulesFromContent:
 
         assert result == ['module-pwa']
 
+    def test_persisted_bare_ids_are_normalized_to_canonical_prefixed_form(self):
+        """Legacy payloads without the module-/group- prefix must still match
+        the prefixed ids the PDF renderer builds internally; otherwise the
+        additional-module prices never sum into the client-facing total.
+        """
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='pwa', selected=False),
+            ]),
+            persisted=['pwa'],
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert result == ['module-pwa']
+
     def test_empty_persisted_falls_back_to_content_json(self):
         proposal = self._make_proposal(
             fr_content=_fr_section_content_json(additionalModules=[

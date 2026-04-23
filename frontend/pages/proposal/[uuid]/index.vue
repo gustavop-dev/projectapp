@@ -347,6 +347,7 @@ import { filterTechnicalDocumentByModules } from '~/utils/filterTechnicalDocumen
 import { useProposalDarkMode } from '~/composables/useProposalDarkMode';
 import {
   hasStoredConfirmedProposalModuleSelection,
+  normalizePersistedSelectedIds,
   readStoredProposalModuleSelection,
   writeStoredProposalModuleSelectionConfirmation,
 } from '~/utils/proposalModuleSelectionStorage';
@@ -729,22 +730,22 @@ const nextPanelTitle = computed(() => {
   return next?.title || '';
 });
 
-// Seed selectedCalculatorModuleIds and customizedTotal from admin/client
-// preselections on first load, so the Investment section reflects the effective
-// total from the moment the page renders. Mirrors the priority used by the
-// backend's `default_selected_modules_from_content` helper.
+// Seeds the UI selection and the customized total. The authoritative
+// effective total comes from the backend via
+// ``proposal.effective_total_investment`` — we only apply it when it
+// differs from the base, so the "customized" badge does not misfire.
 function computeInitialSelection() {
   if (!proposal.value) return;
-  const uuid = proposal.value.uuid || '';
-  try {
-    if (uuid && hasStoredConfirmedProposalModuleSelection(uuid)) return;
-  } catch { /* noop */ }
 
+  const calcItems = allGroupCalculatorItems.value;
   const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
   const investmentModules = investmentSection?.content_json?.modules || [];
-  const calcItems = allGroupCalculatorItems.value;
 
-  const persisted = Array.isArray(proposal.value.selected_modules) ? proposal.value.selected_modules : [];
+  const persistedRaw = Array.isArray(proposal.value.selected_modules)
+    ? proposal.value.selected_modules
+    : [];
+  const persisted = normalizePersistedSelectedIds(persistedRaw, calcItems);
+
   let selectedIds;
   if (persisted.length) {
     selectedIds = new Set(persisted);
@@ -764,18 +765,9 @@ function computeInitialSelection() {
   );
 
   const base = Number(proposal.value.total_investment || 0);
-  if (base <= 0) return;
-
-  const deselectedSum = investmentModules
-    .filter(m => m.is_required !== true && !selectedIds.has(m.id))
-    .reduce((sum, m) => sum + (Number(m.price) || 0), 0);
-  const addedSum = calcItems
-    .filter(m => selectedIds.has(m.id))
-    .reduce((sum, m) => sum + (Number(m.price) || 0), 0);
-
-  const effective = base - deselectedSum + addedSum;
-  if (effective !== base) {
-    customizedTotal.value = effective;
+  const backendEffective = Number(proposal.value.effective_total_investment || 0);
+  if (base > 0 && backendEffective > 0 && backendEffective !== base) {
+    customizedTotal.value = backendEffective;
   }
 }
 

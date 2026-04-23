@@ -263,6 +263,13 @@ def _safe_decimal(value, default=Decimal('0')):
         return default
 
 
+# Canonical prefixes used by the frontend calculator to distinguish
+# calculator modules (additive, priced) from regular grouped requirements.
+# Persisted ``selected_modules`` payloads must round-trip through these.
+_CALC_MODULE_PREFIX = 'module-'
+_REGULAR_GROUP_PREFIX = 'group-'
+
+
 def _selected_group_ids_from_modules(selected_modules):
     """Normalize selected module ids to bare group ids."""
     if not isinstance(selected_modules, list):
@@ -275,13 +282,19 @@ def _selected_group_ids_from_modules(selected_modules):
         mod_id = str(raw).strip()
         if not mod_id:
             continue
-        if mod_id.startswith('module-'):
-            group_ids.add(mod_id[7:])
-        elif mod_id.startswith('group-'):
-            group_ids.add(mod_id[6:])
+        if mod_id.startswith(_CALC_MODULE_PREFIX):
+            group_ids.add(mod_id[len(_CALC_MODULE_PREFIX):])
+        elif mod_id.startswith(_REGULAR_GROUP_PREFIX):
+            group_ids.add(mod_id[len(_REGULAR_GROUP_PREFIX):])
         else:
             group_ids.add(mod_id)
     return group_ids
+
+
+def _normalize_selected_module_ids(selected, fr_content_json):
+    """Thin wrapper around the shared normalizer in ``proposal_service``."""
+    from content.services.proposal_service import normalize_selected_module_ids
+    return normalize_selected_module_ids(selected, fr_content_json)
 
 
 def _calculator_price_percent_by_group_id(fr_content_json):
@@ -387,7 +400,17 @@ def _build_effective_totals_map(proposals):
 
 
 def _resync_investment_from_modules(proposal, fr_content_json):
-    """Update investment section totalInvestment & paymentOptions using effective total."""
+    """Keep the investment section in sync with ``proposal.total_investment``.
+
+    ``content_json.totalInvestment`` must always reflect the BASE investment
+    (the number the admin typed in the General tab). It is used downstream
+    as the basis for hosting calculations and other percent-derived values,
+    so it must never be overwritten with the client's personalized total.
+
+    ``paymentOptions`` descriptions *do* scale on the effective total,
+    because those strings represent the actual amounts the client will pay
+    after customizing their module selection.
+    """
     effective = _calculate_effective_total_investment(
         proposal.total_investment,
         proposal.selected_modules,
@@ -396,22 +419,32 @@ def _resync_investment_from_modules(proposal, fr_content_json):
     inv_section = proposal.sections.filter(section_type=ProposalSection.SectionType.INVESTMENT).first()
     if not inv_section or not inv_section.content_json:
         return
-    total = int(effective)
-    formatted = f'${total:,}'.replace(',', '.')
+    base_total = int(_safe_decimal(proposal.total_investment))
+    base_formatted = f'${base_total:,}'.replace(',', '.')
     cj = dict(inv_section.content_json)
     currency_changed = cj.get('currency') != proposal.currency
-    total_changed = cj.get('totalInvestment') != formatted
-    if not currency_changed and not total_changed:
-        return
-    cj['totalInvestment'] = formatted
-    cj['currency'] = proposal.currency
+    total_changed = cj.get('totalInvestment') != base_formatted
+
+    # paymentOptions descriptions depend on the effective total; rebuild
+    # unconditionally when paymentOptions exist so outdated amounts from a
+    # prior selection do not leak through.
+    payment_changed = False
     if cj.get('paymentOptions'):
         for opt in cj['paymentOptions']:
             pct_match = re.search(r'(\d+)%', opt.get('label', ''))
-            if pct_match:
-                pct = Decimal(pct_match.group(1)) / Decimal(100)
-                amount = int(effective * pct)
-                opt['description'] = f'${amount:,}'.replace(',', '.') + f' {proposal.currency}'
+            if not pct_match:
+                continue
+            pct = Decimal(pct_match.group(1)) / Decimal(100)
+            amount = int(effective * pct)
+            new_desc = f'${amount:,}'.replace(',', '.') + f' {proposal.currency}'
+            if opt.get('description') != new_desc:
+                opt['description'] = new_desc
+                payment_changed = True
+
+    if not currency_changed and not total_changed and not payment_changed:
+        return
+    cj['totalInvestment'] = base_formatted
+    cj['currency'] = proposal.currency
     inv_section.content_json = cj
     inv_section.save(update_fields=['content_json'])
 
@@ -623,6 +656,17 @@ def download_proposal_pdf(request, proposal_uuid):
     # client never opened the calculator (localStorage empty).
     if selected_modules is None:
         selected_modules = default_selected_modules_from_content(proposal)
+    else:
+        # Legacy query payloads may arrive with bare group ids — match the
+        # canonical prefixed form the renderer uses.
+        from content.services.proposal_service import normalize_selected_module_ids
+        fr_section = proposal.sections.filter(
+            section_type=ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS,
+        ).only('content_json').first()
+        selected_modules = normalize_selected_module_ids(
+            selected_modules,
+            fr_section.content_json if fr_section else None,
+        )
 
     if doc_variant == 'technical':
         from content.services.technical_document_pdf import generate_technical_document_pdf
@@ -2579,14 +2623,15 @@ def track_calculator_interaction(request, proposal_uuid):
 
     # Persist confirmed selections so PDF can use them as fallback
     if event == 'confirmed' and isinstance(selected, list):
-        proposal.selected_modules = selected
-        proposal.save(update_fields=['selected_modules', 'updated_at'])
         fr_section = proposal.sections.filter(
             section_type=ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS
         ).first()
-        _resync_investment_from_modules(
-            proposal, fr_section.content_json if fr_section else None
+        fr_content = fr_section.content_json if fr_section else None
+        proposal.selected_modules = _normalize_selected_module_ids(
+            selected, fr_content,
         )
+        proposal.save(update_fields=['selected_modules', 'updated_at'])
+        _resync_investment_from_modules(proposal, fr_content)
 
     return Response({'status': 'ok'}, status=status.HTTP_200_OK)
 

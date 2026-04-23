@@ -116,7 +116,9 @@ def default_selected_modules_from_content(proposal):
        what the frontend does at ``pages/proposal/[uuid]/index.vue``
        (``effectiveSelectedModuleIdsForTechnical``) and covers both client
        confirmations via the calculator modal and admin-driven edits to
-       that field.
+       that field. Legacy payloads may store bare group ids, so we run
+       them through the shared normalizer to restore the canonical
+       ``module-<id>`` / ``group-<id>`` form the renderer expects.
     2. Derive from the current ``content_json``
        (``additionalModules[*].selected`` + ``default_selected``) so admin
        toggles in the editor still propagate to the PDF when the DB field
@@ -125,12 +127,20 @@ def default_selected_modules_from_content(proposal):
     Returns a list of module IDs ready to be passed as ``selected_modules``
     to :meth:`ProposalPdfService.generate`.
     """
+    from content.services.proposal_service import normalize_selected_module_ids
+
+    sections = list(proposal.sections.all())
+    fr = next(
+        (s for s in sections if s.section_type == 'functional_requirements'),
+        None,
+    )
+    fr_content = fr.content_json if fr else None
+
     persisted = getattr(proposal, 'selected_modules', None)
     if persisted:
-        return list(persisted)
+        return normalize_selected_module_ids(persisted, fr_content)
 
     selected = []
-    sections = list(proposal.sections.all())
 
     inv = next((s for s in sections if s.section_type == 'investment'), None)
     if inv and inv.content_json:
@@ -139,13 +149,8 @@ def default_selected_modules_from_content(proposal):
             if mid:
                 selected.append(mid)
 
-    fr = next(
-        (s for s in sections if s.section_type == 'functional_requirements'),
-        None,
-    )
-    if fr and fr.content_json:
-        cj = fr.content_json
-        groups = list(cj.get('groups') or []) + list(cj.get('additionalModules') or [])
+    if fr_content:
+        groups = list(fr_content.get('groups') or []) + list(fr_content.get('additionalModules') or [])
         for grp in groups:
             if not isinstance(grp, dict):
                 continue
@@ -1248,10 +1253,11 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         normalized_hosting = normalize_hosting_plan(_proposal, hosting)
         h_percent = normalized_hosting.get('hostingPercent', 0) or 0
         billing_tiers = normalized_hosting.get('billingTiers', [])
-        # Compute annual hosting amount from total investment
-        # Use adjusted total if modules were deselected, otherwise base_num
-        tier_base_num = adjusted if adjusted is not None else base_num
-        annual_hosting = round(tier_base_num * h_percent / 100) if h_percent and tier_base_num else 0
+        # Hosting is a percentage of the project's BASE investment, not of
+        # the client's personalized total. Keeps parity with the public
+        # frontend (Investment.vue ``hostingAnnualAmount``) and the admin
+        # preview in the General tab.
+        annual_hosting = round(base_num * h_percent / 100) if h_percent and base_num else 0
 
         if billing_tiers and annual_hosting > 0:
             if ps:
@@ -1928,15 +1934,17 @@ class ProposalPdfService:
             _calc_module_items = []
             _value_added_ids = set()
             _value_added_catalog = {}
-            _base_num = 0
+            # Trust the model field for the base investment used to price
+            # calculator modules (percent-of-base). ``content_json`` mirrors
+            # this value but can drift — matches the override applied in
+            # ``_render_investment`` and the public frontend view.
+            _model_total = getattr(proposal, 'total_investment', None) or 0
+            _base_num = int(_model_total)
             needs_selection_data = selected_modules is not None
 
             for _sec in sections:
                 _cj = _sec.content_json or {}
-                if _sec.section_type == 'investment':
-                    _raw_total = str(_cj.get('totalInvestment', ''))
-                    _base_num = int(re.sub(r'[^\d]', '', _raw_total) or '0')
-                elif _sec.section_type == 'value_added_modules':
+                if _sec.section_type == 'value_added_modules':
                     _value_added_ids.update(_cj.get('module_ids') or [])
                 elif _sec.section_type == 'functional_requirements':
                     for _grp in list(_cj.get('groups') or []) + list(_cj.get('additionalModules') or []):

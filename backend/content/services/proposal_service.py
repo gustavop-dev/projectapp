@@ -2244,6 +2244,66 @@ def normalize_hosting_plan(proposal, hosting_plan_json):
     return base
 
 
+CALC_MODULE_PREFIX = 'module-'
+REGULAR_GROUP_PREFIX = 'group-'
+
+
+def normalize_selected_module_ids(selected, fr_content_json):
+    """Return *selected* with canonical prefixed ids.
+
+    Calculator modules round-trip through the frontend as ``module-<id>``
+    and regular groups as ``group-<id>``. Older payloads, template copies,
+    or manual JSON edits can ship bare group ids, which break equality
+    checks in the PDF renderer and in the frontend calculator. Using the
+    functional_requirements content as the source of truth for which
+    groups are calculator modules, rebuild each id into its canonical
+    prefixed form.
+
+    Pure function: no ORM queries, no side effects.
+    """
+    if not isinstance(selected, list):
+        return []
+
+    calc_group_ids = set()
+    regular_group_ids = set()
+    if isinstance(fr_content_json, dict):
+        for arr_key in ('groups', 'additionalModules'):
+            for grp in (fr_content_json.get(arr_key) or []):
+                if not isinstance(grp, dict):
+                    continue
+                gid = str(grp.get('id') or '').strip()
+                if not gid:
+                    continue
+                if grp.get('is_calculator_module'):
+                    calc_group_ids.add(gid)
+                else:
+                    regular_group_ids.add(gid)
+
+    normalized = []
+    seen = set()
+    for raw in selected:
+        if raw in (None, ''):
+            continue
+        mod_id = str(raw).strip()
+        if not mod_id:
+            continue
+        if mod_id.startswith((CALC_MODULE_PREFIX, REGULAR_GROUP_PREFIX)):
+            canonical = mod_id
+        elif mod_id in calc_group_ids:
+            canonical = f'{CALC_MODULE_PREFIX}{mod_id}'
+        elif mod_id in regular_group_ids:
+            canonical = f'{REGULAR_GROUP_PREFIX}{mod_id}'
+        else:
+            # Unknown bare id — keep as-is rather than dropping, so the
+            # admin does not silently lose data they may recognize.
+            canonical = mod_id
+        if canonical in seen:
+            continue
+        seen.add(canonical)
+        normalized.append(canonical)
+    return normalized
+
+
 class ProposalService:
     """
     Business logic for proposal lifecycle management.

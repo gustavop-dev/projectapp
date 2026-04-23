@@ -55,6 +55,14 @@
         <span v-if="proposal.total_investment > 0" class="text-sm sm:text-base font-light text-gray-400 dark:text-green-light/60 whitespace-nowrap">
           ({{ formatInvestment(proposal.total_investment, proposal.currency) }})
         </span>
+        <span
+          v-if="hasCustomizedEffectiveTotal"
+          data-testid="general-finance-effective-total-badge"
+          class="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200 whitespace-nowrap"
+          :title="`Total efectivo visible al cliente según módulos seleccionados`"
+        >
+          Cliente ve: {{ formatInvestment(effectiveTotalInvestment, proposal.currency) }}
+        </span>
         <span class="text-xs px-2.5 py-0.5 rounded-full font-medium" :class="statusClass(proposal.status)">
           {{ proposal.status }}
         </span>
@@ -72,7 +80,7 @@
 
       <!-- Tab: General -->
       <div v-show="activeTab === 'general'">
-        <TabSplitLayout ratio="5:4">
+        <TabSplitLayout ratio="1:1">
           <template #aside>
         <!-- Editable slug (URL personalizada) -->
         <div class="bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06] rounded-xl p-4 sm:p-5 mb-4">
@@ -271,6 +279,15 @@
               <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Inversión total</label>
               <input v-model.number="form.total_investment" data-testid="general-finance-total-investment" type="number" min="0" step="0.01"
                 class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              <p
+                v-if="hasCustomizedEffectiveTotal"
+                data-testid="general-finance-effective-total-note"
+                class="text-xs text-amber-700 dark:text-amber-300 mt-1.5"
+              >
+                Total efectivo visible al cliente:
+                <strong>{{ formatInvestment(effectiveTotalInvestment, proposal.currency) }}</strong>
+                (incluye módulos adicionales seleccionados).
+              </p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Moneda</label>
@@ -1385,6 +1402,21 @@ const technicalSection = computed(() =>
 const investmentSection = computed(() =>
   allSections.value.find(s => s.section_type === 'investment') || null
 );
+
+// Backend-computed personalized total. Exposed in the serializer so admin,
+// client, PDF and onboarding agree on the same number. Falls back to the
+// base investment when absent (e.g. during create flow before first fetch).
+const effectiveTotalInvestment = computed(() => {
+  const effective = Number(proposal.value?.effective_total_investment);
+  if (Number.isFinite(effective) && effective > 0) return effective;
+  return Number(proposal.value?.total_investment || 0);
+});
+
+const hasCustomizedEffectiveTotal = computed(() => {
+  const base = Number(proposal.value?.total_investment || 0);
+  const effective = effectiveTotalInvestment.value;
+  return base > 0 && effective > 0 && Math.round(effective) !== Math.round(base);
+});
 
 const technicalModuleLinkOptions = computed(() =>
   buildProposalModuleLinkOptions(proposal.value?.sections || []),

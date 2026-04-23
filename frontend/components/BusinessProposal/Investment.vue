@@ -425,12 +425,20 @@ function parseInvestment(str) {
 }
 
 onMounted(() => {
+  // Prefer the backend-computed effective total over localStorage so
+  // admin, client, and PDF stay in sync. localStorage remains a session
+  // fallback for older deploys that do not return the backend field.
   if (props.proposalUuid && props.modules?.length) {
     try {
-      if (hasStoredConfirmedProposalModuleSelection(props.proposalUuid)) {
+      const base = parseInvestment(props.totalInvestment);
+      if (props.initialCustomTotal != null) {
+        if (base > 0 && props.initialCustomTotal !== base) {
+          customTotal.value = props.initialCustomTotal;
+          emit('updateCustomTotal', customTotal.value);
+        }
+      } else if (hasStoredConfirmedProposalModuleSelection(props.proposalUuid)) {
         const { hasStoredSelection, selectedIds } = readStoredProposalModuleSelection(props.proposalUuid);
         if (hasStoredSelection) {
-          const base = parseInvestment(props.totalInvestment);
           const deselectedSum = props.modules
             .filter(m => {
               const locked = m.is_required === true;
@@ -447,12 +455,6 @@ onMounted(() => {
             try { localStorage.setItem(`proposal-${props.proposalUuid}-total`, String(customTotal.value)); } catch { /* noop */ }
             emit('updateCustomTotal', customTotal.value);
           }
-        }
-      } else if (props.initialCustomTotal != null) {
-        const base = parseInvestment(props.totalInvestment);
-        if (base > 0 && props.initialCustomTotal !== base) {
-          customTotal.value = props.initialCustomTotal;
-          emit('updateCustomTotal', customTotal.value);
         }
       }
     } catch (_e) { /* ignore */ }
@@ -592,6 +594,9 @@ function formatCurrency(value) {
 
 const hostingAnnualAmount = computed(() => {
   const hp = props.hostingPlan;
+  // Hosting is a percentage of the project's BASE investment, not of the
+  // client's personalized total. Do not substitute customTotal here —
+  // keeping parity with the backend PDF and the admin preview.
   if (hp?.hostingPercent > 0) {
     const base = parseInvestment(props.totalInvestment);
     if (base > 0) return Math.round(base * hp.hostingPercent / 100);
