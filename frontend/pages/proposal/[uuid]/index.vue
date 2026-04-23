@@ -89,7 +89,10 @@
         <ExpirationBadge v-if="proposal.expires_at" :expiresAt="proposal.expires_at" />
 
         <!-- PDF download + Share -->
-        <PdfDownloadButton :view-mode="viewMode" />
+        <PdfDownloadButton
+          :view-mode="viewMode"
+          :selected-module-ids="pdfSelectedModuleIds"
+        />
         <ShareProposalButton
           v-if="proposal?.uuid"
           :proposalUuid="proposal.uuid"
@@ -345,12 +348,7 @@ import {
 } from '~/utils/proposalModuleLinkOptions';
 import { filterTechnicalDocumentByModules } from '~/utils/filterTechnicalDocumentByModules';
 import { useProposalDarkMode } from '~/composables/useProposalDarkMode';
-import {
-  hasStoredConfirmedProposalModuleSelection,
-  normalizePersistedSelectedIds,
-  readStoredProposalModuleSelection,
-  writeStoredProposalModuleSelectionConfirmation,
-} from '~/utils/proposalModuleSelectionStorage';
+import { normalizePersistedSelectedIds } from '~/utils/proposalModuleSelectionStorage';
 
 definePageMeta({ layout: false });
 
@@ -450,9 +448,6 @@ const hasConfirmedModuleSelection = ref(false);
 
 function effectiveSelectedModuleIdsForTechnical() {
   if (!hasConfirmedModuleSelection.value) return null;
-  const uuid = proposal.value?.uuid || '';
-  const stored = readStoredProposalModuleSelection(uuid);
-  if (stored.hasStoredSelection) return stored.selectedIds;
   const fromUi = [...selectedCalculatorModuleIds.value];
   if (fromUi.length) return fromUi;
   const persisted = proposal.value?.selected_modules;
@@ -714,6 +709,28 @@ const resolvedInvestmentTotal = computed(() =>
   ?? Number(proposal.value?.total_investment || 0),
 );
 
+// PDF download includes the current in-memory selection only when the client
+// has actively confirmed a customization; otherwise the backend-stored
+// selected_modules are used server-side.
+const pdfSelectedModuleIds = computed(() => {
+  if (!hasConfirmedModuleSelection.value) return null;
+  const ids = [...selectedCalculatorModuleIds.value];
+  return ids.length ? ids : null;
+});
+
+const effectiveBaselineTotal = computed(() =>
+  Number(effectiveInvestment.value || proposal.value?.total_investment || 0),
+);
+
+const isInvestmentCustomized = computed(() =>
+  customizedTotal.value != null
+  && Number(customizedTotal.value) !== effectiveBaselineTotal.value,
+);
+
+const confirmedModuleCount = computed(() =>
+  hasConfirmedModuleSelection.value ? selectedCalculatorModuleIds.value.size : null,
+);
+
 // Helper: recompute payment option amounts using ratio logic (same as Investment.vue computedPaymentOptions)
 function recomputePaymentOptions(paymentOptions, baseTotalStr, customTotal) {
   if (customTotal == null || !paymentOptions?.length) return paymentOptions;
@@ -740,7 +757,9 @@ const nextPanelTitle = computed(() => {
 });
 
 // Effective total comes from the backend so admin, client view, and PDF
-// stay aligned; ``customizedTotal`` is reserved for real client changes.
+// stay aligned; ``customizedTotal`` is reserved for real client changes that
+// the client makes during this page session (calculator confirm). Page
+// reload always returns to the backend baseline — no localStorage rehydration.
 function computeInitialSelection() {
   if (!proposal.value) return;
 
@@ -767,9 +786,9 @@ function computeInitialSelection() {
     selectedIds = new Set(derived);
   }
 
-  selectedCalculatorModuleIds.value = new Set(
-    calcItems.filter(m => selectedIds.has(m.id)).map(m => m.id),
-  );
+  selectedCalculatorModuleIds.value = new Set(selectedIds);
+  hasConfirmedModuleSelection.value = proposal.value.has_confirmed_module_selection === true;
+  customizedTotal.value = null;
 
   const base = Number(proposal.value.total_investment || 0);
   const backendEffective = Number(proposal.value.effective_total_investment || 0);
@@ -943,7 +962,10 @@ function getSectionProps(section) {
       baseWeeks,
       sentAt: proposal.value?.sent_at || '',
       viewMode: viewMode.value || 'detailed',
-      effectiveTotal: effectiveInvestment.value || proposalTotal,
+      effectiveTotal: resolvedInvestmentTotal.value || effectiveBaselineTotal.value,
+      isCustomized: isInvestmentCustomized.value,
+      selectedModuleIds: [...selectedCalculatorModuleIds.value],
+      hasConfirmedSelection: hasConfirmedModuleSelection.value,
     };
   }
 
@@ -970,6 +992,8 @@ function getSectionProps(section) {
       rawTotalInvestment: formattedSummaryTotal,
       paymentOptions: recomputePaymentOptions(rawPaymentOptions, investContent.totalInvestment, effectiveTotal),
       customizedTotal: effectiveTotal,
+      isCustomized: isInvestmentCustomized.value,
+      selectedModuleCount: confirmedModuleCount.value,
     };
   }
 
@@ -1121,7 +1145,6 @@ function onModuleSelectionConfirmed({ selectedIds } = {}) {
   selectedCalculatorModuleIds.value = new Set(
     Array.isArray(selectedIds) ? selectedIds : [],
   );
-  writeStoredProposalModuleSelectionConfirmation(proposal.value?.uuid || '', true);
 }
 
 function goNext() {
@@ -1167,38 +1190,6 @@ function onTouchEnd(e) {
 // --- Lifecycle ---
 const onAnimationComplete = () => {
   if (loadError.value) return;
-  // Initialize customizedTotal from localStorage (returning visitor with prior calculator customization)
-  try {
-    const uuid = proposal.value?.uuid;
-    if (uuid) {
-      const storedTotal = localStorage.getItem(`proposal-${uuid}-total`);
-      if (storedTotal != null) {
-        customizedTotal.value = parseInt(storedTotal, 10) || null;
-      }
-    }
-  } catch (_e) { /* ignore */ }
-  // Initialize selection state: preserve confirmed selections, otherwise keep UI defaults.
-  const uuid = proposal.value?.uuid || '';
-  const persistedIds = proposal.value?.selected_modules;
-  const confirmedByBackend = proposal.value?.has_confirmed_module_selection === true;
-  const confirmedByStorage = hasStoredConfirmedProposalModuleSelection(uuid);
-  hasConfirmedModuleSelection.value = confirmedByBackend || confirmedByStorage;
-
-  if (confirmedByStorage) {
-    const stored = readStoredProposalModuleSelection(uuid);
-    selectedCalculatorModuleIds.value = new Set(
-      stored.hasStoredSelection ? stored.selectedIds : [],
-    );
-  } else if (confirmedByBackend && Array.isArray(persistedIds)) {
-    selectedCalculatorModuleIds.value = new Set(persistedIds);
-  } else {
-    const defaultSelectedIds = allGroupCalculatorItems.value
-      .filter(m => m.default_selected)
-      .map(m => m.id);
-    if (defaultSelectedIds.length) {
-      selectedCalculatorModuleIds.value = new Set(defaultSelectedIds);
-    }
-  }
   showContent.value = true;
   nextTick(() => applyProposalTheme(false));
   window.addEventListener('keydown', handleKeydown);

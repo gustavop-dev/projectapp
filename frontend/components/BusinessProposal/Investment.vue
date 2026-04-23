@@ -266,6 +266,8 @@
       :sentAt="sentAt"
       :discountPercent="discountPercent"
       :discountedInvestment="discountedInvestment"
+      :selectedIds="selectedModuleIds"
+      :hasConfirmedSelection="hasConfirmedSelection"
       @close="calculatorOpen = false"
       @update:selection="onSelectionUpdate"
       @navigateToRequirements="$emit('navigateToRequirements'); calculatorOpen = false"
@@ -282,10 +284,6 @@ import { useExpirationTimer } from '~/composables/useExpirationTimer';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import InvestmentCalculatorModal from './InvestmentCalculatorModal.vue';
 import InvestmentDetailedTeaser from './InvestmentDetailedTeaser.vue';
-import {
-  hasStoredConfirmedProposalModuleSelection,
-  readStoredProposalModuleSelection,
-} from '~/utils/proposalModuleSelectionStorage';
 
 const emit = defineEmits(['navigateToRequirements', 'updateCalculatorModules', 'switchToDetailed', 'updateCustomTotal', 'selectionConfirmed']);
 
@@ -294,8 +292,6 @@ useSectionAnimations(sectionRef);
 
 const specsOpen = ref(false);
 const calculatorOpen = ref(false);
-const customTotal = ref(null);
-const customWeeks = ref(null);
 const customizeBtnRef = ref(null);
 const btnPulse = ref(false);
 
@@ -411,6 +407,18 @@ const props = defineProps({
   effectiveTotal: {
     type: Number,
     default: null
+  },
+  isCustomized: {
+    type: Boolean,
+    default: false
+  },
+  selectedModuleIds: {
+    type: Array,
+    default: () => []
+  },
+  hasConfirmedSelection: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -427,51 +435,15 @@ const effectiveNumber = computed(() => {
   return Number.isFinite(raw) && raw > 0 ? raw : baseNumber.value;
 });
 
-const displayNumber = computed(() =>
-  customTotal.value !== null ? customTotal.value : effectiveNumber.value,
-);
+const displayNumber = computed(() => effectiveNumber.value);
 
-// The "Precio personalizado" badge only shows when the client actively
-// changed their selection — not when the effective total comes from
-// admin-default modules.
-const isBadgeVisible = computed(() =>
-  customTotal.value !== null && customTotal.value !== effectiveNumber.value,
-);
+// Badge shows only for client-confirmed customization, not admin-default
+// modules (which are already reflected in the backend effective total).
+const isBadgeVisible = computed(() => props.isCustomized === true);
 
 const { animated: displayTotal } = useAnimatedNumber(displayNumber, 500);
 
 onMounted(() => {
-  // Rehydrate customTotal only from a real client-confirmed selection
-  // (localStorage flag written by the calculator). The effective total
-  // coming from the backend is exposed via ``effectiveTotal`` and drives
-  // the display directly — it must not be promoted to "customized" or
-  // the "Precio personalizado" badge would misfire on initial render.
-  if (props.proposalUuid && props.modules?.length) {
-    try {
-      if (hasStoredConfirmedProposalModuleSelection(props.proposalUuid)) {
-        const base = baseNumber.value;
-        const { hasStoredSelection, selectedIds } = readStoredProposalModuleSelection(props.proposalUuid);
-        if (hasStoredSelection) {
-          const deselectedSum = props.modules
-            .filter(m => {
-              const locked = m.is_required === true;
-              if (locked) return false;
-              if (m._source === 'calculator_module') return false;
-              return !selectedIds.includes(m.id);
-            })
-            .reduce((sum, m) => sum + (m.price || 0), 0);
-          const addedSum = props.modules
-            .filter(m => m._source === 'calculator_module' && selectedIds.includes(m.id) && m.price)
-            .reduce((sum, m) => sum + (m.price || 0), 0);
-          if (deselectedSum > 0 || addedSum > 0) {
-            customTotal.value = base - deselectedSum + addedSum;
-            try { localStorage.setItem(`proposal-${props.proposalUuid}-total`, String(customTotal.value)); } catch { /* noop */ }
-            emit('updateCustomTotal', customTotal.value);
-          }
-        }
-      }
-    } catch (_e) { /* ignore */ }
-  }
   if (props.modules?.length && props.viewMode !== 'executive') {
     nextTick(() => {
       const el = customizeBtnRef.value;
@@ -493,12 +465,7 @@ onMounted(() => {
   }
 });
 
-function onSelectionUpdate({ total, weeks }) {
-  customTotal.value = total;
-  if (weeks !== undefined) customWeeks.value = weeks;
-  if (props.proposalUuid && total != null) {
-    try { localStorage.setItem(`proposal-${props.proposalUuid}-total`, String(total)); } catch { /* noop */ }
-  }
+function onSelectionUpdate({ total }) {
   emit('updateCustomTotal', total);
 }
 

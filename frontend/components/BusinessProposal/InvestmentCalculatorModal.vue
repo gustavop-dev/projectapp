@@ -185,11 +185,6 @@
 import { ref, computed, watch } from 'vue';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import { create_request } from '~/stores/services/request_http';
-import {
-  getProposalModuleSelectionStorageKey,
-  getProposalModuleSelectionConfirmedKey,
-  hasStoredConfirmedProposalModuleSelection,
-} from '~/utils/proposalModuleSelectionStorage';
 
 function isPreviewMode() {
   return typeof window !== 'undefined'
@@ -207,6 +202,8 @@ const props = defineProps({
   sentAt: { type: String, default: '' },
   discountPercent: { type: Number, default: 0 },
   discountedInvestment: { type: String, default: '' },
+  selectedIds: { type: Array, default: () => [] },
+  hasConfirmedSelection: { type: Boolean, default: false },
 });
 
 const hasActiveDiscount = computed(() => {
@@ -308,13 +305,12 @@ const initialGroupOrder = ref([]);
 
 watch(() => props.visible, (val) => {
   if (val) {
-    let saved = null;
-    if (hasStoredConfirmedProposalModuleSelection(props.proposalUuid)) {
-      try {
-        const raw = localStorage.getItem(getProposalModuleSelectionStorageKey(props.proposalUuid));
-        if (raw) saved = JSON.parse(raw);
-      } catch (_e) { /* ignore */ }
-    }
+    // Initial selection comes from the page (in-memory). If the client has
+    // confirmed a selection during this session, use it; otherwise fall back
+    // to each module's backend-driven default_selected flag.
+    const saved = props.hasConfirmedSelection && Array.isArray(props.selectedIds) && props.selectedIds.length
+      ? props.selectedIds
+      : null;
 
     localModules.value = props.modules.map(m => {
       const locked = m.is_required === true;
@@ -514,12 +510,6 @@ function toggleModule(mod) {
 
 function confirmSelection() {
   const selectedIds = localModules.value.filter(m => m.selected).map(m => m.id);
-  if (!isPreviewMode()) {
-    try {
-      localStorage.setItem(getProposalModuleSelectionStorageKey(props.proposalUuid), JSON.stringify(selectedIds));
-      localStorage.setItem(getProposalModuleSelectionConfirmedKey(props.proposalUuid), '1');
-    } catch (_e) { /* ignore */ }
-  }
   confirmed.value = true;
   trackCalculatorEvent('confirmed');
   emit('update:selection', { selectedIds, total: dynamicTotal.value, weeks: dynamicWeeks.value });

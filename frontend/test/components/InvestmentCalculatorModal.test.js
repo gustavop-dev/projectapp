@@ -2,8 +2,8 @@
  * Tests for InvestmentCalculatorModal logic.
  *
  * Covers: module selection, dynamic total calculation,
- * localStorage persistence, formatPrice helper, and
- * initial state from saved selections.
+ * formatPrice helper, and initial state derived from
+ * parent-provided (in-memory) confirmed selections.
  */
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -13,9 +13,6 @@ const MODULES_FIXTURE = [
   { id: 'seo', name: 'SEO', price: 500000, included: false },
   { id: 'analytics', name: 'Analytics', price: 200000, included: true },
 ];
-
-const PROPOSAL_UUID = 'abc-123-def';
-const STORAGE_KEY = `proposal-${PROPOSAL_UUID}-modules`;
 
 
 // ── formatPrice (extracted logic) ────────────────────────────────────────────
@@ -159,73 +156,51 @@ describe('computeSelectedCount', () => {
 });
 
 
-// ── localStorage persistence ─────────────────────────────────────────────────
+// ── Confirm selection emit payload ───────────────────────────────────────────
 
 /**
- * Mirrors the confirmSelection logic: saves selected IDs to localStorage.
+ * Mirrors the confirmSelection logic after the localStorage refactor: the
+ * modal no longer persists anywhere — it emits the selection back to the
+ * parent, which keeps the state in memory for the rest of the page session.
  */
-function confirmSelection(localModules, proposalUuid) {
+function confirmSelection(localModules) {
   const selectedIds = localModules.filter(m => m.selected).map(m => m.id);
-  const storageKey = `proposal-${proposalUuid}-modules`;
-  localStorage.setItem(storageKey, JSON.stringify(selectedIds));
   return { selectedIds, total: computeDynamicTotal(localModules) };
 }
 
-describe('confirmSelection — localStorage persistence', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it('saves selected module IDs to localStorage', () => {
+describe('confirmSelection — emit payload', () => {
+  it('returns currently selected module IDs', () => {
     const modules = buildLocalModules(MODULES_FIXTURE, null);
-    confirmSelection(modules, PROPOSAL_UUID);
-
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    expect(stored).toEqual(['web', 'analytics']);
+    const result = confirmSelection(modules);
+    expect(result.selectedIds).toEqual(['web', 'analytics']);
   });
 
-  it('returns selected IDs and total', () => {
+  it('returns selected IDs and total together', () => {
     const modules = buildLocalModules(MODULES_FIXTURE, ['seo', 'analytics']);
-    const result = confirmSelection(modules, PROPOSAL_UUID);
+    const result = confirmSelection(modules);
     expect(result.selectedIds).toEqual(['seo', 'analytics']);
     expect(result.total).toBe(700000);
   });
 
-  it('overwrites previous localStorage data', () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(['old-module']));
-    const modules = buildLocalModules(MODULES_FIXTURE, ['web']);
-    confirmSelection(modules, PROPOSAL_UUID);
-
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    expect(stored).toEqual(['web']);
-  });
-
-  it('stores empty array when nothing selected', () => {
+  it('returns an empty array when nothing is selected', () => {
     const modules = buildLocalModules(MODULES_FIXTURE, []);
-    confirmSelection(modules, PROPOSAL_UUID);
-
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    expect(stored).toEqual([]);
+    const result = confirmSelection(modules);
+    expect(result.selectedIds).toEqual([]);
+    expect(result.total).toBe(0);
   });
 });
 
 
-// ── Round-trip: save → restore ───────────────────────────────────────────────
+// ── In-memory round-trip (parent → modal → parent) ──────────────────────────
 
-describe('localStorage round-trip', () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it('restores selections from previously saved data', () => {
-    // Step 1: user selects seo + analytics, saves
+describe('in-memory confirmation round-trip', () => {
+  it('rebuilds selection state when parent passes back the confirmed IDs', () => {
+    // Step 1: user confirms a custom selection.
     const modules1 = buildLocalModules(MODULES_FIXTURE, ['seo', 'analytics']);
-    confirmSelection(modules1, PROPOSAL_UUID);
+    const { selectedIds } = confirmSelection(modules1);
 
-    // Step 2: modal reopens — reads from localStorage
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const saved = JSON.parse(raw);
-    const modules2 = buildLocalModules(MODULES_FIXTURE, saved);
+    // Step 2: modal reopens with the parent-provided selectedIds prop.
+    const modules2 = buildLocalModules(MODULES_FIXTURE, selectedIds);
 
     expect(modules2[0].selected).toBe(false);  // web
     expect(modules2[1].selected).toBe(true);   // seo
@@ -233,30 +208,11 @@ describe('localStorage round-trip', () => {
     expect(computeDynamicTotal(modules2)).toBe(700000);
   });
 
-  it('falls back to included defaults when localStorage is empty', () => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const saved = raw ? JSON.parse(raw) : null;
-    const modules = buildLocalModules(MODULES_FIXTURE, saved);
-
+  it('falls back to included defaults when no confirmed selection is provided', () => {
+    const modules = buildLocalModules(MODULES_FIXTURE, null);
     expect(modules[0].selected).toBe(true);   // web: included=true
     expect(modules[1].selected).toBe(false);  // seo: included=false
     expect(computeDynamicTotal(modules)).toBe(3200000);
-  });
-
-  it('handles corrupted localStorage gracefully', () => {
-    localStorage.setItem(STORAGE_KEY, 'not-valid-json{');
-    let saved = null;
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) saved = JSON.parse(raw);
-    } catch {
-      saved = null;
-    }
-
-    const modules = buildLocalModules(MODULES_FIXTURE, saved);
-    // Falls back to included defaults
-    expect(modules[0].selected).toBe(true);
-    expect(modules[1].selected).toBe(false);
   });
 });
 

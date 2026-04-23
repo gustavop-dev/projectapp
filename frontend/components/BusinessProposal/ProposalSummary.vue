@@ -32,12 +32,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
-import {
-  hasStoredConfirmedProposalModuleSelection,
-  readStoredProposalModuleSelection,
-} from '~/utils/proposalModuleSelectionStorage';
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
@@ -52,6 +48,8 @@ const props = defineProps({
   rawTotalInvestment: { type: String, default: '' },
   paymentOptions: { type: Array, default: () => [] },
   customizedTotal: { type: Number, default: null },
+  isCustomized: { type: Boolean, default: false },
+  selectedModuleCount: { type: Number, default: null },
 });
 
 function parseInvestment(str) {
@@ -67,25 +65,6 @@ function formatCurrency(value) {
   return '$' + num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-const customTotal = ref(null);
-const selectedModuleCount = ref(null);
-
-onMounted(() => {
-  if (props.proposalUuid) {
-    try {
-      const storedTotal = localStorage.getItem(`proposal-${props.proposalUuid}-total`);
-      if (storedTotal != null) {
-        customTotal.value = Math.max(0, parseInt(storedTotal, 10) || 0);
-      }
-      if (hasStoredConfirmedProposalModuleSelection(props.proposalUuid)) {
-        const { hasStoredSelection, selectedIds } = readStoredProposalModuleSelection(props.proposalUuid);
-        if (hasStoredSelection) {
-          selectedModuleCount.value = selectedIds.length;
-        }
-      }
-    } catch (_e) { /* ignore */ }
-  }
-});
 
 const i18n = {
   es: {
@@ -140,11 +119,10 @@ const resolvedCards = computed(() => {
     let value = '';
     let description = card.description;
     if (card.source === 'total_investment') {
-      // Prefer parent-provided customizedTotal (reactive), then localStorage fallback, then static proposal value
-      const effectiveCustom = props.customizedTotal ?? customTotal.value;
-      if (effectiveCustom !== null) {
+      const effectiveCustom = props.customizedTotal;
+      if (effectiveCustom !== null && effectiveCustom !== undefined) {
         value = `${formatCurrency(effectiveCustom)} ${props.proposal?.currency || 'COP'}`;
-        description = t.value.customized;
+        if (props.isCustomized) description = t.value.customized;
       } else if (props.proposal?.total_investment) {
         value = `${formatCurrency(props.proposal.total_investment)} ${props.proposal.currency || 'COP'}`;
       }
@@ -166,12 +144,13 @@ const resolvedCards = computed(() => {
 
   // Auto-generate additional cards from available data
   if (!existingSources.has('modules_count') && props.investmentModules?.length) {
-    const count = selectedModuleCount.value ?? props.investmentModules.length;
+    const hasClientCount = props.selectedModuleCount !== null && props.selectedModuleCount !== undefined;
+    const count = hasClientCount ? props.selectedModuleCount : props.investmentModules.length;
     resolved.push({
       icon: '🧩',
       title: t.value.modulesTitle,
       value: `${count} ${t.value.modules}`,
-      description: selectedModuleCount.value !== null ? t.value.modulesCustomized : t.value.modulesDesc,
+      description: hasClientCount ? t.value.modulesCustomized : t.value.modulesDesc,
     });
   }
 
