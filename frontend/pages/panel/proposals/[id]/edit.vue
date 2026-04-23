@@ -2168,9 +2168,14 @@ async function handleSyncHostingPercent(percent) {
 
 // Must match Investment.vue's hostingAnnualAmount / computedBillingTiers so admin preview
 // shows the exact same numbers the client will see (avoids rounding drift).
-const hostingAnnualAmount = computed(() =>
-  Math.round(form.total_investment * form.hosting_percent / 100)
-);
+// Client-facing basis is the effective total (base + admin-default additional
+// modules), same input the client's "Inversión Total" line uses.
+const hostingAnnualAmount = computed(() => {
+  const effective = Number(effectiveTotalInvestment.value);
+  const basis = effective > 0 ? effective : Number(form.total_investment) || 0;
+  const percent = Number(form.hosting_percent) || 0;
+  return Math.round(basis * percent / 100);
+});
 const hostingMonthlyBase = computed(() =>
   Math.round(hostingAnnualAmount.value / 12)
 );

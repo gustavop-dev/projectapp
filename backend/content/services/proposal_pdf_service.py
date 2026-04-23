@@ -1253,11 +1253,13 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         normalized_hosting = normalize_hosting_plan(_proposal, hosting)
         h_percent = normalized_hosting.get('hostingPercent', 0) or 0
         billing_tiers = normalized_hosting.get('billingTiers', [])
-        # Hosting is a percentage of the project's BASE investment, not of
-        # the client's personalized total. Keeps parity with the public
-        # frontend (Investment.vue ``hostingAnnualAmount``) and the admin
-        # preview in the General tab.
-        annual_hosting = round(base_num * h_percent / 100) if h_percent and base_num else 0
+        # Hosting is a percentage of the SAME "Inversión Total" the client
+        # sees above — the effective total (base + admin-pre-selected
+        # additional modules, or the client's adjusted selection). Keeps
+        # parity with the public frontend (Investment.vue
+        # ``hostingAnnualAmount``) and the admin preview in the General tab.
+        basis = adjusted if adjusted is not None else base_num
+        annual_hosting = round(basis * h_percent / 100) if h_percent and basis else 0
 
         if billing_tiers and annual_hosting > 0:
             if ps:

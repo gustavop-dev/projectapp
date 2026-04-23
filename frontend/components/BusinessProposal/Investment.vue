@@ -66,20 +66,18 @@
           <!-- Total as secondary line -->
           <div class="text-center mt-6 pt-5 border-t border-white/15">
             <span class="text-sm text-green-light/70">{{ t.totalInvestment }}:</span>
-            <span v-if="customTotal !== null" class="text-xl font-bold text-lemon ml-2">{{ formatCurrency(displayTotal) }}</span>
-            <span v-else class="text-xl font-bold text-lemon ml-2">{{ totalInvestment }}</span>
+            <span class="text-xl font-bold text-lemon ml-2">{{ formatCurrency(displayTotal) }}</span>
             <span class="text-sm text-green-light/70 ml-1">{{ currency }}</span>
-            <p v-if="customTotal !== null" class="text-xs text-green-light/50 mt-1">{{ t.customized }}</p>
+            <p v-if="isBadgeVisible" class="text-xs text-green-light/50 mt-1">{{ t.customized }}</p>
           </div>
         </div>
 
         <!-- Fallback: total as hero when no payment options -->
         <div v-else class="text-center mb-8">
           <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-green-light">{{ t.totalInvestment }}</div>
-          <div v-if="customTotal !== null" class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-lemon">{{ formatCurrency(displayTotal) }}</div>
-          <div v-else class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-lemon">{{ totalInvestment }}</div>
+          <div class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-lemon">{{ formatCurrency(displayTotal) }}</div>
           <div class="text-green-light">{{ currency }}</div>
-          <p v-if="customTotal !== null" class="text-xs text-green-light/70 mt-2">{{ t.customized }}</p>
+          <p v-if="isBadgeVisible" class="text-xs text-green-light/70 mt-2">{{ t.customized }}</p>
         </div>
 
         <!-- What's included grid -->
@@ -298,8 +296,6 @@ const specsOpen = ref(false);
 const calculatorOpen = ref(false);
 const customTotal = ref(null);
 const customWeeks = ref(null);
-const animatedCustomTotal = computed(() => customTotal.value ?? 0);
-const { animated: displayTotal } = useAnimatedNumber(animatedCustomTotal, 500);
 const customizeBtnRef = ref(null);
 const btnPulse = ref(false);
 
@@ -412,7 +408,7 @@ const props = defineProps({
     type: String,
     default: 'detailed'
   },
-  initialCustomTotal: {
+  effectiveTotal: {
     type: Number,
     default: null
   }
@@ -424,19 +420,36 @@ function parseInvestment(str) {
   return parseInt(cleaned, 10) || 0;
 }
 
+const baseNumber = computed(() => parseInvestment(props.totalInvestment));
+
+const effectiveNumber = computed(() => {
+  const raw = Number(props.effectiveTotal);
+  return Number.isFinite(raw) && raw > 0 ? raw : baseNumber.value;
+});
+
+const displayNumber = computed(() =>
+  customTotal.value !== null ? customTotal.value : effectiveNumber.value,
+);
+
+// The "Precio personalizado" badge only shows when the client actively
+// changed their selection — not when the effective total comes from
+// admin-default modules.
+const isBadgeVisible = computed(() =>
+  customTotal.value !== null && customTotal.value !== effectiveNumber.value,
+);
+
+const { animated: displayTotal } = useAnimatedNumber(displayNumber, 500);
+
 onMounted(() => {
-  // Prefer the backend-computed effective total over localStorage so
-  // admin, client, and PDF stay in sync. localStorage remains a session
-  // fallback for older deploys that do not return the backend field.
+  // Rehydrate customTotal only from a real client-confirmed selection
+  // (localStorage flag written by the calculator). The effective total
+  // coming from the backend is exposed via ``effectiveTotal`` and drives
+  // the display directly — it must not be promoted to "customized" or
+  // the "Precio personalizado" badge would misfire on initial render.
   if (props.proposalUuid && props.modules?.length) {
     try {
-      const base = parseInvestment(props.totalInvestment);
-      if (props.initialCustomTotal != null) {
-        if (base > 0 && props.initialCustomTotal !== base) {
-          customTotal.value = props.initialCustomTotal;
-          emit('updateCustomTotal', customTotal.value);
-        }
-      } else if (hasStoredConfirmedProposalModuleSelection(props.proposalUuid)) {
+      if (hasStoredConfirmedProposalModuleSelection(props.proposalUuid)) {
+        const base = baseNumber.value;
         const { hasStoredSelection, selectedIds } = readStoredProposalModuleSelection(props.proposalUuid);
         if (hasStoredSelection) {
           const deselectedSum = props.modules
@@ -490,12 +503,12 @@ function onSelectionUpdate({ total, weeks }) {
 }
 
 const computedPaymentOptions = computed(() => {
-  if (customTotal.value === null || !props.paymentOptions?.length) {
-    return props.paymentOptions;
-  }
-  const baseNum = parseInvestment(props.totalInvestment);
+  if (!props.paymentOptions?.length) return props.paymentOptions;
+  const baseNum = baseNumber.value;
   if (baseNum <= 0) return props.paymentOptions;
-  const ratio = customTotal.value / baseNum;
+  const target = displayNumber.value;
+  if (!target || target === baseNum) return props.paymentOptions;
+  const ratio = target / baseNum;
 
   return props.paymentOptions.map(opt => {
     const descNum = parseInvestment(opt.description);
@@ -594,12 +607,13 @@ function formatCurrency(value) {
 
 const hostingAnnualAmount = computed(() => {
   const hp = props.hostingPlan;
-  // Hosting is a percentage of the project's BASE investment, not of the
-  // client's personalized total. Do not substitute customTotal here —
-  // keeping parity with the backend PDF and the admin preview.
+  // Hosting is a percentage of the same "Inversión Total" shown to the
+  // client — the effective total (base + admin-pre-selected modules) by
+  // default, or the client's customized total when they confirm changes
+  // in the calculator.
   if (hp?.hostingPercent > 0) {
-    const base = parseInvestment(props.totalInvestment);
-    if (base > 0) return Math.round(base * hp.hostingPercent / 100);
+    const total = displayNumber.value;
+    if (total > 0) return Math.round(total * hp.hostingPercent / 100);
   }
   return null;
 });

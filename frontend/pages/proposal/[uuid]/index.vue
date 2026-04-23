@@ -704,6 +704,15 @@ const allGroupCalculatorItems = computed(() => {
 
 const selectedCalculatorModuleIds = ref(new Set());
 const customizedTotal = ref(null);
+const effectiveInvestment = ref(null);
+
+// Client-facing total: client's customization wins, then backend effective
+// (base + admin-default additional modules), then plain base as last resort.
+const resolvedInvestmentTotal = computed(() =>
+  customizedTotal.value
+  ?? effectiveInvestment.value
+  ?? Number(proposal.value?.total_investment || 0),
+);
 
 // Helper: recompute payment option amounts using ratio logic (same as Investment.vue computedPaymentOptions)
 function recomputePaymentOptions(paymentOptions, baseTotalStr, customTotal) {
@@ -730,10 +739,8 @@ const nextPanelTitle = computed(() => {
   return next?.title || '';
 });
 
-// Seeds the UI selection and the customized total. The authoritative
-// effective total comes from the backend via
-// ``proposal.effective_total_investment`` — we only apply it when it
-// differs from the base, so the "customized" badge does not misfire.
+// Effective total comes from the backend so admin, client view, and PDF
+// stay aligned; ``customizedTotal`` is reserved for real client changes.
 function computeInitialSelection() {
   if (!proposal.value) return;
 
@@ -766,9 +773,7 @@ function computeInitialSelection() {
 
   const base = Number(proposal.value.total_investment || 0);
   const backendEffective = Number(proposal.value.effective_total_investment || 0);
-  if (base > 0 && backendEffective > 0 && backendEffective !== base) {
-    customizedTotal.value = backendEffective;
-  }
+  effectiveInvestment.value = backendEffective > 0 ? backendEffective : base;
 }
 
 // --- Fetch proposal on mount ---
@@ -794,6 +799,7 @@ function getSectionProps(section) {
     const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
     const investContent = investmentSection?.content_json || {};
     const rawPaymentOptions = investContent.paymentOptions || [];
+    const displayTotal = resolvedInvestmentTotal.value;
     return {
       proposal: proposal.value,
       validityMessage: section._validityMessage || '',
@@ -801,8 +807,8 @@ function getSectionProps(section) {
       expiresAt: section._expiresAt || '',
       language: proposal.value?.language || 'es',
       whatsappLink: extractedWhatsappLink.value,
-      paymentOptions: recomputePaymentOptions(rawPaymentOptions, investContent.totalInvestment, customizedTotal.value),
-      customizedTotal: customizedTotal.value,
+      paymentOptions: recomputePaymentOptions(rawPaymentOptions, investContent.totalInvestment, displayTotal),
+      customizedTotal: displayTotal,
       selectedModuleIds: effectiveSelectedModuleIdsForTechnical() || [],
       viewMode: viewMode.value || 'detailed',
     };
@@ -937,7 +943,7 @@ function getSectionProps(section) {
       baseWeeks,
       sentAt: proposal.value?.sent_at || '',
       viewMode: viewMode.value || 'detailed',
-      initialCustomTotal: customizedTotal.value,
+      effectiveTotal: effectiveInvestment.value || proposalTotal,
     };
   }
 
@@ -949,8 +955,7 @@ function getSectionProps(section) {
     const investContent = investmentSection?.content_json || {};
     const investmentModules = (investContent.modules || []).map(m => ({ ...m, _source: 'investment' }));
     const allCalculatorItems = [...investmentModules, ...allGroupCalculatorItems.value];
-    // Use customizedTotal when available, otherwise proposal.total_investment
-    const effectiveTotal = customizedTotal.value ?? Number(proposal.value?.total_investment || 0);
+    const effectiveTotal = resolvedInvestmentTotal.value;
     const formattedSummaryTotal = effectiveTotal > 0
       ? '$' + effectiveTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
       : investContent.totalInvestment || '';
@@ -963,8 +968,8 @@ function getSectionProps(section) {
       proposalUuid: proposal.value?.uuid || '',
       investmentModules: allCalculatorItems,
       rawTotalInvestment: formattedSummaryTotal,
-      paymentOptions: recomputePaymentOptions(rawPaymentOptions, investContent.totalInvestment, customizedTotal.value),
-      customizedTotal: customizedTotal.value,
+      paymentOptions: recomputePaymentOptions(rawPaymentOptions, investContent.totalInvestment, effectiveTotal),
+      customizedTotal: effectiveTotal,
     };
   }
 

@@ -1,168 +1,197 @@
 <template>
-  <div>
-    <div class="mb-8">
-      <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors">
-        ← Volver a documentos
-      </NuxtLink>
-      <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-2">Nuevo Documento</h1>
+  <div class="w-full">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+      <div>
+        <NuxtLink
+          :to="localePath('/panel/documents')"
+          class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors"
+          aria-label="Volver a documentos"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          Volver a documentos
+        </NuxtLink>
+        <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-2">Nuevo Documento</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Crea un documento a partir de Markdown (pegado o subido).</p>
+      </div>
+      <div class="hidden lg:flex items-center gap-3">
+        <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+          Cancelar
+        </NuxtLink>
+        <button
+          type="submit"
+          form="doc-create-form"
+          :disabled="!canSubmit"
+          :title="canSubmit ? '' : 'Falta título o contenido'"
+          class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
+                 hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {{ documentStore.isUpdating ? 'Creando...' : 'Crear Documento' }}
+        </button>
+      </div>
     </div>
 
-    <!-- Tab toggle -->
-    <div class="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-700 rounded-xl p-1 max-w-md">
-      <button
-        type="button"
-        :class="[
-          'flex-1 px-4 py-2 text-sm rounded-lg transition-all',
-          mode === 'paste' ? 'bg-white dark:bg-gray-800 shadow-sm font-medium text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-        ]"
-        @click="mode = 'paste'"
+    <form
+      id="doc-create-form"
+      class="grid grid-cols-1 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)] gap-6"
+      @submit.prevent="handleSubmit"
+    >
+      <aside
+        class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 dark:bg-gray-800 dark:border-gray-700
+               lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
       >
-        Pegar Markdown
-      </button>
-      <button
-        type="button"
-        :class="[
-          'flex-1 px-4 py-2 text-sm rounded-lg transition-all',
-          mode === 'upload' ? 'bg-white dark:bg-gray-800 shadow-sm font-medium text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-        ]"
-        @click="mode = 'upload'"
+        <div class="space-y-6">
+          <div class="space-y-4">
+            <h2 class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Identificación</h2>
+            <div>
+              <label for="doc-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Título *</label>
+              <input
+                id="doc-title"
+                v-model="form.title"
+                type="text"
+                required
+                placeholder="Mi Documento"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
+                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
+              />
+            </div>
+            <div>
+              <label for="doc-client" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del cliente</label>
+              <input
+                id="doc-client"
+                v-model="form.client_name"
+                type="text"
+                placeholder="Empresa S.A."
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
+                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
+              />
+            </div>
+          </div>
+
+          <hr class="border-gray-100 dark:border-gray-700" />
+
+          <div class="space-y-4">
+            <h2 class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Organización</h2>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carpeta</label>
+              <select
+                v-model="form.folder_id"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white
+                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+              >
+                <option :value="null">Sin carpeta</option>
+                <option v-for="folder in folderStore.folders" :key="folder.id" :value="folder.id">
+                  {{ folder.name }}
+                </option>
+              </select>
+            </div>
+            <TagSelector v-model="form.tag_ids" :tags="tagStore.tags" />
+          </div>
+
+          <hr class="border-gray-100 dark:border-gray-700" />
+
+          <div class="space-y-4">
+            <h2 class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Opciones de exportación</h2>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Idioma</label>
+              <select
+                v-model="form.language"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white
+                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+              >
+                <option value="es">Español</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+            <div class="space-y-1">
+              <label
+                v-for="option in coverOptions"
+                :key="option.key"
+                class="flex items-center gap-3 cursor-pointer py-1.5 px-1 select-none"
+              >
+                <span class="relative flex-shrink-0">
+                  <input v-model="form[option.key]" type="checkbox" class="sr-only peer" />
+                  <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-gray-200 peer-checked:bg-emerald-500 dark:bg-gray-600 dark:peer-checked:bg-emerald-500"></span>
+                  <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
+                </span>
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ option.label }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <section
+        class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 dark:bg-gray-800 dark:border-gray-700
+               flex flex-col min-w-0"
       >
-        Cargar Archivo
-      </button>
-    </div>
-
-    <!-- Shared metadata fields -->
-    <form class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-8 dark:bg-gray-800 dark:border-gray-700" :class="showPreview && mode === 'paste' ? 'max-w-6xl' : 'max-w-2xl'" @submit.prevent="handleSubmit">
-      <div class="space-y-6">
-        <!-- Title -->
-        <div>
-          <label for="doc-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titulo *</label>
-          <input
-            id="doc-title"
-            v-model="form.title"
-            type="text"
-            required
-            placeholder="Mi Documento"
-            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
-                   dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
-          />
+        <div class="flex gap-1 mb-5 bg-gray-100 dark:bg-gray-700 rounded-xl p-1 w-full sm:w-fit">
+          <button
+            v-for="tab in modeTabs"
+            :key="tab.id"
+            type="button"
+            :class="[
+              'inline-flex items-center justify-center gap-2 flex-1 sm:flex-none sm:min-w-[11rem] px-4 py-2 text-sm rounded-lg transition-all',
+              mode === tab.id
+                ? 'bg-white dark:bg-gray-800 shadow-sm font-medium text-gray-900 dark:text-gray-100 ring-1 ring-emerald-500/20'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            ]"
+            @click="mode = tab.id"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="tab.iconPath" />
+            </svg>
+            {{ tab.label }}
+          </button>
         </div>
 
-        <!-- Client name -->
-        <div>
-          <label for="doc-client" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del cliente</label>
-          <input
-            id="doc-client"
-            v-model="form.client_name"
-            type="text"
-            placeholder="Empresa S.A."
-            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
-                   dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
-          />
-        </div>
-
-        <!-- Folder + Tags -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carpeta</label>
-            <select
-              v-model="form.folder_id"
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white
-                     dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-            >
-              <option :value="null">Sin carpeta</option>
-              <option v-for="folder in folderStore.folders" :key="folder.id" :value="folder.id">
-                {{ folder.name }}
-              </option>
-            </select>
-          </div>
-          <TagSelector v-model="form.tag_ids" :tags="tagStore.tags" />
-        </div>
-
-        <!-- Language + Cover toggles -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Idioma</label>
-            <select
-              v-model="form.language"
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white
-                     dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-            >
-              <option value="es">Espanol</option>
-              <option value="en">English</option>
-            </select>
-          </div>
-          <div class="flex flex-col justify-end gap-1">
-            <label class="flex items-center gap-3 cursor-pointer py-1.5 px-1 select-none">
-              <span class="relative flex-shrink-0">
-                <input v-model="form.include_portada" type="checkbox" class="sr-only peer" />
-                <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-gray-200 peer-checked:bg-emerald-500 dark:bg-gray-600 dark:peer-checked:bg-emerald-500"></span>
-                <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
+        <div v-if="mode === 'paste'" class="flex-1 flex flex-col min-h-0">
+          <div class="flex items-center justify-between mb-2 gap-3 flex-wrap">
+            <label for="doc-markdown" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contenido Markdown *</label>
+            <div class="flex items-center gap-3">
+              <span v-if="form.content_markdown" class="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
+                {{ form.content_markdown.length.toLocaleString() }} caracteres
               </span>
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Incluir portada</span>
-            </label>
-            <label class="flex items-center gap-3 cursor-pointer py-1.5 px-1 select-none">
-              <span class="relative flex-shrink-0">
-                <input v-model="form.include_subportada" type="checkbox" class="sr-only peer" />
-                <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-gray-200 peer-checked:bg-emerald-500 dark:bg-gray-600 dark:peer-checked:bg-emerald-500"></span>
-                <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
-              </span>
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Incluir subportada</span>
-            </label>
-            <label class="flex items-center gap-3 cursor-pointer py-1.5 px-1 select-none">
-              <span class="relative flex-shrink-0">
-                <input v-model="form.include_contraportada" type="checkbox" class="sr-only peer" />
-                <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-gray-200 peer-checked:bg-emerald-500 dark:bg-gray-600 dark:peer-checked:bg-emerald-500"></span>
-                <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
-              </span>
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Incluir contraportada</span>
-            </label>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
+                :class="showPreview
+                  ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'"
+                @click="showPreview = !showPreview"
+              >
+                <svg v-if="showPreview" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                </svg>
+                {{ showPreview ? 'Ocultar vista previa' : 'Vista previa' }}
+              </button>
+            </div>
           </div>
-        </div>
-
-        <!-- Tab 1: Paste Markdown -->
-        <div v-if="mode === 'paste'">
-          <div class="flex items-center justify-between mb-1">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contenido Markdown</label>
-            <button
-              type="button"
-              class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
-              :class="showPreview
-                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'"
-              @click="showPreview = !showPreview"
-            >
-              <svg v-if="showPreview" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-              </svg>
-              {{ showPreview ? 'Ocultar vista previa' : 'Vista previa' }}
-            </button>
-          </div>
-          <div :class="showPreview ? 'grid grid-cols-1 lg:grid-cols-2 gap-4' : ''">
-            <!-- Textarea editor -->
+          <div :class="showPreview ? 'grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0' : 'flex-1 min-h-0 flex'">
             <textarea
+              id="doc-markdown"
               v-model="form.content_markdown"
-              rows="16"
               placeholder="# Mi Documento&#10;&#10;Escribe o pega tu contenido en formato Markdown..."
               class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm font-mono leading-relaxed
-                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y
+                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-none
+                     min-h-[24rem] lg:h-[calc(100vh-20rem)]
                      dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
             ></textarea>
-            <!-- Preview panel -->
             <div
               v-if="showPreview"
-              class="border border-gray-200 rounded-xl bg-white overflow-y-auto dark:bg-gray-900 dark:border-gray-600"
-              style="min-height: 24rem; max-height: 40rem;"
+              class="border border-gray-200 rounded-xl bg-white overflow-y-auto dark:bg-gray-900 dark:border-gray-600
+                     min-h-[24rem] lg:h-[calc(100vh-20rem)]"
             >
-              <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-t-xl">
+              <div class="sticky top-0 px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-t-xl z-10">
                 <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Vista previa</span>
               </div>
               <div
@@ -180,46 +209,58 @@
           </div>
         </div>
 
-        <!-- Tab 2: Upload File -->
-        <div v-if="mode === 'upload'">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Archivo Markdown (.md)</label>
-          <div class="flex items-center gap-3 mb-3">
+        <div v-if="mode === 'upload'" class="flex-1 flex flex-col">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Archivo Markdown (.md)</label>
+          <div
+            :class="[
+              'border-2 border-dashed rounded-xl p-8 sm:p-10 text-center transition-colors',
+              isDragging
+                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                : 'border-gray-200 hover:border-gray-300 dark:border-gray-600 dark:hover:border-gray-500'
+            ]"
+            @dragover.prevent="isDragging = true"
+            @dragleave.prevent="handleDragLeave"
+            @drop.prevent="handleDrop"
+          >
+            <svg class="w-10 h-10 mx-auto text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <p class="mt-3 text-sm text-gray-600 dark:text-gray-300">
+              Arrastra un archivo <code class="text-xs px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">.md</code> aquí
+            </p>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">o</p>
             <label
-              class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                     text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors
-                     dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+              class="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium
+                     hover:bg-emerald-700 cursor-pointer transition-colors shadow-sm"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
               Seleccionar archivo
               <input type="file" accept=".md,.markdown,.txt" class="hidden" @change="handleFileUpload" />
             </label>
-            <span v-if="uploadedFileName" class="text-xs text-gray-500 dark:text-gray-400">{{ uploadedFileName }}</span>
+            <p v-if="uploadedFileName" class="mt-4 text-xs text-gray-500 dark:text-gray-400">
+              <span class="font-medium">Archivo:</span> {{ uploadedFileName }}
+            </p>
           </div>
           <textarea
             v-model="form.content_markdown"
-            rows="16"
+            rows="12"
             readonly
-            placeholder="El contenido del archivo aparecera aqui..."
-            class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm font-mono leading-relaxed
+            placeholder="El contenido del archivo aparecerá aquí..."
+            class="w-full mt-4 px-4 py-3 border border-gray-200 rounded-xl text-sm font-mono leading-relaxed
                    bg-gray-50 outline-none resize-y
                    dark:bg-gray-700/50 dark:border-gray-600 dark:text-gray-300 dark:placeholder-gray-500"
           ></textarea>
         </div>
 
-        <!-- Errors -->
-        <div v-if="errorMsg" class="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl dark:bg-red-900/20 dark:text-red-400">
+        <div v-if="errorMsg" class="mt-4 text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl dark:bg-red-900/20 dark:text-red-400">
           {{ errorMsg }}
         </div>
 
-        <!-- Submit -->
-        <div class="flex flex-wrap items-center gap-4 pt-2">
+        <div class="mt-5 flex flex-wrap items-center gap-4 lg:hidden">
           <button
             type="submit"
-            :disabled="documentStore.isUpdating || !form.title.trim() || !form.content_markdown.trim()"
+            :disabled="!canSubmit"
             class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
-                   hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+                   hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {{ documentStore.isUpdating ? 'Creando...' : 'Crear Documento' }}
           </button>
@@ -227,7 +268,7 @@
             Cancelar
           </NuxtLink>
         </div>
-      </div>
+      </section>
     </form>
   </div>
 </template>
@@ -247,6 +288,7 @@ const errorMsg = ref('');
 const mode = ref('paste');
 const uploadedFileName = ref('');
 const showPreview = ref(true);
+const isDragging = ref(false);
 const route = useRoute();
 
 const form = reactive({
@@ -271,9 +313,30 @@ onMounted(async () => {
 });
 
 const previewHtml = computed(() => parseMarkdown(form.content_markdown));
+const canSubmit = computed(
+  () => !documentStore.isUpdating && form.title.trim() && form.content_markdown.trim(),
+);
 
-function handleFileUpload(event) {
-  const file = event.target.files?.[0];
+const coverOptions = [
+  { key: 'include_portada', label: 'Incluir portada' },
+  { key: 'include_subportada', label: 'Incluir subportada' },
+  { key: 'include_contraportada', label: 'Incluir contraportada' },
+];
+
+const modeTabs = [
+  {
+    id: 'paste',
+    label: 'Pegar Markdown',
+    iconPath: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
+  },
+  {
+    id: 'upload',
+    label: 'Cargar Archivo',
+    iconPath: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12',
+  },
+];
+
+function readMarkdownFile(file) {
   if (!file) return;
   uploadedFileName.value = file.name;
   const reader = new FileReader();
@@ -281,6 +344,22 @@ function handleFileUpload(event) {
     form.content_markdown = e.target?.result || '';
   };
   reader.readAsText(file);
+}
+
+function handleFileUpload(event) {
+  readMarkdownFile(event.target.files?.[0]);
+}
+
+function handleDragLeave(event) {
+  // dragleave also fires when the cursor enters a child; ignore those so the highlight doesn't flicker.
+  if (!event.currentTarget.contains(event.relatedTarget)) {
+    isDragging.value = false;
+  }
+}
+
+function handleDrop(event) {
+  isDragging.value = false;
+  readMarkdownFile(event.dataTransfer?.files?.[0]);
 }
 
 function formatError(errors) {
