@@ -55,12 +55,19 @@
         </nav>
 
         <div class="shrink-0 border-t border-esmerald/[0.06] p-4 dark:border-white/[0.06]">
-          <p class="truncate text-xs text-green-light">Internal admin</p>
+          <div class="mb-3 flex items-center gap-2">
+            <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-esmerald-light text-esmerald dark:bg-white/10 dark:text-gray-300">
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <p class="truncate text-xs text-green-light">Internal admin</p>
+          </div>
 
           <button
             type="button"
             :disabled="isBridging"
-            class="mt-2 flex h-9 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
+            class="flex h-9 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
             @click="goToPlatform('/platform/dashboard')"
           >
             <SidebarIcon name="external" class="h-4 w-4 shrink-0" />
@@ -69,10 +76,16 @@
 
           <button
             type="button"
-            class="mt-2 flex h-9 w-full items-center justify-center rounded-lg text-sm font-medium text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
+            class="mt-2 flex h-9 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
             @click="$emit('close'); $emit('toggle-theme')"
           >
-            Toggle theme
+            <svg v-if="isDark" class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <svg v-else class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+            {{ isDark ? 'Modo claro' : 'Modo oscuro' }}
           </button>
         </div>
       </aside>
@@ -94,6 +107,7 @@ const { goToPlatform, isBridging } = usePanelToPlatformBridge()
 
 defineProps({
   isOpen: { type: Boolean, default: false },
+  isDark: { type: Boolean, default: false },
 })
 
 const localePath = useLocalePath()
