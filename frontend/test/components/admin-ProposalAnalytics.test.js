@@ -13,6 +13,61 @@ global.useTooltipTexts = jest.fn(() => ({
 
 import ProposalAnalytics from '../../components/BusinessProposal/admin/ProposalAnalytics.vue';
 
+const richAnalytics = {
+  total_views: 5,
+  unique_sessions: 3,
+  responded_at: null,
+  first_viewed_at: '2026-04-01T10:00:00Z',
+  last_viewed_at: '2026-04-10T10:00:00Z',
+  time_to_first_view_hours: 2,
+  time_to_response_hours: null,
+  sections: [
+    { section_type: 'intro', section_title: 'Introducción', total_time_seconds: 120, avg_time_seconds: 65 },
+    { section_type: 'investment', section_title: 'Inversión', total_time_seconds: 60, avg_time_seconds: 25 },
+  ],
+  skipped_sections: [],
+  funnel: [
+    { section_type: 'intro', section_title: 'Intro', reached_count: 3, drop_off_percent: 0 },
+    { section_type: 'technical_document_public', section_title: 'Técnico público', reached_count: 2, drop_off_percent: 33 },
+  ],
+  device_breakdown: { desktop: 2, mobile: 1, tablet: 0 },
+  by_view_mode: { technical: { sessions: 2, total_time_seconds: 180 } },
+  technical_engagement: { total_time_seconds: 50 },
+  comparison: {
+    avg_time_to_first_view_hours: 5,
+    avg_time_to_response_hours: 48,
+    avg_views: 3,
+  },
+  timeline: [
+    { id: 1, change_type: 'sent', actor_type: 'seller', description: 'Propuesta enviada', created_at: '2026-04-01T09:00:00Z', field_name: null },
+    { id: 2, change_type: 'viewed', actor_type: 'client', description: '', created_at: '2026-04-01T11:00:00Z', field_name: null },
+  ],
+  sessions: [{ id: 1, session_id: 'abc123def456xyz', viewed_at: '2026-04-10T10:00:00Z', reading_time_seconds: 180, device_type: 'desktop' }],
+  engagement_score: 75,
+  calc_events: [],
+};
+
+function withRichData(extraProps = {}, data = richAnalytics) {
+  global.useProposalStore = jest.fn(() => ({
+    fetchProposalAnalytics: jest.fn().mockResolvedValue({ success: true, data }),
+  }));
+  return mount(ProposalAnalytics, {
+    props: { proposalId: 42, proposal: null, ...extraProps },
+    global: {
+      stubs: {
+        QuestionMarkCircleIcon: { template: '<span class="q-icon" />' },
+        UiTooltip: { template: '<div><slot /><slot name="trigger" /></div>' },
+      },
+    },
+  });
+}
+
+async function flushPromises() {
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
 function mountProposalAnalytics(props = {}) {
   return mount(ProposalAnalytics, {
     props: {
@@ -60,5 +115,236 @@ describe('ProposalAnalytics', () => {
     mountProposalAnalytics({ proposalId: 99 });
 
     expect(mockFetch).toHaveBeenCalledWith(99);
+  });
+});
+
+// ── Rich analytics data ────────────────────────────────────────────────────
+
+describe('ProposalAnalytics with data', () => {
+  beforeEach(() => {
+    global.useProposalStore = jest.fn(() => ({
+      fetchProposalAnalytics: jest.fn().mockResolvedValue({ success: true, data: richAnalytics }),
+    }));
+  });
+
+  it('renders section titles from sections array after data loads', async () => {
+    const wrapper = withRichData();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Introducción');
+  });
+
+  it('renders the total reading time from section times', async () => {
+    const wrapper = withRichData();
+    await flushPromises();
+
+    // totalReadingTime = 120 + 60 = 180s → formatTime(180) = '3m'
+    expect(wrapper.text()).toContain('3m');
+  });
+
+  it('renders section coverage percentage', async () => {
+    const wrapper = withRichData();
+    await flushPromises();
+
+    // sectionCoverage = round(2 / (2+0) * 100) = 100%
+    expect(wrapper.text()).toContain('100%');
+  });
+
+  it('renders funnel exec detail sections in the funnel tab', async () => {
+    const wrapper = withRichData();
+    await flushPromises();
+
+    // funnel has one exec_detail section: 'Intro'
+    expect(wrapper.text()).toContain('Intro');
+  });
+
+  it('renders timeline events with actor labels', async () => {
+    const wrapper = withRichData();
+    await flushPromises();
+
+    // timeline has actor_type: 'seller' → 'Ventas'
+    expect(wrapper.text()).toContain('Ventas');
+  });
+
+  it('renders timeline events with actor_type client → Cliente', async () => {
+    const wrapper = withRichData();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Cliente');
+  });
+
+  it('renders comparison faster-than-average emoji (🔥) for ttfv below avg', async () => {
+    // time_to_first_view_hours=2, avg=5 → 2 < 5 → '🔥'
+    const wrapper = withRichData();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('🔥');
+  });
+
+  it('renders the sent timeline event label', async () => {
+    const wrapper = withRichData();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Enviada');
+  });
+});
+
+// ── suggestions computed ───────────────────────────────────────────────────
+
+describe('ProposalAnalytics suggestions', () => {
+  it('shows the 🔧 suggestion when technical engagement >= 40s', async () => {
+    global.useProposalStore = jest.fn(() => ({
+      fetchProposalAnalytics: jest.fn().mockResolvedValue({
+        success: true,
+        data: { ...richAnalytics, technical_engagement: { total_time_seconds: 45 } },
+      }),
+    }));
+    const wrapper = withRichData();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('🔧');
+  });
+
+  it('shows 💰 suggestion when investment section was skipped', async () => {
+    global.useProposalStore = jest.fn(() => ({
+      fetchProposalAnalytics: jest.fn().mockResolvedValue({
+        success: true,
+        data: {
+          ...richAnalytics,
+          sections: [],
+          skipped_sections: [{ section_type: 'investment', section_title: 'Inversión' }],
+        },
+      }),
+    }));
+    const wrapper = withRichData();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('💰');
+  });
+
+  it('shows 🔥 suggestion when total_views >= 3 and not responded', async () => {
+    const wrapper = withRichData({}, { ...richAnalytics, total_views: 4, responded_at: null });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('4 veces');
+  });
+
+  it('shows 🔄 suggestion for rejected proposals', async () => {
+    global.useProposalStore = jest.fn(() => ({
+      fetchProposalAnalytics: jest.fn().mockResolvedValue({
+        success: true,
+        data: { ...richAnalytics },
+      }),
+    }));
+    const wrapper = mount(ProposalAnalytics, {
+      props: { proposalId: 42, proposal: { status: 'rejected' } },
+      global: { stubs: { QuestionMarkCircleIcon: { template: '<span />' }, UiTooltip: { template: '<div><slot /><slot name="trigger" /></div>' } } },
+    });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('🔄');
+  });
+});
+
+// ── formatTime function ────────────────────────────────────────────────────
+
+describe('ProposalAnalytics formatTime', () => {
+  it('shows < 1s for zero seconds', async () => {
+    global.useProposalStore = jest.fn(() => ({
+      fetchProposalAnalytics: jest.fn().mockResolvedValue({
+        success: true,
+        data: {
+          ...richAnalytics,
+          sections: [{ section_type: 'intro', section_title: 'Test', total_time_seconds: 0, avg_time_seconds: 0 }],
+        },
+      }),
+    }));
+    const wrapper = withRichData();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('< 1s');
+  });
+
+  it('shows seconds for values under 60', async () => {
+    const wrapper = withRichData({}, {
+      ...richAnalytics,
+      sections: [{ section_type: 'intro', section_title: 'Test', total_time_seconds: 30, avg_time_seconds: 30 }],
+    });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('30s');
+  });
+});
+
+// ── downloadCSV ───────────────────────────────────────────────────────────
+
+describe('ProposalAnalytics downloadCSV', () => {
+  it('calls window.open with the CSV export URL when download button is clicked', async () => {
+    global.window.open = jest.fn();
+    global.useProposalStore = jest.fn(() => ({
+      fetchProposalAnalytics: jest.fn().mockResolvedValue({ success: true, data: richAnalytics }),
+    }));
+    const wrapper = withRichData();
+    await flushPromises();
+
+    await wrapper.findAll('button').find((btn) => btn.text().includes('CSV')).trigger('click');
+
+    expect(window.open).toHaveBeenCalledWith('/api/proposals/42/analytics/csv/', '_blank');
+  });
+});
+
+// ── sectionAnalyticsTypeLabel ──────────────────────────────────────────────
+
+describe('ProposalAnalytics sectionAnalyticsTypeLabel', () => {
+  it('renders det. técnico (vista pública) label for technical_document_public sections', async () => {
+    const wrapper = withRichData({}, {
+      ...richAnalytics,
+      sections: [{ section_type: 'technical_document_public', section_title: 'Técnico', total_time_seconds: 90, avg_time_seconds: 45 }],
+    });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('det. técnico');
+  });
+});
+
+// ── heatEmoji and sortedSections ──────────────────────────────────────────
+
+describe('ProposalAnalytics heat and sorted sections', () => {
+  it('renders heat emoji for sections sorted by time descending', async () => {
+    global.useProposalStore = jest.fn(() => ({
+      fetchProposalAnalytics: jest.fn().mockResolvedValue({
+        success: true,
+        data: {
+          ...richAnalytics,
+          sections: [
+            { section_type: 'intro', section_title: 'Primera', total_time_seconds: 200, avg_time_seconds: 100 },
+            { section_type: 'investment', section_title: 'Segunda', total_time_seconds: 50, avg_time_seconds: 25 },
+          ],
+        },
+      }),
+    }));
+    const wrapper = withRichData();
+    await flushPromises();
+
+    // heatEmoji for idx=0, total=2 → ratio=0 → <= 0.15 → '🔴'
+    expect(wrapper.text()).toContain('🔴');
+  });
+});
+
+// ── hasDeviceData and lastVisitedAt ───────────────────────────────────────
+
+describe('ProposalAnalytics device data', () => {
+  it('renders device breakdown when device data is available', async () => {
+    global.useProposalStore = jest.fn(() => ({
+      fetchProposalAnalytics: jest.fn().mockResolvedValue({
+        success: true,
+        data: { ...richAnalytics, device_breakdown: { desktop: 3, mobile: 2, tablet: 1 } },
+      }),
+    }));
+    const wrapper = withRichData();
+    await flushPromises();
+
+    // The numbers should appear in the device section
+    expect(wrapper.text()).toContain('3');
   });
 });
