@@ -150,11 +150,14 @@ class TestPublishSingleScheduledBlog:
         with patch('content.views.blog.auto_publish_blog_to_linkedin') as mock_auto:
             _run_single_publish(post.id)
             mock_auto.assert_not_called()
+        post.refresh_from_db()
+        assert post.is_published is True
 
     def test_skips_when_post_missing(self):
         with patch('content.views.blog.auto_publish_blog_to_linkedin') as mock_auto:
             _run_single_publish(999999)
             mock_auto.assert_not_called()
+        assert mock_auto.call_count == 0
 
     def test_skips_when_no_published_at(self):
         post = BlogPost.objects.create(

@@ -63,17 +63,18 @@ class TestDiagnosticDefaultConfigPaymentValidation:
         config = DiagnosticDefaultConfig(
             language='es', payment_initial_pct=60, payment_final_pct=40,
         )
-        config.clean()  # should not raise
+        assert config.clean() is None
 
     def test_clean_accepts_50_50(self):
         config = DiagnosticDefaultConfig(
             language='es', payment_initial_pct=50, payment_final_pct=50,
         )
-        config.clean()
+        assert config.clean() is None
 
     def test_clean_rejects_unbalanced(self):
         config = DiagnosticDefaultConfig(
             language='es', payment_initial_pct=70, payment_final_pct=40,
         )
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as excinfo:
             config.clean()
+        assert 'payment' in str(excinfo.value).lower()

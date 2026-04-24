@@ -135,7 +135,7 @@ class TestBuildEffectiveTotalsMap:
     """Batch wrapper must evaluate the has_confirmed flag per proposal
     (not use a single stale value for all rows)."""
 
-    def test_mixed_batch_resolves_each_proposal_independently(self):
+    def test_mixed_inputs_resolve_each_proposal_independently(self):
         p_unconfirmed = BusinessProposal.objects.create(
             title='A', client_name='A', client_email='a@test.com',
             language='es', total_investment=Decimal('1800000'), currency='COP',
