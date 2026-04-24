@@ -1558,10 +1558,12 @@ class TestTrackProposalEngagement:
         assert logs.count() == 1
         assert logs.first().description == 'Vista en modo ejecutiva.'
 
-    @freeze_time('2026-03-01 10:00:00')
-    def test_deduplicates_view_activity_within_three_hours(
+    def test_deduplicates_view_activity_for_repeat_session(
         self, api_client, sent_proposal,
     ):
+        """Repeat posts from the same session_id do not create duplicate
+        viewed change-log entries, thanks to the unique constraint on
+        (proposal, session_id)."""
         url = self._url(sent_proposal.uuid)
         payload = {
             'view_mode': 'detailed',
@@ -1569,12 +1571,7 @@ class TestTrackProposalEngagement:
         }
 
         api_client.post(url, {'session_id': 'sess-view-1', **payload}, format='json')
-        with freeze_time('2026-03-01 12:59:59'):
-            api_client.post(
-                url,
-                {'session_id': 'sess-view-2', **payload},
-                format='json',
-            )
+        api_client.post(url, {'session_id': 'sess-view-1', **payload}, format='json')
 
         assert ProposalChangeLog.objects.filter(
             proposal=sent_proposal,

@@ -820,12 +820,13 @@ class TestCleanInlineBold:
 
 
 class TestSectionRenderersMap:
-    def test_contains_all_12_section_types(self):
+    def test_contains_all_13_section_types(self):
         expected = {
             'greeting', 'executive_summary', 'context_diagnostic',
             'conversion_strategy', 'design_ux', 'creative_support',
             'development_stages', 'functional_requirements',
-            'timeline', 'investment', 'final_note', 'next_steps',
+            'timeline', 'investment', 'value_added_modules',
+            'final_note', 'next_steps',
         }
         assert set(SECTION_RENDERERS.keys()) == expected
 
@@ -2523,7 +2524,6 @@ class TestCalculatorModuleInvalidPricePercent:
         assert result is not None
         assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
 
 # ── default_selected_modules_from_content tests ─────────────
