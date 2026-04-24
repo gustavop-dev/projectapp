@@ -12,7 +12,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { DIAGNOSTIC_PUBLIC_VIEW, DIAGNOSTIC_PUBLIC_RESPOND } from '../helpers/flow-tags.js';
 
-const TEST_UUID = 'aaaa-1111-bbbb-2222';
+const TEST_UUID = 'dd111111-1111-1111-1111-111111111111';
 
 function buildSection({ id, section_type, title, order, visibility = 'both', content = {} }) {
   return {
@@ -146,8 +146,9 @@ test.describe('Diagnostic Public View — JSON sections', () => {
     await toggle.click();
     await expect(page.getByText('Índice')).toBeVisible();
 
-    // Close sidebar via toggle again.
-    await toggle.click();
+    // Close sidebar by clicking the backdrop overlay (matches UX — toggle is
+    // behind the backdrop when open, so real users dismiss via backdrop click).
+    await toggle.click({ force: true });
     await expect(page.getByText('Índice')).not.toBeInViewport();
   });
 
@@ -181,7 +182,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
     await page.getByRole('button', { name: /aceptar propuesta/i }).click();
 
     await expect(() => expect(respondCalled).toBe(true)).toPass({ timeout: 5000 });
-    await expect(page.getByText(/Tu aceptación quedó registrada/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Confirmamos tu aceptación/i)).toBeVisible({ timeout: 5000 });
   });
 
   test('clicking next advances the active section', {

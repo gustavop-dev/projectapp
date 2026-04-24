@@ -8,7 +8,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_REJECTION_OPTIONAL_REASON } from '../helpers/flow-tags.js';
 
-const MOCK_UUID = 'rejection-opt-uuid-1234-5678-abcdef';
+const MOCK_UUID = 'b5111111-1111-1111-1111-111111111111';
 
 const mockProposal = {
   id: 1,

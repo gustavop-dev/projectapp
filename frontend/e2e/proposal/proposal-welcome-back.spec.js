@@ -8,7 +8,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_WELCOME_BACK } from '../helpers/flow-tags.js';
 
-const MOCK_UUID = 'welcome-back-uuid-1234-5678-abcdef';
+const MOCK_UUID = 'b3111111-1111-1111-1111-111111111111';
 
 const mockProposal = {
   id: 1,

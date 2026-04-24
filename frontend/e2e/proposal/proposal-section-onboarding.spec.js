@@ -10,7 +10,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_SECTION_ONBOARDING } from '../helpers/flow-tags.js';
 
-const MOCK_UUID = 'onb-1111-2222-3333-4444-555555555555';
+const MOCK_UUID = 'cd111111-1111-1111-1111-111111111111';
 
 function _buildSection(id, type, title, order, contentJson = {}) {
   return {

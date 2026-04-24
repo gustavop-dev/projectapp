@@ -8,7 +8,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_COUNTDOWN_REALTIME } from '../helpers/flow-tags.js';
 
-const MOCK_UUID = 'countdown-uuid-1234-5678-abcdef';
+const MOCK_UUID = 'c2111111-1111-1111-1111-111111111111';
 
 function buildProposal(expiresAt) {
   return {

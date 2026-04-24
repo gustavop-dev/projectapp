@@ -10,7 +10,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_EXPIRED_GRACEFUL } from '../helpers/flow-tags.js';
 
-const MOCK_UUID = 'expired-uuid-1234-5678-abcdef123456';
+const MOCK_UUID = 'e1111111-1111-1111-1111-111111111111';
 
 const expiredPayload = {
   error: 'This proposal has expired.',
