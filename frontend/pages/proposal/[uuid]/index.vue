@@ -283,7 +283,7 @@
 
       <!-- Single-panel view with transition -->
       <Transition :name="transitionName" mode="out-in">
-        <div :key="currentPanel.id" class="panel-container" :data-section-type="currentPanel.section_type">
+        <div v-if="currentPanel" :key="currentPanel.id" class="panel-container" :data-section-type="currentPanel.section_type">
           <RawContentSection
             v-if="isPastePanel(currentPanel)"
             :title="getPastePanelTitle(currentPanel)"
