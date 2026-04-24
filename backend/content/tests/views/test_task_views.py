@@ -148,3 +148,162 @@ class TestDeleteTask:
         response = admin_client.delete(url)
         assert response.status_code == 204
         assert not Task.objects.filter(pk=todo_task.id).exists()
+
+    def test_nonexistent_task_returns_404(self, admin_client):
+        url = reverse('delete-task', kwargs={'task_id': 999999})
+        response = admin_client.delete(url)
+        assert response.status_code == 404
+
+
+class TestListTasksMacroBoard:
+    def test_returns_macro_board_tasks_only(self, admin_client):
+        Task.objects.create(title='Standard', board_type=Task.BoardType.STANDARD, status=Task.Status.TODO)
+        Task.objects.create(title='Macro', board_type=Task.BoardType.MACRO, status=Task.Status.TODO)
+
+        response = admin_client.get(reverse('list-tasks'), {'board': 'macro'})
+
+        assert response.status_code == 200
+        data = response.json()
+        # MACRO board returns {'items': [...]} instead of status-grouped dict
+        assert 'items' in data
+        titles = [t['title'] for t in data['items']]
+        assert 'Macro' in titles
+        assert 'Standard' not in titles
+
+    def test_invalid_board_type_returns_400(self, admin_client):
+        response = admin_client.get(reverse('list-tasks'), {'board': 'does_not_exist'})
+        assert response.status_code == 400
+
+
+class TestArchiveTask:
+    def test_archive_sets_is_archived_true(self, admin_client, todo_task):
+        response = admin_client.patch(
+            reverse('archive-task', kwargs={'task_id': todo_task.id}),
+            {'archive_reason': 'No longer needed'},
+            format='json',
+        )
+        assert response.status_code == 200
+        todo_task.refresh_from_db()
+        assert todo_task.is_archived is True
+        assert todo_task.archive_reason == 'No longer needed'
+
+    def test_unarchive_clears_archived_flag_and_reason(self, admin_client, todo_task):
+        todo_task.is_archived = True
+        todo_task.archive_reason = 'Old reason'
+        todo_task.save(update_fields=['is_archived', 'archive_reason'])
+
+        response = admin_client.patch(
+            reverse('unarchive-task', kwargs={'task_id': todo_task.id}),
+            {},
+            format='json',
+        )
+        assert response.status_code == 200
+        todo_task.refresh_from_db()
+        assert todo_task.is_archived is False
+        assert todo_task.archive_reason == ''
+
+    def test_list_archived_returns_only_archived_tasks(self, admin_client, todo_task):
+        active = Task.objects.create(title='Active', status=Task.Status.TODO)
+        archived = Task.objects.create(
+            title='Archived', status=Task.Status.TODO, is_archived=True,
+        )
+        response = admin_client.get(reverse('list-archived-tasks'))
+        assert response.status_code == 200
+        titles = [t['title'] for t in response.json()]
+        assert 'Archived' in titles
+        assert 'Active' not in titles
+        assert todo_task.title not in titles
+
+
+class TestTaskComments:
+    def test_create_comment_returns_201(self, admin_client, todo_task):
+        response = admin_client.post(
+            reverse('create-task-comment', kwargs={'task_id': todo_task.id}),
+            {'text': 'This needs review.'},
+            format='json',
+        )
+        assert response.status_code == 201
+        assert response.json()['text'] == 'This needs review.'
+
+    def test_list_comments_returns_all_comments(self, admin_client, todo_task):
+        admin_client.post(
+            reverse('create-task-comment', kwargs={'task_id': todo_task.id}),
+            {'text': 'First comment'},
+            format='json',
+        )
+        admin_client.post(
+            reverse('create-task-comment', kwargs={'task_id': todo_task.id}),
+            {'text': 'Second comment'},
+            format='json',
+        )
+        response = admin_client.get(
+            reverse('list-task-comments', kwargs={'task_id': todo_task.id}),
+        )
+        assert response.status_code == 200
+        assert len(response.json()) == 2
+
+    def test_delete_comment_returns_204(self, admin_client, todo_task):
+        create = admin_client.post(
+            reverse('create-task-comment', kwargs={'task_id': todo_task.id}),
+            {'text': 'To be deleted'},
+            format='json',
+        )
+        comment_id = create.json()['id']
+        response = admin_client.delete(
+            reverse('delete-task-comment', kwargs={'task_id': todo_task.id, 'comment_id': comment_id}),
+        )
+        assert response.status_code == 204
+
+    def test_delete_comment_wrong_task_returns_404(self, admin_client, todo_task):
+        other_task = Task.objects.create(title='Other', status=Task.Status.TODO)
+        create = admin_client.post(
+            reverse('create-task-comment', kwargs={'task_id': todo_task.id}),
+            {'text': 'Orphan'},
+            format='json',
+        )
+        comment_id = create.json()['id']
+        response = admin_client.delete(
+            reverse('delete-task-comment', kwargs={'task_id': other_task.id, 'comment_id': comment_id}),
+        )
+        assert response.status_code == 404
+
+
+class TestTaskAlerts:
+    def test_create_alert_returns_201(self, admin_client, todo_task):
+        from datetime import date
+        response = admin_client.post(
+            reverse('create-task-alert', kwargs={'task_id': todo_task.id}),
+            {'notify_at': '2026-05-01', 'note': 'Check progress'},
+            format='json',
+        )
+        assert response.status_code == 201
+        assert response.json()['notify_at'] == '2026-05-01'
+
+    def test_list_alerts_returns_all_alerts(self, admin_client, todo_task):
+        admin_client.post(
+            reverse('create-task-alert', kwargs={'task_id': todo_task.id}),
+            {'notify_at': '2026-05-01'},
+            format='json',
+        )
+        admin_client.post(
+            reverse('create-task-alert', kwargs={'task_id': todo_task.id}),
+            {'notify_at': '2026-05-15'},
+            format='json',
+        )
+        response = admin_client.get(
+            reverse('list-task-alerts', kwargs={'task_id': todo_task.id}),
+        )
+        assert response.status_code == 200
+        assert len(response.json()) == 2
+
+    def test_delete_alert_returns_204(self, admin_client, todo_task):
+        create = admin_client.post(
+            reverse('create-task-alert', kwargs={'task_id': todo_task.id}),
+            {'notify_at': '2026-05-01'},
+            format='json',
+        )
+        alert_id = create.json()['id']
+        response = admin_client.delete(
+            reverse('delete-task-alert', kwargs={'task_id': todo_task.id, 'alert_id': alert_id}),
+        )
+        assert response.status_code == 204

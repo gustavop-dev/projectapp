@@ -340,3 +340,56 @@ class TestDocumentPdfServiceGenerate:
         result = DocumentPdfService.generate(doc)
 
         assert isinstance(result, bytes)
+
+
+# ── generate_from_markdown() ──────────────────────────────────────────────
+
+class TestDocumentPdfServiceGenerateFromMarkdown:
+    @pytest.fixture(autouse=True)
+    def _bypass_merge(self):
+        with patch(
+            'content.services.document_pdf_service.DocumentPdfService._merge_with_covers',
+            side_effect=lambda b, **kw: b,
+        ):
+            yield
+
+    def test_generate_from_markdown_returns_pdf_bytes(self):
+        """generate_from_markdown() returns PDF bytes for a valid markdown string."""
+        from content.services.document_pdf_service import DocumentPdfService
+
+        result = DocumentPdfService.generate_from_markdown(
+            markdown_text='# Title\n\nThis is a paragraph.',
+            client_name='Test Client',
+            title='Test Doc',
+        )
+
+        assert isinstance(result, bytes)
+        assert result[:4] == b'%PDF'
+
+    def test_generate_from_markdown_with_empty_string_returns_none(self):
+        """generate_from_markdown() returns None for an empty string."""
+        from content.services.document_pdf_service import DocumentPdfService
+
+        result = DocumentPdfService.generate_from_markdown(
+            markdown_text='',
+            client_name='C',
+            title='T',
+        )
+
+        assert result is None
+
+    def test_generate_returns_none_on_unexpected_exception(self):
+        """generate() returns None when an unhandled exception occurs."""
+        from content.services.document_pdf_service import DocumentPdfService
+
+        doc = _document(content_json=_with_blocks([
+            {'type': 'paragraph', 'text': 'Hello.'},
+        ]))
+
+        with patch(
+            'content.services.document_pdf_service._register_fonts',
+            side_effect=RuntimeError('font error'),
+        ):
+            result = DocumentPdfService.generate(doc)
+
+        assert result is None

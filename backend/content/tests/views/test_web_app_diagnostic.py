@@ -1,6 +1,9 @@
 """Targeted tests for the WebAppDiagnostic feature (JSON sections model)."""
 
+import io
 import pytest
+
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from content.models import DiagnosticChangeLog, DiagnosticSection, WebAppDiagnostic
 from content.services import diagnostic_service
@@ -466,3 +469,195 @@ def test_send_initial_response_exposes_email_ok(admin_client, diagnostic):
     )
     assert response.status_code == 200
     assert 'email_ok' in response.json()
+
+
+# ── Status transitions ─────────────────────────────────────────────────────
+
+def test_mark_in_analysis_transitions_to_negotiating(admin_client, diagnostic):
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
+    response = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/mark-in-analysis/', {}, format='json',
+    )
+    assert response.status_code == 200
+    diagnostic.refresh_from_db()
+    assert diagnostic.status == WebAppDiagnostic.Status.NEGOTIATING
+
+
+def test_send_final_transitions_back_to_sent(admin_client, diagnostic):
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.NEGOTIATING)
+    response = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/send-final/', {}, format='json',
+    )
+    assert response.status_code == 200
+    assert 'email_ok' in response.json()
+    diagnostic.refresh_from_db()
+    assert diagnostic.status == WebAppDiagnostic.Status.SENT
+
+
+def test_mark_in_analysis_rejects_invalid_transition(admin_client, diagnostic):
+    # DRAFT → NEGOTIATING is not a valid transition.
+    response = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/mark-in-analysis/', {}, format='json',
+    )
+    assert response.status_code == 400
+
+
+# ── Analytics CSV export ───────────────────────────────────────────────────
+
+def test_export_analytics_csv_returns_text_csv(admin_client, diagnostic):
+    response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/analytics/csv/')
+    assert response.status_code == 200
+    assert response['Content-Type'] == 'text/csv'
+
+
+def test_export_analytics_csv_contains_diagnostic_title(admin_client, diagnostic):
+    response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/analytics/csv/')
+    content = response.content.decode()
+    assert diagnostic.title in content
+
+
+def test_export_analytics_csv_has_section_engagement_header(admin_client, diagnostic):
+    response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/analytics/csv/')
+    content = response.content.decode()
+    assert 'SECTION ENGAGEMENT' in content
+
+
+# ── Attachment CRUD ────────────────────────────────────────────────────────
+
+def _minimal_pdf():
+    return SimpleUploadedFile('test.pdf', b'%PDF-1.4 fake content', content_type='application/pdf')
+
+
+def test_upload_attachment_returns_201(admin_client, diagnostic):
+    response = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/attachments/upload/',
+        {'file': _minimal_pdf()},
+        format='multipart',
+    )
+    assert response.status_code == 201
+    assert 'id' in response.json()
+
+
+def test_upload_attachment_rejects_invalid_extension(admin_client, diagnostic):
+    bad_file = SimpleUploadedFile('malware.exe', b'MZ fake', content_type='application/octet-stream')
+    response = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/attachments/upload/',
+        {'file': bad_file},
+        format='multipart',
+    )
+    assert response.status_code == 400
+    assert 'not allowed' in response.json()['error']
+
+
+def test_upload_attachment_rejects_missing_file(admin_client, diagnostic):
+    response = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/attachments/upload/',
+        {},
+        format='multipart',
+    )
+    assert response.status_code == 400
+
+
+def test_delete_attachment_returns_204(admin_client, diagnostic):
+    upload = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/attachments/upload/',
+        {'file': _minimal_pdf()},
+        format='multipart',
+    )
+    attachment_id = upload.json()['id']
+    response = admin_client.delete(
+        f'/api/diagnostics/{diagnostic.id}/attachments/{attachment_id}/delete/',
+    )
+    assert response.status_code == 204
+
+
+def test_delete_generated_attachment_returns_400(admin_client, diagnostic):
+    from django.core.files.base import ContentFile
+    from content.models import DiagnosticAttachment
+    attachment = DiagnosticAttachment.objects.create(
+        diagnostic=diagnostic,
+        document_type=DiagnosticAttachment.DOC_TYPE_CONFIDENTIALITY,
+        title='Generated NDA',
+        file=ContentFile(b'%PDF-1.4 fake', name='nda.pdf'),
+        is_generated=True,
+    )
+    response = admin_client.delete(
+        f'/api/diagnostics/{diagnostic.id}/attachments/{attachment.id}/delete/',
+    )
+    assert response.status_code == 400
+
+
+# ── Diagnostic defaults ────────────────────────────────────────────────────
+
+def test_diagnostic_defaults_get_returns_fallback_config(admin_client):
+    response = admin_client.get('/api/diagnostics/defaults/?lang=es')
+    assert response.status_code == 200
+    body = response.json()
+    assert body['language'] == 'es'
+    assert 'payment_initial_pct' in body
+
+
+def test_diagnostic_defaults_put_creates_db_config(admin_client):
+    response = admin_client.put(
+        '/api/diagnostics/defaults/',
+        {
+            'language': 'es',
+            'payment_initial_pct': 60,
+            'payment_final_pct': 40,
+            'default_currency': 'COP',
+            'expiration_days': 21,
+            'reminder_days': 7,
+            'urgency_reminder_days': 14,
+        },
+        format='json',
+    )
+    assert response.status_code == 200
+    assert response.json()['payment_initial_pct'] == 60
+
+
+def test_diagnostic_defaults_get_returns_invalid_lang_400(admin_client):
+    response = admin_client.get('/api/diagnostics/defaults/?lang=fr')
+    assert response.status_code == 400
+
+
+def test_reset_diagnostic_defaults_deletes_config(admin_client):
+    # First create a config, then reset it.
+    admin_client.put(
+        '/api/diagnostics/defaults/',
+        {
+            'language': 'es',
+            'payment_initial_pct': 60,
+            'payment_final_pct': 40,
+            'default_currency': 'COP',
+            'expiration_days': 21,
+            'reminder_days': 7,
+            'urgency_reminder_days': 14,
+        },
+        format='json',
+    )
+    response = admin_client.post(
+        '/api/diagnostics/defaults/reset/',
+        {'language': 'es'},
+        format='json',
+    )
+    assert response.status_code == 200
+    assert response.json()['deleted'] is True
+
+
+# ── Confidentiality PDF ────────────────────────────────────────────────────
+
+def test_generate_confidentiality_pdf_view_returns_attachment(admin_client, diagnostic):
+    from content.models import ConfidentialityTemplate
+    ConfidentialityTemplate.objects.create(
+        name='Default NDA',
+        content_markdown='Acuerdo entre {client_full_name} y {contractor_full_name}.',
+        is_default=True,
+    )
+    response = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/confidentiality/generate/',
+        {},
+        format='json',
+    )
+    assert response.status_code == 200
+    assert 'attachment' in response.json()

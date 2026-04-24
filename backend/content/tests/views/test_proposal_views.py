@@ -4437,3 +4437,165 @@ class TestProposalJsonTemplate:
         assert 'integration_regional_payments' in autoselect
         assert 'integration_international_payments' in autoselect
         assert 'Stripe' in autoselect
+
+
+# ── Bulk action ────────────────────────────────────────────────────────────
+
+class TestBulkAction:
+    def test_deletes_selected_proposals(self, admin_client, proposal):
+        response = admin_client.post(
+            '/api/proposals/bulk-action/',
+            {'ids': [proposal.id], 'action': 'delete'},
+            format='json',
+        )
+        assert response.status_code == 200
+        assert response.json()['affected'] == 1
+        assert not BusinessProposal.objects.filter(pk=proposal.id).exists()
+
+    def test_expires_selected_proposals(self, admin_client, proposal):
+        proposal.status = 'sent'
+        proposal.save(update_fields=['status'])
+        response = admin_client.post(
+            '/api/proposals/bulk-action/',
+            {'ids': [proposal.id], 'action': 'expire'},
+            format='json',
+        )
+        assert response.status_code == 200
+        assert response.json()['affected'] == 1
+        proposal.refresh_from_db()
+        assert proposal.status == 'expired'
+
+    def test_rejects_invalid_action(self, admin_client, proposal):
+        response = admin_client.post(
+            '/api/proposals/bulk-action/',
+            {'ids': [proposal.id], 'action': 'publish'},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    def test_rejects_empty_ids(self, admin_client):
+        response = admin_client.post(
+            '/api/proposals/bulk-action/',
+            {'ids': [], 'action': 'delete'},
+            format='json',
+        )
+        assert response.status_code == 400
+
+
+# ── Preview / Apply sync section ──────────────────────────────────────────
+
+class TestSyncSection:
+    def _make_technical_section(self, proposal):
+        return ProposalSection.objects.create(
+            proposal=proposal,
+            section_type=ProposalSection.SectionType.TECHNICAL_DOCUMENT,
+            title='Tech spec',
+            order=1,
+            is_enabled=True,
+            content_json={},
+        )
+
+    def test_preview_sync_returns_has_project_false_when_no_project(
+        self, admin_client, proposal,
+    ):
+        section = self._make_technical_section(proposal)
+        response = admin_client.post(
+            f'/api/proposals/sections/{section.id}/sync-preview/',
+            {'content_json': {'epics': []}},
+            format='json',
+        )
+        assert response.status_code == 200
+        assert response.json()['has_project'] is False
+
+    def test_preview_sync_rejects_non_technical_section(self, admin_client, proposal):
+        section = ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='greeting',
+            title='Greeting',
+            order=0,
+            is_enabled=True,
+            content_json={},
+        )
+        response = admin_client.post(
+            f'/api/proposals/sections/{section.id}/sync-preview/',
+            {'content_json': {}},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    def test_preview_sync_rejects_non_dict_content_json(self, admin_client, proposal):
+        section = self._make_technical_section(proposal)
+        response = admin_client.post(
+            f'/api/proposals/sections/{section.id}/sync-preview/',
+            {'content_json': 'not_a_dict'},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    def test_apply_sync_rejects_proposal_without_project(self, admin_client, proposal):
+        section = self._make_technical_section(proposal)
+        response = admin_client.post(
+            f'/api/proposals/sections/{section.id}/apply-sync/',
+            {'content_json': {}},
+            format='json',
+        )
+        assert response.status_code == 400
+        assert 'no tiene proyecto' in response.json()['detail']
+
+    def test_apply_sync_rejects_non_technical_section(self, admin_client, proposal):
+        section = ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='greeting',
+            title='Greeting',
+            order=0,
+            is_enabled=True,
+            content_json={},
+        )
+        response = admin_client.post(
+            f'/api/proposals/sections/{section.id}/apply-sync/',
+            {'content_json': {}},
+            format='json',
+        )
+        assert response.status_code == 400
+
+
+# ── Additional _technical_fragment_has_content branches ─────────────────
+
+class TestTechnicalFragmentHasContentExtra:
+    def _fn(self, fragment, doc):
+        from content.views.proposal import _technical_fragment_has_content
+        return _technical_fragment_has_content(fragment, doc)
+
+    def test_epics_returns_true_when_epic_has_title(self):
+        result = self._fn('epics', {'epics': [{'title': 'Auth epic', 'description': '', 'epicKey': ''}]})
+        assert result is True
+
+    def test_epics_returns_false_when_empty_list(self):
+        result = self._fn('epics', {'epics': []})
+        assert result is False
+
+    def test_integrations_returns_true_from_included_list(self):
+        result = self._fn(
+            'integrations',
+            {'integrations': {'included': [{'service': 'Stripe', 'provider': 'Stripe Inc'}]}},
+        )
+        assert result is True
+
+    def test_integrations_returns_true_from_excluded_list(self):
+        result = self._fn(
+            'integrations',
+            {'integrations': {'excluded': [{'service': 'PayPal', 'reason': 'Regional limitations'}]}},
+        )
+        assert result is True
+
+    def test_integrations_returns_false_when_empty(self):
+        result = self._fn('integrations', {'integrations': {}})
+        assert result is False
+
+    def test_stack_returns_true_when_row_has_layer(self):
+        result = self._fn('stack', {'stack': [{'layer': 'Backend', 'technology': 'Django'}]})
+        assert result is True
+
+    def test_unknown_fragment_returns_false(self):
+        result = self._fn('nonexistent_fragment', {'data': 'x'})
+        assert result is False
