@@ -135,7 +135,7 @@ describe('DiagnosticAnalytics with data', () => {
     expect(wrapper.text()).toContain('2m 40s');
   });
 
-  it('renders section coverage percentage', async () => {
+  it('renders section read-through percentage', async () => {
     const wrapper = withRichData();
     await flushPromises();
 

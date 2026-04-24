@@ -142,7 +142,7 @@ describe('ProposalAnalytics with data', () => {
     expect(wrapper.text()).toContain('3m');
   });
 
-  it('renders section coverage percentage', async () => {
+  it('renders section read-through percentage', async () => {
     const wrapper = withRichData();
     await flushPromises();
 

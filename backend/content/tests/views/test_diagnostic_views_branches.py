@@ -1,4 +1,4 @@
-"""Coverage gap tests for content/views/diagnostic.py — simple endpoints and error branches."""
+"""Branch tests for content/views/diagnostic.py — simple endpoints and error branches."""
 
 from unittest.mock import patch
 

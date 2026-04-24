@@ -82,17 +82,17 @@ def test_generate_only_renders_enabled_sections(diagnostic):
 # -- _draw_cover -------------------------------------------------------------
 
 
-def test_draw_cover_renders_short_client_name_without_error(pdf_canvas, mock_diagnostic):
+def test_draw_cover_renders_short_client_name_without_error(pdf_canvas, mock_diagnostic):  # quality: disable no_assertions (no-raise is the assertion)
     mock_diagnostic.client_name = 'Acme'
     _draw_cover(pdf_canvas, mock_diagnostic)  # must not raise
 
 
-def test_draw_cover_wraps_long_client_name(pdf_canvas, mock_diagnostic):
+def test_draw_cover_wraps_long_client_name(pdf_canvas, mock_diagnostic):  # quality: disable no_assertions (no-raise is the assertion)
     mock_diagnostic.client_name = 'Very Long Client Company Name That Exceeds Limit'
     _draw_cover(pdf_canvas, mock_diagnostic)  # must not raise — triggers textwrap branch
 
 
-def test_draw_cover_handles_empty_client_name(pdf_canvas, mock_diagnostic):
+def test_draw_cover_handles_empty_client_name(pdf_canvas, mock_diagnostic):  # quality: disable no_assertions (no-raise is the assertion)
     mock_diagnostic.client_name = ''
     mock_diagnostic.title = ''
     _draw_cover(pdf_canvas, mock_diagnostic)  # must not raise
