@@ -13,7 +13,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_CALCULATOR_NEW_MODULES } from '../helpers/flow-tags.js';
 
-const MOCK_UUID = 'new-modules-uuid-1234-5678-abcdef';
+const MOCK_UUID = 'aaaaaaaa-bbbb-cccc-dddd-000000000003';
 
 const mockProposal = {
   id: 1,

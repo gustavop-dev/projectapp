@@ -222,7 +222,7 @@ describe('buildProposalModuleLinkOptions', () => {
       { section_type: 'investment', content_json: { modules: [{ id: 42, title: 'Num' }] } },
     ]
     const opts = buildProposalModuleLinkOptions(sections)
-    expect(opts).toEqual([{ id: '42', label: 'Num' }])
+    expect(opts).toEqual([{ id: '42', label: 'Num', aliases: ['42'], isAlwaysIncluded: false }])
   })
 
   it('skips investment module when modules key is missing', () => {

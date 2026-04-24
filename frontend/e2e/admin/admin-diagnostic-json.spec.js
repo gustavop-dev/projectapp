@@ -89,7 +89,7 @@ test.describe('Admin Diagnostic — JSON export tab', () => {
     // Read-only textarea contains the diagnostic title.
     const exportTextarea = page.locator('textarea[readonly]');
     await expect(exportTextarea).toBeVisible();
-    await expect(exportTextarea).toContainText('Diagnóstico — Delta Inc');
+    await expect(exportTextarea).toHaveValue(/Diagnóstico — Delta Inc/);
   });
 
   test('action buttons Actualizar, Copiar, and Descargar are present', {
@@ -124,6 +124,6 @@ test.describe('Admin Diagnostic — JSON export tab', () => {
 
     await page.getByRole('button', { name: /Actualizar/i }).click();
 
-    await expect(page.locator('textarea[readonly]')).toContainText('Delta Inc (Actualizado)', { timeout: 5_000 });
+    await expect(page.locator('textarea[readonly]')).toHaveValue(/Delta Inc \(Actualizado\)/, { timeout: 5_000 });
   });
 });

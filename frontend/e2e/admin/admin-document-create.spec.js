@@ -65,7 +65,7 @@ test.describe('Admin Document Create', () => {
     await page.goto('/panel/documents/create');
     await page.waitForLoadState('networkidle');
 
-    await page.getByLabel(/Titulo/i).fill('Nuevo Doc');
+    await page.getByLabel(/T[ií]tulo/i).fill('Nuevo Doc');
     await page.getByRole('button', { name: /Pegar Markdown/i }).click();
     const textarea = page.getByPlaceholder(/Escribe o pega tu contenido en formato Markdown/i);
     await textarea.fill('# Contenido de prueba\n\nEste es el cuerpo del documento.');

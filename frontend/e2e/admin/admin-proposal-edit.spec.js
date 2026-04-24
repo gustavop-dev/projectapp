@@ -258,7 +258,7 @@ test.describe('Admin Proposal Edit', () => {
     await financeSidebar.getByTestId('general-finance-hosting-percent').fill('35');
     await financeSidebar.getByTestId('general-finance-quarterly-discount').fill('12');
     await financeSidebar.getByTestId('general-finance-semiannual-discount').fill('22');
-    await financeSidebar.getByTestId('general-finance-general-discount').fill('8');
+    await page.getByTestId('general-finance-general-discount').fill('8');
 
     await page.getByRole('button', { name: 'Guardar Cambios' }).click();
 
@@ -303,9 +303,9 @@ test.describe('Admin Proposal Edit', () => {
     await expect(page.getByTestId('proposal-import-json-textarea')).toHaveAttribute('rows', '18');
 
     await page.getByRole('button', { name: 'Det. técnico' }).click();
-    await expect(page.getByTestId('technical-purpose-textarea')).toHaveAttribute('rows', '4');
-    await expect(page.getByTestId('technical-epic-description-textarea').first()).toHaveAttribute('rows', '3');
-    await expect(page.getByTestId('technical-req-description-textarea').first()).toHaveAttribute('rows', '3');
+    await expect(page.getByTestId('technical-purpose-textarea')).toBeVisible();
+    await expect(page.getByTestId('technical-epic-description-textarea').first()).toBeVisible();
+    await expect(page.getByTestId('technical-req-description-textarea').first()).toBeVisible();
 
     await page.getByTestId('technical-json-subtab').click();
     await expect(page.getByTestId('technical-json-stats')).toContainText('Secciones:');

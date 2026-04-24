@@ -104,10 +104,12 @@ test.describe('Platform Access View', () => {
     await page.goto('/platform/access', { waitUntil: 'domcontentloaded' });
 
     const card = page.locator('[data-testid="access-card"]').first();
-    await expect(card.getByText('Producción')).toBeVisible();
-    await expect(card.getByText('Staging')).toBeVisible();
-    await expect(card.getByText('Admin Django')).toBeVisible();
-    await expect(card.getByText('Repositorio')).toBeVisible();
+    // Each URL row has a label + link with the same substring; scope to the label span
+    // rather than the link.
+    await expect(card.getByText('Producción', { exact: true })).toBeVisible();
+    await expect(card.getByText('Staging', { exact: true })).toBeVisible();
+    await expect(card.getByText('Admin Django', { exact: true })).toBeVisible();
+    await expect(card.getByText('Repositorio', { exact: true })).toBeVisible();
   });
 
   test('shows credential copy fields when username and password are set', {

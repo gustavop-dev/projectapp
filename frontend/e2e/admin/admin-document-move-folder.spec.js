@@ -51,15 +51,16 @@ test.describe('Admin Document Move Folder', () => {
     });
 
     await page.goto('/panel/documents');
-    await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByText('Brief de Proyecto')).toBeVisible({ timeout: 15000 });
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByText('Brief de Proyecto').first()).toBeVisible({ timeout: 15000 });
 
     await page.getByTitle('Mover a carpeta').first().click();
 
-    await expect(page.getByRole('heading', { name: 'Mover documento' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Sin carpeta' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Diseño' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Dev' })).toBeVisible();
+    const modal = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover documento' });
+    await expect(modal).toBeVisible();
+    await expect(modal.getByRole('button', { name: 'Sin carpeta' })).toBeVisible();
+    await expect(modal.getByRole('button', { name: 'Diseño' })).toBeVisible();
+    await expect(modal.getByRole('button', { name: 'Dev' })).toBeVisible();
   });
 
   test('selecting a folder PATCHes documents/{id}/update/ with folder_id', {
@@ -80,13 +81,14 @@ test.describe('Admin Document Move Folder', () => {
     });
 
     await page.goto('/panel/documents');
-    await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByText('Brief de Proyecto')).toBeVisible({ timeout: 15000 });
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByText('Brief de Proyecto').first()).toBeVisible({ timeout: 15000 });
 
     await page.getByTitle('Mover a carpeta').first().click();
-    await expect(page.getByRole('heading', { name: 'Mover documento' })).toBeVisible();
+    const modal = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover documento' });
+    await expect(modal).toBeVisible();
 
-    await page.getByRole('button', { name: 'Dev' }).click();
+    await modal.getByRole('button', { name: 'Dev' }).click();
 
     await expect(() => expect(patchBody).not.toBeNull()).toPass({ timeout: 5000 });
     expect(patchBody.folder_id).toBe(FOLDER_DEV.id);
@@ -110,13 +112,14 @@ test.describe('Admin Document Move Folder', () => {
     });
 
     await page.goto('/panel/documents');
-    await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByText('Brief de Proyecto')).toBeVisible({ timeout: 15000 });
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByText('Brief de Proyecto').first()).toBeVisible({ timeout: 15000 });
 
     await page.getByTitle('Mover a carpeta').first().click();
-    await expect(page.getByRole('heading', { name: 'Mover documento' })).toBeVisible();
+    const modal = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover documento' });
+    await expect(modal).toBeVisible();
 
-    await page.getByRole('button', { name: 'Sin carpeta' }).click();
+    await modal.getByRole('button', { name: 'Sin carpeta' }).click();
 
     await expect(() => expect(patchBody).not.toBeNull()).toPass({ timeout: 5000 });
     expect(patchBody.folder_id).toBeNull();

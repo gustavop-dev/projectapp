@@ -75,7 +75,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
   test('edit page renders all navigation tabs', {
     tag: [...ADMIN_DIAGNOSTIC_SEND_INITIAL, '@role:admin'],
   }, async ({ page }) => {
-    const diagnostic = buildMockDiagnostic();
+    const diagnostic = buildMockDiagnostic({ status: 'negotiating' });
     await mockApi(page, buildHandler(diagnostic));
 
     await page.goto('/panel/diagnostics/7/edit');
@@ -136,6 +136,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
       status: 'sent',
       initial_sent_at: '2026-04-16T10:00:00Z',
       final_sent_at: null,
+      available_transitions: ['negotiating'],
     });
     let called = false;
 
@@ -156,8 +157,8 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     });
 
     await page.goto('/panel/diagnostics/7/edit');
-    await expect(page.getByRole('button', { name: /marcar en análisis/i })).toBeVisible({ timeout: 15000 });
-    await page.getByRole('button', { name: /marcar en análisis/i }).click();
+    await expect(page.getByTestId('diagnostic-next-action-analyze')).toBeVisible({ timeout: 15000 });
+    await page.getByTestId('diagnostic-next-action-analyze').click();
     await page.getByRole('button', { name: 'Confirmar', exact: true }).click();
 
     await expect(() => expect(called).toBe(true)).toPass({ timeout: 5000 });

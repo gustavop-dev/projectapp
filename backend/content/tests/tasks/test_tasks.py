@@ -29,6 +29,7 @@ class TestSendProposalReminderTask:
             client_name='Client',
             client_email='client@test.com',
             status='sent',
+            automations_paused=False,
         )
 
         import content.tasks as tasks_module
@@ -44,6 +45,7 @@ class TestSendProposalReminderTask:
             client_name='Client',
             client_email='client@test.com',
             status='viewed',
+            automations_paused=False,
         )
 
         import content.tasks as tasks_module
@@ -164,6 +166,7 @@ class TestSendUrgencyReminderTask:
             client_name='Client',
             client_email='client@test.com',
             status='sent',
+            automations_paused=False,
         )
 
         import content.tasks as tasks_module
@@ -180,6 +183,7 @@ class TestSendUrgencyReminderTask:
             client_name='Client',
             client_email='client@test.com',
             status='viewed',
+            automations_paused=False,
         )
 
         import content.tasks as tasks_module
@@ -547,6 +551,7 @@ class TestCheckEngagementFollowupsTask:
             client_email='client@test.com',
             status='viewed',
             first_viewed_at=now - timedelta(hours=5),
+            automations_paused=False,
         )
         ve = ProposalViewEvent.objects.create(
             proposal=proposal,
@@ -888,6 +893,7 @@ class TestCheckEngagementFollowupsExceptionPaths:
             client_email='client@test.com',
             status='viewed',
             first_viewed_at=now - timedelta(hours=5),
+            automations_paused=False,
         )
         ve = ProposalViewEvent.objects.create(
             proposal=proposal, session_id='sess-err',
@@ -918,6 +924,7 @@ class TestCheckEngagementFollowupsExceptionPaths:
             client_email='client@test.com',
             status='viewed',
             first_viewed_at=now - timedelta(hours=5),
+            automations_paused=False,
         )
         ve = ProposalViewEvent.objects.create(
             proposal=proposal, session_id='sess-err2',
@@ -1127,6 +1134,7 @@ class TestEscalateSellerInactivityTask:
             status='viewed',
             sent_at=now - timedelta(days=7),
             first_viewed_at=now - timedelta(days=6),
+            automations_paused=False,
         )
 
         import content.tasks as tasks_module
@@ -1236,6 +1244,7 @@ class TestEscalateSellerInactivityTask:
             status='viewed',
             sent_at=now - timedelta(days=7),
             first_viewed_at=now - timedelta(days=6),
+            automations_paused=False,
         )
 
         import content.tasks as tasks_module
@@ -1617,6 +1626,7 @@ class TestCheckCalculatorAbandonmentFollowupTask:
             title='Calc Abandoned', client_name='Calc Client',
             client_email='calc@test.com',
             status='viewed',
+            automations_paused=False,
         )
         log = ProposalChangeLog.objects.create(
             proposal=proposal, change_type='calc_abandoned',
@@ -1647,6 +1657,7 @@ class TestCheckCalculatorAbandonmentFollowupTask:
         proposal = BusinessProposal.objects.create(
             title='High Intent Calc', client_name='Intent Client',
             status='viewed',
+            automations_paused=False,
         )
         log = ProposalChangeLog.objects.create(
             proposal=proposal, change_type='calc_abandoned',
@@ -1766,6 +1777,7 @@ class TestCheckCalculatorAbandonmentFollowupTask:
         proposal = BusinessProposal.objects.create(
             title='Bad JSON', client_name='Client',
             status='viewed',
+            automations_paused=False,
         )
         log = ProposalChangeLog.objects.create(
             proposal=proposal, change_type='calc_abandoned',
@@ -1796,6 +1808,7 @@ class TestGenerateWhatsappSuggestionsTask:
             status='viewed',
             client_phone='+573001234567',
             first_viewed_at=now - timedelta(hours=50),
+            automations_paused=False,
         )
         ve = ProposalViewEvent.objects.create(
             proposal=proposal, session_id='sess-wa',
@@ -1826,6 +1839,7 @@ class TestGenerateWhatsappSuggestionsTask:
             status='viewed',
             client_phone='+573001234567',
             first_viewed_at=now - timedelta(hours=50),
+            automations_paused=False,
         )
         ve = ProposalViewEvent.objects.create(
             proposal=proposal, session_id='sess-wa-unk',
@@ -1935,6 +1949,7 @@ class TestGenerateWhatsappSuggestionsTask:
             status='viewed',
             client_phone='+573001234567',
             first_viewed_at=now - timedelta(hours=50),
+            automations_paused=False,
         )
 
         import content.tasks as tasks_module
@@ -2252,6 +2267,7 @@ class TestCalculatorAbandonmentEmptyDescription:
         proposal = BusinessProposal.objects.create(
             title='Empty Desc Calc', client_name='Client',
             status='viewed',
+            automations_paused=False,
         )
         log = ProposalChangeLog.objects.create(
             proposal=proposal, change_type='calc_abandoned',
@@ -2351,6 +2367,7 @@ class TestCalculatorAbandonmentFollowupDescriptionFallback:
             client_name='Client',
             client_email='client@test.com',
             status='sent',
+            automations_paused=False,
         )
         log = ProposalChangeLog.objects.create(
             proposal=proposal,
@@ -2426,6 +2443,7 @@ class TestNotifyProposalStageDeadlines:
         proposal = BusinessProposal.objects.create(
             title='With Active Stage', client_name='C',
             client_email='c@x.com', status='accepted',
+            automations_paused=False,
         )
         ProposalProjectStage.objects.create(
             proposal=proposal, stage_key='design', order=0,
@@ -2534,6 +2552,7 @@ class TestNotifyProposalStageDeadlines:
         proposal = BusinessProposal.objects.create(
             title='Broken Stage Tracker', client_name='C',
             client_email='c@x.com', status='accepted',
+            automations_paused=False,
         )
         ProposalProjectStage.objects.create(
             proposal=proposal, stage_key='design', order=0,

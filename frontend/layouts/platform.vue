@@ -209,7 +209,7 @@ const _platformViewLabel = computed(() => {
 })
 
 useHead(() => ({
-  title: _platformViewLabel.value || 'Plataforma',
+  title: _platformViewLabel.value ? `Project App (${_platformViewLabel.value})` : 'Project App',
 }))
 </script>
 

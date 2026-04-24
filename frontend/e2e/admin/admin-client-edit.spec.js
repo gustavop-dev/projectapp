@@ -35,7 +35,7 @@ function setupMock(page, { onUpdate = null } = {}) {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockClients) };
     }
     const updateMatch = apiPath.match(/^proposals\/client-profiles\/(\d+)\/update\/$/);
-    if (updateMatch && method === 'PUT') {
+    if (updateMatch && (method === 'PUT' || method === 'PATCH')) {
       if (onUpdate) return onUpdate(route);
       const body = JSON.parse(route.request().postData() || '{}');
       return {

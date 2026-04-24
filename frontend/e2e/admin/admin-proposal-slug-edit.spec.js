@@ -85,7 +85,7 @@ test.describe('Admin Proposal — Slug Edit', () => {
     await mockApi(page, async ({ apiPath, method, route }) => {
       const base = await baseHandler(makeProposal())({ apiPath, method, route });
       if (base) return base;
-      if (apiPath === `proposals/${PROPOSAL_ID}/update/` && method === 'PUT') {
+      if (apiPath === `proposals/${PROPOSAL_ID}/update/` && (method === 'PUT' || method === 'PATCH')) {
         const body = await route.request().postData();
         const parsed = body ? JSON.parse(body) : {};
         savedSlug = parsed.slug;

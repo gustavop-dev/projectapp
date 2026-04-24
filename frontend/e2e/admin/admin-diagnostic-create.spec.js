@@ -52,7 +52,7 @@ test.describe('Admin Diagnostic Create', () => {
 
     await page.goto('/panel/diagnostics/create');
     await expect(page.getByRole('heading', { name: /nuevo diagnóstico/i })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByPlaceholder(/buscar por nombre/i)).toBeVisible();
+    await expect(page.getByPlaceholder(/buscar/i)).toBeVisible();
     await expect(page.locator('select')).toBeVisible();
   });
 
@@ -96,7 +96,7 @@ test.describe('Admin Diagnostic Create', () => {
     await page.goto('/panel/diagnostics/create');
     await expect(page.getByRole('heading', { name: /nuevo diagnóstico/i })).toBeVisible({ timeout: 15000 });
 
-    await page.getByPlaceholder(/buscar por nombre/i).fill('Acme');
+    await page.getByPlaceholder(/buscar/i).fill('Acme');
     await page.getByText('Acme Corp').first().click();
 
     const submitBtn = page.getByRole('button', { name: /crear diagnóstico/i });

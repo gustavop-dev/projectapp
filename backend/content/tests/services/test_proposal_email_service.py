@@ -399,6 +399,13 @@ class TestSendFirstViewNotification:
         email_proposal.selected_modules = ['mod-extra-1']
         email_proposal.save(update_fields=['selected_modules'])
 
+        from content.models import ProposalChangeLog
+        ProposalChangeLog.objects.create(
+            proposal=email_proposal,
+            change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
+            actor_type=ProposalChangeLog.ActorType.CLIENT,
+        )
+
         mock_render.return_value = '<html>First view</html>'
         mock_email_cls.return_value = _stub_email()
 

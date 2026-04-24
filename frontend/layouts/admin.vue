@@ -186,6 +186,6 @@ const _panelSectionLabel = computed(() => {
 })
 
 useHead(() => ({
-  title: _panelViewLabel.value || 'Panel',
+  title: _panelViewLabel.value ? `Project App (${_panelViewLabel.value})` : 'Project App',
 }))
 </script>

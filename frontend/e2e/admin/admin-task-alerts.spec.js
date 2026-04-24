@@ -81,7 +81,7 @@ test.describe('Admin Task — Alertas section', () => {
 
     const modal = page.getByTestId('task-form-modal');
     await expect(modal.getByText('No hay alertas definidas.')).toBeVisible({ timeout: 10_000 });
-    await expect(modal.getByRole('button', { name: '+ Agregar' })).toBeVisible();
+    await expect(modal.getByRole('button', { name: '+ Agregar' }).first()).toBeVisible();
   });
 
   test('adding an alert calls POST and alert appears with Pendiente badge', {
@@ -119,7 +119,7 @@ test.describe('Admin Task — Alertas section', () => {
 
     await page.locator('input[type="date"]').last().fill('2026-06-01');
     await page.locator('input[placeholder*="Revisar avance"]').fill('Llamar al cliente');
-    await page.getByRole('button', { name: '+ Agregar' }).click();
+    await page.getByRole('button', { name: '+ Agregar' }).first().click();
 
     await expect(() => expect(postCalled).toBe(true)).toPass({ timeout: 5_000 });
     await expect(page.getByText('Pendiente')).toBeVisible({ timeout: 10_000 });

@@ -9,10 +9,25 @@ from decimal import Decimal
 
 import pytest
 
-from content.models import ProposalSection
+from content.models import ProposalChangeLog, ProposalSection
 from content.serializers.proposal import ProposalDetailSerializer
 
 pytestmark = pytest.mark.django_db
+
+
+def _confirm_selection(proposal):
+    """Mark the proposal's module selection as confirmed by the client.
+
+    The effective-total helper uses ``has_confirmed_module_selection`` (backed
+    by a ``ProposalChangeLog`` row with ``change_type='calc_confirmed'``) to
+    decide whether ``selected_modules`` is authoritative or whether to fall
+    back to admin-configured defaults.
+    """
+    ProposalChangeLog.objects.create(
+        proposal=proposal,
+        change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
+        actor_type=ProposalChangeLog.ActorType.CLIENT,
+    )
 
 
 def _make_fr_section(proposal, *, calc_percent=15, calc_group_id='mod-a',
@@ -51,6 +66,7 @@ def test_effective_total_adds_selected_calculator_module(proposal):
     _make_fr_section(proposal, calc_percent=15, calc_group_id='mod-a')
     proposal.selected_modules = ['module-mod-a']
     proposal.save(update_fields=['selected_modules'])
+    _confirm_selection(proposal)
 
     data = ProposalDetailSerializer(proposal, context={'is_admin': True}).data
 
@@ -63,6 +79,7 @@ def test_effective_total_accepts_bare_group_ids(proposal):
     _make_fr_section(proposal, calc_percent=10, calc_group_id='mod-b')
     proposal.selected_modules = ['mod-b']
     proposal.save(update_fields=['selected_modules'])
+    _confirm_selection(proposal)
 
     data = ProposalDetailSerializer(proposal, context={'is_admin': True}).data
 
@@ -103,6 +120,7 @@ def test_effective_total_is_public_field(proposal):
     _make_fr_section(proposal, calc_percent=15, calc_group_id='mod-a')
     proposal.selected_modules = ['module-mod-a']
     proposal.save(update_fields=['selected_modules'])
+    _confirm_selection(proposal)
 
     data = ProposalDetailSerializer(proposal, context={'is_admin': False}).data
 

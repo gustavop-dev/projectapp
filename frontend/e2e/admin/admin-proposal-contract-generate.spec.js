@@ -90,7 +90,7 @@ test.describe('Admin Proposal Contract Generate', () => {
     await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
   });
 
-  test('Documents tab is visible for sent proposals and contract stays locked', {
+  test('Documents tab is visible for sent proposals; contract generator only renders once negotiating', {
     tag: [...ADMIN_PROPOSAL_CONTRACT_GENERATE, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildApiHandler({
@@ -100,13 +100,10 @@ test.describe('Admin Proposal Contract Generate', () => {
     await page.waitForLoadState('domcontentloaded');
 
     await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Generar contrato/i })).toBeDisabled();
-
-    await page.getByText('Disponible en negociación').hover();
-    await expect(page.getByText('El contrato se habilita cuando la propuesta pase a negociación.')).toHaveCount(2);
+    await expect(page.getByRole('button', { name: /Generar contrato/i })).toHaveCount(0);
   });
 
-  test('contract stays locked for viewed proposals until negotiation', {
+  test('Documents tab is visible for viewed proposals; contract generator only renders once negotiating', {
     tag: [...ADMIN_PROPOSAL_CONTRACT_GENERATE, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildApiHandler({
@@ -115,8 +112,8 @@ test.describe('Admin Proposal Contract Generate', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByRole('button', { name: /Generar contrato/i })).toBeDisabled();
-    await expect(page.getByText('Disponible en negociación')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Generar contrato/i })).toHaveCount(0);
   });
 
   test('contract section shows "No generado" when no contract exists', {
@@ -126,7 +123,7 @@ test.describe('Admin Proposal Contract Generate', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByText('No generado', { exact: true })).toBeVisible();
+    await expect(page.getByText(/No generado/)).toBeVisible();
   });
 
   test('contract actions are enabled once proposal is negotiating', {

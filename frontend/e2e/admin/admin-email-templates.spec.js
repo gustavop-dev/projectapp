@@ -110,11 +110,12 @@ test.describe('Admin Email Templates Config', () => {
     // Page title renders
     await expect(page.locator('h1')).toContainText('Valores por Defecto');
 
-    // Category filter buttons render
-    await expect(page.getByRole('button', { name: /Todos/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Cliente/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Interno/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Contacto/ })).toBeVisible();
+    // Category filter buttons render — scope to the filter strip (first match) to avoid
+    // matching template name buttons that also contain "Contacto".
+    await expect(page.getByRole('button', { name: /Todos/ }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /Cliente/ }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /Interno/ }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /Contacto/ }).first()).toBeVisible();
   });
 
   test('renders all template rows in the list', {

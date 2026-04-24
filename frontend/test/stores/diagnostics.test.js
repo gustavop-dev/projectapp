@@ -267,7 +267,7 @@ describe('useDiagnosticsStore', () => {
     const d = mockDiagnostic({ status: 'sent' })
     get_request.mockResolvedValueOnce({ data: d })
     const result = await store.fetchPublic('aaaa-bbbb')
-    expect(get_request).toHaveBeenCalledWith('diagnostics/public/aaaa-bbbb/')
+    expect(get_request).toHaveBeenCalledWith('diagnostics/public/by-slug/aaaa-bbbb/')
     expect(store.current).toEqual(d)
     expect(result.success).toBe(true)
   })
