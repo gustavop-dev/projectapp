@@ -1012,6 +1012,16 @@
       "description": "Transient +/- price badge when toggling calculator modules with prices.",
       "expectedSpecs": 1
     },
+    "proposal-calculator-reopen-after-nav": {
+      "name": "Proposal Calculator Reopen After Nav",
+      "module": "proposal",
+      "roles": [
+        "guest"
+      ],
+      "priority": "P1",
+      "description": "Calculator module selections persist across section navigation but reset on hard reload: deselection + confirm remains after navigating away and back; a browser reload re-fetches backend state.",
+      "expectedSpecs": 1
+    },
     "proposal-payment-plan-closing": {
       "name": "Proposal Payment Plan in Closing",
       "module": "proposal",
@@ -2049,7 +2059,7 @@
       ],
       "priority": "P2",
       "description": "Filter diagnostics using saved tabs with localStorage persistence and URL sync (?tab=<tabId>). Filter dimensions: statuses (multi-select), investmentMin/Max, createdAfter/Before. Tab bar supports add/rename/delete (max 12 tabs).",
-      "expectedSpecs": 1,
+      "expectedSpecs": 0,
       "knownGaps": [
         "Covered by admin-diagnostic-advanced-filters.spec.js (4 tests: default view, filter toggle, tab creation, search)."
       ]
