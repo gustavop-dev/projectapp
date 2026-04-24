@@ -25,6 +25,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from accounts.models import UserProfile
+from accounts.serializers import ProjectListSerializer
 from accounts.services import proposal_client_service
 from content.models import BusinessProposal
 from content.serializers.proposal import ProposalListSerializer
@@ -32,6 +33,7 @@ from content.serializers.proposal_clients import (
     ProposalClientSearchSerializer,
     ProposalClientSerializer,
 )
+from content.serializers.diagnostic import DiagnosticListSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +146,7 @@ def search_proposal_clients(request):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def retrieve_proposal_client(request, client_id):
-    """Return a single client with the full ``proposals`` history nested."""
+    """Return a single client with proposals, platform projects, and diagnostics nested."""
     profile = _get_profile_or_404(client_id)
     if profile is None:
         return Response(
@@ -157,6 +159,10 @@ def retrieve_proposal_client(request, client_id):
         .order_by('-created_at')
     )
     payload['proposals'] = ProposalListSerializer(proposals, many=True).data
+    projects = profile.user.projects.select_related('client__profile').order_by('-created_at')
+    payload['projects'] = ProjectListSerializer(projects, many=True).data
+    diagnostics = profile.web_app_diagnostics.select_related('client__user').order_by('-created_at')
+    payload['diagnostics'] = DiagnosticListSerializer(diagnostics, many=True).data
     return Response(payload)
 
 
