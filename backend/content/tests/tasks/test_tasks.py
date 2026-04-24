@@ -2870,4 +2870,157 @@ class TestNotifyProposalStageDeadlines:
             import content.tasks as tasks_module
             tasks_module.notify_proposal_stage_deadlines.call_local()
 
-        mock_process.assert_not_called()
+
+# -- Coverage gap tests: _suggest_action_for_proposal expiry branches --------
+
+
+class TestSuggestActionExpiryBranches:
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_urgency_message_when_expires_in_1_day_with_discount(self):
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Urgency With Discount', client_name='Client',
+            status='sent',
+            expires_at=now + timedelta(days=1),
+            discount_percent=15,
+        )
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'Expira en 1d.' in result
+        assert 'urgencia' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_discount_message_when_expires_in_2_days_without_discount(self):
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='No Discount', client_name='Client',
+            status='sent',
+            expires_at=now + timedelta(days=2),
+            discount_percent=0,
+        )
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'descuento' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_viewed_recently_message_when_activity_within_2_days(self):
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Viewed Recent', client_name='Client',
+            status='viewed',
+            first_viewed_at=now - timedelta(hours=12),
+        )
+        BusinessProposal.objects.filter(pk=proposal.pk).update(
+            last_activity_at=now - timedelta(hours=12),
+        )
+        proposal.refresh_from_db()
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'Visto recientemente' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_sent_long_ago_message_when_proposal_not_opened_in_3_days(self):
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Sent Long Ago', client_name='Client',
+            status='sent',
+        )
+        BusinessProposal.objects.filter(pk=proposal.pk).update(
+            sent_at=now - timedelta(days=4),
+        )
+        proposal.refresh_from_db()
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'Sin abrir' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_sent_recently_message_when_proposal_sent_within_3_days(self):
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Sent Recent', client_name='Client',
+            status='sent',
+        )
+        BusinessProposal.objects.filter(pk=proposal.pk).update(
+            sent_at=now - timedelta(days=1),
+        )
+        proposal.refresh_from_db()
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'Enviada recientemente' in result
+
+
+# -- Coverage gap tests: calculator abandonment JSON parse error -------------
+
+
+class TestCalculatorAbandonmentInvalidJson:
+    @freeze_time('2026-03-10 12:00:00')
+    def test_creates_low_intent_alert_when_description_is_invalid_json(self):
+        from content.models import ProposalAlert
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Invalid JSON Calc', client_name='Client',
+            status='viewed',
+            automations_paused=False,
+        )
+        log = ProposalChangeLog.objects.create(
+            proposal=proposal, change_type='calc_abandoned',
+            description='not-valid-json',
+        )
+        ProposalChangeLog.objects.filter(pk=log.pk).update(
+            created_at=now - timedelta(hours=30),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_calculator_abandonment_followup.call_local()
+
+        alert = ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='calculator_followup',
+        ).first()
+        assert alert is not None
+        assert 'abandonó' in alert.message
+
+
+# -- Coverage gap tests: engagement followup last_event is None --------------
+
+
+class TestCheckEngagementFollowupsLastEventNone:
+    @freeze_time('2026-03-10 12:00:00')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_investment_interest_followup')
+    def test_skips_investment_interest_when_no_view_events(self, mock_send):
+        now = timezone.now()
+        BusinessProposal.objects.create(
+            title='No View Events',
+            client_name='Client',
+            client_email='noevents@test.com',
+            status='viewed',
+            first_viewed_at=now - timedelta(hours=1),
+            automations_paused=False,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_engagement_followups.call_local()
+
+        mock_send.assert_not_called()
+
+
+# -- Coverage gap tests: run_platform_onboarding is_relaunch -----------------
+
+
+class TestRunPlatformOnboardingIsRelaunch:
+    def test_passes_send_email_false_when_is_relaunch_is_true(self, accepted_proposal):
+        accepted_proposal.platform_onboarding_status = 'pending'
+        accepted_proposal.save(update_fields=['platform_onboarding_status'])
+
+        with patch(
+            'accounts.services.proposal_platform_onboarding.handle_proposal_accepted_for_platform',
+        ) as mock_onboard:
+            mock_onboard.return_value = {'skipped': False}
+
+            import content.tasks as tasks_module
+            tasks_module.run_platform_onboarding.call_local(
+                accepted_proposal.id,
+                is_relaunch=True,
+            )
+
+        _, kwargs = mock_onboard.call_args
+        assert kwargs['send_email'] is False

@@ -40,10 +40,10 @@ jest.mock('../../composables/useConfirmModal', () => ({
   useConfirmModal: () => mockConfirmModal,
 }));
 
-jest.mock('../../composables/useSellerPrompt', () => ({
-  useSellerPrompt: () => {
-    const { ref } = require('vue');
-    return {
+jest.mock('../../composables/useSellerPrompt', () => {
+  const { ref } = require('vue');
+  return {
+    useSellerPrompt: () => ({
       promptText: ref(''),
       isEditing: ref(false),
       DEFAULT_PROMPT: '',
@@ -52,14 +52,14 @@ jest.mock('../../composables/useSellerPrompt', () => ({
       resetPrompt: jest.fn(),
       copyPrompt: jest.fn().mockResolvedValue(undefined),
       downloadPrompt: jest.fn(),
-    };
-  },
-}));
+    }),
+  };
+});
 
-jest.mock('../../composables/useTechnicalPrompt', () => ({
-  useTechnicalPrompt: () => {
-    const { ref } = require('vue');
-    return {
+jest.mock('../../composables/useTechnicalPrompt', () => {
+  const { ref } = require('vue');
+  return {
+    useTechnicalPrompt: () => ({
       promptText: ref(''),
       isEditing: ref(false),
       DEFAULT_PROMPT: '',
@@ -68,9 +68,9 @@ jest.mock('../../composables/useTechnicalPrompt', () => ({
       resetPrompt: jest.fn(),
       copyPrompt: jest.fn().mockResolvedValue(undefined),
       downloadPrompt: jest.fn(),
-    };
-  },
-}));
+    }),
+  };
+});
 
 import { mount } from '@vue/test-utils';
 import ProposalDefaultsPanel from '../../components/panel/defaults/ProposalDefaultsPanel.vue';
@@ -134,6 +134,7 @@ describe('ProposalDefaultsPanel', () => {
     });
     mockProposalStore.saveEmailTemplate.mockReset().mockResolvedValue({ success: true });
     mockProposalStore.resetEmailTemplate.mockReset().mockResolvedValue({ success: true });
+    mockProposalStore.previewEmailTemplate.mockReset().mockResolvedValue({ success: false });
     mockConfirmModal.requestConfirm.mockClear();
     global.navigator = { clipboard: { writeText: jest.fn().mockResolvedValue(undefined) } };
     global.URL = { createObjectURL: jest.fn().mockReturnValue('blob://mock'), revokeObjectURL: jest.fn() };
@@ -428,6 +429,138 @@ describe('ProposalDefaultsPanel', () => {
       await wrapper.findAll('button').find((btn) => btn.text().includes('Aplicar a plantilla')).trigger('click');
 
       expect(wrapper.text()).toContain('JSON inválido');
+    });
+  });
+
+  // ── Language switch ───────────────────────────────────────────────────────
+
+  describe('language switch', () => {
+    it('calls fetchProposalDefaults with en when the English button is clicked', async () => {
+      const wrapper = mountPanel('general');
+      await flushPromises();
+
+      mockProposalStore.fetchProposalDefaults.mockResolvedValueOnce(defaultDataResponse);
+      const enBtn = wrapper.findAll('button').find(b => b.text() === 'English');
+      await enBtn.trigger('click');
+      await flushPromises();
+
+      expect(mockProposalStore.fetchProposalDefaults).toHaveBeenCalledWith('en');
+    });
+
+    it('calls requestConfirm when switching language with unsaved section changes', async () => {
+      const wrapper = mountPanel('general');
+      await flushPromises();
+
+      // Manually mark a section as unsaved via internal state
+      wrapper.vm.savedSections.add(0);
+      await wrapper.vm.$nextTick();
+
+      const enBtn = wrapper.findAll('button').find(b => b.text() === 'English');
+      await enBtn.trigger('click');
+
+      expect(mockConfirmModal.requestConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({ title: expect.stringContaining('Cambios') })
+      );
+    });
+  });
+
+  // ── Email template editing ────────────────────────────────────────────────
+
+  describe('email template editing', () => {
+    it('renders editable fields when a template with fields is loaded', async () => {
+      mockProposalStore.fetchEmailTemplates.mockResolvedValueOnce({
+        success: true,
+        data: [{ template_key: 'welcome', name: 'Bienvenida', category: 'client', description: '', editable_fields_count: 1, is_customized: false, is_active: true }],
+      });
+      mockProposalStore.fetchEmailTemplateDetail.mockResolvedValueOnce({
+        success: true,
+        data: {
+          editable_fields: [{ key: 'subject', label: 'Asunto', type: 'text', current_value: 'Hola!', default_value: 'Hola' }],
+          is_active: true,
+        },
+      });
+
+      const wrapper = mountPanel('emails');
+      await flushPromises();
+      await wrapper.findAll('button').find(b => b.text().includes('Bienvenida')).trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Asunto');
+    });
+
+    it('opens the email preview modal when the Vista previa button is clicked', async () => {
+      mockProposalStore.fetchEmailTemplates.mockResolvedValueOnce({
+        success: true,
+        data: [{ template_key: 'welcome', name: 'Bienvenida', category: 'client', description: '', editable_fields_count: 0, is_customized: false, is_active: true }],
+      });
+      mockProposalStore.fetchEmailTemplateDetail.mockResolvedValueOnce({
+        success: true,
+        data: { editable_fields: [], is_active: true },
+      });
+      mockProposalStore.previewEmailTemplate.mockResolvedValueOnce({
+        success: true,
+        data: { html_preview: '<p>Preview</p>', subject: 'Test' },
+      });
+
+      const wrapper = mountPanel('emails');
+      await flushPromises();
+      await wrapper.findAll('button').find(b => b.text().includes('Bienvenida')).trigger('click');
+      await flushPromises();
+
+      const previewBtn = wrapper.findAll('button').find(b => b.text().includes('Vista previa'));
+      expect(previewBtn).toBeTruthy();
+      await previewBtn.trigger('click');
+      await flushPromises();
+
+      expect(mockProposalStore.previewEmailTemplate).toHaveBeenCalledWith('welcome');
+    });
+
+    it('sets emailShowResetConfirm when the Restaurar button is clicked', async () => {
+      mockProposalStore.fetchEmailTemplates.mockResolvedValueOnce({
+        success: true,
+        data: [{ template_key: 'welcome', name: 'Bienvenida', category: 'client', description: '', editable_fields_count: 0, is_customized: false, is_active: true }],
+      });
+      mockProposalStore.fetchEmailTemplateDetail.mockResolvedValueOnce({
+        success: true,
+        data: { editable_fields: [], is_active: true },
+      });
+
+      const wrapper = mountPanel('emails');
+      await flushPromises();
+      await wrapper.findAll('button').find(b => b.text().includes('Bienvenida')).trigger('click');
+      await flushPromises();
+
+      const restaurarBtn = wrapper.findAll('button').find(b => b.text() === 'Restaurar');
+      await restaurarBtn.trigger('click');
+
+      expect(wrapper.vm.emailShowResetConfirm).toBe(true);
+    });
+  });
+
+  // ── Prompt tab ────────────────────────────────────────────────────────────
+
+  describe('prompt tab', () => {
+    it('shows the copied confirmation after the Copiar button is clicked', async () => {
+      const wrapper = mountPanel('prompt');
+      await flushPromises();
+
+      const copyBtn = wrapper.findAll('button').find(b => b.text() === 'Copiar' || b.text() === '¡Copiado!');
+      expect(copyBtn).toBeTruthy();
+      await copyBtn.trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('¡Copiado!');
+    });
+
+    it('renders the Descargar .md button in the prompt tab', async () => {
+      const wrapper = mountPanel('prompt');
+      await flushPromises();
+
+      const dlBtn = wrapper.findAll('button').find(b => b.text().includes('Descargar .md'));
+      expect(dlBtn).toBeTruthy();
+      await dlBtn.trigger('click');
+
+      expect(wrapper.exists()).toBe(true);
     });
   });
 });
