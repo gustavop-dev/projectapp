@@ -672,6 +672,159 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
     expect(wrapper.emitted('save')).toBeFalsy();
   });
 
+  // ── mergeContent branch coverage ─────────────────────────────────────────
+
+  it('mergeContent returns empty purpose when content_json is null', () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: { ...baseSection, content_json: null },
+    });
+    // Purpose textarea is the first textarea; should be empty (empty doc default)
+    expect(wrapper.find('textarea').element.value).toBe('');
+  });
+
+  it('mergeContent returns empty purpose when content_json.purpose is not a string', () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: { ...baseSection, content_json: { purpose: 42, epics: [] } },
+    });
+    expect(wrapper.find('textarea').element.value).toBe('');
+  });
+
+  it('mergeContent uses empty stack when content_json.stack is not an array', () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: { ...baseSection, content_json: { purpose: 'test', stack: 'invalid', epics: [] } },
+    });
+    // No stack rows should be shown beyond header
+    const stackDeleteBtns = wrapper.findAll('button').filter(b => b.text() === 'Quitar fila');
+    expect(stackDeleteBtns).toHaveLength(0);
+  });
+
+  it('mergeContent uses empty epics when content_json.epics is not an array', () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: { ...baseSection, content_json: { purpose: 'test', epics: 'invalid' } },
+    });
+    expect(wrapper.findAll('button').filter(b => b.text() === 'Eliminar módulo')).toHaveLength(0);
+  });
+
+  // ── validate branch coverage ──────────────────────────────────────────────
+
+  it('validate accepts epicKey with numbers and hyphens', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            { epicKey: 'epic-1-auth', title: 'Auth', description: '', linked_module_ids: [], requirements: [] },
+          ],
+        },
+      },
+    });
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+    expect(wrapper.text()).not.toContain('epicKey inválido');
+    expect(wrapper.emitted('save')).toBeTruthy();
+  });
+
+  it('validate skips epicKey format check when epicKey is empty', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            { epicKey: '', title: 'No key epic', description: '', linked_module_ids: [], requirements: [] },
+          ],
+        },
+      },
+    });
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+    expect(wrapper.text()).not.toContain('epicKey inválido');
+    expect(wrapper.emitted('save')).toBeTruthy();
+  });
+
+  it('validate returns missing-title error when requirement.usageFlow is set but title is empty', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            {
+              epicKey: '',
+              title: 'Epic',
+              description: '',
+              linked_module_ids: [],
+              requirements: [
+                { flowKey: '', title: '', description: '', configuration: '', usageFlow: 'User opens app', priority: '', linked_module_ids: [] },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+    expect(wrapper.text()).toContain('título');
+  });
+
+  it('validate returns missing-title error when requirement.configuration is set but title is empty', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            {
+              epicKey: '',
+              title: 'Epic',
+              description: '',
+              linked_module_ids: [],
+              requirements: [
+                { flowKey: '', title: '', description: '', configuration: 'config-data', usageFlow: '', priority: '', linked_module_ids: [] },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+    expect(wrapper.text()).toContain('título');
+  });
+
+  // ── requirement removal index accuracy ───────────────────────────────────
+
+  it('removes the second requirement from a two-requirement epic correctly', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            {
+              epicKey: 'my-epic',
+              title: 'My Epic',
+              description: '',
+              linked_module_ids: [],
+              requirements: [
+                { flowKey: 'req-first', title: 'First', description: '', configuration: '', usageFlow: '', priority: '', linked_module_ids: [] },
+                { flowKey: 'req-second', title: 'Second', description: '', configuration: '', usageFlow: '', priority: '', linked_module_ids: [] },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    const quitarBtns = wrapper.findAll('button').filter(b => b.text() === 'Quitar requerimiento');
+    expect(quitarBtns).toHaveLength(2);
+
+    await quitarBtns[1].trigger('click');
+
+    expect(wrapper.findAll('button').filter(b => b.text() === 'Quitar requerimiento')).toHaveLength(1);
+  });
+
   // ── insertGenericStub ──────────────────────────────────────────────────────
 
   it('insertGenericStub appends a stub epic when a module is selected and the button is clicked', async () => {

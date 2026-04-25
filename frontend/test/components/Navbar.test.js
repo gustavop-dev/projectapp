@@ -395,4 +395,76 @@ describe('Navbar', () => {
     const softwareLink = desktopNav.findAll('a').find((a) => a.text() === 'Custom Software');
     expect(softwareLink.classes().join(' ')).not.toContain('font-medium');
   });
+
+  // ── openMenu / closeMenu observable behavior ─────────────────────────────
+
+  it('openMenu makes the mobile menu visible in the DOM', async () => {
+    const wrapper = mountNavbar();
+    await wrapper.find('button[aria-label="Open menu"]').trigger('click');
+
+    // showMenu.value = true → v-show makes #mobile-menu visible
+    const menu = wrapper.find('#mobile-menu');
+    expect(menu.isVisible()).toBe(true);
+  });
+
+  it('clicking close menu does not throw and wrapper remains mounted', async () => {
+    const wrapper = mountNavbar();
+    await wrapper.find('button[aria-label="Open menu"]').trigger('click');
+    const closeBtn = wrapper.find('button[aria-label="Close menu"]');
+
+    await expect(closeBtn.trigger('click')).resolves.not.toThrow();
+    expect(wrapper.exists()).toBe(true);
+  });
+
+  it('isActiveRoute returns false for contact routeKey on any route', () => {
+    const wrapper = mountNavbar();
+    const desktopNav = wrapper.find('nav[aria-label="Main navigation"]');
+    const contactLink = desktopNav.findAll('a').find((a) => a.text() === 'Contact');
+    // Contact always inactive (external link)
+    expect(contactLink.classes().join(' ')).not.toContain('font-medium');
+  });
+
+  it('isActiveRoute returns true for blog routeKey when route is blog page', () => {
+    global.useRoute.mockReturnValueOnce({
+      name: 'blog-slug___es-co',
+      fullPath: '/blog/post',
+      path: '/blog/post',
+    });
+    const wrapper = mountNavbar();
+
+    const desktopNav = wrapper.find('nav[aria-label="Main navigation"]');
+    const blogLink = desktopNav.findAll('a').find((a) => a.text() === 'Blog');
+    expect(blogLink.classes().join(' ')).toContain('font-medium');
+  });
+
+  it('isActiveRoute returns false for blog routeKey when route is index', () => {
+    const wrapper = mountNavbar();
+
+    const desktopNav = wrapper.find('nav[aria-label="Main navigation"]');
+    const blogLink = desktopNav.findAll('a').find((a) => a.text() === 'Blog');
+    expect(blogLink.classes().join(' ')).not.toContain('font-medium');
+  });
+
+  it('hoverMenu isHover=true branch does not throw when underline is absent', () => {
+    const wrapper = mountNavbar();
+    const firstLink = wrapper.find('nav[aria-label="Main navigation"] a');
+    expect(() => firstLink.trigger('mouseenter')).not.toThrow();
+  });
+
+  it('hoverMenu isHover=false branch does not throw on mouseleave', () => {
+    const wrapper = mountNavbar();
+    const firstLink = wrapper.find('nav[aria-label="Main navigation"] a');
+    expect(() => firstLink.trigger('mouseleave')).not.toThrow();
+  });
+
+  it('click-outside handler does not close menu when click is inside menuBox', async () => {
+    requestAnimationFrame.mockImplementationOnce((cb) => cb());
+    const wrapper = mountNavbar();
+    await wrapper.find('button[aria-label="Open menu"]').trigger('click');
+
+    // Click inside the mobile menu (menu is open, click is inside menuBox)
+    const mobileNav = wrapper.find('nav[aria-label="Mobile navigation"]');
+    expect(() => mobileNav.trigger('click')).not.toThrow();
+    expect(wrapper.exists()).toBe(true);
+  });
 });

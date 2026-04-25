@@ -1027,4 +1027,260 @@ describe('ProposalDefaultsPanel', () => {
       expect(wrapper.text()).toContain('Valores restaurados a los originales del sistema.');
     });
   });
+
+  // ── slugPatternPreview branches ───────────────────────────────────────────
+
+  describe('slugPatternPreview', () => {
+    it('falls back to maria-lopez when the slug pattern input is cleared', async () => {
+      const wrapper = mountPanel();
+      await flushPromises();
+
+      await wrapper.find('[data-testid="defaults-slug-pattern"]').setValue('');
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.text()).toContain('maria-lopez');
+    });
+
+    it('shows e-commerce in slug preview when pattern contains {project_type}', async () => {
+      const wrapper = mountPanel();
+      await flushPromises();
+
+      await wrapper.find('[data-testid="defaults-slug-pattern"]').setValue('{project_type}');
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.text()).toContain('e-commerce');
+    });
+  });
+
+  // ── handleSaveGeneral language switch ─────────────────────────────────────
+
+  describe('handleSaveGeneral language switch', () => {
+    it('calls loadDefaults with the new language when the language select is changed before saving', async () => {
+      const wrapper = mountPanel();
+      await flushPromises();
+      mockProposalStore.fetchProposalDefaults.mockClear();
+
+      await wrapper.findAll('select').at(0).setValue('en');
+      await wrapper.find('form').trigger('submit');
+      await flushPromises();
+
+      expect(mockProposalStore.fetchProposalDefaults).toHaveBeenCalledWith('en');
+    });
+  });
+
+  // ── handleSaveSection ─────────────────────────────────────────────────────
+
+  describe('handleSaveSection', () => {
+    it('shows local feedback when called with a string sectionId in default-N format', async () => {
+      mockProposalStore.fetchProposalDefaults.mockResolvedValueOnce({
+        success: true,
+        data: { ...defaultDataResponse.data, sections_json: [{ section_type: 'intro', title: 'Intro', order: 0, content_json: {} }] },
+      });
+      const wrapper = mountPanel('sections');
+      await flushPromises();
+
+      wrapper.vm.handleSaveSection({ sectionId: 'default-0', payload: { title: 'Updated', content_json: {} } });
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.text()).toContain('Sección actualizada localmente');
+    });
+
+    it('shows local feedback when called with a numeric sectionId', async () => {
+      mockProposalStore.fetchProposalDefaults.mockResolvedValueOnce({
+        success: true,
+        data: { ...defaultDataResponse.data, sections_json: [{ section_type: 'intro', title: 'Intro', order: 0, content_json: {} }] },
+      });
+      const wrapper = mountPanel('sections');
+      await flushPromises();
+
+      wrapper.vm.handleSaveSection({ sectionId: 0, payload: { title: 'Numeric Update', content_json: {} } });
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.text()).toContain('Sección actualizada localmente');
+    });
+  });
+
+  // ── defaultsTechnicalEpicCount non-array epics ────────────────────────────
+
+  describe('defaultsTechnicalEpicCount', () => {
+    it('shows 0 módulo(s) when technical_document section has non-array epics', async () => {
+      mockProposalStore.fetchProposalDefaults.mockResolvedValueOnce({
+        success: true,
+        data: {
+          ...defaultDataResponse.data,
+          sections_json: [{ section_type: 'technical_document', title: 'Det. técnico', order: 0, content_json: { epics: null } }],
+        },
+      });
+      const wrapper = mountPanel('json');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('0 módulo(s)');
+    });
+  });
+
+  // ── handleApplyDefaultsTechnicalJson array branch ─────────────────────────
+
+  describe('handleApplyDefaultsTechnicalJson array branch', () => {
+    it('shows error when the technical JSON textarea contains a JSON array instead of object', async () => {
+      mockProposalStore.fetchProposalDefaults.mockResolvedValueOnce({
+        success: true,
+        data: {
+          ...defaultDataResponse.data,
+          sections_json: [{ section_type: 'technical_document', title: 'Det. técnico', order: 0, content_json: { epics: [] } }],
+        },
+      });
+      const wrapper = mountPanel('technical');
+      await flushPromises();
+
+      await wrapper.findAll('button').find(b => b.text() === 'JSON').trigger('click');
+      await wrapper.vm.$nextTick();
+
+      const technicalTextarea = wrapper.find('textarea[rows="24"]');
+      await technicalTextarea.setValue('[1, 2, 3]');
+      await wrapper.findAll('button').find(b => b.text().includes('Aplicar a plantilla')).trigger('click');
+
+      expect(wrapper.text()).toContain('debe ser un objeto JSON');
+    });
+  });
+
+  // ── Technical prompt tab ──────────────────────────────────────────────────
+
+  describe('technical prompt tab', () => {
+    it('shows editing textarea after Editar is clicked for the technical prompt', async () => {
+      const wrapper = mountPanel('prompt');
+      await flushPromises();
+
+      const editarBtns = wrapper.findAll('button').filter(b => b.text() === 'Editar');
+      await editarBtns[1].trigger('click');
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find('textarea[rows="28"]').exists()).toBe(true);
+    });
+
+    it('hides the editing textarea after Cancelar is clicked for the technical prompt', async () => {
+      const wrapper = mountPanel('prompt');
+      await flushPromises();
+
+      await wrapper.findAll('button').filter(b => b.text() === 'Editar')[1].trigger('click');
+      await wrapper.vm.$nextTick();
+
+      await wrapper.findAll('button').find(b => b.text() === 'Cancelar').trigger('click');
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find('textarea[rows="28"]').exists()).toBe(false);
+    });
+
+    it('shows success message after Guardar cambios is clicked in the technical prompt section', async () => {
+      const wrapper = mountPanel('prompt');
+      await flushPromises();
+
+      await wrapper.findAll('button').filter(b => b.text() === 'Editar')[1].trigger('click');
+      await wrapper.vm.$nextTick();
+
+      await wrapper.findAll('button').find(b => b.text() === 'Guardar cambios').trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Prompt técnico guardado correctamente.');
+    });
+
+    it('shows ¡Copiado! after the Copiar button is clicked for the technical prompt', async () => {
+      const wrapper = mountPanel('prompt');
+      await flushPromises();
+
+      const copiarBtns = wrapper.findAll('button').filter(b => b.text() === 'Copiar' || b.text() === '¡Copiado!');
+      await copiarBtns[1].trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('¡Copiado!');
+    });
+  });
+
+  // ── handleEmailPreview error branch ──────────────────────────────────────
+
+  describe('handleEmailPreview error', () => {
+    it('shows error feedback when previewEmailTemplate returns success false', async () => {
+      mockProposalStore.fetchEmailTemplates.mockResolvedValueOnce({
+        success: true,
+        data: [{ template_key: 'tpl-prev-err', name: 'Preview Err Template', category: 'client', description: '', editable_fields_count: 0, is_customized: false, is_active: true }],
+      });
+      mockProposalStore.fetchEmailTemplateDetail.mockResolvedValueOnce({
+        success: true,
+        data: { editable_fields: [], is_active: true },
+      });
+      mockProposalStore.previewEmailTemplate.mockResolvedValueOnce({ success: false });
+
+      const wrapper = mountPanel('emails');
+      await flushPromises();
+      await wrapper.findAll('button').find(b => b.text().includes('Preview Err Template')).trigger('click');
+      await flushPromises();
+
+      await wrapper.findAll('button').find(b => b.text().includes('Vista previa')).trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Error al generar la vista previa.');
+    });
+  });
+
+  // ── selectEmailTemplate same-key guard ───────────────────────────────────
+
+  describe('selectEmailTemplate same-key guard', () => {
+    it('does not call fetchEmailTemplateDetail a second time when the same template is clicked again', async () => {
+      mockProposalStore.fetchEmailTemplates.mockResolvedValueOnce({
+        success: true,
+        data: [{ template_key: 'tpl-same', name: 'Same Template', category: 'client', description: '', editable_fields_count: 0, is_customized: false, is_active: true }],
+      });
+      mockProposalStore.fetchEmailTemplateDetail.mockResolvedValue({
+        success: true,
+        data: { editable_fields: [], is_active: true },
+      });
+
+      const wrapper = mountPanel('emails');
+      await flushPromises();
+      const tplBtn = wrapper.findAll('button').find(b => b.text().includes('Same Template'));
+      await tplBtn.trigger('click');
+      await flushPromises();
+      mockProposalStore.fetchEmailTemplateDetail.mockClear();
+
+      await tplBtn.trigger('click');
+      await flushPromises();
+
+      expect(mockProposalStore.fetchEmailTemplateDetail).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── loadDefaults non-string currency fallback ─────────────────────────────
+
+  describe('loadDefaults non-string currency', () => {
+    it('falls back to COP when default_currency is not a string', async () => {
+      mockProposalStore.fetchProposalDefaults.mockResolvedValueOnce({
+        success: true,
+        data: { ...defaultDataResponse.data, default_currency: 42 },
+      });
+      const wrapper = mountPanel('general');
+      await flushPromises();
+
+      const currencySelect = wrapper.findAll('select').at(1);
+      expect(currencySelect.element.value).toBe('COP');
+    });
+  });
+
+  // ── saveEditJson null section branch ─────────────────────────────────────
+
+  describe('saveEditJson null section', () => {
+    it('shows error message when a section in the JSON array is null', async () => {
+      const wrapper = mountPanel('json');
+      await flushPromises();
+
+      const editarButtons = wrapper.findAll('button').filter(b => b.text() === 'Editar');
+      await editarButtons.at(-1).trigger('click');
+      await wrapper.vm.$nextTick();
+
+      const jsonTextarea = wrapper.findAll('textarea.font-mono').at(-1);
+      await jsonTextarea.setValue(JSON.stringify({ language: 'es', sections: [null] }));
+      await wrapper.findAll('button').find(b => b.text().includes('Guardar cambios')).trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('debe ser un objeto');
+    });
+  });
 });
