@@ -126,6 +126,7 @@ def _run_single_publish(post_id):
 
 
 class TestPublishSingleScheduledBlog:
+    @freeze_time('2026-01-15 12:00:00')
     def test_publishes_draft_and_triggers_linkedin(self):
         post = BlogPost.objects.create(
             **BLOG_POST_BASE,
@@ -141,6 +142,7 @@ class TestPublishSingleScheduledBlog:
         post.refresh_from_db()
         assert post.is_published is True
 
+    @freeze_time('2026-01-15 12:00:00')
     def test_skips_if_already_published(self):
         post = BlogPost.objects.create(
             **BLOG_POST_BASE,

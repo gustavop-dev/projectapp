@@ -104,7 +104,7 @@ class TestSeedSections:
 # ---------------------------------------------------------------------------
 
 class TestTransitionStatus:
-    def test_invalid_transition_raises_value_error(self, diag):
+    def test_invalid_transition_raises_value_error(self, diag):  # quality: disable no_assertions (pytest.raises is the assertion)
         with pytest.raises(ValueError, match='invalid_transition'):
             diagnostic_service.transition_status(
                 diag, WebAppDiagnostic.Status.ACCEPTED,

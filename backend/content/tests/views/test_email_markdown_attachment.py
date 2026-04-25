@@ -50,11 +50,11 @@ class TestGenerateEmailMarkdownAttachment:
         )
         assert response.status_code == 404
 
-    def test_returns_pdf_bytes(self, admin_client, proposal):
+    def test_returns_pdf_with_correct_headers(self, admin_client, proposal):
         with patch(
             'content.services.document_pdf_service.DocumentPdfService.generate_from_markdown',
             return_value=b'%PDF-1.4 mock-bytes',
-        ) as mock_gen:
+        ):
             response = admin_client.post(
                 _url(proposal.id),
                 {
@@ -70,6 +70,23 @@ class TestGenerateEmailMarkdownAttachment:
         assert response['Content-Type'] == 'application/pdf'
         assert response.content.startswith(b'%PDF')
         assert 'resumen-de-cambios.pdf' in response['Content-Disposition']
+
+    def test_pdf_service_called_with_correct_params(self, admin_client, proposal):
+        with patch(
+            'content.services.document_pdf_service.DocumentPdfService.generate_from_markdown',
+            return_value=b'%PDF-1.4 mock-bytes',
+        ) as mock_gen:
+            admin_client.post(
+                _url(proposal.id),
+                {
+                    'title': 'Resumen de cambios',
+                    'markdown': '# Hola\n\nContenido.',
+                    'include_portada': True,
+                    'include_subportada': False,
+                    'include_contraportada': True,
+                },
+                format='json',
+            )
         mock_gen.assert_called_once()
         kwargs = mock_gen.call_args.kwargs
         assert kwargs['title'] == 'Resumen de cambios'

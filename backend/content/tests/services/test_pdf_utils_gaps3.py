@@ -39,7 +39,7 @@ class TestFontFallback:
 # ---------------------------------------------------------------------------
 
 class TestFontRegistrationException:
-    def test_register_fonts_swallows_exception_per_font(self, caplog):
+    def test_register_fonts_swallows_exception_per_font(self, caplog):  # quality: disable no_assertions (no-raise is the assertion - function must swallow per-font exceptions)
         import content.services.pdf_utils as pdf_utils
         pdf_utils._fonts_registered = False
 

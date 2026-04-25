@@ -154,7 +154,7 @@ class TestPutProposalDefaults:
         response = api_client.put(url, payload, format='json')
         assert response.status_code == 401
 
-    def test_persists_all_general_fields_round_trip(self, admin_client):
+    def _put_full_payload(self, admin_client):
         url = reverse('proposal-defaults')
         payload = {
             'language': 'es',
@@ -170,21 +170,25 @@ class TestPutProposalDefaults:
             'default_discount_percent': 15,
             'default_slug_pattern': 'Mi Propuesta Especial',
         }
-        put_resp = admin_client.put(url, payload, format='json')
-        assert put_resp.status_code == 200, put_resp.content
+        return admin_client.put(url, payload, format='json')
 
-        get_resp = admin_client.get(url, {'lang': 'es'})
-        assert get_resp.status_code == 200
-        data = get_resp.json()
+    def test_round_trip_persists_financial_fields(self, admin_client):
+        put_resp = self._put_full_payload(admin_client)
+        assert put_resp.status_code == 200, put_resp.content
+        data = admin_client.get(reverse('proposal-defaults'), {'lang': 'es'}).json()
         assert data['default_currency'] == 'USD'
         assert float(data['default_total_investment']) == 1234.50
         assert data['hosting_percent'] == 45
         assert data['hosting_discount_semiannual'] == 25
         assert data['hosting_discount_quarterly'] == 12
+        assert data['default_discount_percent'] == 15
+
+    def test_round_trip_persists_deadline_and_slug_fields(self, admin_client):
+        self._put_full_payload(admin_client)
+        data = admin_client.get(reverse('proposal-defaults'), {'lang': 'es'}).json()
         assert data['expiration_days'] == 30
         assert data['reminder_days'] == 5
         assert data['urgency_reminder_days'] == 10
-        assert data['default_discount_percent'] == 15
         assert data['default_slug_pattern'] == 'Mi Propuesta Especial'
 
     def test_rejects_hosting_percent_out_of_range(self, admin_client):

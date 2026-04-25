@@ -22,12 +22,15 @@ SAMPLE_SECTIONS = [
 
 
 class TestDiagnosticDefaultConfigCreation:
-    def test_create_es_with_defaults(self):
+    def test_create_es_config_default_percentages(self):
         config = DiagnosticDefaultConfig.objects.create(language='es')
         assert config.pk is not None
         assert config.payment_initial_pct == 60
         assert config.payment_final_pct == 40
         assert config.default_currency == 'COP'
+
+    def test_create_es_config_default_deadline_fields(self):
+        config = DiagnosticDefaultConfig.objects.create(language='es')
         assert config.expiration_days == 21
         assert config.reminder_days == 7
         assert config.urgency_reminder_days == 14

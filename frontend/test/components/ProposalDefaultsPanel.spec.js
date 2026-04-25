@@ -949,4 +949,82 @@ describe('ProposalDefaultsPanel', () => {
       expect(mockProposalStore.fetchProposalDefaults).toHaveBeenCalled();
     });
   });
+
+  // ── loadDefaults failure branch ───────────────────────────────────────────
+
+  describe('loadDefaults failure', () => {
+    it('does not update generalForm when fetchProposalDefaults returns success: false', async () => {
+      mockProposalStore.fetchProposalDefaults.mockResolvedValueOnce({ success: false });
+      const wrapper = mountPanel();
+      await flushPromises();
+
+      // The default slug pattern input should still render (form not updated, keeps initial values)
+      expect(wrapper.find('[data-testid="defaults-slug-pattern"]').exists()).toBe(true);
+    });
+  });
+
+  // ── switchLanguage same-language guard ────────────────────────────────────
+
+  describe('switchLanguage same-language guard', () => {
+    it('does not call fetchProposalDefaults when switching to the already-selected language', async () => {
+      const wrapper = mountPanel('general');
+      await flushPromises();
+
+      mockProposalStore.fetchProposalDefaults.mockClear();
+
+      // Default language is 'es'; clicking Español again should be a no-op
+      const esBtn = wrapper.findAll('button').find(b => b.text() === 'Español');
+      await esBtn.trigger('click');
+      await flushPromises();
+
+      expect(mockProposalStore.fetchProposalDefaults).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── filteredEmailTemplates category filter ────────────────────────────────
+
+  describe('filteredEmailTemplates', () => {
+    it('shows only client templates when the Cliente category button is clicked', async () => {
+      mockProposalStore.fetchEmailTemplates.mockResolvedValueOnce({
+        success: true,
+        data: [
+          { template_key: 'cli-1', name: 'Correo cliente', category: 'client', description: '', editable_fields_count: 0, is_customized: false, is_active: true },
+          { template_key: 'int-1', name: 'Correo interno', category: 'internal', description: '', editable_fields_count: 0, is_customized: false, is_active: true },
+        ],
+      });
+
+      const wrapper = mountPanel('emails');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Correo cliente');
+      expect(wrapper.text()).toContain('Correo interno');
+
+      const clienteBtn = wrapper.findAll('button').find(b => b.text().startsWith('Cliente'));
+      await clienteBtn.trigger('click');
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.text()).toContain('Correo cliente');
+      expect(wrapper.text()).not.toContain('Correo interno');
+    });
+  });
+
+  // ── confirmReset success feedback ─────────────────────────────────────────
+
+  describe('confirmReset success feedback', () => {
+    it('shows success feedback and reloads defaults after a successful reset', async () => {
+      mockProposalStore.fetchProposalDefaults.mockResolvedValue({
+        success: true,
+        data: { ...defaultDataResponse.data, sections_json: [{ section_type: 'intro', title: 'Intro', order: 0, content_json: {} }] },
+      });
+
+      const wrapper = mountPanel('sections');
+      await flushPromises();
+
+      await wrapper.findAll('button').find(b => b.text().includes('Restaurar valores originales')).trigger('click');
+      await wrapper.findAll('button').find(b => b.text().includes('Sí, restaurar')).trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Valores restaurados a los originales del sistema.');
+    });
+  });
 });

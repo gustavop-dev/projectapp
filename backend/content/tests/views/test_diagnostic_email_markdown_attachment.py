@@ -50,13 +50,11 @@ class TestGenerateDiagnosticEmailMarkdownAttachment:
         )
         assert response.status_code == 404
 
-    def test_returns_pdf_bytes_with_client_name_from_diagnostic(
-        self, admin_client, diagnostic,
-    ):
+    def test_pdf_response_has_correct_headers(self, admin_client, diagnostic):
         with patch(
             'content.services.document_pdf_service.DocumentPdfService.generate_from_markdown',
             return_value=b'%PDF-1.4 mock-bytes',
-        ) as mock_gen:
+        ):
             response = admin_client.post(
                 _url(diagnostic.id),
                 {
@@ -72,6 +70,23 @@ class TestGenerateDiagnosticEmailMarkdownAttachment:
         assert response['Content-Type'] == 'application/pdf'
         assert response.content.startswith(b'%PDF')
         assert 'resumen-diagnostico.pdf' in response['Content-Disposition']
+
+    def test_pdf_service_called_with_correct_params(self, admin_client, diagnostic):
+        with patch(
+            'content.services.document_pdf_service.DocumentPdfService.generate_from_markdown',
+            return_value=b'%PDF-1.4 mock-bytes',
+        ) as mock_gen:
+            admin_client.post(
+                _url(diagnostic.id),
+                {
+                    'title': 'Resumen diagnóstico',
+                    'markdown': '# Hola\n\nContenido.',
+                    'include_portada': True,
+                    'include_subportada': False,
+                    'include_contraportada': True,
+                },
+                format='json',
+            )
         mock_gen.assert_called_once()
         kwargs = mock_gen.call_args.kwargs
         assert kwargs['title'] == 'Resumen diagnóstico'

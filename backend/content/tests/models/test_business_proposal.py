@@ -161,7 +161,7 @@ class TestBusinessProposalDaysRemaining:
 class TestBusinessProposalPublicUrl:
     def test_public_url_uses_slug_not_uuid(self, proposal):
         assert '/proposal/' in proposal.public_url
-        assert proposal.slug
+        assert proposal.slug != ''
         assert proposal.slug in proposal.public_url
         # UUID must no longer appear in the public URL once a slug is in place.
         assert str(proposal.uuid) not in proposal.public_url

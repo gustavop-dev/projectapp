@@ -4,6 +4,7 @@ import json
 
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 
 from content.models import DiagnosticAttachment, EmailLog
 
@@ -110,10 +111,8 @@ def test_email_defaults_returns_recipient_and_subject(admin_client, diagnostic):
     assert 'Ana' in resp.data['subject']
 
 
-def test_send_custom_email_logs_with_diagnostic_uuid(
-    admin_client, diagnostic, settings,
-):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+def test_send_custom_email_logs_with_diagnostic_uuid(admin_client, diagnostic):
     resp = admin_client.post(
         f'/api/diagnostics/{diagnostic.id}/email/send/',
         {
@@ -135,11 +134,10 @@ def test_send_custom_email_logs_with_diagnostic_uuid(
     assert len(mail.outbox) == 1
 
 
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
 def test_send_custom_email_attaches_confidentiality_pdf(
-    admin_client, diagnostic, settings, monkeypatch,
+    admin_client, diagnostic, monkeypatch,
 ):
-    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
-
     from content.services import confidentiality_pdf_service
     monkeypatch.setattr(
         confidentiality_pdf_service, 'generate_confidentiality_pdf',

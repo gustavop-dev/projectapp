@@ -495,6 +495,183 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
     expect(payload.dataModel.entities).toHaveLength(1);
   });
 
+  // ── addPatternRow ──────────────────────────────────────────────────────────
+
+  it('addPatternRow appends a pattern row when its + Fila button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[1].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.architecture.patterns).toHaveLength(1);
+    expect(payload.architecture.patterns[0]).toEqual({ component: '', pattern: '', description: '' });
+  });
+
+  // ── addGrowthStrategyRow ───────────────────────────────────────────────────
+
+  it('addGrowthStrategyRow appends a strategy row when its + Fila button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[2].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.growthReadiness.strategies).toHaveLength(1);
+    expect(payload.growthReadiness.strategies[0]).toEqual({ dimension: '', preparation: '', evolution: '' });
+  });
+
+  // ── addIncluded / addExcluded ─────────────────────────────────────────────
+
+  it('addIncluded appends an included integration row', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[3].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.integrations.included).toHaveLength(1);
+  });
+
+  it('addExcluded appends an excluded integration row', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[4].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.integrations.excluded).toHaveLength(1);
+  });
+
+  // ── addEnvironmentRow ─────────────────────────────────────────────────────
+
+  it('addEnvironmentRow appends an environment row when its + Fila button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[5].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.environments).toHaveLength(1);
+    expect(payload.environments[0]).toEqual({ name: '', purpose: '', url: '', database: '', whoAccesses: '' });
+  });
+
+  // ── addSecurityRow ────────────────────────────────────────────────────────
+
+  it('addSecurityRow appends a security row when its + Fila button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[6].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.security).toHaveLength(1);
+    expect(payload.security[0]).toEqual({ aspect: '', implementation: '' });
+  });
+
+  // ── addQualityDimension / addTestType ─────────────────────────────────────
+
+  it('addQualityDimension appends a quality dimension row when its + Fila button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[7].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.quality.dimensions).toHaveLength(1);
+    expect(payload.quality.dimensions[0]).toEqual({ dimension: '', evaluates: '', standard: '' });
+  });
+
+  it('addTestType appends a test type row when its + Fila button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[8].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.quality.testTypes).toHaveLength(1);
+    expect(payload.quality.testTypes[0]).toEqual({ type: '', validates: '', tool: '', whenRun: '' });
+  });
+
+  // ── addDecision ───────────────────────────────────────────────────────────
+
+  it('addDecision appends a decision row when its + Fila button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[9].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.decisions).toHaveLength(1);
+    expect(payload.decisions[0]).toEqual({ decision: '', alternative: '', reason: '' });
+  });
+
+  // ── validate: duplicate flowKey ───────────────────────────────────────────
+
+  it('shows validation error when two requirements share the same flowKey', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            {
+              epicKey: 'epic-a',
+              title: 'Epic A',
+              description: '',
+              linked_module_ids: [],
+              requirements: [
+                { flowKey: 'shared-flow', title: 'First req', description: '', configuration: '', usageFlow: '', priority: '', linked_module_ids: [] },
+              ],
+            },
+            {
+              epicKey: 'epic-b',
+              title: 'Epic B',
+              description: '',
+              linked_module_ids: [],
+              requirements: [
+                { flowKey: 'shared-flow', title: 'Second req', description: '', configuration: '', usageFlow: '', priority: '', linked_module_ids: [] },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    expect(wrapper.text()).toContain('flowKey duplicado');
+    expect(wrapper.emitted('save')).toBeFalsy();
+  });
+
   // ── insertGenericStub ──────────────────────────────────────────────────────
 
   it('insertGenericStub appends a stub epic when a module is selected and the button is clicked', async () => {

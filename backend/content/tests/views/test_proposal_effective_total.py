@@ -9,6 +9,7 @@ from decimal import Decimal
 
 import pytest
 from django.utils import timezone
+from freezegun import freeze_time
 
 from content.models import (
     BusinessProposal,
@@ -135,6 +136,7 @@ class TestBuildEffectiveTotalsMap:
     """Batch wrapper must evaluate the has_confirmed flag per proposal
     (not use a single stale value for all rows)."""
 
+    @freeze_time('2026-01-15 12:00:00')
     def test_mixed_inputs_resolve_each_proposal_independently(self):
         p_unconfirmed = BusinessProposal.objects.create(
             title='A', client_name='A', client_email='a@test.com',

@@ -10,6 +10,7 @@ from importlib import import_module
 import pytest
 from django.apps import apps as django_apps
 from django.utils import timezone
+from freezegun import freeze_time
 
 from content.models import (
     BusinessProposal,
@@ -126,6 +127,7 @@ class TestBackfillSelectedModules:
 
         assert proposal.selected_modules == []
 
+    @freeze_time('2026-01-15 12:00:00')
     def test_confirmed_proposal_without_FR_section_is_untouched(self, backfill_fn):
         """Degenerate case: no FR section → nothing to derive, leave empty."""
         proposal = BusinessProposal.objects.create(

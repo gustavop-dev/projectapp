@@ -73,6 +73,7 @@ jest.mock('vue3-lottie', () => ({
   Vue3Lottie: { name: 'Vue3Lottie', template: '<div />' },
 }));
 
+import { nextTick } from 'vue';
 import FooterDesktop from '../../components/layouts/FooterDesktop.vue';
 
 function mountFooterDesktop() {
@@ -90,6 +91,7 @@ function mountFooterDesktop() {
 
 afterEach(() => {
   document.body.innerHTML = '';
+  document.body.style.overflow = '';
 });
 
 describe('FooterDesktop', () => {
@@ -127,5 +129,118 @@ describe('FooterDesktop', () => {
     const wrapper = mountFooterDesktop();
 
     expect(wrapper.text()).toContain('Custom Software');
+  });
+
+  // ── modal open / close ────────────────────────────────────────────────────
+
+  it('clicking the Play Reel ball shows the modal dialog', async () => {
+    const wrapper = mountFooterDesktop();
+
+    await wrapper.find('button[aria-label="Play our web design portfolio showcase video"]').trigger('click');
+    await nextTick();
+
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true);
+  });
+
+  it('clicking the Close video button in the modal hides the dialog', async () => {
+    const wrapper = mountFooterDesktop();
+
+    await wrapper.find('button[aria-label="Play our web design portfolio showcase video"]').trigger('click');
+    await nextTick();
+    await wrapper.find('button[aria-label="Close video"]').trigger('click');
+    await nextTick();
+
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+  });
+
+  // ── video loading ─────────────────────────────────────────────────────────
+
+  it('loadeddata event on modal video sets isLoading to false', async () => {
+    const wrapper = mountFooterDesktop();
+
+    await wrapper.find('button[aria-label="Play our web design portfolio showcase video"]').trigger('click');
+    await nextTick();
+
+    const modalVideo = wrapper.find('video[preload="metadata"]');
+    await modalVideo.trigger('loadeddata');
+    await nextTick();
+
+    const loadingOverlay = wrapper.find('[aria-label="Loading video"]');
+    expect(loadingOverlay.isVisible()).toBe(false);
+  });
+
+  // ── mouse tracking ────────────────────────────────────────────────────────
+
+  it('mousemove on footer does not throw', async () => {
+    const wrapper = mountFooterDesktop();
+
+    await expect(
+      wrapper.find('footer').trigger('mousemove', { clientX: 150, clientY: 200 }),
+    ).resolves.not.toThrow();
+  });
+
+  it('mousemove on modal does not throw', async () => {
+    const wrapper = mountFooterDesktop();
+
+    await wrapper.find('button[aria-label="Play our web design portfolio showcase video"]').trigger('click');
+    await nextTick();
+
+    await expect(
+      wrapper.find('[role="dialog"]').trigger('mousemove', { clientX: 50, clientY: 80 }),
+    ).resolves.not.toThrow();
+  });
+
+  // ── showModal watch effects ───────────────────────────────────────────────
+
+  it('showModal watch sets body overflow to hidden when modal opens', async () => {
+    const wrapper = mountFooterDesktop();
+
+    await wrapper.find('button[aria-label="Play our web design portfolio showcase video"]').trigger('click');
+    await nextTick();
+
+    expect(document.body.style.overflow).toBe('hidden');
+  });
+
+  it('showModal watch restores body overflow when modal closes', async () => {
+    const wrapper = mountFooterDesktop();
+
+    await wrapper.find('button[aria-label="Play our web design portfolio showcase video"]').trigger('click');
+    await nextTick();
+    await wrapper.find('button[aria-label="Close video"]').trigger('click');
+    await nextTick();
+
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  // ── lifecycle cleanup ─────────────────────────────────────────────────────
+
+  it('onUnmounted calls cancelAnimationFrame when animationFrameId is set', () => {
+    // Make RAF return a truthy id so the component stores it and cancels it on unmount
+    requestAnimationFrame.mockReturnValueOnce(42);
+    cancelAnimationFrame.mockClear();
+    const wrapper = mountFooterDesktop();
+
+    wrapper.unmount();
+
+    expect(cancelAnimationFrame).toHaveBeenCalledWith(42);
+  });
+
+  it('onUnmounted disconnects the video IntersectionObserver', () => {
+    const wrapper = mountFooterDesktop();
+    const observerInstance =
+      IntersectionObserver.mock.results[IntersectionObserver.mock.results.length - 1].value;
+
+    wrapper.unmount();
+
+    expect(observerInstance.disconnect).toHaveBeenCalled();
+  });
+
+  // ── email CTA ─────────────────────────────────────────────────────────────
+
+  it('clicking the email CTA link does not throw', async () => {
+    const wrapper = mountFooterDesktop();
+
+    const emailLink = wrapper.find('a[aria-label="Email our web design team"]');
+    await expect(emailLink.trigger('click')).resolves.not.toThrow();
   });
 });

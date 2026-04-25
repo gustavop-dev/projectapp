@@ -233,6 +233,91 @@ describe('PreloaderAnimation', () => {
     });
   });
 
+  // ── handleResize ──────────────────────────────────────────────────────────
+
+  describe('handleResize', () => {
+    it('updates isDesktop when window is resized from mobile to desktop width', async () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 0 });
+      const wrapper = mountPreloader();
+
+      expect(wrapper.find('.text-lg').exists()).toBe(true);
+
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 });
+      window.dispatchEvent(new Event('resize'));
+      jest.advanceTimersByTime(200);
+      await flushPromises();
+
+      expect(wrapper.find('.text-2xl').exists()).toBe(true);
+
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 0 });
+    });
+
+    it('does not throw when resize is dispatched multiple times rapidly', () => {
+      const wrapper = mountPreloader();
+
+      expect(() => {
+        window.dispatchEvent(new Event('resize'));
+        window.dispatchEvent(new Event('resize'));
+        window.dispatchEvent(new Event('resize'));
+        jest.advanceTimersByTime(200);
+      }).not.toThrow();
+
+      expect(wrapper.exists()).toBe(true);
+    });
+  });
+
+  // ── arrow interval / animateFonts ─────────────────────────────────────────
+
+  describe('arrow interval', () => {
+    it('toggles mainText1 from font-caveat-semibold to font-caveat-bold after 140ms', async () => {
+      const wrapper = mountPreloader({ active: true });
+
+      jest.advanceTimersByTime(4000);
+      await flushPromises();
+
+      const coleccionSpan = wrapper.findAll('span').find(s => s.text().includes('Colección'));
+      expect(coleccionSpan.classes()).toContain('font-caveat-semibold');
+
+      jest.advanceTimersByTime(140);
+      await wrapper.vm.$nextTick();
+
+      expect(coleccionSpan.classes()).toContain('font-caveat-bold');
+    });
+  });
+
+  // ── showPersonalizedGreeting ───────────────────────────────────────────────
+
+  describe('showPersonalizedGreeting', () => {
+    it('creates a greeting timeline when the main timeline completes with clientName set', async () => {
+      const wrapper = mountPreloader({ active: true, clientName: 'Empresa ABC' });
+
+      jest.advanceTimersByTime(4000);
+      await flushPromises();
+
+      const timelinesBefore = capturedTimelineOpts.length;
+      const mainTimelineOpts = capturedTimelineOpts.find(
+        (o) => typeof o.onComplete === 'function' && !o.repeat && !o.yoyo,
+      );
+
+      expect(() => mainTimelineOpts.onComplete()).not.toThrow();
+
+      expect(capturedTimelineOpts.length).toBeGreaterThan(timelinesBefore);
+    });
+  });
+
+  // ── unmount cleanup ───────────────────────────────────────────────────────
+
+  describe('unmount', () => {
+    it('does not throw when unmounted after the safety fallback fires', async () => {
+      const wrapper = mountPreloader({ active: true });
+
+      jest.advanceTimersByTime(4000);
+      await flushPromises();
+
+      expect(() => wrapper.unmount()).not.toThrow();
+    });
+  });
+
   // ── finishAnimation via GSAP onComplete ───────────────────────────────────
 
   describe('finishAnimation', () => {

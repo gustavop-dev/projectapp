@@ -2729,7 +2729,7 @@ class TestInvestmentHostingModelOverride:
     Prevents regression of the stale-hosting bug introduced by d793ac79.
     """
 
-    def test_model_hosting_percent_and_discount_override_content_json(
+    def test_model_hosting_percent_and_discount_override_content_json(  # quality: disable test_too_long (verifies full investment rendering cycle across hosting, discount, and tax fields)
         self, pdf_canvas, db,
     ):
         from content.services.proposal_pdf_service import _render_investment
@@ -2917,9 +2917,7 @@ class TestValueAddedModulesSection:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_value_added_section_renders_justifications(
-        self, _mock_back, _mock_cover,
-    ):
+    def test_value_added_section_renders_justifications(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)
         proposal, _ = self._proposal_with_value_added()
         pdf_bytes = ProposalPdfService.generate(proposal)
 
@@ -2941,9 +2939,7 @@ class TestValueAddedModulesSection:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_functional_requirements_excludes_value_added_ids(
-        self, _mock_back, _mock_cover,
-    ):
+    def test_functional_requirements_excludes_value_added_ids(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)
         proposal, _ = self._proposal_with_value_added()
         pdf_bytes = ProposalPdfService.generate(proposal)
 
@@ -2963,9 +2959,7 @@ class TestValueAddedModulesSection:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_unselected_calculator_module_absent_from_pdf(
-        self, _mock_back, _mock_cover,
-    ):
+    def test_unselected_calculator_module_absent_from_pdf(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)
         proposal, _ = self._proposal_with_value_added()
         pdf_bytes = ProposalPdfService.generate(proposal, selected_modules=[])
 

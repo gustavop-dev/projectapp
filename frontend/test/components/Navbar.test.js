@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils';
+import { nextTick } from 'vue';
 
 // Nuxt auto-imports — set before any import
 global.useLocalePath = jest.fn(() => (path) => path);
@@ -305,5 +306,93 @@ describe('Navbar', () => {
     const wrapper = mountNavbar();
     const mobileLinks = wrapper.findAll('.mobile-nav-item');
     expect(mobileLinks.length).toBe(4);
+  });
+
+  // ── toggleLanguage with open menu ─────────────────────────────────────────
+
+  it('toggleLanguage sets showMenu to false when menu is open', async () => {
+    navigateTo.mockClear();
+    const wrapper = mountNavbar();
+
+    await wrapper.find('button[aria-label="Open menu"]').trigger('click');
+
+    const langBtn = wrapper.findAll('button').find((b) => b.text() === 'ES');
+    await langBtn.trigger('click');
+
+    expect(navigateTo).toHaveBeenCalledWith('/en-us/');
+  });
+
+  it('toggleLanguage skips navigateTo when switchLocalePath returns empty string', async () => {
+    navigateTo.mockClear();
+    global.useSwitchLocalePath.mockReturnValueOnce(jest.fn(() => ''));
+    const wrapper = mountNavbar();
+
+    const langBtn = wrapper.findAll('button').find((b) => b.text() === 'ES');
+    await langBtn.trigger('click');
+
+    expect(navigateTo).not.toHaveBeenCalled();
+  });
+
+  // ── toggleLanguage branch when menu is open ──────────────────────────────
+
+  it('toggleLanguage sets showMenu to false synchronously when menu is open', async () => {
+    const wrapper = mountNavbar();
+
+    await wrapper.find('button[aria-label="Open menu"]').trigger('click');
+    await nextTick();
+
+    const langBtn = wrapper.findAll('button').find((b) => b.text() === 'ES');
+    await langBtn.trigger('click');
+    await nextTick();
+
+    // showMenu.value = false → v-show makes #mobile-menu invisible
+    const menu = wrapper.find('#mobile-menu');
+    expect(menu.isVisible()).toBe(false);
+  });
+
+  // ── isActiveRoute baseName.startsWith branch ───────────────────────────────
+
+  it('isActiveRoute returns true when route baseName starts with routeKey', () => {
+    global.useRoute.mockReturnValueOnce({
+      name: 'portfolio-works___es-co',
+      fullPath: '/portfolio-works',
+      path: '/portfolio-works',
+    });
+    const wrapper = mountNavbar();
+
+    const desktopNav = wrapper.find('nav[aria-label="Main navigation"]');
+    const ourWorkLink = desktopNav.findAll('a').find((a) => a.text() === 'Our Work');
+    expect(ourWorkLink.classes().join(' ')).toContain('font-medium');
+  });
+
+  it('Escape keydown while menu is open does not leave menu in broken state', async () => {
+    const wrapper = mountNavbar();
+
+    await wrapper.find('button[aria-label="Open menu"]').trigger('click');
+
+    expect(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    }).not.toThrow();
+    expect(wrapper.exists()).toBe(true);
+  });
+
+  // ── isActiveRoute edge cases ──────────────────────────────────────────────
+
+  it('isActiveRoute returns true for landing-software route when routeKey is index', () => {
+    global.useRoute.mockReturnValueOnce({ name: 'landing-software___es-co', fullPath: '/landing-software', path: '/landing-software' });
+    const wrapper = mountNavbar();
+
+    const desktopNav = wrapper.find('nav[aria-label="Main navigation"]');
+    const softwareLink = desktopNav.findAll('a').find((a) => a.text() === 'Custom Software');
+    expect(softwareLink.classes().join(' ')).toContain('font-medium');
+  });
+
+  it('isActiveRoute returns false when route name is not a string', () => {
+    global.useRoute.mockReturnValueOnce({ name: null, fullPath: '/', path: '/' });
+    const wrapper = mountNavbar();
+
+    const desktopNav = wrapper.find('nav[aria-label="Main navigation"]');
+    const softwareLink = desktopNav.findAll('a').find((a) => a.text() === 'Custom Software');
+    expect(softwareLink.classes().join(' ')).not.toContain('font-medium');
   });
 });

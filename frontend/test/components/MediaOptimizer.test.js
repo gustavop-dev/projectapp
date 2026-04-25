@@ -155,4 +155,116 @@ describe('MediaOptimizer', () => {
 
     expect(() => jest.advanceTimersByTime(3 * 60 * 1000)).not.toThrow();
   });
+
+  // ── IntersectionObserver callback ─────────────────────────────────────────
+
+  it('IntersectionObserver callback handles element without src without throwing', () => {
+    const div = document.createElement('div');
+    mountMediaOptimizer();
+
+    const ioCallback = IntersectionObserver.mock.calls[0][0];
+    expect(() => ioCallback([{ target: div, isIntersecting: true }])).not.toThrow();
+  });
+
+  it('IntersectionObserver callback updates inViewport for an already-registered resource', () => {
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const img = document.createElement('img');
+    img.setAttribute('src', 'tracked.jpg');
+    document.body.appendChild(img);
+
+    mountMediaOptimizer();
+    const ioCallback = IntersectionObserver.mock.calls[0][0];
+
+    // Register the resource as visible
+    ioCallback([{ target: img, isIntersecting: true }]);
+    // Update it as not in viewport — exercises the resource.inViewport update branch
+    expect(() => ioCallback([{ target: img, isIntersecting: false }])).not.toThrow();
+
+    document.body.removeChild(img);
+    consoleSpy.mockRestore();
+  });
+
+  it('cleanup interval pauses and clears a video resource that left the viewport', () => {
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const video = document.createElement('video');
+    video.setAttribute('src', 'movie.mp4');
+    video.pause = jest.fn();
+    video.load = jest.fn();
+    document.body.appendChild(video);
+
+    mountMediaOptimizer();
+    const ioCallback = IntersectionObserver.mock.calls[0][0];
+
+    ioCallback([{ target: video, isIntersecting: true }]);
+    ioCallback([{ target: video, isIntersecting: false }]);
+
+    jest.advanceTimersByTime(3 * 60 * 1000 + 100);
+
+    expect(video.pause).toHaveBeenCalled();
+    expect(video.load).toHaveBeenCalled();
+
+    document.body.removeChild(video);
+    consoleSpy.mockRestore();
+  });
+
+  // ── MutationObserver callback ─────────────────────────────────────────────
+
+  it('MutationObserver callback observes img elements found inside a newly added node', () => {
+    mountMediaOptimizer();
+    jest.advanceTimersByTime(1100);
+
+    const moCallback = MutationObserver.mock.calls[0][0];
+    const ioInstance = IntersectionObserver.mock.results[0].value;
+    const img = document.createElement('img');
+    const container = document.createElement('div');
+    container.appendChild(img);
+
+    moCallback([{ addedNodes: { forEach: (fn) => fn(container) } }]);
+
+    expect(ioInstance.observe).toHaveBeenCalledWith(img);
+  });
+
+  it('MutationObserver callback observes an added node when the node itself is an img', () => {
+    mountMediaOptimizer();
+    jest.advanceTimersByTime(1100);
+
+    const moCallback = MutationObserver.mock.calls[0][0];
+    const ioInstance = IntersectionObserver.mock.results[0].value;
+    const img = document.createElement('img');
+
+    moCallback([{ addedNodes: { forEach: (fn) => fn(img) } }]);
+
+    expect(ioInstance.observe).toHaveBeenCalledWith(img);
+  });
+
+  // ── onBeforeUnmount resource cleanup ─────────────────────────────────────
+
+  it('onBeforeUnmount pauses VIDEO elements registered in loadedResources', () => {
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const video = document.createElement('video');
+    video.setAttribute('src', 'clip.mp4');
+    video.pause = jest.fn();
+    video.load = jest.fn();
+
+    const wrapper = mountMediaOptimizer();
+    const ioCallback = IntersectionObserver.mock.calls[0][0];
+    ioCallback([{ target: video, isIntersecting: true }]);
+
+    wrapper.unmount();
+
+    expect(video.pause).toHaveBeenCalled();
+    expect(video.load).toHaveBeenCalled();
+
+    consoleSpy.mockRestore();
+  });
+
+  it('onBeforeUnmount clears the periodic cleanup interval', () => {
+    const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
+    const wrapper = mountMediaOptimizer();
+
+    wrapper.unmount();
+
+    expect(clearIntervalSpy).toHaveBeenCalled();
+    clearIntervalSpy.mockRestore();
+  });
 });

@@ -68,7 +68,7 @@ class TestSendProposalReminderSkipsWithAutomationsEnabled:
         assert proposal.reminder_sent_at is None
 
     @patch('content.services.proposal_email_service.ProposalEmailService.send_reminder')
-    def test_skips_when_reminder_already_sent(self, mock_send):
+    def test_skips_when_reminder_already_sent(self, mock_send):  # quality: disable no_assertions (mock assertion replaces assert keyword)
         import content.tasks as tasks_module
 
         proposal = BusinessProposal.objects.create(
@@ -118,7 +118,7 @@ class TestSendUrgencyReminderSkipsWithAutomationsEnabled:
         assert proposal.urgency_email_sent_at is None
 
     @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email')
-    def test_skips_when_urgency_already_sent(self, mock_send):
+    def test_skips_when_urgency_already_sent(self, mock_send):  # quality: disable no_assertions (mock assertion replaces assert keyword)
         import content.tasks as tasks_module
 
         proposal = BusinessProposal.objects.create(
@@ -211,7 +211,7 @@ class TestEscalateSellerInactivitySkips:
 
 class TestCheckEngagementFollowupsInvestmentLog:
     @patch('content.services.proposal_email_service.ProposalEmailService.send_investment_interest_followup')
-    def test_logs_after_sending_investment_interest_followup(self, mock_send):
+    def test_logs_after_sending_investment_interest_followup(self, mock_send):  # quality: disable no_assertions (mock assertion replaces assert keyword)
         from content.models import ProposalSectionView, ProposalViewEvent
 
         import content.tasks as tasks_module
@@ -267,7 +267,7 @@ class TestPublishSingleScheduledBlogException:
 
 class TestPublishScheduledBlogPostsException:
     @patch('content.views.blog.auto_publish_blog_to_linkedin', side_effect=RuntimeError('fail'))
-    def test_exception_during_periodic_publish_is_caught(self, mock_linkedin):
+    def test_exception_during_periodic_publish_is_caught(self, mock_linkedin):  # quality: disable no_assertions (no-raise is the assertion - task must swallow per-post exceptions)
         import content.tasks as tasks_module
 
         BlogPost.objects.create(
@@ -366,7 +366,7 @@ class TestGenerateWhatsappSuggestionsAlreadyExists:
 class TestNotifyProposalStageDeadlinesException:
     @patch('content.services.proposal_stage_tracker.ProposalStageTracker.process',
            side_effect=RuntimeError('tracker failed'))
-    def test_exception_during_tracker_is_caught_and_logged(self, mock_process):
+    def test_exception_during_tracker_is_caught_and_logged(self, mock_process):  # quality: disable no_assertions (no-raise is the assertion - task must swallow per-proposal exceptions)
         from content.models import ProposalProjectStage
 
         import content.tasks as tasks_module
@@ -443,7 +443,7 @@ class TestTaskEmailAssigneeResolution:
 
 class TestTaskNotificationExceptionPaths:
     @patch('content.tasks._check_single_task_deadlines', side_effect=RuntimeError('deadline fail'))
-    def test_check_task_deadline_notifications_exception_is_caught(self, mock_check):
+    def test_check_task_deadline_notifications_exception_is_caught(self, mock_check):  # quality: disable no_assertions (mock assertion replaces assert keyword)
         from content.models.task import Task
 
         import content.tasks as tasks_module
@@ -459,7 +459,7 @@ class TestTaskNotificationExceptionPaths:
         mock_check.assert_called_once()
 
     @patch('content.tasks._send_task_alert_email', side_effect=RuntimeError('alert fail'))
-    def test_check_task_alert_notifications_exception_is_caught(self, mock_alert):
+    def test_check_task_alert_notifications_exception_is_caught(self, mock_alert):  # quality: disable no_assertions (mock assertion replaces assert keyword)
         from content.models.task import Task
         from content.models.task_alert import TaskAlert
 
