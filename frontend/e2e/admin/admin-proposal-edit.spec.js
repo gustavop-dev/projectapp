@@ -245,7 +245,6 @@ test.describe('Admin Proposal Edit', () => {
     });
 
     await page.goto('/panel/proposals/1/edit');
-    await page.waitForLoadState('networkidle');
 
     const financeSidebar = page.getByTestId('general-finance-sidebar');
     await expect(financeSidebar).toBeVisible();
@@ -292,7 +291,6 @@ test.describe('Admin Proposal Edit', () => {
     });
 
     await page.goto('/panel/proposals/1/edit');
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'JSON' }).click();
     await expect(page.getByTestId('proposal-json-stats')).toContainText('Secciones:');

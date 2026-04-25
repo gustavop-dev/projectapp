@@ -126,7 +126,6 @@ function buildMockHandler(capturedUpdates) {
 async function openSectionEditor(page, capturedUpdates, sectionType) {
   await mockApi(page, buildMockHandler(capturedUpdates));
   await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-  await page.waitForLoadState('networkidle');
 
   // Switch to Secciones tab
   await page.getByRole('button', { name: 'Secciones' }).click();
@@ -150,7 +149,6 @@ test.describe('Proposal Section Edit — Form Mode', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
 
     // Switch to sections tab
     await page.getByRole('button', { name: 'Secciones' }).click();
@@ -327,7 +325,6 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     });
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
     await page.getByRole('button', { name: 'Secciones' }).click();
 
     await page.getByTestId('section-header-investment').click();

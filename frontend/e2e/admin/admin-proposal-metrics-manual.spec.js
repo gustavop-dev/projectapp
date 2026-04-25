@@ -34,7 +34,6 @@ test.describe('Admin Proposal Metrics Manual', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
     // Click the floating ? button
     const triggerBtn = page.getByTitle('Manual de métricas');
@@ -55,7 +54,6 @@ test.describe('Admin Proposal Metrics Manual', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
     await page.getByTitle('Manual de métricas').click();
     await expect(page.getByText('Manual de Métricas')).toBeVisible({ timeout: 5000 });

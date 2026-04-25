@@ -49,7 +49,6 @@ test.describe('Proposal Share', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByTestId('share-proposal-btn')).toBeVisible({ timeout: 15000 });
   });
@@ -59,7 +58,6 @@ test.describe('Proposal Share', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     const shareBtn = page.getByTestId('share-proposal-btn');
     await expect(shareBtn).toBeVisible({ timeout: 15000 });

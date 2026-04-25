@@ -90,7 +90,6 @@ test.describe('Proposal Section Onboarding', () => {
     // Do NOT set proposal_onboarding_seen — simulate first visit
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Onboarding backdrop should be visible
     const backdrop = page.getByTestId('onboarding-backdrop');
@@ -110,7 +109,6 @@ test.describe('Proposal Section Onboarding', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Wait for onboarding to appear
     await expect(page.getByTestId('onboarding-backdrop')).toBeVisible({ timeout: 15000 });
@@ -130,7 +128,6 @@ test.describe('Proposal Section Onboarding', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByTestId('onboarding-backdrop')).toBeVisible({ timeout: 15000 });
 
@@ -146,7 +143,6 @@ test.describe('Proposal Section Onboarding', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByTestId('onboarding-backdrop')).toBeVisible({ timeout: 15000 });
 
@@ -169,7 +165,6 @@ test.describe('Proposal Section Onboarding', () => {
 
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Verify proposal loaded, then check onboarding is absent
     await expect(page.locator('[data-section-type="greeting"]')).toBeVisible({ timeout: 15000 });
@@ -183,7 +178,6 @@ test.describe('Proposal Section Onboarding', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByTestId('onboarding-backdrop')).toBeVisible({ timeout: 15000 });
 

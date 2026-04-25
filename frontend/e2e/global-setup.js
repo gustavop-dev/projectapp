@@ -17,22 +17,45 @@ export default async function globalSetup() {
 
   // Routes to warm up — includes SSR and SPA routes
   const warmupRoutes = [
-    '/',                            // SSR — triggers initial Vite client build
-    '/panel/login',                 // SPA — admin panel login
-    '/panel',                       // SPA — admin dashboard (exact route)
-    '/panel/proposals',             // SPA — proposals list
-    '/panel/proposals/create',      // SPA — create proposal (more-specific than /proposals)
-    '/panel/proposals/999/edit',    // SPA — edit proposal (dynamic segment)
-    '/panel/diagnostics',           // SPA — diagnostics list
-    '/panel/blog/calendar',         // SPA — blog calendar (more-specific than /blog)
-    '/panel/views',                 // SPA — admin view map (unique admin layout components)
-    '/platform/login',              // SPA — platform login
-    '/platform/dashboard',          // SPA — platform dashboard
-    '/platform/projects',           // SPA — platform projects list
-    '/platform/projects/1',         // SPA — platform project detail (dynamic)
-    '/platform/projects/1/board',   // SPA — platform project board (nested dynamic)
-    '/proposal/warmup-prefetch',    // SPA — proposal viewer
-    '/diagnostic/warmup-prefetch',  // SPA — diagnostic public viewer
+    '/',                                    // SSR — triggers initial Vite client build
+    '/panel/login',                         // SPA — admin panel login
+    '/panel',                               // SPA — admin dashboard
+    '/panel/admins',                        // SPA — admin management
+    '/panel/blog',                          // SPA — blog list
+    '/panel/blog/create',                   // SPA — blog create
+    '/panel/blog/1/edit',                   // SPA — blog edit (dynamic)
+    '/panel/blog/calendar',                 // SPA — blog calendar
+    '/panel/clients',                       // SPA — client list
+    '/panel/defaults',                      // SPA — defaults
+    '/panel/diagnostics',                   // SPA — diagnostics list
+    '/panel/diagnostics/create',            // SPA — diagnostic create
+    '/panel/diagnostics/defaults',          // SPA — diagnostic defaults
+    '/panel/diagnostics/7/edit',            // SPA — diagnostic edit (dynamic)
+    '/panel/documents',                     // SPA — documents list
+    '/panel/documents/create',              // SPA — document create
+    '/panel/documents/1/edit',              // SPA — document edit (dynamic)
+    '/panel/emails',                        // SPA — email templates
+    '/panel/portfolio',                     // SPA — portfolio list
+    '/panel/portfolio/create',              // SPA — portfolio create
+    '/panel/portfolio/1/edit',              // SPA — portfolio edit (dynamic)
+    '/panel/proposals',                     // SPA — proposals list
+    '/panel/proposals/create',              // SPA — create proposal
+    '/panel/proposals/999/edit',            // SPA — edit proposal (dynamic)
+    '/panel/proposals/defaults',            // SPA — proposal defaults
+    '/panel/proposals/email-deliverability', // SPA — email deliverability
+    '/panel/tasks',                         // SPA — task list
+    '/panel/views',                         // SPA — admin view map
+    '/platform/login',                      // SPA — platform login
+    '/platform/dashboard',                  // SPA — platform dashboard
+    '/platform/projects',                   // SPA — platform projects list
+    '/platform/projects/1',                 // SPA — platform project detail (dynamic)
+    '/platform/projects/1/board',           // SPA — platform project board (nested dynamic)
+    '/proposal/warmup-prefetch',            // SPA — proposal viewer
+    '/diagnostic/warmup-prefetch',          // SPA — diagnostic public viewer
+    '/blog',                                // SSR — public blog list
+    '/landing-apps',                        // SSR — landing apps page
+    '/landing-software',                    // SSR — landing software page
+    '/landing-web-design',                  // SSR — landing web design page
   ];
 
   let browser;

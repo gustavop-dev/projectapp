@@ -50,7 +50,6 @@ test.describe('Admin Proposal JSON Import Warnings', () => {
     });
 
     await page.goto('/panel/proposals/create');
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Importar JSON' }).click();
     const textarea = page.getByPlaceholder(/general/);
@@ -85,7 +84,6 @@ test.describe('Admin Proposal JSON Import Warnings', () => {
     });
 
     await page.goto('/panel/proposals/create');
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Importar JSON' }).click();
     const textarea = page.getByPlaceholder(/general/);

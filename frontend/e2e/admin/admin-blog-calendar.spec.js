@@ -42,7 +42,6 @@ test.describe('Admin Blog Calendar', () => {
     });
 
     await page.goto('/panel/blog/calendar');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('heading', { name: 'Calendario de Blog' })).toBeVisible();
     await expect(page.getByText('Semana')).toBeVisible();
@@ -64,7 +63,6 @@ test.describe('Admin Blog Calendar', () => {
     });
 
     await page.goto('/panel/blog/calendar');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText('Post Publicado')).toBeVisible();
     await expect(page.getByText('Post Programado')).toBeVisible();
@@ -91,7 +89,6 @@ test.describe('Admin Blog Calendar', () => {
     });
 
     await page.goto('/panel/blog/calendar');
-    await page.waitForLoadState('networkidle');
 
     // quality: allow-fragile-selector (calendar heading has no testid, first h2 is the week label)
     const initialWeekText = await page.locator('h2').first().textContent();
@@ -99,13 +96,11 @@ test.describe('Admin Blog Calendar', () => {
 
     // Navigate to next week
     await page.locator('svg path[d="M9 5l7 7-7 7"]').locator('..').click();
-    await page.waitForLoadState('networkidle');
 
     expect(calendarRequestCount).toBeGreaterThanOrEqual(1);
 
     // Click "Hoy" to return to current week
     await page.getByRole('button', { name: 'Hoy' }).click();
-    await page.waitForLoadState('networkidle');
 
     // quality: allow-fragile-selector (same calendar heading)
     const resetWeekText = await page.locator('h2').first().textContent();
@@ -124,7 +119,6 @@ test.describe('Admin Blog Calendar', () => {
     });
 
     await page.goto('/panel/blog/calendar');
-    await page.waitForLoadState('networkidle');
 
     // All days should show "Sin posts"
     const emptyLabels = page.getByText('Sin posts');

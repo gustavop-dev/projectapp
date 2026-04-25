@@ -21,6 +21,5 @@ test.describe('Admin Proposal Delete', () => {
       return null;
     });
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
   });
 });

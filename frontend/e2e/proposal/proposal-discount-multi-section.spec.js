@@ -81,7 +81,6 @@ test.describe('Proposal Discount Multi-Section', () => {
   }, async ({ page }) => {
     await setupMock(page, mockProposalWithDiscount);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Navigate from greeting to investment
     const nextBtn = page.getByTestId('nav-next');
@@ -120,7 +119,6 @@ test.describe('Proposal Discount Multi-Section', () => {
   }, async ({ page }) => {
     await setupMock(page, mockProposalNoDiscount);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Navigate to investment section
     const nextBtn = page.getByTestId('nav-next');

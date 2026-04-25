@@ -88,7 +88,6 @@ test.describe('Admin Proposal Defaults Config', () => {
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=sections');
-    await page.waitForLoadState('networkidle');
 
     // Click on greeting section header to expand
     await page.getByText('👋 Saludo').first().click({ timeout: 5000 });
@@ -102,7 +101,6 @@ test.describe('Admin Proposal Defaults Config', () => {
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=sections');
-    await page.waitForLoadState('networkidle');
 
     const saveBtn = page.getByRole('button', { name: 'Guardar Todos los Cambios' });
     await expect(saveBtn).toBeDisabled();
@@ -113,7 +111,6 @@ test.describe('Admin Proposal Defaults Config', () => {
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=sections');
-    await page.waitForLoadState('networkidle');
 
     // Click reset button
     await page.getByRole('button', { name: 'Restaurar valores originales' }).click();
@@ -136,7 +133,6 @@ test.describe('Admin Proposal Defaults Config', () => {
       return null;
     });
     await page.goto('/panel/proposals/defaults');
-    await page.waitForLoadState('networkidle');
 
     // Click back link
     await page.locator('text=Volver a Propuestas').click();

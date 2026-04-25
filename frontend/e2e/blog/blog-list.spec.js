@@ -66,7 +66,6 @@ test.describe('Blog Listing', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('heading', { name: 'Blog', level: 1 })).toBeVisible();
     await expect(page.getByText('AI Trends 2026')).toBeVisible();
@@ -81,7 +80,6 @@ test.describe('Blog Listing', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog');
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Design', exact: true }).click();
 
@@ -95,7 +93,6 @@ test.describe('Blog Listing', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog');
-    await page.waitForLoadState('networkidle');
 
     await page.getByPlaceholder('Search articles...').fill('Design');
 
@@ -109,7 +106,6 @@ test.describe('Blog Listing', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog');
-    await page.waitForLoadState('networkidle');
 
     await page.getByPlaceholder('Search articles...').fill('nonexistent-term');
 
@@ -125,7 +121,6 @@ test.describe('Blog Listing', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/es-co/blog');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('heading', { name: 'Blog', level: 1 })).toBeVisible();
     await expect(page.getByText(/Destacado/)).toBeVisible();
@@ -141,7 +136,6 @@ test.describe('Blog Listing', () => {
       return null;
     });
     await page.goto('/blog');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText('No articles published yet')).toBeVisible();
   });
@@ -151,7 +145,6 @@ test.describe('Blog Listing', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog');
-    await page.waitForLoadState('networkidle');
 
     const desktopGrid = page.locator('.hidden.sm\\:grid');
     await desktopGrid.getByText('Design Systems Guide').click();

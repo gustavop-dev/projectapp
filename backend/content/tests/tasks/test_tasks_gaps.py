@@ -11,6 +11,7 @@ from unittest.mock import patch
 import pytest
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from freezegun import freeze_time
 
 from content.models import (
     BlogPost,
@@ -68,6 +69,7 @@ class TestSendProposalReminderSkipsWithAutomationsEnabled:
         assert proposal.reminder_sent_at is None
 
     @patch('content.services.proposal_email_service.ProposalEmailService.send_reminder')
+    @freeze_time('2026-01-15 12:00:00')
     def test_skips_when_reminder_already_sent(self, mock_send):  # quality: disable no_assertions (mock assertion replaces assert keyword)
         import content.tasks as tasks_module
 
@@ -118,6 +120,7 @@ class TestSendUrgencyReminderSkipsWithAutomationsEnabled:
         assert proposal.urgency_email_sent_at is None
 
     @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email')
+    @freeze_time('2026-01-15 12:00:00')
     def test_skips_when_urgency_already_sent(self, mock_send):  # quality: disable no_assertions (mock assertion replaces assert keyword)
         import content.tasks as tasks_module
 
@@ -138,6 +141,7 @@ class TestSendUrgencyReminderSkipsWithAutomationsEnabled:
 # ---------------------------------------------------------------------------
 
 class TestEscalateSellerInactivitySkips:
+    @freeze_time('2026-01-15 12:00:00')
     def test_skips_candidate_with_recent_activity_date(self):
         import content.tasks as tasks_module
 
@@ -157,6 +161,7 @@ class TestEscalateSellerInactivitySkips:
             change_type=ProposalChangeLog.ChangeType.SELLER_INACTIVITY_ESCALATION,
         ).exists()
 
+    @freeze_time('2026-01-15 12:00:00')
     def test_skips_candidate_with_recent_seller_changelog(self):
         import content.tasks as tasks_module
 
@@ -181,6 +186,7 @@ class TestEscalateSellerInactivitySkips:
             change_type=ProposalChangeLog.ChangeType.SELLER_INACTIVITY_ESCALATION,
         ).exists()
 
+    @freeze_time('2026-01-15 12:00:00')
     def test_skips_candidate_already_escalated(self):
         import content.tasks as tasks_module
 
@@ -211,6 +217,7 @@ class TestEscalateSellerInactivitySkips:
 
 class TestCheckEngagementFollowupsInvestmentLog:
     @patch('content.services.proposal_email_service.ProposalEmailService.send_investment_interest_followup')
+    @freeze_time('2026-01-15 12:00:00')
     def test_logs_after_sending_investment_interest_followup(self, mock_send):  # quality: disable no_assertions (mock assertion replaces assert keyword)
         from content.models import ProposalSectionView, ProposalViewEvent
 
@@ -246,6 +253,7 @@ class TestCheckEngagementFollowupsInvestmentLog:
 
 class TestPublishSingleScheduledBlogException:
     @patch('content.views.blog.auto_publish_blog_to_linkedin', side_effect=RuntimeError('linkedin fail'))
+    @freeze_time('2026-01-15 12:00:00')
     def test_exception_during_linkedin_publish_is_caught(self, mock_linkedin):
         import content.tasks as tasks_module
 
@@ -267,6 +275,7 @@ class TestPublishSingleScheduledBlogException:
 
 class TestPublishScheduledBlogPostsException:
     @patch('content.views.blog.auto_publish_blog_to_linkedin', side_effect=RuntimeError('fail'))
+    @freeze_time('2026-01-15 12:00:00')
     def test_exception_during_periodic_publish_is_caught(self, mock_linkedin):  # quality: disable no_assertions (no-raise is the assertion - task must swallow per-post exceptions)
         import content.tasks as tasks_module
 
@@ -299,6 +308,7 @@ class TestCalculatorAbandonmentSkips:
         from content.models import ProposalAlert
         assert not ProposalAlert.objects.filter(proposal=proposal).exists()
 
+    @freeze_time('2026-01-15 12:00:00')
     def test_skips_when_calc_confirmed_after_abandonment(self):
         import content.tasks as tasks_module
 
@@ -330,6 +340,7 @@ class TestCalculatorAbandonmentSkips:
 # ---------------------------------------------------------------------------
 
 class TestGenerateWhatsappSuggestionsAlreadyExists:
+    @freeze_time('2026-01-15 12:00:00')
     def test_skips_proposal_with_existing_undismissed_whatsapp_alert(self):
         import content.tasks as tasks_module
         from content.models import ProposalAlert

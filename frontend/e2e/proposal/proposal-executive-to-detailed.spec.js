@@ -113,7 +113,6 @@ test.describe('Proposal Executive to Detailed View Switch', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposal));
     await page.goto(`/proposal/${MOCK_UUID}?mode=executive`);
-    await page.waitForLoadState('networkidle');
 
     // Greeting panel should be visible (executive section)
     await expect(page.locator('[data-section-type="greeting"]')).toBeVisible();
@@ -132,7 +131,6 @@ test.describe('Proposal Executive to Detailed View Switch', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposal));
     await page.goto(`/proposal/${MOCK_UUID}?mode=executive`);
-    await page.waitForLoadState('networkidle');
 
     // Open the ProposalIndex sidebar
     const indexToggle = page.getByTestId('index-toggle');
@@ -151,7 +149,6 @@ test.describe('Proposal Executive to Detailed View Switch', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposal));
     await page.goto(`/proposal/${MOCK_UUID}?mode=executive`);
-    await page.waitForLoadState('networkidle');
 
     // Open ProposalIndex and click switch button
     const indexToggle = page.getByTestId('index-toggle');
@@ -175,7 +172,6 @@ test.describe('Proposal Executive to Detailed View Switch', () => {
     await mockApi(page, buildMockHandler(mockProposal));
     // Start directly in detailed mode to verify all sections are visible
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Greeting should be visible
     await expect(page.locator('[data-section-type="greeting"]')).toBeVisible({ timeout: 5000 });
@@ -206,7 +202,6 @@ test.describe('Proposal Executive to Detailed View Switch', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposal));
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Open ProposalIndex
     const indexToggle = page.getByTestId('index-toggle');

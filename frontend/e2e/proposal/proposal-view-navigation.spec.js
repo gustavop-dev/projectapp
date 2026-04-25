@@ -84,7 +84,6 @@ test.describe('Proposal View Navigation', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // The hamburger toggle button for ProposalIndex should always be visible
     await expect(page.getByTestId('index-toggle')).toBeVisible();
@@ -95,7 +94,6 @@ test.describe('Proposal View Navigation', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Index panel is hidden initially (translate-x-[-120%])
     const indexPanel = page.getByTestId('index-panel');
@@ -113,7 +111,6 @@ test.describe('Proposal View Navigation', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Open the index
     await page.getByTestId('index-toggle').click();
@@ -136,7 +133,6 @@ test.describe('Proposal View Navigation', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // First navigate to section 2 so prev button would normally show
     const nextBtn = page.getByTestId('nav-next');
@@ -159,7 +155,6 @@ test.describe('Proposal View Navigation', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Navigate through all sections
     const nextBtn = page.getByTestId('nav-next');

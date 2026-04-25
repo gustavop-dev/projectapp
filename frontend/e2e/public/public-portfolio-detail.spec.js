@@ -63,7 +63,6 @@ test.describe('Portfolio Case Study Detail', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/portfolio-works/ecommerce-redesign');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('heading', { name: 'E-Commerce Platform Redesign' })).toBeVisible();
     await expect(page.getByText('A complete redesign of the e-commerce experience.')).toBeVisible();
@@ -78,7 +77,6 @@ test.describe('Portfolio Case Study Detail', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/portfolio-works/ecommerce-redesign');
-    await page.waitForLoadState('networkidle');
 
     const backLink = page.getByText('All projects');
     await expect(backLink).toBeVisible();
@@ -89,7 +87,6 @@ test.describe('Portfolio Case Study Detail', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/portfolio-works/ecommerce-redesign');
-    await page.waitForLoadState('networkidle');
 
     const visitLink = page.getByRole('article').getByRole('link', { name: /Visit Site/ });
     await expect(visitLink).toBeVisible();
@@ -101,7 +98,6 @@ test.describe('Portfolio Case Study Detail', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/portfolio-works/nonexistent-project');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText('Project not found')).toBeVisible();
     await expect(page.getByRole('link', { name: /Back to portfolio/ })).toBeVisible();
@@ -112,7 +108,6 @@ test.describe('Portfolio Case Study Detail', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/portfolio-works/ecommerce-redesign');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText('Ready to Build Something Like This?')).toBeVisible();
     await expect(page.getByRole('link', { name: /Get a Quote/ })).toBeVisible();

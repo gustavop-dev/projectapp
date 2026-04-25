@@ -45,7 +45,6 @@ test.describe('Admin Proposal Zombie Segment', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText(/Propuestas zombie/)).toBeVisible({ timeout: 10000 });
     await expect(page.getByText('(2)')).toBeVisible();
@@ -56,7 +55,6 @@ test.describe('Admin Proposal Zombie Segment', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
     // Zombie alerts content should not be visible initially (collapsed)
     await expect(page.getByText(/Propuestas zombie/)).toBeVisible({ timeout: 10000 });
@@ -78,7 +76,6 @@ test.describe('Admin Proposal Zombie Segment', () => {
     ];
     await setupMock(page, noZombieAlerts);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
     // Wait for proposals list to render
     await expect(page.getByText(/Propuestas que necesitan atención/)).toBeVisible({ timeout: 10000 });

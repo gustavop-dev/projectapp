@@ -45,7 +45,6 @@ test.describe('Admin Email Deliverability Dashboard', () => {
       return null;
     });
     await page.goto('/panel/proposals/email-deliverability');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
     await expect(page).toHaveURL(/email-deliverability/);
@@ -62,7 +61,6 @@ test.describe('Admin Email Deliverability Dashboard', () => {
       return null;
     });
     await page.goto('/panel/proposals/email-deliverability');
-    await page.waitForLoadState('networkidle');
 
     const heading = page.getByRole('heading').first();
     await expect(heading).toBeVisible({ timeout: 15000 });

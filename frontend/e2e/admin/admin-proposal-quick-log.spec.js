@@ -38,7 +38,6 @@ function setupMock(page) {
 
 async function openQuickLogModal(page) {
   await page.goto('/panel/proposals');
-  await page.waitForLoadState('networkidle');
   await expect(page.getByText('Log Client')).toBeVisible({ timeout: 10000 });
 
   // Hide the floating "?" metrics button that overlaps the actions column

@@ -57,7 +57,6 @@ test.describe('Admin Proposal Duplicate', () => {
     });
 
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
     // Wait for the table to render with proposal data
     await expect(page.getByText('Carlos')).toBeVisible({ timeout: 10000 });

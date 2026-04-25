@@ -49,7 +49,6 @@ test.describe('Admin Blog Create', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/create');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('button', { name: 'Manual' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Importar JSON' })).toBeVisible();
@@ -62,7 +61,6 @@ test.describe('Admin Blog Create', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/create');
-    await page.waitForLoadState('networkidle');
 
     await page.getByLabel('Título (ES)').fill('Nuevo Post ES');
     await page.getByLabel('Title (EN)').fill('New Post EN');
@@ -75,7 +73,6 @@ test.describe('Admin Blog Create', () => {
     await page.getByLabel('Imagen de portada (URL)').fill('https://example.com/img.jpg');
 
     await page.getByRole('button', { name: 'Crear Post' }).click();
-    await page.waitForLoadState('networkidle');
   });
 
   test('manual mode: submits with only required fields (no category, no readTime)', {
@@ -83,7 +80,6 @@ test.describe('Admin Blog Create', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/create');
-    await page.waitForLoadState('networkidle');
 
     await page.getByLabel('Título (ES)').fill('Post Mínimo');
     await page.getByLabel('Title (EN)').fill('Minimal Post');
@@ -91,7 +87,6 @@ test.describe('Admin Blog Create', () => {
     await page.getByLabel('Excerpt (EN)').fill('Excerpt.');
 
     await page.getByRole('button', { name: 'Crear Post' }).click();
-    await page.waitForLoadState('networkidle');
   });
 
   test('switches to JSON import tab and shows template download', {
@@ -99,7 +94,6 @@ test.describe('Admin Blog Create', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/create');
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Importar JSON' }).click();
 
@@ -113,7 +107,6 @@ test.describe('Admin Blog Create', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/create');
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Importar JSON' }).click();
 
@@ -139,7 +132,6 @@ test.describe('Admin Blog Create', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/create');
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Importar JSON' }).click();
     const jsonTextarea = page.getByPlaceholder(/title_es/);
@@ -154,7 +146,6 @@ test.describe('Admin Blog Create', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/create');
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Importar JSON' }).click();
     const incompleteJson = JSON.stringify({ title_es: 'Solo título' });
@@ -170,7 +161,6 @@ test.describe('Admin Blog Create', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/create');
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Importar JSON' }).click();
 
@@ -186,6 +176,5 @@ test.describe('Admin Blog Create', () => {
     await jsonTextarea.dispatchEvent('input');
 
     await page.getByRole('button', { name: /Crear desde JSON/ }).click();
-    await page.waitForLoadState('networkidle');
   });
 });

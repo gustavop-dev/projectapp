@@ -56,13 +56,11 @@ test.describe('Proposal Rejection Optional Reason', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Navigate to last section (closing panel)
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
-    await page.waitForLoadState('networkidle');
 
     // Click reject link
     const rejectLink = page.getByRole('button', { name: /No es el momento/i });
@@ -79,12 +77,10 @@ test.describe('Proposal Rejection Optional Reason', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
-    await page.waitForLoadState('networkidle');
 
     const rejectLink = page.getByRole('button', { name: /No es el momento/i });
     await expect(rejectLink).toBeVisible({ timeout: 10000 });

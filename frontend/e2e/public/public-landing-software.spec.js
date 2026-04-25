@@ -20,7 +20,6 @@ test.describe('Landing Software Development', () => {
     tag: [...PUBLIC_LANDING_SOFTWARE, '@role:guest'],
   }, async ({ page }) => {
     await page.goto('/landing-software');
-    await page.waitForLoadState('networkidle');
 
     const heading = page.getByRole('heading').first();
     await expect(heading).toBeVisible({ timeout: 15000 });

@@ -51,7 +51,6 @@ test.describe('Admin Proposal Send', () => {
     });
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('button', { name: 'Enviar al Cliente' })).toBeVisible();
   });
@@ -76,7 +75,6 @@ test.describe('Admin Proposal Send', () => {
     });
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
 
     // Click the send button — opens the pre-send checklist modal
     await page.getByRole('button', { name: 'Enviar al Cliente' }).first().click();
@@ -106,7 +104,6 @@ test.describe('Admin Proposal Send', () => {
     });
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
 
     // For sent proposals, the resend action lives inside the actions menu.
     await page.getByTestId('proposal-actions-menu').click();
@@ -125,7 +122,6 @@ test.describe('Admin Proposal Send', () => {
     });
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('button', { name: 'Enviar al Cliente' })).not.toBeVisible();
   });

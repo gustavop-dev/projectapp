@@ -105,7 +105,6 @@ test.describe('Admin Email Templates Config', () => {
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
-    await page.waitForLoadState('networkidle');
 
     // Page title renders
     await expect(page.locator('h1')).toContainText('Valores por Defecto');
@@ -123,7 +122,6 @@ test.describe('Admin Email Templates Config', () => {
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
-    await page.waitForLoadState('networkidle');
 
     // Template rows render
     await expect(page.locator('text=Propuesta Enviada')).toBeVisible();
@@ -137,7 +135,6 @@ test.describe('Admin Email Templates Config', () => {
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
-    await page.waitForLoadState('networkidle');
 
     // Click "Interno" filter
     await page.getByRole('button', { name: /Interno/ }).click();
@@ -153,7 +150,6 @@ test.describe('Admin Email Templates Config', () => {
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
-    await page.waitForLoadState('networkidle');
 
     // Reminder template has "Personalizado" badge
     await expect(page.getByText('Personalizado', { exact: true })).toBeVisible();
@@ -164,7 +160,6 @@ test.describe('Admin Email Templates Config', () => {
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
-    await page.waitForLoadState('networkidle');
 
     // Click on template to expand and wait for detail API response
     const [detailResponse] = await Promise.all([
@@ -189,7 +184,6 @@ test.describe('Admin Email Templates Config', () => {
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
-    await page.waitForLoadState('networkidle');
 
     // Click on template to expand and wait for detail API response
     const [detailResponse] = await Promise.all([
@@ -212,7 +206,6 @@ test.describe('Admin Email Templates Config', () => {
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
-    await page.waitForLoadState('networkidle');
 
     // Expand template and wait for detail API response
     const [detailResponse] = await Promise.all([
@@ -241,7 +234,6 @@ test.describe('Admin Email Templates Config', () => {
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
-    await page.waitForLoadState('networkidle');
 
     // Expand template and wait for detail API response
     const [detailResponse] = await Promise.all([
@@ -272,7 +264,6 @@ test.describe('Admin Email Templates Config', () => {
       return null;
     });
     await page.goto('/panel/proposals/defaults');
-    await page.waitForLoadState('networkidle');
 
     // Click back link
     await page.locator('text=Volver a Propuestas').click();

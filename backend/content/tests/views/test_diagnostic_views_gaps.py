@@ -7,6 +7,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
+from freezegun import freeze_time
 
 from accounts.models import UserProfile
 from content.models import WebAppDiagnostic
@@ -366,6 +367,7 @@ class TestDiagnosticAnalyticsDeviceDetection:
 # ---------------------------------------------------------------------------
 
 class TestParseDiagnosticEmail:
+    @freeze_time('2026-01-15 12:00:00')
     def test_rate_limit_returns_429(self, admin_client, diagnostic):
         from content.models.email_log import EmailLog
         from content.services.diagnostic_email_service import DiagnosticEmailService

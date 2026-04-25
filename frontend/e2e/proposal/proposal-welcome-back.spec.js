@@ -57,13 +57,11 @@ test.describe('Proposal Welcome Back', () => {
     }, MOCK_UUID);
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Navigate forward to trigger progress persistence
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
-    await page.waitForLoadState('networkidle');
 
     // Check that progress was saved in localStorage
     const saved = await page.evaluate((uuid) => {
@@ -85,7 +83,6 @@ test.describe('Proposal Welcome Back', () => {
 
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Wait for page to render, then check no welcome-back
     await expect(page.getByTestId('nav-next')).toBeVisible({ timeout: 15000 });

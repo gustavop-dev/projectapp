@@ -53,13 +53,11 @@ test.describe('Proposal Process & Methodology', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Navigate to process methodology section (section index 1)
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
-    await page.waitForLoadState('networkidle');
 
     // All 5 pipeline steps should be visible (use .first() — desktop + mobile layouts render duplicates)
     await expect(page.getByRole('heading', { name: 'Discovery' }).first()).toBeVisible({ timeout: 10000 });
@@ -74,12 +72,10 @@ test.describe('Proposal Process & Methodology', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
-    await page.waitForLoadState('networkidle');
 
     // Check descriptions are rendered (use .first() for same reason)
     await expect(page.getByText(/Investigamos tu negocio/).first()).toBeVisible({ timeout: 10000 });

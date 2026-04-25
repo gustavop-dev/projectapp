@@ -51,11 +51,6 @@ def test_analytics_empty_returns_zero_counts(admin_client, diagnostic):
     assert body['time_to_first_view_hours'] is None
     assert body['time_to_response_hours'] is None
     assert body['engagement_score'] == 0
-    assert body['comparison'] == {
-        'avg_time_to_first_view_hours': None,
-        'avg_time_to_response_hours': None,
-        'avg_views': None,
-    }
 
 
 def test_analytics_empty_returns_empty_collections(admin_client, diagnostic):
@@ -68,6 +63,11 @@ def test_analytics_empty_returns_empty_collections(admin_client, diagnostic):
     assert body['sessions'] == []
     assert body['funnel'] != []  # funnel rows exist even when empty
     assert all(step['reached_count'] == 0 for step in body['funnel'])
+    assert body['comparison'] == {
+        'avg_time_to_first_view_hours': None,
+        'avg_time_to_response_hours': None,
+        'avg_views': None,
+    }
 
 
 # ── first_viewed_at / time_to_first_view ──────────────────────────────────

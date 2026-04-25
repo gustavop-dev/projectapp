@@ -45,7 +45,6 @@ test.describe('Admin Discount Analysis Enhanced', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel');
-    await page.waitForLoadState('networkidle');
 
     // Discount card should show close rates
     await expect(page.getByText('Con descuento', { exact: true })).toBeVisible({ timeout: 10000 });
@@ -66,7 +65,6 @@ test.describe('Admin Discount Analysis Enhanced', () => {
     // discount_close_rate (50) <= no_discount_close_rate (55) → delta <= 0
     await setupMock(page);
     await page.goto('/panel');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText('Con descuento', { exact: true })).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/no está mejorando el cierre/)).toBeVisible();

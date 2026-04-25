@@ -57,7 +57,6 @@ test.describe('Proposal Engagement Tracking', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Next button should be visible on first section
     const nextBtn = page.getByTestId('nav-next');
@@ -75,7 +74,6 @@ test.describe('Proposal Engagement Tracking', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });

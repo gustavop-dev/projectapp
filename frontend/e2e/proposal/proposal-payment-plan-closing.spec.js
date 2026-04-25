@@ -39,7 +39,6 @@ function buildProposal(paymentOptions) {
 
 async function openClosingPanel(page) {
   await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-  await page.waitForLoadState('networkidle');
   const nextBtn = page.getByTestId('nav-next');
   await expect(nextBtn).toBeVisible({ timeout: 20000 });
   let safetyLimit = 15;

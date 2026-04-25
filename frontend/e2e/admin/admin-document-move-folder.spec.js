@@ -51,7 +51,6 @@ test.describe('Admin Document Move Folder', () => {
     });
 
     await page.goto('/panel/documents');
-    await page.waitForLoadState('networkidle');
     await expect(page.getByText('Brief de Proyecto').first()).toBeVisible({ timeout: 15000 });
 
     await page.getByTitle('Mover a carpeta').first().click();
@@ -81,7 +80,6 @@ test.describe('Admin Document Move Folder', () => {
     });
 
     await page.goto('/panel/documents');
-    await page.waitForLoadState('networkidle');
     await expect(page.getByText('Brief de Proyecto').first()).toBeVisible({ timeout: 15000 });
 
     await page.getByTitle('Mover a carpeta').first().click();
@@ -112,7 +110,6 @@ test.describe('Admin Document Move Folder', () => {
     });
 
     await page.goto('/panel/documents');
-    await page.waitForLoadState('networkidle');
     await expect(page.getByText('Brief de Proyecto').first()).toBeVisible({ timeout: 15000 });
 
     await page.getByTitle('Mover a carpeta').first().click();

@@ -55,7 +55,6 @@ test.describe('Admin Proposal Quick Send', () => {
     });
 
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText('Test Client')).toBeVisible({ timeout: 10000 });
 
@@ -84,7 +83,6 @@ test.describe('Admin Proposal Quick Send', () => {
     });
 
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText('Test Client')).toBeVisible({ timeout: 10000 });
 

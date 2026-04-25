@@ -21,6 +21,5 @@ test.describe('Admin Proposal Section Reorder', () => {
       return null;
     });
     await page.goto('/panel/proposals/1/edit');
-    await page.waitForLoadState('networkidle');
   });
 });
