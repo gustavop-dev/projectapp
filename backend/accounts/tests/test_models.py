@@ -10,10 +10,15 @@ from freezegun import freeze_time
 from accounts.models import (
     BugReport,
     ChangeRequest,
+    DataModelEntity,
     Deliverable,
+    DeliverableClientFolder,
+    DeliverableClientUpload,
     DeliverableVersion,
     HostingSubscription,
+    Notification,
     Project,
+    ProjectDataModelEntity,
     Requirement,
     RequirementComment,
     RequirementHistory,
@@ -413,3 +418,169 @@ class TestChangeRequestSaveImageOptimization:
             cr.save()  # must not raise
 
         assert ChangeRequest.objects.filter(pk=cr.pk).exists()
+
+
+# ---------------------------------------------------------------------------
+# __str__ methods and simple properties for uncovered models
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestUncoveredModelStrMethods:
+    def _make_user(self, username):
+        return User.objects.create_user(
+            username=username, email=username, password='x',
+        )
+
+    def _make_project(self, user):
+        return Project.objects.create(name='Str Project', client=user)
+
+    def _make_deliverable(self, project):
+        return Deliverable.objects.create(
+            project=project, title='My Deliverable', category=Deliverable.CATEGORY_OTHER,
+        )
+
+    def test_change_request_str(self):
+        user = self._make_user('cr_str@test.com')
+        project = self._make_project(user)
+        cr = ChangeRequest.objects.create(project=project, title='Needs Fix', created_by=user)
+
+        assert 'Needs Fix' in str(cr)
+
+    def test_bug_report_str(self):
+        user = self._make_user('bug_str@test.com')
+        project = self._make_project(user)
+        br = BugReport.objects.create(project=project, title='Crash on Login', created_by=user)
+
+        assert 'Crash on Login' in str(br)
+
+    def test_deliverable_str(self):
+        user = self._make_user('del_str@test.com')
+        project = self._make_project(user)
+        d = self._make_deliverable(project)
+
+        assert 'My Deliverable' in str(d)
+
+    def test_deliverable_file_name_with_no_file(self):
+        user = self._make_user('del_fn@test.com')
+        project = self._make_project(user)
+        d = self._make_deliverable(project)
+
+        assert d.file_name == ''
+
+    def test_deliverable_version_str(self):
+        user = self._make_user('dv_str@test.com')
+        project = self._make_project(user)
+        d = self._make_deliverable(project)
+        ver = DeliverableVersion.objects.create(
+            deliverable=d,
+            version_number=2,
+            uploaded_by=user,
+        )
+
+        assert 'My Deliverable' in str(ver)
+        assert '2' in str(ver)
+
+    def test_deliverable_version_file_name_with_no_file(self):
+        user = self._make_user('dv_fn@test.com')
+        project = self._make_project(user)
+        d = self._make_deliverable(project)
+        ver = DeliverableVersion.objects.create(
+            deliverable=d, version_number=1, uploaded_by=user,
+        )
+
+        assert ver.file_name == ''
+
+    def test_deliverable_client_upload_str(self):
+        user = self._make_user('dcu_str@test.com')
+        project = self._make_project(user)
+        d = self._make_deliverable(project)
+        fake_file = SimpleUploadedFile('report.pdf', b'%PDF', content_type='application/pdf')
+        upload = DeliverableClientUpload.objects.create(
+            deliverable=d, file=fake_file, title='Client Report', uploaded_by=user,
+        )
+
+        assert str(d.id) in str(upload)
+
+    def test_deliverable_client_upload_file_name_with_file(self):
+        user = self._make_user('dcu_fn@test.com')
+        project = self._make_project(user)
+        d = self._make_deliverable(project)
+        fake_file = SimpleUploadedFile('upload.pdf', b'%PDF', content_type='application/pdf')
+        upload = DeliverableClientUpload.objects.create(
+            deliverable=d, file=fake_file, uploaded_by=user,
+        )
+
+        assert 'upload.pdf' in upload.file_name
+
+    def test_data_model_entity_str(self):
+        user = self._make_user('dme_str@test.com')
+        project = self._make_project(user)
+        d = self._make_deliverable(project)
+        entity = DataModelEntity.objects.create(deliverable=d, name='UserEntity')
+
+        assert 'UserEntity' in str(entity)
+
+    def test_project_data_model_entity_str(self):
+        user = self._make_user('pdme_str@test.com')
+        project = self._make_project(user)
+        entity = ProjectDataModelEntity.objects.create(project=project, name='OrderEntity')
+
+        assert 'OrderEntity' in str(entity)
+
+    def test_notification_str(self):
+        user = self._make_user('notif_str@test.com')
+        notif = Notification.objects.create(
+            user=user,
+            type=Notification.TYPE_SYSTEM,
+            title='System Alert',
+        )
+
+        assert 'System Alert' in str(notif)
+
+    def test_hosting_subscription_str(self):
+        user = self._make_user('hs_str@test.com')
+        project = self._make_project(user)
+        sub = HostingSubscription.objects.create(
+            project=project,
+            plan=HostingSubscription.PLAN_MONTHLY,
+            base_monthly_amount=200000,
+            billing_amount=200000,
+            start_date='2025-01-01',
+            next_billing_date='2025-02-01',
+        )
+
+        assert project.name in str(sub)
+
+    def test_requirement_project_property(self):
+        user = self._make_user('req_proj@test.com')
+        project = self._make_project(user)
+        d = self._make_deliverable(project)
+        req = Requirement.objects.create(
+            deliverable=d, title='Feature X',
+            created_by=user,
+        )
+
+        assert req.project == project
+        assert req.project_id == project.id
+
+    def test_user_profile_is_email_placeholder_true(self):
+        user = self._make_user('holder@noemail.local')
+        profile = UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+
+        assert profile.is_email_placeholder is True
+
+    def test_user_profile_is_email_placeholder_false(self):
+        user = self._make_user('real@example.com')
+        profile = UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+
+        assert profile.is_email_placeholder is False
+
+    def test_deliverable_client_folder_str(self):
+        user = self._make_user('dcf_str@test.com')
+        project = self._make_project(user)
+        d = self._make_deliverable(project)
+        folder = DeliverableClientFolder.objects.create(
+            deliverable=d, name='Designs', created_by=user,
+        )
+
+        assert 'Designs' in str(folder)

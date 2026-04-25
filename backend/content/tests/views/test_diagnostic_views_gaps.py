@@ -1,10 +1,12 @@
 """Gap tests for content/views/diagnostic.py — targeting uncovered branches."""
 
 import io
+import json
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 
 from accounts.models import UserProfile
 from content.models import WebAppDiagnostic
@@ -269,3 +271,178 @@ def test_upload_attachment_clears_custom_label_for_non_other_type(admin_client, 
     )
     assert response.status_code == 201
     assert response.json().get('custom_type_label', '') == ''
+
+
+# ---------------------------------------------------------------------------
+# diagnostic_analytics — device detection from user agent strings
+# ---------------------------------------------------------------------------
+
+class TestDiagnosticAnalyticsDeviceDetection:
+    def test_tablet_ua_counted_as_tablet(self, admin_client, diagnostic):
+        from content.models.diagnostic_view_event import DiagnosticViewEvent
+
+        DiagnosticViewEvent.objects.create(
+            diagnostic=diagnostic,
+            session_id='sess-tablet',
+            ip_address='10.0.0.1',
+            user_agent='Mozilla/5.0 (Linux; Android 11; Tablet Build) AppleWebKit/537.36',
+        )
+
+        response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/analytics/')
+
+        assert response.status_code == 200
+        assert response.json()['device_breakdown']['tablet'] == 1
+
+    def test_ipad_ua_counted_as_tablet(self, admin_client, diagnostic):
+        from content.models.diagnostic_view_event import DiagnosticViewEvent
+
+        DiagnosticViewEvent.objects.create(
+            diagnostic=diagnostic,
+            session_id='sess-ipad',
+            ip_address='10.0.0.2',
+            user_agent='Mozilla/5.0 (iPad; CPU OS 15_0 like Mac OS X) Mobile/15E148',
+        )
+
+        response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/analytics/')
+
+        assert response.status_code == 200
+        assert response.json()['device_breakdown']['tablet'] == 1
+
+    def test_mobile_ua_counted_as_mobile(self, admin_client, diagnostic):
+        from content.models.diagnostic_view_event import DiagnosticViewEvent
+
+        DiagnosticViewEvent.objects.create(
+            diagnostic=diagnostic,
+            session_id='sess-mobile',
+            ip_address='10.0.0.3',
+            user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 15_0) Mobile/19A346',
+        )
+
+        response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/analytics/')
+
+        assert response.status_code == 200
+        assert response.json()['device_breakdown']['mobile'] == 1
+
+    def test_android_ua_without_tablet_counted_as_mobile(self, admin_client, diagnostic):
+        from content.models.diagnostic_view_event import DiagnosticViewEvent
+
+        DiagnosticViewEvent.objects.create(
+            diagnostic=diagnostic,
+            session_id='sess-android',
+            ip_address='10.0.0.4',
+            user_agent='Mozilla/5.0 (Linux; Android 12; Pixel 6) Chrome/96.0',
+        )
+
+        response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/analytics/')
+
+        assert response.status_code == 200
+        assert response.json()['device_breakdown']['mobile'] == 1
+
+    def test_desktop_ua_counted_as_desktop(self, admin_client, diagnostic):
+        from content.models.diagnostic_view_event import DiagnosticViewEvent
+
+        DiagnosticViewEvent.objects.create(
+            diagnostic=diagnostic,
+            session_id='sess-desktop',
+            ip_address='10.0.0.5',
+            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/96.0',
+        )
+
+        response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/analytics/')
+
+        assert response.status_code == 200
+        assert response.json()['device_breakdown']['desktop'] == 1
+
+    def test_no_view_events_returns_empty_device_breakdown(self, admin_client, diagnostic):
+        response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/analytics/')
+
+        assert response.status_code == 200
+        breakdown = response.json()['device_breakdown']
+        assert breakdown == {'desktop': 0, 'mobile': 0, 'tablet': 0}
+
+
+# ---------------------------------------------------------------------------
+# _parse_diagnostic_email — validation branches (via send_diagnostic_email)
+# ---------------------------------------------------------------------------
+
+class TestParseDiagnosticEmail:
+    def test_rate_limit_returns_429(self, admin_client, diagnostic):
+        from content.models.email_log import EmailLog
+        from content.services.diagnostic_email_service import DiagnosticEmailService
+
+        EmailLog.objects.create(
+            template_key=DiagnosticEmailService.TEMPLATE_CUSTOM,
+            recipient=diagnostic.client_email or 'c@example.com',
+            subject='Test',
+            status='sent',
+            metadata={'diagnostic_uuid': str(diagnostic.uuid)},
+            sent_at=timezone.now(),
+        )
+
+        response = admin_client.post(
+            f'/api/diagnostics/{diagnostic.id}/email/send/',
+            data={
+                'recipient_email': 'c@example.com',
+                'subject': 'Test Subject',
+                'sections': json.dumps(['Hello']),
+            },
+            format='json',
+        )
+
+        assert response.status_code == 429
+
+    def test_missing_recipient_email_returns_400(self, admin_client, diagnostic):
+        response = admin_client.post(
+            f'/api/diagnostics/{diagnostic.id}/email/send/',
+            data={
+                'recipient_email': '',
+                'subject': 'Test',
+                'sections': json.dumps(['Hello']),
+            },
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'destinatario' in response.json()['error']
+
+    def test_invalid_recipient_email_format_returns_400(self, admin_client, diagnostic):
+        response = admin_client.post(
+            f'/api/diagnostics/{diagnostic.id}/email/send/',
+            data={
+                'recipient_email': 'not-an-email',
+                'subject': 'Test',
+                'sections': json.dumps(['Hello']),
+            },
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'destinatario' in response.json()['error']
+
+    def test_empty_subject_returns_400(self, admin_client, diagnostic):
+        response = admin_client.post(
+            f'/api/diagnostics/{diagnostic.id}/email/send/',
+            data={
+                'recipient_email': 'client@example.com',
+                'subject': '',
+                'sections': json.dumps(['Hello']),
+            },
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'asunto' in response.json()['error']
+
+    def test_invalid_sections_json_returns_400(self, admin_client, diagnostic):
+        response = admin_client.post(
+            f'/api/diagnostics/{diagnostic.id}/email/send/',
+            data={
+                'recipient_email': 'client@example.com',
+                'subject': 'Valid Subject',
+                'sections': '{not valid json}',
+            },
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'secciones' in response.json()['error']

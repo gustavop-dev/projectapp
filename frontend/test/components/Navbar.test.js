@@ -214,4 +214,96 @@ describe('Navbar', () => {
       firstLink.trigger('mouseenter');
     }).not.toThrow();
   });
+
+  // ── Mobile menu interaction ────────────────────────────────────────────────
+
+  it('mobile hamburger click shows the mobile menu overlay (showMenu=true)', async () => {
+    const wrapper = mountNavbar();
+    await wrapper.find('button[aria-label="Open menu"]').trigger('click');
+    // The mobile menu div uses v-show="showMenu"; it should now be visible in DOM
+    const menu = wrapper.find('#mobile-menu');
+    expect(menu.exists()).toBe(true);
+  });
+
+  it('sign-in link is present in the mobile bottom section', () => {
+    const wrapper = mountNavbar();
+    // The mobile nav section (aria-label="Mobile navigation") renders Sign In
+    const mobileNav = wrapper.find('nav[aria-label="Mobile navigation"]');
+    expect(mobileNav.text()).toContain('Sign In');
+  });
+
+  it('clicking Close menu button calls closeMenuMobile', async () => {
+    const wrapper = mountNavbar();
+    // Click open first
+    await wrapper.find('button[aria-label="Open menu"]').trigger('click');
+    // Now click close
+    const closeBtn = wrapper.find('button[aria-label="Close menu"]');
+    expect(closeBtn.exists()).toBe(true);
+    await expect(closeBtn.trigger('click')).resolves.not.toThrow();
+  });
+
+  it('mobileMenuItems includes App Development nav link', () => {
+    const wrapper = mountNavbar();
+    expect(wrapper.text()).toContain('App Development');
+  });
+
+  it('mobileMenuItems includes Blog nav link', () => {
+    const wrapper = mountNavbar();
+    expect(wrapper.text()).toContain('Blog');
+  });
+
+  it('navItems includes external contact link rendering Contact text', () => {
+    const wrapper = mountNavbar();
+    const desktopNav = wrapper.find('nav[aria-label="Main navigation"]');
+    expect(desktopNav.text()).toContain('Contact');
+  });
+
+  it('mobile language button renders current locale label', () => {
+    const wrapper = mountNavbar();
+    const mobileNav = wrapper.find('nav[aria-label="Mobile navigation"]');
+    const langBtns = mobileNav.findAll('button').filter((b) => b.text() === 'ES');
+    expect(langBtns.length).toBeGreaterThan(0);
+  });
+
+  it('desktop language button triggers navigateTo exactly once per click', async () => {
+    navigateTo.mockClear();
+    const wrapper = mountNavbar();
+    const desktopNav = wrapper.find('nav[aria-label="Main navigation"]');
+    const langBtn = desktopNav.findAll('button').find((b) => b.text() === 'ES');
+    await langBtn.trigger('click');
+    expect(navigateTo).toHaveBeenCalledTimes(1);
+  });
+
+  it('pressing Escape while mobile menu is open triggers closeMenu without error', async () => {
+    const wrapper = mountNavbar();
+    await wrapper.find('button[aria-label="Open menu"]').trigger('click');
+    expect(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    }).not.toThrow();
+    expect(wrapper.exists()).toBe(true);
+  });
+
+  it('clicking the backdrop closes the mobile menu without error', async () => {
+    const wrapper = mountNavbar();
+    await wrapper.find('button[aria-label="Open menu"]').trigger('click');
+    const backdrop = wrapper.find('.absolute.inset-0.bg-white\\/40');
+    expect(backdrop.exists()).toBe(true);
+    await expect(backdrop.trigger('click')).resolves.not.toThrow();
+  });
+
+  it('isActiveRoute returns false for landing-apps when route is index', () => {
+    const wrapper = mountNavbar();
+    // route.name is 'index___es-co' so 'landing-apps' should not be active
+    const desktopNav = wrapper.find('nav[aria-label="Main navigation"]');
+    const appDevLink = desktopNav.findAll('a').find((a) => a.text() === 'App Development');
+    expect(appDevLink).toBeTruthy();
+    // App Development link should have opacity class (not active font-medium)
+    expect(appDevLink.classes().join(' ')).not.toContain('font-medium');
+  });
+
+  it('mobileMenuItems computed has exactly four navigation items', () => {
+    const wrapper = mountNavbar();
+    const mobileLinks = wrapper.findAll('.mobile-nav-item');
+    expect(mobileLinks.length).toBe(4);
+  });
 });

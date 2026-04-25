@@ -348,3 +348,268 @@ describe('ProposalAnalytics device data', () => {
     expect(wrapper.text()).toContain('3');
   });
 });
+
+// ── formatTimelineDescription ──────────────────────────────────────────────
+
+function withTimeline(events, extraData = {}) {
+  global.useProposalStore = jest.fn(() => ({
+    fetchProposalAnalytics: jest.fn().mockResolvedValue({
+      success: true,
+      data: { ...richAnalytics, timeline: events, ...extraData },
+    }),
+  }));
+  return mount(ProposalAnalytics, {
+    props: { proposalId: 42, proposal: null },
+    global: {
+      stubs: {
+        QuestionMarkCircleIcon: { template: '<span />' },
+        UiTooltip: { template: '<div><slot /><slot name="trigger" /></div>' },
+      },
+    },
+  });
+}
+
+describe('ProposalAnalytics formatTimelineDescription', () => {
+  it('calc_confirmed renders Confirmó with module count', async () => {
+    const wrapper = withTimeline([{
+      id: 1,
+      change_type: 'calc_confirmed',
+      description: JSON.stringify({ selected: [1, 2], total: 5000, elapsed_seconds: 65 }),
+      actor_type: 'client',
+      created_at: '2026-01-01T10:00:00Z',
+    }]);
+    await flushPromises();
+    expect(wrapper.text()).toContain('Confirmó');
+  });
+
+  it('calc_abandoned renders Abandonó calculadora', async () => {
+    const wrapper = withTimeline([{
+      id: 1,
+      change_type: 'calc_abandoned',
+      description: JSON.stringify({ selected: [1], deselected: [2], total: null, elapsed_seconds: 0 }),
+      actor_type: 'client',
+      created_at: '2026-01-01T10:00:00Z',
+    }]);
+    await flushPromises();
+    expect(wrapper.text()).toContain('Abandonó calculadora');
+  });
+
+  it('updated with field_name title renders old and new values', async () => {
+    const wrapper = withTimeline([{
+      id: 1,
+      change_type: 'updated',
+      field_name: 'title',
+      old_value: 'Viejo nombre',
+      new_value: 'Nuevo nombre',
+      actor_type: 'seller',
+      description: '',
+      created_at: '2026-01-01T10:00:00Z',
+    }]);
+    await flushPromises();
+    expect(wrapper.text()).toContain('Viejo nombre');
+    expect(wrapper.text()).toContain('Nuevo nombre');
+  });
+
+  it('status_change renders Estado with old and new values', async () => {
+    const wrapper = withTimeline([{
+      id: 1,
+      change_type: 'status_change',
+      old_value: 'draft',
+      new_value: 'sent',
+      actor_type: 'seller',
+      description: '',
+      created_at: '2026-01-01T10:00:00Z',
+    }]);
+    await flushPromises();
+    expect(wrapper.text()).toContain('draft');
+    expect(wrapper.text()).toContain('sent');
+  });
+
+  it('commented with prefix renders the bolded comment body', async () => {
+    const wrapper = withTimeline([{
+      id: 1,
+      change_type: 'commented',
+      description: 'Client left a comment: Great proposal!',
+      actor_type: 'client',
+      created_at: '2026-01-01T10:00:00Z',
+    }]);
+    await flushPromises();
+    expect(wrapper.text()).toContain('Great proposal!');
+  });
+
+  it('negotiating with Comment key renders the bolded reason', async () => {
+    const wrapper = withTimeline([{
+      id: 1,
+      change_type: 'negotiating',
+      description: 'Quiere negociar Comment: necesita descuento',
+      actor_type: 'client',
+      created_at: '2026-01-01T10:00:00Z',
+    }]);
+    await flushPromises();
+    expect(wrapper.text()).toContain('necesita descuento');
+  });
+
+  it('rejected with Reason key renders the bolded rejection reason', async () => {
+    const wrapper = withTimeline([{
+      id: 1,
+      change_type: 'rejected',
+      description: 'No aceptó Reason: presupuesto insuficiente',
+      actor_type: 'client',
+      created_at: '2026-01-01T10:00:00Z',
+    }]);
+    await flushPromises();
+    expect(wrapper.text()).toContain('presupuesto insuficiente');
+  });
+
+  it('cond_accepted with Conditional acceptance prefix renders condition', async () => {
+    const wrapper = withTimeline([{
+      id: 1,
+      change_type: 'cond_accepted',
+      description: 'Conditional acceptance: pago en dos cuotas',
+      actor_type: 'client',
+      created_at: '2026-01-01T10:00:00Z',
+    }]);
+    await flushPromises();
+    expect(wrapper.text()).toContain('pago en dos cuotas');
+  });
+
+  it('accepted with Condition key renders the bolded condition', async () => {
+    const wrapper = withTimeline([{
+      id: 1,
+      change_type: 'accepted',
+      description: 'Aceptó propuesta Condition: con garantía de 30 días',
+      actor_type: 'client',
+      created_at: '2026-01-01T10:00:00Z',
+    }]);
+    await flushPromises();
+    expect(wrapper.text()).toContain('con garantía de 30 días');
+  });
+
+  it('sent with " to email" renders the bolded recipient email', async () => {
+    const wrapper = withTimeline([{
+      id: 1,
+      change_type: 'sent',
+      description: 'Propuesta enviada to cliente@empresa.com.',
+      actor_type: 'seller',
+      created_at: '2026-01-01T10:00:00Z',
+    }]);
+    await flushPromises();
+    expect(wrapper.text()).toContain('cliente@empresa.com');
+  });
+
+  it('resent type with " to email" renders the bolded recipient email', async () => {
+    const wrapper = withTimeline([{
+      id: 1,
+      change_type: 'resent',
+      description: 'Propuesta reenviada to reenvio@empresa.com.',
+      actor_type: 'seller',
+      created_at: '2026-01-01T10:00:00Z',
+    }]);
+    await flushPromises();
+    expect(wrapper.text()).toContain('reenvio@empresa.com');
+  });
+
+  it('req_clicked renders bolded group title from JSON description', async () => {
+    const wrapper = withTimeline([{
+      id: 1,
+      change_type: 'req_clicked',
+      description: JSON.stringify({ group_title: 'Landing Page' }),
+      actor_type: 'client',
+      created_at: '2026-01-01T10:00:00Z',
+    }]);
+    await flushPromises();
+    expect(wrapper.text()).toContain('Landing Page');
+  });
+
+  it('created event with quoted title passes through escapeHtml', async () => {
+    const wrapper = withTimeline([{
+      id: 1,
+      change_type: 'created',
+      description: 'Propuesta "Acme Corp" creada',
+      actor_type: 'seller',
+      created_at: '2026-01-01T10:00:00Z',
+    }]);
+    await flushPromises();
+    expect(wrapper.text()).toContain('Acme Corp');
+  });
+
+  it('unknown change_type falls through to escapeHtml and renders description', async () => {
+    const wrapper = withTimeline([{
+      id: 1,
+      change_type: 'unknown_type',
+      description: 'Actividad desconocida',
+      actor_type: 'seller',
+      created_at: '2026-01-01T10:00:00Z',
+    }]);
+    await flushPromises();
+    expect(wrapper.text()).toContain('Actividad desconocida');
+  });
+});
+
+// ── share links and skipped sections ──────────────────────────────────────
+
+describe('ProposalAnalytics share links and skipped sections', () => {
+  it('renders share links table when share_links has entries', async () => {
+    const wrapper = withTimeline([], {
+      share_links: [
+        { uuid: 'link-1', shared_by_name: 'Carlos', recipient_name: 'Ana', view_count: 2, first_viewed_at: null },
+      ],
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain('Tracking de propuestas compartidas');
+    expect(wrapper.text()).toContain('Carlos');
+  });
+
+  it('renders skipped sections count when skipped_sections is non-empty', async () => {
+    const wrapper = withTimeline([], {
+      skipped_sections: [
+        { section_type: 'context_diagnostic', section_title: 'Contexto' },
+      ],
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain('Contexto');
+  });
+});
+
+// ── sectionInsights ────────────────────────────────────────────────────────
+
+describe('ProposalAnalytics sectionInsights', () => {
+  it('renders sectionInsights for top sections with known type and sufficient time', async () => {
+    const wrapper = withTimeline([], {
+      sections: [
+        { section_type: 'investment', section_title: 'Inversión', total_time_seconds: 120, avg_time_seconds: 60 },
+      ],
+      skipped_sections: [],
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain('Señal de interés en precio');
+  });
+});
+
+// ── lastVisitedAt fallback ─────────────────────────────────────────────────
+
+describe('ProposalAnalytics lastVisitedAt', () => {
+  it('falls back to first session viewed_at when last_viewed_at is null', async () => {
+    global.useProposalStore = jest.fn(() => ({
+      fetchProposalAnalytics: jest.fn().mockResolvedValue({
+        success: true,
+        data: {
+          ...richAnalytics,
+          last_viewed_at: null,
+          sessions: [{ id: 1, viewed_at: '2026-03-01T14:00:00Z', reading_time_seconds: 60, device_type: 'mobile', session_id: 'sess1' }],
+        },
+      }),
+    }));
+    const wrapper = mount(ProposalAnalytics, {
+      props: { proposalId: 42, proposal: null },
+      global: {
+        stubs: {
+          QuestionMarkCircleIcon: { template: '<span />' },
+          UiTooltip: { template: '<div><slot /><slot name="trigger" /></div>' },
+        },
+      },
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain('marzo');
+  });
+});
