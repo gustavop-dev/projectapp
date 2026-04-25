@@ -148,53 +148,43 @@ test.describe('Proposal Executive to Detailed View Switch', () => {
     tag: [...PROPOSAL_EXECUTIVE_TO_DETAILED, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposal));
+    const proposalReq = page.waitForResponse((r) => r.url().includes(`proposals/${MOCK_UUID}/`));
     await page.goto(`/proposal/${MOCK_UUID}?mode=executive`);
+    await proposalReq;
 
-    // Open ProposalIndex and click switch button
-    const indexToggle = page.getByTestId('index-toggle');
-    if (await indexToggle.isVisible()) {
-      await indexToggle.click();
-    }
+    // Open ProposalIndex sidebar and wait for the open transition to complete
+    await page.getByTestId('index-toggle').click();
+    await expect(page.getByTestId('index-panel'))
+      .toHaveAttribute('class', /pointer-events-auto/, { timeout: 3000 });
 
+    // Click the switch button — Playwright auto-scrolls + auto-waits for actionability
     const switchBtn = page.getByTestId('switch-to-detailed-btn');
-    await switchBtn.scrollIntoViewIfNeeded({ timeout: 5000 });
-    await expect(switchBtn).toBeVisible({ timeout: 5000 });
-    await switchBtn.click({ timeout: 5000 });
+    await switchBtn.click();
 
     // After transition overlay auto-dismisses, the counter should update to show all sections
-    const counter = page.getByTestId('section-counter');
-    await expect(counter).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('section-counter')).toBeVisible({ timeout: 10000 });
   });
 
   test('detailed mode shows all sections after switch from executive', {
     tag: [...PROPOSAL_EXECUTIVE_TO_DETAILED, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposal));
+    const proposalReq = page.waitForResponse((r) => r.url().includes(`proposals/${MOCK_UUID}/`));
     // Start directly in detailed mode to verify all sections are visible
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
+    await proposalReq;
 
-    // Greeting should be visible
-    await expect(page.locator('[data-section-type="greeting"]')).toBeVisible({ timeout: 5000 });
+    // Greeting should be visible (panels mounted after proposal payload resolved)
+    await expect(page.locator('[data-section-type="greeting"]')).toBeVisible();
 
-    // Navigate forward to find context_diagnostic (not in executive mode)
+    // context_diagnostic is the 3rd section in detailed mode (greeting → executive_summary → context_diagnostic).
+    // Click nav-next twice to reach it.
     const nextBtn = page.getByTestId('nav-next');
-    let foundContext = false;
-    for (let i = 0; i < 12; i++) {
-      if (await page.locator('[data-section-type="context_diagnostic"]').isVisible().catch(() => false)) {
-        foundContext = true;
-        break;
-      }
-      if (await nextBtn.isVisible().catch(() => false)) {
-        await nextBtn.click();
-        try {
-          await page.locator('[data-section-type="context_diagnostic"]').waitFor({ state: 'visible', timeout: 2000 });
-        } catch {
-          /* section not reached yet; loop continues */
-        }
-      }
-    }
+    await expect(nextBtn).toBeVisible();
+    await nextBtn.click();
+    await nextBtn.click();
 
-    expect(foundContext).toBe(true);
+    await expect(page.locator('[data-section-type="context_diagnostic"]')).toBeVisible();
   });
 
   test('"Ver Propuesta Completa" button is NOT shown in detailed mode', {

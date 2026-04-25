@@ -154,18 +154,20 @@ test.describe('Proposal View Navigation', () => {
     tag: [...PROPOSAL_VIEW_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
+    const proposalReq = page.waitForResponse((r) => r.url().includes(`proposals/${MOCK_UUID}/`));
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
+    await proposalReq;
 
-    // Navigate through all sections
+    // Mock has 3 sections (greeting, executive_summary, context_diagnostic);
+    // the page auto-appends proposal_closing → 4 panels total → 3 nav-next clicks.
     const nextBtn = page.getByTestId('nav-next');
-    let safetyLimit = 15;
-    while (await nextBtn.isVisible({ timeout: 500 }).catch(() => false) && safetyLimit-- > 0) {
+    for (let i = 0; i < 3; i++) {
+      await expect(nextBtn).toBeVisible();
       await nextBtn.click();
-      await expect(page.locator('body')).toBeVisible(); // yield
     }
 
     // On last panel (proposal_closing), next button is gone
-    await expect(page.getByTestId('nav-next')).not.toBeVisible();
+    await expect(nextBtn).not.toBeVisible();
 
     // And accept/reject buttons should be visible (closing panel)
     await expect(page.getByRole('button', { name: /Acepto la propuesta/i })).toBeVisible();

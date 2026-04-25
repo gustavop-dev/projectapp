@@ -92,11 +92,15 @@ test.describe('Blog Listing', () => {
     tag: [...BLOG_LIST, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
+    const blogReq = page.waitForResponse((r) => r.url().includes('/api/blog/'));
     await page.goto('/blog');
+    await blogReq;
+
+    const grid = page.locator('.hidden.sm\\:grid');
+    await expect(grid.getByText('Design Systems Guide')).toBeVisible();
 
     await page.getByPlaceholder('Search articles...').fill('Design');
 
-    const grid = page.locator('.hidden.sm\\:grid');
     await expect(grid.getByText('Design Systems Guide')).toBeVisible();
     await expect(grid.getByText('Custom Software for SMBs')).not.toBeVisible();
   });
@@ -105,14 +109,18 @@ test.describe('Blog Listing', () => {
     tag: [...BLOG_LIST, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
+    const blogReq = page.waitForResponse((r) => r.url().includes('/api/blog/'));
     await page.goto('/blog');
+    await blogReq;
+
+    const grid = page.locator('.hidden.sm\\:grid');
+    await expect(grid.getByText('Design Systems Guide')).toBeVisible();
 
     await page.getByPlaceholder('Search articles...').fill('nonexistent-term');
 
     await expect(page.getByText('No articles match')).toBeVisible();
     await page.getByText('Clear filters').click();
 
-    const grid = page.locator('.hidden.sm\\:grid');
     await expect(grid.getByText('Design Systems Guide')).toBeVisible();
   });
 
