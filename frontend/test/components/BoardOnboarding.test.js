@@ -176,4 +176,147 @@ describe('BoardOnboarding', () => {
     expect(wrapper.text()).toContain('Progreso del proyecto');
     expect(wrapper.vm.spotlightRect).toBeNull();
   });
+
+  // ── Target present in DOM ─────────────────────────────────────────────────
+
+  it('positionAll sets spotlightRect when the tour target is present in DOM', async () => {
+    const originalGetComputedStyle = window.getComputedStyle;
+    window.getComputedStyle = () => ({
+      [Symbol.iterator]: function* () {},
+      getPropertyValue: () => '',
+    });
+
+    const stepTarget = document.createElement('div');
+    stepTarget.className = 'tour-board-progress';
+    document.body.appendChild(stepTarget);
+
+    const wrapper = mountBoardOnboarding();
+
+    wrapper.vm.start();
+    jest.runAllTimers();
+    await wrapper.vm.$nextTick();
+    // positionAll is async — await the scrollToTarget Promise.resolve() microtask
+    await Promise.resolve();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.spotlightRect).not.toBeNull();
+
+    document.body.removeChild(stepTarget);
+    window.getComputedStyle = originalGetComputedStyle;
+  });
+
+  it('cloneTarget updates cloneStyle with position data when target is in DOM', async () => {
+    const originalGetComputedStyle = window.getComputedStyle;
+    window.getComputedStyle = () => ({
+      [Symbol.iterator]: function* () {},
+      getPropertyValue: () => '',
+    });
+
+    const stepTarget = document.createElement('div');
+    stepTarget.className = 'tour-board-progress';
+    document.body.appendChild(stepTarget);
+
+    const wrapper = mountBoardOnboarding();
+
+    wrapper.vm.start();
+    jest.runAllTimers();
+    await wrapper.vm.$nextTick();
+    await Promise.resolve();
+    await wrapper.vm.$nextTick();
+
+    // cloneTarget sets cloneStyle; the container div's style should have overflow:hidden
+    const cloneContainer = wrapper.find('[style*="overflow"]');
+    expect(cloneContainer.exists()).toBe(true);
+
+    document.body.removeChild(stepTarget);
+    window.getComputedStyle = originalGetComputedStyle;
+  });
+
+  // ── optional steps with target present ────────────────────────────────────
+
+  it('optional steps are included in activeSteps when their target is present', async () => {
+    const optionalTarget = document.createElement('div');
+    optionalTarget.className = 'tour-board-backlog';
+    document.body.appendChild(optionalTarget);
+
+    const wrapper = mountBoardOnboarding();
+
+    wrapper.vm.start();
+    jest.runAllTimers();
+    await wrapper.vm.$nextTick();
+
+    // With optional backlog target present, there should be 3 active steps instead of 2
+    const progressText = wrapper.text();
+    expect(progressText).toContain('/3');
+
+    document.body.removeChild(optionalTarget);
+  });
+
+  // ── resize handling ────────────────────────────────────────────────────────
+
+  it('dispatching resize event while visible calls positionAll without error', async () => {
+    const wrapper = mountBoardOnboarding();
+
+    wrapper.vm.start();
+    jest.runAllTimers();
+    await wrapper.vm.$nextTick();
+
+    expect(() => window.dispatchEvent(new Event('resize'))).not.toThrow();
+    expect(wrapper.exists()).toBe(true);
+  });
+
+  it('dispatching resize event while hidden is a no-op', () => {
+    mountBoardOnboarding();
+
+    expect(() => window.dispatchEvent(new Event('resize'))).not.toThrow();
+  });
+
+  // ── lifecycle cleanup ──────────────────────────────────────────────────────
+
+  it('onBeforeUnmount removes the resize event listener', () => {
+    const removeSpy = jest.spyOn(window, 'removeEventListener');
+    const wrapper = mountBoardOnboarding();
+
+    wrapper.unmount();
+
+    expect(removeSpy).toHaveBeenCalledWith('resize', expect.any(Function));
+    removeSpy.mockRestore();
+  });
+
+  it('onBeforeUnmount removes the keydown event listener', () => {
+    const removeSpy = jest.spyOn(window, 'removeEventListener');
+    const wrapper = mountBoardOnboarding();
+
+    wrapper.unmount();
+
+    expect(removeSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
+    removeSpy.mockRestore();
+  });
+
+  // ── scrollToTarget ─────────────────────────────────────────────────────────
+
+  it('positionAll does not throw when target scrollIntoView is called', async () => {
+    const stepTarget = document.createElement('div');
+    stepTarget.className = 'tour-board-progress';
+    stepTarget.scrollIntoView = jest.fn();
+    document.body.appendChild(stepTarget);
+
+    let originalGetComputedStyle;
+    originalGetComputedStyle = window.getComputedStyle;
+    window.getComputedStyle = () => ({
+      [Symbol.iterator]: function* () {},
+      getPropertyValue: () => '',
+    });
+
+    const wrapper = mountBoardOnboarding();
+
+    wrapper.vm.start();
+    jest.runAllTimers();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.exists()).toBe(true);
+
+    document.body.removeChild(stepTarget);
+    window.getComputedStyle = originalGetComputedStyle;
+  });
 });

@@ -10,6 +10,7 @@ jest.mock('../../utils/technicalModuleStub', () => ({
   })),
 }));
 
+import { createGenericTechnicalEpicStub } from '../../utils/technicalModuleStub';
 import TechnicalDocumentEditor from '../../components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
 
 const baseSection = {
@@ -238,5 +239,279 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
     await saveBtn.trigger('click');
 
     expect(wrapper.text()).toContain('epicKey duplicado');
+  });
+
+  // ── validate: epicKey format ───────────────────────────────────────────────
+
+  it('shows validation error when epicKey contains uppercase letters', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            { epicKey: 'MyEpic', title: 'Invalid Key', description: '', linked_module_ids: [], requirements: [] },
+          ],
+        },
+      },
+    });
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    expect(wrapper.text()).toContain('epicKey inválido');
+  });
+
+  it('shows validation error when epicKey contains spaces', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            { epicKey: 'my epic', title: 'Space Key', description: '', linked_module_ids: [], requirements: [] },
+          ],
+        },
+      },
+    });
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    expect(wrapper.text()).toContain('epicKey inválido');
+  });
+
+  it('does not emit save when validation fails', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            { epicKey: 'INVALID', title: 'Bad', description: '', linked_module_ids: [], requirements: [] },
+          ],
+        },
+      },
+    });
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    expect(wrapper.emitted('save')).toBeFalsy();
+  });
+
+  // ── validate: flowKey format ───────────────────────────────────────────────
+
+  it('shows validation error when flowKey contains underscore characters', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            {
+              epicKey: 'valid-epic',
+              title: 'Epic',
+              description: '',
+              linked_module_ids: [],
+              requirements: [
+                { flowKey: 'my_flow', title: 'Flow', description: '', configuration: '', usageFlow: '', priority: '', linked_module_ids: [] },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    expect(wrapper.text()).toContain('flowKey inválido');
+  });
+
+  it('shows validation error when requirement has content but no title', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            {
+              epicKey: '',
+              title: 'Epic',
+              description: '',
+              linked_module_ids: [],
+              requirements: [
+                { flowKey: 'my-flow', title: '', description: 'has content', configuration: '', usageFlow: '', priority: '', linked_module_ids: [] },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    expect(wrapper.text()).toContain('título');
+  });
+
+  // ── handleSave: savedMsg ───────────────────────────────────────────────────
+
+  it('shows saved message after a successful save', async () => {
+    jest.useFakeTimers();
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain('✓ Guardado');
+    jest.useRealTimers();
+  });
+
+  it('savedMsg is cleared after 3 seconds', async () => {
+    jest.useFakeTimers();
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+    await wrapper.vm.$nextTick();
+
+    jest.advanceTimersByTime(3001);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).not.toContain('✓ Guardado');
+    jest.useRealTimers();
+  });
+
+  // ── toggleLinkedId ─────────────────────────────────────────────────────────
+
+  it('toggleLinkedId adds module id to epic linked_module_ids when checkbox is checked', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      moduleLinkOptions: [{ id: 'mod-auth', label: 'Auth' }],
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            { epicKey: 'auth', title: 'Auth Epic', description: '', linked_module_ids: [], requirements: [] },
+          ],
+        },
+      },
+    });
+
+    const checkbox = wrapper.find('input[type="checkbox"]');
+    await checkbox.trigger('change');
+    await wrapper.vm.$nextTick();
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.epics[0].linked_module_ids).toContain('mod-auth');
+  });
+
+  it('toggleLinkedId removes module id from epic linked_module_ids when checkbox is unchecked', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      moduleLinkOptions: [{ id: 'mod-auth', label: 'Auth' }],
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            { epicKey: 'auth', title: 'Auth Epic', description: '', linked_module_ids: ['mod-auth'], requirements: [] },
+          ],
+        },
+      },
+    });
+
+    const checkbox = wrapper.find('input[type="checkbox"]');
+    await checkbox.trigger('change');
+    await wrapper.vm.$nextTick();
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.epics[0].linked_module_ids).not.toContain('mod-auth');
+  });
+
+  // ── addApiDomain ───────────────────────────────────────────────────────────
+
+  it('addApiDomain appends a domain row when the + Dominio button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const btn = wrapper.findAll('button').find(b => b.text() === '+ Dominio');
+    await btn.trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.apiDomains).toHaveLength(1);
+  });
+
+  // ── addMetric / addPractice ────────────────────────────────────────────────
+
+  it('addMetric appends a metric row when the + Métrica button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const btn = wrapper.findAll('button').find(b => b.text() === '+ Métrica');
+    await btn.trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.performanceQuality.metrics).toHaveLength(1);
+  });
+
+  it('addPractice appends a practice row when the + Práctica button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const btn = wrapper.findAll('button').find(b => b.text() === '+ Práctica');
+    await btn.trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.performanceQuality.practices).toHaveLength(1);
+  });
+
+  // ── addEntityRow ───────────────────────────────────────────────────────────
+
+  it('addEntityRow appends an entity row when the + Entidad button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const btn = wrapper.findAll('button').find(b => b.text() === '+ Entidad');
+    await btn.trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.dataModel.entities).toHaveLength(1);
+  });
+
+  // ── insertGenericStub ──────────────────────────────────────────────────────
+
+  it('insertGenericStub appends a stub epic when a module is selected and the button is clicked', async () => {
+    createGenericTechnicalEpicStub.mockClear();
+
+    const wrapper = mountTechnicalDocumentEditor({
+      moduleLinkOptions: [{ id: 'mod-landing', label: 'Landing' }],
+    });
+
+    const select = wrapper.find('select');
+    await select.setValue('mod-landing');
+
+    const stubBtn = wrapper.findAll('button').find(b => b.text().includes('Insertar módulo genérico'));
+    await stubBtn.trigger('click');
+
+    expect(createGenericTechnicalEpicStub).toHaveBeenCalledWith('mod-landing', 'Landing');
+    await wrapper.vm.$nextTick();
+    expect(wrapper.findAll('[data-testid="technical-epic-description-textarea"]').length).toBe(1);
   });
 });

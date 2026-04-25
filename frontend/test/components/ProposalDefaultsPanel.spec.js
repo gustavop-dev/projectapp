@@ -562,5 +562,391 @@ describe('ProposalDefaultsPanel', () => {
 
       expect(wrapper.exists()).toBe(true);
     });
+
+    it('shows editing textarea after Editar is clicked for the commercial prompt', async () => {
+      const wrapper = mountPanel('prompt');
+      await flushPromises();
+
+      const editarBtns = wrapper.findAll('button').filter(b => b.text() === 'Editar');
+      await editarBtns[0].trigger('click');
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find('textarea[rows="30"]').exists()).toBe(true);
+    });
+
+    it('hides the editing textarea after Cancelar is clicked', async () => {
+      const wrapper = mountPanel('prompt');
+      await flushPromises();
+
+      await wrapper.findAll('button').filter(b => b.text() === 'Editar')[0].trigger('click');
+      await wrapper.vm.$nextTick();
+
+      await wrapper.findAll('button').find(b => b.text() === 'Cancelar').trigger('click');
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find('textarea[rows="30"]').exists()).toBe(false);
+    });
+
+    it('shows success message after Guardar cambios is clicked in the commercial prompt section', async () => {
+      const wrapper = mountPanel('prompt');
+      await flushPromises();
+
+      await wrapper.findAll('button').filter(b => b.text() === 'Editar')[0].trigger('click');
+      await wrapper.vm.$nextTick();
+
+      await wrapper.findAll('button').find(b => b.text() === 'Guardar cambios').trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Prompt guardado correctamente.');
+    });
+  });
+
+  // ── handleSaveAll ─────────────────────────────────────────────────────────
+
+  describe('handleSaveAll', () => {
+    it('calls saveProposalDefaults and shows success message when sections are pending', async () => {
+      mockProposalStore.fetchProposalDefaults.mockResolvedValueOnce({
+        success: true,
+        data: { ...defaultDataResponse.data, sections_json: [{ section_type: 'intro', title: 'Intro', order: 0, content_json: {} }] },
+      });
+      const wrapper = mountPanel('sections');
+      await flushPromises();
+
+      wrapper.vm.savedSections.add(0);
+      await wrapper.vm.$nextTick();
+
+      await wrapper.findAll('button').find(b => b.text().includes('Guardar Todos los Cambios')).trigger('click');
+      await flushPromises();
+
+      expect(mockProposalStore.saveProposalDefaults).toHaveBeenCalled();
+      expect(wrapper.text()).toContain('Valores por defecto guardados correctamente.');
+    });
+
+    it('shows error message when saveProposalDefaults fails in handleSaveAll', async () => {
+      mockProposalStore.fetchProposalDefaults.mockResolvedValueOnce({
+        success: true,
+        data: { ...defaultDataResponse.data, sections_json: [{ section_type: 'intro', title: 'Intro', order: 0, content_json: {} }] },
+      });
+      mockProposalStore.saveProposalDefaults.mockResolvedValueOnce({ success: false });
+      const wrapper = mountPanel('sections');
+      await flushPromises();
+
+      wrapper.vm.savedSections.add(0);
+      await wrapper.vm.$nextTick();
+
+      await wrapper.findAll('button').find(b => b.text().includes('Guardar Todos los Cambios')).trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Error al guardar los valores por defecto.');
+    });
+  });
+
+  // ── confirmReset error branch ──────────────────────────────────────────────
+
+  describe('confirmReset error', () => {
+    it('shows error message when resetProposalDefaults fails', async () => {
+      mockProposalStore.fetchProposalDefaults.mockResolvedValueOnce({
+        success: true,
+        data: { ...defaultDataResponse.data, sections_json: [{ section_type: 'intro', title: 'Intro', order: 0, content_json: {} }] },
+      });
+      mockProposalStore.resetProposalDefaults.mockResolvedValueOnce({ success: false });
+
+      const wrapper = mountPanel('sections');
+      await flushPromises();
+
+      await wrapper.findAll('button').find(b => b.text().includes('Restaurar valores originales')).trigger('click');
+      await wrapper.findAll('button').find(b => b.text().includes('Sí, restaurar')).trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Error al restaurar los valores por defecto.');
+    });
+  });
+
+  // ── handleSectionPreview ─────────────────────────────────────────────────
+
+  describe('handleSectionPreview', () => {
+    it('sets showSectionPreview when the eye icon button is clicked on a section row', async () => {
+      mockProposalStore.fetchProposalDefaults.mockResolvedValueOnce({
+        success: true,
+        data: { ...defaultDataResponse.data, sections_json: [{ section_type: 'intro', title: 'Intro', order: 0, content_json: {} }] },
+      });
+      const wrapper = mountPanel('sections');
+      await flushPromises();
+
+      await wrapper.find('button[title="Vista previa"]').trigger('click');
+
+      expect(wrapper.vm.showSectionPreview).toBe(true);
+    });
+  });
+
+  // ── handleSaveEmailTemplate ───────────────────────────────────────────────
+
+  describe('handleSaveEmailTemplate', () => {
+    it('shows success message after saving email template changes', async () => {
+      mockProposalStore.fetchEmailTemplates.mockResolvedValueOnce({
+        success: true,
+        data: [{ template_key: 'tpl-save', name: 'Save Template', category: 'client', description: '', editable_fields_count: 0, is_customized: false, is_active: true }],
+      });
+      mockProposalStore.fetchEmailTemplateDetail.mockResolvedValueOnce({
+        success: true,
+        data: { editable_fields: [], is_active: true },
+      });
+
+      const wrapper = mountPanel('emails');
+      await flushPromises();
+      await wrapper.findAll('button').find(b => b.text().includes('Save Template')).trigger('click');
+      await flushPromises();
+
+      await wrapper.findAll('button').find(b => b.text() === 'Guardar Cambios').trigger('click');
+      await flushPromises();
+
+      expect(mockProposalStore.saveEmailTemplate).toHaveBeenCalledWith('tpl-save', expect.any(Object));
+      expect(wrapper.text()).toContain('Plantilla guardada correctamente.');
+    });
+
+    it('shows error message when saving email template fails', async () => {
+      mockProposalStore.fetchEmailTemplates.mockResolvedValueOnce({
+        success: true,
+        data: [{ template_key: 'tpl-fail', name: 'Fail Template', category: 'client', description: '', editable_fields_count: 0, is_customized: false, is_active: true }],
+      });
+      mockProposalStore.fetchEmailTemplateDetail.mockResolvedValueOnce({
+        success: true,
+        data: { editable_fields: [], is_active: true },
+      });
+      mockProposalStore.saveEmailTemplate.mockResolvedValueOnce({ success: false });
+
+      const wrapper = mountPanel('emails');
+      await flushPromises();
+      await wrapper.findAll('button').find(b => b.text().includes('Fail Template')).trigger('click');
+      await flushPromises();
+
+      await wrapper.findAll('button').find(b => b.text() === 'Guardar Cambios').trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Error al guardar la plantilla.');
+    });
+  });
+
+  // ── confirmResetEmailTemplate ─────────────────────────────────────────────
+
+  describe('confirmResetEmailTemplate', () => {
+    it('calls resetEmailTemplate and shows success message after confirming reset', async () => {
+      mockProposalStore.fetchEmailTemplates.mockResolvedValueOnce({
+        success: true,
+        data: [{ template_key: 'tpl-rst', name: 'Reset Template', category: 'client', description: '', editable_fields_count: 0, is_customized: true, is_active: true }],
+      });
+      mockProposalStore.fetchEmailTemplateDetail.mockResolvedValueOnce({
+        success: true,
+        data: { editable_fields: [], is_active: true },
+      });
+      mockProposalStore.resetEmailTemplate.mockResolvedValueOnce({ success: true });
+
+      const wrapper = mountPanel('emails');
+      await flushPromises();
+      await wrapper.findAll('button').find(b => b.text().includes('Reset Template')).trigger('click');
+      await flushPromises();
+
+      await wrapper.findAll('button').find(b => b.text() === 'Restaurar').trigger('click');
+      await wrapper.vm.$nextTick();
+
+      await wrapper.findAll('button').find(b => b.text() === 'Sí, restaurar').trigger('click');
+      await flushPromises();
+
+      expect(mockProposalStore.resetEmailTemplate).toHaveBeenCalledWith('tpl-rst');
+      expect(wrapper.text()).toContain('Plantilla restaurada a los valores originales.');
+    });
+
+    it('shows error message when resetEmailTemplate fails', async () => {
+      mockProposalStore.fetchEmailTemplates.mockResolvedValueOnce({
+        success: true,
+        data: [{ template_key: 'tpl-rst-err', name: 'Reset Err Template', category: 'client', description: '', editable_fields_count: 0, is_customized: true, is_active: true }],
+      });
+      mockProposalStore.fetchEmailTemplateDetail.mockResolvedValueOnce({
+        success: true,
+        data: { editable_fields: [], is_active: true },
+      });
+      mockProposalStore.resetEmailTemplate.mockResolvedValueOnce({ success: false });
+
+      const wrapper = mountPanel('emails');
+      await flushPromises();
+      await wrapper.findAll('button').find(b => b.text().includes('Reset Err Template')).trigger('click');
+      await flushPromises();
+
+      await wrapper.findAll('button').find(b => b.text() === 'Restaurar').trigger('click');
+      await wrapper.vm.$nextTick();
+
+      await wrapper.findAll('button').find(b => b.text() === 'Sí, restaurar').trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Error al restaurar la plantilla.');
+    });
+  });
+
+  // ── emailInsertVariable ───────────────────────────────────────────────────
+
+  describe('emailInsertVariable', () => {
+    it('shows variable feedback toast when a variable chip is clicked with no focused field', async () => {
+      mockProposalStore.fetchEmailTemplates.mockResolvedValueOnce({
+        success: true,
+        data: [{ template_key: 'tpl-var', name: 'Var Template', category: 'client', description: '', editable_fields_count: 0, is_customized: false, is_active: true }],
+      });
+      mockProposalStore.fetchEmailTemplateDetail.mockResolvedValueOnce({
+        success: true,
+        data: { editable_fields: [], is_active: true, available_variables: ['client_name'] },
+      });
+
+      const wrapper = mountPanel('emails');
+      await flushPromises();
+      await wrapper.findAll('button').find(b => b.text().includes('Var Template')).trigger('click');
+      await flushPromises();
+
+      const varChip = wrapper.findAll('code').find(c => c.text().includes('client_name'));
+      await varChip.trigger('click');
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.text()).toContain('{client_name}');
+    });
+  });
+
+  // ── cancelEditJson ────────────────────────────────────────────────────────
+
+  describe('cancelEditJson', () => {
+    it('exits editing mode when Cancelar is clicked in the JSON tab', async () => {
+      const wrapper = mountPanel('json');
+      await flushPromises();
+
+      const editarButtons = wrapper.findAll('button').filter(b => b.text() === 'Editar');
+      await editarButtons.at(-1).trigger('click');
+      await wrapper.vm.$nextTick();
+
+      await wrapper.findAll('button').find(b => b.text() === 'Cancelar').trigger('click');
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.findAll('button').some(b => b.text() === 'Editar')).toBe(true);
+    });
+  });
+
+  // ── saveEditJson missing sections ─────────────────────────────────────────
+
+  describe('saveEditJson missing sections', () => {
+    it('shows error message when the saved JSON has no sections array', async () => {
+      const wrapper = mountPanel('json');
+      await flushPromises();
+
+      const editarButtons = wrapper.findAll('button').filter(b => b.text() === 'Editar');
+      await editarButtons.at(-1).trigger('click');
+      await wrapper.vm.$nextTick();
+
+      const jsonTextarea = wrapper.findAll('textarea.font-mono').at(-1);
+      await jsonTextarea.setValue(JSON.stringify({ language: 'es', general: {} }));
+      await wrapper.findAll('button').find(b => b.text().includes('Guardar cambios')).trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('sections');
+    });
+  });
+
+  // ── copyDefaultsJson ──────────────────────────────────────────────────────
+
+  describe('copyDefaultsJson', () => {
+    it('calls navigator.clipboard.writeText when the JSON Copiar button is clicked', async () => {
+      const writeText = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+
+      const wrapper = mountPanel('json');
+      await flushPromises();
+
+      const copiarButtons = wrapper.findAll('button').filter(b => b.text() === 'Copiar');
+      await copiarButtons.at(-1).trigger('click');
+      await flushPromises();
+
+      expect(writeText).toHaveBeenCalled();
+    });
+  });
+
+  // ── downloadDefaultsJson ──────────────────────────────────────────────────
+
+  describe('downloadDefaultsJson', () => {
+    it('calls URL.createObjectURL when Descargar .json is clicked', async () => {
+      const wrapper = mountPanel('json');
+      await flushPromises();
+
+      const dlBtn = wrapper.findAll('button').find(b => b.text().includes('Descargar .json'));
+      await dlBtn.trigger('click');
+
+      expect(URL.createObjectURL).toHaveBeenCalled();
+    });
+  });
+
+  // ── handleApplyDefaultsTechnicalJson extra branches ───────────────────────
+
+  describe('handleApplyDefaultsTechnicalJson extra', () => {
+    it('shows error when no technical_document section exists in the loaded template', async () => {
+      mockProposalStore.fetchProposalDefaults.mockResolvedValueOnce({
+        success: true,
+        data: { ...defaultDataResponse.data, sections_json: [{ section_type: 'intro', title: 'Intro', order: 0, content_json: {} }] },
+      });
+      const wrapper = mountPanel('technical');
+      await flushPromises();
+
+      await wrapper.findAll('button').find(b => b.text() === 'JSON').trigger('click');
+      await wrapper.vm.$nextTick();
+
+      await wrapper.findAll('button').find(b => b.text().includes('Aplicar a plantilla')).trigger('click');
+
+      expect(wrapper.text()).toContain('No hay sección technical_document');
+    });
+
+    it('shows success message when valid JSON is applied to an existing technical section', async () => {
+      mockProposalStore.fetchProposalDefaults.mockResolvedValueOnce({
+        success: true,
+        data: {
+          ...defaultDataResponse.data,
+          sections_json: [{ section_type: 'technical_document', title: 'Det. técnico', order: 0, content_json: { epics: [] } }],
+        },
+      });
+      const wrapper = mountPanel('technical');
+      await flushPromises();
+
+      await wrapper.findAll('button').find(b => b.text() === 'JSON').trigger('click');
+      await wrapper.vm.$nextTick();
+
+      const technicalTextarea = wrapper.find('textarea[rows="24"]');
+      await technicalTextarea.setValue(JSON.stringify({ epics: [{ epicKey: 'ep-1', title: 'Landing', requirements: [] }] }));
+      await wrapper.findAll('button').find(b => b.text().includes('Aplicar a plantilla')).trigger('click');
+
+      expect(wrapper.text()).toContain('Plantilla técnica actualizada en memoria.');
+    });
+  });
+
+  // ── formatDate ────────────────────────────────────────────────────────────
+
+  describe('formatDate', () => {
+    it('displays the last updated label when configUpdatedAt is set by loadDefaults', async () => {
+      mockProposalStore.fetchProposalDefaults.mockResolvedValueOnce({
+        success: true,
+        data: { ...defaultDataResponse.data, updated_at: '2024-01-15T10:30:00Z', sections_json: [] },
+      });
+      const wrapper = mountPanel('sections');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Última actualización:');
+    });
+  });
+
+  // ── refreshData ───────────────────────────────────────────────────────────
+
+  describe('refreshData', () => {
+    it('calls fetchProposalDefaults again when the floating refresh button is clicked', async () => {
+      const wrapper = mountPanel();
+      await flushPromises();
+
+      mockProposalStore.fetchProposalDefaults.mockClear();
+
+      await wrapper.find('button[title="Actualizar datos"]').trigger('click');
+      await flushPromises();
+
+      expect(mockProposalStore.fetchProposalDefaults).toHaveBeenCalled();
+    });
   });
 });
