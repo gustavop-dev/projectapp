@@ -292,6 +292,9 @@
             <div v-if="publishMode === 'schedule'" class="ml-7">
               <input v-model="scheduledDate" type="datetime-local" class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
               <p class="text-xs text-gray-400 dark:text-green-light/60 mt-1">El post se publicará automáticamente en la fecha seleccionada.</p>
+              <p v-if="scheduledOverdue" class="text-xs text-amber-600 dark:text-amber-400 mt-2" data-test="scheduled-overdue-banner">
+                Programado para una fecha que ya pasó. El sistema lo publicará en el próximo minuto. Si pasa más de 2 minutos, refresca esta página o pulsa "Publicar ahora".
+              </p>
             </div>
           </div>
         </fieldset>
@@ -398,6 +401,7 @@ import { useBlogStore } from '~/stores/blog';
 
 const localePath = useLocalePath();
 import BlogContentRenderer from '~/components/blog/BlogContentRenderer.vue';
+import { resolveBlogPublishMode } from '~/utils/blogPublishMode.js';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -418,6 +422,7 @@ const isMobilePreview = computed(() => windowWidth.value < 1024);
 
 const publishMode = ref('draft');
 const scheduledDate = ref('');
+const scheduledOverdue = ref(false);
 
 function handleResize() { windowWidth.value = window.innerWidth; }
 
@@ -534,15 +539,10 @@ function populateForm(data) {
   form.linkedin_summary_es = data.linkedin_summary_es || '';
   form.linkedin_summary_en = data.linkedin_summary_en || '';
 
-  if (data.is_published) {
-    publishMode.value = 'now';
-  } else if (data.published_at && new Date(data.published_at) > new Date()) {
-    publishMode.value = 'schedule';
-    const dt = new Date(data.published_at);
-    scheduledDate.value = dt.toISOString().slice(0, 16);
-  } else {
-    publishMode.value = 'draft';
-  }
+  const resolved = resolveBlogPublishMode(data);
+  publishMode.value = resolved.mode;
+  scheduledDate.value = resolved.scheduledIso || '';
+  scheduledOverdue.value = resolved.overdue;
 }
 
 const previewTitle = computed(() => previewLang.value === 'en' ? form.title_en : form.title_es);

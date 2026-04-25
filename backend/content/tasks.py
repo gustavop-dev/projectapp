@@ -506,10 +506,20 @@ def publish_single_scheduled_blog(post_id):
             'publish_single_scheduled_blog: post %s sin published_at, skip', post_id
         )
         return
+    if post.published_at > timezone.now():
+        logger.info(
+            'publish_single_scheduled_blog: post %s aún no es hora '
+            '(published_at=%s), skip',
+            post_id, post.published_at,
+        )
+        return
 
     try:
-        post.is_published = True
-        post.save(update_fields=['is_published'])
+        updated = BlogPost.objects.filter(pk=post.id, is_published=False).update(
+            is_published=True
+        )
+        if not updated:
+            return
         post.refresh_from_db()
         auto_publish_blog_to_linkedin(post)
         logger.info(
@@ -552,8 +562,11 @@ def publish_scheduled_blog_posts():
     count = 0
     for post in candidates:
         try:
-            post.is_published = True
-            post.save(update_fields=['is_published'])
+            updated = BlogPost.objects.filter(
+                pk=post.id, is_published=False
+            ).update(is_published=True)
+            if not updated:
+                continue
             post.refresh_from_db()
             auto_publish_blog_to_linkedin(post)
             count += 1
