@@ -45,6 +45,9 @@ class ProposalSectionView(models.Model):
         ordering = ['entered_at']
         verbose_name = 'Proposal Section View'
         verbose_name_plural = 'Proposal Section Views'
+        indexes = [
+            models.Index(fields=['view_event', 'section_type']),
+        ]
 
     def __str__(self):
         return (

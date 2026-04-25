@@ -33,7 +33,6 @@ test.describe('Admin Portfolio Delete', () => {
       return null;
     });
     await page.goto('/panel/portfolio');
-    await page.waitForLoadState('networkidle');
 
     const table = page.locator('table');
     await expect(table.getByText('Proyecto a Borrar')).toBeVisible();
@@ -56,7 +55,6 @@ test.describe('Admin Portfolio Delete', () => {
       return null;
     });
     await page.goto('/panel/portfolio');
-    await page.waitForLoadState('networkidle');
 
     const table = page.locator('table');
     await table.getByText('Eliminar').click();

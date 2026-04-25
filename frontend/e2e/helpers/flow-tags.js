@@ -100,6 +100,7 @@ export const ADMIN_PROPOSAL_ACTIVITY_LOG = ['@flow:admin-proposal-log-activity',
 
 // ── Calculator modules (PWA, AI, Reports & Alerts) ──
 export const PROPOSAL_CALCULATOR_MODULES = ['@flow:proposal-calculator-modules', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_CALCULATOR_REOPEN_AFTER_NAV = ['@flow:proposal-calculator-reopen-after-nav', '@module:proposal', '@priority:P1'];
 
 // ── v1.7.0 new flows ──
 export const PROPOSAL_EXPIRED_GRACEFUL = ['@flow:proposal-expired-graceful', '@module:proposal', '@priority:P1'];
@@ -157,6 +158,7 @@ export const PLATFORM_COLLECTION_ACCOUNTS_LIST = ['@flow:platform-collection-acc
 export const PLATFORM_COLLECTION_ACCOUNT_DETAIL = ['@flow:platform-collection-account-detail', '@module:platform', '@priority:P2'];
 export const PLATFORM_PROJECT_COLLECTION_ACCOUNTS = ['@flow:platform-project-collection-accounts', '@module:platform', '@priority:P2'];
 export const PLATFORM_DELIVERABLE_DETAIL = ['@flow:platform-deliverable-detail', '@module:platform', '@priority:P2'];
+export const PLATFORM_ACCESS_VIEW = ['@flow:platform-access-view', '@module:platform', '@priority:P2'];
 
 // ── v2.7.0 new flows ──
 export const ADMIN_DOCUMENT_LIST = ['@flow:admin-document-list', '@module:admin', '@priority:P2'];

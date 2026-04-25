@@ -41,7 +41,6 @@ test.describe('Admin User Management', () => {
       return null;
     });
     await page.goto('/panel/admins');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('heading', { name: 'Administradores' })).toBeVisible();
     await expect(page.getByText('Carlos López')).toBeVisible();
@@ -59,7 +58,6 @@ test.describe('Admin User Management', () => {
       return null;
     });
     await page.goto('/panel/admins');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('button', { name: 'Todos', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Activos', exact: true })).toBeVisible();
@@ -90,7 +88,6 @@ test.describe('Admin User Management', () => {
       return null;
     });
     await page.goto('/panel/admins');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('button', { name: /Agregar Administrador/i })).toBeVisible();
   });

@@ -38,7 +38,6 @@ test.describe('Admin Blog List', () => {
       return null;
     });
     await page.goto('/panel/blog');
-    await page.waitForLoadState('networkidle');
 
     const table = page.locator('table');
     await expect(table.getByRole('link', { name: 'Post Publicado' })).toBeVisible();
@@ -54,7 +53,6 @@ test.describe('Admin Blog List', () => {
       return null;
     });
     await page.goto('/panel/blog');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText('20 posts')).toBeVisible();
     await expect(page.getByRole('button', { name: /Anterior/ })).toBeVisible();
@@ -70,7 +68,6 @@ test.describe('Admin Blog List', () => {
       return null;
     });
     await page.goto('/panel/blog');
-    await page.waitForLoadState('networkidle');
 
     const calendarLink = page.getByRole('link', { name: 'Calendario' });
     await expect(calendarLink).toBeVisible();

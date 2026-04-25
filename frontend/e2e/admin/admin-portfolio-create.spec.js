@@ -43,7 +43,6 @@ test.describe('Admin Portfolio Create', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio/create');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('button', { name: 'Manual' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Importar JSON' })).toBeVisible();
@@ -56,14 +55,12 @@ test.describe('Admin Portfolio Create', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio/create');
-    await page.waitForLoadState('networkidle');
 
     await page.getByPlaceholder('Título del proyecto en español').fill('Proyecto E2E');
     await page.getByPlaceholder('Project title in English').fill('E2E Project');
     await page.getByPlaceholder('https://example.com').fill('https://e2e-project.com');
 
     await page.getByRole('button', { name: 'Crear Proyecto' }).click();
-    await page.waitForLoadState('networkidle');
   });
 
   test('switches to JSON import tab and shows template download', {
@@ -71,7 +68,6 @@ test.describe('Admin Portfolio Create', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio/create');
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Importar JSON' }).click();
 
@@ -85,7 +81,6 @@ test.describe('Admin Portfolio Create', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio/create');
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Importar JSON' }).click();
 
@@ -108,7 +103,6 @@ test.describe('Admin Portfolio Create', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio/create');
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Importar JSON' }).click();
     const jsonTextarea = page.getByPlaceholder(/title_es/);

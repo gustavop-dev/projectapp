@@ -60,7 +60,6 @@ test.describe('Admin Portfolio Edit', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio/1/edit');
-    await page.waitForLoadState('networkidle');
 
     const esGroup = page.getByRole('group', { name: 'Español' });
     await expect(esGroup.locator('label:has-text("Título (ES)")').locator('..').locator('input')).toHaveValue('Proyecto Existente');
@@ -77,7 +76,6 @@ test.describe('Admin Portfolio Edit', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio/1/edit');
-    await page.waitForLoadState('networkidle');
 
     const esGroup = page.getByRole('group', { name: 'Español' });
     await esGroup.locator('label:has-text("Título (ES)")').locator('..').locator('input').fill('Proyecto Actualizado');
@@ -91,7 +89,6 @@ test.describe('Admin Portfolio Edit', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio/1/edit');
-    await page.waitForLoadState('networkidle');
 
     const seoGroup = page.getByRole('group', { name: 'SEO' });
     await expect(seoGroup.locator('label:has-text("Meta título (ES)")').locator('..').locator('input')).toHaveValue('SEO Título ES');
@@ -103,7 +100,6 @@ test.describe('Admin Portfolio Edit', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio/1/edit');
-    await page.waitForLoadState('networkidle');
 
     const link = page.getByText('Ver en público');
     await expect(link).toBeVisible();
@@ -115,7 +111,6 @@ test.describe('Admin Portfolio Edit', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio/1/edit');
-    await page.waitForLoadState('networkidle');
 
     const jsonTextarea = page.getByRole('group', { name: 'Español' }).getByPlaceholder('"problem"');
     await expect(jsonTextarea).toBeVisible();

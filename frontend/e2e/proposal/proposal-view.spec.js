@@ -71,7 +71,6 @@ test.describe('Proposal View', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposalTwoSections));
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Page loaded without errors
     await expect(page.locator('body')).not.toContainText('Error');
@@ -82,7 +81,6 @@ test.describe('Proposal View', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposalTwoSections));
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Wait for next button to appear (not on last panel)
     const nextBtn = page.getByTestId('nav-next');
@@ -100,7 +98,6 @@ test.describe('Proposal View', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposalTwoSections));
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Go forward
     const nextBtn = page.getByTestId('nav-next');
@@ -126,7 +123,6 @@ test.describe('Proposal View', () => {
       sections: [mockProposalTwoSections.sections[0]],
     }));
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Single section proposal: only closing panel remains → navigate to it
     const nextBtn = page.getByTestId('nav-next');
@@ -156,7 +152,6 @@ test.describe('Proposal View', () => {
     });
 
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Expired state component should be rendered
     await expect(page.locator('body')).not.toContainText('404');
@@ -177,7 +172,6 @@ test.describe('Proposal View', () => {
     });
 
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     await expect(page.locator('body')).toContainText('404');
   });

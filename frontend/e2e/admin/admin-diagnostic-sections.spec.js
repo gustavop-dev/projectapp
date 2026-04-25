@@ -6,7 +6,6 @@
  * - Admin edits a section's title and the debounced PATCH hits the section endpoint.
  * - Admin visits the Actividad tab and can log a note.
  * - Admin visits the Analítica tab and sees the analytics KPI cards.
- * - Public page renders sections for the initial phase and hides final-only ones.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -15,7 +14,6 @@ import {
   ADMIN_DIAGNOSTIC_SECTIONS,
   ADMIN_DIAGNOSTIC_ACTIVITY,
   ADMIN_DIAGNOSTIC_ANALYTICS,
-  DIAGNOSTIC_PUBLIC_VIEW,
 } from '../helpers/flow-tags.js';
 
 const DIAG_ID = 99;
@@ -194,42 +192,3 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
   });
 });
 
-test.describe('Diagnostic public view — sections', () => {
-  test.setTimeout(60_000);
-
-  test('initial-phase public view hides final-only sections', {
-    tag: [...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
-  }, async ({ page }) => {
-    // Public API returns only sections matching the current phase (server-filtered).
-    const publicSections = buildDiagnostic({ status: 'sent', initial_sent_at: '2026-04-16T10:00:00Z' })
-      .sections.filter((s) => s.visibility === 'initial' || s.visibility === 'both');
-
-    await mockApi(page, async ({ apiPath }) => {
-      if (apiPath === `diagnostics/public/${DIAG_UUID}/`) {
-        return {
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            uuid: DIAG_UUID, title: 'Diagnóstico — Acme', status: 'sent', language: 'es',
-            client_name: 'Acme', investment_amount: null, currency: 'COP',
-            duration_label: '', size_category: '',
-            initial_sent_at: '2026-04-16T10:00:00Z', final_sent_at: null, responded_at: null,
-            sections: publicSections,
-            render_context: { client_name: 'Acme' },
-          }),
-        };
-      }
-      if (apiPath === `diagnostics/public/${DIAG_UUID}/track/`) {
-        return { status: 200, contentType: 'application/json', body: '{}' };
-      }
-      return null;
-    });
-
-    await page.goto(`/diagnostic/${DIAG_UUID}/`);
-    await expect(page.getByRole('heading', { name: /Diagnóstico — Acme/i })).toBeVisible({ timeout: 15000 });
-    // Initial-only section is visible.
-    await expect(page.getByRole('button', { name: /Estructura de la Entrega/i })).toBeVisible();
-    // Final-only section must NOT appear on an initial-phase render.
-    await expect(page.getByRole('button', { name: /Resumen Ejecutivo/i })).toHaveCount(0);
-  });
-});

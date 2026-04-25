@@ -4,6 +4,7 @@ from datetime import timedelta
 
 import pytest
 from django.utils import timezone
+from freezegun import freeze_time
 
 from content.models import (
     DiagnosticChangeLog,
@@ -38,20 +39,25 @@ def _track_session(diagnostic, session_id, *, section_type='purpose',
 
 # ── Empty / default state ──────────────────────────────────────────────────
 
-def test_analytics_empty_diagnostic_returns_zeros(admin_client, diagnostic):
+def test_analytics_empty_returns_zero_counts(admin_client, diagnostic):
     response = admin_client.get(
         f'/api/diagnostics/{diagnostic.id}/analytics/',
     )
     assert response.status_code == 200
     body = response.json()
-
     assert body['total_views'] == 0
     assert body['unique_sessions'] == 0
     assert body['first_viewed_at'] is None
     assert body['time_to_first_view_hours'] is None
     assert body['time_to_response_hours'] is None
+    assert body['engagement_score'] == 0
+
+
+def test_analytics_empty_returns_empty_collections(admin_client, diagnostic):
+    body = admin_client.get(
+        f'/api/diagnostics/{diagnostic.id}/analytics/',
+    ).json()
     assert body['sections'] == []
-    # All 8 enabled sections are skipped when nothing has been tracked.
     assert len(body['skipped_sections']) == 8
     assert body['device_breakdown'] == {'desktop': 0, 'mobile': 0, 'tablet': 0}
     assert body['sessions'] == []
@@ -62,11 +68,11 @@ def test_analytics_empty_diagnostic_returns_zeros(admin_client, diagnostic):
         'avg_time_to_response_hours': None,
         'avg_views': None,
     }
-    assert body['engagement_score'] == 0
 
 
 # ── first_viewed_at / time_to_first_view ──────────────────────────────────
 
+@freeze_time('2026-01-15 12:00:00')
 def test_analytics_first_viewed_at_and_time_to_first_view(
     admin_client, diagnostic,
 ):
@@ -143,6 +149,7 @@ def test_analytics_device_breakdown_distinguishes_tablet_mobile_desktop(
 
 # ── funnel drop-off ────────────────────────────────────────────────────────
 
+@freeze_time('2026-01-15 12:00:00')
 def test_analytics_funnel_reports_drop_off(admin_client, diagnostic):
     # Two sessions reach "purpose"; only one reaches "cost".
     _track_session(diagnostic, 'sess-1', section_type='purpose')
@@ -232,9 +239,8 @@ def test_analytics_comparison_excludes_self(
 
 # ── CSV export ─────────────────────────────────────────────────────────────
 
-def test_analytics_csv_export_returns_attachment(admin_client, diagnostic):
+def test_analytics_csv_returns_200_with_attachment_headers(admin_client, diagnostic):
     _track_session(diagnostic, 'sess-csv', section_type='purpose')
-
     response = admin_client.get(
         f'/api/diagnostics/{diagnostic.id}/analytics/csv/',
     )
@@ -242,7 +248,12 @@ def test_analytics_csv_export_returns_attachment(admin_client, diagnostic):
     assert response['Content-Type'].startswith('text/csv')
     assert 'attachment' in response['Content-Disposition']
 
-    body = response.content.decode('utf-8')
+
+def test_analytics_csv_body_contains_section_data(admin_client, diagnostic):
+    _track_session(diagnostic, 'sess-csv', section_type='purpose')
+    body = admin_client.get(
+        f'/api/diagnostics/{diagnostic.id}/analytics/csv/',
+    ).content.decode('utf-8')
     assert '--- SECTION ENGAGEMENT ---' in body
     assert '--- SESSION HISTORY ---' in body
     assert '--- CHANGE LOG ---' in body

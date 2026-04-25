@@ -104,6 +104,23 @@ class ProposalSectionDetailSerializer(serializers.ModelSerializer):
         model = ProposalSection
         fields = '__all__'
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # The investment section's hostingPlan mirrors fields that live on
+        # BusinessProposal (hosting_percent, hosting_discount_*). Normalize
+        # here so every consumer — public UI, PDF renderer, platform
+        # onboarding — reads the same numbers without re-implementing the
+        # override locally.
+        if (instance.section_type == 'investment'
+                and isinstance(data.get('content_json'), dict)):
+            from content.services.proposal_service import normalize_hosting_plan
+            cj = data['content_json']
+            if isinstance(cj.get('hostingPlan'), dict):
+                cj['hostingPlan'] = normalize_hosting_plan(
+                    instance.proposal, cj['hostingPlan']
+                )
+        return data
+
 
 class ProposalListSerializer(serializers.ModelSerializer):
     """
@@ -155,6 +172,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
     is_expired = serializers.SerializerMethodField()
     public_url = serializers.SerializerMethodField()
     discounted_investment = serializers.SerializerMethodField()
+    effective_total_investment = serializers.SerializerMethodField()
     has_confirmed_module_selection = serializers.ReadOnlyField()
     available_transitions = serializers.SerializerMethodField()
     proposal_documents = serializers.SerializerMethodField()
@@ -179,8 +197,8 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
             'sections', 'requirement_groups', 'project_stages', 'change_logs',
             'days_remaining', 'is_expired', 'public_url',
-            'discounted_investment', 'selected_modules',
-            'has_confirmed_module_selection',
+            'discounted_investment', 'effective_total_investment',
+            'selected_modules', 'has_confirmed_module_selection',
             'contract_params', 'available_transitions', 'proposal_documents',
             'platform_onboarding_completed_at',
             'platform_onboarding_status',
@@ -242,6 +260,19 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         from decimal import Decimal
         factor = (Decimal(100) - Decimal(obj.discount_percent)) / Decimal(100)
         return str(round(obj.total_investment * factor, 2))
+
+    def get_effective_total_investment(self, obj):
+        """
+        Client-facing total: base ``total_investment`` plus the price of
+        the additional calculator modules in the client's selection, with
+        a fallback to admin-marked defaults when the client hasn't
+        confirmed the calculator yet. Same rule as the PDF and the admin
+        metrics map so every consumer sees the same number.
+        """
+        # Deferred import — views/proposal.py imports from this module at
+        # load time, so a top-level import would be circular.
+        from content.views.proposal import _effective_total_for_proposal
+        return str(_effective_total_for_proposal(obj))
 
     def get_available_transitions(self, obj):
         return obj.available_transitions

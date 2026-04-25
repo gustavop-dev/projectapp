@@ -37,7 +37,8 @@ class TestDocumentListSerializer:
         expected = {
             'id', 'uuid', 'title', 'slug', 'status', 'client_name',
             'language', 'cover_type', 'include_portada', 'include_subportada',
-            'include_contraportada', 'created_at', 'updated_at',
+            'include_contraportada', 'folder', 'folder_name', 'tag_details',
+            'created_at', 'updated_at',
         }
         assert set(data.keys()) == expected
 
@@ -73,7 +74,9 @@ class TestDocumentDetailSerializer:
             'id', 'uuid', 'title', 'slug', 'status',
             'content_markdown', 'content_json', 'client_name',
             'language', 'cover_type', 'include_portada', 'include_subportada',
-            'include_contraportada', 'created_at', 'updated_at',
+            'include_contraportada', 'folder', 'folder_name',
+            'tag_ids', 'tag_details',
+            'created_at', 'updated_at',
         }
         assert set(data.keys()) == expected
 

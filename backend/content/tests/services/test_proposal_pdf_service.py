@@ -18,6 +18,7 @@ from reportlab.pdfgen import canvas
 
 from content.models import (
     BusinessProposal,
+    ProposalChangeLog,
     ProposalRequirementGroup,
     ProposalRequirementItem,
     ProposalSection,
@@ -32,6 +33,7 @@ from content.services.proposal_pdf_service import (
     PAGE_H,
     SECTION_RENDERERS,
     ProposalPdfService,
+    default_selected_modules_from_content,
     _clean_inline_bold,
     _clean_url_display,
     _draw_banner_box,
@@ -818,12 +820,13 @@ class TestCleanInlineBold:
 
 
 class TestSectionRenderersMap:
-    def test_contains_all_12_section_types(self):
+    def test_contains_all_13_section_types(self):
         expected = {
             'greeting', 'executive_summary', 'context_diagnostic',
             'conversion_strategy', 'design_ux', 'creative_support',
             'development_stages', 'functional_requirements',
-            'timeline', 'investment', 'final_note', 'next_steps',
+            'timeline', 'investment', 'value_added_modules',
+            'final_note', 'next_steps',
         }
         assert set(SECTION_RENDERERS.keys()) == expected
 
@@ -2521,3 +2524,446 @@ class TestCalculatorModuleInvalidPricePercent:
         assert result is not None
         assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
+
+
+# ── default_selected_modules_from_content tests ─────────────
+
+class TestDefaultSelectedModulesFromContent:
+    """Regression coverage for the PDF module-selection fallback.
+
+    When the PDF endpoint receives no ``?selected_modules=`` query
+    param, it must derive the default selection from the current
+    ``content_json`` — not from the stale ``BusinessProposal.selected_modules``
+    field — so admin edits to ``additionalModules[i].selected`` propagate
+    to the PDF immediately.
+    """
+
+    def _make_proposal(
+        self,
+        fr_content=None,
+        investment_content=None,
+        persisted=None,
+        confirmed=False,
+    ):
+        proposal = BusinessProposal.objects.create(
+            title='Selection Defaults',
+            client_name='Client',
+            client_email='client@test.com',
+            language='es',
+            total_investment=Decimal('5000000'),
+            currency='COP',
+            status='sent',
+            expires_at=timezone.now() + timezone.timedelta(days=15),
+            selected_modules=persisted or [],
+        )
+        if fr_content is not None:
+            ProposalSection.objects.create(
+                proposal=proposal,
+                section_type='functional_requirements',
+                title='FR', order=1, is_enabled=True,
+                content_json=fr_content,
+            )
+        if investment_content is not None:
+            ProposalSection.objects.create(
+                proposal=proposal,
+                section_type='investment',
+                title='Inversión', order=2, is_enabled=True,
+                content_json=investment_content,
+            )
+        if confirmed:
+            ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
+            )
+        return proposal
+
+    def test_includes_calc_module_when_selected_true(self):
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='pwa', selected=True),
+            ]),
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'module-pwa' in result
+
+    def test_excludes_calc_module_when_selected_false(self):
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='pwa', selected=False),
+            ]),
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'module-pwa' not in result
+
+    def test_excludes_group_when_is_visible_false(self):
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='hidden', selected=True, is_visible=False),
+            ]),
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'module-hidden' not in result
+
+    def test_confirmed_persisted_selected_modules_wins_over_content_json(self):
+        """Once the client confirmed a selection, the persisted list is the
+        source of truth and overrides the admin's content_json defaults —
+        mirrors the frontend behaviour in pages/proposal/[uuid]/index.vue.
+        """
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='pwa', selected=False),
+            ]),
+            persisted=['module-pwa'],
+            confirmed=True,
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert result == ['module-pwa']
+
+    def test_confirmed_persisted_bare_ids_are_normalized_to_canonical_prefixed_form(self):
+        """Legacy payloads without the module-/group- prefix must still match
+        the prefixed ids the PDF renderer builds internally; otherwise the
+        additional-module prices never sum into the client-facing total.
+        """
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='pwa', selected=False),
+            ]),
+            persisted=['pwa'],
+            confirmed=True,
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert result == ['module-pwa']
+
+    def test_confirmed_with_empty_selection_returns_empty(self):
+        """When the client confirmed an empty selection, the PDF must not
+        fall back to the admin's default_selected modules — the empty list
+        is the literal source of truth.
+        """
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='pwa', selected=True),
+            ]),
+            persisted=[],
+            confirmed=True,
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert result == []
+
+    def test_unconfirmed_empty_persisted_falls_back_to_content_json(self):
+        """Without a confirmation log, the admin's content_json defaults
+        drive the PDF — the selected_modules field is ignored.
+        """
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='pwa', selected=True),
+            ]),
+            persisted=[],
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'module-pwa' in result
+
+    def test_includes_all_investment_modules_by_default(self):
+        proposal = self._make_proposal(
+            investment_content=_investment_content_json(modules=[
+                {'id': 'mod-a', 'name': 'A', 'price': 100},
+                {'id': 'mod-b', 'name': 'B', 'price': 200},
+            ]),
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'mod-a' in result
+        assert 'mod-b' in result
+
+    def test_includes_regular_group_as_group_prefix(self):
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(groups=[{
+                'id': 'views', 'title': 'Vistas',
+                'is_visible': True, 'is_calculator_module': False,
+                'items': [],
+            }]),
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'group-views' in result
+
+    def test_falls_back_to_default_selected_when_selected_absent(self):
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='pwa', default_selected=True),
+            ]),
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'module-pwa' in result
+
+    def test_returns_empty_list_for_proposal_without_sections(self):
+        proposal = self._make_proposal()
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert result == []
+
+
+# ── Hosting: model fields override content_json ───────────────
+
+class TestInvestmentHostingModelOverride:
+    """BusinessProposal.hosting_* fields must override content_json.hostingPlan
+    in the PDF (mirrors the public UI in frontend/pages/proposal/[uuid]/index.vue).
+    Prevents regression of the stale-hosting bug introduced by d793ac79.
+    """
+
+    def test_model_hosting_percent_and_discount_override_content_json(  # quality: disable test_too_long (verifies full investment rendering cycle across hosting, discount, and tax fields)
+        self, pdf_canvas, db,
+    ):
+        from content.services.proposal_pdf_service import _render_investment
+
+        proposal = BusinessProposal.objects.create(
+            title='Hosting override',
+            client_name='Test', client_email='t@t.co',
+            language='es', currency='COP', status='sent',
+            total_investment=Decimal('6000000'),
+            hosting_percent=40,
+            hosting_discount_semiannual=25,
+            hosting_discount_quarterly=15,
+        )
+        data = _investment_content_json(
+            totalInvestment='$6.000.000',
+            hostingPlan={
+                'title': 'Cloud', 'description': 'Managed.',
+                'hostingPercent': 30,
+                'billingTiers': [
+                    {'frequency': 'semiannual', 'months': 6,
+                     'discountPercent': 20, 'label': 'Semestral'},
+                    {'frequency': 'quarterly', 'months': 3,
+                     'discountPercent': 10, 'label': 'Trimestral'},
+                    {'frequency': 'monthly', 'months': 1,
+                     'discountPercent': 0, 'label': 'Mensual'},
+                ],
+            },
+        )
+
+        drawn = []
+        original_draw = pdf_canvas.drawString
+
+        def _spy(x, y, text):
+            drawn.append(text)
+            return original_draw(x, y, text)
+
+        pdf_canvas.drawString = _spy
+
+        _render_investment(pdf_canvas, data, proposal)
+
+        monthly_strings = [t for t in drawn if '/mes' in t]
+        # Model values: 6_000_000 × 40% / 12 = 200_000 monthly base
+        #   semiannual (25%): 150_000, quarterly (15%): 170_000, monthly (0%): 200_000
+        assert any('$200.000' in t for t in monthly_strings), (
+            f'Expected monthly tier $200.000/mes from model hosting_percent=40; '
+            f'got: {monthly_strings}'
+        )
+        assert any('$170.000' in t for t in monthly_strings), (
+            f'Expected quarterly tier $170.000/mes from model discount=15; '
+            f'got: {monthly_strings}'
+        )
+        assert any('$150.000' in t for t in monthly_strings), (
+            f'Expected semiannual tier $150.000/mes from model discount=25; '
+            f'got: {monthly_strings}'
+        )
+        # Stale JSON (30% × 10% quarterly = $135.000/mes; 30% monthly base =
+        # $125.000/mes) must not leak. $150.000 is excluded because it
+        # collides with the model's semiannual value.
+        assert not any('$135.000 /mes' in t for t in monthly_strings), (
+            'Stale content_json quarterly discount leaked into PDF'
+        )
+        assert not any('$125.000 /mes' in t for t in monthly_strings), (
+            'Stale content_json hostingPercent leaked into PDF'
+        )
+
+
+# ── value_added_modules: dedicated "Sin costo adicional" section ──
+
+class TestInvestmentModelTotalOverride:
+    """BusinessProposal.total_investment and .currency must override
+    content_json mirrors in the PDF, matching the frontend override in
+    pages/proposal/[uuid]/index.vue. Prevents the staleness bug reported
+    for proposal id=41 (PDF showed JSON total, UI showed model total).
+    """
+
+    def test_model_total_investment_overrides_content_json(
+        self, pdf_canvas, db,
+    ):
+        from content.services.proposal_pdf_service import _render_investment
+
+        proposal = BusinessProposal.objects.create(
+            title='Total override', client_name='Client',
+            client_email='c@c.co', language='es', currency='COP',
+            status='sent',
+            total_investment=Decimal('7500000'),
+        )
+        data = _investment_content_json(
+            totalInvestment='$2.000.000',  # stale JSON
+            currency='USD',                 # stale JSON
+        )
+
+        drawn = []
+
+        def _wrap(method_name):
+            original = getattr(pdf_canvas, method_name)
+
+            def _spy(x, y, text, *a, **kw):
+                drawn.append(text)
+                return original(x, y, text, *a, **kw)
+
+            setattr(pdf_canvas, method_name, _spy)
+
+        for name in ('drawString', 'drawRightString', 'drawCentredString'):
+            _wrap(name)
+
+        _render_investment(pdf_canvas, data, proposal)
+
+        joined = '\n'.join(drawn)
+        assert '$7.500.000' in joined, (
+            f'Expected model total $7.500.000 in PDF; '
+            f'got drawn strings: {drawn}'
+        )
+        assert '$2.000.000' not in joined, (
+            'Stale content_json total leaked into PDF'
+        )
+
+
+class TestValueAddedModulesSection:
+    """The PDF must render value_added_modules in its own section with the
+    admin-written justifications, dedupe those IDs from functional_requirements,
+    and exclude unselected calculator modules.
+    """
+
+    def _proposal_with_value_added(self, *, selected_modules=None):
+        p = BusinessProposal.objects.create(
+            title='Value Added',
+            client_name='Client', client_email='c@c.co',
+            language='es', currency='COP', status='sent',
+            total_investment=Decimal('5000000'),
+            expires_at=timezone.now() + timezone.timedelta(days=20),
+        )
+        ProposalSection.objects.create(
+            proposal=p, section_type='functional_requirements',
+            title='FR', order=9, is_enabled=True,
+            content_json={
+                'index': '9', 'title': 'Requerimientos',
+                'intro': 'Detalle.',
+                'groups': [
+                    {
+                        'id': 'admin_module', 'title': 'Panel administrativo',
+                        'icon': '🛠', 'is_visible': True, 'price_percent': 0,
+                        'description': 'Panel para gestionar contenido.',
+                        'items': [],
+                    },
+                    {
+                        'id': 'analytics_dashboard', 'title': 'Dashboard analítico',
+                        'icon': '📊', 'is_visible': True, 'price_percent': 0,
+                        'description': 'Métricas de comportamiento.',
+                        'items': [],
+                    },
+                ],
+                'additionalModules': [
+                    {
+                        'id': 'pwa_module', 'title': 'Aplicación PWA',
+                        'icon': '📱', 'is_visible': True,
+                        'is_calculator_module': True, 'price_percent': 20,
+                        'description': 'Convierte el sitio en PWA.',
+                        'items': [],
+                    },
+                ],
+            },
+        )
+        ProposalSection.objects.create(
+            proposal=p, section_type='value_added_modules',
+            title='Incluido sin costo', order=10, is_enabled=True,
+            content_json={
+                'index': '10',
+                'title': 'Incluido sin costo adicional',
+                'intro': 'Módulos que ya están cotizados dentro del precio.',
+                'module_ids': ['admin_module', 'analytics_dashboard'],
+                'justifications': {
+                    'admin_module': 'Para independencia editorial del cliente.',
+                    'analytics_dashboard': 'Para decisiones basadas en datos.',
+                },
+                'footer_note': 'Total adicional: $0.',
+            },
+        )
+        return p, selected_modules
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_value_added_section_renders_justifications(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)
+        proposal, _ = self._proposal_with_value_added()
+        pdf_bytes = ProposalPdfService.generate(proposal)
+
+        assert pdf_bytes is not None
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        text = '\n'.join(p.extract_text() or '' for p in reader.pages)
+
+        assert 'Panel administrativo' in text
+        assert 'Dashboard analítico' in text
+        assert 'Para independencia editorial del cliente.' in text
+        assert 'Para decisiones basadas en datos.' in text
+        assert 'Total adicional: $0.' in text
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_functional_requirements_excludes_value_added_ids(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)
+        proposal, _ = self._proposal_with_value_added()
+        pdf_bytes = ProposalPdfService.generate(proposal)
+
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        text = '\n'.join(p.extract_text() or '' for p in reader.pages)
+
+        # Each value-added title should appear exactly once: in the dedicated
+        # section, not duplicated inside the functional requirements overview.
+        assert text.count('Panel administrativo') == 1
+        assert text.count('Dashboard analítico') == 1
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_unselected_calculator_module_absent_from_pdf(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)
+        proposal, _ = self._proposal_with_value_added()
+        pdf_bytes = ProposalPdfService.generate(proposal, selected_modules=[])
+
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        text = '\n'.join(p.extract_text() or '' for p in reader.pages)
+
+        assert 'Aplicación PWA' not in text

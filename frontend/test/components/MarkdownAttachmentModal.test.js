@@ -1,6 +1,10 @@
 import { mount, flushPromises } from '@vue/test-utils';
 
-jest.mock('axios', () => ({ post: jest.fn() }));
+const mockAxiosPost = jest.fn();
+jest.mock('axios', () => ({
+  __esModule: true,
+  default: { post: (...args) => mockAxiosPost(...args) },
+}));
 
 const mockGetRequest = jest.fn();
 jest.mock('../../stores/services/request_http', () => ({
@@ -11,7 +15,7 @@ jest.mock('../../stores/services/request_http', () => ({
 import MarkdownAttachmentModal from '../../components/MarkdownAttachmentModal.vue';
 
 function getAxiosMock() {
-  return jest.requireMock('axios').post;
+  return mockAxiosPost;
 }
 
 function mountModal(props = {}) {
@@ -108,7 +112,7 @@ describe('MarkdownAttachmentModal', () => {
 
     const previewBtn = wrapper.findAll('button').find((b) => b.text().includes('Vista previa'));
     await previewBtn.trigger('click');
-    await flushPromises();
+    for (let i = 0; i < 5; i++) await flushPromises();
 
     expect(wrapper.find('iframe').exists()).toBe(true);
   });
@@ -126,10 +130,11 @@ describe('MarkdownAttachmentModal', () => {
     const previewBtn = wrapper.findAll('button').find((b) => b.text().includes('Vista previa'));
     await previewBtn.trigger('click');
     await flushPromises();
+    await flushPromises();
 
     const attachBtn = wrapper.findAll('button').find((b) => b.text().includes('Adjuntar'));
     await attachBtn.trigger('click');
-    await flushPromises();
+    for (let i = 0; i < 5; i++) await flushPromises();
 
     expect(wrapper.emitted('attach')).toBeTruthy();
     expect(wrapper.emitted('attach')[0][0]).toBeInstanceOf(File);

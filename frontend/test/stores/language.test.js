@@ -127,6 +127,19 @@ describe('useLanguageStore', () => {
       store.loadMessages.mockRestore();
     });
 
+    it('defaults to en-us when navigator.language is empty', async () => {
+      jest.spyOn(store, 'loadMessages').mockResolvedValue();
+      const origLanguage = navigator.language;
+      Object.defineProperty(navigator, 'language', { value: '', writable: true });
+
+      await store.detectBrowserLanguageAndRegion();
+
+      expect(store.currentLocale).toBe('en-us');
+
+      Object.defineProperty(navigator, 'language', { value: origLanguage, writable: true });
+      store.loadMessages.mockRestore();
+    });
+
     it('detects Spanish browser language and sets es-co', async () => {
       jest.spyOn(store, 'loadMessages').mockResolvedValue();
       const origLanguage = navigator.language;

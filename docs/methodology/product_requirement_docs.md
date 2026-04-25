@@ -201,13 +201,25 @@ Building on the base Platform (auth, projects, kanban), these modules extend cli
 - **About Us** (`/about-us`): team and company information
 - All pages fully responsive with GSAP animations
 
-### 3.11 Admin Panel Enhancements
+### 3.11 Platform — Quick Access (Admin URLs & Credentials)
+
+Admin-only space at `/platform/access` for rapid access to operational URLs and Django admin credentials per project.
+
+- **Purpose**: Centralise production URL, staging URL, Django admin URL, and repository URL per project; store Django admin credentials encrypted (Fernet) for copy-paste access
+- **Visibility**: Staff/admin only — clients cannot see this section
+- **Credential storage**: `admin_password_encrypted` (Fernet ciphertext); key configured via `PROJECT_ACCESS_CIPHER_KEY` env var
+- **UI**: Grid of project cards — click to open URL in new tab; "Copiar" / "Revelar" buttons for credentials; real-time search
+- **Sidebar entry**: "Accesos" under the Administración section in `PlatformSidebar.vue`
+- **Backend**: `GET /api/accounts/projects/access/` returns full list with decrypted passwords (admin-only via `IsAdminRole`); `PATCH /api/accounts/projects/<id>/` accepts the new URL/credential fields and encrypts on save
+- **Django admin**: `accounts/admin.py` — `ProjectAdmin` exposes the URL/credential fieldset; plaintext password input is encrypted in `save_model`
+
+### 3.12 Admin Panel Enhancements
 
 - **Panel Login** (`/panel/login`) — dedicated login page for admin panel
 - **Panel Admins** (`/panel/admins`) — admin user management (invite, list, manage admin accounts)
 - **Internal Kanban Task Board** (`/panel/tareas`) — admin-only Kanban board for managing internal ProjectApp team work. Four columns: TO DO, In Progress, Blocked, Done. Tasks have title, description, status, priority (low/medium/high), assignee (FK to any admin User, optional), and due_date (optional). Cards display priority badge and due_date highlighted in red when overdue. Drag-and-drop between columns and reorder within columns via vuedraggable. Create/edit modal with confirm-guarded delete. Tasks are independent — no FK link to proposals or documents.
 
-### 3.12 Internationalization (i18n)
+### 3.13 Internationalization (i18n)
 
 - Two locales: `en-us` (English, default) and `es-co` (Spanish Colombia)
 - Prefix strategy: `/en-us/about-us`, `/es-co/about-us`
@@ -237,7 +249,7 @@ Building on the base Platform (auth, projects, kanban), these modules extend cli
 ## 5. Non-Functional Requirements
 
 - **Performance**: Hybrid SSR/SPA rendering; SSR for SEO-critical pages (home, landing, portfolio, blog), SPA for admin and proposal views
-- **Security**: Django session + CSRF authentication; no JWT; staff-only admin endpoints; CORS/CSRF trusted origins
+- **Security**: Dual auth — session/CSRF for `/panel/`, JWT (SimpleJWT) for `/platform/`; staff-only admin endpoints; CORS/CSRF trusted origins; Fernet encryption for project admin credentials (`PROJECT_ACCESS_CIPHER_KEY`)
 - **SEO**: Server-side rendered public pages, sitemap endpoints, meta tags, Google verification
 - **Analytics**: Google Tag Manager, Google Analytics, Facebook Pixel, Microsoft Clarity, Cal.com booking tracker
 - **Email**: SMTP via GoDaddy (smtpout.secureserver.net:465 SSL), HTML + text templates

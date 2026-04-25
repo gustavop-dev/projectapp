@@ -280,4 +280,87 @@ describe('usePlatformDeliverablesStore', () => {
       expect(result.message).toBe('Archived.')
     })
   })
+
+  it('fetchDeliverables uses fallback message when error has no detail', async () => {
+    mockGet.mockRejectedValueOnce({})
+    const result = await store.fetchDeliverables(1)
+    expect(result.message).toBe('No pudimos cargar los entregables.')
+  })
+
+  it('fetchAllDeliverables uses fallback message when error has no detail', async () => {
+    mockGet.mockRejectedValueOnce({})
+    const result = await store.fetchAllDeliverables()
+    expect(result.message).toBe('No pudimos cargar los entregables.')
+  })
+
+  it('fetchAllDeliverables appends category query when provided', async () => {
+    mockGet.mockResolvedValueOnce({ data: [] })
+    await store.fetchAllDeliverables('apks')
+    expect(mockGet).toHaveBeenCalledWith('deliverables/?category=apks')
+  })
+
+  it('fetchDeliverable uses fallback message when error has no detail', async () => {
+    mockGet.mockRejectedValueOnce({})
+    const result = await store.fetchDeliverable(1, 1)
+    expect(result.message).toBe('No pudimos cargar el entregable.')
+  })
+
+  it('createDeliverable uses fallback message when error has no detail', async () => {
+    mockPost.mockRejectedValueOnce({})
+    const result = await store.createDeliverable(1, new FormData())
+    expect(result.message).toBe('No pudimos subir el entregable.')
+  })
+
+  it('updateDeliverable leaves list intact when deliverable not in list', async () => {
+    store.deliverables = [{ id: 5, name: 'a' }]
+    mockPatch.mockResolvedValueOnce({ data: { id: 99, name: 'b' } })
+    await store.updateDeliverable(1, 99, { name: 'b' })
+    expect(store.deliverables[0].name).toBe('a')
+  })
+
+  it('updateDeliverable does not touch currentDeliverable when ids differ', async () => {
+    store.currentDeliverable = { id: 5, name: 'a' }
+    mockPatch.mockResolvedValueOnce({ data: { id: 99, name: 'b' } })
+    await store.updateDeliverable(1, 99, { name: 'b' })
+    expect(store.currentDeliverable.name).toBe('a')
+  })
+
+  it('updateDeliverable uses fallback message when error has no detail', async () => {
+    mockPatch.mockRejectedValueOnce({})
+    const result = await store.updateDeliverable(1, 1, {})
+    expect(result.message).toBe('No pudimos actualizar el entregable.')
+  })
+
+  it('deleteDeliverable returns detail message on success when provided', async () => {
+    store.deliverables = [{ id: 1 }]
+    mockDelete.mockResolvedValueOnce({ data: { detail: 'Archivado.' } })
+    const result = await store.deleteDeliverable(1, 1)
+    expect(result.message).toBe('Archivado.')
+  })
+
+  it('deleteDeliverable uses fallback message when error has no detail', async () => {
+    mockDelete.mockRejectedValueOnce({})
+    const result = await store.deleteDeliverable(1, 1)
+    expect(result.message).toBe('No pudimos archivar el entregable.')
+  })
+
+  it('uploadNewVersion leaves list intact when deliverable not in list', async () => {
+    store.deliverables = [{ id: 8, v: 1 }]
+    mockPost.mockResolvedValueOnce({ data: { id: 99, v: 2 } })
+    await store.uploadNewVersion(1, 99, new FormData())
+    expect(store.deliverables[0].v).toBe(1)
+  })
+
+  it('uploadNewVersion does not touch currentDeliverable when ids differ', async () => {
+    store.currentDeliverable = { id: 8, v: 1 }
+    mockPost.mockResolvedValueOnce({ data: { id: 99, v: 2 } })
+    await store.uploadNewVersion(1, 99, new FormData())
+    expect(store.currentDeliverable.v).toBe(1)
+  })
+
+  it('uploadNewVersion uses fallback message when error has no detail', async () => {
+    mockPost.mockRejectedValueOnce({})
+    const result = await store.uploadNewVersion(1, 1, new FormData())
+    expect(result.message).toBe('No pudimos subir la nueva versión.')
+  })
 })

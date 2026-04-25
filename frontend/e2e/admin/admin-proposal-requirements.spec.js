@@ -130,7 +130,6 @@ function buildMockHandler(capturedUpdates) {
 async function openRequirementsEditor(page, capturedUpdates) {
   await mockApi(page, buildMockHandler(capturedUpdates));
   await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-  await page.waitForLoadState('networkidle');
 
   await page.getByRole('button', { name: 'Secciones' }).click();
 

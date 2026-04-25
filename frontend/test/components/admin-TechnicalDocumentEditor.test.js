@@ -10,6 +10,7 @@ jest.mock('../../utils/technicalModuleStub', () => ({
   })),
 }));
 
+import { createGenericTechnicalEpicStub } from '../../utils/technicalModuleStub';
 import TechnicalDocumentEditor from '../../components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
 
 const baseSection = {
@@ -104,5 +105,590 @@ describe('TechnicalDocumentEditor', () => {
     const payload = emitted[0][0].payload.content_json;
     expect(payload.epics[0].linked_module_ids).toEqual(['group-views']);
     expect(payload.epics[0].requirements[0].linked_module_ids).toEqual(['module-pwa_module']);
+  });
+});
+
+// ── Dynamic row additions ────────────────────────────────────────────────────
+
+describe('TechnicalDocumentEditor dynamic rows', () => {
+  // ── Stack rows ──────────────────────────────────────────────────────────
+
+  it('adds a stack row when the + Fila button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaBtn = wrapper.findAll('button').find(b => b.text() === '+ Fila');
+    await filaBtn.trigger('click');
+
+    // 1 pre-existing row + 1 new empty row
+    expect(wrapper.vm.doc.stack).toHaveLength(2);
+    expect(wrapper.vm.doc.stack[1]).toEqual({ layer: '', technology: '', rationale: '' });
+  });
+
+  it('removes a stack row when its delete button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const deleteBtn = wrapper.findAll('button').find(b => b.text() === '✕');
+    await deleteBtn.trigger('click');
+
+    expect(wrapper.vm.doc.stack).toHaveLength(0);
+  });
+
+  // ── Epics ───────────────────────────────────────────────────────────────
+
+  it('adds a new epic when the + Módulo button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const addEpicBtn = wrapper.findAll('button').find(b => b.text() === '+ Módulo');
+    await addEpicBtn.trigger('click');
+
+    expect(wrapper.vm.doc.epics).toHaveLength(1);
+  });
+
+  it('removes an epic when the Eliminar módulo button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [{ epicKey: 'mod-a', title: 'Module A', description: '', linked_module_ids: [], requirements: [] }],
+        },
+      },
+    });
+
+    const deleteBtn = wrapper.findAll('button').find(b => b.text() === 'Eliminar módulo');
+    await deleteBtn.trigger('click');
+
+    expect(wrapper.vm.doc.epics).toHaveLength(0);
+  });
+
+  // ── Requirements ────────────────────────────────────────────────────────
+
+  it('adds a requirement to an epic when + Requerimiento is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [{ epicKey: 'mod-a', title: 'Module A', description: '', linked_module_ids: [], requirements: [] }],
+        },
+      },
+    });
+
+    const reqBtn = wrapper.findAll('button').find(b => b.text() === '+ Requerimiento');
+    await reqBtn.trigger('click');
+
+    expect(wrapper.vm.doc.epics[0].requirements).toHaveLength(1);
+  });
+
+  it('removes a requirement from an epic when Quitar requerimiento is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            {
+              epicKey: 'mod-a',
+              title: 'Module A',
+              description: '',
+              linked_module_ids: [],
+              requirements: [
+                { flowKey: 'req-1', title: 'Login', description: '', configuration: '', usageFlow: '', priority: 'high', linked_module_ids: [] },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    const quitarBtn = wrapper.findAll('button').find(b => b.text() === 'Quitar requerimiento');
+    await quitarBtn.trigger('click');
+
+    expect(wrapper.vm.doc.epics[0].requirements).toHaveLength(0);
+  });
+
+  // ── Save and validation ─────────────────────────────────────────────────
+
+  it('emits save with serialized content_json when the save button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const emitted = wrapper.emitted('save');
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0][0]).toMatchObject({ sectionId: baseSection.id });
+    expect(emitted[0][0].payload.content_json).toBeDefined();
+  });
+
+  it('shows a validation error when two epics share the same epicKey', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            { epicKey: 'dup-key', title: 'First', description: '', linked_module_ids: [], requirements: [] },
+            { epicKey: 'dup-key', title: 'Second', description: '', linked_module_ids: [], requirements: [] },
+          ],
+        },
+      },
+    });
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    expect(wrapper.text()).toContain('epicKey duplicado');
+  });
+
+  // ── validate: epicKey format ───────────────────────────────────────────────
+
+  it('shows validation error when epicKey contains uppercase letters', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            { epicKey: 'MyEpic', title: 'Invalid Key', description: '', linked_module_ids: [], requirements: [] },
+          ],
+        },
+      },
+    });
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    expect(wrapper.text()).toContain('epicKey inválido');
+  });
+
+  it('shows validation error when epicKey contains spaces', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            { epicKey: 'my epic', title: 'Space Key', description: '', linked_module_ids: [], requirements: [] },
+          ],
+        },
+      },
+    });
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    expect(wrapper.text()).toContain('epicKey inválido');
+  });
+
+  it('does not emit save when validation fails', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            { epicKey: 'INVALID', title: 'Bad', description: '', linked_module_ids: [], requirements: [] },
+          ],
+        },
+      },
+    });
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    expect(wrapper.emitted('save')).toBeFalsy();
+  });
+
+  // ── validate: flowKey format ───────────────────────────────────────────────
+
+  it('shows validation error when flowKey contains underscore characters', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            {
+              epicKey: 'valid-epic',
+              title: 'Epic',
+              description: '',
+              linked_module_ids: [],
+              requirements: [
+                { flowKey: 'my_flow', title: 'Flow', description: '', configuration: '', usageFlow: '', priority: '', linked_module_ids: [] },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    expect(wrapper.text()).toContain('flowKey inválido');
+  });
+
+  it('shows validation error when requirement has content but no title', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            {
+              epicKey: '',
+              title: 'Epic',
+              description: '',
+              linked_module_ids: [],
+              requirements: [
+                { flowKey: 'my-flow', title: '', description: 'has content', configuration: '', usageFlow: '', priority: '', linked_module_ids: [] },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    expect(wrapper.text()).toContain('título');
+  });
+
+  // ── handleSave: savedMsg ───────────────────────────────────────────────────
+
+  it('shows saved message after a successful save', async () => {
+    jest.useFakeTimers();
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain('✓ Guardado');
+    jest.useRealTimers();
+  });
+
+  it('savedMsg is cleared after 3 seconds', async () => {
+    jest.useFakeTimers();
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+    await wrapper.vm.$nextTick();
+
+    jest.advanceTimersByTime(3001);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).not.toContain('✓ Guardado');
+    jest.useRealTimers();
+  });
+
+  // ── toggleLinkedId ─────────────────────────────────────────────────────────
+
+  it('toggleLinkedId adds module id to epic linked_module_ids when checkbox is checked', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      moduleLinkOptions: [{ id: 'mod-auth', label: 'Auth' }],
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            { epicKey: 'auth', title: 'Auth Epic', description: '', linked_module_ids: [], requirements: [] },
+          ],
+        },
+      },
+    });
+
+    const checkbox = wrapper.find('input[type="checkbox"]');
+    await checkbox.trigger('change');
+    await wrapper.vm.$nextTick();
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.epics[0].linked_module_ids).toContain('mod-auth');
+  });
+
+  it('toggleLinkedId removes module id from epic linked_module_ids when checkbox is unchecked', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      moduleLinkOptions: [{ id: 'mod-auth', label: 'Auth' }],
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            { epicKey: 'auth', title: 'Auth Epic', description: '', linked_module_ids: ['mod-auth'], requirements: [] },
+          ],
+        },
+      },
+    });
+
+    const checkbox = wrapper.find('input[type="checkbox"]');
+    await checkbox.trigger('change');
+    await wrapper.vm.$nextTick();
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.epics[0].linked_module_ids).not.toContain('mod-auth');
+  });
+
+  // ── addApiDomain ───────────────────────────────────────────────────────────
+
+  it('addApiDomain appends a domain row when the + Dominio button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const btn = wrapper.findAll('button').find(b => b.text() === '+ Dominio');
+    await btn.trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.apiDomains).toHaveLength(1);
+  });
+
+  // ── addMetric / addPractice ────────────────────────────────────────────────
+
+  it('addMetric appends a metric row when the + Métrica button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const btn = wrapper.findAll('button').find(b => b.text() === '+ Métrica');
+    await btn.trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.performanceQuality.metrics).toHaveLength(1);
+  });
+
+  it('addPractice appends a practice row when the + Práctica button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const btn = wrapper.findAll('button').find(b => b.text() === '+ Práctica');
+    await btn.trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.performanceQuality.practices).toHaveLength(1);
+  });
+
+  // ── addEntityRow ───────────────────────────────────────────────────────────
+
+  it('addEntityRow appends an entity row when the + Entidad button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const btn = wrapper.findAll('button').find(b => b.text() === '+ Entidad');
+    await btn.trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.dataModel.entities).toHaveLength(1);
+  });
+
+  // ── addPatternRow ──────────────────────────────────────────────────────────
+
+  it('addPatternRow appends a pattern row when its + Fila button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[1].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.architecture.patterns).toHaveLength(1);
+    expect(payload.architecture.patterns[0]).toEqual({ component: '', pattern: '', description: '' });
+  });
+
+  // ── addGrowthStrategyRow ───────────────────────────────────────────────────
+
+  it('addGrowthStrategyRow appends a strategy row when its + Fila button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[2].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.growthReadiness.strategies).toHaveLength(1);
+    expect(payload.growthReadiness.strategies[0]).toEqual({ dimension: '', preparation: '', evolution: '' });
+  });
+
+  // ── addIncluded / addExcluded ─────────────────────────────────────────────
+
+  it('addIncluded appends an included integration row', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[3].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.integrations.included).toHaveLength(1);
+  });
+
+  it('addExcluded appends an excluded integration row', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[4].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.integrations.excluded).toHaveLength(1);
+  });
+
+  // ── addEnvironmentRow ─────────────────────────────────────────────────────
+
+  it('addEnvironmentRow appends an environment row when its + Fila button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[5].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.environments).toHaveLength(1);
+    expect(payload.environments[0]).toEqual({ name: '', purpose: '', url: '', database: '', whoAccesses: '' });
+  });
+
+  // ── addSecurityRow ────────────────────────────────────────────────────────
+
+  it('addSecurityRow appends a security row when its + Fila button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[6].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.security).toHaveLength(1);
+    expect(payload.security[0]).toEqual({ aspect: '', implementation: '' });
+  });
+
+  // ── addQualityDimension / addTestType ─────────────────────────────────────
+
+  it('addQualityDimension appends a quality dimension row when its + Fila button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[7].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.quality.dimensions).toHaveLength(1);
+    expect(payload.quality.dimensions[0]).toEqual({ dimension: '', evaluates: '', standard: '' });
+  });
+
+  it('addTestType appends a test type row when its + Fila button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[8].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.quality.testTypes).toHaveLength(1);
+    expect(payload.quality.testTypes[0]).toEqual({ type: '', validates: '', tool: '', whenRun: '' });
+  });
+
+  // ── addDecision ───────────────────────────────────────────────────────────
+
+  it('addDecision appends a decision row when its + Fila button is clicked', async () => {
+    const wrapper = mountTechnicalDocumentEditor();
+
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    await filaButtons[9].trigger('click');
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload.content_json;
+    expect(payload.decisions).toHaveLength(1);
+    expect(payload.decisions[0]).toEqual({ decision: '', alternative: '', reason: '' });
+  });
+
+  // ── validate: duplicate flowKey ───────────────────────────────────────────
+
+  it('shows validation error when two requirements share the same flowKey', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            {
+              epicKey: 'epic-a',
+              title: 'Epic A',
+              description: '',
+              linked_module_ids: [],
+              requirements: [
+                { flowKey: 'shared-flow', title: 'First req', description: '', configuration: '', usageFlow: '', priority: '', linked_module_ids: [] },
+              ],
+            },
+            {
+              epicKey: 'epic-b',
+              title: 'Epic B',
+              description: '',
+              linked_module_ids: [],
+              requirements: [
+                { flowKey: 'shared-flow', title: 'Second req', description: '', configuration: '', usageFlow: '', priority: '', linked_module_ids: [] },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    expect(wrapper.text()).toContain('flowKey duplicado');
+    expect(wrapper.emitted('save')).toBeFalsy();
+  });
+
+  // ── insertGenericStub ──────────────────────────────────────────────────────
+
+  it('insertGenericStub appends a stub epic when a module is selected and the button is clicked', async () => {
+    createGenericTechnicalEpicStub.mockClear();
+
+    const wrapper = mountTechnicalDocumentEditor({
+      moduleLinkOptions: [{ id: 'mod-landing', label: 'Landing' }],
+    });
+
+    const select = wrapper.find('select');
+    await select.setValue('mod-landing');
+
+    const stubBtn = wrapper.findAll('button').find(b => b.text().includes('Insertar módulo genérico'));
+    await stubBtn.trigger('click');
+
+    expect(createGenericTechnicalEpicStub).toHaveBeenCalledWith('mod-landing', 'Landing');
+    await wrapper.vm.$nextTick();
+    expect(wrapper.findAll('[data-testid="technical-epic-description-textarea"]').length).toBe(1);
   });
 });

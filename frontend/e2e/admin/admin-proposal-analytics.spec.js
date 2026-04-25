@@ -92,7 +92,6 @@ test.describe('Admin Proposal Analytics', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Analytics' }).click();
     await expect(page.getByRole('button', { name: 'Exportar CSV' })).toBeVisible({ timeout: 15000 });
@@ -104,7 +103,6 @@ test.describe('Admin Proposal Analytics', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Analytics' }).click();
     await expect(page.getByRole('button', { name: 'Exportar CSV' })).toBeVisible({ timeout: 15000 });
@@ -115,7 +113,6 @@ test.describe('Admin Proposal Analytics', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Analytics' }).click();
     await expect(page.getByRole('button', { name: 'Exportar CSV' })).toBeVisible({ timeout: 15000 });
@@ -132,7 +129,6 @@ test.describe('Admin Proposal Analytics', () => {
       return null;
     });
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Analytics' }).click();
     await expect(page.getByText('Engagement Score')).toBeVisible({ timeout: 15000 });
@@ -151,7 +147,6 @@ test.describe('Admin Proposal Analytics', () => {
       return null;
     });
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: 'Analytics' }).click();
     await expect(page.getByText('Engagement Score')).toBeVisible({ timeout: 15000 });

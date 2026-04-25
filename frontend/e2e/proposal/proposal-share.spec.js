@@ -8,7 +8,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_SHARE } from '../helpers/flow-tags.js';
 
-const MOCK_UUID = 'share-test-uuid-1234-5678-abcdef123456';
+const MOCK_UUID = '5a111111-1111-1111-1111-111111111111';
 
 const mockProposal = {
   id: 1,
@@ -49,7 +49,6 @@ test.describe('Proposal Share', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByTestId('share-proposal-btn')).toBeVisible({ timeout: 15000 });
   });
@@ -59,7 +58,6 @@ test.describe('Proposal Share', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     const shareBtn = page.getByTestId('share-proposal-btn');
     await expect(shareBtn).toBeVisible({ timeout: 15000 });

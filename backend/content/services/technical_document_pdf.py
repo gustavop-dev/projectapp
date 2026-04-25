@@ -275,7 +275,8 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                     hdr_bottom = y - hdr_h
                     c.setFillColor(ESMERALD_DARK)
                     c.rect(MARGIN_L, hdr_bottom, CONTENT_W, hdr_h, fill=1, stroke=0)
-                    hdr_text_y = hdr_bottom + (hdr_h - 8) / 2
+                    # Optical-center offset — see proposal_pdf_service.py:~722.
+                    hdr_text_y = hdr_bottom + (hdr_h - 8) / 2 + 2
                     c.setFont(_font('bold'), 8)
                     c.setFillColor(WHITE)
                     c.drawCentredString(MARGIN_L + num_col_w / 2, hdr_text_y, '#')

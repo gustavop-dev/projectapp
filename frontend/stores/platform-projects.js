@@ -106,6 +106,19 @@ export const usePlatformProjectsStore = defineStore('platformProjects', {
       }
     },
 
+    async fetchAccessList() {
+      this.error = ''
+      try {
+        const { get } = usePlatformApi()
+        const response = await get('projects/access/')
+        return { success: true, data: response.data }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No pudimos cargar los accesos.'
+        this.error = message
+        return { success: false, message }
+      }
+    },
+
     async archiveProject(projectId) {
       this.isUpdating = true
       this.error = ''

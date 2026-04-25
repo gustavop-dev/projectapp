@@ -207,7 +207,7 @@ class TestPublishToLinkedin:
 
 class TestAutoPublishOnBlogCreate:
 
-    @patch('content.views.blog._auto_publish_to_linkedin')
+    @patch('content.views.blog.auto_publish_blog_to_linkedin')
     def test_calls_auto_publish_when_created_published_with_summary(self, mock_auto, admin_client):
         payload = {
             'title_es': 'Auto post',
@@ -224,7 +224,7 @@ class TestAutoPublishOnBlogCreate:
         assert response.status_code == 201
         mock_auto.assert_called_once()
 
-    @patch('content.views.blog._auto_publish_to_linkedin')
+    @patch('content.views.blog.auto_publish_blog_to_linkedin')
     def test_calls_auto_publish_for_draft_but_returns_early(self, mock_auto, admin_client):
         payload = {
             'title_es': 'Draft post',

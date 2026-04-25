@@ -339,6 +339,41 @@ def _md_wrap(text, chars_per_line):
     return lines or [text]
 
 
+_HARD_SEP_RE = re.compile(r'[/|._\-,]')
+
+
+def _break_long_tokens(lines, chars_per_line):
+    """Break tokens too long for a space-only wrapper.
+
+    _md_wrap (and textwrap) only split on whitespace. Enum-like strings
+    such as "recibido/en_revision/diagnostico/reparado" have no spaces
+    and therefore stay on one line, overflowing narrow table cells.
+    This helper scans each produced line and, when it exceeds
+    chars_per_line, breaks at the rightmost separator (/ | _ - . ,)
+    within the budget — falling back to a hard char boundary when no
+    usable separator is found.
+    """
+    if not lines or chars_per_line <= 0:
+        return lines
+    result = []
+    for line in lines:
+        pending = line
+        while len(pending) > chars_per_line:
+            window = pending[:chars_per_line]
+            best = -1
+            for m in _HARD_SEP_RE.finditer(window):
+                best = m.end()
+            if best >= max(8, chars_per_line // 3):
+                result.append(pending[:best])
+                pending = pending[best:]
+            else:
+                result.append(pending[:chars_per_line])
+                pending = pending[chars_per_line:]
+        if pending:
+            result.append(pending)
+    return result
+
+
 # Compiled once at module level — used by _tokenize_inline
 _INLINE_RE = re.compile(
     r'(?P<bold_italic>\*{3}(?P<bi_text>.+?)\*{3})'
@@ -972,14 +1007,17 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None):
     y = _draw_header_row(c, y)
 
     # Draw data rows
+    chars = max(int((col_w - 2 * cell_pad_h) / (data_font_size * 0.48)), 10)
     for ri, row in enumerate(rows or []):
-        # Calculate row height
+        # Wrap each cell once and reuse for height + render.
+        wrapped = []
         max_lines = 1
         for cell in row:
-            clean = _strip_emoji(str(cell))
-            chars = int((col_w - 2 * cell_pad_h) / (data_font_size * 0.48))
-            lines = _md_wrap(clean, max(chars, 10))
-            max_lines = max(max_lines, len(lines) if lines else 1)
+            lines = _break_long_tokens(
+                _md_wrap(_strip_emoji(str(cell)), chars), chars,
+            )
+            wrapped.append(lines)
+            max_lines = max(max_lines, len(lines) or 1)
         row_h = max_lines * leading + 2 * cell_pad_v
 
         # Check pagination
@@ -997,14 +1035,15 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None):
         c.setLineWidth(0.4)
         c.line(x_start, y - row_h, x_start + max_width, y - row_h)
 
-        # Cell text
-        for ci, cell in enumerate(row):
+        # Cell text — vertically centered within the row so short cells
+        # (e.g. single-line "#" column) align with the mid-line of taller
+        # multi-line cells instead of sitting flush with the top.
+        fn = _font('regular')
+        for ci, lines in enumerate(wrapped):
             cx = x_start + ci * col_w + cell_pad_h
-            clean = _strip_emoji(str(cell))
-            chars = int((col_w - 2 * cell_pad_h) / (data_font_size * 0.48))
-            lines = _md_wrap(clean, max(chars, 10))
-            ty = y - cell_pad_v - data_font_size + 2
-            fn = _font('regular')
+            cell_lines = len(lines) or 1
+            v_offset = (max_lines - cell_lines) * leading / 2
+            ty = y - cell_pad_v - v_offset - data_font_size + 2
             for line in lines:
                 _draw_line_with_links(c, cx, ty, line, fn, data_font_size, ESMERALD_80)
                 ty -= leading

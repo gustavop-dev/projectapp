@@ -205,6 +205,38 @@ describe('usePlatformProjectsStore', () => {
     })
   })
 
+  describe('fetchAccessList', () => {
+    it('returns access data on success', async () => {
+      const access = [{ id: 1, name: 'GIM', admin_password: 'pw' }]
+      mockGet.mockResolvedValueOnce({ data: access })
+
+      const result = await store.fetchAccessList()
+
+      expect(mockGet).toHaveBeenCalledWith('projects/access/')
+      expect(result).toEqual({ success: true, data: access })
+    })
+
+    it('sets error message on failure', async () => {
+      mockGet.mockRejectedValueOnce({
+        response: { data: { detail: 'Prohibido.' } },
+      })
+
+      const result = await store.fetchAccessList()
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Prohibido.')
+      expect(store.error).toBe('Prohibido.')
+    })
+
+    it('uses fallback message when error has no detail', async () => {
+      mockGet.mockRejectedValueOnce({ response: { data: {} } })
+
+      const result = await store.fetchAccessList()
+
+      expect(result.message).toBe('No pudimos cargar los accesos.')
+    })
+  })
+
   describe('archiveProject', () => {
     it('sets project status to archived on success', async () => {
       store.projects = [SAMPLE_PROJECT]
@@ -253,6 +285,32 @@ describe('usePlatformProjectsStore', () => {
       const result = await store.archiveProject(1)
 
       expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos archivar el proyecto.')
+    })
+
+    it('does not touch list when projectId not in list', async () => {
+      store.projects = [SAMPLE_PROJECT]
+      mockDelete.mockResolvedValueOnce({})
+
+      await store.archiveProject(9999)
+
+      expect(store.projects[0].status).toBe('active')
+    })
+
+    it('does not touch currentProject when ids differ', async () => {
+      store.currentProject = SAMPLE_PROJECT
+      mockDelete.mockResolvedValueOnce({})
+
+      await store.archiveProject(9999)
+
+      expect(store.currentProject.status).toBe('active')
+    })
+
+    it('uses fallback message when error has no detail', async () => {
+      mockDelete.mockRejectedValueOnce({})
+
+      const result = await store.archiveProject(1)
+
       expect(result.message).toBe('No pudimos archivar el proyecto.')
     })
   })
@@ -324,6 +382,71 @@ describe('usePlatformProjectsStore', () => {
 
       expect(store.projects[1].name).toBe('Other')
       expect(store.projects[1].status).toBe(SAMPLE_PROJECT.status)
+    })
+  })
+
+  describe('fetchProjects branches', () => {
+    it('uses plain URL when no filters provided', async () => {
+      mockGet.mockResolvedValueOnce({ data: [] })
+
+      await store.fetchProjects()
+
+      expect(mockGet).toHaveBeenCalledWith('projects/')
+    })
+
+    it('uses fallback message when error has no detail', async () => {
+      mockGet.mockRejectedValueOnce({})
+
+      const result = await store.fetchProjects()
+
+      expect(result.message).toBe('No pudimos cargar los proyectos.')
+    })
+  })
+
+  describe('fetchProject branches', () => {
+    it('uses fallback message when error has no detail', async () => {
+      mockGet.mockRejectedValueOnce({})
+
+      const result = await store.fetchProject(1)
+
+      expect(result.message).toBe('No pudimos cargar el proyecto.')
+    })
+  })
+
+  describe('createProject branches', () => {
+    it('returns errors field when server sends field errors', async () => {
+      mockPost.mockRejectedValueOnce({ response: { data: { name: ['required'] } } })
+
+      const result = await store.createProject({})
+
+      expect(result.errors).toEqual({ name: ['required'] })
+    })
+
+    it('uses fallback message when error has no detail', async () => {
+      mockPost.mockRejectedValueOnce({})
+
+      const result = await store.createProject({})
+
+      expect(result.message).toBe('No pudimos crear el proyecto.')
+    })
+  })
+
+  describe('updateProject branches', () => {
+    it('does not touch currentProject when ids differ', async () => {
+      store.currentProject = SAMPLE_PROJECT
+      mockPatch.mockResolvedValueOnce({ data: { ...SAMPLE_PROJECT, id: 99, name: 'X' } })
+
+      await store.updateProject(99, { name: 'X' })
+
+      expect(store.currentProject.name).toBe(SAMPLE_PROJECT.name)
+    })
+
+    it('uses fallback message when error has no detail', async () => {
+      mockPatch.mockRejectedValueOnce({})
+
+      const result = await store.updateProject(1, {})
+
+      expect(result.message).toBe('No pudimos actualizar el proyecto.')
     })
   })
 })

@@ -256,6 +256,18 @@ class Project(models.Model):
         null=True, blank=True,
         help_text='Date when hosting billing should begin (set by admin).',
     )
+
+    # Quick-access URLs (admin-only visibility in the API)
+    production_url = models.URLField(max_length=500, blank=True, default='')
+    staging_url = models.URLField(max_length=500, blank=True, default='')
+    admin_url = models.URLField(max_length=500, blank=True, default='')
+    repository_url = models.URLField(max_length=500, blank=True, default='')
+
+    # Django admin credentials for the project's own site. The password is stored
+    # as a Fernet ciphertext; see accounts/services/credential_cipher.py.
+    admin_username = models.CharField(max_length=150, blank=True, default='')
+    admin_password_encrypted = models.TextField(blank=True, default='')
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

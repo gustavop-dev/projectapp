@@ -152,6 +152,9 @@ const sessionId = ref('');
 const sectionEnteredAt = ref(0);
 const visitedIds = ref(new Set());
 
+// Skip all tracking pings when an admin previews with ?preview=1.
+const isPreview = computed(() => route.query?.preview === '1');
+
 const { isDark, toggle: toggleDarkMode } = useDiagnosticDarkMode();
 
 const sections = computed(() => store.current?.sections || []);
@@ -204,6 +207,7 @@ function selectSection(idx) {
 }
 
 function flushSectionTracking({ beacon = false } = {}) {
+  if (isPreview.value) return;
   if (!sessionId.value || !activeSection.value) return;
   const elapsed = (Date.now() - sectionEnteredAt.value) / 1000;
   if (elapsed < 1) return;
@@ -212,6 +216,7 @@ function flushSectionTracking({ beacon = false } = {}) {
     section_type: activeSection.value.section_type,
     section_title: activeSection.value.title || '',
     time_spent_seconds: Math.round(elapsed * 10) / 10,
+    entered_at: new Date(sectionEnteredAt.value).toISOString(),
   };
   if (beacon && typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
     try {
@@ -235,13 +240,18 @@ async function respond(decision) {
 }
 
 function generateSessionId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return 'sess-' + crypto.randomUUID();
+  }
   return 'sess-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
 onMounted(async () => {
   sessionId.value = generateSessionId();
   await store.fetchPublic(route.params.uuid);
-  await store.trackView(route.params.uuid, sessionId.value);
+  if (!isPreview.value) {
+    await store.trackView(route.params.uuid, sessionId.value);
+  }
   sectionEnteredAt.value = Date.now();
   markSectionVisited(sections.value[activeIndex.value]?.id);
 });

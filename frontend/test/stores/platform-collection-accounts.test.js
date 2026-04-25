@@ -258,4 +258,89 @@ describe('usePlatformCollectionAccountsStore', () => {
       expect(result.message).toBe('PDF download failed.')
     })
   })
+
+  it('fetchList uses fallback message when error has no detail', async () => {
+    mockGet.mockRejectedValueOnce({})
+    const result = await store.fetchList()
+    expect(result.message).toBe('Could not load collection accounts.')
+  })
+
+  it('fetchByProject uses fallback message when error has no detail', async () => {
+    mockGet.mockRejectedValueOnce({})
+    const result = await store.fetchByProject(1, 2)
+    expect(result.message).toBe('Could not load collection accounts for this project.')
+  })
+
+  it('fetchDetail uses fallback message when error has no detail', async () => {
+    mockGet.mockRejectedValueOnce({})
+    const result = await store.fetchDetail(1)
+    expect(result.message).toBe('Could not load document.')
+  })
+
+  it('create uses fallback message when error has no response', async () => {
+    mockPost.mockRejectedValueOnce({})
+    const result = await store.create({})
+    expect(store.error).toBe('Could not create.')
+    expect(result.success).toBe(false)
+  })
+
+  it('create accepts string detail from response data', async () => {
+    mockPost.mockRejectedValueOnce({ response: { data: { detail: 'Server rejected payload.' } } })
+    const result = await store.create({})
+    expect(store.error).toBe('Server rejected payload.')
+    expect(result.success).toBe(false)
+  })
+
+  it('update uses fallback message when error has no detail', async () => {
+    mockPatch.mockRejectedValueOnce({})
+    const result = await store.update(1, {})
+    expect(store.error).toBe('Could not update.')
+    expect(result.success).toBe(false)
+  })
+
+  it('issue uses fallback message when error has no detail', async () => {
+    mockPost.mockRejectedValueOnce({})
+    const result = await store.issue(1)
+    expect(result.message).toBe('Could not issue document.')
+  })
+
+  it('markPaid uses fallback message when error has no detail', async () => {
+    mockPost.mockRejectedValueOnce({})
+    const result = await store.markPaid(1)
+    expect(result.message).toBe('Could not mark as paid.')
+  })
+
+  it('markCancelled uses fallback message when error has no detail', async () => {
+    mockPost.mockRejectedValueOnce({})
+    const result = await store.markCancelled(1)
+    expect(result.message).toBe('Could not cancel.')
+  })
+
+  it('downloadPdf uses default title when not provided', async () => {
+    const prevCreate = window.URL.createObjectURL
+    const prevRevoke = window.URL.revokeObjectURL
+    window.URL.createObjectURL = jest.fn(() => 'blob:y')
+    window.URL.revokeObjectURL = jest.fn()
+    const link = { href: '', setAttribute: jest.fn(), click: jest.fn(), remove: jest.fn() }
+    jest.spyOn(document, 'createElement').mockReturnValue(link)
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => {})
+    mockGet.mockResolvedValueOnce({ data: new Blob(['p']) })
+
+    try {
+      await store.downloadPdf(5)
+
+      expect(link.setAttribute).toHaveBeenCalledWith('download', 'collection-account.pdf')
+    } finally {
+      window.URL.createObjectURL = prevCreate
+      window.URL.revokeObjectURL = prevRevoke
+      document.createElement.mockRestore()
+      document.body.appendChild.mockRestore()
+    }
+  })
+
+  it('downloadPdf uses fallback message when error has no detail', async () => {
+    mockGet.mockRejectedValueOnce({})
+    const result = await store.downloadPdf(1)
+    expect(result.message).toBe('PDF download failed.')
+  })
 })

@@ -480,4 +480,50 @@ describe('usePortfolioWorksStore', () => {
       expect(store.getWorkById(999)).toBeUndefined();
     });
   });
+
+  describe('fetchWork without error response', () => {
+    it('falls back to unknown error when error has no response object', async () => {
+      get_request.mockRejectedValue(new Error('Network'));
+
+      const result = await store.fetchWork('slug');
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('unknown');
+      expect(result.status).toBeUndefined();
+    });
+  });
+
+  describe('deleteWork preserves unrelated currentWork', () => {
+    it('does not clear currentWork when deleting different id', async () => {
+      store.currentWork = { ...mockWork, id: 2 };
+      store.works = [mockWork, { ...mockWork, id: 2 }];
+      delete_request.mockResolvedValue({});
+
+      await store.deleteWork(1);
+
+      expect(store.currentWork).toEqual({ ...mockWork, id: 2 });
+    });
+  });
+
+  describe('uploadCoverImage empty cookie string', () => {
+    it('handles empty document.cookie string without throwing', async () => {
+      const mockFile = new File(['img'], 'cover.jpg', { type: 'image/jpeg' });
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockWork),
+      });
+      Object.defineProperty(document, 'cookie', {
+        value: '',
+        writable: true,
+      });
+
+      const result = await store.uploadCoverImage(1, mockFile);
+
+      expect(result.success).toBe(true);
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/portfolio/admin/1/upload-cover/',
+        expect.objectContaining({ headers: { 'X-CSRFToken': '' } }),
+      );
+    });
+  });
 });

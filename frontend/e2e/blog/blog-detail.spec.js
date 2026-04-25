@@ -151,7 +151,6 @@ test.describe('Blog Post Detail', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog/ai-trends-2026');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText('Did This Article Inspire You?')).toBeVisible();
     await expect(page.getByRole('link', { name: /Contact Us/ })).toBeVisible();

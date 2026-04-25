@@ -26,7 +26,7 @@ function buildDiagnostic(overrides = {}) {
     id: DIAG_ID,
     uuid: 'diag-edit-delete-uuid-5555',
     title: 'Diagnóstico — AcmeCorp',
-    status: 'draft',
+    status: 'negotiating',
     language: 'es',
     client: { name: 'AcmeCorp', email: 'acme@example.com' },
     client_name: 'AcmeCorp',
@@ -95,8 +95,9 @@ test.describe('Admin Diagnostic — Edit page', () => {
 
     await page.getByRole('button', { name: 'General', exact: true }).click();
 
-    await expect(page.locator('section').getByText('AcmeCorp')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('section').getByText('Español')).toBeVisible();
+    await expect(page.getByText('AcmeCorp').first()).toBeVisible({ timeout: 10000 });
+    // Language is a <select> — assert its selected value matches 'es'.
+    await expect(page.locator('select').filter({ has: page.locator('option[value="es"]') }).first()).toHaveValue('es');
   });
 
   test('PATCH to update/ is called when General form is saved', {

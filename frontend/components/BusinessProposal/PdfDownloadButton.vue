@@ -26,15 +26,15 @@
 
 <script setup>
 import { ref } from 'vue';
-import {
-  hasStoredConfirmedProposalModuleSelection,
-  readStoredProposalModuleSelection,
-} from '~/utils/proposalModuleSelectionStorage';
 
 const props = defineProps({
   viewMode: {
     type: String,
     default: '',
+  },
+  selectedModuleIds: {
+    type: Array,
+    default: null,
   },
 });
 
@@ -51,14 +51,9 @@ async function downloadPdf() {
     if (!uuid) return;
 
     const params = new URLSearchParams();
-    try {
-      if (hasStoredConfirmedProposalModuleSelection(uuid)) {
-        const { hasStoredSelection, selectedIds } = readStoredProposalModuleSelection(uuid);
-        if (hasStoredSelection && selectedIds.length) {
-          params.set('selected_modules', selectedIds.join(','));
-        }
-      }
-    } catch (_e) { /* ignore */ }
+    if (Array.isArray(props.selectedModuleIds) && props.selectedModuleIds.length) {
+      params.set('selected_modules', props.selectedModuleIds.join(','));
+    }
     if (props.viewMode === 'technical') {
       params.set('doc', 'technical');
     }

@@ -152,6 +152,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { usePanelToast } from '~/composables/usePanelToast';
+import { CONTRACT_LOCKED_STATUSES } from '~/utils/proposalStatus';
 
 const { showToast } = usePanelToast();
 
@@ -171,6 +172,10 @@ const fileInput = ref(null);
 
 const contractDoc = computed(() =>
   props.documents.find(d => d.document_type === 'contract'),
+);
+
+const contractActionsDisabled = computed(() =>
+  CONTRACT_LOCKED_STATUSES.includes(props.proposal?.status),
 );
 
 const contractPdfUrl = computed(() =>

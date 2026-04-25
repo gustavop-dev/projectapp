@@ -44,6 +44,7 @@
       <textarea
         v-model="doc.purpose"
         v-auto-resize
+        data-testid="technical-purpose-textarea"
         class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
         placeholder="Una frase sobre qué cubre este documento..."
       />
@@ -162,7 +163,7 @@
           </div>
           <button type="button" class="text-xs text-red-600" @click="doc.epics.splice(ei, 1)">Eliminar módulo</button>
         </div>
-        <textarea v-model="epic.description" v-auto-resize class="w-full px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" placeholder="Descripción del módulo" />
+        <textarea v-model="epic.description" v-auto-resize data-testid="technical-epic-description-textarea" class="w-full px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" placeholder="Descripción del módulo" />
         <div v-if="moduleLinkOptions.length" class="space-y-1">
           <p class="text-[11px] text-gray-500 dark:text-green-light/60">Vincular este módulo técnico con alcance comercial (modo técnico / PDF técnico):</p>
           <div class="flex flex-wrap gap-x-3 gap-y-1">
@@ -202,7 +203,7 @@
                 <option value="low">Baja</option>
               </select>
             </div>
-            <textarea v-model="req.description" v-auto-resize class="w-full px-2 py-1 border dark:border-white/[0.08] rounded text-xs dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" placeholder="Descripción" />
+            <textarea v-model="req.description" v-auto-resize data-testid="technical-req-description-textarea" class="w-full px-2 py-1 border dark:border-white/[0.08] rounded text-xs dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" placeholder="Descripción" />
             <textarea v-model="req.configuration" v-auto-resize class="w-full px-2 py-1 border dark:border-white/[0.08] rounded text-xs dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" placeholder="Configuración (roles, permisos...)" />
             <textarea v-model="req.usageFlow" v-auto-resize class="w-full px-2 py-1 border dark:border-white/[0.08] rounded text-xs dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" placeholder="Flujo de uso (ej. Login → Dashboard → ...)" />
             <div v-if="moduleLinkOptions.length" class="space-y-1 pt-1">

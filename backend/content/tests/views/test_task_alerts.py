@@ -141,6 +141,9 @@ class TestCheckTaskAlertNotifications(TestCase):
             check_task_alert_notifications.call_local()
 
         mock_send.assert_not_called()
+        self.assertEqual(mock_send.call_count, 0)
+        alert.refresh_from_db()
+        self.assertTrue(alert.sent)
 
     def test_skips_future_alerts(self):
         from datetime import date, timedelta

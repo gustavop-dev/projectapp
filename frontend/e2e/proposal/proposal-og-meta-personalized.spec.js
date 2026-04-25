@@ -7,7 +7,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 
-const MOCK_UUID = 'og-meta-uuid-1234-abcdef';
+const MOCK_UUID = 'bc111111-1111-1111-1111-111111111111';
 
 const mockProposal = {
   id: 1,

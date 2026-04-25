@@ -10,7 +10,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_SUMMARY_KPIS } from '../helpers/flow-tags.js';
 
-const MOCK_UUID = 'kpi-uuid-1234-5678-abcdef123456';
+const MOCK_UUID = 'c6111111-1111-1111-1111-111111111111';
 
 const mockProposal = {
   id: 1,

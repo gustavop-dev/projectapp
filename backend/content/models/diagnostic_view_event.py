@@ -21,6 +21,15 @@ class DiagnosticViewEvent(models.Model):
         ordering = ['-viewed_at']
         verbose_name = 'Diagnostic View Event'
         verbose_name_plural = 'Diagnostic View Events'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['diagnostic', 'session_id'],
+                name='uniq_diagnosticviewevent_diagnostic_session',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['diagnostic', 'viewed_at']),
+        ]
 
     def __str__(self):
         return (
@@ -46,6 +55,9 @@ class DiagnosticSectionView(models.Model):
         ordering = ['entered_at']
         verbose_name = 'Diagnostic Section View'
         verbose_name_plural = 'Diagnostic Section Views'
+        indexes = [
+            models.Index(fields=['view_event', 'section_type']),
+        ]
 
     def __str__(self):
         return (

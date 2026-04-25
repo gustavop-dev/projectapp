@@ -48,7 +48,6 @@ test.describe('Batch Actions on Proposals', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
     // Table should render
     await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
@@ -62,7 +61,6 @@ test.describe('Batch Actions on Proposals', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
     await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
     const checkboxes = page.locator('tbody input[type="checkbox"]');
@@ -78,7 +76,6 @@ test.describe('Batch Actions on Proposals', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
     await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
     const checkboxes = page.locator('tbody input[type="checkbox"]');
@@ -99,7 +96,6 @@ test.describe('Batch Actions on Proposals', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
     await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
     const checkboxes = page.locator('tbody input[type="checkbox"]');
@@ -119,7 +115,6 @@ test.describe('Batch Actions on Proposals', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
     await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
     // Click header checkbox (select all)

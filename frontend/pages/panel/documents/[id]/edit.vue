@@ -1,20 +1,54 @@
 <template>
-  <div>
-    <div class="mb-8">
-      <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors">
-        ← Volver a documentos
-      </NuxtLink>
-      <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-2">
-        {{ documentStore.currentDocument?.title || 'Editar Documento' }}
-      </h1>
+  <div class="w-full">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+      <div class="min-w-0">
+        <NuxtLink
+          :to="localePath('/panel/documents')"
+          class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors"
+          aria-label="Volver a documentos"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          Volver a documentos
+        </NuxtLink>
+        <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-2 truncate">
+          {{ documentStore.currentDocument?.title || 'Editar Documento' }}
+        </h1>
+        <p v-if="documentStore.currentDocument" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          {{ statusLabel }}{{ form.client_name ? ` · ${form.client_name}` : '' }}
+        </p>
+      </div>
+      <div v-if="documentStore.currentDocument && !loadError" class="hidden lg:flex items-center gap-3">
+        <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+          Cancelar
+        </NuxtLink>
+        <button
+          type="button"
+          :disabled="isDownloading"
+          class="px-5 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-xl font-medium text-sm
+                 hover:bg-gray-50 hover:border-gray-300 transition-colors
+                 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 disabled:opacity-50"
+          @click="handleDownloadPdf"
+        >
+          {{ isDownloading ? 'Descargando...' : 'Descargar PDF' }}
+        </button>
+        <button
+          type="submit"
+          form="doc-edit-form"
+          :disabled="documentStore.isUpdating"
+          class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
+                 hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {{ documentStore.isUpdating ? 'Guardando...' : 'Guardar' }}
+        </button>
+      </div>
     </div>
 
-    <!-- Loading -->
     <div v-if="documentStore.isLoading" class="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">
       Cargando...
     </div>
 
-    <!-- Not found -->
     <div v-else-if="loadError" class="text-center py-16">
       <p class="text-gray-500 dark:text-gray-400 text-sm">No se pudo cargar el documento.</p>
       <NuxtLink
@@ -25,42 +59,62 @@
       </NuxtLink>
     </div>
 
-    <!-- Edit form -->
-    <form v-else-if="documentStore.currentDocument" class="space-y-6 transition-all" :class="showPreview ? 'max-w-6xl' : 'max-w-3xl'" @submit.prevent="handleSave">
-      <!-- Metadata card -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 dark:bg-gray-800 dark:border-gray-700">
-        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">Metadatos</h3>
-        <div class="space-y-4">
-          <!-- Title -->
-          <div>
-            <label for="edit-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titulo</label>
-            <input
-              id="edit-title"
-              v-model="form.title"
-              type="text"
-              required
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
-                     dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-            />
+    <form
+      v-else-if="documentStore.currentDocument"
+      id="doc-edit-form"
+      class="grid grid-cols-1 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)] gap-6"
+      @submit.prevent="handleSave"
+    >
+      <aside
+        class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 dark:bg-gray-800 dark:border-gray-700
+               lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
+      >
+        <div class="space-y-6">
+          <div class="space-y-4">
+            <h2 class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Identificación</h2>
+            <div>
+              <label for="edit-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Título</label>
+              <input
+                id="edit-title"
+                v-model="form.title"
+                type="text"
+                required
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
+                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+              />
+            </div>
+            <div>
+              <label for="edit-client" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del cliente</label>
+              <input
+                id="edit-client"
+                v-model="form.client_name"
+                type="text"
+                placeholder="Empresa S.A."
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
+                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Estado</label>
+              <select
+                v-model="form.status"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white
+                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+              >
+                <option v-for="option in statusOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
           </div>
 
-          <!-- Client name -->
-          <div>
-            <label for="edit-client" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del cliente</label>
-            <input
-              id="edit-client"
-              v-model="form.client_name"
-              type="text"
-              placeholder="Empresa S.A."
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
-                     dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
-            />
-          </div>
+          <hr class="border-gray-100 dark:border-gray-700" />
 
-          <!-- Folder + Tags -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="space-y-4">
+            <h2 class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Organización</h2>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carpeta</label>
               <select
@@ -78,8 +132,10 @@
             <TagSelector v-model="form.tag_ids" :tags="tagStore.tags" />
           </div>
 
-          <!-- Language + Cover toggles + Status -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <hr class="border-gray-100 dark:border-gray-700" />
+
+          <div class="space-y-4">
+            <h2 class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Opciones de exportación</h2>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Idioma</label>
               <select
@@ -88,90 +144,85 @@
                        focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white
                        dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
               >
-                <option value="es">Espanol</option>
+                <option value="es">Español</option>
                 <option value="en">English</option>
               </select>
             </div>
-            <div class="flex flex-col justify-end gap-1">
-              <label class="flex items-center gap-3 cursor-pointer py-1 px-1 select-none">
-                <span class="relative flex-shrink-0">
-                  <input v-model="form.include_portada" type="checkbox" class="sr-only peer" />
-                  <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-gray-200 peer-checked:bg-emerald-500 dark:bg-gray-600 dark:peer-checked:bg-emerald-500"></span>
-                  <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
-                </span>
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Portada</span>
-              </label>
-              <label class="flex items-center gap-3 cursor-pointer py-1 px-1 select-none">
-                <span class="relative flex-shrink-0">
-                  <input v-model="form.include_subportada" type="checkbox" class="sr-only peer" />
-                  <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-gray-200 peer-checked:bg-emerald-500 dark:bg-gray-600 dark:peer-checked:bg-emerald-500"></span>
-                  <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
-                </span>
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Subportada</span>
-              </label>
-              <label class="flex items-center gap-3 cursor-pointer py-1 px-1 select-none">
-                <span class="relative flex-shrink-0">
-                  <input v-model="form.include_contraportada" type="checkbox" class="sr-only peer" />
-                  <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-gray-200 peer-checked:bg-emerald-500 dark:bg-gray-600 dark:peer-checked:bg-emerald-500"></span>
-                  <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
-                </span>
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Contraportada</span>
-              </label>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Estado</label>
-              <select
-                v-model="form.status"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white
-                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+            <div class="space-y-1">
+              <label
+                v-for="option in coverOptions"
+                :key="option.key"
+                class="flex items-center gap-3 cursor-pointer py-1.5 px-1 select-none"
               >
-                <option value="draft">Borrador</option>
-                <option value="published">Publicado</option>
-                <option value="archived">Archivado</option>
-              </select>
+                <span class="relative flex-shrink-0">
+                  <input v-model="form[option.key]" type="checkbox" class="sr-only peer" />
+                  <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-gray-200 peer-checked:bg-emerald-500 dark:bg-gray-600 dark:peer-checked:bg-emerald-500"></span>
+                  <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
+                </span>
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ option.label }}</span>
+              </label>
             </div>
           </div>
         </div>
-      </div>
+      </aside>
 
-      <!-- Content card -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 dark:bg-gray-800 dark:border-gray-700">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Contenido Markdown</h3>
-          <button
-            type="button"
-            class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
-            :class="showPreview
-              ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50'
-              : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'"
-            @click="showPreview = !showPreview"
-          >
-            <svg v-if="showPreview" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-            </svg>
-            {{ showPreview ? 'Ocultar vista previa' : 'Vista previa' }}
-          </button>
+      <section
+        class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 dark:bg-gray-800 dark:border-gray-700
+               flex flex-col min-w-0"
+      >
+        <div class="flex items-center justify-between mb-3 gap-3 flex-wrap">
+          <label for="edit-markdown" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contenido Markdown</label>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span v-if="form.content_markdown" class="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
+              {{ form.content_markdown.length.toLocaleString() }} caracteres
+            </span>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors
+                     bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+              :disabled="!form.content_markdown.trim()"
+              @click="showFullPreview = true"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+              Vista completa
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
+              :class="showPreview
+                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'"
+              @click="showPreview = !showPreview"
+            >
+              <svg v-if="showPreview" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+              </svg>
+              {{ showPreview ? 'Ocultar vista previa' : 'Vista previa' }}
+            </button>
+          </div>
         </div>
-        <div :class="showPreview ? 'grid grid-cols-1 lg:grid-cols-2 gap-4' : ''">
+        <div :class="showPreview ? 'grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0' : 'flex-1 min-h-0 flex'">
           <textarea
+            id="edit-markdown"
             v-model="form.content_markdown"
-            rows="20"
             placeholder="# Contenido del documento..."
             class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm font-mono leading-relaxed
-                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y
+                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-none
+                   min-h-[24rem] lg:h-[calc(100vh-18rem)]
                    dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
           ></textarea>
           <div
             v-if="showPreview"
-            class="border border-gray-200 rounded-xl bg-white overflow-y-auto dark:bg-gray-900 dark:border-gray-600"
-            style="min-height: 24rem; max-height: 40rem;"
+            class="border border-gray-200 rounded-xl bg-white overflow-y-auto dark:bg-gray-900 dark:border-gray-600
+                   min-h-[24rem] lg:h-[calc(100vh-18rem)]"
           >
-            <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-t-xl">
+            <div class="sticky top-0 px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-t-xl z-10">
               <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Vista previa</span>
             </div>
             <div
@@ -187,49 +238,61 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Errors -->
-      <div v-if="errorMsg" class="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl dark:bg-red-900/20 dark:text-red-400">
-        {{ errorMsg }}
-      </div>
+        <div v-if="errorMsg" class="mt-4 text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl dark:bg-red-900/20 dark:text-red-400">
+          {{ errorMsg }}
+        </div>
 
-      <!-- Success -->
-      <div v-if="saveSuccess" class="text-sm text-emerald-600 bg-emerald-50 px-4 py-3 rounded-xl dark:bg-emerald-900/20 dark:text-emerald-400">
-        Documento guardado correctamente.
-      </div>
+        <div v-if="saveSuccess" class="mt-4 text-sm text-emerald-600 bg-emerald-50 px-4 py-3 rounded-xl dark:bg-emerald-900/20 dark:text-emerald-400">
+          Documento guardado correctamente.
+        </div>
 
-      <!-- Actions -->
-      <div class="flex flex-wrap items-center gap-3">
-        <button
-          type="submit"
-          :disabled="documentStore.isUpdating"
-          class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
-                 hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
-        >
-          {{ documentStore.isUpdating ? 'Guardando...' : 'Guardar' }}
-        </button>
-        <button
-          type="button"
-          :disabled="isDownloading"
-          class="px-5 sm:px-6 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-xl font-medium text-sm
-                 hover:bg-gray-50 hover:border-gray-300 transition-colors
-                 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 disabled:opacity-50"
-          @click="handleDownloadPdf"
-        >
-          {{ isDownloading ? 'Descargando...' : 'Descargar PDF' }}
-        </button>
-        <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-          Cancelar
-        </NuxtLink>
-      </div>
+        <div class="mt-5 flex flex-wrap items-center gap-3 lg:hidden">
+          <button
+            type="submit"
+            :disabled="documentStore.isUpdating"
+            class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
+                   hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {{ documentStore.isUpdating ? 'Guardando...' : 'Guardar' }}
+          </button>
+          <button
+            type="button"
+            :disabled="isDownloading"
+            class="px-5 sm:px-6 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-xl font-medium text-sm
+                   hover:bg-gray-50 hover:border-gray-300 transition-colors
+                   dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 disabled:opacity-50"
+            @click="handleDownloadPdf"
+          >
+            {{ isDownloading ? 'Descargando...' : 'Descargar PDF' }}
+          </button>
+          <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+            Cancelar
+          </NuxtLink>
+        </div>
+      </section>
     </form>
+
+    <MarkdownPreviewModal
+      v-model="showFullPreview"
+      :title="form.title || 'Vista previa'"
+    >
+      <div
+        v-if="form.content_markdown.trim()"
+        class="markdown-preview markdown-preview--full max-w-4xl mx-auto"
+        v-html="previewHtml"
+      ></div>
+      <div v-else class="flex items-center justify-center h-full text-sm text-gray-400 dark:text-gray-500">
+        No hay contenido para mostrar.
+      </div>
+    </MarkdownPreviewModal>
   </div>
 </template>
 
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue';
 import TagSelector from '~/components/panel/documents/TagSelector.vue';
+import MarkdownPreviewModal from '~/components/panel/documents/MarkdownPreviewModal.vue';
 const { parseMarkdown } = useMarkdownPreview();
 
 const localePath = useLocalePath();
@@ -244,6 +307,7 @@ const saveSuccess = ref(false);
 const loadError = ref(false);
 const isDownloading = ref(false);
 const showPreview = ref(true);
+const showFullPreview = ref(false);
 
 const form = reactive({
   title: '',
@@ -258,7 +322,22 @@ const form = reactive({
   tag_ids: [],
 });
 
+const coverOptions = [
+  { key: 'include_portada', label: 'Incluir portada' },
+  { key: 'include_subportada', label: 'Incluir subportada' },
+  { key: 'include_contraportada', label: 'Incluir contraportada' },
+];
+
+const statusOptions = [
+  { value: 'draft', label: 'Borrador' },
+  { value: 'published', label: 'Publicado' },
+  { value: 'archived', label: 'Archivado' },
+];
+
 const previewHtml = computed(() => parseMarkdown(form.content_markdown));
+const statusLabel = computed(
+  () => statusOptions.find((option) => option.value === form.status)?.label || '',
+);
 
 onMounted(async () => {
   const id = route.params.id;
@@ -515,4 +594,17 @@ async function handleDownloadPdf() {
 :global(.dark) .markdown-preview :deep(.callout-warning .callout-label) { color: #fbbf24; }
 :global(.dark) .markdown-preview :deep(.callout-caution) { background-color: #200a0e; border-color: #fb7185; }
 :global(.dark) .markdown-preview :deep(.callout-caution .callout-label) { color: #fb7185; }
+
+.markdown-preview--full :deep(.md-h1) { font-size: 2rem; }
+.markdown-preview--full :deep(.md-h2) { font-size: 1.5rem; }
+.markdown-preview--full :deep(.md-h3) { font-size: 1.25rem; }
+.markdown-preview--full :deep(.md-p),
+.markdown-preview--full :deep(.md-ul),
+.markdown-preview--full :deep(.md-ol),
+.markdown-preview--full :deep(.md-blockquote) {
+  font-size: 1rem;
+  line-height: 1.75;
+}
+.markdown-preview--full :deep(.md-table) { font-size: 0.95rem; }
+.markdown-preview--full :deep(.md-code-block) { font-size: 0.9rem; }
 </style>

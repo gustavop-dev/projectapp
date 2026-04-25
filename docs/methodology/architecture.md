@@ -166,15 +166,19 @@ erDiagram
 | **CompanySettings** | Company-level branding and info used in PDFs | name, logo, address, tax_id, email, phone, website |
 | **UserProfile** | Platform user (extends Django User) | user_fk, role (admin/client), company_name, phone, avatar, onboarding_completed, is_active |
 | **VerificationCode** | OTP codes for login | user_fk, code, expires_at, is_used |
-| **Project** | Client projects in platform | owner_fk, title, description, status (active/completed/archived), created_at |
-| **Requirement** | Kanban board items | project_fk, title, description, status (backlog/in_progress/done), priority, assignee, order |
-| **RequirementComment** | Comments on requirements | requirement_fk, author_fk, text, created_at |
+| **UserProfile** | Platform user (extends Django User) | user_fk, role (admin/client), company_name, phone, avatar, is_onboarded, profile_completed, is_active |
+| **VerificationCode** | OTP codes for login | user_fk, code, expires_at, is_used |
+| **Project** | Client project in platform | client_fk, name, description, status (active/paused/completed/archived), progress, start_date, estimated_end_date, payment_milestones, hosting_tiers, hosting_start_date, production_url, staging_url, admin_url, repository_url, admin_username, admin_password_encrypted |
+| **Requirement** | Kanban board card | project_fk, title, description, status (backlog/todo/in_progress/in_review), priority, order, deliverable_fk |
+| **RequirementComment** | Comment on a requirement | requirement_fk, author_fk, text, created_at |
 | **RequirementHistory** | Audit trail for requirements | requirement_fk, field_name, old_value, new_value, changed_by |
 | **BugReport** | Bug reports per project | project_fk, title, description, status, priority, reported_by |
 | **ChangeRequest** | Change requests per project | project_fk, title, description, status, requested_by |
 | **Deliverable** | Project deliverables tracking | project_fk, title, description, status, due_date |
 | **Notification** | In-platform notifications | user_fk, message, type, is_read, created_at |
+| **HostingSubscription** | Hosting billing subscription | project_fk, plan, status, start_date, billing_cycle |
 | **Payment** | Payment milestones per project | project_fk, title, amount, status, due_date |
+| **PaymentHistory** | Payment audit trail | payment_fk, event_type, amount, notes |
 | **DataModelEntity** | Reusable JSON-defined data model schema | name, description, schema_json, created_at |
 | **ProjectDataModelEntity** | Links a data model entity to a project | project_fk, data_model_entity_fk, custom_schema_json |
 
@@ -305,6 +309,7 @@ flowchart TD
         PlatformProjectDataModel["/platform/projects/:id/data-model"]
         PlatformDeliverableDetail["/platform/projects/:id/deliverables/:did"]
         PlatformProfilePage["/platform/profile"]
+        PlatformAccess["/platform/access (admin-only)"]
     end
 
     Panel -->|middleware: admin-auth| AuthCheck["/api/auth/check/"]
@@ -326,7 +331,7 @@ flowchart LR
         PanelAdmins["panel_admins.js"]
         PlatformAuth["platform-auth.js"]
         PlatformClients["platform-clients.js"]
-        PlatformProjects["platform-projects.js"]
+        PlatformProjects["platform-projects.js (+ fetchAccessList)"]
         PlatformRequirements["platform-requirements.js"]
         PlatformBugReports["platform-bug-reports.js"]
         PlatformChangeRequests["platform-change-requests.js"]

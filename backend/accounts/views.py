@@ -737,13 +737,61 @@ def project_detail_view(request, project_id):
     data = serializer.validated_data
 
     update_fields = ['updated_at']
-    for field in ('name', 'description', 'status', 'progress', 'start_date', 'estimated_end_date'):
+    simple_fields = (
+        'name', 'description', 'status', 'progress',
+        'start_date', 'estimated_end_date',
+        'production_url', 'staging_url', 'admin_url', 'repository_url',
+        'admin_username',
+    )
+    for field in simple_fields:
         if field in data:
             setattr(project, field, data[field])
             update_fields.append(field)
+
+    if 'admin_password' in data:
+        from accounts.services.credential_cipher import encrypt_password
+        project.admin_password_encrypted = encrypt_password(data['admin_password'])
+        update_fields.append('admin_password_encrypted')
+
     project.save(update_fields=update_fields)
 
     return Response(ProjectDetailSerializer(project, context={'request': request}).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminRole])
+def project_access_list_view(request):
+    """Admin-only quick-access list: project URLs + decrypted admin credentials."""
+    from accounts.services.credential_cipher import decrypt_password
+
+    qs = (
+        Project.objects.select_related('client', 'client__profile')
+        .exclude(status=Project.STATUS_ARCHIVED)
+        .order_by('name')
+    )
+
+    data = []
+    for p in qs:
+        client = p.client
+        client_name = f'{client.first_name} {client.last_name}'.strip() or client.email
+        company = getattr(getattr(client, 'profile', None), 'company_name', '') or ''
+        data.append({
+            'id': p.id,
+            'name': p.name,
+            'status': p.status,
+            'client_id': client.id,
+            'client_name': client_name,
+            'client_email': client.email,
+            'client_company': company,
+            'production_url': p.production_url,
+            'staging_url': p.staging_url,
+            'admin_url': p.admin_url,
+            'repository_url': p.repository_url,
+            'admin_username': p.admin_username,
+            'admin_password': decrypt_password(p.admin_password_encrypted),
+        })
+
+    return Response(data)
 
 
 @api_view(['POST'])
@@ -2577,6 +2625,7 @@ def _extract_proposal_financial_data(proposal):
     Returns (payment_milestones, hosting_tiers) as plain lists.
     """
     from content.models import ProposalSection
+    from content.services.proposal_service import normalize_hosting_plan
     from decimal import Decimal
 
     payment_milestones = []
@@ -2599,52 +2648,41 @@ def _extract_proposal_financial_data(proposal):
         })
 
     # --- Hosting tiers (pricing for client plan selection) ---
-    hosting_plan = cj.get('hostingPlan', {})
-    base_percent = hosting_plan.get('hostingPercent', proposal.hosting_percent)
+    normalized = normalize_hosting_plan(proposal, cj.get('hostingPlan', {}))
+    base_percent = normalized['hostingPercent']
     hosting_annual = float(proposal.total_investment) * base_percent / 100
     base_monthly = round(hosting_annual / 12, 2)
     currency = str(cj.get('currency', proposal.currency))
 
-    billing_tiers = hosting_plan.get('billingTiers', [])
-
-    if billing_tiers:
-        for tier in billing_tiers:
-            discount = tier.get('discountPercent', 0)
-            effective_monthly = round(base_monthly * (100 - discount) / 100, 2)
-            months = tier.get('months', 1)
-            hosting_tiers.append({
-                'frequency': tier.get('frequency', ''),
-                'months': months,
-                'label': tier.get('label', ''),
-                'badge': tier.get('badge', ''),
-                'discount_percent': discount,
-                'base_monthly': base_monthly,
-                'effective_monthly': effective_monthly,
-                'billing_amount': round(effective_monthly * months, 2),
-                'currency': currency,
-            })
-    else:
-        # Compute default tiers from proposal model fields
-        default_tiers = [
-            {'frequency': 'semiannual', 'months': 6, 'label': 'Semestral', 'badge': 'Mejor precio', 'discount': proposal.hosting_discount_semiannual},
-            {'frequency': 'quarterly', 'months': 3, 'label': 'Trimestral', 'badge': f'{proposal.hosting_discount_quarterly}% dcto' if proposal.hosting_discount_quarterly else '', 'discount': proposal.hosting_discount_quarterly},
-            {'frequency': 'monthly', 'months': 1, 'label': 'Mensual', 'badge': '', 'discount': 0},
+    billing_tiers = normalized['billingTiers']
+    if not billing_tiers:
+        billing_tiers = [
+            {'frequency': 'semiannual', 'months': 6, 'label': 'Semestral',
+             'badge': 'Mejor precio',
+             'discountPercent': proposal.hosting_discount_semiannual},
+            {'frequency': 'quarterly', 'months': 3, 'label': 'Trimestral',
+             'badge': (f'{proposal.hosting_discount_quarterly}% dcto'
+                       if proposal.hosting_discount_quarterly else ''),
+             'discountPercent': proposal.hosting_discount_quarterly},
+            {'frequency': 'monthly', 'months': 1, 'label': 'Mensual',
+             'badge': '', 'discountPercent': 0},
         ]
-        for tier in default_tiers:
-            discount = tier['discount']
-            effective_monthly = round(base_monthly * (100 - discount) / 100, 2)
-            months = tier['months']
-            hosting_tiers.append({
-                'frequency': tier['frequency'],
-                'months': months,
-                'label': tier['label'],
-                'badge': tier['badge'],
-                'discount_percent': discount,
-                'base_monthly': base_monthly,
-                'effective_monthly': effective_monthly,
-                'billing_amount': round(effective_monthly * months, 2),
-                'currency': currency,
-            })
+
+    for tier in billing_tiers:
+        discount = tier.get('discountPercent', 0)
+        months = tier.get('months', 1)
+        effective_monthly = round(base_monthly * (100 - discount) / 100, 2)
+        hosting_tiers.append({
+            'frequency': tier.get('frequency', ''),
+            'months': months,
+            'label': tier.get('label', ''),
+            'badge': tier.get('badge', ''),
+            'discount_percent': discount,
+            'base_monthly': base_monthly,
+            'effective_monthly': effective_monthly,
+            'billing_amount': round(effective_monthly * months, 2),
+            'currency': currency,
+        })
 
     return payment_milestones, hosting_tiers
 

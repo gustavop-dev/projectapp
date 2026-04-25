@@ -389,6 +389,7 @@ class BlogPostFromJSONSerializer(serializers.Serializer):
     read_time_minutes = serializers.IntegerField(required=False, default=0)
     is_featured = serializers.BooleanField(required=False, default=False)
     is_published = serializers.BooleanField(required=False, default=False)
+    published_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
     author = serializers.CharField(max_length=50, required=False, default='projectapp-team', allow_blank=True)
     meta_title_es = serializers.CharField(max_length=255, required=False, default='', allow_blank=True)
     meta_title_en = serializers.CharField(max_length=255, required=False, default='', allow_blank=True)

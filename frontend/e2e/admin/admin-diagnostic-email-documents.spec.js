@@ -36,7 +36,7 @@ function buildDiagnostic(overrides = {}) {
     id: DIAG_ID,
     uuid: 'diag-email-test-uuid-1234',
     title: 'Diagnóstico — TechCorp',
-    status: 'draft',
+    status: 'negotiating',
     language: 'es',
     client: { name: 'TechCorp', email: 'client@example.com' },
     client_name: 'TechCorp',

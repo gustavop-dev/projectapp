@@ -181,7 +181,7 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 |---|---|---|
 | \`groups\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN grupo base.** Los 7 grupos base (views, components, features, admin_module, analytics_dashboard, kpi_dashboard_module, manual_module) deben permanecer en \`groups[]\`. Solo modificar contenido interno (title, description, items). Se pueden AGREGAR grupos nuevos al final. **NO mover módulos de \`additionalModules\` a \`groups\`.** **Nota:** los 4 últimos (\`admin_module\`, \`analytics_dashboard\`, \`kpi_dashboard_module\`, \`manual_module\`) son catálogo de datos para el modal de \`valueAddedModules\`; el UI los oculta automáticamente del render de \`functionalRequirements\` cuando \`valueAddedModules\` está activa. Deben quedarse aquí de todas formas. |
 | \`groups[].items\` | array de objetos | Cada item tiene \`icon\` (emoji), \`name\` y \`description\`. Se pueden agregar o modificar items dentro de un grupo, pero no eliminar el grupo completo. |
-| \`additionalModules\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN módulo opcional.** Los 12 módulos con \`is_calculator_module: true\` deben permanecer en \`additionalModules[]\`. Solo modificar contenido interno (title, description, items, invite_note). **NO moverlos a \`groups[]\`.** |
+| \`additionalModules\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN módulo opcional.** Los 13 módulos con \`is_calculator_module: true\` deben permanecer en \`additionalModules[]\`. Solo modificar contenido interno (title, description, items, invite_note). **NO moverlos a \`groups[]\`.** |
 
 **Flags de control por grupo** (solo aplican a módulos opcionales, es decir grupos con \`is_calculator_module: true\`):
 
@@ -207,7 +207,7 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 | 5 | \`kpi_dashboard_module\` | Base (incluido sin costo) |
 | 6 | \`manual_module\` | Base (incluido sin costo) |
 
-**Referencia: \`additionalModules[]\`** (12 módulos opcionales — orden obligatorio):
+**Referencia: \`additionalModules[]\`** (13 módulos opcionales — orden obligatorio):
 
 | # | \`id\` | Tipo | \`price_percent\` |
 |---|---|---|---|
@@ -215,14 +215,15 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 | 1 | \`integration_regional_payments\` | Opcional | 20% |
 | 2 | \`integration_international_payments\` | Opcional | 20% |
 | 3 | \`pwa_module\` | Opcional | 40% |
-| 4 | \`ai_module\` | Invitación | 0% |
-| 5 | \`integration_conversion_tracking\` | Invitación | 0% |
-| 6 | \`reports_alerts_module\` | Opcional | 20% |
-| 7 | \`email_marketing_module\` | Opcional | 10% |
-| 8 | \`i18n_module\` | Opcional | 15% |
-| 9 | \`live_chat_module\` | Opcional | 40% |
-| 10 | \`dark_mode_module\` | Opcional | 20% |
-| 11 | \`gift_cards_module\` | Opcional (oculto) | 20% |
+| 4 | \`corporate_branding_module\` | Opcional | 35% |
+| 5 | \`ai_module\` | Invitación | 0% |
+| 6 | \`integration_conversion_tracking\` | Invitación | 0% |
+| 7 | \`reports_alerts_module\` | Opcional | 20% |
+| 8 | \`email_marketing_module\` | Opcional | 10% |
+| 9 | \`i18n_module\` | Opcional | 15% |
+| 10 | \`live_chat_module\` | Opcional | 40% |
+| 11 | \`dark_mode_module\` | Opcional | 20% |
+| 12 | \`gift_cards_module\` | Opcional (oculto) | 20% |
 
 #### \`developmentStages\` 
 | Campo | Tipo | Restricción |
@@ -312,7 +313,7 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 - \`valueReasons\`: Razones que justifiquen el precio ANTES de que el cliente lo cuestione. Incluye diferenciadores: "diseñado a medida para el sector X", "integración con pasarela de pago colombiana", etc.
 
 ### \`functionalRequirements\`
-- **REGLA CRÍTICA**: NO elimines ningún grupo que tenga \`"_do_not_remove": true\`. Los 18 grupos deben permanecer. Solo modifica su contenido interno.
+- **REGLA CRÍTICA**: NO elimines ningún grupo que tenga \`"_do_not_remove": true\`. Los 20 grupos (7 base + 13 opcionales) deben permanecer. Solo modifica su contenido interno.
 - Adapta cada vista, componente y funcionalidad al negocio del cliente. Si es una pet shop, las categorías son "alimentos, accesorios, salud, juguetes". Si es una inmobiliaria, son "apartamentos, casas, locales".
 - **Auto-selección de módulos adicionales basada en los requerimientos del cliente.** Lee con atención la "Descripción del negocio", el "Contexto adicional" y los "Módulos opcionales seleccionados" del bloque de contexto del cliente. Para **cada** módulo en \`additionalModules\`, decide si el proyecto describe esa capacidad de forma explícita o implícita y, cuando haya evidencia, marca \`"default_selected": true\` Y \`"selected": true\` en ese módulo. Si no hay evidencia clara, déjalos en \`false\`. No inventes coincidencias.
   - Mapeo de detección (usa cualquier mención, en español o inglés, literal o sinónimos):

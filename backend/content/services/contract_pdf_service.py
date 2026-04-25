@@ -270,7 +270,10 @@ def _draw_signature_block(c, y, params, ps, signature_path=None):
         scale = sig_width / iw * 1.1  # slightly larger than column width
         draw_w = iw * scale
         draw_h = ih * scale
-        img_x = col2_x - draw_w * 0.067  # compensate left whitespace in image
+        # Left-align the signature image with the start of the line so the
+        # visible signature doesn't sit centered over it. If the PNG has
+        # internal left-padding the fix belongs in the upload, not here.
+        img_x = col2_x
         img_y = y - draw_h * 0.4  # image sits above the line
         c.drawImage(signature_path, img_x, img_y, width=draw_w, height=draw_h, mask='auto')
 

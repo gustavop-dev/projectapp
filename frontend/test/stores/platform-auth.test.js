@@ -263,6 +263,39 @@ describe('usePlatformAuthStore', () => {
 
       expect(store.isLoading).toBe(false)
     })
+
+    it('sends recaptcha_token in body when provided', async () => {
+      mockPost.mockResolvedValueOnce({
+        data: { requires_verification: false, tokens: { access: 'a', refresh: 'r' }, user: {} },
+      })
+
+      await store.login({ email: 'a@b.com', password: 'p', recaptcha_token: 'rc-123' })
+
+      expect(mockPost).toHaveBeenCalledWith(
+        'login/',
+        expect.objectContaining({ recaptcha_token: 'rc-123' }),
+        expect.any(Object),
+      )
+    })
+
+    it('omits recaptcha_token from body when absent', async () => {
+      mockPost.mockResolvedValueOnce({
+        data: { requires_verification: false, tokens: { access: 'a', refresh: 'r' }, user: {} },
+      })
+
+      await store.login({ email: 'a@b.com', password: 'p' })
+
+      const body = mockPost.mock.calls[0][1]
+      expect(body).not.toHaveProperty('recaptcha_token')
+    })
+
+    it('uses fallback message when login error has no detail', async () => {
+      mockPost.mockRejectedValueOnce({})
+
+      const result = await store.login({ email: 'a@b.com', password: 'p' })
+
+      expect(result.message).toBe('No pudimos iniciar sesión en este momento.')
+    })
   })
 
   describe('verify', () => {
@@ -340,6 +373,28 @@ describe('usePlatformAuthStore', () => {
 
       expect(result.success).toBe(false)
       expect(store.error).toBe('Código incorrecto.')
+    })
+
+    it('uses fallback message when verify error has no detail', async () => {
+      mockPost.mockRejectedValueOnce({})
+
+      const result = await store.verify({ code: '123456', newPassword: 'Pass1234' })
+
+      expect(result.message).toBe('No pudimos completar la verificación.')
+    })
+
+    it('rejects empty code string', async () => {
+      const result = await store.verify({ code: '', newPassword: 'Pass1234' })
+
+      expect(result.success).toBe(false)
+      expect(store.error).toContain('6 dígitos')
+    })
+
+    it('rejects code with non-digit characters', async () => {
+      const result = await store.verify({ code: 'abc123', newPassword: 'Pass1234' })
+
+      expect(result.success).toBe(false)
+      expect(store.error).toContain('6 dígitos')
     })
   })
 
@@ -727,6 +782,94 @@ describe('usePlatformAuthStore', () => {
 
       expect(result.success).toBe(false)
       expect(result.message).toBe('Refresh token expirado.')
+    })
+  })
+
+  describe('uploadAvatar', () => {
+    it('updates user data on successful avatar upload', async () => {
+      mockRequest.mockResolvedValueOnce({
+        data: { email: 'a@b.com', avatar: '/media/new.png' },
+      })
+
+      const result = await store.uploadAvatar(new Blob())
+
+      expect(result.success).toBe(true)
+      expect(store.user.avatar).toBe('/media/new.png')
+    })
+
+    it('sets error on upload failure', async () => {
+      mockRequest.mockRejectedValueOnce({
+        response: { data: { detail: 'Archivo inválido.' } },
+      })
+
+      const result = await store.uploadAvatar(new Blob())
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('Archivo inválido.')
+    })
+
+    it('uses fallback message when upload error has no detail', async () => {
+      mockRequest.mockRejectedValueOnce({})
+
+      const result = await store.uploadAvatar(new Blob())
+
+      expect(result.message).toBe('No pudimos actualizar tu avatar.')
+    })
+  })
+
+  describe('updateProfile edge cases', () => {
+    it('uses fallback message when error has no detail', async () => {
+      mockPatch.mockRejectedValueOnce({})
+
+      const result = await store.updateProfile({ first_name: 'X' })
+
+      expect(result.message).toBe('No pudimos actualizar tu perfil.')
+    })
+
+    it('returns errors field when response contains validation errors', async () => {
+      mockPatch.mockRejectedValueOnce({
+        response: { data: { first_name: ['required'] } },
+      })
+
+      const result = await store.updateProfile({ first_name: '' })
+
+      expect(result.errors).toEqual({ first_name: ['required'] })
+    })
+  })
+
+  describe('fetchMe edge cases', () => {
+    it('uses fallback message when fetchMe error has no detail', async () => {
+      store.accessToken = 'tok'
+      mockGet.mockRejectedValueOnce({})
+
+      const result = await store.fetchMe()
+
+      expect(result.message).toBe('No pudimos cargar tu perfil.')
+    })
+  })
+
+  describe('applyVerificationState', () => {
+    it('coerces null pendingEmail to empty string', () => {
+      store.applyVerificationState('v-tok', null)
+
+      expect(store.verificationToken).toBe('v-tok')
+      expect(store.pendingEmail).toBe('')
+    })
+
+    it('uses provided pendingEmail when string is supplied', () => {
+      store.applyVerificationState('v-tok', 'me@example.com')
+
+      expect(store.pendingEmail).toBe('me@example.com')
+    })
+  })
+
+  describe('applyAuthenticatedSession role fallback', () => {
+    it('defaults role to empty string when user is undefined', () => {
+      store.applyAuthenticatedSession({ access: 'a', refresh: 'r' }, undefined)
+
+      expect(store.role).toBe('')
+      expect(store.isOnboarded).toBe(false)
+      expect(store.profileCompleted).toBe(false)
     })
   })
 })

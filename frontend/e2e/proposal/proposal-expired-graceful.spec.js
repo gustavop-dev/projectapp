@@ -10,7 +10,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_EXPIRED_GRACEFUL } from '../helpers/flow-tags.js';
 
-const MOCK_UUID = 'expired-uuid-1234-5678-abcdef123456';
+const MOCK_UUID = 'e1111111-1111-1111-1111-111111111111';
 
 const expiredPayload = {
   error: 'This proposal has expired.',
@@ -45,7 +45,6 @@ test.describe('Expired Proposal Graceful Page', () => {
   }, async ({ page }) => {
     await setup410Mock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText(/María García, esta propuesta ha expirado/)).toBeVisible({ timeout: 10000 });
   });
@@ -55,7 +54,6 @@ test.describe('Expired Proposal Graceful Page', () => {
   }, async ({ page }) => {
     await setup410Mock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText(/Landing Profesional — María/)).toBeVisible({ timeout: 10000 });
   });
@@ -65,7 +63,6 @@ test.describe('Expired Proposal Graceful Page', () => {
   }, async ({ page }) => {
     await setup410Mock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     const whatsappLink = page.getByRole('link', { name: /Solicitar reactivación/ });
     await expect(whatsappLink).toBeVisible({ timeout: 10000 });
@@ -80,7 +77,6 @@ test.describe('Expired Proposal Graceful Page', () => {
   }, async ({ page }) => {
     await setup410Mock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     const emailLink = page.getByRole('link', { name: /Email/ });
     await expect(emailLink).toBeVisible({ timeout: 10000 });
@@ -94,7 +90,6 @@ test.describe('Expired Proposal Graceful Page', () => {
   }, async ({ page }) => {
     await setup410Mock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // quality: allow-fragile-selector (checking proposal-wrapper absence confirms expired state renders instead of proposal)
     await expect(page.locator('.proposal-wrapper')).not.toBeVisible({ timeout: 5000 });

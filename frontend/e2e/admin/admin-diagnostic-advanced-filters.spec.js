@@ -97,14 +97,16 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
     await expect(page.getByRole('heading', { name: 'Diagnósticos de aplicaciones' })).toBeVisible({ timeout: 20_000 });
 
     // Filter panel is hidden initially.
-    await expect(page.getByText('Estados')).not.toBeVisible();
+    // Use "Fechas" as the filter-panel indicator — it only appears as a row
+    // label inside the panel, not in the table or other UI.
+    await expect(page.getByText('Fechas', { exact: true })).not.toBeVisible();
 
-    await page.getByRole('button', { name: /filtros/i }).click();
-    await expect(page.getByText('Estados')).toBeVisible({ timeout: 5_000 });
+    await page.getByRole('button', { name: 'Filtros', exact: true }).click();
+    await expect(page.getByText('Fechas', { exact: true })).toBeVisible({ timeout: 5_000 });
 
     // Close by clicking again.
-    await page.getByRole('button', { name: /filtros/i }).click();
-    await expect(page.getByText('Estados')).not.toBeVisible();
+    await page.getByRole('button', { name: 'Filtros', exact: true }).click();
+    await expect(page.getByText('Fechas', { exact: true })).not.toBeVisible();
   });
 
   test('create a new saved filter tab from the + button', {
@@ -123,7 +125,7 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
     await page.getByTestId('filter-tabs-confirm').click();
 
     // New tab appears in the tab strip.
-    await expect(page.getByText('Negociando')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: 'Negociando' })).toBeVisible({ timeout: 5_000 });
   });
 
   test('search input filters diagnostics by title', {

@@ -59,6 +59,7 @@ from accounts.views import (
     complete_profile_view,
     login_view,
     me_view,
+    project_access_list_view,
     project_detail_view,
     project_list_view,
     requirement_bulk_upload_view,
@@ -95,6 +96,7 @@ urlpatterns = [
 
     # Projects
     path('projects/', project_list_view, name='platform-project-list'),
+    path('projects/access/', project_access_list_view, name='platform-project-access-list'),
     path('projects/<int:project_id>/', project_detail_view, name='platform-project-detail'),
 
     # Change Requests

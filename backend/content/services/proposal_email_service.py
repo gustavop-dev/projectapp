@@ -806,11 +806,20 @@ class ProposalEmailService:
             logger.info('Skipping proposal_first_view_notification: template disabled')
             return False
 
+        # Mirror the effective total used by PDF, admin and client views.
+        from decimal import Decimal
+        from content.views.proposal import _effective_total_for_proposal
+        effective_amount = _effective_total_for_proposal(proposal)
+        base_amount = Decimal(proposal.total_investment or 0).quantize(Decimal('1'))
+        has_additional_modules = effective_amount.quantize(Decimal('1')) != base_amount
+
         context = {
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
             'title': proposal.title,
             'total_investment': format_cop_email(proposal.total_investment),
+            'effective_total_investment': format_cop_email(effective_amount),
+            'has_additional_modules': has_additional_modules,
             'currency': proposal.currency,
             'proposal_uuid': str(proposal.uuid),
             'viewed_at': proposal.first_viewed_at or timezone.now(),

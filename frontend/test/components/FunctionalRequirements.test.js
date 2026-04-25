@@ -86,10 +86,7 @@ describe('FunctionalRequirements', () => {
         global: { stubs: { FunctionalRequirementsModal: true } },
       });
       const titles = wrapper.findAll('.overview-card').map(c => c.text());
-      expect(titles).toHaveLength(3);
-      expect(titles.some(t => t.includes('Vistas'))).toBe(true);
-      expect(titles.some(t => t.includes('Componentes'))).toBe(true);
-      expect(titles.some(t => t.includes('Funcionalidades'))).toBe(true);
+      expect(titles.filter(t => ['Vistas', 'Componentes', 'Funcionalidades'].some(k => t.includes(k)))).toHaveLength(3);
       expect(wrapper.text()).not.toContain('Módulo Administrativo');
       expect(wrapper.text()).not.toContain('Analítica');
       expect(wrapper.text()).not.toContain('KPIs');

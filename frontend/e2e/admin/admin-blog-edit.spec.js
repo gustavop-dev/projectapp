@@ -68,7 +68,6 @@ test.describe('Admin Blog Edit', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/1/edit');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByLabel('Título (ES)', { exact: true })).toHaveValue('Post Existente');
     await expect(page.getByLabel('Title (EN)', { exact: true })).toHaveValue('Existing Post');
@@ -82,7 +81,6 @@ test.describe('Admin Blog Edit', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/1/edit');
-    await page.waitForLoadState('networkidle');
 
     await page.getByLabel('Título (ES)', { exact: true }).fill('Post Actualizado');
     await page.getByRole('button', { name: /Guardar Cambios/ }).click();
@@ -95,7 +93,6 @@ test.describe('Admin Blog Edit', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/1/edit');
-    await page.waitForLoadState('networkidle');
 
     await page.getByLabel('Categoría').selectOption('design');
     await page.getByLabel('Tiempo lectura (min)').fill('12');
@@ -109,7 +106,6 @@ test.describe('Admin Blog Edit', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/1/edit');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByLabel('Meta título (ES)')).toBeVisible();
     await expect(page.getByLabel('Meta título (ES)')).toHaveValue('SEO Título ES');
@@ -120,7 +116,6 @@ test.describe('Admin Blog Edit', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/1/edit');
-    await page.waitForLoadState('networkidle');
 
     const link = page.getByText('Ver en blog');
     await expect(link).toBeVisible();
@@ -132,7 +127,6 @@ test.describe('Admin Blog Edit', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/1/edit');
-    await page.waitForLoadState('networkidle');
 
     const jsonTextarea = page.getByRole('group', { name: 'Español' }).getByPlaceholder('"intro"');
     await expect(jsonTextarea).toBeVisible();
@@ -145,7 +139,6 @@ test.describe('Admin Blog Edit', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/1/edit');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.locator('input[placeholder="Nombre de la fuente"]')).toHaveValue('Source 1');
   });

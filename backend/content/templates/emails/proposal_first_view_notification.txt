@@ -7,8 +7,10 @@ Este es el momento perfecto para hacer follow-up.
 Detalles:
 - Propuesta: {{ proposal_title }}
 - Cliente: {{ client_name }}
-- Inversión: ${{ total_investment }} {{ currency }}
-- Abierta a las: {{ viewed_at|bogota_datetime }}
+{% if has_additional_modules %}- Inversión base: ${{ total_investment }} {{ currency }}
+- Total con módulos: ${{ effective_total_investment }} {{ currency }}
+{% else %}- Inversión: ${{ total_investment }} {{ currency }}
+{% endif %}- Abierta a las: {{ viewed_at|bogota_datetime }}
 
 💡 Tip: Los mejores resultados de cierre ocurren cuando contactas
 al cliente dentro de los primeros 5 minutos después de que abre la propuesta.

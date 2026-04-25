@@ -217,4 +217,69 @@ describe('usePanelAdminsStore', () => {
     expect(result.success).toBe(false)
     expect(result.error).toBe('Error al reactivar administrador.')
   })
+
+  it('createAdmin prefers detail over email field when both present', async () => {
+    create_request.mockRejectedValueOnce({
+      response: { data: { detail: 'explicit', email: ['ignored'] } },
+    })
+    const result = await store.createAdmin({})
+    expect(result.error).toBe('explicit')
+  })
+
+  it('createAdmin uses default message when no detail and no email field', async () => {
+    create_request.mockRejectedValueOnce({ response: { data: {} } })
+    const result = await store.createAdmin({})
+    expect(result.error).toBe('Error al crear administrador.')
+  })
+
+  it('createAdmin uses default when error has no response', async () => {
+    create_request.mockRejectedValueOnce({})
+    const result = await store.createAdmin({})
+    expect(result.error).toBe('Error al crear administrador.')
+  })
+
+  it('updateAdmin leaves list intact when user_id not found', async () => {
+    store.admins = [{ user_id: 10, name: 'keep' }]
+    patch_request.mockResolvedValueOnce({ data: { user_id: 99, name: 'replaced' } })
+    await store.updateAdmin(99, {})
+    expect(store.admins[0].name).toBe('keep')
+  })
+
+  it('updateAdmin uses default message when error has no detail', async () => {
+    patch_request.mockRejectedValueOnce({})
+    const result = await store.updateAdmin(1, {})
+    expect(result.error).toBe('Error al actualizar administrador.')
+  })
+
+  it('deactivateAdmin leaves list intact when user_id not found', async () => {
+    store.admins = [{ user_id: 5, is_active: true }]
+    delete_request.mockResolvedValueOnce({})
+    await store.deactivateAdmin(99)
+    expect(store.admins[0].is_active).toBe(true)
+  })
+
+  it('deactivateAdmin uses default message when error has no detail', async () => {
+    delete_request.mockRejectedValueOnce({})
+    const result = await store.deactivateAdmin(1)
+    expect(result.error).toBe('Error al desactivar administrador.')
+  })
+
+  it('reactivateAdmin leaves list intact when user_id not found', async () => {
+    store.admins = [{ user_id: 3, is_active: false }]
+    patch_request.mockResolvedValueOnce({ data: { user_id: 99, is_active: true } })
+    await store.reactivateAdmin(99)
+    expect(store.admins[0].is_active).toBe(false)
+  })
+
+  it('reactivateAdmin uses default message when error has no detail', async () => {
+    patch_request.mockRejectedValueOnce({})
+    const result = await store.reactivateAdmin(1)
+    expect(result.error).toBe('Error al reactivar administrador.')
+  })
+
+  it('resendInvite uses default message when error has no detail', async () => {
+    create_request.mockRejectedValueOnce({})
+    const result = await store.resendInvite(1)
+    expect(result.error).toBe('Error al reenviar invitación.')
+  })
 })

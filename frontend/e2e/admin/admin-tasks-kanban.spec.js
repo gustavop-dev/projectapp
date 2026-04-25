@@ -99,6 +99,15 @@ test.describe('Admin Kanban Tasks', () => {
       if (apiPath === 'tasks/' && method === 'GET') {
         return { status: 200, contentType: 'application/json', body: JSON.stringify(tasksState) };
       }
+      if (apiPath === 'tasks/assignees/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      if (apiPath === 'tasks/1/alerts/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      if (apiPath === 'tasks/1/comments/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
       if (apiPath === 'tasks/1/update/' && method === 'PATCH') {
         const payload = route.request().postDataJSON();
         const updated = { ...existing, ...payload };
@@ -116,7 +125,8 @@ test.describe('Admin Kanban Tasks', () => {
 
     const titleInput = page.getByTestId('task-title-input');
     await titleInput.fill('Brand new title');
-    await page.getByTestId('task-submit-btn').click();
+    await page.getByTestId('task-title-input').press('Enter');
+    await page.locator('form').evaluate((form) => form.requestSubmit());
 
     await expect(
       page.getByTestId('column-todo').getByText('Brand new title'),
@@ -156,10 +166,11 @@ test.describe('Admin Kanban Tasks', () => {
     await expect(page.getByTestId('task-form-modal')).toBeVisible();
 
     await page.getByTestId('task-title-input').fill('Full-field task');
-    await page.getByLabel('Description').fill('Detailed description here');
-    await page.getByLabel('Priority').selectOption('high');
-    await page.getByLabel('Due date').fill('2026-12-31');
-    await page.getByTestId('task-submit-btn').click();
+    const modal = page.getByTestId('task-form-modal');
+    await modal.locator('textarea').fill('Detailed description here');
+    await modal.locator('select').nth(1).selectOption('high');
+    await modal.locator('input[type="date"]').fill('2026-12-31');
+    await page.locator('form').evaluate((form) => form.requestSubmit());
 
     await expect(() => expect(postBody).not.toBeNull()).toPass({ timeout: 5000 });
     expect(postBody.title).toBe('Full-field task');

@@ -362,6 +362,63 @@ class TestSendFirstViewNotification:
         result = ProposalEmailService.send_first_view_notification(email_proposal)
         assert result is False
 
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_context_without_additional_modules_matches_base(
+        self, mock_render, mock_email_cls, email_proposal,
+    ):
+        mock_render.return_value = '<html>First view</html>'
+        mock_email_cls.return_value = _stub_email()
+
+        ProposalEmailService.send_first_view_notification(email_proposal)
+
+        ctx = mock_render.call_args_list[0][0][1]
+        assert ctx['has_additional_modules'] is False
+        assert ctx['effective_total_investment'] == ctx['total_investment']
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_context_with_additional_modules_includes_effective_total(
+        self, mock_render, mock_email_cls, email_proposal,
+    ):
+        from content.models import ProposalSection
+        ProposalSection.objects.create(
+            proposal=email_proposal,
+            section_type=ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS,
+            title='Requisitos',
+            content_json={
+                'groups': [
+                    {
+                        'id': 'mod-extra-1',
+                        'is_calculator_module': True,
+                        'price_percent': 10,
+                    },
+                ],
+            },
+        )
+        email_proposal.selected_modules = ['mod-extra-1']
+        email_proposal.save(update_fields=['selected_modules'])
+
+        from content.models import ProposalChangeLog
+        ProposalChangeLog.objects.create(
+            proposal=email_proposal,
+            change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
+            actor_type=ProposalChangeLog.ActorType.CLIENT,
+        )
+
+        mock_render.return_value = '<html>First view</html>'
+        mock_email_cls.return_value = _stub_email()
+
+        ProposalEmailService.send_first_view_notification(email_proposal)
+
+        ctx = mock_render.call_args_list[0][0][1]
+        assert ctx['has_additional_modules'] is True
+        # base 5'000.000 + 10% = 5'500.000 (COP format from format_cop_email)
+        assert ctx['effective_total_investment'] != ctx['total_investment']
+        digits_only = lambda s: ''.join(c for c in s if c.isdigit())
+        assert digits_only(ctx['total_investment']) == '5000000'
+        assert digits_only(ctx['effective_total_investment']) == '5500000'
+
 
 # ---------------------------------------------------------------------------
 # Comment notification

@@ -37,7 +37,6 @@ test.describe('Admin Document List', () => {
       return null;
     });
     await page.goto('/panel/documents');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('table').getByText('Contrato de Servicios')).toBeVisible();
     await expect(page.getByRole('table').getByText('Propuesta Técnica')).toBeVisible();
@@ -53,7 +52,6 @@ test.describe('Admin Document List', () => {
       return null;
     });
     await page.goto('/panel/documents');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText(/No hay documentos/i)).toBeVisible();
   });
@@ -67,7 +65,6 @@ test.describe('Admin Document List', () => {
       return null;
     });
     await page.goto('/panel/documents');
-    await page.waitForLoadState('networkidle');
 
     const createLink = page.getByRole('link', { name: /Nuevo Documento/i });
     await expect(createLink).toHaveAttribute('href', /\/panel\/documents\/create/);

@@ -55,6 +55,14 @@
         <span v-if="proposal.total_investment > 0" class="text-sm sm:text-base font-light text-gray-400 dark:text-green-light/60 whitespace-nowrap">
           ({{ formatInvestment(proposal.total_investment, proposal.currency) }})
         </span>
+        <span
+          v-if="hasCustomizedEffectiveTotal"
+          data-testid="general-finance-effective-total-badge"
+          class="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200 whitespace-nowrap"
+          :title="`Total efectivo visible al cliente según módulos seleccionados`"
+        >
+          Cliente ve: {{ formatInvestment(effectiveTotalInvestment, proposal.currency) }}
+        </span>
         <span class="text-xs px-2.5 py-0.5 rounded-full font-medium" :class="statusClass(proposal.status)">
           {{ proposal.status }}
         </span>
@@ -72,7 +80,7 @@
 
       <!-- Tab: General -->
       <div v-show="activeTab === 'general'">
-        <TabSplitLayout ratio="3:2">
+        <TabSplitLayout ratio="1:1">
           <template #aside>
         <!-- Editable slug (URL personalizada) -->
         <div class="bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06] rounded-xl p-4 sm:p-5 mb-4">
@@ -116,141 +124,281 @@
           </p>
         </div>
 
-        <!-- Read-only info -->
-        <div class="bg-gray-50 dark:bg-white/[0.03] rounded-xl p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div>
-            <span class="text-gray-400 text-xs">UUID</span>
-            <p class="text-gray-700 dark:text-green-light/60 font-mono text-xs mt-0.5">{{ proposal.uuid }}</p>
-          </div>
-          <div>
-            <div class="flex items-center gap-1">
-              <span class="text-gray-400 text-xs">URL pública</span>
-              <button type="button"
-                :title="copied ? 'Copiado!' : 'Copiar URL'"
-                @click="copyUrl"
-                class="text-gray-400 hover:text-emerald-600 transition-colors">
-                <DocumentDuplicateIcon v-if="!copied" class="w-3.5 h-3.5" />
-                <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
-              </button>
+        <div
+          class="mb-4 rounded-xl border border-emerald-200/70 dark:border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-500/[0.06] px-4 py-3 sm:px-5 sm:py-4 text-sm"
+          aria-label="Identificación y estado de la propuesta"
+        >
+          <span class="inline-flex items-center gap-1 mb-3 px-2 py-0.5 rounded-full bg-emerald-100/80 dark:bg-emerald-500/15 text-[10px] font-medium uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+            Identificación
+          </span>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <span class="text-gray-400 text-xs">UUID</span>
+              <p class="text-gray-700 dark:text-green-light/60 font-mono text-xs mt-0.5">{{ proposal.uuid }}</p>
             </div>
-            <p class="mt-0.5">
-              <a :href="'/proposal/' + publicIdentifier" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
-                /proposal/{{ publicIdentifier }}
-              </a>
-            </p>
-            <div v-for="link in proposalModeLinks" :key="link.mode" class="mt-2">
+            <div>
               <div class="flex items-center gap-1">
-                <span class="text-gray-400 text-xs">{{ link.labelUrl }}</span>
+                <span class="text-gray-400 text-xs">URL pública</span>
                 <button type="button"
-                  :title="copiedMode === link.mode ? 'Copiado!' : 'Copiar URL'"
-                  @click="copyModeUrl(link.mode)"
+                  :title="copied ? 'Copiado!' : 'Copiar URL'"
+                  @click="copyUrl"
                   class="text-gray-400 hover:text-emerald-600 transition-colors">
-                  <DocumentDuplicateIcon v-if="copiedMode !== link.mode" class="w-3.5 h-3.5" />
+                  <DocumentDuplicateIcon v-if="!copied" class="w-3.5 h-3.5" />
                   <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
                 </button>
               </div>
               <p class="mt-0.5">
-                <a :href="'/proposal/' + publicIdentifier + '?mode=' + link.mode" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
-                  /proposal/{{ publicIdentifier }}?mode={{ link.mode }}
+                <a :href="'/proposal/' + publicIdentifier" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
+                  /proposal/{{ publicIdentifier }}
                 </a>
               </p>
-            </div>
-          </div>
-          <div>
-            <span class="text-gray-400 text-xs">Vistas</span>
-            <p class="text-gray-700 dark:text-green-light/60 mt-0.5">{{ proposal.view_count }}</p>
-          </div>
-          <div>
-            <span class="text-gray-400 text-xs">Enviada</span>
-            <p class="text-gray-700 dark:text-green-light/60 mt-0.5">
-              {{ proposal.sent_at ? new Date(proposal.sent_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : '—' }}
-            </p>
-          </div>
-          <div v-if="proposal.platform_onboarding_completed_at">
-            <span class="text-gray-400 text-xs">Plataforma lanzada</span>
-            <p class="text-gray-700 dark:text-green-light/60 mt-0.5 text-xs">
-              {{ new Date(proposal.platform_onboarding_completed_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
-            </p>
-          </div>
-          <div v-if="!hasDocumentsTab">
-            <span class="text-gray-400 text-xs">PDFs</span>
-            <div class="flex items-center gap-3 mt-0.5 flex-wrap">
-              <a :href="'/api/proposals/' + proposal.uuid + '/pdf/'"
-                 target="_blank"
-                 class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Propuesta comercial
-              </a>
-              <span class="text-gray-300 text-xs">|</span>
-              <a :href="'/api/proposals/' + proposal.uuid + '/pdf/?doc=technical'"
-                 target="_blank"
-                 class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Detalle técnico
-              </a>
-            </div>
-          </div>
-          <div class="sm:col-span-2">
-            <div class="flex items-start gap-6 flex-wrap">
-              <div>
+              <div v-for="link in proposalModeLinks" :key="link.mode" class="mt-2">
                 <div class="flex items-center gap-1">
-                  <span class="text-gray-400 text-xs">Estado activo</span>
-                  <UiTooltip position="right">
-                    <template #trigger>
-                      <QuestionMarkCircleIcon class="w-3 h-3 text-gray-300 hover:text-gray-500 transition-colors" />
-                    </template>
-                    {{ tt.activeStatus }}
-                  </UiTooltip>
-                </div>
-                <div class="flex items-center gap-2 mt-1">
-                  <button
-                    type="button"
-                    class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                    :class="proposal.is_active ? 'bg-emerald-600' : 'bg-gray-200 dark:bg-white/[0.15]'"
-                    @click="handleToggleActive"
-                  >
-                    <span
-                      class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                      :class="proposal.is_active ? 'translate-x-4' : 'translate-x-0'"
-                    />
+                  <span class="text-gray-400 text-xs">{{ link.labelUrl }}</span>
+                  <button type="button"
+                    :title="copiedMode === link.mode ? 'Copiado!' : 'Copiar URL'"
+                    @click="copyModeUrl(link.mode)"
+                    class="text-gray-400 hover:text-emerald-600 transition-colors">
+                    <DocumentDuplicateIcon v-if="copiedMode !== link.mode" class="w-3.5 h-3.5" />
+                    <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
                   </button>
-                  <span class="text-xs" :class="proposal.is_active ? 'text-emerald-600' : 'text-gray-400'">
-                    {{ proposal.is_active ? 'Activa' : 'Inactiva' }}
-                  </span>
+                </div>
+                <p class="mt-0.5">
+                  <a :href="'/proposal/' + publicIdentifier + '?mode=' + link.mode" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
+                    /proposal/{{ publicIdentifier }}?mode={{ link.mode }}
+                  </a>
+                </p>
+              </div>
+            </div>
+            <div>
+              <span class="text-gray-400 text-xs">Vistas</span>
+              <p class="text-gray-700 dark:text-green-light/60 mt-0.5">{{ proposal.view_count }}</p>
+            </div>
+            <div>
+              <span class="text-gray-400 text-xs">Enviada</span>
+              <p class="text-gray-700 dark:text-green-light/60 mt-0.5">
+                {{ proposal.sent_at ? new Date(proposal.sent_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : '—' }}
+              </p>
+            </div>
+            <div v-if="proposal.platform_onboarding_completed_at">
+              <span class="text-gray-400 text-xs">Plataforma lanzada</span>
+              <p class="text-gray-700 dark:text-green-light/60 mt-0.5 text-xs">
+                {{ new Date(proposal.platform_onboarding_completed_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
+              </p>
+            </div>
+            <div v-if="!hasDocumentsTab">
+              <span class="text-gray-400 text-xs">PDFs</span>
+              <div class="flex items-center gap-3 mt-0.5 flex-wrap">
+                <a :href="'/api/proposals/' + proposal.uuid + '/pdf/'"
+                   target="_blank"
+                   class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Propuesta comercial
+                </a>
+                <span class="text-gray-300 text-xs">|</span>
+                <a :href="'/api/proposals/' + proposal.uuid + '/pdf/?doc=technical'"
+                   target="_blank"
+                   class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Detalle técnico
+                </a>
+              </div>
+            </div>
+            <div class="sm:col-span-2">
+              <div class="flex items-start gap-6 flex-wrap">
+                <div>
+                  <div class="flex items-center gap-1">
+                    <span class="text-gray-400 text-xs">Estado activo</span>
+                    <UiTooltip position="right">
+                      <template #trigger>
+                        <QuestionMarkCircleIcon class="w-3 h-3 text-gray-300 hover:text-gray-500 transition-colors" />
+                      </template>
+                      {{ tt.activeStatus }}
+                    </UiTooltip>
+                  </div>
+                  <div class="flex items-center gap-2 mt-1">
+                    <button
+                      type="button"
+                      class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                      :class="proposal.is_active ? 'bg-emerald-600' : 'bg-gray-200 dark:bg-white/[0.15]'"
+                      @click="handleToggleActive"
+                    >
+                      <span
+                        class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                        :class="proposal.is_active ? 'translate-x-4' : 'translate-x-0'"
+                      />
+                    </button>
+                    <span class="text-xs" :class="proposal.is_active ? 'text-emerald-600' : 'text-gray-400'">
+                      {{ proposal.is_active ? 'Activa' : 'Inactiva' }}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex items-center gap-1">
+                    <span class="text-gray-400 text-xs">Automatizaciones</span>
+                    <UiTooltip position="right">
+                      <template #trigger>
+                        <QuestionMarkCircleIcon class="w-3 h-3 text-gray-300 hover:text-gray-500 transition-colors" />
+                      </template>
+                      {{ tt.automations }}
+                    </UiTooltip>
+                  </div>
+                  <div class="flex items-center gap-2 mt-1">
+                    <button
+                      type="button"
+                      class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                      :class="form.automations_paused ? 'bg-amber-500' : 'bg-emerald-600'"
+                      @click="toggleAutomationsPaused"
+                    >
+                      <span
+                        class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                        :class="form.automations_paused ? 'translate-x-4' : 'translate-x-0'"
+                      />
+                    </button>
+                    <span class="text-xs" :class="form.automations_paused ? 'text-amber-600' : 'text-emerald-600'">
+                      {{ form.automations_paused ? '⏸ Pausadas' : 'Activas' }}
+                    </span>
+                  </div>
+                  <p class="text-[10px] text-gray-400 mt-1">Pausar emails automáticos (recordatorio, urgencia, inactividad).</p>
                 </div>
               </div>
-              <div>
-                <div class="flex items-center gap-1">
-                  <span class="text-gray-400 text-xs">Automatizaciones</span>
-                  <UiTooltip position="right">
-                    <template #trigger>
-                      <QuestionMarkCircleIcon class="w-3 h-3 text-gray-300 hover:text-gray-500 transition-colors" />
-                    </template>
-                    {{ tt.automations }}
-                  </UiTooltip>
+            </div>
+          </div>
+        </div>
+
+        <div data-testid="general-finance-sidebar" class="bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06] rounded-xl p-4 sm:p-5 mb-4 space-y-5">
+          <h3 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Inversión, pagos y hosting
+          </h3>
+          <div data-testid="general-finance-investment-card" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Inversión total</label>
+              <input v-model.number="form.total_investment" data-testid="general-finance-total-investment" type="number" min="0" step="0.01"
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              <p
+                v-if="hasCustomizedEffectiveTotal"
+                data-testid="general-finance-effective-total-note"
+                class="text-xs text-amber-700 dark:text-amber-300 mt-1.5"
+              >
+                Total efectivo visible al cliente:
+                <strong>{{ formatInvestment(effectiveTotalInvestment, proposal.currency) }}</strong>
+                (incluye módulos adicionales seleccionados).
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Moneda</label>
+              <select v-model="form.currency" data-testid="general-finance-currency"
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+                <option value="COP">COP</option>
+                <option value="USD">USD</option>
+              </select>
+            </div>
+          </div>
+          <div v-if="investmentSection" class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/30 rounded-xl px-4 py-3">
+            <label class="block text-sm font-medium text-emerald-900 dark:text-emerald-200 mb-2">Porcentajes de pago (sección Inversión)</label>
+            <div v-if="investmentPaymentPercentages.length" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label
+                v-for="(_, idx) in investmentPaymentPercentages"
+                :key="`payment-percent-${idx}`"
+                class="block"
+              >
+                <span class="block text-xs text-emerald-700 dark:text-emerald-300 mb-1">Pago {{ idx + 1 }}</span>
+                <div class="flex items-center gap-2">
+                  <input
+                    v-model.number="investmentPaymentPercentages[idx]"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    class="w-full px-3 py-2 border border-emerald-200 dark:border-emerald-700/30 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white dark:bg-esmerald-dark dark:text-white"
+                    @blur="normalizeGeneralPaymentPercentage(idx)"
+                  />
+                  <span class="text-sm text-emerald-700 dark:text-emerald-300">%</span>
                 </div>
-                <div class="flex items-center gap-2 mt-1">
-                  <button
-                    type="button"
-                    class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                    :class="form.automations_paused ? 'bg-amber-500' : 'bg-emerald-600'"
-                    @click="toggleAutomationsPaused"
-                  >
-                    <span
-                      class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                      :class="form.automations_paused ? 'translate-x-4' : 'translate-x-0'"
-                    />
-                  </button>
-                  <span class="text-xs" :class="form.automations_paused ? 'text-amber-600' : 'text-emerald-600'">
-                    {{ form.automations_paused ? '⏸ Pausadas' : 'Activas' }}
-                  </span>
-                </div>
-                <p class="text-[10px] text-gray-400 mt-1">Pausar emails automáticos (recordatorio, urgencia, inactividad).</p>
+                <span
+                  v-if="form.total_investment > 0 && investmentPaymentPercentages[idx] > 0"
+                  class="block text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium"
+                >
+                  {{ paymentAmounts[idx] }}
+                </span>
+              </label>
+            </div>
+            <p v-else class="text-xs text-emerald-700 dark:text-emerald-300">No se detectaron porcentajes en "Secciones → Inversión → Opciones de pago".</p>
+            <p class="text-xs text-emerald-700 dark:text-emerald-300 mt-2">Se sincroniza con los porcentajes definidos en "Secciones → Inversión → Opciones de pago".</p>
+          </div>
+          <div data-testid="general-finance-hosting-card">
+            <div class="flex items-center gap-1.5 mb-1">
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70">Hosting (% de inversión total)</label>
+              <UiTooltip position="right">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                </template>
+                {{ tt.hostingPercent }}
+              </UiTooltip>
+            </div>
+            <div class="flex items-center gap-3">
+              <input v-model.number="form.hosting_percent" data-testid="general-finance-hosting-percent" type="number" min="0" max="100"
+                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              <span class="text-sm text-gray-500">%</span>
+            </div>
+            <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-700/30 rounded-xl overflow-hidden">
+              <div class="px-4 py-2 text-[11px] uppercase tracking-wider text-blue-600 dark:text-blue-300/70 border-b border-blue-100 dark:border-blue-900/30">
+                Precio que verá el cliente (por mes)
               </div>
+              <div class="grid grid-cols-[1fr_auto_auto] gap-x-4 text-sm divide-y divide-blue-100 dark:divide-blue-900/30">
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Mensual</div>
+                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right whitespace-nowrap">
+                  ${{ hostingMonthlyBase.toLocaleString() }} {{ form.currency }}/mes
+                </div>
+                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">facturado mensual</div>
+
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
+                  Trimestral
+                  <span v-if="form.hosting_discount_quarterly" class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_quarterly }}% dcto)</span>
+                </div>
+                <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
+                     :class="form.hosting_discount_quarterly ? 'text-emerald-700 dark:text-emerald-300' : 'text-blue-800 dark:text-blue-200'">
+                  ${{ hostingMonthlyWithDiscount(form.hosting_discount_quarterly).toLocaleString() }} {{ form.currency }}/mes
+                </div>
+                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
+                  total ${{ hostingPeriodTotal(form.hosting_discount_quarterly, 3).toLocaleString() }} / 3 meses
+                </div>
+
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
+                  Semestral
+                  <span v-if="form.hosting_discount_semiannual" class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_semiannual }}% dcto)</span>
+                </div>
+                <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
+                     :class="form.hosting_discount_semiannual ? 'text-emerald-700 dark:text-emerald-300' : 'text-blue-800 dark:text-blue-200'">
+                  ${{ hostingMonthlyWithDiscount(form.hosting_discount_semiannual).toLocaleString() }} {{ form.currency }}/mes
+                </div>
+                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
+                  total ${{ hostingPeriodTotal(form.hosting_discount_semiannual, 6).toLocaleString() }} / 6 meses
+                </div>
+
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">☁️ Anual (referencia)</div>
+                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right whitespace-nowrap">
+                  ${{ hostingAnnualAmount.toLocaleString() }} {{ form.currency }}
+                </div>
+                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">sin descuento</div>
+              </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">Sincronizado automáticamente con el Plan de Hosting que ve el cliente en "Tu inversión y cómo pagar".</p>
+          </div>
+          <div data-testid="general-finance-discounts-card" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. semestral (%)</label>
+              <input v-model.number="form.hosting_discount_semiannual" data-testid="general-finance-semiannual-discount" type="number" min="0" max="100"
+                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. trimestral (%)</label>
+              <input v-model.number="form.hosting_discount_quarterly" data-testid="general-finance-quarterly-discount" type="number" min="0" max="100"
+                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             </div>
           </div>
         </div>
@@ -421,124 +569,6 @@
             </select>
             <p class="text-xs text-gray-400 mt-1">Solo afecta los títulos por defecto al crear. Cambiar aquí no regenera las secciones existentes.</p>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Inversión total</label>
-              <input v-model.number="form.total_investment" type="number" min="0" step="0.01"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Moneda</label>
-              <select v-model="form.currency"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
-                <option value="COP">COP</option>
-                <option value="USD">USD</option>
-              </select>
-            </div>
-          </div>
-          <div v-if="investmentSection" class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/30 rounded-xl px-4 py-3">
-            <label class="block text-sm font-medium text-emerald-900 dark:text-emerald-200 mb-2">Porcentajes de pago (sección Inversión)</label>
-            <div v-if="investmentPaymentPercentages.length" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <label
-                v-for="(_, idx) in investmentPaymentPercentages"
-                :key="`payment-percent-${idx}`"
-                class="block"
-              >
-                <span class="block text-xs text-emerald-700 dark:text-emerald-300 mb-1">Pago {{ idx + 1 }}</span>
-                <div class="flex items-center gap-2">
-                  <input
-                    v-model.number="investmentPaymentPercentages[idx]"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    class="w-full px-3 py-2 border border-emerald-200 dark:border-emerald-700/30 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white dark:bg-esmerald-dark dark:text-white"
-                    @blur="normalizeGeneralPaymentPercentage(idx)"
-                  />
-                  <span class="text-sm text-emerald-700 dark:text-emerald-300">%</span>
-                </div>
-                <span
-                  v-if="form.total_investment > 0 && investmentPaymentPercentages[idx] > 0"
-                  class="block text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium"
-                >
-                  {{ paymentAmounts[idx] }}
-                </span>
-              </label>
-            </div>
-            <p v-else class="text-xs text-emerald-700 dark:text-emerald-300">No se detectaron porcentajes en "Secciones → Inversión → Opciones de pago".</p>
-            <p class="text-xs text-emerald-700 dark:text-emerald-300 mt-2">Se sincroniza con los porcentajes definidos en "Secciones → Inversión → Opciones de pago".</p>
-          </div>
-          <div>
-            <div class="flex items-center gap-1.5 mb-1">
-              <label class="block text-sm font-medium text-gray-700">Hosting (% de inversión total)</label>
-              <UiTooltip position="right">
-                <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
-                </template>
-                {{ tt.hostingPercent }}
-              </UiTooltip>
-            </div>
-            <div class="flex items-center gap-3">
-              <input v-model.number="form.hosting_percent" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-              <span class="text-sm text-gray-500">%</span>
-            </div>
-            <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-700/30 rounded-xl overflow-hidden">
-              <div class="px-4 py-2 text-[11px] uppercase tracking-wider text-blue-600 dark:text-blue-300/70 border-b border-blue-100 dark:border-blue-900/30">
-                Precio que verá el cliente (por mes)
-              </div>
-              <div class="grid grid-cols-[1fr_auto_auto] gap-x-4 text-sm divide-y divide-blue-100 dark:divide-blue-900/30">
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Mensual</div>
-                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right whitespace-nowrap">
-                  ${{ hostingMonthlyBase.toLocaleString() }} {{ form.currency }}/mes
-                </div>
-                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">facturado mensual</div>
-
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
-                  Trimestral
-                  <span v-if="form.hosting_discount_quarterly" class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_quarterly }}% dcto)</span>
-                </div>
-                <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
-                     :class="form.hosting_discount_quarterly ? 'text-emerald-700 dark:text-emerald-300' : 'text-blue-800 dark:text-blue-200'">
-                  ${{ hostingMonthlyWithDiscount(form.hosting_discount_quarterly).toLocaleString() }} {{ form.currency }}/mes
-                </div>
-                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
-                  total ${{ hostingPeriodTotal(form.hosting_discount_quarterly, 3).toLocaleString() }} / 3 meses
-                </div>
-
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
-                  Semestral
-                  <span v-if="form.hosting_discount_semiannual" class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_semiannual }}% dcto)</span>
-                </div>
-                <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
-                     :class="form.hosting_discount_semiannual ? 'text-emerald-700 dark:text-emerald-300' : 'text-blue-800 dark:text-blue-200'">
-                  ${{ hostingMonthlyWithDiscount(form.hosting_discount_semiannual).toLocaleString() }} {{ form.currency }}/mes
-                </div>
-                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
-                  total ${{ hostingPeriodTotal(form.hosting_discount_semiannual, 6).toLocaleString() }} / 6 meses
-                </div>
-
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">☁️ Anual (referencia)</div>
-                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right whitespace-nowrap">
-                  ${{ hostingAnnualAmount.toLocaleString() }} {{ form.currency }}
-                </div>
-                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">sin descuento</div>
-              </div>
-            </div>
-            <p class="text-xs text-gray-400 mt-1">Sincronizado automáticamente con el Plan de Hosting que ve el cliente en "Tu inversión y cómo pagar".</p>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. semestral (%)</label>
-              <input v-model.number="form.hosting_discount_semiannual" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. trimestral (%)</label>
-              <input v-model.number="form.hosting_discount_quarterly" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-            </div>
-          </div>
           <div>
             <div class="flex items-center gap-1.5 mb-1">
               <label class="block text-sm font-medium text-gray-700">Fecha de expiración</label>
@@ -581,7 +611,7 @@
                 {{ tt.discount }}
               </UiTooltip>
             </div>
-            <input v-model.number="form.discount_percent" type="number" min="0" max="100"
+            <input v-model.number="form.discount_percent" data-testid="general-finance-general-discount" type="number" min="0" max="100"
               class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             <p class="text-xs text-gray-400 mt-1">0 = sin descuento en email de urgencia.</p>
           </div>
@@ -637,7 +667,7 @@
           v-if="hasProposalDocuments"
           :proposal="proposal"
           :documents="proposal.proposal_documents || []"
-          @refresh="proposalStore.fetchProposal(proposal.id).then(r => { if (r?.data) proposal = r.data; })"
+          @refresh="refreshData"
           @edit-contract="openContractModal(true)"
           @generate-contract="openContractModal(false)"
         />
@@ -849,14 +879,17 @@
           <div v-if="jsonExportLoading" class="text-center py-8 text-gray-400 text-sm">
             Cargando JSON...
           </div>
-          <textarea
-            v-else
-            :value="exportJsonString"
-            readonly
-            rows="18"
-            class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-mono leading-relaxed
-                   bg-gray-50 dark:bg-esmerald-dark text-gray-700 dark:text-gray-300 outline-none resize-y cursor-text select-all"
-          />
+          <template v-else>
+            <JsonStatsPanel class="mb-4" :stats="proposalJsonStats" test-id="proposal-json-stats" />
+            <textarea
+              :value="exportJsonString"
+              readonly
+              data-testid="proposal-export-json-textarea"
+              :rows="JSON_TEXTAREA_ROWS"
+              class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-mono leading-relaxed
+                     bg-gray-50 dark:bg-esmerald-dark text-gray-700 dark:text-gray-300 outline-none resize-y cursor-text select-all"
+            />
+          </template>
         </div>
 
           </template>
@@ -883,7 +916,8 @@
 
           <textarea
             v-model="jsonImportRaw"
-            rows="10"
+            data-testid="proposal-import-json-textarea"
+            :rows="JSON_TEXTAREA_ROWS"
             placeholder='Pega aquí el JSON completo de la propuesta...'
             class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-xs font-mono leading-relaxed
                    focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y"
@@ -1005,6 +1039,7 @@
         <div class="flex gap-1 mb-4 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 max-w-sm">
           <button
             type="button"
+            data-testid="technical-editor-subtab"
             :class="[
               'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
               technicalSubTab === 'editor' ? 'bg-white dark:bg-gray-700 shadow-sm font-medium text-gray-900 dark:text-gray-100' : 'text-gray-500',
@@ -1015,6 +1050,7 @@
           </button>
           <button
             type="button"
+            data-testid="technical-json-subtab"
             :class="[
               'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
               technicalSubTab === 'json' ? 'bg-white dark:bg-gray-700 shadow-sm font-medium text-gray-900 dark:text-gray-100' : 'text-gray-500',
@@ -1050,9 +1086,11 @@
           <p class="text-xs text-gray-500 dark:text-white/40">
             Solo el objeto <code class="bg-gray-100 dark:bg-white/[0.06] px-1 rounded">content_json</code> del detalle técnico. Debe ser JSON válido (mismo esquema que el editor).
           </p>
+          <JsonStatsPanel :stats="technicalJsonStats" test-id="technical-json-stats" />
           <textarea
             v-model="technicalJsonRaw"
-            rows="22"
+            data-testid="technical-json-textarea"
+            :rows="JSON_TEXTAREA_ROWS"
             class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-mono bg-white dark:bg-esmerald-dark text-gray-800 dark:text-white resize-y outline-none focus:ring-2 focus:ring-emerald-500"
           />
           <div v-if="technicalJsonError" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-4 py-2 rounded-lg">{{ technicalJsonError }}</div>
@@ -1249,6 +1287,7 @@ import ProposalActionsModal from '~/components/BusinessProposal/admin/ProposalAc
 import ProposalDocumentsTab from '~/components/BusinessProposal/admin/ProposalDocumentsTab.vue';
 import ProposalEmailsTab from '~/components/BusinessProposal/admin/ProposalEmailsTab.vue';
 import ProjectScheduleEditor from '~/components/BusinessProposal/admin/ProjectScheduleEditor.vue';
+import JsonStatsPanel from '~/components/BusinessProposal/admin/JsonStatsPanel.vue';
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
@@ -1363,6 +1402,21 @@ const technicalSection = computed(() =>
 const investmentSection = computed(() =>
   allSections.value.find(s => s.section_type === 'investment') || null
 );
+
+// Backend-computed personalized total. Exposed in the serializer so admin,
+// client, PDF and onboarding agree on the same number. Falls back to the
+// base investment when absent (e.g. during create flow before first fetch).
+const effectiveTotalInvestment = computed(() => {
+  const effective = Number(proposal.value?.effective_total_investment);
+  if (Number.isFinite(effective) && effective > 0) return effective;
+  return Number(proposal.value?.total_investment || 0);
+});
+
+const hasCustomizedEffectiveTotal = computed(() => {
+  const base = Number(proposal.value?.total_investment || 0);
+  const effective = effectiveTotalInvestment.value;
+  return base > 0 && effective > 0 && Math.round(effective) !== Math.round(base);
+});
 
 const technicalModuleLinkOptions = computed(() =>
   buildProposalModuleLinkOptions(proposal.value?.sections || []),
@@ -2114,9 +2168,14 @@ async function handleSyncHostingPercent(percent) {
 
 // Must match Investment.vue's hostingAnnualAmount / computedBillingTiers so admin preview
 // shows the exact same numbers the client will see (avoids rounding drift).
-const hostingAnnualAmount = computed(() =>
-  Math.round(form.total_investment * form.hosting_percent / 100)
-);
+// Client-facing basis is the effective total (base + admin-default additional
+// modules), same input the client's "Inversión Total" line uses.
+const hostingAnnualAmount = computed(() => {
+  const effective = Number(effectiveTotalInvestment.value);
+  const basis = effective > 0 ? effective : Number(form.total_investment) || 0;
+  const percent = Number(form.hosting_percent) || 0;
+  return Math.round(basis * percent / 100);
+});
 const hostingMonthlyBase = computed(() =>
   Math.round(hostingAnnualAmount.value / 12)
 );
@@ -2153,6 +2212,15 @@ const EXPECTED_SECTION_KEYS = [
   'proposalSummary', 'finalNote', 'nextSteps', 'technicalDocument',
 ];
 
+const TECHNICAL_EXPECTED_KEYS = [
+  'purpose', 'stack', 'architecture', 'dataModel', 'growthReadiness',
+  'epics', 'apiSummary', 'apiDomains', 'integrations', 'environmentsNote',
+  'environments', 'security', 'performanceQuality', 'backupsNote',
+  'quality', 'decisions',
+];
+
+const JSON_TEXTAREA_ROWS = 18;
+
 const jsonExportLoading = ref(false);
 const exportJsonData = ref(null);
 const jsonCopied = ref(false);
@@ -2166,6 +2234,70 @@ const jsonImportLegacyIssues = ref([]);
 const exportJsonString = computed(() => {
   if (!exportJsonData.value) return '';
   return JSON.stringify(exportJsonData.value, null, 2);
+});
+
+function countPresentKeys(source, expectedKeys) {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return 0;
+  return expectedKeys.filter((key) => key in source).length;
+}
+
+function calculateProgress(completed, total) {
+  if (!total) return 0;
+  return Math.round((completed / total) * 100);
+}
+
+function formatJsonSize(raw) {
+  const normalized = typeof raw === 'string' ? raw : JSON.stringify(raw || {}, null, 2);
+  const bytes = new Blob([normalized]).size;
+  if (bytes < 1024) return `${bytes} B`;
+  const kilobytes = bytes / 1024;
+  return `${kilobytes >= 10 ? kilobytes.toFixed(0) : kilobytes.toFixed(1)} KB`;
+}
+
+function formatDateTime(value) {
+  if (!value) return '—';
+  return new Date(value).toLocaleString();
+}
+
+function makeJsonStats({ sourceRef, rawStringRef, expectedKeys }) {
+  return computed(() => {
+    const source = sourceRef.value;
+    const sectionCount = countPresentKeys(source, expectedKeys);
+    const rawString = rawStringRef?.value || (source ? JSON.stringify(source, null, 2) : '');
+    return {
+      sectionCount,
+      progress: calculateProgress(sectionCount, expectedKeys.length),
+      size: formatJsonSize(rawString),
+      updatedAt: formatDateTime(proposal.value?.updated_at),
+    };
+  });
+}
+
+const proposalJsonStats = makeJsonStats({
+  sourceRef: exportJsonData,
+  rawStringRef: exportJsonString,
+  expectedKeys: EXPECTED_SECTION_KEYS,
+});
+
+const technicalJsonParsed = computed(() => {
+  const raw = technicalJsonRaw.value.trim();
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+});
+
+const technicalJsonSource = computed(
+  () => technicalJsonParsed.value || technicalSection.value?.content_json || null,
+);
+
+const technicalJsonStats = makeJsonStats({
+  sourceRef: technicalJsonSource,
+  rawStringRef: technicalJsonRaw,
+  expectedKeys: TECHNICAL_EXPECTED_KEYS,
 });
 
 const jsonImportPreview = computed(() => {

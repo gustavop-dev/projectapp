@@ -462,13 +462,14 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
       }
     },
 
-    async trackSectionView(uuid, { session_id, section_type, section_title, time_spent_seconds }) {
+    async trackSectionView(uuid, { session_id, section_type, section_title, time_spent_seconds, entered_at }) {
       try {
         await create_request(`diagnostics/public/${uuid}/track-section/`, {
           session_id,
           section_type,
           section_title,
           time_spent_seconds,
+          entered_at,
         });
       } catch (_) {
         // best-effort

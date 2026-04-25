@@ -192,7 +192,9 @@ class TestDownloadProposalPdf:
         assert response.status_code == 200
         assert response['Content-Type'] == 'application/pdf'
         assert b'%PDF-technical-fake' in response.content
-        mock_tech.assert_called_once_with(sent_proposal, selected_modules=None)
+        # Without ?selected_modules=, the view derives defaults from content_json.
+        # sent_proposal has no FR/investment sections here, so defaults → [].
+        mock_tech.assert_called_once_with(sent_proposal, selected_modules=[])
 
     @patch('content.services.technical_document_pdf.generate_technical_document_pdf')
     def test_doc_technical_passes_selected_modules_query(
@@ -225,6 +227,105 @@ class TestDownloadProposalPdf:
         url = reverse('download-proposal-pdf', kwargs={'proposal_uuid': sent_proposal.uuid})
         response = api_client.get(url, {'doc': 'technical'})
         assert response.status_code == 404
+
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate')
+    def test_commercial_pdf_resolves_admin_toggled_calculator_modules(
+        self, mock_generate, api_client, sent_proposal,
+    ):
+        """Admin-toggled calc modules in content_json must reach the PDF service
+        even when the client never confirmed the calculator (ruta A).
+        """
+        ProposalSection.objects.create(
+            proposal=sent_proposal,
+            section_type='functional_requirements',
+            title='FR',
+            order=0,
+            is_enabled=True,
+            content_json={
+                'additionalModules': [
+                    {
+                        'id': 'extra_ai',
+                        'is_calculator_module': True,
+                        'selected': True,
+                        'price_percent': 35,
+                    },
+                    {
+                        'id': 'extra_unselected',
+                        'is_calculator_module': True,
+                        'selected': False,
+                        'price_percent': 20,
+                    },
+                ],
+            },
+        )
+        assert sent_proposal.selected_modules == []
+        assert sent_proposal.has_confirmed_module_selection is False
+
+        mock_generate.return_value = b'%PDF-fake'
+        url = reverse('download-proposal-pdf', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.get(url)
+
+        assert response.status_code == 200
+        mock_generate.assert_called_once()
+        _, kwargs = mock_generate.call_args
+        assert 'module-extra_ai' in kwargs['selected_modules']
+        assert 'module-extra_unselected' not in kwargs['selected_modules']
+
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate')
+    def test_commercial_pdf_prefers_persisted_selected_modules(
+        self, mock_generate, api_client, sent_proposal,
+    ):
+        """When BusinessProposal.selected_modules is populated and the client
+        confirmed, it takes priority over content_json toggles (ruta B /
+        client confirmation)."""
+        sent_proposal.selected_modules = ['module-persisted_a', 'group-persisted_b']
+        sent_proposal.save(update_fields=['selected_modules'])
+        ProposalChangeLog.objects.create(
+            proposal=sent_proposal,
+            change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
+        )
+        ProposalSection.objects.create(
+            proposal=sent_proposal,
+            section_type='functional_requirements',
+            title='FR',
+            order=0,
+            is_enabled=True,
+            content_json={
+                'additionalModules': [
+                    {
+                        'id': 'extra_ai',
+                        'is_calculator_module': True,
+                        'selected': True,
+                        'price_percent': 35,
+                    },
+                ],
+            },
+        )
+
+        mock_generate.return_value = b'%PDF-fake'
+        url = reverse('download-proposal-pdf', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.get(url)
+
+        assert response.status_code == 200
+        _, kwargs = mock_generate.call_args
+        assert kwargs['selected_modules'] == ['module-persisted_a', 'group-persisted_b']
+
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate')
+    def test_commercial_pdf_query_param_overrides_resolution(
+        self, mock_generate, api_client, sent_proposal,
+    ):
+        """Explicit ?selected_modules= still wins over any persisted or
+        content_json resolution (calculator personalization flow)."""
+        sent_proposal.selected_modules = ['module-persisted_a']
+        sent_proposal.save(update_fields=['selected_modules'])
+
+        mock_generate.return_value = b'%PDF-fake'
+        url = reverse('download-proposal-pdf', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.get(url, {'selected_modules': 'module-query_x,group-query_y'})
+
+        assert response.status_code == 200
+        _, kwargs = mock_generate.call_args
+        assert kwargs['selected_modules'] == ['module-query_x', 'group-query_y']
 
 
 class TestTechnicalFragmentHasContent:
@@ -363,6 +464,10 @@ class TestAdminListProposals:
             total_investment=1000,
             selected_modules=['module-extra'],
         )
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
+        )
         ProposalSection.objects.create(
             proposal=proposal,
             section_type='functional_requirements',
@@ -427,13 +532,18 @@ class TestAdminListProposals:
         assert item['effective_total_investment'] == '1150.00'
 
     def test_effective_total_explicit_selection_overrides_fr_defaults(self, admin_client, db):
-        """When selected_modules is populated, FR selected/default_selected is ignored."""
+        """When the client confirmed with an explicit selection, FR
+        selected/default_selected is ignored."""
         proposal = BusinessProposal.objects.create(
             title='Explicit override',
             client_name='Override',
             status='sent',
             total_investment=1000,
             selected_modules=['module-pwa'],
+        )
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
         )
         ProposalSection.objects.create(
             proposal=proposal,
@@ -1448,10 +1558,12 @@ class TestTrackProposalEngagement:
         assert logs.count() == 1
         assert logs.first().description == 'Vista en modo ejecutiva.'
 
-    @freeze_time('2026-03-01 10:00:00')
-    def test_deduplicates_view_activity_within_three_hours(
+    def test_deduplicates_view_activity_for_repeat_session(
         self, api_client, sent_proposal,
     ):
+        """Repeat posts from the same session_id do not create duplicate
+        viewed change-log entries, thanks to the unique constraint on
+        (proposal, session_id)."""
         url = self._url(sent_proposal.uuid)
         payload = {
             'view_mode': 'detailed',
@@ -1459,12 +1571,7 @@ class TestTrackProposalEngagement:
         }
 
         api_client.post(url, {'session_id': 'sess-view-1', **payload}, format='json')
-        with freeze_time('2026-03-01 12:59:59'):
-            api_client.post(
-                url,
-                {'session_id': 'sess-view-2', **payload},
-                format='json',
-            )
+        api_client.post(url, {'session_id': 'sess-view-1', **payload}, format='json')
 
         assert ProposalChangeLog.objects.filter(
             proposal=sent_proposal,
@@ -2032,6 +2139,10 @@ class TestProposalDashboardExtended:
             total_investment=1000,
             selected_modules=['module-extra'],
         )
+        ProposalChangeLog.objects.create(
+            proposal=with_module,
+            change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
+        )
         ProposalSection.objects.create(
             proposal=with_module,
             section_type='functional_requirements',
@@ -2067,6 +2178,10 @@ class TestProposalDashboardExtended:
             is_active=True,
             total_investment=1000,
             selected_modules=['module-extra'],
+        )
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
         )
         ProposalSection.objects.create(
             proposal=proposal,
@@ -4322,3 +4437,165 @@ class TestProposalJsonTemplate:
         assert 'integration_regional_payments' in autoselect
         assert 'integration_international_payments' in autoselect
         assert 'Stripe' in autoselect
+
+
+# ── Bulk action ────────────────────────────────────────────────────────────
+
+class TestBulkAction:
+    def test_deletes_selected_proposals(self, admin_client, proposal):
+        response = admin_client.post(
+            '/api/proposals/bulk-action/',
+            {'ids': [proposal.id], 'action': 'delete'},
+            format='json',
+        )
+        assert response.status_code == 200
+        assert response.json()['affected'] == 1
+        assert not BusinessProposal.objects.filter(pk=proposal.id).exists()
+
+    def test_expires_selected_proposals(self, admin_client, proposal):
+        proposal.status = 'sent'
+        proposal.save(update_fields=['status'])
+        response = admin_client.post(
+            '/api/proposals/bulk-action/',
+            {'ids': [proposal.id], 'action': 'expire'},
+            format='json',
+        )
+        assert response.status_code == 200
+        assert response.json()['affected'] == 1
+        proposal.refresh_from_db()
+        assert proposal.status == 'expired'
+
+    def test_rejects_invalid_action(self, admin_client, proposal):
+        response = admin_client.post(
+            '/api/proposals/bulk-action/',
+            {'ids': [proposal.id], 'action': 'publish'},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    def test_rejects_empty_ids(self, admin_client):
+        response = admin_client.post(
+            '/api/proposals/bulk-action/',
+            {'ids': [], 'action': 'delete'},
+            format='json',
+        )
+        assert response.status_code == 400
+
+
+# ── Preview / Apply sync section ──────────────────────────────────────────
+
+class TestSyncSection:
+    def _make_technical_section(self, proposal):
+        return ProposalSection.objects.create(
+            proposal=proposal,
+            section_type=ProposalSection.SectionType.TECHNICAL_DOCUMENT,
+            title='Tech spec',
+            order=1,
+            is_enabled=True,
+            content_json={},
+        )
+
+    def test_preview_sync_returns_has_project_false_when_no_project(
+        self, admin_client, proposal,
+    ):
+        section = self._make_technical_section(proposal)
+        response = admin_client.post(
+            f'/api/proposals/sections/{section.id}/sync-preview/',
+            {'content_json': {'epics': []}},
+            format='json',
+        )
+        assert response.status_code == 200
+        assert response.json()['has_project'] is False
+
+    def test_preview_sync_rejects_non_technical_section(self, admin_client, proposal):
+        section = ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='greeting',
+            title='Greeting',
+            order=0,
+            is_enabled=True,
+            content_json={},
+        )
+        response = admin_client.post(
+            f'/api/proposals/sections/{section.id}/sync-preview/',
+            {'content_json': {}},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    def test_preview_sync_rejects_non_dict_content_json(self, admin_client, proposal):
+        section = self._make_technical_section(proposal)
+        response = admin_client.post(
+            f'/api/proposals/sections/{section.id}/sync-preview/',
+            {'content_json': 'not_a_dict'},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    def test_apply_sync_rejects_proposal_without_project(self, admin_client, proposal):
+        section = self._make_technical_section(proposal)
+        response = admin_client.post(
+            f'/api/proposals/sections/{section.id}/apply-sync/',
+            {'content_json': {}},
+            format='json',
+        )
+        assert response.status_code == 400
+        assert 'no tiene proyecto' in response.json()['detail']
+
+    def test_apply_sync_rejects_non_technical_section(self, admin_client, proposal):
+        section = ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='greeting',
+            title='Greeting',
+            order=0,
+            is_enabled=True,
+            content_json={},
+        )
+        response = admin_client.post(
+            f'/api/proposals/sections/{section.id}/apply-sync/',
+            {'content_json': {}},
+            format='json',
+        )
+        assert response.status_code == 400
+
+
+# ── Additional _technical_fragment_has_content branches ─────────────────
+
+class TestTechnicalFragmentHasContentExtra:
+    def _fn(self, fragment, doc):
+        from content.views.proposal import _technical_fragment_has_content
+        return _technical_fragment_has_content(fragment, doc)
+
+    def test_epics_returns_true_when_epic_has_title(self):
+        result = self._fn('epics', {'epics': [{'title': 'Auth epic', 'description': '', 'epicKey': ''}]})
+        assert result is True
+
+    def test_epics_returns_false_when_empty_list(self):
+        result = self._fn('epics', {'epics': []})
+        assert result is False
+
+    def test_integrations_returns_true_from_included_list(self):
+        result = self._fn(
+            'integrations',
+            {'integrations': {'included': [{'service': 'Stripe', 'provider': 'Stripe Inc'}]}},
+        )
+        assert result is True
+
+    def test_integrations_returns_true_from_excluded_list(self):
+        result = self._fn(
+            'integrations',
+            {'integrations': {'excluded': [{'service': 'PayPal', 'reason': 'Regional limitations'}]}},
+        )
+        assert result is True
+
+    def test_integrations_returns_false_when_empty(self):
+        result = self._fn('integrations', {'integrations': {}})
+        assert result is False
+
+    def test_stack_returns_true_when_row_has_layer(self):
+        result = self._fn('stack', {'stack': [{'layer': 'Backend', 'technology': 'Django'}]})
+        assert result is True
+
+    def test_unknown_fragment_returns_false(self):
+        result = self._fn('nonexistent_fragment', {'data': 'x'})
+        assert result is False

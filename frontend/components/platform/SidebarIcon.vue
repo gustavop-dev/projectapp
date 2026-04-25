@@ -142,6 +142,11 @@
       <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
     </template>
 
+    <!-- Key / Access -->
+    <template v-else-if="name === 'key'">
+      <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+    </template>
+
     <!-- Fallback: circle -->
     <template v-else>
       <circle cx="12" cy="12" r="10" />

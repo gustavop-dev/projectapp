@@ -150,4 +150,177 @@ describe('useTaskStore', () => {
     expect(store.getTaskById(42)).toEqual({ id: 42, title: 'Deep' })
     expect(store.getTaskById(99)).toBeNull()
   })
+
+  it('getTaskById finds task in boardTasks.macro flat array', () => {
+    store.boardTasks.macro = [{ id: 99, title: 'Macro task' }]
+    expect(store.getTaskById(99)).toEqual({ id: 99, title: 'Macro task' })
+  })
+
+  // ── fetchAssignees ─────────────────────────────────────────────────────────
+
+  it('fetchAssignees populates store.assignees from GET tasks/assignees/', async () => {
+    get_request.mockResolvedValueOnce({ data: [{ id: 1, name: 'Alice' }] })
+    await store.fetchAssignees()
+    expect(get_request).toHaveBeenCalledWith('tasks/assignees/')
+    expect(store.assignees).toEqual([{ id: 1, name: 'Alice' }])
+  })
+
+  it('fetchAssignees returns failure result when request errors', async () => {
+    get_request.mockRejectedValueOnce(new Error('network'))
+    const result = await store.fetchAssignees()
+    expect(result.success).toBe(false)
+  })
+
+  // ── fetchAllBoards ─────────────────────────────────────────────────────────
+
+  it('fetchAllBoards calls GET for all four board keys', async () => {
+    const emptyColumns = { data: { todo: [], in_progress: [], blocked: [], done: [] } }
+    get_request
+      .mockResolvedValueOnce(emptyColumns)
+      .mockResolvedValueOnce(emptyColumns)
+      .mockResolvedValueOnce(emptyColumns)
+      .mockResolvedValueOnce({ data: { items: [] } })
+    await store.fetchAllBoards()
+    expect(get_request).toHaveBeenCalledWith('tasks/?board=standard')
+    expect(get_request).toHaveBeenCalledWith('tasks/?board=weekly')
+    expect(get_request).toHaveBeenCalledWith('tasks/?board=monthly')
+    expect(get_request).toHaveBeenCalledWith('tasks/?board=macro')
+  })
+
+  // ── fetchTaskComments ──────────────────────────────────────────────────────
+
+  it('fetchTaskComments populates store.comments[taskId] on success', async () => {
+    get_request.mockResolvedValueOnce({ data: [{ id: 10, text: 'Hello' }] })
+    await store.fetchTaskComments(42)
+    expect(get_request).toHaveBeenCalledWith('tasks/42/comments/')
+    expect(store.comments[42]).toEqual([{ id: 10, text: 'Hello' }])
+  })
+
+  it('fetchTaskComments returns failure result when request errors', async () => {
+    get_request.mockRejectedValueOnce(new Error('net'))
+    const result = await store.fetchTaskComments(42)
+    expect(result.success).toBe(false)
+  })
+
+  // ── addTaskComment ─────────────────────────────────────────────────────────
+
+  it('addTaskComment posts to correct endpoint and appends comment to store', async () => {
+    store.comments = { 7: [{ id: 1, text: 'existing' }] }
+    create_request.mockResolvedValueOnce({ data: { id: 2, text: 'new comment' } })
+    await store.addTaskComment(7, 'new comment')
+    expect(create_request).toHaveBeenCalledWith('tasks/7/comments/create/', { text: 'new comment' })
+    expect(store.comments[7]).toHaveLength(2)
+    expect(store.comments[7][1]).toEqual({ id: 2, text: 'new comment' })
+  })
+
+  it('addTaskComment returns failure when request errors', async () => {
+    create_request.mockRejectedValueOnce({ response: { data: { text: ['required'] } } })
+    const result = await store.addTaskComment(7, '')
+    expect(result.success).toBe(false)
+  })
+
+  // ── deleteTaskComment ──────────────────────────────────────────────────────
+
+  it('deleteTaskComment removes comment from store.comments[taskId]', async () => {
+    store.comments = { 7: [{ id: 1, text: 'keep' }, { id: 2, text: 'remove' }] }
+    delete_request.mockResolvedValueOnce({})
+    await store.deleteTaskComment(7, 2)
+    expect(delete_request).toHaveBeenCalledWith('tasks/7/comments/2/delete/')
+    expect(store.comments[7]).toEqual([{ id: 1, text: 'keep' }])
+  })
+
+  it('deleteTaskComment returns failure when request errors', async () => {
+    store.comments = { 7: [{ id: 1, text: 'x' }] }
+    delete_request.mockRejectedValueOnce(new Error('net'))
+    const result = await store.deleteTaskComment(7, 1)
+    expect(result.success).toBe(false)
+  })
+
+  // ── fetchTaskAlerts ────────────────────────────────────────────────────────
+
+  it('fetchTaskAlerts populates store.taskAlerts[taskId] on success', async () => {
+    get_request.mockResolvedValueOnce({ data: [{ id: 5, message: 'Alert!' }] })
+    await store.fetchTaskAlerts(99)
+    expect(get_request).toHaveBeenCalledWith('tasks/99/alerts/')
+    expect(store.taskAlerts[99]).toEqual([{ id: 5, message: 'Alert!' }])
+  })
+
+  it('fetchTaskAlerts returns failure when request errors', async () => {
+    get_request.mockRejectedValueOnce(new Error('net'))
+    const result = await store.fetchTaskAlerts(99)
+    expect(result.success).toBe(false)
+  })
+
+  // ── createTaskAlert ────────────────────────────────────────────────────────
+
+  it('createTaskAlert posts to correct endpoint and appends alert to store', async () => {
+    store.taskAlerts = { 10: [{ id: 1, message: 'existing' }] }
+    create_request.mockResolvedValueOnce({ data: { id: 2, message: 'new alert' } })
+    await store.createTaskAlert(10, { message: 'new alert' })
+    expect(create_request).toHaveBeenCalledWith('tasks/10/alerts/create/', { message: 'new alert' })
+    expect(store.taskAlerts[10]).toHaveLength(2)
+    expect(store.taskAlerts[10][1]).toEqual({ id: 2, message: 'new alert' })
+  })
+
+  it('createTaskAlert returns failure when request errors', async () => {
+    create_request.mockRejectedValueOnce({ response: { data: {} } })
+    const result = await store.createTaskAlert(10, {})
+    expect(result.success).toBe(false)
+  })
+
+  // ── deleteTaskAlert ────────────────────────────────────────────────────────
+
+  it('deleteTaskAlert removes alert from store.taskAlerts[taskId]', async () => {
+    store.taskAlerts = { 10: [{ id: 1, message: 'keep' }, { id: 2, message: 'remove' }] }
+    delete_request.mockResolvedValueOnce({})
+    await store.deleteTaskAlert(10, 2)
+    expect(delete_request).toHaveBeenCalledWith('tasks/10/alerts/2/delete/')
+    expect(store.taskAlerts[10]).toEqual([{ id: 1, message: 'keep' }])
+  })
+
+  it('deleteTaskAlert returns failure when request errors', async () => {
+    store.taskAlerts = { 10: [{ id: 1, message: 'x' }] }
+    delete_request.mockRejectedValueOnce(new Error('net'))
+    const result = await store.deleteTaskAlert(10, 1)
+    expect(result.success).toBe(false)
+  })
+
+  // ── replaceTaskInPlace ─────────────────────────────────────────────────────
+
+  it('replaceTaskInPlace updates task in standard board without an API call', () => {
+    store.boardTasks.standard.todo = [{ id: 3, title: 'Old', status: 'todo' }]
+    const result = store.replaceTaskInPlace({ id: 3, title: 'Updated', status: 'todo' })
+    expect(result).toBe(false)
+    expect(store.boardTasks.standard.todo[0].title).toBe('Updated')
+    expect(get_request).not.toHaveBeenCalled()
+  })
+
+  it('replaceTaskInPlace updates task found in weekly board', () => {
+    store.boardTasks.weekly.in_progress = [{ id: 7, title: 'Orig', status: 'in_progress' }]
+    const result = store.replaceTaskInPlace({ id: 7, title: 'Changed', status: 'in_progress' })
+    expect(result).toBe(false)
+    expect(store.boardTasks.weekly.in_progress[0].title).toBe('Changed')
+  })
+
+  it('replaceTaskInPlace returns true when task status changed (column mismatch)', () => {
+    store.boardTasks.standard.todo = [{ id: 5, title: 'X', status: 'todo' }]
+    const result = store.replaceTaskInPlace({ id: 5, title: 'X', status: 'done' })
+    expect(result).toBe(true)
+  })
+
+  // ── archiveTask / unarchiveTask error paths ────────────────────────────────
+
+  it('archiveTask sets store.error to archive_failed when PATCH errors', async () => {
+    patch_request.mockRejectedValueOnce({ response: { data: {} } })
+    const result = await store.archiveTask(1, 'reason')
+    expect(result.success).toBe(false)
+    expect(store.error).toBe('archive_failed')
+  })
+
+  it('unarchiveTask sets store.error to unarchive_failed when PATCH errors', async () => {
+    patch_request.mockRejectedValueOnce({ response: { data: {} } })
+    const result = await store.unarchiveTask(1)
+    expect(result.success).toBe(false)
+    expect(store.error).toBe('unarchive_failed')
+  })
 })

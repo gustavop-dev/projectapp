@@ -171,7 +171,7 @@ test.describe('Admin Diagnostic Defaults Config', () => {
     await page.getByTestId('defaults-reset-btn').click();
 
     await expect(page.getByRole('heading', { name: 'Restablecer valores por defecto' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Restablecer' })).toBeVisible();
+    await expect(page.getByTestId('confirm-modal-confirm')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Cancelar' })).toBeVisible();
   });
 

@@ -329,4 +329,118 @@ describe('usePlatformChangeRequestsStore', () => {
       expect(result.message).toBe('Deleted.')
     })
   })
+
+  it('filteredByStatus returns full list when filter is null', () => {
+    store.changeRequests = [{ id: 1 }, { id: 2 }]
+    expect(store.filteredByStatus(null)).toHaveLength(2)
+  })
+
+  it('filteredByStatus returns only matching status', () => {
+    store.changeRequests = [{ id: 1, status: 'pending' }, { id: 2, status: 'approved' }]
+    expect(store.filteredByStatus('approved')).toEqual([{ id: 2, status: 'approved' }])
+  })
+
+  it('fetchChangeRequests sends status filter in query string', async () => {
+    mockGet.mockResolvedValueOnce({ data: [] })
+    await store.fetchChangeRequests(8, 'pending')
+    expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('status=pending'))
+  })
+
+  it('fetchChangeRequests uses fallback message when error has no detail', async () => {
+    mockGet.mockRejectedValueOnce({})
+    const result = await store.fetchChangeRequests(1)
+    expect(result.message).toBe('No pudimos cargar las solicitudes de cambio.')
+  })
+
+  it('fetchChangeRequest uses fallback message when error has no detail', async () => {
+    mockGet.mockRejectedValueOnce({})
+    const result = await store.fetchChangeRequest(1, 1)
+    expect(result.message).toBe('No pudimos cargar la solicitud de cambio.')
+  })
+
+  it('createChangeRequest uses fallback message when error has no detail', async () => {
+    mockPost.mockRejectedValueOnce({})
+    const result = await store.createChangeRequest(1, {})
+    expect(result.message).toBe('No pudimos crear la solicitud de cambio.')
+  })
+
+  it('fetchAllChangeRequests uses fallback message when error has no detail', async () => {
+    mockGet.mockRejectedValueOnce({})
+    const result = await store.fetchAllChangeRequests()
+    expect(result.message).toBe('No pudimos cargar las solicitudes de cambio.')
+  })
+
+  it('evaluateChangeRequest leaves list intact when crId not found', async () => {
+    store.changeRequests = [{ id: 10, status: 'pending' }]
+    mockPost.mockResolvedValueOnce({ data: { id: 99, status: 'approved' } })
+    await store.evaluateChangeRequest(1, 99, {})
+    expect(store.changeRequests[0].status).toBe('pending')
+  })
+
+  it('evaluateChangeRequest does not touch currentChangeRequest when ids differ', async () => {
+    store.currentChangeRequest = { id: 10, status: 'pending' }
+    mockPost.mockResolvedValueOnce({ data: { id: 99, status: 'approved' } })
+    await store.evaluateChangeRequest(1, 99, {})
+    expect(store.currentChangeRequest.status).toBe('pending')
+  })
+
+  it('evaluateChangeRequest uses fallback message when error has no detail', async () => {
+    mockPost.mockRejectedValueOnce({})
+    const result = await store.evaluateChangeRequest(1, 1, {})
+    expect(result.message).toBe('No pudimos evaluar la solicitud de cambio.')
+  })
+
+  it('deleteChangeRequest returns detail message on success when provided', async () => {
+    store.changeRequests = [{ id: 1 }]
+    mockDelete.mockResolvedValueOnce({ data: { detail: 'Archivado.' } })
+    const result = await store.deleteChangeRequest(2, 1)
+    expect(result.message).toBe('Archivado.')
+  })
+
+  it('deleteChangeRequest uses fallback message when error has no detail', async () => {
+    mockDelete.mockRejectedValueOnce({})
+    const result = await store.deleteChangeRequest(1, 1)
+    expect(result.message).toBe('No pudimos archivar la solicitud de cambio.')
+  })
+
+  it('addComment skips append when currentChangeRequest has no comments array', async () => {
+    store.currentChangeRequest = { id: 7 }
+    mockPost.mockResolvedValueOnce({ data: { id: 20 } })
+    const result = await store.addComment(1, 7, 'x', false)
+    expect(result.success).toBe(true)
+    expect(store.currentChangeRequest.comments).toBeUndefined()
+  })
+
+  it('addComment skips append when currentChangeRequest id does not match', async () => {
+    store.currentChangeRequest = { id: 99, comments: [] }
+    mockPost.mockResolvedValueOnce({ data: { id: 20 } })
+    await store.addComment(1, 7, 'x', false)
+    expect(store.currentChangeRequest.comments).toHaveLength(0)
+  })
+
+  it('addComment uses fallback message when error has no detail', async () => {
+    mockPost.mockRejectedValueOnce({})
+    const result = await store.addComment(1, 1, 'x', false)
+    expect(result.message).toBe('No pudimos agregar el comentario.')
+  })
+
+  it('convertToRequirement leaves list intact when crId not found', async () => {
+    store.changeRequests = [{ id: 5, status: 'pending' }]
+    mockPost.mockResolvedValueOnce({ data: { id: 99, status: 'converted' } })
+    await store.convertToRequirement(1, 99)
+    expect(store.changeRequests[0].status).toBe('pending')
+  })
+
+  it('convertToRequirement updates currentChangeRequest when ids match', async () => {
+    store.currentChangeRequest = { id: 5, status: 'pending' }
+    mockPost.mockResolvedValueOnce({ data: { id: 5, status: 'converted' } })
+    await store.convertToRequirement(1, 5)
+    expect(store.currentChangeRequest.status).toBe('converted')
+  })
+
+  it('convertToRequirement uses fallback message when error has no detail', async () => {
+    mockPost.mockRejectedValueOnce({})
+    const result = await store.convertToRequirement(1, 1)
+    expect(result.message).toBe('No pudimos convertir la solicitud en requerimiento.')
+  })
 })

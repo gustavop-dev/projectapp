@@ -15,23 +15,29 @@
       <button
         type="button"
         class="flex h-10 w-10 items-center justify-center rounded-full bg-esmerald-light text-esmerald dark:bg-esmerald dark:text-white"
-        title="Open menu"
+        aria-label="Abrir menú"
         @click="openMobile"
       >
         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
+
+      <span v-if="_panelViewLabel && route.path !== localePath('/panel')" class="text-sm font-medium text-esmerald dark:text-white truncate max-w-[180px]">
+        {{ _panelViewLabel }}
+      </span>
       <NuxtLink
+        v-else
         :to="localePath('/panel')"
         class="text-base font-bold tracking-tight text-esmerald dark:text-white"
       >
         Project<span class="text-green-light dark:text-lemon">App.</span>
       </NuxtLink>
+
       <button
         type="button"
         class="flex h-10 w-10 items-center justify-center rounded-full bg-esmerald-light text-esmerald dark:bg-esmerald dark:text-white"
-        title="Toggle theme"
+        :aria-label="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
         @click="toggle"
       >
         <svg v-if="isDark" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,6 +51,7 @@
 
     <PanelMobileDrawer
       :is-open="isMobileOpen"
+      :is-dark="isDark"
       @close="closeMobile"
       @toggle-theme="toggle"
     />
@@ -57,15 +64,26 @@
         isDark ? 'text-gray-200' : 'text-gray-900',
       ]"
     >
+      <div
+        v-if="_panelSectionLabel && _panelViewLabel"
+        class="mb-5 flex items-center gap-1.5 text-xs"
+        :class="isDark ? 'text-green-light/60' : 'text-green-light'"
+      >
+        <span>{{ _panelSectionLabel }}</span>
+        <span class="text-green-light/40 dark:text-green-light/30">›</span>
+        <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">{{ _panelViewLabel }}</span>
+      </div>
       <slot />
     </main>
   </div>
 </template>
 
 <script setup>
-import { provide, watch, onMounted, onUnmounted } from 'vue'
+import { provide, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useDarkMode } from '~/composables/useDarkMode'
 import { usePanelSidebar } from '~/composables/usePanelSidebar'
+import { getPanelNavSections } from '~/config/panelNav'
+import { isPanelNavItemActive } from '~/utils/panelNavActive'
 import PanelSidebar from '~/components/panel/PanelSidebar.vue'
 import PanelMobileDrawer from '~/components/panel/PanelMobileDrawer.vue'
 
@@ -132,6 +150,14 @@ const _panelDynamic = [
   { re: /\/panel\/documents\/[^/]+\/edit/, label: 'Edit. documento' },
 ]
 
+const _panelDynamicSections = [
+  { re: /\/panel\/proposals\/[^/]+\/edit/, label: 'Sales' },
+  { re: /\/panel\/diagnostics\/[^/]+\/edit/, label: 'Sales' },
+  { re: /\/panel\/blog\/[^/]+\/edit/, label: 'Website content' },
+  { re: /\/panel\/portfolio\/[^/]+\/edit/, label: 'Website content' },
+  { re: /\/panel\/documents\/[^/]+\/edit/, label: 'Documents' },
+]
+
 const _panelViewLabel = computed(() => {
   const p = route.path
   for (const { re, label } of _panelDynamic) {
@@ -143,7 +169,23 @@ const _panelViewLabel = computed(() => {
   return null
 })
 
+const _panelSectionLabel = computed(() => {
+  const p = route.path
+  for (const { re, label } of _panelDynamicSections) {
+    if (re.test(p)) return label
+  }
+  const sections = getPanelNavSections(localePath)
+  for (const section of sections) {
+    for (const item of section.items) {
+      if (!item.divider && isPanelNavItemActive(p, item)) {
+        return section.label
+      }
+    }
+  }
+  return null
+})
+
 useHead(() => ({
-  title: _panelViewLabel.value || 'Panel',
+  title: _panelViewLabel.value ? `Project App (${_panelViewLabel.value})` : 'Project App',
 }))
 </script>

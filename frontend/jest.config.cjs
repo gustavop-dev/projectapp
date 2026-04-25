@@ -4,7 +4,7 @@ module.exports = {
         '^.+\\.vue$': '@vue/vue3-jest',
         '^.+\\.js$': 'babel-jest',
         '^.+\\.mjs$': 'babel-jest',
-        ".+\\.(css|styl|less|sass|scss|png|jpg|webp|ttf|woff|woff2)$": "jest-transform-stub"
+        ".+\\.(css|styl|less|sass|scss|png|jpg|jpeg|webp|ttf|woff|woff2)$": "jest-transform-stub"
     },
     testEnvironment: 'jest-environment-jsdom',
     setupFilesAfterEnv: ['<rootDir>/test/jest.setup.js'],
@@ -27,7 +27,8 @@ module.exports = {
         '^~/service/CacheService$': '<rootDir>/service/CacheService.js',
         '^~/(.*)$': '<rootDir>/$1',
         '#imports': '<rootDir>/test/shared/nuxt-imports-mock.js',
-        '\\.(css|less|scss|sass|png|jpg|webp|ttf|woff|woff2)$': 'jest-transform-stub',
+        '\\.(css|less|scss|sass|png|jpg|jpeg|webp|ttf|woff|woff2)$': 'jest-transform-stub',
+        '^vue3-emoji-picker/css$': 'jest-transform-stub',
     },
     transformIgnorePatterns: ['/node_modules/'],
     collectCoverageFrom: [

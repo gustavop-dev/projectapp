@@ -29,6 +29,7 @@ class TestSendProposalReminderTask:
             client_name='Client',
             client_email='client@test.com',
             status='sent',
+            automations_paused=False,
         )
 
         import content.tasks as tasks_module
@@ -44,6 +45,7 @@ class TestSendProposalReminderTask:
             client_name='Client',
             client_email='client@test.com',
             status='viewed',
+            automations_paused=False,
         )
 
         import content.tasks as tasks_module
@@ -164,6 +166,7 @@ class TestSendUrgencyReminderTask:
             client_name='Client',
             client_email='client@test.com',
             status='sent',
+            automations_paused=False,
         )
 
         import content.tasks as tasks_module
@@ -180,6 +183,7 @@ class TestSendUrgencyReminderTask:
             client_name='Client',
             client_email='client@test.com',
             status='viewed',
+            automations_paused=False,
         )
 
         import content.tasks as tasks_module
@@ -547,6 +551,7 @@ class TestCheckEngagementFollowupsTask:
             client_email='client@test.com',
             status='viewed',
             first_viewed_at=now - timedelta(hours=5),
+            automations_paused=False,
         )
         ve = ProposalViewEvent.objects.create(
             proposal=proposal,
@@ -888,6 +893,7 @@ class TestCheckEngagementFollowupsExceptionPaths:
             client_email='client@test.com',
             status='viewed',
             first_viewed_at=now - timedelta(hours=5),
+            automations_paused=False,
         )
         ve = ProposalViewEvent.objects.create(
             proposal=proposal, session_id='sess-err',
@@ -918,6 +924,7 @@ class TestCheckEngagementFollowupsExceptionPaths:
             client_email='client@test.com',
             status='viewed',
             first_viewed_at=now - timedelta(hours=5),
+            automations_paused=False,
         )
         ve = ProposalViewEvent.objects.create(
             proposal=proposal, session_id='sess-err2',
@@ -1127,6 +1134,7 @@ class TestEscalateSellerInactivityTask:
             status='viewed',
             sent_at=now - timedelta(days=7),
             first_viewed_at=now - timedelta(days=6),
+            automations_paused=False,
         )
 
         import content.tasks as tasks_module
@@ -1236,6 +1244,7 @@ class TestEscalateSellerInactivityTask:
             status='viewed',
             sent_at=now - timedelta(days=7),
             first_viewed_at=now - timedelta(days=6),
+            automations_paused=False,
         )
 
         import content.tasks as tasks_module
@@ -1617,6 +1626,7 @@ class TestCheckCalculatorAbandonmentFollowupTask:
             title='Calc Abandoned', client_name='Calc Client',
             client_email='calc@test.com',
             status='viewed',
+            automations_paused=False,
         )
         log = ProposalChangeLog.objects.create(
             proposal=proposal, change_type='calc_abandoned',
@@ -1647,6 +1657,7 @@ class TestCheckCalculatorAbandonmentFollowupTask:
         proposal = BusinessProposal.objects.create(
             title='High Intent Calc', client_name='Intent Client',
             status='viewed',
+            automations_paused=False,
         )
         log = ProposalChangeLog.objects.create(
             proposal=proposal, change_type='calc_abandoned',
@@ -1766,6 +1777,7 @@ class TestCheckCalculatorAbandonmentFollowupTask:
         proposal = BusinessProposal.objects.create(
             title='Bad JSON', client_name='Client',
             status='viewed',
+            automations_paused=False,
         )
         log = ProposalChangeLog.objects.create(
             proposal=proposal, change_type='calc_abandoned',
@@ -1796,6 +1808,7 @@ class TestGenerateWhatsappSuggestionsTask:
             status='viewed',
             client_phone='+573001234567',
             first_viewed_at=now - timedelta(hours=50),
+            automations_paused=False,
         )
         ve = ProposalViewEvent.objects.create(
             proposal=proposal, session_id='sess-wa',
@@ -1826,6 +1839,7 @@ class TestGenerateWhatsappSuggestionsTask:
             status='viewed',
             client_phone='+573001234567',
             first_viewed_at=now - timedelta(hours=50),
+            automations_paused=False,
         )
         ve = ProposalViewEvent.objects.create(
             proposal=proposal, session_id='sess-wa-unk',
@@ -1935,6 +1949,7 @@ class TestGenerateWhatsappSuggestionsTask:
             status='viewed',
             client_phone='+573001234567',
             first_viewed_at=now - timedelta(hours=50),
+            automations_paused=False,
         )
 
         import content.tasks as tasks_module
@@ -2069,6 +2084,7 @@ class TestAutoArchiveZombieProposalsTask:
         assert proposal.is_active is True
 
 
+
 class TestExpireStaleProposalsAutoExtend:
     """Tests for the auto-extend branch in expire_stale_proposals (lines 255-265, 274)."""
 
@@ -2095,6 +2111,28 @@ class TestExpireStaleProposalsAutoExtend:
         assert proposal.expires_at > now
 
     @freeze_time('2026-03-10 10:00:00')
+    def test_extends_expiry_when_client_viewed_in_last_3_days(self):
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Recently Viewed',
+            client_name='Client',
+            status='viewed',
+            expires_at=now - timedelta(days=1),
+        )
+        ProposalViewEvent.objects.create(
+            proposal=proposal,
+            session_id='sess-1',
+            viewed_at=now - timedelta(hours=2),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.expire_stale_proposals.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.status == 'viewed'
+        assert proposal.expires_at == now + timedelta(days=7)
+
+    @freeze_time('2026-03-10 10:00:00')
     def test_auto_extend_creates_change_log(self):
         """A system change log entry is created when a proposal is auto-extended."""
         now = timezone.now()
@@ -2118,6 +2156,30 @@ class TestExpireStaleProposalsAutoExtend:
             change_type='updated',
         ).exists()
 
+    @freeze_time('2026-03-10 10:00:00')
+    def test_creates_changelog_when_auto_extended(self):
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Recently Viewed',
+            client_name='Client',
+            status='sent',
+            expires_at=now - timedelta(hours=1),
+        )
+        ProposalViewEvent.objects.create(
+            proposal=proposal,
+            session_id='sess-2',
+            viewed_at=now - timedelta(days=1),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.expire_stale_proposals.call_local()
+
+        assert ProposalChangeLog.objects.filter(
+            proposal=proposal,
+            change_type='updated',
+            actor_type='system',
+        ).exists()
+
 
 class TestEscalateSellerInactivityContinue:
     """Tests for the continue branch in escalate_seller_inactivity (line 304)."""
@@ -2136,6 +2198,32 @@ class TestEscalateSellerInactivityContinue:
             status='viewed',
             sent_at=now - timedelta(days=2),
             first_viewed_at=now - timedelta(days=1),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.escalate_seller_inactivity.call_local()
+
+        assert mock_send.call_count == 0
+
+
+class TestEscalateSellerInactivityRefDateFallback:
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_seller_inactivity_escalation',
+        return_value=True,
+    )
+    def test_skips_candidate_without_last_activity_or_sent_at(self, mock_send):
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='No Dates',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            first_viewed_at=now - timedelta(days=6),
+        )
+        BusinessProposal.objects.filter(pk=proposal.pk).update(
+            last_activity_at=None,
+            sent_at=None,
         )
 
         import content.tasks as tasks_module
@@ -2179,6 +2267,7 @@ class TestCalculatorAbandonmentEmptyDescription:
         proposal = BusinessProposal.objects.create(
             title='Empty Desc Calc', client_name='Client',
             status='viewed',
+            automations_paused=False,
         )
         log = ProposalChangeLog.objects.create(
             proposal=proposal, change_type='calc_abandoned',
@@ -2196,6 +2285,104 @@ class TestCalculatorAbandonmentEmptyDescription:
         ).first()
         assert alert is not None
         assert 'abandonó' in alert.message
+
+
+class TestRefreshCachedHeatScoresTask:
+    @patch('content.views.proposal._compute_heat_score_for_proposal')
+    def test_updates_cached_score_when_new_value_differs(self, mock_score):
+        mock_score.return_value = 7
+        proposal = BusinessProposal.objects.create(
+            title='Heat Update',
+            client_name='Client',
+            status='sent',
+            cached_heat_score=3,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.refresh_cached_heat_scores.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.cached_heat_score == 7
+
+    @patch('content.views.proposal._compute_heat_score_for_proposal')
+    def test_skips_update_when_new_value_matches_current(self, mock_score):
+        mock_score.return_value = 5
+        proposal = BusinessProposal.objects.create(
+            title='Heat Same',
+            client_name='Client',
+            status='viewed',
+            cached_heat_score=5,
+        )
+        original_updated_at = proposal.updated_at
+
+        import content.tasks as tasks_module
+        tasks_module.refresh_cached_heat_scores.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.cached_heat_score == 5
+        assert proposal.updated_at == original_updated_at
+
+    @patch('content.views.proposal._compute_heat_score_for_proposal')
+    def test_ignores_inactive_proposals(self, mock_score):
+        mock_score.return_value = 9
+        proposal = BusinessProposal.objects.create(
+            title='Inactive',
+            client_name='Client',
+            status='sent',
+            is_active=False,
+            cached_heat_score=1,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.refresh_cached_heat_scores.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.cached_heat_score == 1
+        assert mock_score.call_count == 0
+
+    @patch('content.views.proposal._compute_heat_score_for_proposal')
+    def test_ignores_draft_proposals(self, mock_score):
+        mock_score.return_value = 9
+        proposal = BusinessProposal.objects.create(
+            title='Draft',
+            client_name='Client',
+            status='draft',
+            cached_heat_score=1,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.refresh_cached_heat_scores.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.cached_heat_score == 1
+        assert mock_score.call_count == 0
+
+
+class TestCalculatorAbandonmentFollowupDescriptionFallback:
+    @freeze_time('2026-03-10 12:00:00')
+    def test_treats_abandoned_log_without_description_as_low_intent(self):
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='No Description',
+            client_name='Client',
+            client_email='client@test.com',
+            status='sent',
+            automations_paused=False,
+        )
+        log = ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type='calc_abandoned',
+            description='',
+        )
+        ProposalChangeLog.objects.filter(pk=log.pk).update(
+            created_at=now - timedelta(days=2),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_calculator_abandonment_followup.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.calculator_followup_sent_at is not None
 
 
 class TestRefreshCachedHeatScores:
@@ -2256,6 +2443,7 @@ class TestNotifyProposalStageDeadlines:
         proposal = BusinessProposal.objects.create(
             title='With Active Stage', client_name='C',
             client_email='c@x.com', status='accepted',
+            automations_paused=False,
         )
         ProposalProjectStage.objects.create(
             proposal=proposal, stage_key='design', order=0,
@@ -2343,7 +2531,6 @@ class TestNotifyProposalStageDeadlines:
         )
         ProposalProjectStage.objects.create(
             proposal=proposal, stage_key='design', order=0,
-            # no dates
         )
 
         import content.tasks as tasks_module
@@ -2365,6 +2552,7 @@ class TestNotifyProposalStageDeadlines:
         proposal = BusinessProposal.objects.create(
             title='Broken Stage Tracker', client_name='C',
             client_email='c@x.com', status='accepted',
+            automations_paused=False,
         )
         ProposalProjectStage.objects.create(
             proposal=proposal, stage_key='design', order=0,
@@ -2427,3 +2615,414 @@ class TestRunPlatformOnboardingTask:
 
         accepted_proposal.refresh_from_db()
         assert accepted_proposal.platform_onboarding_status == 'failed'
+
+
+# ── Task deadline notifications ────────────────────────────────────────────
+
+class TestCheckSingleTaskDeadlines:
+    """Unit tests for the _check_single_task_deadlines helper."""
+
+    def _make_task(self, creation_date, due_date):
+        """Create a Task with a controlled created_at date."""
+        from datetime import datetime
+        from django.utils import timezone
+        from content.models import Task
+
+        with freeze_time(datetime.combine(creation_date, datetime.min.time())):
+            task = Task.objects.create(title='Test task', due_date=due_date)
+        return task
+
+    def test_sends_40_pct_email_when_threshold_reached(self, mailoutbox):
+        """Email sent at 40% elapsed; task flagged as notified_40."""
+        from datetime import date
+        from content.tasks import _check_single_task_deadlines
+
+        # Created April 12, due May 12 (30 days total). Today April 24 = 40%.
+        task = self._make_task(date(2026, 4, 12), date(2026, 5, 12))
+        _check_single_task_deadlines(task, date(2026, 4, 24))
+
+        task.refresh_from_db()
+        assert task.notified_40 is True
+        assert len(mailoutbox) == 1
+        assert '40%' in mailoutbox[0].subject or 'límite' in mailoutbox[0].subject
+
+    def test_sends_70_pct_email_when_threshold_reached(self, mailoutbox):
+        """Email sent at 70% elapsed; task flagged as notified_70."""
+        from datetime import date
+        from content.tasks import _check_single_task_deadlines
+
+        # Created April 3, due May 3 (30 days total). Today April 24 = 70%.
+        task = self._make_task(date(2026, 4, 3), date(2026, 5, 3))
+        task.notified_40 = True
+        task.save(update_fields=['notified_40'])
+        _check_single_task_deadlines(task, date(2026, 4, 24))
+
+        task.refresh_from_db()
+        assert task.notified_70 is True
+        assert any('70%' in m.subject or 'límite' in m.subject for m in mailoutbox)
+
+    def test_sends_100_pct_email_on_due_date(self, mailoutbox):
+        """Email sent when today equals due_date; task flagged as notified_100."""
+        from datetime import date
+        from content.tasks import _check_single_task_deadlines
+
+        task = self._make_task(date(2026, 4, 1), date(2026, 4, 24))
+        task.notified_40 = True
+        task.notified_70 = True
+        task.save(update_fields=['notified_40', 'notified_70'])
+        _check_single_task_deadlines(task, date(2026, 4, 24))
+
+        task.refresh_from_db()
+        assert task.notified_100 is True
+        assert len(mailoutbox) >= 1
+
+    def test_sends_overdue_reminder_when_past_due_date(self, mailoutbox):
+        """Overdue reminder sent when today is after due_date."""
+        from datetime import date
+        from content.tasks import _check_single_task_deadlines
+
+        task = self._make_task(date(2026, 4, 1), date(2026, 4, 23))
+        task.notified_40 = True
+        task.notified_70 = True
+        task.notified_100 = True
+        task.save(update_fields=['notified_40', 'notified_70', 'notified_100'])
+        _check_single_task_deadlines(task, date(2026, 4, 24))
+
+        task.refresh_from_db()
+        assert task.last_overdue_notified_at == date(2026, 4, 24)
+        assert len(mailoutbox) >= 1
+
+    def test_suppresses_overdue_reminder_when_recently_notified(self, mailoutbox):
+        """No overdue reminder sent if last_overdue_notified_at < 2 days ago."""
+        from datetime import date
+        from content.tasks import _check_single_task_deadlines
+
+        task = self._make_task(date(2026, 4, 1), date(2026, 4, 23))
+        task.notified_40 = True
+        task.notified_70 = True
+        task.notified_100 = True
+        task.last_overdue_notified_at = date(2026, 4, 24)  # same day = < 2 days
+        task.save(update_fields=['notified_40', 'notified_70', 'notified_100', 'last_overdue_notified_at'])
+        _check_single_task_deadlines(task, date(2026, 4, 24))
+
+        assert len(mailoutbox) == 0
+
+    def test_skips_all_notifications_when_already_notified(self, mailoutbox):
+        """No emails sent when all thresholds already flagged and no overdue."""
+        from datetime import date
+        from content.tasks import _check_single_task_deadlines
+
+        # Task not yet at due date but all notifications already sent.
+        task = self._make_task(date(2026, 4, 12), date(2026, 5, 12))
+        task.notified_40 = True
+        task.notified_70 = True
+        task.save(update_fields=['notified_40', 'notified_70'])
+        _check_single_task_deadlines(task, date(2026, 4, 24))
+
+        assert len(mailoutbox) == 0
+
+
+class TestCheckTaskDeadlineNotifications:
+    """Integration tests for the periodic check_task_deadline_notifications task."""
+
+    @freeze_time('2026-04-24')
+    def test_periodic_task_processes_eligible_task(self, mailoutbox):
+        """Periodic task sends email for task at 40% threshold."""
+        from datetime import date, datetime
+        from content.models import Task
+
+        with freeze_time('2026-04-12 08:00:00'):
+            task = Task.objects.create(title='Overdue task', due_date=date(2026, 5, 12))
+
+        import content.tasks as tasks_module
+        tasks_module.check_task_deadline_notifications.call_local()
+
+        task.refresh_from_db()
+        assert task.notified_40 is True
+        assert len(mailoutbox) >= 1
+
+    @freeze_time('2026-04-24')
+    def test_periodic_task_skips_done_tasks(self, mailoutbox):
+        """Periodic task ignores tasks with status DONE."""
+        from datetime import date, datetime
+        from content.models import Task
+
+        with freeze_time('2026-04-12 08:00:00'):
+            task = Task.objects.create(
+                title='Done task', due_date=date(2026, 5, 12),
+                status=Task.Status.DONE,
+            )
+
+        import content.tasks as tasks_module
+        tasks_module.check_task_deadline_notifications.call_local()
+
+        task.refresh_from_db()
+        assert task.notified_40 is False
+        assert len(mailoutbox) == 0
+
+
+class TestCheckTaskAlertNotifications:
+    """Tests for the check_task_alert_notifications periodic task."""
+
+    @freeze_time('2026-04-24')
+    def test_dispatches_pending_alert_and_marks_sent(self, mailoutbox):
+        """Pending alert with notify_at <= today is sent and marked sent=True."""
+        from datetime import date, datetime
+        from content.models import Task, TaskAlert
+
+        with freeze_time('2026-04-01 08:00:00'):
+            task = Task.objects.create(title='Alert task', due_date=date(2026, 5, 1))
+        alert = TaskAlert.objects.create(task=task, notify_at=date(2026, 4, 24), note='Check this')
+
+        import content.tasks as tasks_module
+        tasks_module.check_task_alert_notifications.call_local()
+
+        alert.refresh_from_db()
+        assert alert.sent is True
+        assert len(mailoutbox) == 1
+        assert 'Alert task' in mailoutbox[0].subject
+
+    @freeze_time('2026-04-24')
+    def test_skips_already_sent_alerts(self, mailoutbox):
+        """Alerts with sent=True are not dispatched again."""
+        from datetime import date, datetime
+        from content.models import Task, TaskAlert
+
+        with freeze_time('2026-04-01 08:00:00'):
+            task = Task.objects.create(title='Sent alert task', due_date=date(2026, 5, 1))
+        TaskAlert.objects.create(task=task, notify_at=date(2026, 4, 24), sent=True)
+
+        import content.tasks as tasks_module
+        tasks_module.check_task_alert_notifications.call_local()
+
+        assert len(mailoutbox) == 0
+
+    @freeze_time('2026-04-24')
+    def test_skips_future_alerts(self, mailoutbox):
+        """Alert with notify_at > today is not sent."""
+        from datetime import date, datetime
+        from content.models import Task, TaskAlert
+
+        with freeze_time('2026-04-01 08:00:00'):
+            task = Task.objects.create(title='Future alert task', due_date=date(2026, 5, 1))
+        TaskAlert.objects.create(task=task, notify_at=date(2026, 5, 1))
+
+        import content.tasks as tasks_module
+        tasks_module.check_task_alert_notifications.call_local()
+
+        assert len(mailoutbox) == 0
+
+
+class TestNotifyProposalStageDeadlines:
+    """Tests for the notify_proposal_stage_deadlines periodic task."""
+
+    def test_calls_tracker_for_eligible_proposals(self):  # quality: disable no_assertions (mock assertion replaces assert keyword)
+        """Proposals with active stages are passed to ProposalStageTracker.process."""
+        from datetime import date
+
+        proposal = BusinessProposal.objects.create(
+            title='Staged proposal',
+            client_name='Client',
+            client_email='c@test.com',
+            status='sent',
+            is_active=True,
+            automations_paused=False,
+        )
+        from content.models import ProposalProjectStage
+        ProposalProjectStage.objects.create(
+            proposal=proposal,
+            stage_key=ProposalProjectStage.StageKey.DESIGN,
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 5, 1),
+        )
+
+        with patch(
+            'content.services.proposal_stage_tracker.ProposalStageTracker.process',
+        ) as mock_process:
+            import content.tasks as tasks_module
+            tasks_module.notify_proposal_stage_deadlines.call_local()
+
+        mock_process.assert_called_once_with(proposal)
+
+    def test_skips_paused_proposals(self):
+        """Proposals with automations_paused=True are not processed."""
+        from datetime import date
+
+        proposal = BusinessProposal.objects.create(
+            title='Paused proposal',
+            client_name='Client',
+            client_email='c@test.com',
+            status='sent',
+            is_active=True,
+            automations_paused=True,
+        )
+        from content.models import ProposalProjectStage
+        ProposalProjectStage.objects.create(
+            proposal=proposal,
+            stage_key=ProposalProjectStage.StageKey.DEVELOPMENT,
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 5, 1),
+        )
+
+        with patch(
+            'content.services.proposal_stage_tracker.ProposalStageTracker.process',
+        ) as mock_process:
+            import content.tasks as tasks_module
+            tasks_module.notify_proposal_stage_deadlines.call_local()
+
+        mock_process.assert_not_called()
+
+
+# -- Coverage gap tests: _suggest_action_for_proposal expiry branches --------
+
+
+class TestSuggestActionExpiryBranches:
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_urgency_message_when_expires_in_1_day_with_discount(self):
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Urgency With Discount', client_name='Client',
+            status='sent',
+            expires_at=now + timedelta(days=1),
+            discount_percent=15,
+        )
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'Expira en 1d.' in result
+        assert 'urgencia' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_discount_message_when_expires_in_2_days_without_discount(self):
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='No Discount', client_name='Client',
+            status='sent',
+            expires_at=now + timedelta(days=2),
+            discount_percent=0,
+        )
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'descuento' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_viewed_recently_message_when_activity_within_2_days(self):
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Viewed Recent', client_name='Client',
+            status='viewed',
+            first_viewed_at=now - timedelta(hours=12),
+        )
+        BusinessProposal.objects.filter(pk=proposal.pk).update(
+            last_activity_at=now - timedelta(hours=12),
+        )
+        proposal.refresh_from_db()
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'Visto recientemente' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_sent_long_ago_message_when_proposal_not_opened_in_3_days(self):
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Sent Long Ago', client_name='Client',
+            status='sent',
+        )
+        BusinessProposal.objects.filter(pk=proposal.pk).update(
+            sent_at=now - timedelta(days=4),
+        )
+        proposal.refresh_from_db()
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'Sin abrir' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_sent_recently_message_when_proposal_sent_within_3_days(self):
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Sent Recent', client_name='Client',
+            status='sent',
+        )
+        BusinessProposal.objects.filter(pk=proposal.pk).update(
+            sent_at=now - timedelta(days=1),
+        )
+        proposal.refresh_from_db()
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'Enviada recientemente' in result
+
+
+# -- Coverage gap tests: calculator abandonment JSON parse error -------------
+
+
+class TestCalculatorAbandonmentInvalidJson:
+    @freeze_time('2026-03-10 12:00:00')
+    def test_creates_low_intent_alert_when_description_is_invalid_json(self):
+        from content.models import ProposalAlert
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Invalid JSON Calc', client_name='Client',
+            status='viewed',
+            automations_paused=False,
+        )
+        log = ProposalChangeLog.objects.create(
+            proposal=proposal, change_type='calc_abandoned',
+            description='not-valid-json',
+        )
+        ProposalChangeLog.objects.filter(pk=log.pk).update(
+            created_at=now - timedelta(hours=30),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_calculator_abandonment_followup.call_local()
+
+        alert = ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='calculator_followup',
+        ).first()
+        assert alert is not None
+        assert 'abandonó' in alert.message
+
+
+# -- Coverage gap tests: engagement followup last_event is None --------------
+
+
+class TestCheckEngagementFollowupsLastEventNone:
+    @freeze_time('2026-03-10 12:00:00')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_investment_interest_followup')
+    def test_skips_investment_interest_when_no_view_events(self, mock_send):  # quality: disable no_assertions (mock assertion replaces assert keyword)
+        now = timezone.now()
+        BusinessProposal.objects.create(
+            title='No View Events',
+            client_name='Client',
+            client_email='noevents@test.com',
+            status='viewed',
+            first_viewed_at=now - timedelta(hours=1),
+            automations_paused=False,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_engagement_followups.call_local()
+
+        mock_send.assert_not_called()
+
+
+# -- Coverage gap tests: run_platform_onboarding is_relaunch -----------------
+
+
+class TestRunPlatformOnboardingIsRelaunch:
+    def test_passes_send_email_false_when_is_relaunch_is_true(self, accepted_proposal):
+        accepted_proposal.platform_onboarding_status = 'pending'
+        accepted_proposal.save(update_fields=['platform_onboarding_status'])
+
+        with patch(
+            'accounts.services.proposal_platform_onboarding.handle_proposal_accepted_for_platform',
+        ) as mock_onboard:
+            mock_onboard.return_value = {'skipped': False}
+
+            import content.tasks as tasks_module
+            tasks_module.run_platform_onboarding.call_local(
+                accepted_proposal.id,
+                is_relaunch=True,
+            )
+
+        _, kwargs = mock_onboard.call_args
+        assert kwargs['send_email'] is False

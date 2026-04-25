@@ -118,6 +118,46 @@ describe('filterTechnicalDocumentByModules', () => {
     expect(out.epics).toHaveLength(1);
   });
 
+  it('returns empty object when contentJson is a primitive', () => {
+    expect(filterTechnicalDocumentByModules('string', [])).toEqual({});
+    expect(filterTechnicalDocumentByModules(42, [])).toEqual({});
+  });
+
+  it('skips requirements that are not objects', () => {
+    const d = {
+      epics: [{ title: 'E', requirements: [null, 'string', { title: 'Valid' }] }],
+    };
+    const out = filterTechnicalDocumentByModules(d, null);
+    expect(out.epics[0].requirements).toHaveLength(1);
+    expect(out.epics[0].requirements[0].title).toBe('Valid');
+  });
+
+  it('treats non-array epic.requirements as empty list', () => {
+    const d = {
+      epics: [{ title: 'Header', requirements: null }],
+    };
+    const out = filterTechnicalDocumentByModules(d, []);
+    expect(out.epics[0].requirements).toEqual([]);
+  });
+
+  it('drops epic with no meaningful header and no remaining requirements', () => {
+    const d = {
+      epics: [{ requirements: [{ title: 'Opt', linked_module_ids: ['m'] }] }],
+    };
+    const out = filterTechnicalDocumentByModules(d, []);
+    expect(out.epics).toEqual([]);
+  });
+
+  it('passes null selection through (no filtering mode)', () => {
+    const d = {
+      epics: [
+        { title: 'E', linked_module_ids: ['anything'], requirements: [{ title: 'R' }] },
+      ],
+    };
+    const out = filterTechnicalDocumentByModules(d, null);
+    expect(out.epics).toHaveLength(1);
+  });
+
   it('epicMeaningfulHeader uses description when title is missing', () => {
     const d = {
       epics: [
@@ -196,5 +236,21 @@ describe('filterTechnicalDocumentByModules', () => {
     const out = filterTechnicalDocumentByModules(d, [], ['group-views']);
 
     expect(out.epics).toEqual([]);
+  });
+
+  it('trims whitespace from string id when normalizing', () => {
+    const d = {
+      epics: [{ title: 'E', requirements: [{ title: 'R', linked_module_ids: '  module-5  ' }] }],
+    };
+    const out = filterTechnicalDocumentByModules(d, ['module-5']);
+    expect(out.epics[0].requirements).toHaveLength(1);
+  });
+
+  it('returns empty id list when string is only whitespace', () => {
+    const d = {
+      epics: [{ title: 'E', requirements: [{ title: 'R', linked_module_ids: '   ' }] }],
+    };
+    const out = filterTechnicalDocumentByModules(d, []);
+    expect(out.epics[0].requirements).toHaveLength(1);
   });
 });

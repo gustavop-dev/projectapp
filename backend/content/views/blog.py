@@ -31,7 +31,7 @@ BASE_URL = 'https://projectapp.co'
 BLOG_PUBLIC_BASE = f'{BASE_URL}/blog'
 
 
-def _auto_publish_to_linkedin(post):
+def auto_publish_blog_to_linkedin(post):
     """
     Publish a blog post to LinkedIn if conditions are met:
     - Post is published (is_published=True)
@@ -64,13 +64,21 @@ def _auto_publish_to_linkedin(post):
     try:
         from content.services.linkedin_service import publish_blog_to_linkedin
 
-        result = publish_blog_to_linkedin(
-            summary=summary,
-            blog_url=blog_url,
-            title=title,
-            cover_image_url=cover_image_url,
-            description=post.excerpt_es if lang == 'es' else post.excerpt_en,
-        )
+        try:
+            result = publish_blog_to_linkedin(
+                summary=summary,
+                blog_url=blog_url,
+                title=title,
+                cover_image_url=cover_image_url,
+                description=post.excerpt_es if lang == 'es' else post.excerpt_en,
+            )
+        except ValueError as exc:
+            logger.error(
+                'LinkedIn no conectado / sin credenciales para blog "%s": %s',
+                post.slug, exc,
+            )
+            return
+
         if result['success']:
             post.linkedin_post_id = result['post_id']
             post.linkedin_published_at = tz.now()
@@ -80,6 +88,27 @@ def _auto_publish_to_linkedin(post):
             logger.warning('LinkedIn auto-publish failed for "%s": %s', post.slug, result['message'])
     except Exception:
         logger.exception('LinkedIn auto-publish error for blog "%s"', post.slug)
+
+
+def _enqueue_scheduled_publish_if_future(post):
+    """
+    If the post is a draft with a future published_at, enqueue a one-shot
+    Huey task at that exact ETA so it publishes (site + LinkedIn) without
+    waiting for the 1-minute periodic sweep.
+    """
+    if post.is_published or not post.published_at:
+        return
+    if post.published_at <= tz.now():
+        return
+    try:
+        from content.tasks import publish_single_scheduled_blog
+        publish_single_scheduled_blog.schedule(args=(post.id,), eta=post.published_at)
+        logger.info(
+            'Encolado publish_single_scheduled_blog para post %s a %s',
+            post.id, post.published_at,
+        )
+    except Exception:
+        logger.exception('Failed to enqueue scheduled publish for post %s', post.id)
 
 STATIC_SITEMAP_PAGES = [
     ('/en-us', '/es-co', 'weekly', '1.0'),
@@ -284,7 +313,8 @@ def create_blog_post(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     post = serializer.save()
-    _auto_publish_to_linkedin(post)
+    auto_publish_blog_to_linkedin(post)
+    _enqueue_scheduled_publish_if_future(post)
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_201_CREATED)
 
@@ -318,7 +348,8 @@ def update_blog_post(request, post_id):
     serializer.save()
     # Auto-publish to LinkedIn when post transitions to published
     if post.is_published and not was_published:
-        _auto_publish_to_linkedin(post)
+        auto_publish_blog_to_linkedin(post)
+    _enqueue_scheduled_publish_if_future(post)
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_200_OK)
 
@@ -361,6 +392,7 @@ def create_blog_post_from_json(request):
         read_time_minutes=data.get('read_time_minutes', 0),
         is_featured=data.get('is_featured', False),
         is_published=data.get('is_published', False),
+        published_at=data.get('published_at'),
         author=data.get('author', 'projectapp-team'),
         meta_title_es=data.get('meta_title_es', ''),
         meta_title_en=data.get('meta_title_en', ''),
@@ -374,7 +406,8 @@ def create_blog_post_from_json(request):
         linkedin_summary_en=data.get('linkedin_summary_en', ''),
     )
 
-    _auto_publish_to_linkedin(post)
+    auto_publish_blog_to_linkedin(post)
+    _enqueue_scheduled_publish_if_future(post)
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_201_CREATED)
 

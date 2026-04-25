@@ -35,7 +35,6 @@ test.describe('Admin Dashboard', () => {
       return null;
     });
     await page.goto('/panel');
-    await page.waitForLoadState('networkidle');
   });
 
   test('renders Pipeline Value KPI card with value and count', {
@@ -67,7 +66,6 @@ test.describe('Admin Dashboard', () => {
       return null;
     });
     await page.goto('/panel');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText('Tasa de cierre')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText('Pipeline activo')).not.toBeVisible();

@@ -369,18 +369,16 @@ test.describe('Admin Clients — Delete orphan client', () => {
     });
   });
 
-  test('trash icon is visible only on orphan rows', {
+  test('trash icon is visible on every client row (type-to-confirm prevents accidents)', {
     tag: [...ADMIN_CLIENT_DELETE_ORPHAN, '@role:admin'],
   }, async ({ page }) => {
     const allClients = [...mockClients, mockOrphanClient];
     await setupMock(page, { clients: allClients });
     await gotoClients(page);
 
-    // Orphan has trash button
     await expect(page.getByTestId(`client-delete-${mockOrphanClient.id}`)).toBeVisible();
-    // Active clients do NOT have trash button
-    await expect(page.getByTestId('client-delete-101')).not.toBeVisible();
-    await expect(page.getByTestId('client-delete-102')).not.toBeVisible();
+    await expect(page.getByTestId('client-delete-101')).toBeVisible();
+    await expect(page.getByTestId('client-delete-102')).toBeVisible();
   });
 
   test('deleting orphan removes it from the list after confirmation', {
@@ -396,20 +394,22 @@ test.describe('Admin Clients — Delete orphan client', () => {
     // Confirm modal should appear — use exact "Eliminar" to avoid matching the trash icon title
     const confirmBtn = page.getByRole('button', { name: 'Eliminar', exact: true });
     await expect(confirmBtn).toBeVisible({ timeout: 5_000 });
+    // Confirm modal now requires typing "DELETE" to enable the confirm button.
+    await page.getByTestId('confirm-type-input').fill('DELETE');
     await confirmBtn.click();
 
     // Client row should be gone
     await expect(page.getByTestId(`client-row-${mockOrphanClient.id}`)).not.toBeVisible({ timeout: 5_000 });
   });
 
-  test('active client does not show trash icon (protected from accidental delete)', {
+  test('active client delete shows a blocked-info modal instead of the delete confirm', {
     tag: [...ADMIN_CLIENT_DELETE_PROTECTED, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await gotoClients(page);
 
-    // No trash icon for clients that have proposals
-    await expect(page.getByTestId('client-delete-101')).not.toBeVisible();
-    await expect(page.getByTestId('client-delete-102')).not.toBeVisible();
+    await page.getByTestId('client-delete-101').click();
+    await expect(page.getByRole('button', { name: 'Entendido', exact: true })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: 'Eliminar', exact: true })).toHaveCount(0);
   });
 });

@@ -1,8 +1,6 @@
 from django.db import migrations, models
 from django.db.models import F
 
-from content.services.proposal_service import ProposalService
-
 
 SECTION_TYPE_CHOICES = [
     ('greeting', 'Greeting'),
@@ -28,10 +26,16 @@ _DEFAULTS_BY_LANGUAGE = {}
 
 
 def _defaults_index(language):
+    # Import lazily so the migration doesn't crash on envs where later
+    # migrations (adding columns ProposalService reads) haven't run yet.
     if language not in _DEFAULTS_BY_LANGUAGE:
+        try:
+            from content.services.proposal_service import ProposalService
+            sections = ProposalService.get_default_sections(language=language)
+        except Exception:
+            sections = []
         _DEFAULTS_BY_LANGUAGE[language] = {
-            cfg['section_type']: cfg
-            for cfg in ProposalService.get_default_sections(language=language)
+            cfg['section_type']: cfg for cfg in sections
         }
     return _DEFAULTS_BY_LANGUAGE[language]
 

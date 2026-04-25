@@ -220,3 +220,14 @@ python manage.py compilemessages
 - Custom reporter in `conftest.py` with Unicode progress bars
 - Run from `backend/` after activating venv: `pytest --cov`
 - Full reference: `docs/BACKEND_AND_FRONTEND_COVERAGE_REPORT_STANDARD.md`
+
+---
+
+## Codex Compatibility
+
+For work under `backend/`, use `backend/CLAUDE.md` as the authoritative backend instruction set for Django, DRF, testing, and backend-specific conventions.
+
+Compatibility rules for Codex:
+- Follow the root `AGENTS.md` in addition to this file.
+- Treat `backend/CLAUDE.md` as the source of truth if this file and `backend/CLAUDE.md` ever diverge.
+- Preserve existing backend architecture and testing conventions unless the user explicitly requests a change.

@@ -6,7 +6,7 @@ update_proposal_status (ACCEPTED transition), and _csv_analytics_section_group.
 import pytest
 from django.urls import reverse
 
-from content.models import ProposalChangeLog, ProposalSection
+from content.models import ProposalChangeLog, ProposalSection, ProposalViewEvent
 
 pytestmark = pytest.mark.django_db
 
@@ -91,6 +91,56 @@ class TestTrackRequirementClick:
             change_type='req_clicked',
         ).count()
         assert count == 1
+
+
+# ---------------------------------------------------------------------------
+# track_proposal_engagement — session uniqueness + VIEWED logging
+# ---------------------------------------------------------------------------
+
+class TestTrackProposalEngagementSession:
+    def _url(self, proposal):
+        return reverse('track-proposal-engagement', kwargs={'proposal_uuid': proposal.uuid})
+
+    def _payload(self, session_id='sess-A'):
+        return {
+            'session_id': session_id,
+            'view_mode': 'executive',
+            'sections': [
+                {
+                    'section_type': 'greeting',
+                    'section_title': '👋',
+                    'time_spent_seconds': 3.0,
+                    'entered_at': '2026-04-01T10:00:00Z',
+                },
+            ],
+        }
+
+    def test_same_session_collapses_to_single_view_event(self, api_client, sent_proposal):
+        """UniqueConstraint ensures repeated pings from the same session reuse one event row."""
+        url = self._url(sent_proposal)
+        api_client.post(url, self._payload('sess-A'), format='json')
+        api_client.post(url, self._payload('sess-A'), format='json')
+
+        events = ProposalViewEvent.objects.filter(
+            proposal=sent_proposal, session_id='sess-A',
+        )
+        assert events.count() == 1
+
+    def test_new_session_logs_viewed_without_cooldown(self, api_client, sent_proposal):
+        """Two distinct sessions (e.g. mobile + desktop) each log a VIEWED entry.
+
+        Previous behavior suppressed the second log via a 3h cooldown, which
+        under-reported legitimate multi-device activity.
+        """
+        url = self._url(sent_proposal)
+        api_client.post(url, self._payload('sess-A'), format='json')
+        api_client.post(url, self._payload('sess-B'), format='json')
+
+        viewed_logs = ProposalChangeLog.objects.filter(
+            proposal=sent_proposal,
+            change_type=ProposalChangeLog.ChangeType.VIEWED,
+        )
+        assert viewed_logs.count() == 2
 
 
 # ---------------------------------------------------------------------------

@@ -19,6 +19,7 @@ jest.mock('../../composables/usePlatformApi', () => ({
 
 describe('usePlatformCustomTheme', () => {
   let usePlatformCustomTheme
+  const originalImage = global.Image
 
   beforeEach(() => {
     jest.resetModules()
@@ -27,6 +28,10 @@ describe('usePlatformCustomTheme', () => {
     mockRequest.mockReset()
     document.documentElement.removeAttribute('style')
     usePlatformCustomTheme = require('../../composables/usePlatformCustomTheme').usePlatformCustomTheme
+  })
+
+  afterEach(() => {
+    global.Image = originalImage
   })
 
   it('hydrate copies user theme fields once', () => {
@@ -207,10 +212,28 @@ describe('usePlatformCustomTheme', () => {
     expect(document.documentElement.style.getPropertyValue('--theme-color')).toBe('')
   })
 
-  it('applyTheme sets dark text for light colors', () => {
+  it('measureBrightness resolves to 128 when image fails to load', async () => {
+    global.Image = class {
+      set onload(_fn) {}
+
+      set onerror(fn) {
+        this._err = fn
+      }
+
+      set src(_v) {
+        queueMicrotask(() => this._err())
+      }
+    }
     const theme = usePlatformCustomTheme()
-    // #e8f0fe has high luminance → light → btn text should be dark
-    theme.themeColor.value = '#e8f0fe'
+    await theme.setCoverImage('broken.jpg')
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(theme.isCoverDark.value).toBe(false)
+  })
+
+  it('applyTheme uses dark button text for light primary color', () => {
+    const theme = usePlatformCustomTheme()
+    theme.themeColor.value = '#ffffff'
     theme.applyTheme()
     expect(document.documentElement.style.getPropertyValue('--theme-btn-text')).toBe('#1a1a1a')
   })
@@ -240,10 +263,18 @@ describe('usePlatformCustomTheme', () => {
     expect(theme.customCoverImageUrl.value).toBe('https://old')
   })
 
+  it('setCustomCoverImage skips state update when response has no data', async () => {
+    mockRequest.mockResolvedValueOnce({})
+    const theme = usePlatformCustomTheme()
+    theme.customCoverImageUrl.value = 'previous'
+    const file = new File(['b'], 'c.png', { type: 'image/png' })
+    await theme.setCustomCoverImage(file)
+    expect(theme.customCoverImageUrl.value).toBe('previous')
+  })
+
   it('hydrate calls detectCoverBrightness with empty url when no cover set', () => {
     mockAuthStore.user = null
     const theme = usePlatformCustomTheme()
-    // With no cover set, detectCoverBrightness should set coverDark to false
     theme.hydrate()
     expect(theme.isCoverDark.value).toBe(false)
   })
@@ -276,10 +307,21 @@ describe('usePlatformCustomTheme', () => {
     expect(theme.hasCover.value).toBe(true)
   })
 
+  it('isCustomized is false when neither theme nor cover is set', () => {
+    const theme = usePlatformCustomTheme()
+    expect(theme.isCustomized.value).toBe(false)
+  })
+
   it('isCustomized is true when only hasCover is set', () => {
     const theme = usePlatformCustomTheme()
     theme.themeColor.value = ''
     theme.coverImage.value = 'a.jpg'
+    expect(theme.isCustomized.value).toBe(true)
+  })
+
+  it('isCustomized becomes true when themeColor is set', () => {
+    const theme = usePlatformCustomTheme()
+    theme.themeColor.value = '#2874f3'
     expect(theme.isCustomized.value).toBe(true)
   })
 })

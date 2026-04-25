@@ -84,7 +84,6 @@ test.describe('Proposal View Navigation', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // The hamburger toggle button for ProposalIndex should always be visible
     await expect(page.getByTestId('index-toggle')).toBeVisible();
@@ -95,7 +94,6 @@ test.describe('Proposal View Navigation', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Index panel is hidden initially (translate-x-[-120%])
     const indexPanel = page.getByTestId('index-panel');
@@ -113,7 +111,6 @@ test.describe('Proposal View Navigation', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Open the index
     await page.getByTestId('index-toggle').click();
@@ -136,7 +133,6 @@ test.describe('Proposal View Navigation', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // First navigate to section 2 so prev button would normally show
     const nextBtn = page.getByTestId('nav-next');
@@ -158,19 +154,20 @@ test.describe('Proposal View Navigation', () => {
     tag: [...PROPOSAL_VIEW_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
+    const proposalReq = page.waitForResponse((r) => r.url().includes(`proposals/${MOCK_UUID}/`));
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
+    await proposalReq;
 
-    // Navigate through all sections
+    // Mock has 3 sections (greeting, executive_summary, context_diagnostic);
+    // the page auto-appends proposal_closing → 4 panels total → 3 nav-next clicks.
     const nextBtn = page.getByTestId('nav-next');
-    let safetyLimit = 15;
-    while (await nextBtn.isVisible({ timeout: 500 }).catch(() => false) && safetyLimit-- > 0) {
+    for (let i = 0; i < 3; i++) {
+      await expect(nextBtn).toBeVisible();
       await nextBtn.click();
-      await expect(page.locator('body')).toBeVisible(); // yield
     }
 
     // On last panel (proposal_closing), next button is gone
-    await expect(page.getByTestId('nav-next')).not.toBeVisible();
+    await expect(nextBtn).not.toBeVisible();
 
     // And accept/reject buttons should be visible (closing panel)
     await expect(page.getByRole('button', { name: /Acepto la propuesta/i })).toBeVisible();

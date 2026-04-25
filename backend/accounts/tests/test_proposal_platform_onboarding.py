@@ -5,14 +5,17 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from django.utils import timezone
 
 from accounts.models import Deliverable, Project, UserProfile
 from accounts.services.proposal_platform_onboarding import (
     _acting_user_for_sync,
     _find_client_user_by_email,
+    _sync_proposal_documents_to_deliverable,
     ensure_deliverable_for_accepted_proposal,
     handle_proposal_accepted_for_platform,
+    teardown_platform_for_proposal,
 )
 from accounts.services.technical_requirements_sync import (
     sync_technical_requirements_for_deliverable,
@@ -302,3 +305,154 @@ def test_handle_does_not_duplicate_stages_on_re_run(
     assert ProposalProjectStage.objects.filter(
         proposal=proposal_with_deliverable,
     ).count() == 2
+
+
+# -- teardown_platform_for_proposal ------------------------------------------
+
+
+@pytest.mark.django_db
+def test_teardown_returns_early_when_no_deliverable_id():
+    proposal = BusinessProposal.objects.create(
+        title='TeardownNoDel',
+        client_name='Client',
+        status=BusinessProposal.Status.ACCEPTED,
+    )
+    teardown_platform_for_proposal(proposal)
+    proposal.refresh_from_db()
+    assert proposal.deliverable_id is None
+
+
+@pytest.mark.django_db
+def test_teardown_deletes_project_and_clears_deliverable_id(proposal_with_deliverable):
+    project_pk = proposal_with_deliverable.deliverable.project_id
+    teardown_platform_for_proposal(proposal_with_deliverable)
+    proposal_with_deliverable.refresh_from_db()
+    assert proposal_with_deliverable.deliverable_id is None
+    assert not Project.objects.filter(pk=project_pk).exists()
+
+
+@pytest.mark.django_db
+def test_teardown_clears_platform_onboarding_completed_at(proposal_with_deliverable):
+    proposal_with_deliverable.platform_onboarding_completed_at = timezone.now()
+    proposal_with_deliverable.save(update_fields=['platform_onboarding_completed_at'])
+
+    teardown_platform_for_proposal(proposal_with_deliverable)
+
+    proposal_with_deliverable.refresh_from_db()
+    assert proposal_with_deliverable.platform_onboarding_completed_at is None
+
+
+# -- _sync_proposal_documents_to_deliverable ---------------------------------
+
+
+@pytest.mark.django_db
+@patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=b'')
+@patch('content.services.technical_document_pdf.generate_technical_document_pdf', return_value=b'')
+def test_sync_documents_skips_deliverable_file_when_pdf_returns_empty_bytes(
+    _mock_tech, _mock_gen, proposal_with_deliverable, admin_user,
+):
+    from accounts.models import DeliverableFile
+
+    d = proposal_with_deliverable.deliverable
+    before = DeliverableFile.objects.filter(deliverable=d).count()
+    _sync_proposal_documents_to_deliverable(proposal_with_deliverable, d, admin_user)
+    after = DeliverableFile.objects.filter(deliverable=d).count()
+    assert after == before
+
+
+@pytest.mark.django_db
+@patch(
+    'content.services.proposal_pdf_service.ProposalPdfService.generate',
+    side_effect=Exception('pdf fail'),
+)
+@patch('content.services.technical_document_pdf.generate_technical_document_pdf', return_value=None)
+def test_sync_documents_does_not_raise_when_proposal_pdf_generation_fails(
+    _mock_tech, _mock_gen, proposal_with_deliverable, admin_user,
+):
+    d = proposal_with_deliverable.deliverable
+    _sync_proposal_documents_to_deliverable(proposal_with_deliverable, d, admin_user)
+
+
+@pytest.mark.django_db
+@patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=None)
+@patch(
+    'content.services.technical_document_pdf.generate_technical_document_pdf',
+    side_effect=Exception('tech fail'),
+)
+def test_sync_documents_does_not_raise_when_technical_pdf_generation_fails(
+    _mock_tech, _mock_gen, proposal_with_deliverable, admin_user,
+):
+    d = proposal_with_deliverable.deliverable
+    _sync_proposal_documents_to_deliverable(proposal_with_deliverable, d, admin_user)
+
+
+# -- ensure_deliverable edge cases -------------------------------------------
+
+
+@pytest.mark.django_db
+@override_settings(AUTO_PROVISION_CLIENT_FROM_PROPOSAL=True)
+@patch('accounts.services.onboarding.create_client', side_effect=ValueError('Duplicate email'))
+def test_ensure_deliverable_logs_and_continues_when_create_client_raises_value_error(
+    _mock_create, admin_user,
+):
+    proposal = BusinessProposal.objects.create(
+        title='AutoProv',
+        client_name='Auto Client',
+        client_email='nobody-autoprov@nowhere.invalid',
+        status=BusinessProposal.Status.ACCEPTED,
+    )
+    result = ensure_deliverable_for_accepted_proposal(proposal, admin_user)
+    assert result is None
+
+
+@pytest.mark.django_db
+def test_ensure_deliverable_returns_none_when_user_has_no_profile():
+    u = User.objects.create_user(
+        username='noprofile-onb@test.com',
+        email='noprofile-onb@test.com',
+        password='pass',
+    )
+    proposal = BusinessProposal.objects.create(
+        title='NoProfile',
+        client_name='No Profile',
+        client_email='noprofile-onb@test.com',
+        status=BusinessProposal.Status.ACCEPTED,
+    )
+    result = ensure_deliverable_for_accepted_proposal(proposal, None)
+    assert result is None
+
+
+# -- handle_proposal_accepted_for_platform with send_email=False -------------
+
+
+@pytest.mark.django_db
+@patch('accounts.services.proposal_platform_onboarding.sync_technical_requirements_for_deliverable')
+def test_handle_accepted_sets_timestamp_when_send_email_is_false(
+    _mock_sync, proposal_with_deliverable, admin_user,
+):
+    _mock_sync.return_value = {'ok': True, 'detail': 'synced'}
+    proposal_with_deliverable.platform_onboarding_completed_at = None
+    proposal_with_deliverable.save(update_fields=['platform_onboarding_completed_at'])
+
+    handle_proposal_accepted_for_platform(
+        proposal_with_deliverable, source='admin_panel', acting_user=admin_user, send_email=False,
+    )
+
+    proposal_with_deliverable.refresh_from_db()
+    assert proposal_with_deliverable.platform_onboarding_completed_at is not None
+
+
+@pytest.mark.django_db
+@patch('accounts.services.proposal_platform_onboarding.sync_technical_requirements_for_deliverable')
+def test_handle_accepted_returns_not_skipped_when_send_email_is_false(
+    _mock_sync, proposal_with_deliverable, admin_user,
+):
+    _mock_sync.return_value = {'ok': True, 'detail': 'synced'}
+    proposal_with_deliverable.platform_onboarding_completed_at = None
+    proposal_with_deliverable.save(update_fields=['platform_onboarding_completed_at'])
+
+    result = handle_proposal_accepted_for_platform(
+        proposal_with_deliverable, source='admin_panel', acting_user=admin_user, send_email=False,
+    )
+
+    assert result['skipped'] is False

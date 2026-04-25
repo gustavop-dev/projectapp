@@ -1,6 +1,9 @@
 """Targeted tests for the WebAppDiagnostic feature (JSON sections model)."""
 
+import io
 import pytest
+
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from content.models import DiagnosticChangeLog, DiagnosticSection, WebAppDiagnostic
 from content.services import diagnostic_service
@@ -140,26 +143,82 @@ def test_send_initial_transitions_status(admin_client, diagnostic, mailoutbox):
     assert 'diag@example.com' in mailoutbox[0].to
 
 
-def test_public_retrieve_increments_view_count(api_client, diagnostic):
+def test_public_retrieve_does_not_increment_view_count(api_client, diagnostic):
+    """GET /public/ only returns data; only POST /track/ bumps view_count.
+
+    This avoids double-counting (frontend always does GET + POST /track/).
+    """
     diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
     response = api_client.get(f'/api/diagnostics/public/{diagnostic.uuid}/')
     assert response.status_code == 200
     body = response.json()
     assert body['client_name']
-    # Initial phase: exposes sections with visibility ∈ {initial, both}.
     returned_types = {s['section_type'] for s in body['sections']}
     assert 'executive_summary' not in returned_types
     diagnostic.refresh_from_db()
-    assert diagnostic.view_count == 1
+    assert diagnostic.view_count == 0
 
-    # Explicit track endpoint creates a view event + bumps counter.
+    # The track endpoint is what creates the event + bumps the counter.
     api_client.post(
         f'/api/diagnostics/public/{diagnostic.uuid}/track/',
         {'session_id': 'abc123'}, format='json',
     )
     diagnostic.refresh_from_db()
-    assert diagnostic.view_count == 2
+    assert diagnostic.view_count == 1
     assert diagnostic.view_events.count() == 1
+
+
+def test_track_section_rejects_non_numeric_time_spent(api_client, diagnostic):
+    """Passing a non-numeric time_spent_seconds returns 400, not 500."""
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
+    response = api_client.post(
+        f'/api/diagnostics/public/{diagnostic.uuid}/track-section/',
+        {
+            'session_id': 'abc123',
+            'section_type': 'purpose',
+            'section_title': 'Propósito',
+            'time_spent_seconds': 'abc',
+        },
+        format='json',
+    )
+    assert response.status_code == 400
+    assert response.json().get('error') == 'invalid_time_spent_seconds'
+
+
+def test_track_section_respects_client_entered_at(api_client, diagnostic):
+    """entered_at from payload is stored verbatim; fallback is now() if missing."""
+    from content.models import DiagnosticSectionView
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
+    response = api_client.post(
+        f'/api/diagnostics/public/{diagnostic.uuid}/track-section/',
+        {
+            'session_id': 'abc123',
+            'section_type': 'purpose',
+            'section_title': 'Propósito',
+            'time_spent_seconds': 5,
+            'entered_at': '2026-04-01T10:30:00Z',
+        },
+        format='json',
+    )
+    assert response.status_code == 200
+    section_view = DiagnosticSectionView.objects.filter(
+        view_event__diagnostic=diagnostic, section_type='purpose',
+    ).first()
+    assert section_view is not None
+    assert section_view.entered_at.isoformat().startswith('2026-04-01T10:30:00')
+
+
+def test_track_reuses_view_event_for_same_session(api_client, diagnostic):
+    """Two POST /track/ with the same session_id collapse to one event row."""
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
+    url = f'/api/diagnostics/public/{diagnostic.uuid}/track/'
+    r1 = api_client.post(url, {'session_id': 'session-xyz'}, format='json')
+    r2 = api_client.post(url, {'session_id': 'session-xyz'}, format='json')
+    assert r1.status_code == 200 and r2.status_code == 200
+    diagnostic.refresh_from_db()
+    # view_count is bumped on each register_view call (second-click re-visit
+    # is a real signal), but the view_event row is unique per session.
+    assert diagnostic.view_events.filter(session_id='session-xyz').count() == 1
 
 
 def test_public_respond_accept_finalizes_status(api_client, diagnostic):
@@ -410,3 +469,195 @@ def test_send_initial_response_exposes_email_ok(admin_client, diagnostic):
     )
     assert response.status_code == 200
     assert 'email_ok' in response.json()
+
+
+# ── Status transitions ─────────────────────────────────────────────────────
+
+def test_mark_in_analysis_transitions_to_negotiating(admin_client, diagnostic):
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
+    response = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/mark-in-analysis/', {}, format='json',
+    )
+    assert response.status_code == 200
+    diagnostic.refresh_from_db()
+    assert diagnostic.status == WebAppDiagnostic.Status.NEGOTIATING
+
+
+def test_send_final_transitions_back_to_sent(admin_client, diagnostic):
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.NEGOTIATING)
+    response = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/send-final/', {}, format='json',
+    )
+    assert response.status_code == 200
+    assert 'email_ok' in response.json()
+    diagnostic.refresh_from_db()
+    assert diagnostic.status == WebAppDiagnostic.Status.SENT
+
+
+def test_mark_in_analysis_rejects_invalid_transition(admin_client, diagnostic):
+    # DRAFT → NEGOTIATING is not a valid transition.
+    response = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/mark-in-analysis/', {}, format='json',
+    )
+    assert response.status_code == 400
+
+
+# ── Analytics CSV export ───────────────────────────────────────────────────
+
+def test_export_analytics_csv_returns_text_csv(admin_client, diagnostic):
+    response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/analytics/csv/')
+    assert response.status_code == 200
+    assert response['Content-Type'] == 'text/csv'
+
+
+def test_export_analytics_csv_contains_diagnostic_title(admin_client, diagnostic):
+    response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/analytics/csv/')
+    content = response.content.decode()
+    assert diagnostic.title in content
+
+
+def test_export_analytics_csv_has_section_engagement_header(admin_client, diagnostic):
+    response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/analytics/csv/')
+    content = response.content.decode()
+    assert 'SECTION ENGAGEMENT' in content
+
+
+# ── Attachment CRUD ────────────────────────────────────────────────────────
+
+def _minimal_pdf():
+    return SimpleUploadedFile('test.pdf', b'%PDF-1.4 fake content', content_type='application/pdf')
+
+
+def test_upload_attachment_returns_201(admin_client, diagnostic):
+    response = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/attachments/upload/',
+        {'file': _minimal_pdf()},
+        format='multipart',
+    )
+    assert response.status_code == 201
+    assert 'id' in response.json()
+
+
+def test_upload_attachment_rejects_invalid_extension(admin_client, diagnostic):
+    bad_file = SimpleUploadedFile('malware.exe', b'MZ fake', content_type='application/octet-stream')
+    response = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/attachments/upload/',
+        {'file': bad_file},
+        format='multipart',
+    )
+    assert response.status_code == 400
+    assert 'not allowed' in response.json()['error']
+
+
+def test_upload_attachment_rejects_missing_file(admin_client, diagnostic):
+    response = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/attachments/upload/',
+        {},
+        format='multipart',
+    )
+    assert response.status_code == 400
+
+
+def test_delete_attachment_returns_204(admin_client, diagnostic):
+    upload = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/attachments/upload/',
+        {'file': _minimal_pdf()},
+        format='multipart',
+    )
+    attachment_id = upload.json()['id']
+    response = admin_client.delete(
+        f'/api/diagnostics/{diagnostic.id}/attachments/{attachment_id}/delete/',
+    )
+    assert response.status_code == 204
+
+
+def test_delete_generated_attachment_returns_400(admin_client, diagnostic):
+    from django.core.files.base import ContentFile
+    from content.models import DiagnosticAttachment
+    attachment = DiagnosticAttachment.objects.create(
+        diagnostic=diagnostic,
+        document_type=DiagnosticAttachment.DOC_TYPE_CONFIDENTIALITY,
+        title='Generated NDA',
+        file=ContentFile(b'%PDF-1.4 fake', name='nda.pdf'),
+        is_generated=True,
+    )
+    response = admin_client.delete(
+        f'/api/diagnostics/{diagnostic.id}/attachments/{attachment.id}/delete/',
+    )
+    assert response.status_code == 400
+
+
+# ── Diagnostic defaults ────────────────────────────────────────────────────
+
+def test_diagnostic_defaults_get_returns_fallback_config(admin_client):
+    response = admin_client.get('/api/diagnostics/defaults/?lang=es')
+    assert response.status_code == 200
+    body = response.json()
+    assert body['language'] == 'es'
+    assert 'payment_initial_pct' in body
+
+
+def test_diagnostic_defaults_put_creates_db_config(admin_client):
+    response = admin_client.put(
+        '/api/diagnostics/defaults/',
+        {
+            'language': 'es',
+            'payment_initial_pct': 60,
+            'payment_final_pct': 40,
+            'default_currency': 'COP',
+            'expiration_days': 21,
+            'reminder_days': 7,
+            'urgency_reminder_days': 14,
+        },
+        format='json',
+    )
+    assert response.status_code == 200
+    assert response.json()['payment_initial_pct'] == 60
+
+
+def test_diagnostic_defaults_get_returns_invalid_lang_400(admin_client):
+    response = admin_client.get('/api/diagnostics/defaults/?lang=fr')
+    assert response.status_code == 400
+
+
+def test_reset_diagnostic_defaults_deletes_config(admin_client):
+    # First create a config, then reset it.
+    admin_client.put(
+        '/api/diagnostics/defaults/',
+        {
+            'language': 'es',
+            'payment_initial_pct': 60,
+            'payment_final_pct': 40,
+            'default_currency': 'COP',
+            'expiration_days': 21,
+            'reminder_days': 7,
+            'urgency_reminder_days': 14,
+        },
+        format='json',
+    )
+    response = admin_client.post(
+        '/api/diagnostics/defaults/reset/',
+        {'language': 'es'},
+        format='json',
+    )
+    assert response.status_code == 200
+    assert response.json()['deleted'] is True
+
+
+# ── Confidentiality PDF ────────────────────────────────────────────────────
+
+def test_generate_confidentiality_pdf_view_returns_attachment(admin_client, diagnostic):
+    from content.models import ConfidentialityTemplate
+    ConfidentialityTemplate.objects.create(
+        name='Default NDA',
+        content_markdown='Acuerdo entre {client_full_name} y {contractor_full_name}.',
+        is_default=True,
+    )
+    response = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/confidentiality/generate/',
+        {},
+        format='json',
+    )
+    assert response.status_code == 200
+    assert 'attachment' in response.json()

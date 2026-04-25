@@ -1,16 +1,22 @@
 """Tests for contract_pdf_service: parameter building, placeholder substitution, PDF generation."""
+import io
 import logging
 import re
 from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas as rl_canvas
 
 from content.services.contract_pdf_service import (
     _build_params,
+    _draw_title_page,
+    _render_block,
     _substitute_placeholders,
     generate_contract_pdf,
 )
+from content.services.pdf_utils import MARGIN_T, PAGE_H
 
 pytestmark = pytest.mark.django_db
 
@@ -312,3 +318,119 @@ class TestDefaultTemplateIntegrity:
         })
         result = self.template.content_markdown.format(**params)
         assert '{' not in result or '{{' in self.template.content_markdown
+
+
+# ---------------------------------------------------------------------------
+# _render_block — all block types
+# ---------------------------------------------------------------------------
+
+def _make_canvas():
+    buf = io.BytesIO()
+    c = rl_canvas.Canvas(buf, pagesize=A4)
+    ps = {'num': 1, 'client': 'Test'}
+    y = PAGE_H - MARGIN_T
+    return c, y, ps
+
+
+class TestRenderBlock:
+    def test_heading_level_1_renders_without_error(self):
+        c, y, ps = _make_canvas()
+        new_y = _render_block(c, y, {'type': 'heading', 'level': 1, 'text': 'Heading 1'}, ps)
+        assert isinstance(new_y, (int, float))
+
+    def test_heading_level_2_renders_without_error(self):
+        c, y, ps = _make_canvas()
+        new_y = _render_block(c, y, {'type': 'heading', 'level': 2, 'text': 'Heading 2'}, ps)
+        assert isinstance(new_y, (int, float))
+
+    def test_heading_level_3_renders_without_error(self):
+        c, y, ps = _make_canvas()
+        new_y = _render_block(c, y, {'type': 'heading', 'level': 3, 'text': 'Heading 3'}, ps)
+        assert isinstance(new_y, (int, float))
+
+    def test_paragraph_renders_without_error(self):
+        c, y, ps = _make_canvas()
+        new_y = _render_block(c, y, {'type': 'paragraph', 'text': 'Some body text.'}, ps)
+        assert isinstance(new_y, (int, float))
+
+    def test_unordered_list_renders_without_error(self):
+        c, y, ps = _make_canvas()
+        block = {'type': 'list', 'ordered': False, 'items': [{'text': 'Item A'}, {'text': 'Item B'}]}
+        new_y = _render_block(c, y, block, ps)
+        assert isinstance(new_y, (int, float))
+
+    def test_ordered_list_renders_without_error(self):
+        c, y, ps = _make_canvas()
+        block = {'type': 'list', 'ordered': True, 'items': [{'text': 'First'}, {'text': 'Second'}]}
+        new_y = _render_block(c, y, block, ps)
+        assert isinstance(new_y, (int, float))
+
+    def test_separator_renders_without_error(self):
+        c, y, ps = _make_canvas()
+        new_y = _render_block(c, y, {'type': 'separator'}, ps)
+        assert isinstance(new_y, (int, float))
+
+    def test_blockquote_renders_without_error(self):
+        c, y, ps = _make_canvas()
+        new_y = _render_block(c, y, {'type': 'blockquote', 'text': 'A quote.'}, ps)
+        assert isinstance(new_y, (int, float))
+
+    def test_code_block_renders_without_error(self):
+        c, y, ps = _make_canvas()
+        new_y = _render_block(c, y, {'type': 'code', 'text': 'def hello(): pass'}, ps)
+        assert isinstance(new_y, (int, float))
+
+    def test_table_renders_without_error(self):
+        c, y, ps = _make_canvas()
+        block = {
+            'type': 'table',
+            'headers': ['Col A', 'Col B'],
+            'rows': [['val1', 'val2'], ['val3', 'val4']],
+        }
+        new_y = _render_block(c, y, block, ps)
+        assert isinstance(new_y, (int, float))
+
+    def test_unknown_block_type_returns_y_unchanged(self):
+        c, y, ps = _make_canvas()
+        new_y = _render_block(c, y, {'type': 'unknown_type'}, ps)
+        assert new_y == y
+
+
+class TestDrawTitlePage:
+    def test_renders_without_error_when_no_contract_date(self):
+        c, y, ps = _make_canvas()
+        params = {'client_full_name': 'Client', 'contractor_full_name': 'Contractor', 'contract_date': ''}
+        new_y = _draw_title_page(c, y, params, ps)
+        assert isinstance(new_y, (int, float))
+
+    def test_renders_without_error_with_contract_date(self):
+        c, y, ps = _make_canvas()
+        params = {
+            'client_full_name': 'Client',
+            'contractor_full_name': 'Contractor',
+            'contract_date': '2026-04-25',
+        }
+        new_y = _draw_title_page(c, y, params, ps)
+        # With a date, the y position should be lower than without
+        c2, y2, ps2 = _make_canvas()
+        params_no_date = {
+            'client_full_name': 'Client',
+            'contractor_full_name': 'Contractor',
+            'contract_date': '',
+        }
+        new_y2 = _draw_title_page(c2, y2, params_no_date, ps2)
+        assert new_y < new_y2
+
+
+class TestGenerateContractPdfExceptionPath:
+    def test_returns_none_when_rendering_raises_exception(self):
+        proposal = SimpleNamespace(contract_params={'contract_source': 'custom'}, pk=99)
+        with patch('content.services.contract_pdf_service._get_contract_markdown', side_effect=RuntimeError('boom')):
+            result = generate_contract_pdf(proposal)
+        assert result is None
+
+    def test_returns_none_when_contract_params_is_none(self):
+        proposal = SimpleNamespace(contract_params=None, pk=98)
+        with patch('content.services.contract_pdf_service._get_contract_markdown', return_value=''):
+            result = generate_contract_pdf(proposal)
+        assert result is None

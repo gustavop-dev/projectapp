@@ -95,7 +95,7 @@ test.describe('Admin Proposal Contract Download', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByText('No generado', { exact: true })).toBeVisible();
+    await expect(page.getByText(/No generado/)).toBeVisible();
   });
 
   test('contract creation date shown when contract exists', {

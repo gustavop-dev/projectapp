@@ -44,6 +44,8 @@ class ProposalClientSerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(source='user.id', read_only=True)
     is_email_placeholder = serializers.BooleanField(read_only=True)
     total_proposals = serializers.SerializerMethodField()
+    projects_count = serializers.SerializerMethodField()
+    diagnostics_count = serializers.SerializerMethodField()
     is_orphan = serializers.SerializerMethodField()
     accepted_count = serializers.SerializerMethodField()
     last_status = serializers.SerializerMethodField()
@@ -63,6 +65,8 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'is_onboarded',
             'is_email_placeholder',
             'total_proposals',
+            'projects_count',
+            'diagnostics_count',
             'is_orphan',
             'accepted_count',
             'last_status',
@@ -78,6 +82,8 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'is_onboarded',
             'is_email_placeholder',
             'total_proposals',
+            'projects_count',
+            'diagnostics_count',
             'is_orphan',
             'accepted_count',
             'last_status',
@@ -102,6 +108,18 @@ class ProposalClientSerializer(serializers.ModelSerializer):
         if annotated is not None:
             return annotated
         return obj.proposals.count()
+
+    def get_projects_count(self, obj):
+        annotated = getattr(obj, 'projects_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.user.projects.count()
+
+    def get_diagnostics_count(self, obj):
+        annotated = getattr(obj, 'diagnostics_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.web_app_diagnostics.count()
 
     def get_is_orphan(self, obj):
         if self.get_total_proposals(obj) > 0:

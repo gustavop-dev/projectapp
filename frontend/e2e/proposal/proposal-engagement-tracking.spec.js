@@ -8,7 +8,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_ENGAGEMENT_TRACKING } from '../helpers/flow-tags.js';
 
-const MOCK_UUID = 'tracking-test-uuid-1234-5678-abcdef';
+const MOCK_UUID = '3a111111-1111-1111-1111-111111111111';
 
 const mockProposal = {
   id: 1,
@@ -57,7 +57,6 @@ test.describe('Proposal Engagement Tracking', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Next button should be visible on first section
     const nextBtn = page.getByTestId('nav-next');
@@ -75,7 +74,6 @@ test.describe('Proposal Engagement Tracking', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });

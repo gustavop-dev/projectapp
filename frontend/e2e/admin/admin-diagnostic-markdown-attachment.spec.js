@@ -126,7 +126,10 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
     await page.getByRole('button', { name: /Crear documento desde markdown/i }).click();
 
     await expect(page.locator('input[type="text"]').first()).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('textarea')).toBeVisible();
+    // The modal's markdown textarea is the last one on the page (its placeholder
+    // starts with "# Encabezado") — scope by placeholder to avoid matching
+    // Correos-tab textareas rendered behind the modal.
+    await expect(page.getByPlaceholder(/# Encabezado/)).toBeVisible();
     const checkboxes = await page.locator('input[type="checkbox"]').count();
     expect(checkboxes).toBeGreaterThanOrEqual(3);
   });
@@ -141,7 +144,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
     await page.getByRole('button', { name: /Crear documento desde markdown/i }).click();
 
     await expect(
-      page.getByRole('button', { name: /Vista previa/i }),
+      page.getByRole('button', { name: /Vista previa/i }).nth(1),
     ).toBeDisabled({ timeout: 10000 });
   });
 

@@ -194,66 +194,144 @@
           </div>
         </div>
 
-        <!-- Expanded: proposals list -->
+        <!-- Expanded: proposals, projects, and diagnostics -->
         <div
           v-if="expandedClients.has(client.id)"
           class="border-t border-gray-100 dark:border-white/[0.04] bg-gray-50/40 dark:bg-white/[0.03]"
         >
           <div v-if="loadingDetails.has(client.id)" class="px-5 py-4 text-sm text-gray-400 dark:text-green-light/60">
-            Cargando propuestas...
+            Cargando...
           </div>
-          <div
-            v-else-if="(detailCache[client.id]?.proposals || []).length === 0"
-            class="px-5 py-4 text-sm text-gray-400 dark:text-green-light/60"
-          >
-            Este cliente no tiene propuestas todavía.
-          </div>
-          <div v-else class="overflow-x-auto">
-            <table class="w-full min-w-[600px] text-sm">
-              <thead>
-                <tr
-                  class="bg-gray-50 dark:bg-white/[0.03] text-left text-xs text-gray-500 dark:text-green-light/60 uppercase tracking-wider"
-                >
-                  <th class="px-5 py-3">Propuesta</th>
-                  <th class="px-4 py-3">Estado</th>
-                  <th class="px-4 py-3">Inversión</th>
-                  <th class="px-4 py-3 text-center">Vistas</th>
-                  <th class="px-4 py-3">Enviada</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-50 dark:divide-white/[0.04]">
-                <tr
-                  v-for="p in detailCache[client.id].proposals"
-                  :key="p.id"
-                  class="hover:bg-gray-50/60 dark:hover:bg-white/[0.04] transition-colors bg-white dark:bg-transparent"
-                >
-                  <td class="px-5 py-3">
-                    <NuxtLink
-                      :to="localePath(`/panel/proposals/${p.id}/edit`)"
-                      class="font-medium text-gray-900 dark:text-white hover:text-emerald-600 transition-colors"
+          <template v-else>
+            <!-- Proposals -->
+            <div class="px-5 pt-4 pb-1">
+              <p class="text-xs font-semibold text-gray-400 dark:text-green-light/50 uppercase tracking-wider mb-2">Propuestas</p>
+            </div>
+            <div
+              v-if="(detailCache[client.id]?.proposals || []).length === 0"
+              class="px-5 pb-4 text-sm text-gray-400 dark:text-green-light/60"
+            >
+              Sin propuestas.
+            </div>
+            <div v-else class="overflow-x-auto">
+              <table class="w-full min-w-[600px] text-sm">
+                <thead>
+                  <tr
+                    class="bg-gray-50 dark:bg-white/[0.03] text-left text-xs text-gray-500 dark:text-green-light/60 uppercase tracking-wider"
+                  >
+                    <th class="px-5 py-3">Propuesta</th>
+                    <th class="px-4 py-3">Estado</th>
+                    <th class="px-4 py-3">Inversión</th>
+                    <th class="px-4 py-3 text-center">Vistas</th>
+                    <th class="px-4 py-3">Enviada</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 dark:divide-white/[0.04]">
+                  <tr
+                    v-for="p in detailCache[client.id].proposals"
+                    :key="p.id"
+                    class="hover:bg-gray-50/60 dark:hover:bg-white/[0.04] transition-colors bg-white dark:bg-transparent"
+                  >
+                    <td class="px-5 py-3">
+                      <NuxtLink
+                        :to="localePath(`/panel/proposals/${p.id}/edit`)"
+                        class="font-medium text-gray-900 dark:text-white hover:text-emerald-600 transition-colors"
+                      >
+                        {{ p.title }}
+                      </NuxtLink>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span
+                        class="text-xs px-2.5 py-1 rounded-full font-medium"
+                        :class="statusClass(p.status)"
+                      >
+                        {{ p.status }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600 dark:text-green-light/60 tabular-nums">
+                      ${{ Number(p.total_investment).toLocaleString() }} {{ p.currency }}
+                    </td>
+                    <td class="px-4 py-3 text-center text-gray-600 dark:text-green-light/60">{{ p.view_count }}</td>
+                    <td class="px-4 py-3 text-gray-500 dark:text-green-light/60 text-xs">
+                      {{ p.sent_at ? formatDate(p.sent_at) : '—' }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Platform projects -->
+            <template v-if="(detailCache[client.id]?.projects || []).length > 0">
+              <div class="px-5 pt-4 pb-1 border-t border-gray-100 dark:border-white/[0.04] mt-2">
+                <p class="text-xs font-semibold text-gray-400 dark:text-green-light/50 uppercase tracking-wider mb-2">Proyectos de plataforma</p>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[500px] text-sm">
+                  <thead>
+                    <tr class="bg-gray-50 dark:bg-white/[0.03] text-left text-xs text-gray-500 dark:text-green-light/60 uppercase tracking-wider">
+                      <th class="px-5 py-3">Proyecto</th>
+                      <th class="px-4 py-3">Estado</th>
+                      <th class="px-4 py-3 text-center">Progreso</th>
+                      <th class="px-4 py-3">Inicio</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-50 dark:divide-white/[0.04]">
+                    <tr
+                      v-for="proj in detailCache[client.id].projects"
+                      :key="proj.id"
+                      class="hover:bg-gray-50/60 dark:hover:bg-white/[0.04] transition-colors bg-white dark:bg-transparent"
                     >
-                      {{ p.title }}
-                    </NuxtLink>
-                  </td>
-                  <td class="px-4 py-3">
-                    <span
-                      class="text-xs px-2.5 py-1 rounded-full font-medium"
-                      :class="statusClass(p.status)"
+                      <td class="px-5 py-3 font-medium text-gray-900 dark:text-white">{{ proj.name }}</td>
+                      <td class="px-4 py-3">
+                        <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(proj.status)">
+                          {{ proj.status }}
+                        </span>
+                      </td>
+                      <td class="px-4 py-3 text-center text-gray-600 dark:text-green-light/60">{{ proj.progress }}%</td>
+                      <td class="px-4 py-3 text-gray-500 dark:text-green-light/60 text-xs">
+                        {{ proj.start_date ? formatDate(proj.start_date) : '—' }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+
+            <!-- Web diagnostics -->
+            <template v-if="(detailCache[client.id]?.diagnostics || []).length > 0">
+              <div class="px-5 pt-4 pb-1 border-t border-gray-100 dark:border-white/[0.04] mt-2">
+                <p class="text-xs font-semibold text-gray-400 dark:text-green-light/50 uppercase tracking-wider mb-2">Diagnósticos web</p>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[500px] text-sm">
+                  <thead>
+                    <tr class="bg-gray-50 dark:bg-white/[0.03] text-left text-xs text-gray-500 dark:text-green-light/60 uppercase tracking-wider">
+                      <th class="px-5 py-3">Diagnóstico</th>
+                      <th class="px-4 py-3">Estado</th>
+                      <th class="px-4 py-3">Creado</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-50 dark:divide-white/[0.04]">
+                    <tr
+                      v-for="diag in detailCache[client.id].diagnostics"
+                      :key="diag.id"
+                      class="hover:bg-gray-50/60 dark:hover:bg-white/[0.04] transition-colors bg-white dark:bg-transparent"
                     >
-                      {{ p.status }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-gray-600 dark:text-green-light/60 tabular-nums">
-                    ${{ Number(p.total_investment).toLocaleString() }} {{ p.currency }}
-                  </td>
-                  <td class="px-4 py-3 text-center text-gray-600 dark:text-green-light/60">{{ p.view_count }}</td>
-                  <td class="px-4 py-3 text-gray-500 dark:text-green-light/60 text-xs">
-                    {{ p.sent_at ? formatDate(p.sent_at) : '—' }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                      <td class="px-5 py-3 font-medium text-gray-900 dark:text-white">{{ diag.title }}</td>
+                      <td class="px-4 py-3">
+                        <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(diag.status)">
+                          {{ diag.status }}
+                        </span>
+                      </td>
+                      <td class="px-4 py-3 text-gray-500 dark:text-green-light/60 text-xs">
+                        {{ diag.created_at ? formatDate(diag.created_at) : '—' }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+          </template>
         </div>
       </div>
     </div>
@@ -627,12 +705,14 @@ async function submitEdit() {
 // -------------------------------------------------------------------
 
 function buildBlockedMessage(client) {
+  const parts = [];
   const proposals = client.total_proposals || 0;
-  // Backend orphan check also covers projects and diagnostics, but the list
-  // serializer only ships the proposal count — fall back to a generic phrase.
-  const reason = proposals > 0
-    ? `${proposals} propuesta${proposals === 1 ? '' : 's'}`
-    : 'proyectos o diagnósticos asociados';
+  const projects = client.projects_count || 0;
+  const diagnostics = client.diagnostics_count || 0;
+  if (proposals > 0) parts.push(`${proposals} propuesta${proposals === 1 ? '' : 's'}`);
+  if (projects > 0) parts.push(`${projects} proyecto${projects === 1 ? '' : 's'} de plataforma`);
+  if (diagnostics > 0) parts.push(`${diagnostics} diagnóstico${diagnostics === 1 ? '' : 's'} web`);
+  const reason = parts.length > 0 ? parts.join(', ') : 'elementos asociados';
   return `No se puede eliminar a "${client.name}" porque tiene ${reason}. Elimina o archiva esos elementos antes de borrar el cliente.`;
 }
 
@@ -696,6 +776,10 @@ function statusClass(s) {
     rejected: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300',
     expired: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
     negotiating: 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300',
+    active: 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300',
+    paused: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
+    completed: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    archived: 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light',
   };
   return map[s] || 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light';
 }

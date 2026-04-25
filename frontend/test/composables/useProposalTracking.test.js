@@ -550,4 +550,25 @@ describe('useProposalTracking', () => {
       expect(sectionLog.value).toHaveLength(0);
     });
   });
+
+  describe('preview mode short-circuit', () => {
+    it('skips tracking when preview query param is 1', () => {
+      const origSearch = window.location.search;
+      window.history.replaceState({}, '', '/?preview=1');
+      try {
+        const { proposalUuid, currentPanel } = createRefs();
+        const before = {
+          mounted: mountedCallbacks.length,
+          watches: watchCallbacks.length,
+        };
+        const result = useProposalTracking(proposalUuid, currentPanel);
+
+        expect(result).toBeUndefined();
+        expect(mountedCallbacks).toHaveLength(before.mounted);
+        expect(watchCallbacks).toHaveLength(before.watches);
+      } finally {
+        window.history.replaceState({}, '', '/' + origSearch);
+      }
+    });
+  });
 });

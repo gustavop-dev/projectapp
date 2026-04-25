@@ -87,7 +87,7 @@ test.describe('Admin Diagnostic — NDA Download Links', () => {
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
     await page.getByRole('button', { name: 'Documentos' }).click();
 
-    await expect(page.locator('h3', { hasText: 'Acuerdo de confidencialidad' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Acuerdo de confidencialidad').first()).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('link', { name: /Descargar/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /Borrador/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Editar parámetros/i })).toBeVisible();
@@ -106,7 +106,7 @@ test.describe('Admin Diagnostic — NDA Download Links', () => {
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
     await page.getByRole('button', { name: 'Documentos' }).click();
 
-    await expect(page.locator('h3', { hasText: 'Acuerdo de confidencialidad' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Acuerdo de confidencialidad').first()).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('No generado')).toBeVisible();
     await expect(page.getByRole('button', { name: /Generar acuerdo/i })).toBeVisible();
 

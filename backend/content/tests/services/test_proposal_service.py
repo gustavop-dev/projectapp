@@ -11,14 +11,17 @@ import pytest
 from freezegun import freeze_time
 
 from content.models import BusinessProposal, ProposalDefaultConfig
-from content.services.proposal_service import ProposalService
+from content.services.proposal_service import (
+    ProposalService,
+    normalize_hosting_plan,
+)
 from content.tests.constants import EXPECTED_DEFAULT_SECTION_COUNT
 
 pytestmark = pytest.mark.django_db
 
 # Module-level constants for reusable payloads
 CALCULATOR_MODULE_IDS = (
-    'pwa_module', 'ai_module', 'reports_alerts_module',
+    'pwa_module', 'corporate_branding_module', 'ai_module', 'reports_alerts_module',
     'email_marketing_module',
     'i18n_module',
     'integration_international_payments', 'integration_regional_payments',
@@ -35,7 +38,7 @@ EXPECTED_ADDITIONAL_MODULE_ORDER = [
     'integration_electronic_invoicing',
     'integration_regional_payments',
     'integration_international_payments',
-    'pwa_module', 'ai_module',
+    'pwa_module', 'corporate_branding_module', 'ai_module',
     'integration_conversion_tracking',
     'reports_alerts_module', 'email_marketing_module',
     'i18n_module',
@@ -98,13 +101,13 @@ class TestGetDefaultSections:
         assert 'Resumen' in es_section['content_json']['title']
 
     def test_functional_requirements_has_default_groups(self):
-        """Verify ES functional_requirements has 6 groups and 12 additionalModules."""
+        """Verify ES functional_requirements has 6 groups and 13 additionalModules."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
         additional = fr['content_json']['additionalModules']
         assert len(groups) == 7
-        assert len(additional) == 12
+        assert len(additional) == 13
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
@@ -114,7 +117,7 @@ class TestGetDefaultSections:
         assert additional_ids == {
             'integration_international_payments', 'integration_regional_payments',
             'integration_electronic_invoicing', 'integration_conversion_tracking',
-            'pwa_module', 'ai_module', 'reports_alerts_module',
+            'pwa_module', 'corporate_branding_module', 'ai_module', 'reports_alerts_module',
             'email_marketing_module',
             'i18n_module', 'gift_cards_module',
             'dark_mode_module', 'live_chat_module',
@@ -197,6 +200,17 @@ class TestGetDefaultSections:
         assert pwa['default_selected'] is False
         assert pwa['price_percent'] == 40
 
+    def test_corporate_branding_module_has_5_items_and_35_percent(self):
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        cb = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'corporate_branding_module')
+        assert len(cb['items']) == 5
+        assert cb['is_calculator_module'] is True
+        assert cb['default_selected'] is False
+        assert cb['price_percent'] == 35
+        assert cb.get('is_invite', False) is False
+        assert cb['is_visible'] is True
+
     def test_ai_module_has_11_items_and_is_invite(self):
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
@@ -231,14 +245,14 @@ class TestGetDefaultSections:
             assert es_g['is_calculator_module'] == en_g['is_calculator_module']
             assert es_g.get('price_percent') == en_g.get('price_percent')
 
-    def test_en_functional_requirements_has_7_groups_and_12_modules(self):
-        """Verify EN functional_requirements has 7 groups and 12 additionalModules."""
+    def test_en_functional_requirements_has_7_groups_and_13_modules(self):
+        """Verify EN functional_requirements has 7 groups and 13 additionalModules."""
         sections = ProposalService.get_default_sections('en')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
         additional = fr['content_json']['additionalModules']
         assert len(groups) == 7
-        assert len(additional) == 12
+        assert len(additional) == 13
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
@@ -248,7 +262,7 @@ class TestGetDefaultSections:
         assert additional_ids == {
             'integration_international_payments', 'integration_regional_payments',
             'integration_electronic_invoicing', 'integration_conversion_tracking',
-            'pwa_module', 'ai_module', 'reports_alerts_module',
+            'pwa_module', 'corporate_branding_module', 'ai_module', 'reports_alerts_module',
             'email_marketing_module',
             'i18n_module', 'gift_cards_module',
             'dark_mode_module', 'live_chat_module',
@@ -786,3 +800,94 @@ class TestCheckExpiration:
             expires_at=datetime(2026, 4, 1, 12, 0, 0, tzinfo=dt_tz.utc),
         )
         assert ProposalService.check_expiration(proposal) is False
+
+
+class TestNormalizeHostingPlan:
+    """Helper must make model fields the source of truth, with JSON as fallback."""
+
+    def _proposal(self, **overrides):
+        p = MagicMock()
+        p.hosting_percent = overrides.get('hosting_percent', 40)
+        p.hosting_discount_semiannual = overrides.get(
+            'hosting_discount_semiannual', 25,
+        )
+        p.hosting_discount_quarterly = overrides.get(
+            'hosting_discount_quarterly', 15,
+        )
+        return p
+
+    def test_model_percent_overrides_json(self):
+        result = normalize_hosting_plan(
+            self._proposal(hosting_percent=40),
+            {'hostingPercent': 30},
+        )
+        assert result['hostingPercent'] == 40
+
+    def test_model_discounts_override_tier_discounts(self):
+        result = normalize_hosting_plan(
+            self._proposal(
+                hosting_discount_semiannual=25,
+                hosting_discount_quarterly=15,
+            ),
+            {'billingTiers': [
+                {'frequency': 'semiannual', 'discountPercent': 20, 'months': 6},
+                {'frequency': 'quarterly', 'discountPercent': 10, 'months': 3},
+            ]},
+        )
+        tiers = {t['frequency']: t for t in result['billingTiers']}
+        assert tiers['semiannual']['discountPercent'] == 25
+        assert tiers['quarterly']['discountPercent'] == 15
+
+    def test_monthly_tier_discount_untouched(self):
+        result = normalize_hosting_plan(
+            self._proposal(),
+            {'billingTiers': [
+                {'frequency': 'monthly', 'discountPercent': 0, 'months': 1},
+            ]},
+        )
+        assert result['billingTiers'][0]['discountPercent'] == 0
+
+    def test_missing_model_percent_falls_back_to_json(self):
+        p = self._proposal(hosting_percent=0)
+        result = normalize_hosting_plan(p, {'hostingPercent': 25})
+        assert result['hostingPercent'] == 25
+
+    def test_missing_model_percent_defaults_to_30_when_json_also_empty(self):
+        p = self._proposal(hosting_percent=0)
+        result = normalize_hosting_plan(p, {})
+        assert result['hostingPercent'] == 30
+
+    def test_empty_billing_tiers_returns_empty_list(self):
+        result = normalize_hosting_plan(self._proposal(), {})
+        assert result['billingTiers'] == []
+
+    def test_malformed_tier_is_skipped(self):
+        result = normalize_hosting_plan(
+            self._proposal(),
+            {'billingTiers': [
+                None,
+                'not-a-dict',
+                {'frequency': 'monthly', 'months': 1, 'discountPercent': 0},
+            ]},
+        )
+        assert len(result['billingTiers']) == 1
+        assert result['billingTiers'][0]['frequency'] == 'monthly'
+
+    def test_none_billing_tiers_returns_empty_list(self):
+        result = normalize_hosting_plan(
+            self._proposal(), {'billingTiers': None},
+        )
+        assert result['billingTiers'] == []
+
+    def test_presentation_fields_preserved(self):
+        result = normalize_hosting_plan(
+            self._proposal(),
+            {
+                'title': 'Cloud', 'description': 'Managed.',
+                'specs': [{'label': 'SSL', 'value': 'included'}],
+                'hostingPercent': 30,
+            },
+        )
+        assert result['title'] == 'Cloud'
+        assert result['description'] == 'Managed.'
+        assert result['specs'] == [{'label': 'SSL', 'value': 'included'}]

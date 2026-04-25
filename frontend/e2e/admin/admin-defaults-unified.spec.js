@@ -91,10 +91,10 @@ test.describe('Admin Unified Defaults Shell', () => {
 
     const proposalBtn = page.getByTestId('defaults-mode-proposal');
     await expect(proposalBtn).toBeVisible();
-    await expect(proposalBtn).toHaveClass(/bg-emerald-600/);
+    await expect(proposalBtn).toHaveClass(/text-emerald-600/);
 
     const diagnosticBtn = page.getByTestId('defaults-mode-diagnostic');
-    await expect(diagnosticBtn).not.toHaveClass(/bg-emerald-600/);
+    await expect(diagnosticBtn).not.toHaveClass(/text-emerald-600/);
   });
 
   test('clicking Diagnóstico switch updates URL to ?mode=diagnostic', {
@@ -106,7 +106,7 @@ test.describe('Admin Unified Defaults Shell', () => {
     await page.getByTestId('defaults-mode-diagnostic').click();
 
     await expect(page).toHaveURL(/mode=diagnostic/);
-    await expect(page.getByTestId('defaults-mode-diagnostic')).toHaveClass(/bg-emerald-600/);
+    await expect(page.getByTestId('defaults-mode-diagnostic')).toHaveClass(/text-emerald-600/);
   });
 
   test('direct navigation to ?mode=diagnostic activates diagnostic mode', {
@@ -115,8 +115,8 @@ test.describe('Admin Unified Defaults Shell', () => {
     await mockApi(page, async (info) => buildHandler(info));
     await page.goto('/panel/defaults?mode=diagnostic', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByTestId('defaults-mode-diagnostic')).toHaveClass(/bg-emerald-600/);
-    await expect(page.getByTestId('defaults-mode-proposal')).not.toHaveClass(/bg-emerald-600/);
+    await expect(page.getByTestId('defaults-mode-diagnostic')).toHaveClass(/text-emerald-600/);
+    await expect(page.getByTestId('defaults-mode-proposal')).not.toHaveClass(/text-emerald-600/);
   });
 
   test('back link shows "Volver a Propuestas" in proposal mode', {

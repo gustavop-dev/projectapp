@@ -18,7 +18,7 @@ const props = defineProps({
   ratio: {
     type: String,
     default: '1:1',
-    validator: (value) => ['1:1', '3:2', '2:3'].includes(value),
+    validator: (value) => ['1:1', '3:2', '2:3', '5:4'].includes(value),
   },
 });
 
@@ -26,6 +26,7 @@ const SPLIT_CLASSES = {
   '1:1': 'xl:grid-cols-2',
   '3:2': 'xl:grid-cols-[3fr_2fr]',
   '2:3': 'xl:grid-cols-[2fr_3fr]',
+  '5:4': 'xl:grid-cols-[5fr_4fr]',
 };
 
 const splitClass = computed(() => SPLIT_CLASSES[props.ratio]);

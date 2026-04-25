@@ -28,6 +28,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
+from content.services.proposal_service import normalize_hosting_plan
 from content.services.pdf_utils import (  # noqa: F401 — re-exported
     _register_fonts,
     _font,
@@ -105,6 +106,75 @@ def _filter_calculator_groups(groups, sel_ids):
         if not _safe(g, 'is_calculator_module')
         or (sel_ids is not None and f"module-{_safe(g, 'id')}" in sel_ids)
     ]
+
+
+def default_selected_modules_from_content(proposal, has_confirmed=None):
+    """Resolve default selected module IDs for a PDF render.
+
+    The ``has_confirmed`` flag determines whether
+    ``BusinessProposal.selected_modules`` is authoritative. When ``True``,
+    the persisted list is used literally (an empty list means "client
+    confirmed zero modules" — the PDF must hide all optional sections).
+    When ``False``, the list is ignored and the admin's
+    ``selected`` / ``default_selected`` flags in ``content_json`` are used
+    as the initial scope — the client has not customized yet.
+
+    If ``has_confirmed`` is ``None`` (default), it is resolved from the
+    model property so external callers without the flag in hand keep
+    working.
+
+    Returns a list of canonical module IDs (``module-<id>`` / ``group-<id>``)
+    ready to be passed as ``selected_modules`` to
+    :meth:`ProposalPdfService.generate`.
+    """
+    from content.services.proposal_service import normalize_selected_module_ids
+
+    if has_confirmed is None:
+        has_confirmed = proposal.has_confirmed_module_selection
+
+    sections = list(proposal.sections.all())
+    fr = next(
+        (s for s in sections if s.section_type == 'functional_requirements'),
+        None,
+    )
+    fr_content = fr.content_json if fr else None
+
+    if has_confirmed:
+        return normalize_selected_module_ids(
+            getattr(proposal, 'selected_modules', None) or [],
+            fr_content,
+        )
+
+    selected = []
+
+    inv = next((s for s in sections if s.section_type == 'investment'), None)
+    if inv and inv.content_json:
+        for mod in inv.content_json.get('modules') or []:
+            mid = mod.get('id') if isinstance(mod, dict) else None
+            if mid:
+                selected.append(mid)
+
+    if fr_content:
+        groups = list(fr_content.get('groups') or []) + list(fr_content.get('additionalModules') or [])
+        for grp in groups:
+            if not isinstance(grp, dict):
+                continue
+            if grp.get('is_visible') is False:
+                continue
+            is_calc = grp.get('is_calculator_module') is True
+            default_sel = grp.get('selected')
+            if default_sel is None:
+                default_sel = grp.get('default_selected')
+            if default_sel is None:
+                default_sel = not is_calc
+            if not default_sel:
+                continue
+            gid = grp.get('id')
+            if not gid:
+                continue
+            selected.append(f'module-{gid}' if is_calc else f'group-{gid}')
+
+    return selected
 
 
 # ─────────────────────────────────────────────────────────────
@@ -483,6 +553,11 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
     additional = _safe(data, 'additionalModules', [])
     all_groups = [g for g in list(groups) + list(additional) if _safe(g, 'is_visible', True) is not False]
 
+    # Hide groups rendered in the dedicated value-added section.
+    hidden_ids = ps.get('_value_added_ids', set()) if ps else set()
+    if hidden_ids:
+        all_groups = [g for g in all_groups if _safe(g, 'id') not in hidden_ids]
+
     db_groups = list(proposal.requirement_groups.all().order_by('order'))
     for grp in db_groups:
         all_groups.append({
@@ -664,7 +739,10 @@ def _render_requirement_group_page(c, grp, ps=None, y=None,
     hdr_bottom = row_y - hdr_h
     c.setFillColor(ESMERALD_DARK)
     c.rect(MARGIN_L, hdr_bottom, CONTENT_W, hdr_h, fill=1, stroke=0)
-    hdr_text_y = hdr_bottom + (hdr_h - 8) / 2
+    # Offset +2 aligns the optical midline of the glyphs with the rect's
+    # vertical center (without it, the text sits low because the descender
+    # makes the geometric baseline fall below the cap-height midpoint).
+    hdr_text_y = hdr_bottom + (hdr_h - 8) / 2 + 2
     c.setFont(_font('bold'), 8)
     c.setFillColor(WHITE)
     c.drawCentredString(MARGIN_L + num_col_w / 2, hdr_text_y, '#')
@@ -853,8 +931,13 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
 
     intro = _safe(data, 'introText')
     included = _safe(data, 'whatsIncluded', [])
-    total = _safe(data, 'totalInvestment')
-    currency = _safe(data, 'currency')
+    # BusinessProposal fields are the source of truth; content_json is the
+    # stale mirror (matches frontend override in pages/proposal/[uuid]/index.vue).
+    _model_total = getattr(_proposal, 'total_investment', None)
+    total = (_format_cop(int(_model_total))
+             if _model_total else _safe(data, 'totalInvestment'))
+    currency = (getattr(_proposal, 'currency', None)
+                or _safe(data, 'currency'))
     options = _safe(data, 'paymentOptions', [])
 
     # ── Pre-calculate adjusted total (needed for payment options too) ──
@@ -1171,13 +1254,17 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                     y -= spec_row_h + 4
             y -= 2
 
-        # Billing tiers — 3 frequency options side by side
-        billing_tiers = _safe(hosting, 'billingTiers', [])
-        h_percent = _safe(hosting, 'hostingPercent', 0)
-        # Compute annual hosting amount from total investment
-        # Use adjusted total if modules were deselected, otherwise base_num
-        tier_base_num = adjusted if adjusted is not None else base_num
-        annual_hosting = round(tier_base_num * h_percent / 100) if h_percent and tier_base_num else 0
+        # Billing tiers — 3 frequency options side by side.
+        normalized_hosting = normalize_hosting_plan(_proposal, hosting)
+        h_percent = normalized_hosting.get('hostingPercent', 0) or 0
+        billing_tiers = normalized_hosting.get('billingTiers', [])
+        # Hosting is a percentage of the SAME "Inversión Total" the client
+        # sees above — the effective total (base + admin-pre-selected
+        # additional modules, or the client's adjusted selection). Keeps
+        # parity with the public frontend (Investment.vue
+        # ``hostingAnnualAmount``) and the admin preview in the General tab.
+        basis = adjusted if adjusted is not None else base_num
+        annual_hosting = round(basis * h_percent / 100) if h_percent and basis else 0
 
         if billing_tiers and annual_hosting > 0:
             if ps:
@@ -1356,6 +1443,152 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             for r in reasons
         ]
         y = _draw_bullet_list(c, y, normalized, font_size=9, ps=ps)
+    return y
+
+
+def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
+    """Render the "Incluido sin costo adicional" section as cards.
+
+    Mirrors frontend/components/BusinessProposal/ValueAddedModules.vue:
+    resolves each module_id against the functional_requirements catalog
+    (ps['_value_added_catalog']) and renders one tinted card per module
+    with title, top-right "Sin costo adicional" pill, justification
+    (primary) and optional description (secondary). Each card's full
+    height is pre-computed so it never splits across a page break.
+    """
+    if y is None:
+        y = PAGE_H - MARGIN_T
+    y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
+    y -= 12
+
+    intro = _safe(data, 'intro')
+    if intro:
+        y = _draw_paragraphs(c, y, [intro], ps=ps)
+        y -= 8
+
+    catalog = ps.get('_value_added_catalog', {}) if ps else {}
+    module_ids = _safe(data, 'module_ids', []) or []
+    justifications = _safe(data, 'justifications', {}) or {}
+
+    card_pad_x = 14
+    card_pad_y = 12
+    icon_size = 22
+    icon_gap = 10
+    title_font_size = 11
+    just_font_size = 9
+    just_leading = 13
+    desc_font_size = 8
+    desc_leading = 11
+    pill_font_size = 7
+    pill_text = 'Sin costo adicional'
+
+    pill_w = (c.stringWidth(pill_text, _font('medium'), pill_font_size)
+              + 8 * 2)  # padding_h*2 in _draw_pill
+    content_area_w = CONTENT_W - card_pad_x * 2 - icon_size - icon_gap
+    title_max_w = content_area_w - pill_w - 8  # gap before pill
+    title_chars = max(int(title_max_w / (title_font_size * 0.55)), 10)
+
+    for mid in module_ids:
+        module = catalog.get(mid)
+        if not module:
+            continue
+        title = _strip_emoji(_safe(module, 'title')) or 'Módulo'
+        description = _strip_emoji(_safe(module, 'description'))
+        justification = (justifications.get(mid)
+                         if isinstance(justifications, dict) else None)
+
+        title_lines = textwrap.wrap(title, width=title_chars)[:2] or [title]
+        just_h = (_estimate_text_height(
+                      [justification], max_width=content_area_w,
+                      font_size=just_font_size, leading=just_leading)
+                  if justification else 0)
+        desc_h = (_estimate_text_height(
+                      [description], max_width=content_area_w,
+                      font_size=desc_font_size, leading=desc_leading)
+                  if description else 0)
+        card_h = (
+            card_pad_y
+            + len(title_lines) * 14
+            + (6 + just_h if justification else 0)
+            + (4 + desc_h if description else 0)
+            + card_pad_y
+        )
+
+        if ps:
+            y = _check_y(c, y, ps, need=card_h + 14)
+
+        card_top = y
+        card_bottom = y - card_h
+        c.setFillColor(ESMERALD_LIGHT)
+        c.roundRect(MARGIN_L, card_bottom, CONTENT_W, card_h, 8,
+                    fill=1, stroke=0)
+
+        # Decorative icon square — emoji glyphs don't render in Ubuntu,
+        # so we fall back to the title's first letter.
+        icon_x = MARGIN_L + card_pad_x
+        icon_y = card_top - card_pad_y - icon_size
+        c.setFillColor(BONE)
+        c.roundRect(icon_x, icon_y, icon_size, icon_size, 5,
+                    fill=1, stroke=0)
+        c.setFillColor(ESMERALD)
+        c.setFont(_font('bold'), 11)
+        c.drawCentredString(icon_x + icon_size / 2,
+                            icon_y + icon_size / 2 - 3.5,
+                            title[:1].upper() if title else '•')
+
+        # Right-aligned pill guarantees no overlap with long titles.
+        pill_x = MARGIN_L + CONTENT_W - card_pad_x - pill_w
+        pill_baseline_y = card_top - card_pad_y - 10
+        _draw_pill(c, pill_x, pill_baseline_y, pill_text,
+                   bg_color=LEMON, text_color=ESMERALD,
+                   font_size=pill_font_size)
+
+        text_x = icon_x + icon_size + icon_gap
+        title_y = card_top - card_pad_y - 10
+        c.setFont(_font('bold'), title_font_size)
+        c.setFillColor(ESMERALD)
+        for line in title_lines:
+            c.drawString(text_x, title_y, line)
+            title_y -= 14
+
+        next_y = title_y - 2
+
+        if justification:
+            next_y -= 4
+            next_y = _draw_paragraphs(
+                c, next_y, [str(justification)],
+                max_width=content_area_w,
+                font_size=just_font_size, leading=just_leading,
+                color=ESMERALD, x=text_x,
+            )
+
+        if description:
+            next_y -= 2
+            next_y = _draw_paragraphs(
+                c, next_y, [str(description)],
+                max_width=content_area_w,
+                font_size=desc_font_size, leading=desc_leading,
+                color=ESMERALD_80, x=text_x,
+                font_name=_font('italic'),
+            )
+
+        y = card_bottom - 12
+
+    footer_note = _safe(data, 'footer_note')
+    if footer_note:
+        footer_h = _estimate_text_height(
+            [str(footer_note)], max_width=CONTENT_W - 24,
+            font_size=9, leading=12,
+        )
+        if ps:
+            y = _check_y(c, y, ps, need=footer_h + 32)
+        y -= 4
+        y = _draw_banner_box(
+            c, MARGIN_L, y, CONTENT_W, str(footer_note),
+            bg_color=BONE, text_color=ESMERALD,
+            font_size=9, icon_text='✓', ps=ps,
+        )
+
     return y
 
 
@@ -1639,6 +1872,7 @@ SECTION_RENDERERS = {
     'functional_requirements': _render_functional_requirements,
     'timeline': _render_timeline,
     'investment': _render_investment,
+    'value_added_modules': _render_value_added_modules,
     'final_note': _render_final_note,
     'next_steps': _render_next_steps,
 }
@@ -1700,63 +1934,61 @@ class ProposalPdfService:
                 'selected_modules': selected_modules,
             }
 
-            # Pre-collect FR configurable items for total calculation
+            # Single pass over sections to build every ps.* derived from them:
+            # FR configurable items (for total), calculator modules (additive
+            # pricing), value-added IDs + catalog, and the investment total.
             _fr_items = []
-            if selected_modules is not None:
-                for _sec in sections:
-                    if _sec.section_type != 'functional_requirements':
-                        continue
-                    _cj = _sec.content_json or {}
+            _calc_module_items = []
+            _value_added_ids = set()
+            _value_added_catalog = {}
+            # Trust the model field for the base investment used to price
+            # calculator modules (percent-of-base). ``content_json`` mirrors
+            # this value but can drift — matches the override applied in
+            # ``_render_investment`` and the public frontend view.
+            _model_total = getattr(proposal, 'total_investment', None) or 0
+            _base_num = int(_model_total)
+            needs_selection_data = selected_modules is not None
+
+            for _sec in sections:
+                _cj = _sec.content_json or {}
+                if _sec.section_type == 'value_added_modules':
+                    _value_added_ids.update(_cj.get('module_ids') or [])
+                elif _sec.section_type == 'functional_requirements':
                     for _grp in list(_cj.get('groups') or []) + list(_cj.get('additionalModules') or []):
-                        _gkey = _safe(_grp, 'id') or _safe(_grp, 'title') or ''
+                        _gid = _safe(_grp, 'id')
+                        if _gid and _gid not in _value_added_catalog:
+                            _value_added_catalog[_gid] = _grp
+                        if not needs_selection_data:
+                            continue
+                        _gkey = _gid or _safe(_grp, 'title') or ''
                         for _it in _safe(_grp, 'items', []):
                             _iname = _safe(_it, 'name') or ''
                             _fid = re.sub(r'\s+', '-', f'fr-{_gkey}-{_iname}').lower()
                             _fprice = _safe(_it, 'price', 0)
                             if _fprice or _safe(_it, 'is_required') is False:
                                 _fr_items.append({'id': _fid, 'price': _fprice})
-            ps['_fr_items'] = _fr_items
+                        if _safe(_grp, 'is_calculator_module'):
+                            _pp_raw = _safe(_grp, 'price_percent')
+                            try:
+                                _pp = float(_pp_raw) if _pp_raw not in (None, '') else None
+                            except (TypeError, ValueError):
+                                _pp = None
+                            _calc_module_items.append({
+                                'id': f'module-{_gid or ""}',
+                                'group_id': _gid or '',
+                                'price_percent': _pp,
+                                'price': 0,
+                                'is_invite': bool(_safe(_grp, 'is_invite')),
+                            })
 
-            # Pre-collect calculator module items for additive pricing
-            _calc_module_items = []
-            if selected_modules is not None:
-                for _sec in sections:
-                    if _sec.section_type != 'functional_requirements':
-                        continue
-                    _cj = _sec.content_json or {}
-                    for _grp in list(_cj.get('groups') or []) + list(_cj.get('additionalModules') or []):
-                        if not _safe(_grp, 'is_calculator_module'):
-                            continue
-                        _gid = _safe(_grp, 'id') or ''
-                        _mid = f'module-{_gid}'
-                        _pp_raw = _safe(_grp, 'price_percent')
-                        try:
-                            _pp = float(_pp_raw) if _pp_raw not in (None, '') else None
-                        except (TypeError, ValueError):
-                            _pp = None
-                        _calc_module_items.append({
-                            'id': _mid,
-                            'group_id': _gid,
-                            'price_percent': _pp,
-                            'price': 0,  # will be computed below
-                            'is_invite': bool(_safe(_grp, 'is_invite')),
-                        })
-                # Compute prices based on base investment total
-                if _calc_module_items:
-                    _inv_sec = next(
-                        (s for s in sections if s.section_type == 'investment'),
-                        None,
-                    )
-                    if _inv_sec:
-                        _inv_cj = _inv_sec.content_json or {}
-                        _raw_total = str(_inv_cj.get('totalInvestment', ''))
-                        _base_num = int(re.sub(r'[^\d]', '', _raw_total) or '0')
-                        for _ci in _calc_module_items:
-                            if _ci['price_percent'] is not None:
-                                _ci['price'] = round(
-                                    _base_num * _ci['price_percent'] / 100
-                                )
+            for _ci in _calc_module_items:
+                if _ci['price_percent'] is not None:
+                    _ci['price'] = round(_base_num * _ci['price_percent'] / 100)
+
+            ps['_fr_items'] = _fr_items
             ps['_calc_module_items'] = _calc_module_items
+            ps['_value_added_ids'] = _value_added_ids
+            ps['_value_added_catalog'] = _value_added_catalog
 
             # Extract base_weeks from timeline section for dynamic duration
             base_weeks = 0

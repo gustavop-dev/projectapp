@@ -109,9 +109,10 @@ test.describe('Admin Proposal — Documentos tab', () => {
 
     await page.getByRole('button', { name: 'Documentos' }).click();
 
-    await expect(page.getByText('Contrato de desarrollo')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('Propuesta comercial')).toBeVisible();
-    await expect(page.getByText('Detalle técnico')).toBeVisible();
+    const docsList = page.getByRole('list').first();
+    await expect(docsList.getByText('Contrato de desarrollo')).toBeVisible({ timeout: 10000 });
+    await expect(docsList.getByText('Propuesta comercial')).toBeVisible();
+    await expect(docsList.getByText('Detalle técnico')).toBeVisible();
   });
 
   test('documents tab shows generate contract button when no contract doc exists', {
@@ -133,7 +134,7 @@ test.describe('Admin Proposal — Documentos tab', () => {
 
     await page.getByRole('button', { name: 'Documentos' }).click();
 
-    await expect(page.getByText('Documentos adjuntos')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Documentos adjuntos' })).toBeVisible({ timeout: 10000 });
     await expect(page.getByPlaceholder(/Ej: Anexo técnico/i)).toBeVisible();
   });
 

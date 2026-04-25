@@ -625,6 +625,28 @@ DEFAULT_SECTIONS = [
                     ],
                 },
                 {
+                    'id': 'corporate_branding_module',
+                    'icon': '🎨',
+                    'title': 'Identidad Visual e Imagen Corporativa',
+                    'is_visible': True,
+                    'description': (
+                        'Aplicamos tu identidad visual de forma consistente en cada punto de contacto del '
+                        'sistema — correos, documentos, redes sociales y pantallas internas — para que tu '
+                        'marca se perciba profesional y coherente en todo lugar donde tus clientes interactúan.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 35,
+                    'items': [
+                        {'icon': '✉️', 'name': 'Correos transaccionales con identidad corporativa', 'description': 'Plantillas HTML con logo, colores, tipografía y firma de marca aplicadas en todos los correos del sistema — bienvenida, confirmaciones, alertas, recuperación de contraseña y notificaciones — en lugar de correos en texto plano o genéricos.'},
+                        {'icon': '📄', 'name': 'PDFs y exportables con branding', 'description': 'Facturas, reportes, certificados, recibos y descargas Excel/CSV generados desde el sistema con encabezado con logo, paleta corporativa y pie de marca. Cada documento que sale de la plataforma refuerza la imagen profesional del negocio.'},
+                        {'icon': '🔗', 'name': 'Tarjetas de previsualización en redes (Open Graph)', 'description': 'Cuando alguien comparte un link del sitio o una propuesta en WhatsApp, Facebook, LinkedIn o X, aparece una tarjeta con logo, imagen y colores de marca — no un link plano. Impacto directo en percepción y CTR.'},
+                        {'icon': '🖥️', 'name': 'Pantallas del sistema con identidad de marca', 'description': 'Páginas de error (404, 500), mantenimiento, login y estados de carga (loading, skeletons) con identidad visual y mensajes en la voz de la marca, en vez de las pantallas genéricas del framework.'},
+                        {'icon': '🔎', 'name': 'Metadatos estructurados para buscadores e IA', 'description': 'JSON-LD Organization con logo, colores, redes sociales y datos de contacto — para que Google, Bing y asistentes como ChatGPT o Perplexity muestren correctamente la marca en panel de conocimiento, resultados enriquecidos y citaciones.'},
+                    ],
+                },
+                {
                     'id': 'ai_module',
                     'icon': '🤖',
                     'title': 'Integración y Automatización con IA',
@@ -1687,6 +1709,28 @@ DEFAULT_SECTIONS_EN = [
                     ],
                 },
                 {
+                    'id': 'corporate_branding_module',
+                    'icon': '🎨',
+                    'title': 'Visual Identity & Corporate Branding',
+                    'is_visible': True,
+                    'description': (
+                        'We apply your visual identity consistently across every system touchpoint — emails, '
+                        'documents, social previews and internal screens — so your brand feels professional and '
+                        'coherent everywhere your customers interact with it.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 35,
+                    'items': [
+                        {'icon': '✉️', 'name': 'Branded Transactional Emails', 'description': 'HTML templates with logo, colors, typography and brand signature applied across all system emails — welcome, confirmations, alerts, password recovery and notifications — instead of plain-text or generic messages.'},
+                        {'icon': '📄', 'name': 'PDFs & Exports with Branding', 'description': 'Invoices, reports, certificates, receipts and Excel/CSV downloads generated from the system with branded headers, corporate color palette and brand footers. Every document that leaves the platform reinforces the business\'s professional image.'},
+                        {'icon': '🔗', 'name': 'Social Link Preview Cards (Open Graph)', 'description': 'When someone shares a link to the site or a proposal on WhatsApp, Facebook, LinkedIn or X, a card with logo, image and brand colors appears — not a plain link. Direct impact on perception and CTR.'},
+                        {'icon': '🖥️', 'name': 'System Screens with Brand Identity', 'description': 'Error pages (404, 500), maintenance, login and loading states (skeletons, spinners) with visual identity and messaging in the brand\'s voice, instead of the framework\'s generic screens.'},
+                        {'icon': '🔎', 'name': 'Structured Metadata for Search & AI', 'description': 'JSON-LD Organization with logo, colors, social profiles and contact data — so Google, Bing and assistants like ChatGPT or Perplexity correctly display the brand in knowledge panels, enriched results and citations.'},
+                    ],
+                },
+                {
                     'id': 'ai_module',
                     'icon': '🤖',
                     'title': 'AI Integration & Automation',
@@ -2154,6 +2198,138 @@ DEFAULT_SECTIONS_EN = [
         'content_json': deepcopy(EMPTY_TECHNICAL_DOCUMENT_JSON),
     },
 ]
+
+
+def normalize_hosting_plan(proposal, hosting_plan_json):
+    """Merge BusinessProposal model fields with content_json.hostingPlan.
+
+    Model fields (hosting_percent, hosting_discount_semiannual,
+    hosting_discount_quarterly) are the source of truth; the JSON mirror
+    only contributes presentation (title, specs, labels, badges) and
+    serves as fallback when the model field is unset. Mirrors the
+    override in frontend/pages/proposal/[uuid]/index.vue so every
+    backend consumer (PDF renderer, platform onboarding API) produces
+    numbers consistent with what the client sees.
+
+    Pure function: no ORM queries, no side effects.
+    """
+    # Deferred import — avoids coupling content package load order to
+    # accounts during app initialization.
+    from accounts.models import HostingSubscription
+
+    base = dict(hosting_plan_json or {})
+
+    model_percent = getattr(proposal, 'hosting_percent', None)
+    base['hostingPercent'] = (
+        model_percent if model_percent else base.get('hostingPercent', 30)
+    )
+
+    discount_overrides = {
+        HostingSubscription.PLAN_SEMIANNUAL:
+            getattr(proposal, 'hosting_discount_semiannual', None),
+        HostingSubscription.PLAN_QUARTERLY:
+            getattr(proposal, 'hosting_discount_quarterly', None),
+    }
+    normalized_tiers = []
+    for tier in base.get('billingTiers', []) or []:
+        if not isinstance(tier, dict):
+            continue
+        override = discount_overrides.get(tier.get('frequency'))
+        discount = (
+            override if override is not None
+            else tier.get('discountPercent', 0)
+        )
+        normalized_tiers.append({**tier, 'discountPercent': discount})
+    base['billingTiers'] = normalized_tiers
+    return base
+
+
+CALC_MODULE_PREFIX = 'module-'
+REGULAR_GROUP_PREFIX = 'group-'
+
+
+def normalize_selected_module_ids(selected, fr_content_json):
+    """Return *selected* with canonical prefixed ids.
+
+    Calculator modules round-trip through the frontend as ``module-<id>``
+    and regular groups as ``group-<id>``. Older payloads, template copies,
+    or manual JSON edits can ship bare group ids, which break equality
+    checks in the PDF renderer and in the frontend calculator. Using the
+    functional_requirements content as the source of truth for which
+    groups are calculator modules, rebuild each id into its canonical
+    prefixed form.
+
+    Pure function: no ORM queries, no side effects.
+    """
+    if not isinstance(selected, list):
+        return []
+
+    calc_group_ids = set()
+    regular_group_ids = set()
+    if isinstance(fr_content_json, dict):
+        for arr_key in ('groups', 'additionalModules'):
+            for grp in (fr_content_json.get(arr_key) or []):
+                if not isinstance(grp, dict):
+                    continue
+                gid = str(grp.get('id') or '').strip()
+                if not gid:
+                    continue
+                if grp.get('is_calculator_module'):
+                    calc_group_ids.add(gid)
+                else:
+                    regular_group_ids.add(gid)
+
+    normalized = []
+    seen = set()
+    for raw in selected:
+        if raw in (None, ''):
+            continue
+        mod_id = str(raw).strip()
+        if not mod_id:
+            continue
+        if mod_id.startswith((CALC_MODULE_PREFIX, REGULAR_GROUP_PREFIX)):
+            canonical = mod_id
+        elif mod_id in calc_group_ids:
+            canonical = f'{CALC_MODULE_PREFIX}{mod_id}'
+        elif mod_id in regular_group_ids:
+            canonical = f'{REGULAR_GROUP_PREFIX}{mod_id}'
+        else:
+            # Unknown bare id — keep as-is rather than dropping, so the
+            # admin does not silently lose data they may recognize.
+            canonical = mod_id
+        if canonical in seen:
+            continue
+        seen.add(canonical)
+        normalized.append(canonical)
+    return normalized
+
+
+def admin_default_calculator_group_ids(fr_content_json):
+    """Return the bare ids of calculator modules the admin marked as selected
+    in the FR content JSON.
+
+    A calculator module (``is_calculator_module=True``) counts as an admin
+    default when it carries ``selected=True`` or ``default_selected=True``.
+    Returns a set of bare ids (no ``module-`` prefix) so callers can shape
+    them as needed.
+
+    Pure function: no ORM queries, no side effects.
+    """
+    ids = set()
+    if not isinstance(fr_content_json, dict):
+        return ids
+    for arr_key in ('groups', 'additionalModules'):
+        for group in (fr_content_json.get(arr_key) or []):
+            if not isinstance(group, dict):
+                continue
+            if not group.get('is_calculator_module'):
+                continue
+            if not (group.get('selected') or group.get('default_selected')):
+                continue
+            gid = str(group.get('id') or '').strip()
+            if gid:
+                ids.add(gid)
+    return ids
 
 
 class ProposalService:

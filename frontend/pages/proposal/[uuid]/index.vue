@@ -89,7 +89,10 @@
         <ExpirationBadge v-if="proposal.expires_at" :expiresAt="proposal.expires_at" />
 
         <!-- PDF download + Share -->
-        <PdfDownloadButton :view-mode="viewMode" />
+        <PdfDownloadButton
+          :view-mode="viewMode"
+          :selected-module-ids="pdfSelectedModuleIds"
+        />
         <ShareProposalButton
           v-if="proposal?.uuid"
           :proposalUuid="proposal.uuid"
@@ -280,7 +283,7 @@
 
       <!-- Single-panel view with transition -->
       <Transition :name="transitionName" mode="out-in">
-        <div :key="currentPanel.id" class="panel-container" :data-section-type="currentPanel.section_type">
+        <div v-if="currentPanel" :key="currentPanel.id" class="panel-container" :data-section-type="currentPanel.section_type">
           <RawContentSection
             v-if="isPastePanel(currentPanel)"
             :title="getPastePanelTitle(currentPanel)"
@@ -345,11 +348,7 @@ import {
 } from '~/utils/proposalModuleLinkOptions';
 import { filterTechnicalDocumentByModules } from '~/utils/filterTechnicalDocumentByModules';
 import { useProposalDarkMode } from '~/composables/useProposalDarkMode';
-import {
-  hasStoredConfirmedProposalModuleSelection,
-  readStoredProposalModuleSelection,
-  writeStoredProposalModuleSelectionConfirmation,
-} from '~/utils/proposalModuleSelectionStorage';
+import { normalizePersistedSelectedIds } from '~/utils/proposalModuleSelectionStorage';
 
 definePageMeta({ layout: false });
 
@@ -449,9 +448,6 @@ const hasConfirmedModuleSelection = ref(false);
 
 function effectiveSelectedModuleIdsForTechnical() {
   if (!hasConfirmedModuleSelection.value) return null;
-  const uuid = proposal.value?.uuid || '';
-  const stored = readStoredProposalModuleSelection(uuid);
-  if (stored.hasStoredSelection) return stored.selectedIds;
   const fromUi = [...selectedCalculatorModuleIds.value];
   if (fromUi.length) return fromUi;
   const persisted = proposal.value?.selected_modules;
@@ -703,6 +699,37 @@ const allGroupCalculatorItems = computed(() => {
 
 const selectedCalculatorModuleIds = ref(new Set());
 const customizedTotal = ref(null);
+const effectiveInvestment = ref(null);
+
+// Client-facing total: client's customization wins, then backend effective
+// (base + admin-default additional modules), then plain base as last resort.
+const resolvedInvestmentTotal = computed(() =>
+  customizedTotal.value
+  ?? effectiveInvestment.value
+  ?? Number(proposal.value?.total_investment || 0),
+);
+
+// PDF download includes the current in-memory selection only when the client
+// has actively confirmed a customization; otherwise the backend-stored
+// selected_modules are used server-side.
+const pdfSelectedModuleIds = computed(() => {
+  if (!hasConfirmedModuleSelection.value) return null;
+  const ids = [...selectedCalculatorModuleIds.value];
+  return ids.length ? ids : null;
+});
+
+const effectiveBaselineTotal = computed(() =>
+  Number(effectiveInvestment.value || proposal.value?.total_investment || 0),
+);
+
+const isInvestmentCustomized = computed(() =>
+  customizedTotal.value != null
+  && Number(customizedTotal.value) !== effectiveBaselineTotal.value,
+);
+
+const confirmedModuleCount = computed(() =>
+  hasConfirmedModuleSelection.value ? selectedCalculatorModuleIds.value.size : null,
+);
 
 // Helper: recompute payment option amounts using ratio logic (same as Investment.vue computedPaymentOptions)
 function recomputePaymentOptions(paymentOptions, baseTotalStr, customTotal) {
@@ -729,6 +756,48 @@ const nextPanelTitle = computed(() => {
   return next?.title || '';
 });
 
+// Effective total comes from the backend so admin, client view, and PDF
+// stay aligned; ``customizedTotal`` is reserved for real client changes that
+// the client makes during this page session (calculator confirm). Page
+// reload always returns to the backend baseline — no localStorage rehydration.
+function computeInitialSelection() {
+  if (!proposal.value) return;
+
+  const calcItems = allGroupCalculatorItems.value;
+  const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
+  const investmentModules = investmentSection?.content_json?.modules || [];
+
+  const hasConfirmed = proposal.value.has_confirmed_module_selection === true;
+  const persistedRaw = Array.isArray(proposal.value.selected_modules)
+    ? proposal.value.selected_modules
+    : [];
+  const persisted = normalizePersistedSelectedIds(persistedRaw, calcItems);
+
+  let selectedIds;
+  if (hasConfirmed) {
+    // Client has confirmed a selection — trust the persisted list literally,
+    // including an empty array (meaning "client confirmed zero modules").
+    selectedIds = new Set(persisted);
+  } else {
+    const derived = [];
+    for (const m of investmentModules) {
+      if (m.is_required === true || m.default_selected !== false) derived.push(m.id);
+    }
+    for (const m of calcItems) {
+      if (m.default_selected === true) derived.push(m.id);
+    }
+    selectedIds = new Set(derived);
+  }
+
+  selectedCalculatorModuleIds.value = new Set(selectedIds);
+  hasConfirmedModuleSelection.value = hasConfirmed;
+  customizedTotal.value = null;
+
+  const base = Number(proposal.value.total_investment || 0);
+  const backendEffective = Number(proposal.value.effective_total_investment || 0);
+  effectiveInvestment.value = backendEffective > 0 ? backendEffective : base;
+}
+
 // --- Fetch proposal on mount ---
 const isExpired = ref(false);
 
@@ -739,6 +808,8 @@ onMounted(async () => {
     loadError.value = result.error;
   } else if (result.expired) {
     isExpired.value = true;
+  } else {
+    computeInitialSelection();
   }
 });
 
@@ -750,6 +821,7 @@ function getSectionProps(section) {
     const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
     const investContent = investmentSection?.content_json || {};
     const rawPaymentOptions = investContent.paymentOptions || [];
+    const displayTotal = resolvedInvestmentTotal.value;
     return {
       proposal: proposal.value,
       validityMessage: section._validityMessage || '',
@@ -757,8 +829,8 @@ function getSectionProps(section) {
       expiresAt: section._expiresAt || '',
       language: proposal.value?.language || 'es',
       whatsappLink: extractedWhatsappLink.value,
-      paymentOptions: recomputePaymentOptions(rawPaymentOptions, investContent.totalInvestment, customizedTotal.value),
-      customizedTotal: customizedTotal.value,
+      paymentOptions: recomputePaymentOptions(rawPaymentOptions, investContent.totalInvestment, displayTotal),
+      customizedTotal: displayTotal,
       selectedModuleIds: effectiveSelectedModuleIdsForTechnical() || [],
       viewMode: viewMode.value || 'detailed',
     };
@@ -893,6 +965,9 @@ function getSectionProps(section) {
       baseWeeks,
       sentAt: proposal.value?.sent_at || '',
       viewMode: viewMode.value || 'detailed',
+      effectiveTotal: resolvedInvestmentTotal.value || effectiveBaselineTotal.value,
+      isCustomized: isInvestmentCustomized.value,
+      selectedModuleIds: [...selectedCalculatorModuleIds.value],
     };
   }
 
@@ -904,8 +979,7 @@ function getSectionProps(section) {
     const investContent = investmentSection?.content_json || {};
     const investmentModules = (investContent.modules || []).map(m => ({ ...m, _source: 'investment' }));
     const allCalculatorItems = [...investmentModules, ...allGroupCalculatorItems.value];
-    // Use customizedTotal when available, otherwise proposal.total_investment
-    const effectiveTotal = customizedTotal.value ?? Number(proposal.value?.total_investment || 0);
+    const effectiveTotal = resolvedInvestmentTotal.value;
     const formattedSummaryTotal = effectiveTotal > 0
       ? '$' + effectiveTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
       : investContent.totalInvestment || '';
@@ -918,8 +992,10 @@ function getSectionProps(section) {
       proposalUuid: proposal.value?.uuid || '',
       investmentModules: allCalculatorItems,
       rawTotalInvestment: formattedSummaryTotal,
-      paymentOptions: recomputePaymentOptions(rawPaymentOptions, investContent.totalInvestment, customizedTotal.value),
-      customizedTotal: customizedTotal.value,
+      paymentOptions: recomputePaymentOptions(rawPaymentOptions, investContent.totalInvestment, effectiveTotal),
+      customizedTotal: effectiveTotal,
+      isCustomized: isInvestmentCustomized.value,
+      selectedModuleCount: confirmedModuleCount.value,
     };
   }
 
@@ -1060,10 +1136,11 @@ function onCustomTotalUpdate(total) {
 }
 
 function onCalculatorModulesUpdate(selectedIds) {
-  if (!selectedIds) return;
-  const allIds = allGroupCalculatorItems.value.map(m => m.id);
-  const selected = new Set(allIds.filter(id => selectedIds.includes(id)));
-  selectedCalculatorModuleIds.value = selected;
+  if (!Array.isArray(selectedIds)) return;
+  // Store the full live selection — both investment-type and calculator-type
+  // module IDs — so the modal can reopen in the same state after the user
+  // navigates between sections, even if they didn't explicitly confirm.
+  selectedCalculatorModuleIds.value = new Set(selectedIds);
 }
 
 function onModuleSelectionConfirmed({ selectedIds } = {}) {
@@ -1071,7 +1148,6 @@ function onModuleSelectionConfirmed({ selectedIds } = {}) {
   selectedCalculatorModuleIds.value = new Set(
     Array.isArray(selectedIds) ? selectedIds : [],
   );
-  writeStoredProposalModuleSelectionConfirmation(proposal.value?.uuid || '', true);
 }
 
 function goNext() {
@@ -1117,38 +1193,6 @@ function onTouchEnd(e) {
 // --- Lifecycle ---
 const onAnimationComplete = () => {
   if (loadError.value) return;
-  // Initialize customizedTotal from localStorage (returning visitor with prior calculator customization)
-  try {
-    const uuid = proposal.value?.uuid;
-    if (uuid) {
-      const storedTotal = localStorage.getItem(`proposal-${uuid}-total`);
-      if (storedTotal != null) {
-        customizedTotal.value = parseInt(storedTotal, 10) || null;
-      }
-    }
-  } catch (_e) { /* ignore */ }
-  // Initialize selection state: preserve confirmed selections, otherwise keep UI defaults.
-  const uuid = proposal.value?.uuid || '';
-  const persistedIds = proposal.value?.selected_modules;
-  const confirmedByBackend = proposal.value?.has_confirmed_module_selection === true;
-  const confirmedByStorage = hasStoredConfirmedProposalModuleSelection(uuid);
-  hasConfirmedModuleSelection.value = confirmedByBackend || confirmedByStorage;
-
-  if (confirmedByStorage) {
-    const stored = readStoredProposalModuleSelection(uuid);
-    selectedCalculatorModuleIds.value = new Set(
-      stored.hasStoredSelection ? stored.selectedIds : [],
-    );
-  } else if (confirmedByBackend && Array.isArray(persistedIds)) {
-    selectedCalculatorModuleIds.value = new Set(persistedIds);
-  } else {
-    const defaultSelectedIds = allGroupCalculatorItems.value
-      .filter(m => m.default_selected)
-      .map(m => m.id);
-    if (defaultSelectedIds.length) {
-      selectedCalculatorModuleIds.value = new Set(defaultSelectedIds);
-    }
-  }
   showContent.value = true;
   nextTick(() => applyProposalTheme(false));
   window.addEventListener('keydown', handleKeydown);

@@ -7,7 +7,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_TECHNICAL_VIEW } from '../helpers/flow-tags.js';
 
-const MOCK_UUID = 'tech-view-1111-2222-3333-444444444444';
+const MOCK_UUID = 'ea111111-1111-1111-1111-111111111111';
 
 const mockProposal = {
   id: 901,

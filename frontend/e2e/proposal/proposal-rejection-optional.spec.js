@@ -8,7 +8,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_REJECTION_OPTIONAL_REASON } from '../helpers/flow-tags.js';
 
-const MOCK_UUID = 'rejection-opt-uuid-1234-5678-abcdef';
+const MOCK_UUID = 'b5111111-1111-1111-1111-111111111111';
 
 const mockProposal = {
   id: 1,
@@ -56,13 +56,11 @@ test.describe('Proposal Rejection Optional Reason', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Navigate to last section (closing panel)
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
-    await page.waitForLoadState('networkidle');
 
     // Click reject link
     const rejectLink = page.getByRole('button', { name: /No es el momento/i });
@@ -79,12 +77,10 @@ test.describe('Proposal Rejection Optional Reason', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
-    await page.waitForLoadState('networkidle');
 
     const rejectLink = page.getByRole('button', { name: /No es el momento/i });
     await expect(rejectLink).toBeVisible({ timeout: 10000 });

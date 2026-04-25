@@ -32,9 +32,8 @@ test.describe('Admin Document Edit', () => {
       return null;
     });
     await page.goto('/panel/documents/1/edit');
-    await page.waitForLoadState('networkidle');
 
-    await expect(page.getByLabel(/Titulo/i)).toBeVisible();
+    await expect(page.getByLabel(/T[ií]tulo/i)).toBeVisible();
   });
 
   test('back link navigates to documents list', {
@@ -46,7 +45,6 @@ test.describe('Admin Document Edit', () => {
       return null;
     });
     await page.goto('/panel/documents/1/edit');
-    await page.waitForLoadState('networkidle');
 
     const backLink = page.getByRole('link', { name: /Volver a documentos/i });
     await expect(backLink).toBeVisible();
@@ -67,9 +65,8 @@ test.describe('Admin Document Edit', () => {
       return null;
     });
     await page.goto('/panel/documents/1/edit');
-    await page.waitForLoadState('networkidle');
 
-    const titleInput = page.getByLabel(/Titulo/i);
+    const titleInput = page.getByLabel(/T[ií]tulo/i);
     await titleInput.fill('Contrato Actualizado');
     await page.getByRole('button', { name: /Guardar|Actualizar/i }).click();
 

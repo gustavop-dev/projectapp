@@ -752,3 +752,272 @@ def test_sync_for_deliverable_returns_error_when_no_bp():
 
     assert result['ok'] is False
     assert result['error'] == 'no_business_proposal'
+
+
+# =========================================================================
+# compute_sync_diff — branch coverage gaps
+# =========================================================================
+
+
+@pytest.mark.django_db
+def test_compute_sync_diff_normalizes_non_list_reqs_to_empty():
+    """When epic 'requirements' is not a list, diff treats it as empty."""
+    project, admin, _, _ = _make_full_sync_setup('diff1', epics=[
+        {'epicKey': 'e-diff1', 'title': 'E', 'requirements': 'not-a-list'},
+    ])
+    result = sync_technical_requirements_for_project(project, admin)
+    assert result['ok'] is True
+    assert result['requirements_created'] == 0
+
+
+@pytest.mark.django_db
+def test_compute_sync_diff_skips_epic_with_no_key_and_no_reqs():
+    """An epic with no epicKey and no requirements is silently skipped."""
+    project, admin, _, _ = _make_full_sync_setup('diff2', epics=[
+        {'title': 'No key, no reqs', 'requirements': []},
+    ])
+    result = sync_technical_requirements_for_project(project, admin)
+    assert result['ok'] is True
+    assert result['deliverables_created'] == 0
+
+
+@pytest.mark.django_db
+def test_compute_sync_diff_detects_description_change_in_deliverable():
+    """compute_sync_diff lists a deliverable in to_update when description changes."""
+    from accounts.services.technical_requirements_sync import compute_sync_diff
+
+    project, admin, _, _ = _make_full_sync_setup('diff3', epics=[
+        {'epicKey': 'e-diff3', 'title': 'E', 'description': 'v1', 'requirements': []},
+    ])
+    sync_technical_requirements_for_project(project, admin)
+
+    new_json = {'epics': [{'epicKey': 'e-diff3', 'title': 'E', 'description': 'v2 changed', 'requirements': []}]}
+    diff = compute_sync_diff(project, new_json)
+    assert any(e['epicKey'] == 'e-diff3' and 'description' in e['changed_fields'] for e in diff['epics']['to_update'])
+
+
+@pytest.mark.django_db
+def test_compute_sync_diff_skips_requirement_with_missing_title_or_flow_key():
+    """Requirements missing title or flowKey are excluded from the diff."""
+    from accounts.services.technical_requirements_sync import compute_sync_diff
+
+    project, admin, _, _ = _make_full_sync_setup('diff4', epics=[])
+    new_json = {'epics': [{'epicKey': 'e-diff4', 'title': 'E', 'requirements': [
+        {'flowKey': '', 'title': 'No flow key'},
+        {'flowKey': 'fk1', 'title': ''},
+    ]}]}
+    diff = compute_sync_diff(project, new_json)
+    assert diff['requirements']['to_create'] == []
+
+
+@pytest.mark.django_db
+def test_compute_sync_diff_skips_non_dict_requirement():
+    """A non-dict item inside requirements is silently skipped by compute_sync_diff."""
+    from accounts.services.technical_requirements_sync import compute_sync_diff
+
+    project, admin, _, _ = _make_full_sync_setup('diff5', epics=[])
+    new_json = {'epics': [{'epicKey': 'e-diff5', 'title': 'E', 'requirements': ['bad-string']}]}
+    diff = compute_sync_diff(project, new_json)
+    assert diff['requirements']['to_create'] == []
+
+
+@pytest.mark.django_db
+def test_compute_sync_diff_detects_requirement_field_changes():
+    """compute_sync_diff reports description, flow, and configuration changes."""
+    from accounts.services.technical_requirements_sync import compute_sync_diff
+
+    project, admin, _, _ = _make_full_sync_setup('diff6', epics=[
+        {'epicKey': 'e-diff6', 'title': 'E', 'requirements': [
+            {'flowKey': 'fk-d6', 'title': 'R', 'description': 'old', 'usageFlow': 'f1', 'configuration': 'c1'},
+        ]},
+    ])
+    sync_technical_requirements_for_project(project, admin)
+
+    new_json = {'epics': [{'epicKey': 'e-diff6', 'title': 'E', 'requirements': [
+        {'flowKey': 'fk-d6', 'title': 'R', 'description': 'new', 'usageFlow': 'f2', 'configuration': 'c2'},
+    ]}]}
+    diff = compute_sync_diff(project, new_json)
+    updated = diff['requirements']['to_update']
+    assert len(updated) == 1
+    assert 'description' in updated[0]['changed_fields']
+    assert 'flow' in updated[0]['changed_fields']
+    assert 'configuration' in updated[0]['changed_fields']
+
+
+@pytest.mark.django_db
+def test_compute_sync_diff_skips_non_dict_entity():
+    """A non-dict item in dataModel.entities is silently skipped."""
+    from accounts.services.technical_requirements_sync import compute_sync_diff
+
+    project, admin, _, _ = _make_full_sync_setup('diff7', epics=[])
+    new_json = {'epics': [], 'dataModel': {'entities': ['not-a-dict']}}
+    diff = compute_sync_diff(project, new_json)
+    assert diff['data_model_entities']['to_create'] == []
+
+
+@pytest.mark.django_db
+def test_compute_sync_diff_skips_entity_with_empty_name():
+    """An entity with no name is silently skipped by compute_sync_diff."""
+    from accounts.services.technical_requirements_sync import compute_sync_diff
+
+    project, admin, _, _ = _make_full_sync_setup('diff8', epics=[])
+    new_json = {'epics': [], 'dataModel': {'entities': [{'name': '', 'description': 'no name'}]}}
+    diff = compute_sync_diff(project, new_json)
+    assert diff['data_model_entities']['to_create'] == []
+
+
+# =========================================================================
+# _sync_technical_requirements_core — branch coverage gaps
+# =========================================================================
+
+
+@pytest.mark.django_db
+def test_sync_returns_error_when_no_technical_section():
+    """Returns ok=False when the proposal has no enabled TECHNICAL_DOCUMENT section."""
+    admin = User.objects.create_user(username='ns1adm@s.com', email='ns1adm@s.com', password='p')
+    UserProfile.objects.create(user=admin, role=UserProfile.ROLE_ADMIN, is_onboarded=True)
+    client = User.objects.create_user(username='ns1cli@s.com', email='ns1cli@s.com', password='p')
+    UserProfile.objects.create(user=client, role=UserProfile.ROLE_CLIENT, is_onboarded=True)
+    project = Project.objects.create(name='ns1P', client=client)
+    bp = BusinessProposal.objects.create(
+        title='BP', client_name='C', total_investment=Decimal('1'),
+        hosting_percent=30, status='accepted',
+    )
+    prop_d = Deliverable.objects.create(
+        project=project, title='Prop', category=Deliverable.CATEGORY_DOCUMENTS,
+        file=None, uploaded_by=client,
+    )
+    bp.deliverable = prop_d
+    bp.save(update_fields=['deliverable_id'])
+
+    result = sync_technical_requirements_for_project(project, admin)
+
+    assert result['ok'] is False
+    assert result['error'] == 'no_technical_section'
+
+
+@pytest.mark.django_db
+def test_sync_handles_epics_as_non_list_in_content_json():
+    """When content_json.epics is not a list, sync treats it as empty and returns ok."""
+    project, admin, _, _ = _make_full_sync_setup('ns2', epics=None)
+    section = ProposalSection.objects.get(
+        proposal__deliverable__project=project,
+        section_type=ProposalSection.SectionType.TECHNICAL_DOCUMENT,
+    )
+    section.content_json = {'epics': 'not-a-list'}
+    section.save(update_fields=['content_json'])
+
+    result = sync_technical_requirements_for_project(project, admin)
+
+    assert result['ok'] is True
+    assert result['deliverables_created'] == 0
+
+
+@pytest.mark.django_db
+def test_sync_skips_non_dict_epic_in_epics_list():
+    """A non-dict item inside the epics array is silently skipped."""
+    project, admin, _, _ = _make_full_sync_setup('ns3', epics=None)
+    section = ProposalSection.objects.get(
+        proposal__deliverable__project=project,
+        section_type=ProposalSection.SectionType.TECHNICAL_DOCUMENT,
+    )
+    section.content_json = {'epics': ['bad-string', {'epicKey': 'e-ns3', 'title': 'Good', 'requirements': []}]}
+    section.save(update_fields=['content_json'])
+
+    result = sync_technical_requirements_for_project(project, admin)
+
+    assert result['ok'] is True
+    assert result['deliverables_created'] == 1
+
+
+@pytest.mark.django_db
+def test_sync_normalizes_non_list_reqs_in_epic_to_empty():
+    """When a core-sync epic has reqs as non-list, it's treated as empty."""
+    project, admin, _, _ = _make_full_sync_setup('ns4', epics=[
+        {'epicKey': 'e-ns4', 'title': 'E', 'requirements': 'not-a-list'},
+    ])
+    result = sync_technical_requirements_for_project(project, admin)
+    assert result['ok'] is True
+    assert result['requirements_created'] == 0
+
+
+@pytest.mark.django_db
+def test_sync_generates_key_for_epic_without_epickey_when_it_has_reqs():
+    """An epic with no epicKey but with requirements gets a generated key."""
+    project, admin, _, _ = _make_full_sync_setup('ns5', epics=[
+        {'title': 'Auto-key Epic', 'requirements': [
+            {'flowKey': 'fk-ns5', 'title': 'R', 'description': ''},
+        ]},
+    ])
+    result = sync_technical_requirements_for_project(project, admin)
+    assert result['ok'] is True
+    assert result['deliverables_created'] == 1
+    assert result['requirements_created'] == 1
+
+
+@pytest.mark.django_db
+def test_sync_updates_deliverable_description_when_changed():
+    """When only description changes, deliverable is updated on second sync."""
+    project, admin, _, _ = _make_full_sync_setup('ns6', epics=[
+        {'epicKey': 'e-ns6', 'title': 'E', 'description': 'original desc', 'requirements': []},
+    ])
+    sync_technical_requirements_for_project(project, admin)
+
+    section = ProposalSection.objects.get(
+        proposal__deliverable__project=project,
+        section_type=ProposalSection.SectionType.TECHNICAL_DOCUMENT,
+    )
+    section.content_json['epics'][0]['description'] = 'updated desc'
+    section.save(update_fields=['content_json'])
+
+    result = sync_technical_requirements_for_project(project, admin)
+
+    assert result['deliverables_updated'] == 1
+    d = Deliverable.objects.get(project=project, source_epic_key='e-ns6')
+    assert d.description == 'updated desc'
+
+
+@pytest.mark.django_db
+def test_sync_skips_non_dict_entity_in_entities_list():
+    """A non-dict item in dataModel.entities is silently skipped during core sync."""
+    project, admin, _, _ = _make_full_sync_setup('ns7',
+        epics=[{'epicKey': 'e-ns7', 'title': 'E', 'requirements': []}],
+        entities=['not-a-dict'],
+    )
+    result = sync_technical_requirements_for_project(project, admin)
+    assert result['ok'] is True
+    assert result['entities_created'] == 0
+
+
+@pytest.mark.django_db
+def test_sync_skips_entity_with_empty_name_in_entities_list():
+    """An entity with an empty name is silently skipped during core sync."""
+    project, admin, _, _ = _make_full_sync_setup('ns8',
+        epics=[{'epicKey': 'e-ns8', 'title': 'E', 'requirements': []}],
+        entities=[{'name': '', 'description': 'nameless'}],
+    )
+    result = sync_technical_requirements_for_project(project, admin)
+    assert result['ok'] is True
+    assert result['entities_created'] == 0
+
+
+@pytest.mark.django_db
+def test_sync_updates_entity_name_and_key_fields_when_changed():
+    """When entity description or key_fields change, entities_updated increments."""
+    project, admin, _, _ = _make_full_sync_setup('ns9',
+        epics=[{'epicKey': 'e-ns9', 'title': 'E', 'requirements': []}],
+        entities=[{'name': 'User', 'description': 'orig desc', 'keyFields': 'id'}],
+    )
+    sync_technical_requirements_for_project(project, admin)
+
+    section = ProposalSection.objects.get(
+        proposal__deliverable__project=project,
+        section_type=ProposalSection.SectionType.TECHNICAL_DOCUMENT,
+    )
+    section.content_json['dataModel']['entities'][0]['description'] = 'new desc'
+    section.content_json['dataModel']['entities'][0]['keyFields'] = 'id, email'
+    section.save(update_fields=['content_json'])
+
+    result = sync_technical_requirements_for_project(project, admin)
+
+    assert result['entities_updated'] >= 1

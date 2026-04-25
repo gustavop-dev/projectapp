@@ -27,7 +27,7 @@ function buildDiagnostic(overrides = {}) {
     id: DIAG_ID,
     uuid: 'diag-nda-uuid-7777',
     title: 'Diagnóstico — Acme Corp',
-    status: 'draft',
+    status: 'negotiating',
     language: 'es',
     client: { name: 'Acme Corp', email: 'client@acme.test' },
     client_name: 'Acme Corp',
@@ -83,7 +83,7 @@ async function openNdaModal(page) {
   await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
   await page.getByRole('button', { name: 'Documentos' }).click();
   // Tab section header (h3).
-  await expect(page.locator('h3', { hasText: 'Acuerdo de confidencialidad' })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText('Acuerdo de confidencialidad').first()).toBeVisible({ timeout: 10000 });
   await page.getByRole('button', { name: 'Generar acuerdo' }).click();
   // Modal header (h2).
   await expect(modalRoot(page).locator('h2', { hasText: 'Acuerdo de Confidencialidad' })).toBeVisible();

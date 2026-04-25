@@ -11,7 +11,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_CALCULATOR_MODULES, PROPOSAL_CALCULATOR_SELECTED_FIRST } from '../helpers/flow-tags.js';
 
-const MOCK_UUID = 'calc-modules-uuid-1234-5678-abcdef';
+const MOCK_UUID = 'aaaaaaaa-bbbb-cccc-dddd-000000000001';
 
 const mockProposal = {
   id: 1,

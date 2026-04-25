@@ -36,7 +36,6 @@ test.describe('Admin Portfolio List', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio');
-    await page.waitForLoadState('networkidle');
 
     const table = page.locator('table');
     await expect(table.getByRole('link', { name: 'Proyecto Web' })).toBeVisible();
@@ -50,7 +49,6 @@ test.describe('Admin Portfolio List', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio');
-    await page.waitForLoadState('networkidle');
 
     const createLink = page.getByRole('link', { name: /Nuevo Proyecto/ });
     await expect(createLink).toBeVisible();
@@ -63,7 +61,6 @@ test.describe('Admin Portfolio List', () => {
   }, async ({ page }) => {
     await setupMock(page, { works: [] });
     await page.goto('/panel/portfolio');
-    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText('No hay proyectos aún')).toBeVisible();
   });

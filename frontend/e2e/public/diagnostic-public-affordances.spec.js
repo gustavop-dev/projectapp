@@ -14,7 +14,7 @@ import {
   DIAGNOSTIC_PUBLIC_DARK_MODE,
 } from '../helpers/flow-tags.js';
 
-const TEST_UUID = 'cccc-3333-dddd-4444';
+const TEST_UUID = 'de111111-1111-1111-1111-111111111111';
 
 function buildSection(overrides = {}) {
   return {

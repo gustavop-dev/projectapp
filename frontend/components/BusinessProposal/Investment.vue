@@ -66,20 +66,18 @@
           <!-- Total as secondary line -->
           <div class="text-center mt-6 pt-5 border-t border-white/15">
             <span class="text-sm text-green-light/70">{{ t.totalInvestment }}:</span>
-            <span v-if="customTotal !== null" class="text-xl font-bold text-lemon ml-2">{{ formatCurrency(displayTotal) }}</span>
-            <span v-else class="text-xl font-bold text-lemon ml-2">{{ totalInvestment }}</span>
+            <span class="text-xl font-bold text-lemon ml-2">{{ formatCurrency(displayTotal) }}</span>
             <span class="text-sm text-green-light/70 ml-1">{{ currency }}</span>
-            <p v-if="customTotal !== null" class="text-xs text-green-light/50 mt-1">{{ t.customized }}</p>
+            <p v-if="isBadgeVisible" class="text-xs text-green-light/50 mt-1">{{ t.customized }}</p>
           </div>
         </div>
 
         <!-- Fallback: total as hero when no payment options -->
         <div v-else class="text-center mb-8">
           <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-green-light">{{ t.totalInvestment }}</div>
-          <div v-if="customTotal !== null" class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-lemon">{{ formatCurrency(displayTotal) }}</div>
-          <div v-else class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-lemon">{{ totalInvestment }}</div>
+          <div class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-lemon">{{ formatCurrency(displayTotal) }}</div>
           <div class="text-green-light">{{ currency }}</div>
-          <p v-if="customTotal !== null" class="text-xs text-green-light/70 mt-2">{{ t.customized }}</p>
+          <p v-if="isBadgeVisible" class="text-xs text-green-light/70 mt-2">{{ t.customized }}</p>
         </div>
 
         <!-- What's included grid -->
@@ -268,6 +266,7 @@
       :sentAt="sentAt"
       :discountPercent="discountPercent"
       :discountedInvestment="discountedInvestment"
+      :selectedIds="selectedModuleIds"
       @close="calculatorOpen = false"
       @update:selection="onSelectionUpdate"
       @navigateToRequirements="$emit('navigateToRequirements'); calculatorOpen = false"
@@ -284,10 +283,6 @@ import { useExpirationTimer } from '~/composables/useExpirationTimer';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import InvestmentCalculatorModal from './InvestmentCalculatorModal.vue';
 import InvestmentDetailedTeaser from './InvestmentDetailedTeaser.vue';
-import {
-  hasStoredConfirmedProposalModuleSelection,
-  readStoredProposalModuleSelection,
-} from '~/utils/proposalModuleSelectionStorage';
 
 const emit = defineEmits(['navigateToRequirements', 'updateCalculatorModules', 'switchToDetailed', 'updateCustomTotal', 'selectionConfirmed']);
 
@@ -296,10 +291,6 @@ useSectionAnimations(sectionRef);
 
 const specsOpen = ref(false);
 const calculatorOpen = ref(false);
-const customTotal = ref(null);
-const customWeeks = ref(null);
-const animatedCustomTotal = computed(() => customTotal.value ?? 0);
-const { animated: displayTotal } = useAnimatedNumber(animatedCustomTotal, 500);
 const customizeBtnRef = ref(null);
 const btnPulse = ref(false);
 
@@ -411,6 +402,18 @@ const props = defineProps({
   viewMode: {
     type: String,
     default: 'detailed'
+  },
+  effectiveTotal: {
+    type: Number,
+    default: null
+  },
+  isCustomized: {
+    type: Boolean,
+    default: false
+  },
+  selectedModuleIds: {
+    type: Array,
+    default: () => []
   }
 });
 
@@ -420,33 +423,22 @@ function parseInvestment(str) {
   return parseInt(cleaned, 10) || 0;
 }
 
+const baseNumber = computed(() => parseInvestment(props.totalInvestment));
+
+const effectiveNumber = computed(() => {
+  const raw = Number(props.effectiveTotal);
+  return Number.isFinite(raw) && raw > 0 ? raw : baseNumber.value;
+});
+
+const displayNumber = computed(() => effectiveNumber.value);
+
+// Badge shows only for client-confirmed customization, not admin-default
+// modules (which are already reflected in the backend effective total).
+const isBadgeVisible = computed(() => props.isCustomized === true);
+
+const { animated: displayTotal } = useAnimatedNumber(displayNumber, 500);
+
 onMounted(() => {
-  if (props.proposalUuid && props.modules?.length) {
-    try {
-      if (hasStoredConfirmedProposalModuleSelection(props.proposalUuid)) {
-        const { hasStoredSelection, selectedIds } = readStoredProposalModuleSelection(props.proposalUuid);
-        if (hasStoredSelection) {
-          const base = parseInvestment(props.totalInvestment);
-          const deselectedSum = props.modules
-            .filter(m => {
-              const locked = m.is_required === true;
-              if (locked) return false;
-              if (m._source === 'calculator_module') return false;
-              return !selectedIds.includes(m.id);
-            })
-            .reduce((sum, m) => sum + (m.price || 0), 0);
-          const addedSum = props.modules
-            .filter(m => m._source === 'calculator_module' && selectedIds.includes(m.id) && m.price)
-            .reduce((sum, m) => sum + (m.price || 0), 0);
-          if (deselectedSum > 0 || addedSum > 0) {
-            customTotal.value = base - deselectedSum + addedSum;
-            try { localStorage.setItem(`proposal-${props.proposalUuid}-total`, String(customTotal.value)); } catch { /* noop */ }
-            emit('updateCustomTotal', customTotal.value);
-          }
-        }
-      }
-    } catch (_e) { /* ignore */ }
-  }
   if (props.modules?.length && props.viewMode !== 'executive') {
     nextTick(() => {
       const el = customizeBtnRef.value;
@@ -468,22 +460,17 @@ onMounted(() => {
   }
 });
 
-function onSelectionUpdate({ total, weeks }) {
-  customTotal.value = total;
-  if (weeks !== undefined) customWeeks.value = weeks;
-  if (props.proposalUuid && total != null) {
-    try { localStorage.setItem(`proposal-${props.proposalUuid}-total`, String(total)); } catch { /* noop */ }
-  }
+function onSelectionUpdate({ total }) {
   emit('updateCustomTotal', total);
 }
 
 const computedPaymentOptions = computed(() => {
-  if (customTotal.value === null || !props.paymentOptions?.length) {
-    return props.paymentOptions;
-  }
-  const baseNum = parseInvestment(props.totalInvestment);
+  if (!props.paymentOptions?.length) return props.paymentOptions;
+  const baseNum = baseNumber.value;
   if (baseNum <= 0) return props.paymentOptions;
-  const ratio = customTotal.value / baseNum;
+  const target = displayNumber.value;
+  if (!target || target === baseNum) return props.paymentOptions;
+  const ratio = target / baseNum;
 
   return props.paymentOptions.map(opt => {
     const descNum = parseInvestment(opt.description);
@@ -582,9 +569,13 @@ function formatCurrency(value) {
 
 const hostingAnnualAmount = computed(() => {
   const hp = props.hostingPlan;
+  // Hosting is a percentage of the same "Inversión Total" shown to the
+  // client — the effective total (base + admin-pre-selected modules) by
+  // default, or the client's customized total when they confirm changes
+  // in the calculator.
   if (hp?.hostingPercent > 0) {
-    const base = parseInvestment(props.totalInvestment);
-    if (base > 0) return Math.round(base * hp.hostingPercent / 100);
+    const total = displayNumber.value;
+    if (total > 0) return Math.round(total * hp.hostingPercent / 100);
   }
   return null;
 });

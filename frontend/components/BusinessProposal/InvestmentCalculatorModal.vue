@@ -12,6 +12,7 @@
             </div>
             <button
               class="w-8 h-8 rounded-lg flex items-center justify-center text-esmerald-light/60 hover:text-white hover:bg-white/10 transition-colors"
+              :aria-label="t.close"
               @click="$emit('close')"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,11 +186,6 @@
 import { ref, computed, watch } from 'vue';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import { create_request } from '~/stores/services/request_http';
-import {
-  getProposalModuleSelectionStorageKey,
-  getProposalModuleSelectionConfirmedKey,
-  hasStoredConfirmedProposalModuleSelection,
-} from '~/utils/proposalModuleSelectionStorage';
 
 function isPreviewMode() {
   return typeof window !== 'undefined'
@@ -207,6 +203,7 @@ const props = defineProps({
   sentAt: { type: String, default: '' },
   discountPercent: { type: Number, default: 0 },
   discountedInvestment: { type: String, default: '' },
+  selectedIds: { type: Array, default: () => [] },
 });
 
 const hasActiveDiscount = computed(() => {
@@ -244,6 +241,7 @@ const i18n = {
   es: {
     title: 'Personaliza tu inversión',
     subtitle: 'Selecciona los módulos que necesitas',
+    close: 'Cerrar',
     selectedModules: 'Módulos seleccionados:',
     estimatedTotal: 'Total inversión',
     confirm: 'Confirmar selección',
@@ -273,6 +271,7 @@ const i18n = {
   en: {
     title: 'Customize your investment',
     subtitle: 'Select the modules you need',
+    close: 'Close',
     selectedModules: 'Selected modules:',
     estimatedTotal: 'Total investment',
     confirm: 'Confirm selection',
@@ -308,13 +307,11 @@ const initialGroupOrder = ref([]);
 
 watch(() => props.visible, (val) => {
   if (val) {
-    let saved = null;
-    if (hasStoredConfirmedProposalModuleSelection(props.proposalUuid)) {
-      try {
-        const raw = localStorage.getItem(getProposalModuleSelectionStorageKey(props.proposalUuid));
-        if (raw) saved = JSON.parse(raw);
-      } catch (_e) { /* ignore */ }
-    }
+    // The page always passes the current selection (initialized from backend
+    // or updated live on every toggle) as an array — an empty array means
+    // "everything deselected", not "fall back to defaults". Only a non-array
+    // prop is treated as unset.
+    const saved = Array.isArray(props.selectedIds) ? props.selectedIds : null;
 
     localModules.value = props.modules.map(m => {
       const locked = m.is_required === true;
@@ -369,6 +366,7 @@ const groupLabels = {
   admin_module: { es: '🛠️ Módulo administrativo', en: '🛠️ Admin module' },
   analytics_dashboard: { es: '📊 Analítica', en: '📊 Analytics' },
   pwa_module: { es: '📱 Aplicación Móvil Instalable (PWA)', en: '📱 Installable Mobile App (PWA)' },
+  corporate_branding_module: { es: '🎨 Identidad Visual e Imagen Corporativa', en: '🎨 Visual Identity & Corporate Branding' },
   ai_module: { es: '🤖 Integración con IA', en: '🤖 AI Integration' },
   reports_alerts_module: { es: '📬 Reportes y Alertas', en: '📬 Reports & Alerts' },
   kpi_dashboard_module: { es: '📊 Dashboard de KPIs', en: '📊 KPI Dashboard' },
@@ -513,12 +511,6 @@ function toggleModule(mod) {
 
 function confirmSelection() {
   const selectedIds = localModules.value.filter(m => m.selected).map(m => m.id);
-  if (!isPreviewMode()) {
-    try {
-      localStorage.setItem(getProposalModuleSelectionStorageKey(props.proposalUuid), JSON.stringify(selectedIds));
-      localStorage.setItem(getProposalModuleSelectionConfirmedKey(props.proposalUuid), '1');
-    } catch (_e) { /* ignore */ }
-  }
   confirmed.value = true;
   trackCalculatorEvent('confirmed');
   emit('update:selection', { selectedIds, total: dynamicTotal.value, weeks: dynamicWeeks.value });

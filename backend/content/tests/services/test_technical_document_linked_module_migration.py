@@ -19,7 +19,7 @@ def _schema_editor():
     return SimpleNamespace(connection=SimpleNamespace(alias='default'))
 
 
-def test_migration_canonicalizes_legacy_ids_and_removes_camel_case(proposal):
+def test_migration_canonicalizes_legacy_ids_and_removes_camel_case(proposal):  # quality: disable test_too_long (migration test must verify full before/after state across all legacy ID variants)
     ProposalSection.objects.create(
         proposal=proposal,
         section_type='functional_requirements',

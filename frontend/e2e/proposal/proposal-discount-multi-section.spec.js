@@ -8,7 +8,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_DISCOUNT_MULTI_SECTION } from '../helpers/flow-tags.js';
 
-const MOCK_UUID = 'discount-multi-uuid-1234-abcdef';
+const MOCK_UUID = 'd7111111-1111-1111-1111-111111111111';
 
 const mockProposalWithDiscount = {
   id: 1,
@@ -81,7 +81,6 @@ test.describe('Proposal Discount Multi-Section', () => {
   }, async ({ page }) => {
     await setupMock(page, mockProposalWithDiscount);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Navigate from greeting to investment
     const nextBtn = page.getByTestId('nav-next');
@@ -120,7 +119,6 @@ test.describe('Proposal Discount Multi-Section', () => {
   }, async ({ page }) => {
     await setupMock(page, mockProposalNoDiscount);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Navigate to investment section
     const nextBtn = page.getByTestId('nav-next');

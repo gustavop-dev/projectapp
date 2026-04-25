@@ -62,10 +62,21 @@
                         </td>
                       </tr>
                       {% endif %}
+                      {% if has_additional_modules %}
+                      <tr>
+                        <td style="padding:8px 0;color:#6b7280;font-size:14px;">Inversión base:</td>
+                        <td style="padding:8px 0;color:#1f2937;font-size:14px;font-weight:600;">${{ total_investment }} {{ currency }}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px 0;color:#6b7280;font-size:14px;">Total con módulos:</td>
+                        <td style="padding:8px 0;color:#059669;font-size:14px;font-weight:700;">${{ effective_total_investment }} {{ currency }}</td>
+                      </tr>
+                      {% else %}
                       <tr>
                         <td style="padding:8px 0;color:#6b7280;font-size:14px;">Inversión:</td>
                         <td style="padding:8px 0;color:#1f2937;font-size:14px;font-weight:600;">${{ total_investment }} {{ currency }}</td>
                       </tr>
+                      {% endif %}
                       <tr>
                         <td style="padding:8px 0;color:#6b7280;font-size:14px;">Abierta a las:</td>
                         <td style="padding:8px 0;color:#059669;font-size:14px;font-weight:700;">{{ viewed_at|bogota_datetime }}</td>

@@ -8,7 +8,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_COUNTDOWN_REALTIME } from '../helpers/flow-tags.js';
 
-const MOCK_UUID = 'countdown-uuid-1234-5678-abcdef';
+const MOCK_UUID = 'c2111111-1111-1111-1111-111111111111';
 
 function buildProposal(expiresAt) {
   return {
@@ -53,7 +53,6 @@ test.describe('Proposal Countdown Realtime', () => {
     });
 
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // ExpirationBadge should show with "Expira en" text and HH:MM format
     await expect(page.getByText(/Expira en \d+:\d+/)).toBeVisible({ timeout: 15000 });
@@ -74,7 +73,6 @@ test.describe('Proposal Countdown Realtime', () => {
     });
 
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
 
     // Should show standard "Expira en X días" instead of HH:MM
     await expect(page.getByTestId('nav-next')).toBeVisible({ timeout: 15000 });

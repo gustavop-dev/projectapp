@@ -478,23 +478,87 @@ def send_scheduled_followup(proposal_id):
     ProposalEmailService.send_scheduled_followup(proposal)
 
 
-@periodic_task(crontab(minute='*/15'))
-def publish_scheduled_blog_posts():
+@task()
+def publish_single_scheduled_blog(post_id):
     """
-    Periodic task (every 15 minutes): publish blog posts whose
-    published_at datetime has passed but are still marked as drafts.
+    Publish a single scheduled blog post by id.
 
-    This enables scheduled/future publishing from the admin panel.
+    Enqueued with eta=published_at from the blog create/update views so the
+    post goes live (site + LinkedIn) within seconds of its scheduled time,
+    without waiting for the 1-minute safety-net sweep.
+
+    Safe to enqueue multiple times: re-entrant by design via the guards below.
     """
     from content.models import BlogPost
+    from content.views.blog import auto_publish_blog_to_linkedin
+
+    post = BlogPost.objects.filter(pk=post_id).first()
+    if not post:
+        logger.warning('publish_single_scheduled_blog: post %s no existe', post_id)
+        return
+    if post.is_published:
+        logger.info(
+            'publish_single_scheduled_blog: post %s ya está publicado, skip', post_id
+        )
+        return
+    if not post.published_at:
+        logger.info(
+            'publish_single_scheduled_blog: post %s sin published_at, skip', post_id
+        )
+        return
+
+    try:
+        post.is_published = True
+        post.save(update_fields=['is_published'])
+        post.refresh_from_db()
+        auto_publish_blog_to_linkedin(post)
+        logger.info(
+            'publish_single_scheduled_blog: post %s publicado (slug=%s)',
+            post.id, post.slug,
+        )
+    except Exception:
+        logger.exception('publish_single_scheduled_blog failed for post %s', post_id)
+
+
+@periodic_task(crontab(minute='*'))
+def publish_scheduled_blog_posts():
+    """
+    Periodic safety-net (every minute): publish blog posts whose
+    published_at datetime has passed but are still marked as drafts,
+    and fire the LinkedIn auto-publish pipeline for each one.
+
+    The primary path is the per-post ETA task enqueued on save
+    (publish_single_scheduled_blog). This sweep catches cases where the
+    ETA was missed: Huey was down at trigger time, migrated data, etc.
+    """
+    from content.models import BlogPost
+    from content.views.blog import auto_publish_blog_to_linkedin
 
     now = timezone.now()
-    scheduled_qs = BlogPost.objects.filter(
+    scheduled = BlogPost.objects.filter(
         is_published=False,
         published_at__isnull=False,
         published_at__lte=now,
     )
-    count = scheduled_qs.update(is_published=True)
+
+    candidates = list(scheduled)
+    if not candidates:
+        return
+
+    logger.info(
+        'publish_scheduled_blog_posts: %d candidate(s) pending', len(candidates)
+    )
+
+    count = 0
+    for post in candidates:
+        try:
+            post.is_published = True
+            post.save(update_fields=['is_published'])
+            post.refresh_from_db()
+            auto_publish_blog_to_linkedin(post)
+            count += 1
+        except Exception:
+            logger.exception('Failed to publish scheduled blog post %s', post.id)
 
     if count > 0:
         logger.info('Published %d scheduled blog post(s).', count)

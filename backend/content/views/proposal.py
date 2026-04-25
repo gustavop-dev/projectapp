@@ -1,7 +1,6 @@
 import copy
 import logging
 import re
-from datetime import timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from django.conf import settings
@@ -9,9 +8,17 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import status
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+    throttle_classes,
+)
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+
+from content.throttles import TrackingAnonThrottle
+from content.utils import get_client_ip
 
 from content.models import (
     BusinessProposal, ProposalAlert, ProposalSection,
@@ -52,7 +59,6 @@ _KEY_PROPOSAL_SECTIONS = frozenset({
 
 # Spanish labels for the three client-selectable view modes.
 VIEW_MODE_LABELS = {'executive': 'ejecutiva', 'detailed': 'completa', 'technical': 'técnica'}
-CLIENT_VIEW_ACTIVITY_COOLDOWN = timedelta(hours=3)
 
 # Ordered fragments of the technical document panel, matching frontend utils/technicalProposalPanels.js
 _TECHNICAL_FRAGMENT_ORDER = [
@@ -257,6 +263,13 @@ def _safe_decimal(value, default=Decimal('0')):
         return default
 
 
+# Canonical prefixes used by the frontend calculator to distinguish
+# calculator modules (additive, priced) from regular grouped requirements.
+# Persisted ``selected_modules`` payloads must round-trip through these.
+_CALC_MODULE_PREFIX = 'module-'
+_REGULAR_GROUP_PREFIX = 'group-'
+
+
 def _selected_group_ids_from_modules(selected_modules):
     """Normalize selected module ids to bare group ids."""
     if not isinstance(selected_modules, list):
@@ -269,13 +282,19 @@ def _selected_group_ids_from_modules(selected_modules):
         mod_id = str(raw).strip()
         if not mod_id:
             continue
-        if mod_id.startswith('module-'):
-            group_ids.add(mod_id[7:])
-        elif mod_id.startswith('group-'):
-            group_ids.add(mod_id[6:])
+        if mod_id.startswith(_CALC_MODULE_PREFIX):
+            group_ids.add(mod_id[len(_CALC_MODULE_PREFIX):])
+        elif mod_id.startswith(_REGULAR_GROUP_PREFIX):
+            group_ids.add(mod_id[len(_REGULAR_GROUP_PREFIX):])
         else:
             group_ids.add(mod_id)
     return group_ids
+
+
+def _normalize_selected_module_ids(selected, fr_content_json):
+    """Thin wrapper around the shared normalizer in ``proposal_service``."""
+    from content.services.proposal_service import normalize_selected_module_ids
+    return normalize_selected_module_ids(selected, fr_content_json)
 
 
 def _calculator_price_percent_by_group_id(fr_content_json):
@@ -309,31 +328,28 @@ def _calculate_effective_total_investment(
     base_total,
     selected_modules,
     fr_content_json,
+    has_confirmed,
 ):
     """
     Compute effective investment shown in panel metrics:
     base investment + selected additional calculator modules.
 
-    When *selected_modules* is empty (client never confirmed in the
-    calculator), falls back to modules marked ``selected=True`` or
-    ``default_selected=True`` by the admin in the FR content JSON.
+    The ``has_confirmed`` flag determines whether ``selected_modules`` is the
+    source of truth. When ``True``, the persisted list is used literally
+    (an empty list means "client confirmed zero modules"). When ``False``,
+    the list is ignored and the admin's ``selected`` / ``default_selected``
+    flags in the FR content JSON are used as the initial scope — the client
+    has not customized yet, so they will see the admin-configured defaults.
     """
     base = _safe_decimal(base_total).quantize(Decimal('0.01'))
-    selected_group_ids = _selected_group_ids_from_modules(selected_modules)
 
-    # Fallback: when no explicit client selections, use modules marked
-    # as selected/default_selected by the admin in FR content.
-    if not selected_group_ids and isinstance(fr_content_json, dict):
-        for arr_key in ('groups', 'additionalModules'):
-            for group in (fr_content_json.get(arr_key) or []):
-                if not isinstance(group, dict):
-                    continue
-                if not group.get('is_calculator_module'):
-                    continue
-                if group.get('selected') or group.get('default_selected'):
-                    gid = str(group.get('id') or '').strip()
-                    if gid:
-                        selected_group_ids.add(gid)
+    if has_confirmed:
+        selected_group_ids = _selected_group_ids_from_modules(selected_modules)
+    else:
+        from content.services.proposal_service import (
+            admin_default_calculator_group_ids,
+        )
+        selected_group_ids = admin_default_calculator_group_ids(fr_content_json)
 
     if not selected_group_ids:
         return base
@@ -354,6 +370,20 @@ def _calculate_effective_total_investment(
     return (base + extras).quantize(Decimal('0.01'))
 
 
+def _effective_total_for_proposal(proposal):
+    """Single-proposal version of :func:`_build_effective_totals_map`."""
+    fr_section = proposal.sections.filter(
+        section_type=ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS,
+    ).only('content_json').first()
+    fr_content = fr_section.content_json if fr_section else None
+    return _calculate_effective_total_investment(
+        proposal.total_investment,
+        proposal.selected_modules,
+        fr_content,
+        has_confirmed=proposal.has_confirmed_module_selection,
+    )
+
+
 def _build_effective_totals_map(proposals):
     """Return {proposal_id: effective_total_decimal} for a proposal iterable."""
     proposal_list = list(proposals)
@@ -369,43 +399,73 @@ def _build_effective_totals_map(proposals):
         )
         .values_list('proposal_id', 'content_json')
     )
+    # Batch the confirmed-selection check so the per-proposal property
+    # access below does not issue one EXISTS query per row.
+    confirmed_ids = set(
+        ProposalChangeLog.objects
+        .filter(proposal_id__in=proposal_ids, change_type='calc_confirmed')
+        .values_list('proposal_id', flat=True)
+        .distinct()
+    )
 
     return {
         p.id: _calculate_effective_total_investment(
             p.total_investment,
             p.selected_modules,
             fr_content_by_proposal.get(p.id),
+            has_confirmed=p.id in confirmed_ids,
         )
         for p in proposal_list
     }
 
 
 def _resync_investment_from_modules(proposal, fr_content_json):
-    """Update investment section totalInvestment & paymentOptions using effective total."""
+    """Keep the investment section in sync with ``proposal.total_investment``.
+
+    ``content_json.totalInvestment`` must always reflect the BASE investment
+    (the number the admin typed in the General tab). It is used downstream
+    as the basis for hosting calculations and other percent-derived values,
+    so it must never be overwritten with the client's personalized total.
+
+    ``paymentOptions`` descriptions *do* scale on the effective total,
+    because those strings represent the actual amounts the client will pay
+    after customizing their module selection.
+    """
     effective = _calculate_effective_total_investment(
         proposal.total_investment,
         proposal.selected_modules,
         fr_content_json,
+        has_confirmed=proposal.has_confirmed_module_selection,
     )
     inv_section = proposal.sections.filter(section_type=ProposalSection.SectionType.INVESTMENT).first()
     if not inv_section or not inv_section.content_json:
         return
-    total = int(effective)
-    formatted = f'${total:,}'.replace(',', '.')
+    base_total = int(_safe_decimal(proposal.total_investment))
+    base_formatted = f'${base_total:,}'.replace(',', '.')
     cj = dict(inv_section.content_json)
     currency_changed = cj.get('currency') != proposal.currency
-    total_changed = cj.get('totalInvestment') != formatted
-    if not currency_changed and not total_changed:
-        return
-    cj['totalInvestment'] = formatted
-    cj['currency'] = proposal.currency
+    total_changed = cj.get('totalInvestment') != base_formatted
+
+    # paymentOptions descriptions depend on the effective total; rebuild
+    # unconditionally when paymentOptions exist so outdated amounts from a
+    # prior selection do not leak through.
+    payment_changed = False
     if cj.get('paymentOptions'):
         for opt in cj['paymentOptions']:
             pct_match = re.search(r'(\d+)%', opt.get('label', ''))
-            if pct_match:
-                pct = Decimal(pct_match.group(1)) / Decimal(100)
-                amount = int(effective * pct)
-                opt['description'] = f'${amount:,}'.replace(',', '.') + f' {proposal.currency}'
+            if not pct_match:
+                continue
+            pct = Decimal(pct_match.group(1)) / Decimal(100)
+            amount = int(effective * pct)
+            new_desc = f'${amount:,}'.replace(',', '.') + f' {proposal.currency}'
+            if opt.get('description') != new_desc:
+                opt['description'] = new_desc
+                payment_changed = True
+
+    if not currency_changed and not total_changed and not payment_changed:
+        return
+    cj['totalInvestment'] = base_formatted
+    cj['currency'] = proposal.currency
     inv_section.content_json = cj
     inv_section.save(update_fields=['content_json'])
 
@@ -600,18 +660,37 @@ def download_proposal_pdf(request, proposal_uuid):
             status=status.HTTP_410_GONE,
         )
 
+    from content.services.proposal_pdf_service import (
+        ProposalPdfService,
+        default_selected_modules_from_content,
+    )
+
     doc_variant = (request.query_params.get('doc') or '').strip().lower()
+    selected_modules_param = request.query_params.get('selected_modules', '')
+    selected_modules = (
+        [m.strip() for m in selected_modules_param.split(',') if m.strip()]
+        if selected_modules_param
+        else None
+    )
+    # Derive defaults from current content_json so admin toggles of
+    # additionalModules[i].selected propagate to the PDF even when the
+    # client never opened the calculator (localStorage empty).
+    if selected_modules is None:
+        selected_modules = default_selected_modules_from_content(proposal)
+    else:
+        # Legacy query payloads may arrive with bare group ids — match the
+        # canonical prefixed form the renderer uses.
+        from content.services.proposal_service import normalize_selected_module_ids
+        fr_section = proposal.sections.filter(
+            section_type=ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS,
+        ).only('content_json').first()
+        selected_modules = normalize_selected_module_ids(
+            selected_modules,
+            fr_section.content_json if fr_section else None,
+        )
+
     if doc_variant == 'technical':
         from content.services.technical_document_pdf import generate_technical_document_pdf
-
-        selected_modules_param = request.query_params.get('selected_modules', '')
-        selected_modules = (
-            [m.strip() for m in selected_modules_param.split(',') if m.strip()]
-            if selected_modules_param
-            else None
-        )
-        if selected_modules is None and proposal.has_confirmed_module_selection:
-            selected_modules = proposal.selected_modules
 
         pdf_bytes = generate_technical_document_pdf(
             proposal, selected_modules=selected_modules
@@ -622,17 +701,6 @@ def download_proposal_pdf(request, proposal_uuid):
                 status=status.HTTP_404_NOT_FOUND,
             )
     else:
-        selected_modules_param = request.query_params.get('selected_modules', '')
-        selected_modules = (
-            [m.strip() for m in selected_modules_param.split(',') if m.strip()]
-            if selected_modules_param
-            else None
-        )
-        # Fallback to persisted selections from the model
-        if selected_modules is None and proposal.has_confirmed_module_selection:
-            selected_modules = proposal.selected_modules
-
-        from content.services.proposal_pdf_service import ProposalPdfService
         pdf_bytes = ProposalPdfService.generate(
             proposal, selected_modules=selected_modules
         )
@@ -2243,6 +2311,7 @@ def check_admin_auth(request):
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([AllowAny])
+@throttle_classes([TrackingAnonThrottle])
 def track_proposal_engagement(request, proposal_uuid):
     """
     Record section-level engagement data from the client's browser.
@@ -2294,7 +2363,7 @@ def track_proposal_engagement(request, proposal_uuid):
         )
 
     # Get or create the view event for this session
-    ip_address = _get_client_ip(request)
+    ip_address = get_client_ip(request)
     user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]
     view_mode = request.data.get('view_mode', 'unknown')
     if view_mode not in VIEW_MODE_LABELS:
@@ -2315,24 +2384,19 @@ def track_proposal_engagement(request, proposal_uuid):
         view_event.save(update_fields=['view_mode'])
 
     if _created:
-        recent_view_log = ProposalChangeLog.objects.filter(
+        # UniqueConstraint on (proposal, session_id) prevents same-session floods,
+        # so every _created=True is a distinct session worth logging.
+        mode_label = VIEW_MODE_LABELS.get(view_mode)
+        ProposalChangeLog.objects.create(
             proposal=proposal,
             change_type=ProposalChangeLog.ChangeType.VIEWED,
             actor_type=ProposalChangeLog.ActorType.CLIENT,
-            created_at__gt=timezone.now() - CLIENT_VIEW_ACTIVITY_COOLDOWN,
-        ).exists()
-        if not recent_view_log:
-            mode_label = VIEW_MODE_LABELS.get(view_mode)
-            ProposalChangeLog.objects.create(
-                proposal=proposal,
-                change_type=ProposalChangeLog.ChangeType.VIEWED,
-                actor_type=ProposalChangeLog.ActorType.CLIENT,
-                description=(
-                    f'Vista en modo {mode_label}.'
-                    if mode_label
-                    else 'El cliente visitó la propuesta.'
-                ),
-            )
+            description=(
+                f'Vista en modo {mode_label}.'
+                if mode_label
+                else 'El cliente visitó la propuesta.'
+            ),
+        )
 
     # --- Stakeholder detection ---
     # If this is a new session from a different IP than previous sessions,
@@ -2523,6 +2587,7 @@ def track_proposal_engagement(request, proposal_uuid):
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([AllowAny])
+@throttle_classes([TrackingAnonThrottle])
 def track_calculator_interaction(request, proposal_uuid):
     """
     Track calculator interactions: confirmed selections or abandonment.
@@ -2579,14 +2644,15 @@ def track_calculator_interaction(request, proposal_uuid):
 
     # Persist confirmed selections so PDF can use them as fallback
     if event == 'confirmed' and isinstance(selected, list):
-        proposal.selected_modules = selected
-        proposal.save(update_fields=['selected_modules', 'updated_at'])
         fr_section = proposal.sections.filter(
             section_type=ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS
         ).first()
-        _resync_investment_from_modules(
-            proposal, fr_section.content_json if fr_section else None
+        fr_content = fr_section.content_json if fr_section else None
+        proposal.selected_modules = _normalize_selected_module_ids(
+            selected, fr_content,
         )
+        proposal.save(update_fields=['selected_modules', 'updated_at'])
+        _resync_investment_from_modules(proposal, fr_content)
 
     return Response({'status': 'ok'}, status=status.HTTP_200_OK)
 
@@ -2594,6 +2660,7 @@ def track_calculator_interaction(request, proposal_uuid):
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([AllowAny])
+@throttle_classes([TrackingAnonThrottle])
 def track_requirement_click(request, proposal_uuid):
     """
     Track when a client clicks on a functional requirements group card.
@@ -2884,14 +2951,6 @@ def request_magic_link(request):
 
     # Always return 200 to prevent email enumeration
     return Response({'status': 'ok'}, status=status.HTTP_200_OK)
-
-
-def _get_client_ip(request):
-    """Extract client IP from request, checking X-Forwarded-For first."""
-    xff = request.META.get('HTTP_X_FORWARDED_FOR')
-    if xff:
-        return xff.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR')
 
 
 # ---------------------------------------------------------------------------

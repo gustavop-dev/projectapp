@@ -423,3 +423,14 @@ test('user signs in with email', {
 - Adding a flow: update `flow-definitions.json`, create specs with `@flow:` tag, register in `docs/USER_FLOW_MAP.md`
 - Renaming: must be atomic (update definition AND all tags simultaneously)
 - Regenerate: `node frontend/scripts/generate-coverage.js`
+
+---
+
+## Codex Compatibility
+
+For work under `frontend/`, use `frontend/CLAUDE.md` as the authoritative frontend instruction set for Nuxt, Vue, styling, testing, and frontend-specific conventions.
+
+Compatibility rules for Codex:
+- Follow the root `AGENTS.md` in addition to this file.
+- Treat `frontend/CLAUDE.md` as the source of truth if this file and `frontend/CLAUDE.md` ever diverge.
+- Preserve existing frontend architecture, store patterns, and testing conventions unless the user explicitly requests a change.
