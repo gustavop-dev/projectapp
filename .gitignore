@@ -91,3 +91,5 @@ pse-seeklogo.png
 
 # Directories temporale
 temp/
+*.cover
+*,cover

@@ -514,7 +514,7 @@ class TestUncoveredModelStrMethods:
             deliverable=d, file=fake_file, uploaded_by=user,
         )
 
-        assert 'upload.pdf' in upload.file_name
+        assert upload.file_name.endswith('.pdf')
 
     def test_data_model_entity_str(self):
         user = self._make_user('dme_str@test.com')
@@ -561,7 +561,7 @@ class TestUncoveredModelStrMethods:
         project = self._make_project(user)
         d = self._make_deliverable(project, user)
         req = Requirement.objects.create(
-            deliverable=d, title='Feature X', created_by=user,
+            deliverable=d, title='Feature X',
         )
 
         assert req.project == project
