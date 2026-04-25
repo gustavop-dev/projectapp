@@ -1,10 +1,18 @@
+from decimal import Decimal
+from unittest.mock import patch
+
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from freezegun import freeze_time
 
 from accounts.models import (
+    BugReport,
+    ChangeRequest,
     Deliverable,
+    DeliverableVersion,
+    HostingSubscription,
     Project,
     Requirement,
     RequirementComment,
@@ -222,3 +230,186 @@ class TestRequirementHistoryModel:
         )
 
         assert str(history) == 'todo → in_progress'
+
+
+# ---------------------------------------------------------------------------
+# Project.linked_business_proposal
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestProjectLinkedBusinessProposal:
+    def test_returns_none_when_no_linked_proposals(self):
+        user = User.objects.create_user(username='lbp@test.com', email='lbp@test.com', password='x')
+        project = Project.objects.create(name='P', client=user)
+        assert project.linked_business_proposal() is None
+
+    def test_returns_proposal_when_deliverable_links_it(self):
+        from content.models import BusinessProposal
+
+        user = User.objects.create_user(username='lbp2@test.com', email='lbp2@test.com', password='x')
+        project = Project.objects.create(name='P2', client=user)
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=user,
+        )
+        proposal = BusinessProposal.objects.create(
+            title='Linked',
+            client_name='X',
+            client_email='x@example.com',
+            total_investment=1000,
+            deliverable=d,
+        )
+        result = project.linked_business_proposal()
+        assert result.pk == proposal.pk
+
+
+# ---------------------------------------------------------------------------
+# Deliverable.file_size — exception path
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestDeliverableFileSizeExceptionPath:
+    def test_file_size_returns_zero_when_file_access_raises(self):
+        user = User.objects.create_user(username='dfs@test.com', email='dfs@test.com', password='x')
+        project = Project.objects.create(name='P', client=user)
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=user,
+        )
+        with patch.object(type(d.file), 'size', new_callable=lambda: property(lambda self: (_ for _ in ()).throw(Exception('no file')))):
+            assert d.file_size == 0
+
+    def test_file_size_returns_zero_when_file_is_none(self):
+        user = User.objects.create_user(username='dfs2@test.com', email='dfs2@test.com', password='x')
+        project = Project.objects.create(name='P2', client=user)
+        d = Deliverable.objects.create(
+            project=project, title='D2', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=user,
+        )
+        with patch.object(type(d), 'file', new_callable=lambda: property(lambda self: (_ for _ in ()).throw(OSError('no file')))):
+            result = d.file_size
+        assert result == 0
+
+
+# ---------------------------------------------------------------------------
+# DeliverableVersion.file_size — exception path
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestDeliverableVersionFileSizeExceptionPath:
+    def test_file_size_returns_zero_when_file_raises(self):
+        user = User.objects.create_user(username='dvfs@test.com', email='dvfs@test.com', password='x')
+        project = Project.objects.create(name='P', client=user)
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=user,
+        )
+        version = DeliverableVersion.objects.create(
+            deliverable=d, version_number=1, uploaded_by=user,
+        )
+        with patch.object(type(version.file), 'size', new_callable=lambda: property(lambda self: (_ for _ in ()).throw(Exception('no file')))):
+            assert version.file_size == 0
+
+
+# ---------------------------------------------------------------------------
+# HostingSubscription.calculate_amounts
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestHostingSubscriptionCalculateAmounts:
+    def _make_sub(self, username, base, discount):
+        from datetime import date
+        user = User.objects.create_user(username=username, email=f'{username}@test.com', password='x')
+        project = Project.objects.create(name=f'P-{username}', client=user)
+        return HostingSubscription.objects.create(
+            project=project,
+            plan=HostingSubscription.PLAN_MONTHLY,
+            base_monthly_amount=Decimal(str(base)),
+            effective_monthly_amount=Decimal(str(base)),
+            billing_amount=Decimal(str(base)),
+            discount_percent=discount,
+            start_date=date.today(),
+            next_billing_date=date.today(),
+        )
+
+    def test_calculate_amounts_with_no_discount(self):
+        sub = self._make_sub('hs1', 100, 0)
+        sub.calculate_amounts()
+        assert sub.effective_monthly_amount == Decimal('100.00')
+        assert sub.billing_amount == Decimal('100.00')
+
+    def test_calculate_amounts_applies_discount(self):
+        sub = self._make_sub('hs2', 200, 10)
+        sub.calculate_amounts()
+        assert sub.effective_monthly_amount == Decimal('180.00')
+        assert sub.billing_amount == Decimal('180.00')
+
+
+# ---------------------------------------------------------------------------
+# UserProfile.save — image optimization path
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestUserProfileSaveImageOptimization:
+    def test_save_with_image_content_type_calls_optimize(self):
+        user = User.objects.create_user(username='upo@test.com', email='upo@test.com', password='x')
+        profile = UserProfile(user=user)
+
+        fake_file = SimpleUploadedFile('avatar.jpg', b'fake_jpeg', content_type='image/jpeg')
+        profile.avatar = fake_file
+
+        with patch('accounts.models.optimize_avatar', return_value=fake_file) as mock_opt:
+            profile.save()
+
+        mock_opt.assert_called_once()
+
+    def test_save_swallows_exception_from_optimize(self):
+        user = User.objects.create_user(username='upoe@test.com', email='upoe@test.com', password='x')
+        profile = UserProfile(user=user)
+
+        fake_file = SimpleUploadedFile('avatar.jpg', b'fake_jpeg', content_type='image/jpeg')
+        profile.avatar = fake_file
+
+        with patch('accounts.models.optimize_avatar', side_effect=RuntimeError('boom')):
+            profile.save()  # must not raise
+
+        assert UserProfile.objects.filter(pk=profile.pk).exists()
+
+
+# ---------------------------------------------------------------------------
+# ChangeRequest.save — image optimization
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+class TestChangeRequestSaveImageOptimization:
+    def test_save_with_image_screenshot_calls_optimize(self):
+        user = User.objects.create_user(username='crio@test.com', email='crio@test.com', password='x')
+        project = Project.objects.create(name='P', client=user)
+        cr = ChangeRequest(
+            project=project,
+            title='Fix something',
+            created_by=user,
+        )
+        fake_file = SimpleUploadedFile('screen.jpg', b'fake_jpeg', content_type='image/jpeg')
+        cr.screenshot = fake_file
+
+        with patch('accounts.models.optimize_image', return_value=fake_file) as mock_opt:
+            cr.save()
+
+        mock_opt.assert_called_once()
+
+    def test_save_swallows_exception_from_optimize(self):
+        user = User.objects.create_user(username='crex@test.com', email='crex@test.com', password='x')
+        project = Project.objects.create(name='P', client=user)
+        cr = ChangeRequest(
+            project=project,
+            title='Fix other',
+            created_by=user,
+        )
+        fake_file = SimpleUploadedFile('screen.jpg', b'fake_jpeg', content_type='image/jpeg')
+        cr.screenshot = fake_file
+
+        with patch('accounts.models.optimize_image', side_effect=RuntimeError('boom')):
+            cr.save()  # must not raise
+
+        assert ChangeRequest.objects.filter(pk=cr.pk).exists()

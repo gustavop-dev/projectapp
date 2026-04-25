@@ -213,3 +213,199 @@ class TestGeneratePlaceholderEmail:
             proposal_client_service.generate_placeholder_email(42)
             == 'cliente_42@temp.example.com'
         )
+
+
+# ---------------------------------------------------------------------------
+# _split_name
+# ---------------------------------------------------------------------------
+
+class TestSplitName:
+    def test_splits_full_name_into_first_and_last(self):
+        assert proposal_client_service._split_name('Sofia Aguirre') == ('Sofia', 'Aguirre')
+
+    def test_single_word_returns_only_first_name(self):
+        assert proposal_client_service._split_name('Madonna') == ('Madonna', '')
+
+    def test_empty_string_returns_two_empty_strings(self):
+        assert proposal_client_service._split_name('') == ('', '')
+
+    def test_none_returns_two_empty_strings(self):
+        assert proposal_client_service._split_name(None) == ('', '')
+
+    def test_multiple_spaces_treated_as_single_split(self):
+        first, last = proposal_client_service._split_name('Ana Maria Vega Torres')
+        assert first == 'Ana'
+        assert last == 'Maria Vega Torres'
+
+    def test_long_name_is_capped_at_150_chars(self):
+        long_name = 'A' * 200 + ' ' + 'B' * 200
+        first, last = proposal_client_service._split_name(long_name)
+        assert len(first) <= 150
+        assert len(last) <= 150
+
+
+# ---------------------------------------------------------------------------
+# build_client_display_name
+# ---------------------------------------------------------------------------
+
+class TestBuildClientDisplayName:
+    def test_returns_full_name_when_set(self):
+        profile = proposal_client_service.get_or_create_client_for_proposal(
+            name='Clara Montoya', email='clara@example.com',
+        )
+        assert proposal_client_service.build_client_display_name(profile) == 'Clara Montoya'
+
+    def test_falls_back_to_company_name_when_no_full_name(self):
+        profile = proposal_client_service.get_or_create_client_for_proposal(
+            name='', email='corp@example.com', company='LatinCorp',
+        )
+        assert proposal_client_service.build_client_display_name(profile) == 'LatinCorp'
+
+    def test_falls_back_to_email_when_no_name_or_company(self):
+        profile = proposal_client_service.get_or_create_client_for_proposal(
+            name='', email='nonnameuser@example.com',
+        )
+        result = proposal_client_service.build_client_display_name(profile)
+        assert result == 'nonnameuser@example.com'
+
+    def test_falls_back_to_cliente_when_user_email_is_empty(self):
+        user = User.objects.create_user(username='noemail_user', email='', password='x')
+        profile = UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        result = proposal_client_service.build_client_display_name(profile)
+        assert result == 'Cliente'
+
+
+# ---------------------------------------------------------------------------
+# _create_user_shell
+# ---------------------------------------------------------------------------
+
+class TestCreateUserShell:
+    def test_creates_inactive_user_with_unusable_password(self):
+        user = proposal_client_service._create_user_shell(
+            username='shell_user',
+            email='shell@example.com',
+            first_name='Shell',
+            last_name='User',
+        )
+        assert not user.is_active
+        assert not user.has_usable_password()
+        assert user.email == 'shell@example.com'
+        assert user.username == 'shell_user'
+
+    def test_username_is_truncated_to_150_chars(self):
+        long_username = 'u' * 200
+        user = proposal_client_service._create_user_shell(
+            username=long_username, email='x@example.com', first_name='', last_name='',
+        )
+        assert len(user.username) <= 150
+
+
+# ---------------------------------------------------------------------------
+# _resolve_existing_user — username fallback
+# ---------------------------------------------------------------------------
+
+class TestResolveExistingUser:
+    def test_finds_user_by_email_case_insensitive(self):
+        user = User.objects.create_user(username='fnduser', email='found@example.com', password='x')
+        result = proposal_client_service._resolve_existing_user('Found@example.com')
+        assert result.pk == user.pk
+
+    def test_falls_back_to_username_when_email_not_found(self):
+        user = User.objects.create_user(username='byusername@example.com', email='other@example.com', password='x')
+        result = proposal_client_service._resolve_existing_user('byusername@example.com')
+        assert result.pk == user.pk
+
+    def test_returns_none_when_no_match(self):
+        result = proposal_client_service._resolve_existing_user('nonexistent@example.com')
+        assert result is None
+
+
+# ---------------------------------------------------------------------------
+# get_or_create_client_for_proposal — bare user with no profile
+# ---------------------------------------------------------------------------
+
+class TestGetOrCreateBareUser:
+    def test_adopts_existing_bare_user_without_profile(self):
+        bare_user = User.objects.create_user(
+            username='bare@example.com', email='bare@example.com', password='x',
+        )
+        profile = proposal_client_service.get_or_create_client_for_proposal(
+            name='Bare User', email='bare@example.com',
+        )
+        assert profile.user.pk == bare_user.pk
+        assert profile.role == UserProfile.ROLE_CLIENT
+
+
+# ---------------------------------------------------------------------------
+# update_client_profile — additional branches
+# ---------------------------------------------------------------------------
+
+class TestUpdateClientProfileEdgeCases:
+    def test_no_op_when_all_args_are_none(self):
+        profile = proposal_client_service.get_or_create_client_for_proposal(
+            name='No Change', email='nochange@example.com',
+        )
+        original_name = profile.user.first_name
+        result = proposal_client_service.update_client_profile(profile)
+        assert result.user.first_name == original_name
+
+    def test_whitespace_only_email_converts_to_placeholder(self):
+        profile = proposal_client_service.get_or_create_client_for_proposal(
+            name='Whitespace', email='whitespace@example.com',
+        )
+        proposal_client_service.update_client_profile(profile, email='   ')
+        profile.user.refresh_from_db()
+        assert profile.user.email.endswith(UserProfile.PLACEHOLDER_EMAIL_DOMAIN)
+
+    def test_cascades_update_to_web_app_diagnostics(self):
+        from content.models.web_app_diagnostic import WebAppDiagnostic
+
+        profile = proposal_client_service.get_or_create_client_for_proposal(
+            name='Diag Client', email='diagclient@example.com',
+        )
+        diag = WebAppDiagnostic.objects.create(
+            client=profile,
+            client_name='Diag Client',
+            client_email='diagclient@example.com',
+            language='es',
+        )
+        proposal_client_service.update_client_profile(profile, name='Diag Updated')
+        diag.refresh_from_db()
+        assert diag.client_name == 'Diag Updated'
+
+
+# ---------------------------------------------------------------------------
+# sync_snapshot — None client guard
+# ---------------------------------------------------------------------------
+
+class TestSyncSnapshotNoneClient:
+    def test_sync_snapshot_returns_proposal_unchanged_when_client_is_none(self):
+        proposal = BusinessProposal.objects.create(
+            title='No Client',
+            client_name='Old Name',
+            client_email='old@example.com',
+            total_investment=100,
+        )
+        result = proposal_client_service.sync_snapshot(proposal)
+        assert result.client_name == 'Old Name'
+
+
+# ---------------------------------------------------------------------------
+# delete_orphan_client — diagnostics guard
+# ---------------------------------------------------------------------------
+
+class TestDeleteOrphanClientDiagnosticsGuard:
+    def test_blocks_deletion_when_client_has_diagnostics(self):
+        from content.models.web_app_diagnostic import WebAppDiagnostic
+
+        profile = proposal_client_service.get_or_create_client_for_proposal(
+            name='Has Diag', email='hasdiag@example.com',
+        )
+        WebAppDiagnostic.objects.create(
+            client=profile,
+            client_name='Has Diag',
+            client_email='hasdiag@example.com',
+            language='es',
+        )
+        with pytest.raises(ValueError, match='client_has_diagnostics:1'):
+            proposal_client_service.delete_orphan_client(profile)
