@@ -3,19 +3,25 @@
     <SectionHeader :index="content.index" :title="content.title" fallback="Costo y Formas de Pago" />
     <p v-if="content.intro" class="text-esmerald/80 dark:text-esmerald-light/80 leading-relaxed">{{ content.intro }}</p>
 
-    <ul
-      v-if="valueBullets.length"
-      class="mt-4 space-y-2 text-esmerald/80 dark:text-esmerald-light/80"
+    <div
+      v-if="parsedBullets.length"
+      class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4"
+      data-testid="cost-value-cards"
     >
-      <li
-        v-for="(bullet, idx) in valueBullets"
+      <div
+        v-for="(item, idx) in parsedBullets"
         :key="idx"
-        class="flex gap-3"
+        class="bg-white dark:bg-esmerald-light/5 border border-esmerald/10 dark:border-esmerald-light/15 rounded-2xl p-5 shadow-sm"
       >
-        <span class="mt-2 shrink-0 size-1.5 rounded-full bg-lemon" aria-hidden="true" />
-        <span>{{ bullet }}</span>
-      </li>
-    </ul>
+        <div class="flex items-start gap-3">
+          <span class="mt-1 shrink-0 size-2 rounded-full bg-lemon" aria-hidden="true" />
+          <div>
+            <p class="font-semibold text-esmerald dark:text-esmerald-light leading-snug">{{ item.title }}</p>
+            <p v-if="item.body" class="text-sm text-esmerald/70 dark:text-esmerald-light/70 leading-relaxed mt-1">{{ item.body }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div
       v-if="hasInvestmentCard"
@@ -181,6 +187,14 @@ const valueBullets = computed(() => {
   if (!Array.isArray(arr)) return [];
   return arr.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean);
 });
+
+const parsedBullets = computed(() =>
+  valueBullets.value.map((s) => {
+    const sep = s.indexOf(': ');
+    if (sep === -1) return { title: s, body: '' };
+    return { title: s.slice(0, sep), body: s.slice(sep + 2) };
+  }),
+);
 
 const paymentDescription = computed(() => {
   const desc = props.content?.paymentDescription;

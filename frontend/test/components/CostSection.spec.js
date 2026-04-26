@@ -63,14 +63,24 @@ describe('CostSection', () => {
     expect(final.text()).toContain('60%')
   })
 
-  it('renders valueBullets list when content.valueBullets has trimmed entries', () => {
+  it('renders valueBullets as cards, splitting on ": " into title and body', () => {
     const w = mountSection({
-      content: { valueBullets: ['Claridad técnica', '  ', 'Priorización'] },
+      content: {
+        valueBullets: [
+          'Claridad técnica: un mapa del estado real',
+          '  ',
+          'Priorización',
+        ],
+      },
     })
-    const items = w.findAll('ul li')
-    const texts = items.map((li) => li.text())
-    expect(texts).toEqual(expect.arrayContaining(['Claridad técnica', 'Priorización']))
-    expect(texts).not.toContain('')
+    const grid = w.find('[data-testid="cost-value-cards"]')
+    expect(grid.exists()).toBe(true)
+    const cards = grid.findAll('div.rounded-2xl')
+    expect(cards).toHaveLength(2)
+    expect(cards[0].text()).toContain('Claridad técnica')
+    expect(cards[0].text()).toContain('un mapa del estado real')
+    expect(cards[1].text()).toContain('Priorización')
+    expect(cards[1].find('p + p').exists()).toBe(false)
   })
 
   it('computes per-tranche amounts as Math.round(investment * pct / 100)', () => {
