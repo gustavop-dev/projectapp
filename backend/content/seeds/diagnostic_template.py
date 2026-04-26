@@ -587,13 +587,7 @@ def _cost_section(order):
                     ),
                 },
             ],
-            'note': (
-                'El monto, la moneda y los porcentajes que ves arriba se '
-                'toman directamente del tab General de la vista detalle de '
-                'este diagnóstico. Si durante el levantamiento inicial se '
-                'identifica un alcance significativamente mayor al estimado, '
-                'el valor puede ajustarse antes de continuar.'
-            ),
+            'note': '',
         },
     }
 
