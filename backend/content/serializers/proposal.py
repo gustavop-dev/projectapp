@@ -359,7 +359,7 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
     """
 
     client_id = serializers.PrimaryKeyRelatedField(
-        queryset=UserProfile.objects.filter(role=UserProfile.ROLE_CLIENT),
+        queryset=UserProfile.objects.clients(),
         source='client',
         write_only=True,
         required=False,

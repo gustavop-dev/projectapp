@@ -2,10 +2,23 @@ import secrets
 import string
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
 
 from accounts.services.image_utils import optimize_avatar, optimize_image
+
+
+class UserProfileQuerySet(models.QuerySet):
+    def clients(self):
+        return self.filter(role=UserProfile.ROLE_CLIENT).select_related('user')
+
+    def admins(self):
+        return self.filter(role=UserProfile.ROLE_ADMIN).select_related('user')
+
+
+class UserProfileManager(models.Manager.from_queryset(UserProfileQuerySet)):
+    pass
 
 
 class UserProfile(models.Model):
@@ -104,6 +117,8 @@ class UserProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = UserProfileManager()
+
     class Meta:
         ordering = ['-created_at']
 
@@ -139,6 +154,27 @@ class UserProfile(models.Model):
                 except Exception:
                     pass
         super().save(*args, **kwargs)
+
+
+def _user_role(self):
+    profile = getattr(self, 'profile', None)
+    return profile.role if profile else None
+
+
+def _user_is_client_role(self):
+    profile = getattr(self, 'profile', None)
+    return bool(profile and profile.is_client)
+
+
+def _user_is_admin_role(self):
+    profile = getattr(self, 'profile', None)
+    return bool(profile and profile.is_admin)
+
+
+_AuthUser = get_user_model()
+_AuthUser.add_to_class('role', property(_user_role))
+_AuthUser.add_to_class('is_client_role', property(_user_is_client_role))
+_AuthUser.add_to_class('is_admin_role', property(_user_is_admin_role))
 
 
 class VerificationCode(models.Model):

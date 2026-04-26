@@ -41,9 +41,7 @@ logger = logging.getLogger(__name__)
 def _base_queryset():
     """Return a queryset of client profiles with the standard annotations."""
     return (
-        UserProfile.objects
-        .filter(role=UserProfile.ROLE_CLIENT)
-        .select_related('user')
+        UserProfile.objects.clients()
         .annotate(
             proposals_count=Count('proposals', distinct=True),
             projects_count=Count('user__projects', distinct=True),
@@ -123,11 +121,7 @@ def list_proposal_clients(request):
 def search_proposal_clients(request):
     """Lightweight autocomplete used by the proposal form. Max 20 results."""
     query = (request.query_params.get('q') or '').strip()
-    qs = (
-        UserProfile.objects
-        .filter(role=UserProfile.ROLE_CLIENT)
-        .select_related('user')
-    )
+    qs = UserProfile.objects.clients()
     if query:
         qs = qs.filter(
             Q(user__email__icontains=query)

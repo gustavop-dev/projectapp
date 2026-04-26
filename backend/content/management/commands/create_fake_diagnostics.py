@@ -135,7 +135,7 @@ class Command(BaseCommand):
         with_pricing = options['with_pricing']
         with_views = options['with_views']
 
-        clients = list(UserProfile.objects.filter(role=UserProfile.ROLE_CLIENT)[:20])
+        clients = list(UserProfile.objects.clients()[:20])
         if not clients:
             self.stdout.write(self.style.WARNING(
                 'No client profiles found — creating demo clients…'

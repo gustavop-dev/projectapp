@@ -2,6 +2,7 @@ import secrets
 import string
 
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.db.models import Q
 from django.core.mail import send_mail
 from django.conf import settings
@@ -20,6 +21,7 @@ def generate_temp_password():
     return ''.join(secrets.choice(alphabet) for _ in range(TEMP_PASSWORD_LENGTH))
 
 
+@transaction.atomic
 def create_client(*, email, first_name, last_name, company_name='', phone='', created_by=None):
     """
     Create a new client user with a temporary password and send an invitation email.
@@ -72,6 +74,7 @@ def resend_invitation(user):
     return temp_password
 
 
+@transaction.atomic
 def create_admin(*, email, first_name, last_name, created_by=None):
     """
     Create a new platform admin with a temporary password and send an invitation email.

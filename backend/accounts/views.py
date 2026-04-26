@@ -32,6 +32,7 @@ from accounts.serializers import (
     VerifyOnboardingSerializer,
 )
 from accounts.services.onboarding import create_admin, create_client, resend_invitation
+from accounts.services.proposal_client_service import update_client_profile
 from accounts.services.tokens import get_tokens_for_user, get_verification_token_for_user
 from accounts.services.verification import create_and_send_otp, validate_otp
 from accounts.services.archive import (
@@ -337,7 +338,7 @@ def client_list_view(request):
     """List all clients or create a new one."""
     if request.method == 'GET':
         filter_param = request.query_params.get('filter', 'all')
-        qs = UserProfile.objects.filter(role=UserProfile.ROLE_CLIENT).select_related('user')
+        qs = UserProfile.objects.clients()
 
         if filter_param == 'onboarded':
             qs = qs.filter(is_onboarded=True, user__is_active=True)
@@ -375,12 +376,7 @@ def client_list_view(request):
 def client_detail_view(request, user_id):
     """Get, update, or deactivate a client."""
     try:
-        profile = (
-            UserProfile.objects
-            .filter(role=UserProfile.ROLE_CLIENT, user_id=user_id)
-            .select_related('user')
-            .get()
-        )
+        profile = UserProfile.objects.clients().get(user_id=user_id)
     except UserProfile.DoesNotExist:
         return Response(
             {'detail': 'Cliente no encontrado.'},
@@ -400,21 +396,25 @@ def client_detail_view(request, user_id):
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
-    user = profile.user
-    if 'first_name' in data:
-        user.first_name = data['first_name']
-    if 'last_name' in data:
-        user.last_name = data['last_name']
-    if 'is_active' in data:
-        user.is_active = data['is_active']
-    user.save(update_fields=['first_name', 'last_name', 'is_active'])
-
+    identity_kwargs = {}
+    if 'first_name' in data or 'last_name' in data:
+        first = data.get('first_name', profile.user.first_name)
+        last = data.get('last_name', profile.user.last_name)
+        identity_kwargs['name'] = f'{first} {last}'.strip()
     if 'company_name' in data:
-        profile.company_name = data['company_name']
+        identity_kwargs['company'] = data['company_name']
     if 'phone' in data:
-        profile.phone = data['phone']
-    profile.save(update_fields=['company_name', 'phone', 'updated_at'])
+        identity_kwargs['phone'] = data['phone']
 
+    if identity_kwargs:
+        update_client_profile(profile, **identity_kwargs)
+
+    if 'is_active' in data:
+        user = profile.user
+        user.is_active = data['is_active']
+        user.save(update_fields=['is_active'])
+
+    profile.refresh_from_db()
     return Response(ClientListSerializer(profile, context={'request': request}).data)
 
 
@@ -423,12 +423,7 @@ def client_detail_view(request, user_id):
 def client_resend_invite_view(request, user_id):
     """Resend invitation email with a new temp password."""
     try:
-        profile = (
-            UserProfile.objects
-            .filter(role=UserProfile.ROLE_CLIENT, user_id=user_id)
-            .select_related('user')
-            .get()
-        )
+        profile = UserProfile.objects.clients().get(user_id=user_id)
     except UserProfile.DoesNotExist:
         return Response(
             {'detail': 'Cliente no encontrado.'},
@@ -463,7 +458,7 @@ def admin_list_view(request):
         return denied
 
     if request.method == 'GET':
-        qs = UserProfile.objects.filter(role=UserProfile.ROLE_ADMIN).select_related('user')
+        qs = UserProfile.objects.admins()
 
         filter_param = request.query_params.get('filter', 'all')
         if filter_param == 'active':

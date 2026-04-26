@@ -52,7 +52,7 @@ def notify_project_admins(
     deliverable=None,
 ):
     """Notify all admin users about an event in a project."""
-    admin_profiles = UserProfile.objects.filter(role=UserProfile.ROLE_ADMIN).select_related('user')
+    admin_profiles = UserProfile.objects.admins()
     notifications = []
     for profile in admin_profiles:
         if exclude_user and profile.user_id == exclude_user.id:
