@@ -2,13 +2,15 @@
   <div class="share-diagnostic">
     <button
       data-testid="share-diagnostic-btn"
-      class="share-btn fixed bottom-[8.5rem] right-4 z-40 w-12 h-12 bg-white border border-esmerald/15
+      class="share-btn fixed bottom-[8.5rem] right-4 z-40 w-12 h-12
+             bg-white dark:bg-esmerald/90
+             border border-esmerald/15 dark:border-esmerald-light/20
              rounded-full shadow-lg flex items-center justify-center
-             hover:bg-esmerald/5 transition-colors group"
+             hover:bg-esmerald/5 dark:hover:bg-esmerald-light/10 transition-colors group"
       :title="t.shareTitle"
       @click="showModal = true"
     >
-      <svg class="w-5 h-5 text-esmerald/70 group-hover:text-esmerald transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-5 h-5 text-esmerald/70 dark:text-esmerald-light/80 group-hover:text-esmerald dark:group-hover:text-esmerald-light transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
       </svg>
@@ -18,25 +20,25 @@
       <Transition name="share-modal">
         <div
           v-if="showModal"
-          class="fixed inset-0 z-[9990] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm"
+          :class="['fixed inset-0 z-[9990] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm', { dark: isDark }]"
           @click.self="closeModal"
         >
-          <div class="share-modal-card bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md sm:mx-4 p-6 sm:p-8">
+          <div class="share-modal-card bg-white dark:bg-esmerald rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md sm:mx-4 p-6 sm:p-8 ring-1 ring-transparent dark:ring-esmerald-light/15">
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-esmerald/5 rounded-xl flex items-center justify-center">
-                  <svg class="w-5 h-5 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-10 h-10 bg-esmerald/5 dark:bg-esmerald-light/10 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-esmerald dark:text-esmerald-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                   </svg>
                 </div>
                 <div>
-                  <h3 class="text-lg font-bold text-esmerald">{{ t.shareTitle }}</h3>
-                  <p class="text-xs text-esmerald/50">{{ t.shareSubtitle }}</p>
+                  <h3 class="text-lg font-bold text-esmerald dark:text-esmerald-light">{{ t.shareTitle }}</h3>
+                  <p class="text-xs text-esmerald/50 dark:text-esmerald-light/55">{{ t.shareSubtitle }}</p>
                 </div>
               </div>
               <button
-                class="w-8 h-8 rounded-full bg-esmerald/5 flex items-center justify-center text-esmerald/50 hover:text-esmerald hover:bg-esmerald/10 transition-colors"
+                class="w-8 h-8 rounded-full bg-esmerald/5 dark:bg-esmerald-light/10 flex items-center justify-center text-esmerald/50 dark:text-esmerald-light/60 hover:text-esmerald dark:hover:text-esmerald-light hover:bg-esmerald/10 dark:hover:bg-esmerald-light/15 transition-colors"
                 @click="closeModal"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,16 +47,16 @@
               </button>
             </div>
 
-            <div class="bg-esmerald/5 border border-esmerald/10 rounded-xl p-3 sm:p-4 flex items-center gap-3 mb-4">
+            <div class="bg-esmerald/5 dark:bg-esmerald-light/5 border border-esmerald/10 dark:border-esmerald-light/15 rounded-xl p-3 sm:p-4 flex items-center gap-3 mb-4">
               <div class="flex-1 min-w-0">
-                <p class="text-[11px] text-esmerald/55 mb-0.5 font-medium uppercase tracking-wider">{{ t.linkLabel }}</p>
-                <p class="text-sm text-esmerald/80 truncate">{{ currentUrl }}</p>
+                <p class="text-[11px] text-esmerald/55 dark:text-esmerald-light/55 mb-0.5 font-medium uppercase tracking-wider">{{ t.linkLabel }}</p>
+                <p class="text-sm text-esmerald/80 dark:text-esmerald-light/80 truncate">{{ currentUrl }}</p>
               </div>
               <button
                 class="flex-shrink-0 px-4 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap"
                 :class="copied
-                  ? 'bg-esmerald/10 text-esmerald'
-                  : 'bg-esmerald text-lemon hover:bg-esmerald-dark'"
+                  ? 'bg-esmerald/10 dark:bg-esmerald-light/15 text-esmerald dark:text-esmerald-light'
+                  : 'bg-esmerald dark:bg-lemon text-lemon dark:text-esmerald hover:bg-esmerald-dark dark:hover:bg-lemon/90'"
                 @click="copyLink"
               >
                 <span v-if="copied" class="flex items-center gap-1.5">
@@ -74,7 +76,7 @@
 
             <button
               v-if="canNativeShare"
-              class="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 bg-esmerald text-lemon rounded-xl font-medium text-sm hover:bg-esmerald-dark transition-colors shadow-sm"
+              class="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 bg-esmerald dark:bg-lemon text-lemon dark:text-esmerald rounded-xl font-medium text-sm hover:bg-esmerald-dark dark:hover:bg-lemon/90 transition-colors shadow-sm"
               @click="nativeShare"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,7 +85,7 @@
               {{ t.shareViaApps }}
             </button>
 
-            <p v-else class="text-center text-xs text-esmerald/50 mt-2">
+            <p v-else class="text-center text-xs text-esmerald/50 dark:text-esmerald-light/55 mt-2">
               {{ t.copyHint }}
             </p>
           </div>
@@ -95,6 +97,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useDiagnosticDarkMode } from '~/composables/useDiagnosticDarkMode';
+
+const { isDark } = useDiagnosticDarkMode();
 
 const props = defineProps({
   diagnosticUuid: { type: String, required: true },

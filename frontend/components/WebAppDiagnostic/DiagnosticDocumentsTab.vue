@@ -22,6 +22,11 @@
             </div>
             <div class="flex items-center gap-2 flex-wrap">
               <template v-if="ndaDoc">
+                <button type="button" aria-label="Vista previa" title="Vista previa"
+                  @click="openPdfPreview('Acuerdo de confidencialidad', ndaPdfUrl)"
+                  class="inline-flex items-center justify-center w-8 h-8 bg-gray-50 dark:bg-white/[0.03] text-gray-600 dark:text-white/70 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
+                  <EyeIcon class="w-4 h-4" />
+                </button>
                 <a :href="ndaPdfUrl" target="_blank"
                   class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,14 +75,13 @@
                   </svg>
                   Descargar .md
                 </button>
-                <button type="button" @click="togglePreview(t.slug)"
-                  class="text-xs text-gray-500 dark:text-green-light/60 hover:text-emerald-600">
-                  {{ templateExpanded[t.slug] ? 'Ocultar' : 'Vista previa' }}
+                <button type="button" :disabled="templateBusy[t.slug]" aria-label="Vista previa"
+                  title="Vista previa" @click="openMarkdownPreview(t)"
+                  class="inline-flex items-center justify-center w-8 h-8 bg-gray-50 dark:bg-white/[0.03] text-gray-600 dark:text-green-light rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors disabled:opacity-50">
+                  <EyeIcon class="w-4 h-4" />
                 </button>
               </div>
             </div>
-            <pre v-if="templateExpanded[t.slug] && templateCache[t.slug]"
-              class="mt-3 p-3 bg-gray-50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/[0.06] rounded-lg text-xs text-gray-700 dark:text-green-light overflow-auto max-h-96 whitespace-pre-wrap font-mono">{{ templateCache[t.slug] }}</pre>
           </li>
         </template>
       </ul>
@@ -104,12 +108,19 @@
               {{ att.title }}
             </a>
           </div>
-          <button type="button" class="text-gray-400 hover:text-red-500 transition-colors p-1"
-            @click="handleDelete(att.id)">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
+          <div class="flex items-center gap-1">
+            <button v-if="canPreviewFile(att.file)" type="button" aria-label="Vista previa"
+              title="Vista previa" @click="openAttachmentPreview(att)"
+              class="text-gray-400 hover:text-emerald-600 transition-colors p-1">
+              <EyeIcon class="w-4 h-4" />
+            </button>
+            <button type="button" class="text-gray-400 hover:text-red-500 transition-colors p-1"
+              @click="handleDelete(att.id)">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
       <p v-else class="text-xs text-gray-400 dark:text-gray-500 mb-4">
@@ -162,14 +173,30 @@
       :diagnostic="diagnostic"
       @cancel="showParamsModal = false"
       @saved="showParamsModal = false" />
+
+    <MarkdownPreviewModal v-model="previewOpen" :title="previewTitle">
+      <div v-if="previewKind === 'markdown'"
+        class="markdown-preview markdown-preview--full max-w-4xl mx-auto"
+        v-html="previewHtml"></div>
+      <iframe v-else-if="previewKind === 'pdf'" :src="previewUrl"
+        class="w-full h-[80vh] border-0 rounded-lg bg-white" title="Vista previa"></iframe>
+      <img v-else-if="previewKind === 'image'" :src="previewUrl"
+        class="max-w-full mx-auto" :alt="previewTitle" />
+    </MarkdownPreviewModal>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue';
+import { EyeIcon } from '@heroicons/vue/24/outline';
 import ConfidentialityParamsModal from '~/components/WebAppDiagnostic/ConfidentialityParamsModal.vue';
+import MarkdownPreviewModal from '~/components/panel/documents/MarkdownPreviewModal.vue';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
+import { useMarkdownPreview } from '~/composables/useMarkdownPreview';
 import { get_request } from '~/stores/services/request_http';
+import { canPreviewFile, isPdfUrl, isImageUrl } from '~/utils/filePreview';
+
+const { parseMarkdown } = useMarkdownPreview();
 
 const props = defineProps({
   diagnostic: { type: Object, required: true },
@@ -194,14 +221,49 @@ const ndaDraftPdfUrl = computed(() => `/api/diagnostics/${props.diagnostic.id}/c
 
 const showParamsModal = ref(false);
 
-// ── Diagnostic templates (static MD) ──
 const templates = ref([]);
 const templatesLoading = ref(true);
 const templatesError = ref('');
 const templateCache = reactive({});
-const templateExpanded = reactive({});
 const templateCopied = reactive({});
 const templateBusy = reactive({});
+
+const previewOpen = ref(false);
+const previewKind = ref('markdown');
+const previewTitle = ref('Vista previa');
+const previewMarkdown = ref('');
+const previewUrl = ref('');
+const previewHtml = computed(() => parseMarkdown(previewMarkdown.value || ''));
+
+async function openMarkdownPreview(template) {
+  const content = await ensureTemplateContent(template.slug);
+  previewKind.value = 'markdown';
+  previewTitle.value = template.title || 'Vista previa';
+  previewMarkdown.value = content || '';
+  previewUrl.value = '';
+  previewOpen.value = true;
+}
+
+function openPdfPreview(title, url) {
+  previewKind.value = 'pdf';
+  previewTitle.value = title || 'Vista previa';
+  previewUrl.value = url;
+  previewMarkdown.value = '';
+  previewOpen.value = true;
+}
+
+function openAttachmentPreview(att) {
+  const file = att?.file || '';
+  if (isPdfUrl(file)) {
+    openPdfPreview(att.title || 'Vista previa', file);
+  } else if (isImageUrl(file)) {
+    previewKind.value = 'image';
+    previewTitle.value = att.title || 'Vista previa';
+    previewUrl.value = file;
+    previewMarkdown.value = '';
+    previewOpen.value = true;
+  }
+}
 
 onMounted(async () => {
   try {
@@ -244,11 +306,6 @@ async function downloadTemplate(slug, filename) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-}
-
-async function togglePreview(slug) {
-  if (!templateExpanded[slug]) await ensureTemplateContent(slug);
-  templateExpanded[slug] = !templateExpanded[slug];
 }
 
 function formatBytes(bytes) {
@@ -311,3 +368,198 @@ async function handleDelete(attachmentId) {
   }
 }
 </script>
+
+<style scoped>
+.markdown-preview :deep(.md-h1) {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #d1d5db;
+  color: #047857;
+}
+.markdown-preview :deep(.md-h2) {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: #047857;
+}
+.markdown-preview :deep(.md-h3) {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+  color: #059669;
+}
+.markdown-preview :deep(.md-h4),
+.markdown-preview :deep(.md-h5),
+.markdown-preview :deep(.md-h6) {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 0.85rem;
+  margin-bottom: 0.35rem;
+  color: #059669;
+}
+.markdown-preview :deep(.md-p) {
+  margin-bottom: 0.75rem;
+  line-height: 1.7;
+  font-size: 0.875rem;
+  color: #374151;
+}
+.markdown-preview :deep(.md-ul),
+.markdown-preview :deep(.md-ol) {
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+  font-size: 0.875rem;
+  color: #374151;
+}
+.markdown-preview :deep(.md-ul) { list-style-type: disc; }
+.markdown-preview :deep(.md-ol) { list-style-type: decimal; }
+.markdown-preview :deep(.md-ul li),
+.markdown-preview :deep(.md-ol li) {
+  margin-bottom: 0.25rem;
+  line-height: 1.6;
+}
+.markdown-preview :deep(.md-blockquote) {
+  border-left: 3px solid #10b981;
+  background-color: #f0fdf4;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  font-style: italic;
+  font-size: 0.875rem;
+  color: #4b5563;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+.markdown-preview :deep(.md-code-block) {
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  overflow-x: auto;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+.markdown-preview :deep(.md-code-block code) {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  color: #1f2937;
+}
+.markdown-preview :deep(.md-table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+}
+.markdown-preview :deep(.md-table th) {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+}
+.markdown-preview :deep(.md-table td) {
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem 0.75rem;
+  color: #4b5563;
+}
+.markdown-preview :deep(.md-table tbody tr:nth-child(even)) {
+  background-color: #f9fafb;
+}
+.markdown-preview :deep(.md-hr) {
+  border: none;
+  border-top: 1px solid #d1d5db;
+  margin: 1.25rem 0;
+}
+.markdown-preview :deep(.md-link) {
+  color: #059669;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.markdown-preview :deep(.md-link:hover) { color: #047857; }
+.markdown-preview :deep(strong) { font-weight: 600; }
+.markdown-preview :deep(em) { font-style: italic; }
+.markdown-preview :deep(del) { text-decoration: line-through; color: #6b7280; }
+.markdown-preview :deep(code) {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85em;
+  background-color: #f3f4f6;
+  color: #374151;
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid #e5e7eb;
+}
+.markdown-preview :deep(ul ul),
+.markdown-preview :deep(ol ol),
+.markdown-preview :deep(ul ol),
+.markdown-preview :deep(ol ul) {
+  margin-top: 4px;
+  margin-bottom: 4px;
+  margin-left: 20px;
+}
+.markdown-preview :deep(.callout) {
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.markdown-preview :deep(.callout-label) { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; }
+.markdown-preview :deep(.callout-body) { font-size: 13px; line-height: 1.5; }
+.markdown-preview :deep(.callout-note) { background-color: #e6efef; border-left: 3px solid #002921; }
+.markdown-preview :deep(.callout-note .callout-label) { color: #002921; }
+.markdown-preview :deep(.callout-tip) { background-color: #f0fff4; border-left: 3px solid #809490; }
+.markdown-preview :deep(.callout-tip .callout-label) { color: #809490; }
+.markdown-preview :deep(.callout-important) { background-color: #eef2ff; border-left: 3px solid #6366f1; }
+.markdown-preview :deep(.callout-important .callout-label) { color: #6366f1; }
+.markdown-preview :deep(.callout-warning) { background-color: #fffbeb; border-left: 3px solid #d97706; }
+.markdown-preview :deep(.callout-warning .callout-label) { color: #d97706; }
+.markdown-preview :deep(.callout-caution) { background-color: #fff1f2; border-left: 3px solid #f43f5e; }
+.markdown-preview :deep(.callout-caution .callout-label) { color: #f43f5e; }
+
+:global(.dark) .markdown-preview :deep(.md-h1) { color: #6ee7b7; border-bottom-color: #374151; }
+:global(.dark) .markdown-preview :deep(.md-h2) { color: #6ee7b7; }
+:global(.dark) .markdown-preview :deep(.md-h3) { color: #a7f3d0; }
+:global(.dark) .markdown-preview :deep(.md-h4),
+:global(.dark) .markdown-preview :deep(.md-h5),
+:global(.dark) .markdown-preview :deep(.md-h6) { color: #a7f3d0; }
+:global(.dark) .markdown-preview :deep(.md-p),
+:global(.dark) .markdown-preview :deep(.md-ul),
+:global(.dark) .markdown-preview :deep(.md-ol) { color: #d1d5db; }
+:global(.dark) .markdown-preview :deep(.md-ul li),
+:global(.dark) .markdown-preview :deep(.md-ol li) { color: #d1d5db; }
+:global(.dark) .markdown-preview :deep(.md-blockquote) {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-left-color: #10b981;
+  color: #9ca3af;
+}
+:global(.dark) .markdown-preview :deep(.md-code-block) { background-color: #1f2937; border-color: #374151; }
+:global(.dark) .markdown-preview :deep(.md-code-block code) { color: #e5e7eb; }
+:global(.dark) .markdown-preview :deep(.md-table th) { background-color: #1f2937; border-color: #374151; color: #d1d5db; }
+:global(.dark) .markdown-preview :deep(.md-table td) { border-color: #374151; color: #9ca3af; }
+:global(.dark) .markdown-preview :deep(.md-table tbody tr:nth-child(even)) { background-color: rgba(31, 41, 55, 0.5); }
+:global(.dark) .markdown-preview :deep(.md-hr) { border-top-color: #374151; }
+:global(.dark) .markdown-preview :deep(.md-link) { color: #6ee7b7; }
+:global(.dark) .markdown-preview :deep(.md-link:hover) { color: #a7f3d0; }
+:global(.dark) .markdown-preview :deep(del) { color: #9ca3af; }
+:global(.dark) .markdown-preview :deep(code) { background-color: #374151; color: #d1d5db; border-color: #4b5563; }
+
+.markdown-preview--full :deep(.md-h1) { font-size: 2rem; }
+.markdown-preview--full :deep(.md-h2) { font-size: 1.5rem; }
+.markdown-preview--full :deep(.md-h3) { font-size: 1.25rem; }
+.markdown-preview--full :deep(.md-p),
+.markdown-preview--full :deep(.md-ul),
+.markdown-preview--full :deep(.md-ol),
+.markdown-preview--full :deep(.md-blockquote) {
+  font-size: 1rem;
+  line-height: 1.75;
+}
+.markdown-preview--full :deep(.md-table) { font-size: 0.95rem; }
+.markdown-preview--full :deep(.md-code-block) { font-size: 0.9rem; }
+</style>

@@ -1,41 +1,54 @@
-import { ref, watch, onMounted } from 'vue';
+import { ref } from 'vue';
 
-const STORAGE_KEY = 'diagnostic-dark-mode';
+export const DIAGNOSTIC_THEME_STORAGE_KEY = 'diagnostic_theme';
+const STORAGE_KEY = DIAGNOSTIC_THEME_STORAGE_KEY;
+const LEGACY_STORAGE_KEY = 'diagnostic-dark-mode';
 
 const isDark = ref(false);
 
-function applyTheme(dark) {
+function readStoredPreference() {
   /* c8 ignore next */
-  if (typeof document === 'undefined') return;
-  const wrapper = document.querySelector('[data-diagnostic-wrapper]');
-  if (wrapper) {
-    wrapper.setAttribute('data-theme', dark ? 'dark' : 'light');
+  if (typeof window === 'undefined') return null;
+  try {
+    const current = localStorage.getItem(STORAGE_KEY);
+    if (current === 'dark') return true;
+    if (current === 'light') return false;
+
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy !== null) {
+      const parsed = JSON.parse(legacy) === true;
+      localStorage.setItem(STORAGE_KEY, parsed ? 'dark' : 'light');
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+      return parsed;
+    }
+  } catch (_e) { /* ignore */ }
+  return null;
+}
+
+function prefersSystemDark() {
+  /* c8 ignore next */
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  try {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } catch (_e) {
+    return false;
   }
 }
 
-// Single writer — registered at module load so re-mounting the page
-// (SPA navigation away and back) does not stack duplicate watchers.
-watch(isDark, (val) => {
-  applyTheme(val);
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
-  } catch (_e) { /* ignore */ }
-});
-
 export function useDiagnosticDarkMode() {
-  function toggle() {
-    isDark.value = !isDark.value;
+  function hydrate() {
+    const stored = readStoredPreference();
+    isDark.value = stored !== null ? stored : prefersSystemDark();
   }
 
-  onMounted(() => {
+  function toggle() {
+    isDark.value = !isDark.value;
+    /* c8 ignore next */
+    if (typeof window === 'undefined') return;
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored !== null) {
-        isDark.value = JSON.parse(stored);
-      }
+      localStorage.setItem(STORAGE_KEY, isDark.value ? 'dark' : 'light');
     } catch (_e) { /* ignore */ }
-    applyTheme(isDark.value);
-  });
+  }
 
-  return { isDark, toggle, applyTheme };
+  return { isDark, toggle, hydrate };
 }

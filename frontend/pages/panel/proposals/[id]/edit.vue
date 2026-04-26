@@ -1452,7 +1452,7 @@ const hasDocumentsTab = computed(() =>
   ['sent', 'viewed', 'negotiating', 'accepted', 'rejected'].includes(proposal.value?.status),
 );
 const hasProposalDocuments = computed(() =>
-  ['negotiating', 'accepted', 'rejected'].includes(proposal.value?.status),
+  ['sent', 'viewed', 'negotiating', 'accepted', 'rejected'].includes(proposal.value?.status),
 );
 const hasScheduleTab = computed(() =>
   ['accepted', 'finished'].includes(proposal.value?.status),

@@ -21,6 +21,11 @@
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <template v-if="contractDoc">
+              <button type="button" aria-label="Vista previa" title="Vista previa"
+                @click="openPdfPreview('Contrato de desarrollo', contractPdfUrl)"
+                class="inline-flex items-center justify-center w-8 h-8 bg-gray-50 dark:bg-white/[0.03] text-gray-600 dark:text-green-light rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
+                <EyeIcon class="w-4 h-4" />
+              </button>
               <a :href="contractPdfUrl" target="_blank"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,13 +37,13 @@
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
                 Borrador
               </a>
-              <button type="button" @click="$emit('editContract')"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/[0.03] text-gray-600 dark:text-green-light rounded-lg text-xs font-medium hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
+              <button type="button" :disabled="contractActionsDisabled" @click="$emit('editContract')"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/[0.03] text-gray-600 dark:text-green-light rounded-lg text-xs font-medium hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 Editar parámetros
               </button>
             </template>
-            <button v-else type="button" @click="$emit('generateContract')"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
+            <button v-else type="button" :disabled="contractActionsDisabled" @click="$emit('generateContract')"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               Generar contrato
             </button>
           </div>
@@ -51,6 +56,11 @@
             <div class="text-xs text-gray-400 dark:text-green-light/40 mt-0.5">PDF con branding</div>
           </div>
           <div class="flex items-center gap-2">
+            <button type="button" aria-label="Vista previa" title="Vista previa"
+              @click="openPdfPreview('Propuesta comercial', commercialPdfUrl)"
+              class="inline-flex items-center justify-center w-8 h-8 bg-gray-50 dark:bg-white/[0.03] text-gray-600 dark:text-green-light rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
+              <EyeIcon class="w-4 h-4" />
+            </button>
             <a :href="commercialPdfUrl" target="_blank"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,6 +78,11 @@
             <div class="text-xs text-gray-400 dark:text-green-light/40 mt-0.5">PDF con branding</div>
           </div>
           <div class="flex items-center gap-2">
+            <button type="button" aria-label="Vista previa" title="Vista previa"
+              @click="openPdfPreview('Detalle técnico', technicalPdfUrl)"
+              class="inline-flex items-center justify-center w-8 h-8 bg-gray-50 dark:bg-white/[0.03] text-gray-600 dark:text-green-light rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
+              <EyeIcon class="w-4 h-4" />
+            </button>
             <a :href="technicalPdfUrl" target="_blank"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,12 +115,19 @@
               {{ doc.title }}
             </a>
           </div>
-          <button v-if="!doc.is_generated" type="button" @click="handleDelete(doc.id)"
-            class="text-gray-400 hover:text-red-500 transition-colors p-1">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
+          <div class="flex items-center gap-1">
+            <button v-if="canPreviewFile(doc.file)" type="button" aria-label="Vista previa"
+              title="Vista previa" @click="openDocPreview(doc)"
+              class="text-gray-400 hover:text-emerald-600 transition-colors p-1">
+              <EyeIcon class="w-4 h-4" />
+            </button>
+            <button v-if="!doc.is_generated" type="button" @click="handleDelete(doc.id)"
+              class="text-gray-400 hover:text-red-500 transition-colors p-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
       <p v-else class="text-xs text-gray-400 dark:text-green-light/40 mb-4">No hay documentos adjuntos.</p>
@@ -146,13 +168,23 @@
         </div>
       </div>
     </section>
+
+    <MarkdownPreviewModal v-model="previewOpen" :title="previewTitle">
+      <iframe v-if="previewKind === 'pdf'" :src="previewUrl"
+        class="w-full h-[80vh] border-0 rounded-lg bg-white" title="Vista previa"></iframe>
+      <img v-else-if="previewKind === 'image'" :src="previewUrl"
+        class="max-w-full mx-auto" :alt="previewTitle" />
+    </MarkdownPreviewModal>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
+import { EyeIcon } from '@heroicons/vue/24/outline';
 import { usePanelToast } from '~/composables/usePanelToast';
 import { CONTRACT_LOCKED_STATUSES } from '~/utils/proposalStatus';
+import { isPdfUrl, isImageUrl, canPreviewFile } from '~/utils/filePreview';
+import MarkdownPreviewModal from '~/components/panel/documents/MarkdownPreviewModal.vue';
 
 const { showToast } = usePanelToast();
 
@@ -194,6 +226,30 @@ const technicalPdfUrl = computed(() =>
 const additionalDocs = computed(() =>
   props.documents.filter(d => d.document_type !== 'contract'),
 );
+
+const previewOpen = ref(false);
+const previewKind = ref('pdf');
+const previewTitle = ref('Vista previa');
+const previewUrl = ref('');
+
+function openPdfPreview(title, url) {
+  previewKind.value = 'pdf';
+  previewTitle.value = title || 'Vista previa';
+  previewUrl.value = url;
+  previewOpen.value = true;
+}
+
+function openDocPreview(doc) {
+  const file = doc?.file || '';
+  if (isPdfUrl(file)) {
+    openPdfPreview(doc.title || 'Vista previa', file);
+  } else if (isImageUrl(file)) {
+    previewKind.value = 'image';
+    previewTitle.value = doc.title || 'Vista previa';
+    previewUrl.value = file;
+    previewOpen.value = true;
+  }
+}
 
 function formatDate(isoString) {
   if (!isoString) return '';

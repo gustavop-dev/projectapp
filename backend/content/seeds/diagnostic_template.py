@@ -553,8 +553,18 @@ def _cost_section(order):
             'index': '6',
             'title': 'Costo y Formas de Pago',
             'intro': (
-                'La inversión de referencia para este diagnóstico se muestra a '
-                'continuación.'
+                'Hacer un diagnóstico es invertir en claridad antes de invertir '
+                'en cambios. En lugar de seguir sumando funcionalidades sobre '
+                'una base que nadie ha revisado de forma estructurada, este '
+                'ejercicio te entrega un mapa concreto de en qué estado está '
+                'la aplicación, qué está sosteniendo el negocio bien, qué está '
+                'generando riesgo silencioso y dónde se está pagando un '
+                'sobrecosto técnico que no se ve en el día a día. El valor del '
+                'diagnóstico no está en el documento que se entrega, sino en '
+                'las decisiones que habilita: priorizar lo que de verdad '
+                'mueve la aguja, evitar reescribir lo que ya funciona y '
+                'sostener una conversación informada con el equipo técnico — '
+                'propio o externo — a partir de evidencia, no de intuiciones.'
             ),
             'paymentDescription': [
                 {
@@ -573,9 +583,10 @@ def _cost_section(order):
                 },
             ],
             'note': (
-                'Este valor puede ajustarse si durante el levantamiento inicial '
-                'se identifica un alcance significativamente mayor al estimado '
-                'en esta propuesta.'
+                'Los montos y porcentajes mostrados arriba se toman directamente '
+                'de la configuración general del diagnóstico. Este valor puede '
+                'ajustarse si durante el levantamiento inicial se identifica un '
+                'alcance significativamente mayor al estimado en esta propuesta.'
             ),
         },
     }

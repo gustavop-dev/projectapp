@@ -40,14 +40,14 @@ export const VISIBILITY_OPTIONS = Object.freeze([
 export const SEVERITY_LEVELS = Object.freeze(['Crítico', 'Alto', 'Medio', 'Bajo']);
 
 export const SEVERITY_LEVEL_CLASSES = Object.freeze({
-  'Crítico': 'bg-rose-100 text-rose-700',
-  'Alto':    'bg-amber-100 text-amber-700',
-  'Medio':   'bg-yellow-100 text-yellow-700',
-  'Bajo':    'bg-emerald-100 text-emerald-700',
+  'Crítico': 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200',
+  'Alto':    'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200',
+  'Medio':   'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200',
+  'Bajo':    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200',
 });
 
 export function severityLevelClass(level) {
-  return SEVERITY_LEVEL_CLASSES[level] || 'bg-gray-100 text-gray-600';
+  return SEVERITY_LEVEL_CLASSES[level] || 'bg-gray-100 text-gray-600 dark:bg-gray-700/40 dark:text-gray-200';
 }
 
 export const ACTIVITY_CHANGE_TYPES = Object.freeze([

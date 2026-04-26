@@ -1,7 +1,7 @@
 <template>
   <div
     class="diagnostic-public min-h-screen py-16 px-4"
-    data-diagnostic-wrapper
+    :class="{ dark: isDark }"
   >
     <DiagnosticIndex
       v-if="sections.length > 1"
@@ -12,16 +12,16 @@
     />
 
     <div class="max-w-4xl mx-auto">
-      <div v-if="store.isLoading" class="text-center text-esmerald/60">Cargando…</div>
+      <div v-if="store.isLoading" class="text-center text-esmerald/60 dark:text-esmerald-light/60">Cargando…</div>
 
       <div v-else-if="store.error === 'not_found'" class="text-center py-16">
-        <p class="text-rose-600">Diagnóstico no encontrado.</p>
+        <p class="text-rose-600 dark:text-rose-300">Diagnóstico no encontrado.</p>
       </div>
 
       <template v-else-if="store.current">
         <article
           v-if="sections.length"
-          class="diagnostic-card bg-white rounded-3xl shadow-[0_6px_30px_-12px_rgba(0,41,33,0.25)] border border-esmerald/10 p-6 md:p-12 mb-6"
+          class="diagnostic-card bg-white dark:bg-esmerald rounded-3xl shadow-[0_6px_30px_-12px_rgba(0,41,33,0.25)] dark:shadow-[0_6px_30px_-12px_rgba(0,0,0,0.5)] border border-esmerald/10 dark:border-esmerald-light/15 p-6 md:p-12 mb-6 text-esmerald dark:text-esmerald-light"
         >
           <component
             :is="componentFor(activeSection.section_type)"
@@ -33,22 +33,22 @@
 
         <div
           v-else
-          class="diagnostic-card bg-white rounded-3xl shadow-sm border border-esmerald/10 p-6 text-center"
+          class="diagnostic-card bg-white dark:bg-esmerald rounded-3xl shadow-sm border border-esmerald/10 dark:border-esmerald-light/15 p-6 text-center"
         >
-          <p class="text-esmerald font-medium">{{ emptyStateCopy.title }}</p>
-          <p class="text-sm text-esmerald/60 mt-2">{{ emptyStateCopy.hint }}</p>
+          <p class="text-esmerald dark:text-esmerald-light font-medium">{{ emptyStateCopy.title }}</p>
+          <p class="text-sm text-esmerald/60 dark:text-esmerald-light/60 mt-2">{{ emptyStateCopy.hint }}</p>
         </div>
 
         <!-- Prev / next -->
-        <div v-if="sections.length > 1" class="flex justify-between items-center mb-8">
+        <div v-if="sections.length > 1" class="section-nav flex justify-between items-center mb-8">
           <button
-            class="px-4 py-2 text-sm rounded-lg border border-esmerald/20 text-esmerald/80 hover:bg-esmerald/5 disabled:opacity-30"
+            class="px-4 py-2 text-sm rounded-lg border border-esmerald/20 dark:border-esmerald-light/20 text-esmerald/80 dark:text-esmerald-light/80 hover:bg-esmerald/5 dark:hover:bg-esmerald-light/10 disabled:opacity-30"
             :disabled="activeIndex === 0"
             @click="selectSection(activeIndex - 1)"
           >← Anterior</button>
-          <span class="text-xs text-esmerald/60">Sección {{ activeIndex + 1 }} de {{ sections.length }}</span>
+          <span class="section-counter text-xs text-esmerald/60 dark:text-esmerald-light/60">Sección {{ activeIndex + 1 }} de {{ sections.length }}</span>
           <button
-            class="px-4 py-2 text-sm rounded-lg border border-esmerald/20 text-esmerald/80 hover:bg-esmerald/5 disabled:opacity-30"
+            class="px-4 py-2 text-sm rounded-lg border border-esmerald/20 dark:border-esmerald-light/20 text-esmerald/80 dark:text-esmerald-light/80 hover:bg-esmerald/5 dark:hover:bg-esmerald-light/10 disabled:opacity-30"
             :disabled="activeIndex === sections.length - 1"
             @click="selectSection(activeIndex + 1)"
           >Siguiente →</button>
@@ -56,34 +56,34 @@
 
         <footer
           v-if="canRespond"
-          class="diagnostic-card mt-8 bg-white rounded-3xl border border-esmerald/10 p-6 text-center shadow-sm"
+          class="diagnostic-card diagnostic-cta mt-8 bg-white dark:bg-esmerald rounded-3xl border border-esmerald/10 dark:border-esmerald-light/15 p-6 text-center shadow-sm"
         >
-          <p class="text-esmerald mb-4">¿Quieres avanzar con el diagnóstico?</p>
+          <p class="text-esmerald dark:text-esmerald-light mb-4">¿Quieres avanzar con el diagnóstico?</p>
           <div class="flex justify-center gap-3 flex-wrap">
             <button
-              class="px-6 py-3 bg-esmerald text-lemon rounded-xl hover:bg-esmerald-dark disabled:opacity-50 font-medium"
+              class="px-6 py-3 bg-esmerald dark:bg-lemon text-lemon dark:text-esmerald rounded-xl hover:bg-esmerald-dark dark:hover:bg-lemon/90 disabled:opacity-50 font-medium"
               :disabled="store.isUpdating"
               @click="respond('accept')"
             >Aceptar propuesta</button>
             <button
-              class="px-6 py-3 border border-rose-200 text-rose-600 rounded-xl hover:bg-rose-50 disabled:opacity-50"
+              class="px-6 py-3 border border-rose-200 dark:border-rose-400/30 text-rose-600 dark:text-rose-300 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/20 disabled:opacity-50"
               :disabled="store.isUpdating"
               @click="respond('reject')"
             >No por ahora</button>
           </div>
-          <p v-if="responseMsg" class="mt-4 text-sm text-esmerald/70">{{ responseMsg }}</p>
+          <p v-if="responseMsg" class="mt-4 text-sm text-esmerald/70 dark:text-esmerald-light/70">{{ responseMsg }}</p>
         </footer>
 
         <footer
           v-else-if="store.current.status === DIAGNOSTIC_STATUS.ACCEPTED"
-          class="diagnostic-card mt-8 bg-esmerald/5 border border-esmerald/15 rounded-3xl p-6 text-center text-esmerald"
+          class="diagnostic-card mt-8 bg-esmerald/5 dark:bg-esmerald-light/5 border border-esmerald/15 dark:border-esmerald-light/15 rounded-3xl p-6 text-center text-esmerald dark:text-esmerald-light"
         >
           ¡Gracias! Confirmamos tu aceptación. Te contactaremos para coordinar el inicio.
         </footer>
 
         <footer
           v-else-if="store.current.status === DIAGNOSTIC_STATUS.REJECTED"
-          class="diagnostic-card mt-8 bg-rose-50 border border-rose-200 rounded-3xl p-6 text-center text-rose-800"
+          class="diagnostic-card mt-8 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-400/20 rounded-3xl p-6 text-center text-rose-800 dark:text-rose-200"
         >
           Recibimos tu respuesta. Si cambias de opinión, contáctanos cuando quieras.
         </footer>
@@ -98,15 +98,71 @@
 
         <button
           type="button"
+          data-testid="diagnostic-restart-tutorial"
+          class="restart-tutorial-btn fixed bottom-[68px] left-6 z-[9990] w-11 h-11 rounded-full
+                 bg-white dark:bg-esmerald-dark shadow-lg
+                 border border-esmerald/15 dark:border-esmerald-light/25
+                 text-esmerald dark:text-esmerald-light
+                 flex items-center justify-center
+                 hover:bg-esmerald/5 dark:hover:bg-esmerald/80
+                 focus:outline-none focus-visible:ring-2 focus-visible:ring-lemon focus-visible:ring-offset-2
+                 transition-all hover:scale-110"
+          :aria-label="restartTutorialLabel"
+          :title="restartTutorialLabel"
+          @click="onboardingRef?.forceStart()"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+
+        <DiagnosticOnboarding
+          ref="onboardingRef"
+          :language="store.current?.language || 'es'"
+        />
+
+        <button
+          type="button"
           data-testid="diagnostic-theme-toggle"
-          class="theme-toggle fixed bottom-6 left-6 z-[9990] w-10 h-10 rounded-full
-                 bg-white/90 backdrop-blur-sm shadow-lg border border-esmerald/15
-                 flex items-center justify-center text-lg
-                 hover:bg-esmerald/5 transition-colors"
-          :title="isDark ? 'Modo claro' : 'Modo oscuro'"
+          class="theme-toggle fixed bottom-6 left-6 z-[9990] w-11 h-11 rounded-full
+                 bg-white/90 dark:bg-esmerald/90 backdrop-blur-sm shadow-lg
+                 border border-esmerald/15 dark:border-esmerald-light/20
+                 text-esmerald dark:text-esmerald-light
+                 flex items-center justify-center
+                 hover:bg-esmerald/5 dark:hover:bg-esmerald-light/10
+                 focus:outline-none focus-visible:ring-2 focus-visible:ring-lemon focus-visible:ring-offset-2
+                 transition-colors"
+          :aria-label="isDark ? 'Activar modo claro' : 'Activar modo oscuro'"
+          :aria-pressed="isDark"
           @click="toggleDarkMode"
         >
-          <span>{{ isDark ? '☀️' : '🌙' }}</span>
+          <!-- Moon (visible in light mode → tap to go dark) -->
+          <svg
+            v-if="!isDark"
+            class="w-5 h-5"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.8"
+            aria-hidden="true"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
+          </svg>
+          <!-- Sun (visible in dark mode → tap to go light) -->
+          <svg
+            v-else
+            class="w-5 h-5"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.8"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="4" stroke-linecap="round" stroke-linejoin="round" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1.8M12 19.2V21M4.22 4.22l1.27 1.27M18.51 18.51l1.27 1.27M3 12h1.8M19.2 12H21M4.22 19.78l1.27-1.27M18.51 5.49l1.27-1.27" />
+          </svg>
         </button>
       </template>
     </div>
@@ -114,10 +170,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 import { DIAGNOSTIC_STATUS } from '~/stores/diagnostics_constants';
-import { useDiagnosticDarkMode } from '~/composables/useDiagnosticDarkMode';
+import { useDiagnosticDarkMode, DIAGNOSTIC_THEME_STORAGE_KEY } from '~/composables/useDiagnosticDarkMode';
 
 import DiagnosticIndex from '~/components/WebAppDiagnostic/public/DiagnosticIndex.vue';
 import PurposeSection from '~/components/WebAppDiagnostic/public/PurposeSection.vue';
@@ -130,8 +186,22 @@ import TimelineSection from '~/components/WebAppDiagnostic/public/TimelineSectio
 import ScopeSection from '~/components/WebAppDiagnostic/public/ScopeSection.vue';
 import ShareDiagnosticButton from '~/components/WebAppDiagnostic/public/ShareDiagnosticButton.vue';
 import DownloadDiagnosticPdfButton from '~/components/WebAppDiagnostic/public/DownloadDiagnosticPdfButton.vue';
+import DiagnosticOnboarding from '~/components/WebAppDiagnostic/public/DiagnosticOnboarding.vue';
 
 definePageMeta({ layout: false });
+
+// Inline early script: applies the `dark` class to the diagnostic wrapper
+// before Vue hydration to prevent a flash of light theme for users who
+// previously chose dark or whose system prefers dark. Storage key is shared
+// with the composable so they cannot drift.
+useHead({
+  script: [
+    {
+      tagPosition: 'bodyClose',
+      innerHTML: `(function(){try{var k=${JSON.stringify(DIAGNOSTIC_THEME_STORAGE_KEY)};var v=localStorage.getItem(k);var d=v==='dark'||(v!=='light'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(!d)return;var apply=function(el){if(el)el.classList.add('dark');};var found=document.querySelector('.diagnostic-public');if(found){apply(found);return;}var mo=new MutationObserver(function(){var el=document.querySelector('.diagnostic-public');if(el){apply(el);mo.disconnect();}});mo.observe(document.body,{childList:true});setTimeout(function(){mo.disconnect();},3000);}catch(e){}})();`,
+    },
+  ],
+});
 
 const COMPONENTS = {
   purpose: PurposeSection,
@@ -151,11 +221,16 @@ const responseMsg = ref('');
 const sessionId = ref('');
 const sectionEnteredAt = ref(0);
 const visitedIds = ref(new Set());
+const onboardingRef = ref(null);
+
+const restartTutorialLabel = computed(() => (
+  (store.current?.language || 'es') === 'en' ? 'Restart guide' : 'Reiniciar guía'
+));
 
 // Skip all tracking pings when an admin previews with ?preview=1.
 const isPreview = computed(() => route.query?.preview === '1');
 
-const { isDark, toggle: toggleDarkMode } = useDiagnosticDarkMode();
+const { isDark, toggle: toggleDarkMode, hydrate: hydrateTheme } = useDiagnosticDarkMode();
 
 const sections = computed(() => store.current?.sections || []);
 const activeSection = computed(() => sections.value[activeIndex.value] || null);
@@ -247,13 +322,17 @@ function generateSessionId() {
 }
 
 onMounted(async () => {
+  hydrateTheme();
   sessionId.value = generateSessionId();
-  await store.fetchPublic(route.params.uuid);
-  if (!isPreview.value) {
-    await store.trackView(route.params.uuid, sessionId.value);
-  }
+  await Promise.all([
+    store.fetchPublic(route.params.uuid),
+    isPreview.value ? null : store.trackView(route.params.uuid, sessionId.value),
+  ]);
   sectionEnteredAt.value = Date.now();
   markSectionVisited(sections.value[activeIndex.value]?.id);
+  if (!isPreview.value && store.current && sections.value.length > 0) {
+    nextTick(() => onboardingRef.value?.start());
+  }
 });
 
 onBeforeUnmount(() => flushSectionTracking({ beacon: true }));
@@ -269,43 +348,11 @@ onBeforeUnmount(() => flushSectionTracking({ beacon: true }));
   transition: background-color 0.25s ease;
 }
 
-[data-diagnostic-wrapper][data-theme="dark"].diagnostic-public {
-  background-color: #0a1f1c;
+.diagnostic-public.dark {
+  background-color: #001713;
   background-image:
     radial-gradient(ellipse 80% 60% at 50% 0%, rgba(240, 255, 61, 0.06) 0%, transparent 60%),
     radial-gradient(ellipse 60% 50% at 80% 100%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
-}
-
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.diagnostic-card) {
-  background-color: #143d35 !important;
-  border-color: rgba(230, 239, 239, 0.1) !important;
-  color: #E6EFEF;
-}
-
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.text-esmerald) {
-  color: #E6EFEF !important;
-}
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.text-esmerald\/80),
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.text-esmerald\/75),
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.text-esmerald\/70) {
-  color: rgba(230, 239, 239, 0.85) !important;
-}
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.text-esmerald\/60),
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.text-esmerald\/55),
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.text-esmerald\/50),
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.text-esmerald\/45) {
-  color: rgba(230, 239, 239, 0.6) !important;
-}
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.bg-white) {
-  background-color: #143d35 !important;
-}
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.bg-esmerald\/5) {
-  background-color: rgba(230, 239, 239, 0.05) !important;
-}
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.border-esmerald\/10),
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.border-esmerald\/15),
-[data-diagnostic-wrapper][data-theme="dark"] :deep(.border-esmerald\/20) {
-  border-color: rgba(230, 239, 239, 0.15) !important;
 }
 
 .theme-toggle {
@@ -313,10 +360,5 @@ onBeforeUnmount(() => flushSectionTracking({ beacon: true }));
 }
 .theme-toggle:hover {
   transform: scale(1.05);
-}
-[data-diagnostic-wrapper][data-theme="dark"] .theme-toggle {
-  background-color: rgba(20, 61, 53, 0.9);
-  border-color: rgba(230, 239, 239, 0.15);
-  color: #E6EFEF;
 }
 </style>

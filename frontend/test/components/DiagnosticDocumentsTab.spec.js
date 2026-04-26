@@ -55,6 +55,10 @@ function mountTab(props = {}) {
     global: {
       stubs: {
         ConfidentialityParamsModal: { template: '<div />' },
+        MarkdownPreviewModal: {
+          props: ['modelValue', 'title'],
+          template: '<div v-if="modelValue" data-testid="preview-modal" :data-title="title"><slot /></div>',
+        },
       },
     },
   });
@@ -141,7 +145,7 @@ describe('DiagnosticDocumentsTab', () => {
       });
       await flushPromises();
 
-      await wrapper.find('button.p-1').trigger('click');
+      await wrapper.find('button.hover\\:text-red-500').trigger('click');
       await flushPromises();
 
       expect(mockDiagnosticsStore.deleteAttachment).toHaveBeenCalledWith(42, 5);
@@ -255,41 +259,55 @@ describe('DiagnosticDocumentsTab', () => {
     });
   });
 
-  // ── togglePreview ─────────────────────────────────────────────────────────
+  // ── preview modal ─────────────────────────────────────────────────────────
 
-  describe('togglePreview', () => {
-    it('shows template content in a pre block after Vista previa is clicked', async () => {
+  describe('preview modal', () => {
+    it('opens the modal with rendered markdown when the template preview icon is clicked', async () => {
       get_request
         .mockResolvedValueOnce({
           data: [{ slug: 'tpl-1', title: 'Informe', filename: 'informe.md', size_bytes: 100 }],
         })
-        .mockResolvedValueOnce({ data: { content_markdown: 'Contenido de prueba' } });
+        .mockResolvedValueOnce({ data: { content_markdown: '# Informe\nContenido de prueba' } });
 
       const wrapper = mountTab();
       await flushPromises();
 
-      await wrapper.findAll('button').find((btn) => btn.text() === 'Vista previa').trigger('click');
+      await wrapper.find('button[aria-label="Vista previa"][title="Vista previa"]').trigger('click');
       await flushPromises();
 
-      expect(wrapper.text()).toContain('Contenido de prueba');
+      const modal = wrapper.find('[data-testid="preview-modal"]');
+      expect(modal.exists()).toBe(true);
+      expect(modal.attributes('data-title')).toBe('Informe');
+      expect(modal.html()).toContain('Contenido de prueba');
     });
 
-    it('hides template content when Vista previa is clicked a second time', async () => {
-      get_request
-        .mockResolvedValueOnce({
-          data: [{ slug: 'tpl-1', title: 'Informe', filename: 'informe.md', size_bytes: 100 }],
-        })
-        .mockResolvedValueOnce({ data: { content_markdown: 'Contenido de prueba' } });
-
-      const wrapper = mountTab();
+    it('opens an iframe preview when the NDA preview icon is clicked', async () => {
+      const wrapper = mountTab({
+        diagnostic: { id: 99, attachments: [ndaAttachment] },
+      });
       await flushPromises();
 
-      const previewBtn = wrapper.findAll('button').find((btn) => btn.text() === 'Vista previa');
-      await previewBtn.trigger('click');
+      await wrapper.find('button[aria-label="Vista previa"]').trigger('click');
       await flushPromises();
-      await wrapper.findAll('button').find((btn) => btn.text() === 'Ocultar').trigger('click');
 
-      expect(wrapper.find('pre').exists()).toBe(false);
+      const modal = wrapper.find('[data-testid="preview-modal"]');
+      expect(modal.exists()).toBe(true);
+      expect(modal.attributes('data-title')).toBe('Acuerdo de confidencialidad');
+      expect(modal.html()).toContain('/api/diagnostics/99/confidentiality/pdf/');
+    });
+
+    it('opens an iframe preview when an attachment preview icon is clicked', async () => {
+      const wrapper = mountTab({
+        diagnostic: { id: 42, attachments: [userAttachment] },
+      });
+      await flushPromises();
+
+      await wrapper.find('button[aria-label="Vista previa"]').trigger('click');
+      await flushPromises();
+
+      const modal = wrapper.find('[data-testid="preview-modal"]');
+      expect(modal.exists()).toBe(true);
+      expect(modal.html()).toContain('/files/anexo.pdf');
     });
   });
 });
