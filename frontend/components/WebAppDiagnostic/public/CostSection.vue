@@ -1,7 +1,7 @@
 <template>
   <section>
     <SectionHeader :index="content.index" :title="content.title" fallback="Costo y Formas de Pago" />
-    <p v-if="content.intro" class="text-esmerald/80 dark:text-esmerald-light/80">{{ content.intro }}</p>
+    <p v-if="content.intro" class="text-esmerald/80 dark:text-esmerald-light/80 leading-relaxed">{{ content.intro }}</p>
 
     <ul
       v-if="valueBullets.length"
@@ -12,41 +12,111 @@
         :key="idx"
         class="flex gap-3"
       >
-        <span class="mt-2 shrink-0 size-1.5 rounded-full bg-lemon dark:bg-lemon" aria-hidden="true" />
+        <span class="mt-2 shrink-0 size-1.5 rounded-full bg-lemon" aria-hidden="true" />
         <span>{{ bullet }}</span>
       </li>
     </ul>
 
     <div
-      v-if="investmentFormatted"
-      class="my-6 relative overflow-hidden bg-esmerald dark:bg-esmerald-dark text-bone rounded-2xl p-6 text-center shadow-lg ring-1 ring-transparent dark:ring-esmerald-light/15"
+      v-if="hasInvestmentCard"
+      class="my-6 relative overflow-hidden bg-esmerald dark:bg-esmerald-dark text-bone rounded-2xl p-6 shadow-lg ring-1 ring-transparent dark:ring-esmerald-light/15"
+      data-testid="cost-investment-card"
     >
       <div class="absolute inset-0 bg-gradient-to-br from-esmerald/0 via-lemon/5 to-lemon/20 pointer-events-none" />
-      <div class="relative">
-        <div class="text-xs font-medium text-bone/80 uppercase tracking-[0.2em]">Inversión</div>
-        <div class="text-4xl font-semibold text-lemon mt-2 tabular-nums">
-          {{ investmentFormatted }}
-          <span class="text-2xl text-bone/80 ml-1">{{ diagnostic.currency || '' }}</span>
+
+      <div class="relative space-y-6">
+        <header
+          v-if="investmentFormatted || durationLabel"
+          class="flex flex-wrap items-end justify-between gap-3"
+        >
+          <div>
+            <div class="text-xs font-medium text-bone/80 uppercase tracking-[0.2em]">Inversión</div>
+            <div v-if="investmentFormatted" class="mt-1 text-4xl font-semibold text-lemon tabular-nums leading-none">
+              {{ investmentFormatted }}
+              <span class="text-2xl text-bone/80 ml-1">{{ currencyCode }}</span>
+            </div>
+          </div>
+          <div
+            v-if="durationLabel"
+            class="inline-flex items-center gap-1.5 text-xs text-bone/80 bg-bone/10 ring-1 ring-bone/15 rounded-full px-3 py-1"
+          >
+            <span class="size-1.5 rounded-full bg-lemon" aria-hidden="true" />
+            <span>{{ durationLabel }}</span>
+          </div>
+        </header>
+
+        <div
+          v-if="paymentSegments.length === 2"
+          class="flex w-full overflow-hidden rounded-xl ring-1 ring-bone/15"
+          role="presentation"
+          data-testid="cost-segmented-bar"
+        >
+          <div
+            v-for="seg in paymentSegments"
+            :key="seg.key"
+            :style="{ flexGrow: seg.pct }"
+            :class="['flex flex-col items-center justify-center px-3 py-3 min-w-0 text-center', seg.barClass]"
+            :data-testid="`cost-bar-${seg.key}`"
+          >
+            <span class="text-lg font-semibold tabular-nums leading-none">{{ seg.pct }}%</span>
+            <span class="text-[11px] uppercase tracking-wider mt-1 truncate w-full">{{ seg.label }}</span>
+          </div>
         </div>
+
+        <ul
+          v-if="paymentSegments.length"
+          class="space-y-3"
+          data-testid="cost-tranche-list"
+        >
+          <li
+            v-for="seg in paymentSegments"
+            :key="`d-${seg.key}`"
+            class="flex gap-3"
+          >
+            <span
+              class="mt-1.5 shrink-0 size-2 rounded-full"
+              :class="seg.dotClass"
+              aria-hidden="true"
+            />
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <span class="font-semibold text-bone">{{ seg.pct }}% {{ seg.label }}</span>
+                <span
+                  v-if="seg.amountFormatted"
+                  class="text-sm text-lemon tabular-nums"
+                  :data-testid="`cost-tranche-amount-${seg.key}`"
+                >{{ seg.amountFormatted }} {{ currencyCode }}</span>
+              </div>
+              <p v-if="seg.detail" class="text-sm text-bone/70 leading-relaxed mt-0.5">{{ seg.detail }}</p>
+            </div>
+          </li>
+        </ul>
+
+        <ul
+          v-else-if="fallbackPaymentItems.length"
+          class="space-y-2 text-bone/80"
+          data-testid="cost-fallback-list"
+        >
+          <li
+            v-for="(item, idx) in fallbackPaymentItems"
+            :key="idx"
+            class="flex gap-3 items-baseline"
+          >
+            <span class="mt-2 shrink-0 size-1.5 rounded-full bg-lemon" aria-hidden="true" />
+            <span class="font-semibold text-bone">{{ item.label }}</span>
+            <span class="text-bone/70">{{ item.detail }}</span>
+          </li>
+        </ul>
       </div>
     </div>
 
-    <ul v-if="paymentItems.length" class="space-y-2 text-esmerald/80 dark:text-esmerald-light/80">
-      <li
-        v-for="(item, idx) in paymentItems"
-        :key="idx"
-        class="flex gap-3 items-baseline"
-      >
-        <span class="shrink-0 font-semibold text-esmerald dark:text-esmerald-light">
-          <template v-if="item.pct !== ''">{{ item.pct }}% </template>{{ item.label }}
-        </span>
-        <span class="text-esmerald/70 dark:text-esmerald-light/70">{{ item.detail }}</span>
-      </li>
-    </ul>
-
-    <blockquote v-if="content.note" class="mt-6 border-l-4 border-esmerald/40 dark:border-lemon/60 bg-esmerald/5 dark:bg-esmerald-light/5 text-esmerald/80 dark:text-esmerald-light/80 italic px-4 py-3 rounded-r-lg text-sm">
-      <strong class="not-italic">Nota:</strong> {{ content.note }}
-    </blockquote>
+    <aside
+      v-if="content.note"
+      class="mt-6 flex gap-3 border-l-4 border-lemon/70 bg-esmerald/5 dark:bg-esmerald-light/5 text-esmerald/80 dark:text-esmerald-light/80 px-4 py-3 rounded-r-lg text-sm"
+    >
+      <span class="shrink-0 inline-flex items-center text-[10px] font-semibold uppercase tracking-wider text-esmerald dark:text-lemon bg-lemon/30 dark:bg-lemon/15 rounded px-1.5 py-0.5 h-fit">Nota</span>
+      <span class="leading-relaxed">{{ content.note }}</span>
+    </aside>
   </section>
 </template>
 
@@ -54,17 +124,57 @@
 import { computed } from 'vue';
 import SectionHeader from './SectionHeader.vue';
 
+const SIDES = [
+  {
+    key: 'initial',
+    pctKey: 'payment_initial_pct',
+    termKey: 'initial_pct',
+    defaultLabel: 'al inicio',
+    barClass: 'bg-lemon text-esmerald',
+    dotClass: 'bg-lemon',
+  },
+  {
+    key: 'final',
+    pctKey: 'payment_final_pct',
+    termKey: 'final_pct',
+    defaultLabel: 'al final',
+    barClass: 'bg-lemon/25 text-bone',
+    dotClass: 'bg-lemon/50',
+  },
+];
+
+const CURRENCY_FMT = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
+
+function formatCurrency(n) {
+  const value = Number(n);
+  if (!Number.isFinite(value) || value === 0) return '';
+  return CURRENCY_FMT.format(value);
+}
+
+function normalizePct(raw) {
+  if (raw === undefined || raw === null || raw === '') return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
 const props = defineProps({
   content: { type: Object, required: true },
   diagnostic: { type: Object, required: true },
   renderContext: { type: Object, default: () => ({}) },
 });
 
-const investmentFormatted = computed(() => {
+const investmentAmount = computed(() => {
   const n = Number(props.diagnostic?.investment_amount);
-  if (!n) return '';
-  return new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(n);
+  return Number.isFinite(n) && n > 0 ? n : 0;
 });
+
+const investmentFormatted = computed(() => formatCurrency(investmentAmount.value));
+
+const currencyCode = computed(() => props.diagnostic?.currency || props.renderContext?.currency || '');
+
+const durationLabel = computed(
+  () => props.diagnostic?.duration_label || props.renderContext?.duration_label || '',
+);
 
 const valueBullets = computed(() => {
   const arr = props.content?.valueBullets;
@@ -72,18 +182,54 @@ const valueBullets = computed(() => {
   return arr.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean);
 });
 
-const paymentItems = computed(() => {
-  const desc = props.content.paymentDescription || [];
+const paymentDescription = computed(() => {
+  const desc = props.content?.paymentDescription;
+  return Array.isArray(desc) ? desc : [];
+});
+
+const paymentSegments = computed(() => {
+  // renderContext wins over diagnostic.payment_terms — public view receives
+  // pcts via render_context; admin preview falls back to the raw model field.
   const ctx = props.renderContext || {};
   const terms = props.diagnostic?.payment_terms || {};
-  const pctCandidates = [
-    ctx.payment_initial_pct ?? terms.initial_pct,
-    ctx.payment_final_pct ?? terms.final_pct,
-  ];
-  return desc.map((item, idx) => ({
-    label: item.label,
-    detail: item.detail,
-    pct: pctCandidates[idx] ?? '',
-  }));
+  const segments = SIDES
+    .map((side, idx) => ({
+      side,
+      pct: normalizePct(ctx[side.pctKey] ?? terms[side.termKey]),
+      desc: paymentDescription.value[idx] || {},
+    }))
+    .filter((s) => s.pct !== null);
+  return segments.map(({ side, pct, desc }) => {
+    const amount = investmentAmount.value
+      ? Math.round((investmentAmount.value * pct) / 100)
+      : 0;
+    return {
+      key: side.key,
+      pct,
+      label: desc.label || side.defaultLabel,
+      detail: desc.detail || '',
+      barClass: side.barClass,
+      dotClass: side.dotClass,
+      amount,
+      amountFormatted: formatCurrency(amount),
+    };
+  });
 });
+
+const fallbackPaymentItems = computed(() =>
+  paymentDescription.value
+    .map((item) => ({
+      label: item?.label || '',
+      detail: item?.detail || '',
+    }))
+    .filter((item) => item.label || item.detail),
+);
+
+const hasInvestmentCard = computed(
+  () =>
+    !!investmentFormatted.value
+    || paymentSegments.value.length > 0
+    || fallbackPaymentItems.value.length > 0
+    || !!durationLabel.value,
+);
 </script>

@@ -1,6 +1,6 @@
 {
-  "version": "2.33.0",
-  "lastUpdated": "2026-04-22",
+  "version": "2.34.0",
+  "lastUpdated": "2026-04-26",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1515,6 +1515,19 @@
       "description": "Admin uploads additional documents (otrosí, legal annex, client document, other with custom label) to a proposal via the Documents tab. Lists existing documents with type badges. Delete non-generated documents.",
       "expectedSpecs": 1
     },
+    "admin-proposal-document-preview": {
+      "name": "Admin Proposal Document Preview",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "From the Documents tab of the proposal edit page, admin clicks the eye icon next to a document. A modal opens previewing the file inline — PDF (rendered in iframe) or image (via <img> tag), gated by frontend/utils/filePreview.js (isPdfUrl / isImageUrl / canPreviewFile). Non-previewable files (Word/Excel/etc.) keep only the existing download action. Modal is dismissed via close button or backdrop click.",
+      "expectedSpecs": 0,
+      "knownGaps": [
+        "Eye-icon preview modal added to ProposalDocumentsTab.vue on 2026-04-26 (commits 9877df24, e827bd38). E2E spec pending — should mock a /uploads/<file>.pdf URL and assert the modal opens."
+      ]
+    },
     "admin-proposal-documents-send": {
       "name": "Admin Proposal Documents Send (SUPERSEDED)",
       "module": "admin",
@@ -1523,7 +1536,10 @@
       ],
       "priority": "P1",
       "description": "SUPERSEDED Apr 22 2026: The 'Enviar al cliente' section was removed from the Documents tab. Documents are now attached from the Correos tab via 'Adjuntar desde Documentos' (see admin-proposal-attach-from-documents). The spec admin-proposal-documents-send.spec.js was deleted. This flow entry is kept for historical traceability only.",
-      "expectedSpecs": 0
+      "expectedSpecs": 0,
+      "knownGaps": [
+        "Flow superseded — 'Enviar al cliente' section removed from the Documents tab on 2026-04-22; replaced by admin-proposal-attach-from-documents via the Correos tab. Entry retained for historical traceability."
+      ]
     },
     "admin-send-branded-email": {
       "name": "Send Branded Email",
@@ -1618,6 +1634,32 @@
       "priority": "P2",
       "description": "Admin fills LinkedIn summary (ES or EN, ≤1300 chars), selects language, clicks 'Publicar en LinkedIn' → POST /api/blog/admin/:id/publish-linkedin/. Success message renders. Publish button disabled when summary is empty. Last publish timestamp shown after success.",
       "expectedSpecs": 1
+    },
+    "admin-blog-publish-mode": {
+      "name": "Admin Blog Publish Mode",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "From the blog edit page, admin selects how the post should be published via three radio options: 'Borrador' (draft), 'Publicar ahora' (immediate), or 'Programar' (scheduled). Selecting 'Programar' reveals a datetime input for publish_scheduled_for. If the chosen datetime is in the past, an amber overdue banner ([data-test='scheduled-overdue-banner']) warns that the safety-net Huey task will publish on the next run. The mode is computed by frontend/utils/blogPublishMode.js (resolveBlogPublishMode → { mode, scheduledIso, overdue }) and submitted to the blog update endpoint.",
+      "expectedSpecs": 0,
+      "knownGaps": [
+        "Publish-mode radio + scheduled-overdue-banner shipped 2026-04-25 (commit 4862b149). Unit-tested via frontend/test/utils/blogPublishMode.test.js, but no E2E spec covers the admin UI yet."
+      ]
+    },
+    "admin-blog-overdue-detection": {
+      "name": "Admin Blog Overdue Schedule Safety-Net",
+      "module": "admin",
+      "roles": [
+        "system"
+      ],
+      "priority": "P2",
+      "description": "Backend Huey periodic task scans BlogPost rows where publish_scheduled_for is in the past but the post is still unpublished, then publishes them automatically (and triggers the LinkedIn auto-publish if connected). The management command publish_blog_post.py is a manual escape hatch for the same logic. No browser interaction.",
+      "expectedSpecs": 0,
+      "knownGaps": [
+        "Backend-only safety-net for missed schedules. Covered by backend/content/tests/tasks/test_blog_publish_guards.py; no E2E spec applies."
+      ]
     },
     "admin-standalone-email-composer": {
       "name": "Admin Standalone Email Composer",
@@ -1727,7 +1769,10 @@
       ],
       "priority": "P2",
       "description": "Huey periodic task sends email notifications to task assignees at 40%, 70%, 100% of deadline and for overdue tasks. Backend-only — no browser interaction.",
-      "expectedSpecs": 0
+      "expectedSpecs": 0,
+      "knownGaps": [
+        "Backend-only Huey periodic task. Covered by backend unit tests; no E2E spec applies."
+      ]
     },
     "admin-document-move-folder": {
       "name": "Admin Document Move Folder",
@@ -1845,6 +1890,19 @@
       "description": "Client toggles dark/light mode via the fixed bottom-left button; the [data-diagnostic-wrapper] element receives data-theme='dark'. Preference persists to localStorage['diagnostic-dark-mode'] and is restored on next page load.",
       "expectedSpecs": 1
     },
+    "diagnostic-public-onboarding": {
+      "name": "Diagnostic Public Onboarding",
+      "module": "diagnostic",
+      "roles": [
+        "guest"
+      ],
+      "priority": "P3",
+      "description": "First-visit tutorial overlay on the public diagnostic page (DiagnosticOnboarding.vue) that walks the client through the report's structure with step-by-step tooltips, scroll-to-section behavior, and a 'No volver a mostrar' option persisted to localStorage. Mirrors proposal-view-onboarding for the diagnostic module.",
+      "expectedSpecs": 0,
+      "knownGaps": [
+        "DiagnosticOnboarding component (376 lines) shipped 2026-04-26 (commits 9877df24, e827bd38). Component-level unit tests exist (DiagnosticOnboarding.test.js); E2E spec pending."
+      ]
+    },
     "admin-diagnostic-sections": {
       "name": "Admin Diagnostic Sections Editor",
       "module": "admin",
@@ -1916,6 +1974,19 @@
       "expectedSpecs": 1,
       "knownGaps": [
         "is_generated delete-blocked branch is backend-only (UI offers no delete button for generated NDAs); covered by backend tests, not E2E."
+      ]
+    },
+    "admin-diagnostic-document-preview": {
+      "name": "Admin Diagnostic Document Preview",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "From the Documentos tab of the diagnostic edit page, admin clicks the eye icon next to an attachment. A modal opens previewing the file inline — PDF (rendered in iframe) or image (via <img> tag), gated by frontend/utils/filePreview.js (canPreviewFile). Non-previewable files keep only the existing download action. Replaces the previous inline template-expand behavior on DiagnosticDocumentsTab.",
+      "expectedSpecs": 0,
+      "knownGaps": [
+        "Eye-icon preview modal replaced inline template-expand in DiagnosticDocumentsTab.vue on 2026-04-26 (commit 9877df24). Component-level unit test exists (DiagnosticDocumentsTab.spec.js); E2E spec pending."
       ]
     },
     "admin-task-alert-management": {

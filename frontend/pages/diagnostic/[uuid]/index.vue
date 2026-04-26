@@ -99,7 +99,7 @@
         <button
           type="button"
           data-testid="diagnostic-restart-tutorial"
-          class="restart-tutorial-btn fixed bottom-[88px] left-6 z-[9990] w-11 h-11 rounded-full
+          class="restart-tutorial-btn fixed bottom-[76px] left-6 z-[9990] w-11 h-11 rounded-full
                  bg-white dark:bg-esmerald-dark shadow-lg
                  border border-esmerald/15 dark:border-esmerald-light/25
                  text-esmerald dark:text-esmerald-light

@@ -4575,3 +4575,171 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-diagnostic-attach-from-documents` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-attach-from-documents.spec.js` |
 | `admin-proposal-documents-send` | admin | admin | P1 | ⚠️ Superseded | Replaced by `admin-proposal-attach-from-documents` (Apr 22, 2026); `expectedSpecs: 0` |
 | `admin-proposal-slug-edit` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-slug-edit.spec.js` |
+
+---
+
+## Section 22 — Flows Audit Gaps (Apr 26, 2026)
+
+> Flows surfaced by the `/e2e-user-flows-check` audit on 2026-04-26 from recent feature commits (`4862b149`, `9877df24`, `e827bd38`). All carry `expectedSpecs: 0` and ❌ coverage — registered for traceability and to prioritize future E2E work. Component-level unit tests already exist for several of them.
+
+---
+
+### 22.1 Diagnostic Public Onboarding
+
+#### FLOW: `diagnostic-public-onboarding`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `diagnostic-public-onboarding` |
+| **Module** | diagnostic |
+| **Role** | guest |
+| **Priority** | P3 |
+| **Status** | ❌ Missing — no E2E spec |
+
+**Routes:** `/diagnostic/:uuid/`
+
+**Description:** First-visit tutorial overlay on the public diagnostic page (`DiagnosticOnboarding.vue`, 376 lines) that walks the client through the report's structure with step-by-step tooltips, scroll-to-section behavior, and a "No volver a mostrar" option persisted to `localStorage`. Mirrors `proposal-view-onboarding` for the diagnostic module. Shipped with the diagnostic dark-mode rollout.
+
+**Steps:**
+1. Client opens `/diagnostic/:uuid/` for the first time (no `localStorage` skip flag set).
+2. `DiagnosticOnboarding` overlay renders centered above the report, showing the first step.
+3. Client clicks **"Siguiente"** → tooltip transitions to the next step; the page scrolls so the highlighted section is in view.
+4. Final step shows a **"Listo"** button. On click, the overlay dismisses and the skip flag is set.
+5. Client reloads the page → onboarding does not reappear.
+6. [Branch — opt-out] Client checks **"No volver a mostrar"** at any step and dismisses → skip flag set even mid-tour.
+
+**Known gaps:** Component-level unit tests exist (`DiagnosticOnboarding.test.js`, 227 lines). E2E spec pending; should mock the diagnostic public payload, clear `localStorage`, and assert step navigation, scroll-into-view, and the persistence of the skip flag.
+
+**Flow tag:** `DIAGNOSTIC_PUBLIC_ONBOARDING`
+
+---
+
+### 22.2 Admin Proposal Document Preview
+
+#### FLOW: `admin-proposal-document-preview`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-proposal-document-preview` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P3 |
+| **Status** | ❌ Missing — no E2E spec |
+
+**Routes:** `/panel/proposals/:id/edit` (Documents tab)
+
+**Description:** From the Documents tab of the proposal edit page, admin clicks the eye icon next to a document. A modal opens previewing the file inline — PDF (rendered in `<iframe>`) or image (via `<img>`), gated by `frontend/utils/filePreview.js` (`isPdfUrl` / `isImageUrl` / `canPreviewFile`). Non-previewable files (Word, Excel, etc.) keep only the existing download action.
+
+**Steps:**
+1. Admin opens the Documents tab on a proposal edit page.
+2. Each document row shows an eye icon when `canPreviewFile(url)` returns `true`.
+3. Admin clicks the icon → preview modal opens.
+4. PDF documents render in an `<iframe>`; image documents render in an `<img>`.
+5. Admin closes the modal via the close button or backdrop click.
+6. [Branch — non-previewable] For docs not matching PDF/image extensions, the eye icon is not rendered; only the download link is available.
+
+**Known gaps:** Eye-icon preview modal added in `ProposalDocumentsTab.vue` on 2026-04-26 (commits `9877df24`, `e827bd38`). E2E spec pending; should mock `/uploads/<file>.pdf` and assert the modal opens.
+
+**Flow tag:** `ADMIN_PROPOSAL_DOCUMENT_PREVIEW`
+
+---
+
+### 22.3 Admin Diagnostic Document Preview
+
+#### FLOW: `admin-diagnostic-document-preview`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-document-preview` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P3 |
+| **Status** | ❌ Missing — no E2E spec |
+
+**Routes:** `/panel/diagnostics/:id/edit` (Documentos tab)
+
+**Description:** From the Documentos tab of the diagnostic edit page, admin clicks the eye icon next to an attachment. A modal opens previewing the file inline — PDF or image, gated by `frontend/utils/filePreview.js`. Replaces the previous inline template-expand behavior on `DiagnosticDocumentsTab.vue`.
+
+**Steps:**
+1. Admin opens the Documentos tab on a diagnostic edit page.
+2. Each attachment row shows an eye icon when the file is previewable.
+3. Admin clicks the icon → preview modal opens with PDF or image.
+4. Admin closes the modal via the close button or backdrop click.
+5. [Branch — non-previewable] Eye icon hidden; download link only.
+
+**Known gaps:** Component-level unit test exists (`DiagnosticDocumentsTab.spec.js`). E2E spec pending; should mirror `admin-proposal-document-preview` against the diagnostic API surface.
+
+**Flow tag:** `ADMIN_DIAGNOSTIC_DOCUMENT_PREVIEW`
+
+---
+
+### 22.4 Admin Blog Publish Mode
+
+#### FLOW: `admin-blog-publish-mode`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-blog-publish-mode` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ❌ Missing — no E2E spec |
+
+**Routes:** `/panel/blog/:id/edit`
+
+**Description:** From the blog edit page, admin selects how the post should be published via three radio options: **Borrador** (draft), **Publicar ahora** (immediate), or **Programar** (scheduled). Selecting "Programar" reveals a datetime input for `publish_scheduled_for`. If the chosen datetime is in the past, an amber overdue banner (`[data-test="scheduled-overdue-banner"]`) warns that the safety-net Huey task will publish on the next run. The mode is computed by `frontend/utils/blogPublishMode.js` (`resolveBlogPublishMode → { mode, scheduledIso, overdue }`) and submitted with the blog update.
+
+**Steps:**
+1. Admin opens `/panel/blog/:id/edit` for an existing post.
+2. The publish-mode group renders three radios pre-selected based on the current post state.
+3. Admin selects **Programar** → datetime input appears.
+4. Admin enters a future datetime → no banner; on save, `publish_scheduled_for` is persisted and `published=false`.
+5. Admin enters a past datetime → amber `scheduled-overdue-banner` renders; on save, the post remains unpublished and waits for the safety-net task.
+6. Admin selects **Publicar ahora** → on save, the backend marks `published=true` and clears `publish_scheduled_for`.
+7. Admin selects **Borrador** → on save, the post is unpublished and unscheduled.
+
+**Known gaps:** Publish-mode radio + scheduled-overdue-banner shipped 2026-04-25 (commit `4862b149`). Unit-tested via `frontend/test/utils/blogPublishMode.test.js`; no E2E spec covers the admin UI yet.
+
+**Flow tag:** `ADMIN_BLOG_PUBLISH_MODE`
+
+---
+
+### 22.5 Admin Blog Overdue Schedule Safety-Net
+
+#### FLOW: `admin-blog-overdue-detection`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-blog-overdue-detection` |
+| **Module** | admin |
+| **Role** | system |
+| **Priority** | P2 |
+| **Status** | ⬜ Backend-only — no E2E spec needed (`expectedSpecs: 0`) |
+
+**Routes:** N/A — backend-only
+
+**API:** Huey periodic task; management command `python manage.py publish_blog_post`
+
+**Description:** Backend safety-net for missed schedules: scans `BlogPost` rows where `publish_scheduled_for` is in the past but the post is still unpublished, then publishes them automatically (and triggers the LinkedIn auto-publish if connected). The `publish_blog_post.py` management command is the manual escape hatch for the same logic.
+
+**Steps:**
+1. Huey scheduler triggers the periodic task.
+2. Task queries `BlogPost.objects.filter(published=False, publish_scheduled_for__lte=now())`.
+3. For each row, the post is published and `publish_scheduled_for` is cleared.
+4. If the post has a connected LinkedIn account and a non-empty summary, `auto_publish_blog_to_linkedin` is invoked.
+
+**Known gaps:** Backend-only — covered by `backend/content/tests/tasks/test_blog_publish_guards.py` (151 lines). No E2E surface to test.
+
+**Flow tag:** `ADMIN_BLOG_OVERDUE_DETECTION`
+
+---
+
+### 22.6 Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Suggested Spec |
+|---------|--------|------|----------|--------|----------------|
+| `diagnostic-public-onboarding` | diagnostic | guest | P3 | ❌ Missing | `e2e/public/diagnostic-public-onboarding.spec.js` |
+| `admin-proposal-document-preview` | admin | admin | P3 | ❌ Missing | extend `e2e/admin/admin-proposal-documents-manage.spec.js` |
+| `admin-diagnostic-document-preview` | admin | admin | P3 | ❌ Missing | extend `e2e/admin/admin-diagnostic-email-documents.spec.js` |
+| `admin-blog-publish-mode` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-blog-publish-mode.spec.js` |
+| `admin-blog-overdue-detection` | admin | system | P2 | ⬜ Backend-only | N/A |
