@@ -98,6 +98,7 @@ const TOOLTIP_H_EST = 190;
 const GAP = 14;
 const ARROW_SIZE = 6;
 const VIEWPORT_PAD = 12;
+const SCROLL_SETTLE_MS = 380;
 
 const props = defineProps({
   language: { type: String, default: 'es' },
@@ -114,6 +115,7 @@ const spotlightRect = ref(null);
 const cloneStyle = ref({});
 const tooltipStyle = ref({});
 const arrowComputedStyle = ref({});
+let pendingScrollTimer = null;
 
 const stepsI18n = {
   es: [
@@ -265,15 +267,26 @@ function clampHorizontal(left, vw) {
   return Math.max(VIEWPORT_PAD, Math.min(vw - TOOLTIP_W - VIEWPORT_PAD, left));
 }
 
-function positionAll() {
-  const step = currentStepData.value;
-  const rect = getRect(step.target);
+function clearPendingScroll() {
+  if (pendingScrollTimer != null) {
+    clearTimeout(pendingScrollTimer);
+    pendingScrollTimer = null;
+  }
+}
 
-  if (!rect) {
-    spotlightRect.value = null;
-    cloneStyle.value = { display: 'none' };
+function hideOverlay({ resetTooltip = false } = {}) {
+  spotlightRect.value = null;
+  cloneStyle.value = { display: 'none' };
+  arrowComputedStyle.value = { display: 'none' };
+  if (resetTooltip) {
     tooltipStyle.value = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
-    arrowComputedStyle.value = { display: 'none' };
+  }
+}
+
+function finalizePositioning(step) {
+  const rect = getRect(step.target);
+  if (!rect) {
+    hideOverlay({ resetTooltip: true });
     return;
   }
 
@@ -283,6 +296,38 @@ function positionAll() {
   const pos = computePosition(rect, step.prefer);
   tooltipStyle.value = pos.style;
   arrowComputedStyle.value = pos.arrow;
+}
+
+function positionAll() {
+  clearPendingScroll();
+  const step = currentStepData.value;
+  const el = step?.target ? document.querySelector(step.target) : null;
+
+  if (!el) {
+    hideOverlay({ resetTooltip: true });
+    return;
+  }
+
+  const r = el.getBoundingClientRect();
+  const vh = window.innerHeight;
+  const outOfView = r.bottom < VIEWPORT_PAD || r.top > vh - VIEWPORT_PAD;
+
+  if (outOfView && typeof el.scrollIntoView === 'function') {
+    hideOverlay();
+    try {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch {
+      el.scrollIntoView();
+    }
+    pendingScrollTimer = setTimeout(() => {
+      pendingScrollTimer = null;
+      if (currentStepData.value !== step) return;
+      finalizePositioning(step);
+    }, SCROLL_SETTLE_MS);
+    return;
+  }
+
+  finalizePositioning(step);
 }
 
 function next() {
@@ -299,6 +344,7 @@ function prev() {
 }
 
 function dismiss() {
+  clearPendingScroll();
   if (cloneContainerRef.value) cloneContainerRef.value.innerHTML = '';
   spotlightRect.value = null;
   cloneStyle.value = { display: 'none' };
@@ -339,6 +385,7 @@ onMounted(() => {
   window.addEventListener('resize', onResize);
 });
 onBeforeUnmount(() => {
+  clearPendingScroll();
   window.removeEventListener('resize', onResize);
 });
 

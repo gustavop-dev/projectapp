@@ -220,6 +220,7 @@ function buildCostForm(content) {
     index: content.index || '',
     title: content.title || '',
     intro: content.intro || '',
+    valueBulletsText: arrToText(content.valueBullets),
     paymentDescription: (content.paymentDescription || []).map((p) => ({
       label: p.label || '',
       detail: p.detail || '',
@@ -233,6 +234,7 @@ function costToJson(form) {
     index: form.index,
     title: form.title,
     intro: form.intro,
+    valueBullets: textToArr(form.valueBulletsText),
     paymentDescription: form.paymentDescription.filter(
       (p) => p.label || p.detail,
     ),

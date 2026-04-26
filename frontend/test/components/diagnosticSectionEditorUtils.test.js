@@ -106,6 +106,19 @@ describe('diagnosticSectionEditorUtils', () => {
     expect(back.paymentDescription).toEqual([{ label: 'al inicio', detail: 'apertura' }])
   })
 
+  it('cost: roundtrip preserves valueBullets through textarea form', () => {
+    const original = {
+      title: 'Costo',
+      valueBullets: ['Claridad técnica', 'Priorización de inversión'],
+      paymentDescription: [],
+      note: '',
+    }
+    const form = buildFormFromJson('cost', original)
+    expect(form.valueBulletsText).toBe('Claridad técnica\nPriorización de inversión')
+    const back = formToJson('cost', form)
+    expect(back.valueBullets).toEqual(['Claridad técnica', 'Priorización de inversión'])
+  })
+
   it('timeline: roundtrip preserves distribution', () => {
     const original = {
       title: 'Cronograma',

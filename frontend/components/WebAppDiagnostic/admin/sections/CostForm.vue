@@ -14,8 +14,12 @@
       <label class="block text-xs font-medium text-gray-500 mb-1">Intro</label>
       <textarea v-model="form.intro" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700"></textarea>
     </div>
+    <div>
+      <label class="block text-xs font-medium text-gray-500 mb-1">Beneficios (uno por línea)</label>
+      <textarea v-model="form.valueBulletsText" rows="4" placeholder="Ej: Claridad técnica accionable: ..." class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700"></textarea>
+    </div>
     <p class="text-xs text-gray-400 italic">
-      El monto, la moneda y los porcentajes se toman del tab de Pricing.
+      El monto, la moneda y los porcentajes se toman del tab General.
     </p>
     <div>
       <div class="flex items-center justify-between mb-1">

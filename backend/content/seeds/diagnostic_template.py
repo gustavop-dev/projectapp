@@ -553,40 +553,46 @@ def _cost_section(order):
             'index': '6',
             'title': 'Costo y Formas de Pago',
             'intro': (
-                'Hacer un diagnóstico es invertir en claridad antes de invertir '
-                'en cambios. En lugar de seguir sumando funcionalidades sobre '
-                'una base que nadie ha revisado de forma estructurada, este '
-                'ejercicio te entrega un mapa concreto de en qué estado está '
-                'la aplicación, qué está sosteniendo el negocio bien, qué está '
-                'generando riesgo silencioso y dónde se está pagando un '
-                'sobrecosto técnico que no se ve en el día a día. El valor del '
-                'diagnóstico no está en el documento que se entrega, sino en '
-                'las decisiones que habilita: priorizar lo que de verdad '
-                'mueve la aguja, evitar reescribir lo que ya funciona y '
-                'sostener una conversación informada con el equipo técnico — '
-                'propio o externo — a partir de evidencia, no de intuiciones.'
+                'Antes de invertir en cambios, conviene invertir en claridad. '
+                'El diagnóstico es un ejercicio acotado que convierte intuiciones '
+                'en evidencia y te entrega una base concreta para decidir qué '
+                'mover, qué sostener y en qué orden.'
             ),
+            'valueBullets': [
+                'Claridad técnica accionable: un mapa del estado real de la '
+                'aplicación, sin tecnicismos vacíos, listo para tomar decisiones.',
+                'Priorización de inversión: identificas qué cambios mueven la '
+                'aguja del negocio y cuáles son ruido, evitando gastar en '
+                'reescribir lo que ya funciona.',
+                'Reducción de riesgo silencioso: detectas el sobrecosto técnico '
+                'y los puntos frágiles antes de que se conviertan en incidentes '
+                'o frenos al crecimiento.',
+                'Conversación informada con el equipo: una referencia común — '
+                'propia o con proveedores externos — para alinear alcance, '
+                'tiempos y expectativas a partir de hechos, no de opiniones.',
+            ],
             'paymentDescription': [
                 {
                     'label': 'al inicio',
                     'detail': (
-                        'para dar apertura formal al diagnóstico y reservar la '
-                        'dedicación del equipo.'
+                        'para dar apertura formal al diagnóstico y reservar '
+                        'la dedicación del equipo.'
                     ),
                 },
                 {
                     'label': 'al final',
                     'detail': (
-                        'contra entrega del informe y la socialización de '
-                        'hallazgos.'
+                        'contra entrega del informe y socialización de '
+                        'hallazgos con el equipo.'
                     ),
                 },
             ],
             'note': (
-                'Los montos y porcentajes mostrados arriba se toman directamente '
-                'de la configuración general del diagnóstico. Este valor puede '
-                'ajustarse si durante el levantamiento inicial se identifica un '
-                'alcance significativamente mayor al estimado en esta propuesta.'
+                'El monto, la moneda y los porcentajes que ves arriba se '
+                'toman directamente del tab General de la vista detalle de '
+                'este diagnóstico. Si durante el levantamiento inicial se '
+                'identifica un alcance significativamente mayor al estimado, '
+                'el valor puede ajustarse antes de continuar.'
             ),
         },
     }

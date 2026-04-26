@@ -170,16 +170,24 @@
     </section>
 
     <MarkdownPreviewModal v-model="previewOpen" :title="previewTitle">
-      <iframe v-if="previewKind === 'pdf'" :src="previewUrl"
+      <div v-if="previewLoading"
+        class="flex items-center justify-center h-[60vh] text-sm text-gray-500 dark:text-green-light/60">
+        Cargando vista previa…
+      </div>
+      <div v-else-if="previewError"
+        class="flex items-center justify-center h-[60vh] text-sm text-red-500">
+        {{ previewError }}
+      </div>
+      <iframe v-else-if="previewKind === 'pdf' && previewUrl" :src="previewUrl"
         class="w-full h-[80vh] border-0 rounded-lg bg-white" title="Vista previa"></iframe>
-      <img v-else-if="previewKind === 'image'" :src="previewUrl"
+      <img v-else-if="previewKind === 'image' && previewUrl" :src="previewUrl"
         class="max-w-full mx-auto" :alt="previewTitle" />
     </MarkdownPreviewModal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { EyeIcon } from '@heroicons/vue/24/outline';
 import { usePanelToast } from '~/composables/usePanelToast';
 import { CONTRACT_LOCKED_STATUSES } from '~/utils/proposalStatus';
@@ -231,25 +239,82 @@ const previewOpen = ref(false);
 const previewKind = ref('pdf');
 const previewTitle = ref('Vista previa');
 const previewUrl = ref('');
+const previewLoading = ref(false);
+const previewError = ref('');
+let previewRequestId = 0;
+let previewAbortController = null;
+
+function releasePreviewObjectUrl() {
+  if (previewUrl.value && typeof URL !== 'undefined') {
+    URL.revokeObjectURL(previewUrl.value);
+  }
+  previewUrl.value = '';
+}
+
+function abortInflightPreview() {
+  if (previewAbortController) {
+    previewAbortController.abort();
+    previewAbortController = null;
+  }
+}
+
+async function loadPreviewBlob(kind, title, url) {
+  abortInflightPreview();
+  releasePreviewObjectUrl();
+  previewKind.value = kind;
+  previewTitle.value = title || 'Vista previa';
+  previewError.value = '';
+  previewLoading.value = true;
+  previewOpen.value = true;
+
+  const controller = new AbortController();
+  previewAbortController = controller;
+  const requestId = ++previewRequestId;
+  try {
+    const response = await fetch(url, { credentials: 'include', signal: controller.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const blob = await response.blob();
+    if (requestId !== previewRequestId || !previewOpen.value) return;
+    previewUrl.value = URL.createObjectURL(blob);
+  } catch (err) {
+    if (requestId !== previewRequestId || err?.name === 'AbortError') return;
+    previewError.value = 'No se pudo cargar la vista previa.';
+    showToast({ type: 'error', text: 'No se pudo cargar la vista previa.' });
+  } finally {
+    if (requestId === previewRequestId) {
+      previewLoading.value = false;
+      previewAbortController = null;
+    }
+  }
+}
 
 function openPdfPreview(title, url) {
-  previewKind.value = 'pdf';
-  previewTitle.value = title || 'Vista previa';
-  previewUrl.value = url;
-  previewOpen.value = true;
+  loadPreviewBlob('pdf', title, url);
 }
 
 function openDocPreview(doc) {
   const file = doc?.file || '';
   if (isPdfUrl(file)) {
-    openPdfPreview(doc.title || 'Vista previa', file);
+    loadPreviewBlob('pdf', doc?.title, file);
   } else if (isImageUrl(file)) {
-    previewKind.value = 'image';
-    previewTitle.value = doc.title || 'Vista previa';
-    previewUrl.value = file;
-    previewOpen.value = true;
+    loadPreviewBlob('image', doc?.title, file);
   }
 }
+
+watch(previewOpen, (open) => {
+  if (!open) {
+    previewRequestId++;
+    abortInflightPreview();
+    releasePreviewObjectUrl();
+    previewLoading.value = false;
+    previewError.value = '';
+  }
+});
+
+onBeforeUnmount(() => {
+  abortInflightPreview();
+  releasePreviewObjectUrl();
+});
 
 function formatDate(isoString) {
   if (!isoString) return '';

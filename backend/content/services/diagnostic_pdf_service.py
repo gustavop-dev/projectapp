@@ -227,6 +227,11 @@ def _render_cost(c, y, data, diagnostic, ps):
     intro = _safe(data, 'intro')
     if intro:
         y = _draw_paragraphs(c, y, [intro], ps=ps)
+    bullets = _safe(data, 'valueBullets', []) or []
+    bullets = [b for b in bullets if isinstance(b, str) and b.strip()]
+    if bullets:
+        y -= 4
+        y = _draw_bullet_list(c, y, bullets, ps=ps)
     amount = diagnostic.investment_amount
     if amount:
         currency = diagnostic.currency or ''
@@ -239,15 +244,15 @@ def _render_cost(c, y, data, diagnostic, ps):
     if descs:
         y -= 4
         y = _draw_subtitle(c, y, 'Formas de pago', ps=ps)
-        bullets = []
+        payment_lines = []
         for idx, item in enumerate(descs):
             pct = pcts[idx] if idx < len(pcts) and pcts[idx] is not None else ''
             prefix = f"{pct}% " if pct != '' else ''
-            bullets.append(
+            payment_lines.append(
                 f"{prefix}{_safe(item, 'label')}"
                 + (f" — {_safe(item, 'detail')}" if _safe(item, 'detail') else '')
             )
-        y = _draw_bullet_list(c, y, bullets, ps=ps)
+        y = _draw_bullet_list(c, y, payment_lines, ps=ps)
     note = _safe(data, 'note')
     if note:
         y -= 4
