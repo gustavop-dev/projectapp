@@ -1,5 +1,12 @@
 import { ref } from 'vue';
 
+// Tech debt: this overlaps with @vueuse/core `useLocalStorage` (already a
+// dependency). Not yet migrated because the dark-composable specs mock
+// `vue.watch`/`vue.onMounted` and assert specific call counts; vueuse
+// uses watchEffect internally, which would invalidate those mocks. Migrate
+// when the test patterns are reworked to assert on storage/DOM state
+// rather than on lifecycle calls.
+
 export function usePersistedRef(key, defaultValue = null, opts = {}) {
   const { serialize = JSON.stringify, deserialize = JSON.parse } = opts;
 

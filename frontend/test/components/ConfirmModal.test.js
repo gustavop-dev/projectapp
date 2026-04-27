@@ -1,6 +1,8 @@
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import ConfirmModal from '../../components/ConfirmModal.vue';
+import BaseModal from '../../components/base/BaseModal.vue';
+import BaseButton from '../../components/base/BaseButton.vue';
 
 function mountModal(props = {}) {
   return mount(ConfirmModal, {
@@ -14,6 +16,7 @@ function mountModal(props = {}) {
       ...props,
     },
     global: {
+      components: { BaseModal, BaseButton },
       stubs: {
         Teleport: true,
         Transition: false,
@@ -57,7 +60,7 @@ describe('ConfirmModal', () => {
   it('emits cancel when the backdrop is clicked', async () => {
     const wrapper = mountModal();
 
-    await wrapper.get('.fixed.inset-0').trigger('click');
+    await wrapper.get('.absolute.inset-0').trigger('click');
 
     expect(wrapper.emitted('cancel')).toEqual([[]]);
     expect(wrapper.emitted('update:modelValue')).toEqual([[false]]);
@@ -66,13 +69,13 @@ describe('ConfirmModal', () => {
   it('closes on Escape only while the modal is open', async () => {
     const wrapper = mountModal();
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     await nextTick();
 
     expect(wrapper.emitted('cancel')).toEqual([[]]);
 
     const closedWrapper = mountModal({ modelValue: false });
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     await nextTick();
 
     expect(closedWrapper.emitted('cancel')).toBeUndefined();
@@ -99,15 +102,15 @@ describe('ConfirmModal', () => {
     const dangerWrapper = mountModal({ variant: 'danger' });
     const infoWrapper = mountModal({ variant: 'info' });
 
-    expect(dangerWrapper.html()).toContain('bg-red-600');
-    expect(infoWrapper.html()).toContain('bg-esmerald');
+    expect(dangerWrapper.html()).toContain('bg-danger-soft');
+    expect(infoWrapper.html()).toContain('bg-primary-soft');
   });
 
   it('falls back to warning styles when the variant is unknown', () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const wrapper = mountModal({ variant: 'unexpected' });
 
-    expect(wrapper.html()).toContain('bg-lemon/30');
+    expect(wrapper.html()).toContain('bg-warning-soft');
     warnSpy.mockRestore();
   });
 
