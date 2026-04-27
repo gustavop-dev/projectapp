@@ -86,7 +86,7 @@
                 <span v-if="cr.is_urgent" class="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-red-600 dark:text-red-400">
                   Urgente
                 </span>
-                <span v-if="cr.linked_requirement_id" class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-text-brand dark:text-emerald-400">
+                <span v-if="cr.linked_requirement_id" class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-text-brand">
                   Convertida
                 </span>
               </div>
@@ -282,7 +282,7 @@
               <!-- Linked requirement -->
               <div v-if="detailCR.linked_requirement_id" class="mb-5 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
                 <svg class="h-4 w-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                <span class="text-xs font-medium text-text-brand dark:text-emerald-400">Convertida en requerimiento #{{ detailCR.linked_requirement_id }}</span>
+                <span class="text-xs font-medium text-text-brand">Convertida en requerimiento #{{ detailCR.linked_requirement_id }}</span>
               </div>
 
               <!-- Admin actions -->
@@ -474,7 +474,7 @@ function statusBadgeClass(s) {
   const map = {
     pending: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     evaluating: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-    approved: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
+    approved: 'bg-emerald-500/15 text-text-brand',
     rejected: 'bg-red-500/15 text-red-600 dark:text-red-400',
     needs_clarification: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
     out_of_scope: 'bg-gray-500/15 text-text-muted',

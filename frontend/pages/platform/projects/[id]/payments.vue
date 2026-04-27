@@ -39,7 +39,7 @@
               <p class="text-xs font-bold uppercase tracking-wider text-text-default">{{ tier.label }}</p>
               <p class="mt-2 text-2xl font-bold text-text-brand">${{ formatMoney(tier.billing_amount) }}</p>
               <p class="text-[11px] text-green-light">{{ tier.currency }} / {{ tier.months === 1 ? 'mes' : `${tier.months} meses` }}</p>
-              <p v-if="tier.discount_percent" class="mt-1 text-[10px] font-semibold text-text-brand dark:text-emerald-400">{{ tier.discount_percent }}% descuento</p>
+              <p v-if="tier.discount_percent" class="mt-1 text-[10px] font-semibold text-text-brand">{{ tier.discount_percent }}% descuento</p>
               <p class="mt-1 text-[10px] text-green-light/50">${{ formatMoney(tier.effective_monthly) }}/mes</p>
             </button>
           </div>
@@ -77,7 +77,7 @@
           <button
             type="button"
             :disabled="payStore.isUpdating"
-            class="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-medium text-text-brand transition hover:bg-emerald-500/10 dark:text-emerald-400"
+            class="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-medium text-text-brand transition hover:bg-emerald-500/10"
             @click="handleRestoreSubscription"
           >
             {{ payStore.isUpdating ? '…' : 'Restaurar suscripción' }}
@@ -88,11 +88,11 @@
           <div class="mb-6 rounded-2xl border border-emerald-500/20 bg-surface p-6 dark:border-emerald-500/15">
             <div class="flex items-center gap-4">
               <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10">
-                <svg class="h-7 w-7 text-text-brand dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <svg class="h-7 w-7 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </span>
               <div class="flex-1">
                 <h2 class="text-lg font-bold text-text-default">Hosting {{ sub.plan_display }}</h2>
-                <p class="mt-0.5 text-sm text-text-brand dark:text-emerald-400">Suscripción activa</p>
+                <p class="mt-0.5 text-sm text-text-brand">Suscripción activa</p>
               </div>
               <div class="text-right">
                 <p class="text-2xl font-bold text-text-brand">${{ formatMoney(sub.billing_amount) }}</p>
@@ -101,15 +101,15 @@
             </div>
 
             <div class="mt-5 flex items-center gap-3 rounded-xl bg-primary-soft/60 px-4 py-3 dark:bg-emerald-900/15">
-              <svg class="h-4 w-4 shrink-0 text-text-brand dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              <p class="text-sm text-text-brand dark:text-emerald-400">
+              <svg class="h-4 w-4 shrink-0 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              <p class="text-sm text-text-brand">
                 Se renueva automáticamente el <strong>{{ formatDate(payStore.nextRenewalDate) }}</strong>
               </p>
             </div>
 
             <div class="mt-4 flex items-center gap-3 text-[11px] text-green-light/50">
               <span>Inicio: {{ formatDate(sub.start_date) }}</span>
-              <span v-if="sub.discount_percent > 0" class="font-medium text-text-brand dark:text-emerald-400">{{ sub.discount_percent }}% de descuento aplicado</span>
+              <span v-if="sub.discount_percent > 0" class="font-medium text-text-brand">{{ sub.discount_percent }}% de descuento aplicado</span>
             </div>
           </div>
         </div>
@@ -229,7 +229,7 @@
                       <p class="text-xs font-medium text-text-default">
                         {{ formatDate(payment.billing_period_start) }} — {{ formatDate(payment.billing_period_end) }}
                       </p>
-                      <div v-if="payment.status === 'paid' && payment.paid_at" class="mt-0.5 text-[10px] text-text-brand/70 dark:text-emerald-400/60">
+                      <div v-if="payment.status === 'paid' && payment.paid_at" class="mt-0.5 text-[10px] text-text-brand/70">
                         Pagado el {{ formatDate(payment.paid_at) }}
                       </div>
                     </div>
@@ -410,7 +410,7 @@ function canPay(payment) {
 
 function subStatusClass(s) {
   const map = {
-    active: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
+    active: 'bg-emerald-500/15 text-text-brand',
     pending: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     suspended: 'bg-red-500/15 text-red-600 dark:text-red-400',
     cancelled: 'bg-gray-500/15 text-text-muted',
@@ -446,7 +446,7 @@ function paymentStatusClass(s) {
   const map = {
     pending: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     overdue: 'bg-red-500/15 text-red-600 dark:text-red-400',
-    paid: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
+    paid: 'bg-emerald-500/15 text-text-brand',
     processing: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     failed: 'bg-red-500/15 text-red-600 dark:text-red-400',
   }

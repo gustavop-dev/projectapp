@@ -307,7 +307,7 @@
               <!-- Expected vs Actual -->
               <div v-if="detailBug.expected_behavior || detailBug.actual_behavior" class="mb-5 grid grid-cols-2 gap-3">
                 <div v-if="detailBug.expected_behavior" class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-                  <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-text-brand dark:text-emerald-400">Esperado</p>
+                  <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-text-brand">Esperado</p>
                   <p class="text-xs leading-relaxed text-green-light">{{ detailBug.expected_behavior }}</p>
                 </div>
                 <div v-if="detailBug.actual_behavior" class="rounded-xl border border-red-500/20 bg-red-500/5 p-3">
@@ -494,7 +494,7 @@ function statusBadgeClass(s) {
     confirmed: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     fixing: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     qa: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
-    resolved: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
+    resolved: 'bg-emerald-500/15 text-text-brand',
     not_reproducible: 'bg-gray-500/15 text-text-muted',
     wont_fix: 'bg-gray-500/15 text-text-muted',
     duplicate: 'bg-gray-500/15 text-text-muted',

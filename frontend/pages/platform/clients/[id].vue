@@ -7,7 +7,7 @@
       <h1 class="mt-3 font-light text-3xl text-text-default">Detalle del cliente</h1>
     </div>
 
-    <div v-if="pageMessage" class="rounded-2xl border px-4 py-3 text-sm" :class="pageMessageVariant === 'success' ? 'border-emerald-500/20 bg-primary-soft text-text-brand dark:bg-emerald-500/10 dark:text-emerald-300' : 'border-red-500/20 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-200'">
+    <div v-if="pageMessage" class="rounded-2xl border px-4 py-3 text-sm" :class="pageMessageVariant === 'success' ? 'border-emerald-500/20 bg-primary-soft text-text-brand dark:bg-emerald-500/10' : 'border-red-500/20 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-200'">
       {{ pageMessage }}
     </div>
 
@@ -91,7 +91,7 @@
             <button
               v-else
               type="button"
-              class="rounded-full border border-emerald-500/20 px-4 py-3 text-sm text-text-brand transition hover:bg-emerald-500/10 dark:text-emerald-400 disabled:opacity-50"
+              class="rounded-full border border-emerald-500/20 px-4 py-3 text-sm text-text-brand transition hover:bg-emerald-500/10 disabled:opacity-50"
               :disabled="platformClientsStore.isUpdating"
               @click="handleReactivate"
             >

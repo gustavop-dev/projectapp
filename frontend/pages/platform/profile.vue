@@ -6,7 +6,7 @@
     <!-- Success message -->
     <div
       v-if="successMessage"
-      class="mb-6 rounded-xl border border-emerald-200 bg-primary-soft px-4 py-3 text-sm text-text-brand dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
+      class="mb-6 rounded-xl border border-emerald-200 bg-primary-soft px-4 py-3 text-sm text-text-brand dark:border-emerald-500/20 dark:bg-emerald-500/10"
     >
       {{ successMessage }}
     </div>
@@ -61,7 +61,7 @@
               class="mt-2 inline-block rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
               :class="authStore.isAdmin
                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400'
-                : 'bg-primary-soft text-text-brand dark:bg-emerald-500/15 dark:text-emerald-400'"
+                : 'bg-primary-soft text-text-brand dark:bg-emerald-500/15'"
             >
               {{ authStore.isAdmin ? 'Administrador' : 'Cliente' }}
             </span>

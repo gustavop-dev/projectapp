@@ -127,7 +127,7 @@
             <p class="text-xs font-bold uppercase tracking-wider text-text-default">{{ tier.label }}</p>
             <p class="mt-2 text-xl font-bold text-text-brand">{{ formatCurrency(tier.billing_amount) }}</p>
             <p class="text-[11px] text-green-light">cada {{ tier.months === 1 ? 'mes' : `${tier.months} meses` }}</p>
-            <p v-if="tier.discount_percent" class="mt-1 text-[10px] font-medium text-text-brand dark:text-emerald-400">{{ tier.discount_percent }}% descuento</p>
+            <p v-if="tier.discount_percent" class="mt-1 text-[10px] font-medium text-text-brand">{{ tier.discount_percent }}% descuento</p>
           </div>
         </div>
       </div>
@@ -374,7 +374,7 @@ function formatCurrency(amount) {
 
 function statusBadgeClass(status) {
   const map = {
-    active: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
+    active: 'bg-emerald-500/15 text-text-brand',
     paused: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     completed: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     archived: 'bg-white/10 text-green-light/60',

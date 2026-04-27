@@ -134,7 +134,7 @@ function categoryBadgeClass(cat) {
     designs: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
     credentials: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     documents: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-    apks: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
+    apks: 'bg-emerald-500/15 text-text-brand',
     other: 'bg-gray-500/15 text-text-muted',
   }
   return map[cat] || map.other

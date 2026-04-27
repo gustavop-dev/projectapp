@@ -321,7 +321,7 @@ const canCreate = computed(() => Boolean(createForm.name.trim()) && Boolean(crea
 
 function statusBadgeClass(status) {
   const map = {
-    active: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
+    active: 'bg-emerald-500/15 text-text-brand',
     paused: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     completed: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     archived: 'bg-white/10 text-green-light/60',

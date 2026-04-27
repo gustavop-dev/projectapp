@@ -212,7 +212,7 @@
               <div v-for="sub in clientSubscriptions" :key="sub.id" class="rounded-xl border border-border-default p-4">
                 <div class="flex items-center justify-between">
                   <p class="text-sm font-medium text-text-default">{{ sub.project_name }}</p>
-                  <span class="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="sub.status === 'active' ? 'bg-emerald-500/15 text-text-brand dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'">
+                  <span class="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="sub.status === 'active' ? 'bg-emerald-500/15 text-text-brand' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'">
                     {{ sub.status_display }}
                   </span>
                 </div>
@@ -396,7 +396,7 @@ function projectStatusLabel(status) {
 
 function projectStatusClass(status) {
   const map = {
-    active: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
+    active: 'bg-emerald-500/15 text-text-brand',
     paused: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     completed: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     archived: 'bg-white/10 text-green-light/60',
@@ -422,7 +422,7 @@ function deliverableCategoryClass(cat) {
     designs: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
     documents: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     credentials: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-    apks: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
+    apks: 'bg-emerald-500/15 text-text-brand',
     other: 'bg-gray-500/15 text-text-muted dark:text-text-subtle',
   }
   return map[cat] || 'bg-gray-500/15 text-text-muted dark:text-text-subtle'

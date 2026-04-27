@@ -27,7 +27,7 @@
       </div>
     </section>
 
-    <div v-if="feedback" class="rounded-2xl border px-4 py-3 text-sm" :class="feedbackVariant === 'success' ? 'border-emerald-500/20 bg-primary-soft text-text-brand dark:bg-emerald-500/10 dark:text-emerald-300' : 'border-red-500/20 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-200'">
+    <div v-if="feedback" class="rounded-2xl border px-4 py-3 text-sm" :class="feedbackVariant === 'success' ? 'border-emerald-500/20 bg-primary-soft text-text-brand dark:bg-emerald-500/10' : 'border-red-500/20 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-200'">
       {{ feedback }}
     </div>
 
@@ -178,7 +178,7 @@ const statusLabel = (s) => ({
 }[s] || s)
 
 const statusBadgeClass = (s) => ({
-  active: 'bg-primary-soft text-text-brand dark:bg-emerald-500/15 dark:text-emerald-300',
+  active: 'bg-primary-soft text-text-brand dark:bg-emerald-500/15',
   paused: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
   completed: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
   archived: 'bg-neutral-100 text-neutral-600 dark:bg-white/5 dark:text-green-light',

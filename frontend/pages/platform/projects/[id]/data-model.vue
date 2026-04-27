@@ -88,7 +88,7 @@
         </div>
 
         <!-- Preview -->
-        <div v-if="jsonParsed && !jsonError" class="mb-3 rounded-xl bg-primary-soft px-4 py-2 text-xs text-text-brand dark:bg-emerald-900/20 dark:text-emerald-400">
+        <div v-if="jsonParsed && !jsonError" class="mb-3 rounded-xl bg-primary-soft px-4 py-2 text-xs text-text-brand">
           {{ jsonParsed.entities.length }} entidad{{ jsonParsed.entities.length !== 1 ? 'es' : '' }} detectada{{ jsonParsed.entities.length !== 1 ? 's' : '' }}:
           {{ jsonParsed.entities.map(e => e.name).join(', ') }}
         </div>
@@ -109,7 +109,7 @@
         </div>
 
         <!-- Upload success -->
-        <div v-if="uploadSuccess" class="mt-3 rounded-xl bg-primary-soft px-4 py-2 text-xs text-text-brand dark:bg-emerald-900/20 dark:text-emerald-400">
+        <div v-if="uploadSuccess" class="mt-3 rounded-xl bg-primary-soft px-4 py-2 text-xs text-text-brand">
           Modelo de datos actualizado correctamente.
         </div>
       </div>

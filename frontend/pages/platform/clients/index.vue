@@ -41,7 +41,7 @@
       </div>
     </section>
 
-    <div v-if="pageMessage" class="rounded-2xl border px-4 py-3 text-sm" :class="pageMessageVariant === 'success' ? 'border-emerald-500/20 bg-primary-soft text-text-brand dark:bg-emerald-500/10 dark:text-emerald-300' : 'border-red-500/20 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-200'">
+    <div v-if="pageMessage" class="rounded-2xl border px-4 py-3 text-sm" :class="pageMessageVariant === 'success' ? 'border-emerald-500/20 bg-primary-soft text-text-brand dark:bg-emerald-500/10' : 'border-red-500/20 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-200'">
       {{ pageMessage }}
     </div>
 

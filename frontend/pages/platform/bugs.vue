@@ -150,7 +150,7 @@ function statusBadgeClass(s) {
     confirmed: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     fixing: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     qa: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
-    resolved: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
+    resolved: 'bg-emerald-500/15 text-text-brand',
     not_reproducible: 'bg-gray-500/15 text-text-muted',
     wont_fix: 'bg-gray-500/15 text-text-muted',
     duplicate: 'bg-gray-500/15 text-text-muted',

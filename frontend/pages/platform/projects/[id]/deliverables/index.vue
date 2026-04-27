@@ -268,7 +268,7 @@
                 <button
                   v-if="detailItem.is_archived"
                   type="button"
-                  class="rounded-xl border border-emerald-500/30 px-4 py-2 text-xs font-medium text-text-brand transition hover:bg-emerald-500/10 dark:border-emerald-500/25 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
+                  class="rounded-xl border border-emerald-500/30 px-4 py-2 text-xs font-medium text-text-brand transition hover:bg-emerald-500/10 dark:border-emerald-500/25"
                   :disabled="store.isUpdating"
                   @click="handleRestore"
                 >
@@ -424,7 +424,7 @@ function categoryBadgeClass(cat) {
     contract: 'bg-teal-500/15 text-teal-600 dark:text-teal-400',
     amendment: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
     legal_annex: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400',
-    apks: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
+    apks: 'bg-emerald-500/15 text-text-brand',
     other: 'bg-gray-500/15 text-text-muted',
   }
   return map[cat] || map.other

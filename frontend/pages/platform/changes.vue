@@ -165,7 +165,7 @@ function statusBadgeClass(s) {
   const map = {
     pending: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     evaluating: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-    approved: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
+    approved: 'bg-emerald-500/15 text-text-brand',
     rejected: 'bg-red-500/15 text-red-600 dark:text-red-400',
     needs_clarification: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
     out_of_scope: 'bg-gray-500/15 text-text-muted',

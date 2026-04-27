@@ -216,13 +216,13 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
           <span class="text-sm font-semibold text-text-default">Completados</span>
-          <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500/15 px-1.5 text-[10px] font-bold text-text-brand dark:text-emerald-400">
+          <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500/15 px-1.5 text-[10px] font-bold text-text-brand">
             {{ reqStore.doneCards.length }}
           </span>
           <div class="ml-auto h-1.5 w-20 overflow-hidden rounded-full bg-primary/10 dark:bg-white/10">
             <div class="h-full rounded-full bg-emerald-500 transition-all duration-700" :style="{ width: `${reqStore.progressPercent}%` }" />
           </div>
-          <span class="text-xs font-semibold text-text-brand dark:text-emerald-400">{{ reqStore.progressPercent }}%</span>
+          <span class="text-xs font-semibold text-text-brand">{{ reqStore.progressPercent }}%</span>
         </button>
 
         <Transition name="done-list">

@@ -67,13 +67,13 @@
             </div>
             <div class="rounded-xl border border-border-muted p-3">
               <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Descuento</p>
-              <p class="mt-1 text-sm font-semibold" :class="sub.discount_percent > 0 ? 'text-text-brand dark:text-emerald-400' : 'text-green-light'">
+              <p class="mt-1 text-sm font-semibold" :class="sub.discount_percent > 0 ? 'text-text-brand' : 'text-green-light'">
                 {{ sub.discount_percent > 0 ? `${sub.discount_percent}%` : 'Sin descuento' }}
               </p>
             </div>
             <div class="rounded-xl border border-border-muted p-3">
               <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Estado</p>
-              <p v-if="sub.pending_payments === 0" class="mt-1 text-sm font-semibold text-text-brand dark:text-emerald-400">Al día</p>
+              <p v-if="sub.pending_payments === 0" class="mt-1 text-sm font-semibold text-text-brand">Al día</p>
               <p v-else class="mt-1 text-sm font-semibold text-amber-600 dark:text-amber-400">Requiere atención</p>
             </div>
           </div>
@@ -109,7 +109,7 @@ const includeArchived = usePlatformIncludeArchived()
 
 function subStatusClass(s) {
   const map = {
-    active: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
+    active: 'bg-emerald-500/15 text-text-brand',
     pending: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     suspended: 'bg-red-500/15 text-red-600 dark:text-red-400',
     cancelled: 'bg-gray-500/15 text-text-muted',
