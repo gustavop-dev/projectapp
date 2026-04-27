@@ -1,14 +1,15 @@
-import { ref, watch, onMounted } from 'vue';
+import { watch, onMounted } from 'vue';
+import { usePersistedRef } from './usePersistedRef';
 
 const STORAGE_KEY = 'projectapp-dark-mode';
 
-// Shared state across components
-const isDark = ref(false);
+const persisted = usePersistedRef(STORAGE_KEY, false);
+const isDark = persisted.ref;
 
-/**
- * Composable for dark mode toggle in the admin panel.
- * Persists preference in localStorage and applies `dark` class to <html>.
- */
+export function themeToggleLabel(dark) {
+  return dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+}
+
 export function useDarkMode() {
   function applyTheme(dark) {
     /* c8 ignore next */
@@ -25,24 +26,14 @@ export function useDarkMode() {
     isDark.value = !isDark.value;
   }
 
-  // Persist to localStorage on change
   watch(isDark, (val) => {
     applyTheme(val);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
-    } catch (_e) { /* ignore */ }
+    persisted.write(val);
   });
 
   onMounted(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored !== null) {
-        isDark.value = JSON.parse(stored);
-      } else {
-        // Default to light mode for panel views
-        isDark.value = false;
-      }
-    } catch (_e) { /* ignore */ }
+    const stored = persisted.read();
+    isDark.value = stored !== null ? stored : false;
     applyTheme(isDark.value);
   });
 

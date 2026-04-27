@@ -1,28 +1,25 @@
 import { ref } from 'vue';
+import { usePersistedRef } from './usePersistedRef';
 
 export const DIAGNOSTIC_THEME_STORAGE_KEY = 'diagnostic_theme';
 const STORAGE_KEY = DIAGNOSTIC_THEME_STORAGE_KEY;
 const LEGACY_STORAGE_KEY = 'diagnostic-dark-mode';
 
+const persisted = usePersistedRef(STORAGE_KEY, null, {
+  serialize: (v) => (v ? 'dark' : 'light'),
+  deserialize: (s) => (s === 'dark' ? true : s === 'light' ? false : null),
+});
+const legacy = usePersistedRef(LEGACY_STORAGE_KEY);
+
 const isDark = ref(false);
 
-function readStoredPreference() {
-  /* c8 ignore next */
-  if (typeof window === 'undefined') return null;
-  try {
-    const current = localStorage.getItem(STORAGE_KEY);
-    if (current === 'dark') return true;
-    if (current === 'light') return false;
-
-    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (legacy !== null) {
-      const parsed = JSON.parse(legacy) === true;
-      localStorage.setItem(STORAGE_KEY, parsed ? 'dark' : 'light');
-      localStorage.removeItem(LEGACY_STORAGE_KEY);
-      return parsed;
-    }
-  } catch (_e) { /* ignore */ }
-  return null;
+function migrateLegacy() {
+  const v = legacy.read();
+  if (v === null) return null;
+  const parsed = v === true;
+  persisted.write(parsed);
+  legacy.remove();
+  return parsed;
 }
 
 function prefersSystemDark() {
@@ -37,17 +34,22 @@ function prefersSystemDark() {
 
 export function useDiagnosticDarkMode() {
   function hydrate() {
-    const stored = readStoredPreference();
-    isDark.value = stored !== null ? stored : prefersSystemDark();
+    const stored = persisted.read();
+    if (stored !== null) {
+      isDark.value = stored;
+      return;
+    }
+    const migrated = migrateLegacy();
+    if (migrated !== null) {
+      isDark.value = migrated;
+      return;
+    }
+    isDark.value = prefersSystemDark();
   }
 
   function toggle() {
     isDark.value = !isDark.value;
-    /* c8 ignore next */
-    if (typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(STORAGE_KEY, isDark.value ? 'dark' : 'light');
-    } catch (_e) { /* ignore */ }
+    persisted.write(isDark.value);
   }
 
   return { isDark, toggle, hydrate };

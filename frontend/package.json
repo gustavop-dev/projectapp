@@ -19,6 +19,9 @@
     "e2e:coverage": "npm run e2e:clean && playwright test",
     "e2e:clean": "rm -rf e2e-results",
     "check:e2e-flow-sync": "node scripts/check-flow-definitions-sync.mjs",
+    "check:design-tokens": "node scripts/check-design-tokens.mjs",
+    "check:design-tokens:panel": "node scripts/check-design-tokens.mjs --scope=panel",
+    "check:design-tokens:strict": "node scripts/check-design-tokens.mjs --strict",
     "ci:e2e-flow-summary": "node scripts/report-e2e-flow-coverage-ci.mjs"
   },
   "dependencies": {

@@ -1,0 +1,207 @@
+/* =====================================================================
+   theme.css — semantic design tokens (light/dark)
+   =====================================================================
+   Applied automatically: when <html> has the `dark` class
+   (toggled by useDiagnosticDarkMode), the `.dark` block below overrides
+   the `:root` defaults.
+
+   Tokens are exposed in tailwind.config.js as semantic colors so you can
+   write `bg-surface`, `text-text-default`, `border-border` and dark mode
+   resolves automatically — no `dark:` variants needed for these tokens.
+
+   When to use which token:
+     - bg-surface           — primary card / panel background
+     - bg-surface-muted     — soft container (e.g. page-level wash)
+     - bg-surface-raised    — slightly elevated chip / inner panel
+     - border-border        — default border color
+     - border-border-muted  — subtle dividers, less contrast
+     - text-text-default    — body / heading text
+     - text-text-muted      — secondary copy (labels, hints)
+     - text-text-subtle     — placeholder / very faint copy
+     - bg-primary           — brand primary (esmerald)
+     - bg-accent            — accent (lemon)
+
+   The brand tokens (--color-primary, --color-accent) intentionally stay
+   constant in light and dark — the brand identity does not flip.
+
+   ---------------------------------------------------------------------
+   RGB triplet bridge (opacity modifier support)
+   ---------------------------------------------------------------------
+   In addition to the hex / rgba CSS variables below (kept for back-compat
+   and for any consumer that references them directly), each "solid" token
+   also exposes an `--color-X-rgb` triplet variable in the form
+   `R G B` (space-separated, no parentheses). Tailwind binds the semantic
+   color names through `rgb(var(--color-X-rgb) / <alpha-value>)`, which
+   enables Tailwind opacity modifiers like `bg-primary/40`,
+   `text-text-brand/60`, `ring-focus-ring/30`.
+
+   IMPORTANT — alpha-baked tokens:
+   Some dark-mode tokens are intrinsically `rgba(...)` with a baked alpha
+   (surface-raised, border, border-muted, status soft variants in dark).
+   These CANNOT be expressed cleanly as a `R G B` triplet because Tailwind
+   would then attempt to compose its own alpha on top — so the triplet
+   variants for those tokens fall back to the underlying solid color and
+   the alpha is dropped. Practical guidance:
+     - Use opacity modifiers on the "solid" tokens (primary*, accent*,
+       text-*, input-text, focus-ring, status *-strong, light-mode soft
+       backgrounds). These compose predictably in light AND dark.
+     - For surface-raised / border / border-muted / status *-soft in dark,
+       the opacity modifier composes alphas and the result is unlikely to
+       match design intent. Prefer the bare token without a modifier.
+   ===================================================================== */
+
+:root {
+  /* Brand — stable across modes */
+  --color-primary: #002921;          /* esmerald */
+  --color-primary-strong: #001713;   /* esmerald-dark */
+  --color-primary-soft: #E6EFEF;     /* esmerald-light */
+  --color-accent: #F0FF3D;           /* lemon */
+  --color-accent-soft: #F9FFB0;
+
+  /* Brand RGB triplets (stable across modes) */
+  --color-primary-rgb: 0 41 33;            /* #002921 */
+  --color-primary-strong-rgb: 0 23 19;     /* #001713 */
+  --color-primary-soft-rgb: 230 239 239;   /* #E6EFEF */
+  --color-accent-rgb: 240 255 61;          /* #F0FF3D */
+  --color-accent-soft-rgb: 249 255 176;    /* #F9FFB0 */
+
+  /* Semantic surfaces — light */
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #FAF3E0;    /* bone */
+  --color-surface-raised: #F8FAFC;
+  --color-border: #E5E7EB;           /* gray-200 */
+  --color-border-muted: #F3F4F6;     /* gray-100 */
+
+  /* Surfaces RGB triplets — light */
+  --color-surface-rgb: 255 255 255;        /* #FFFFFF */
+  --color-surface-muted-rgb: 250 243 224;  /* #FAF3E0 */
+  --color-surface-raised-rgb: 248 250 252; /* #F8FAFC */
+  --color-border-rgb: 229 231 235;         /* #E5E7EB */
+  --color-border-muted-rgb: 243 244 246;   /* #F3F4F6 */
+
+  /* Text — light */
+  --color-text: #111827;             /* gray-900 */
+  --color-text-muted: #6B7280;       /* gray-500 */
+  --color-text-subtle: #9CA3AF;      /* gray-400 */
+  --color-text-brand: #047857;       /* emerald-700 — for legends, brand-tinted headings */
+
+  /* Text RGB triplets — light */
+  --color-text-rgb: 17 24 39;        /* #111827 */
+  --color-text-muted-rgb: 107 114 128; /* #6B7280 */
+  --color-text-subtle-rgb: 156 163 175; /* #9CA3AF */
+  --color-text-brand-rgb: 4 120 87;  /* #047857 */
+
+  /* Form controls — light */
+  --color-input-bg: #FFFFFF;
+  --color-input-border: #E5E7EB;
+  --color-input-text: #111827;
+  --color-input-placeholder: #9CA3AF;
+  --color-focus-ring: #10B981;       /* emerald-500 */
+
+  /* Form controls RGB triplets — light */
+  --color-input-bg-rgb: 255 255 255;
+  --color-input-border-rgb: 229 231 235;
+  --color-input-text-rgb: 17 24 39;
+  --color-input-placeholder-rgb: 156 163 175; /* #9CA3AF */
+  --color-focus-ring-rgb: 16 185 129; /* #10B981 */
+
+  /* Foreground "on" colors — text/icon color guaranteed to contrast
+     against the matching background token. Stable across modes since
+     primary/danger backgrounds stay in the same hue family. */
+  --color-on-primary: #FFFFFF;
+  --color-on-danger: #FFFFFF;
+  --color-on-primary-rgb: 255 255 255;
+  --color-on-danger-rgb: 255 255 255;
+
+  /* Status (paired soft + strong) */
+  --color-success-soft: #D1FAE5;
+  --color-success-strong: #065F46;
+  --color-warning-soft: #FEF3C7;
+  --color-warning-strong: #92400E;
+  --color-danger-soft: #FEE2E2;
+  --color-danger-strong: #991B1B;
+
+  /* Status RGB triplets — light (all solid) */
+  --color-success-soft-rgb: 209 250 229;   /* #D1FAE5 */
+  --color-success-strong-rgb: 6 95 70;     /* #065F46 */
+  --color-warning-soft-rgb: 254 243 199;   /* #FEF3C7 */
+  --color-warning-strong-rgb: 146 64 14;   /* #92400E */
+  --color-danger-soft-rgb: 254 226 226;    /* #FEE2E2 */
+  --color-danger-strong-rgb: 153 27 27;    /* #991B1B */
+}
+
+/* The same dark-mode token overrides are activated by:
+   - the global `.dark` class on <html> (toggled by useDiagnosticDarkMode), and
+   - the local `[data-theme="dark"]` attribute used by the public proposal
+     viewer (composables/useProposalDarkMode.js) which sets dark mode on a
+     wrapper element, isolated from the rest of the page. Both selectors share
+     the same variable bindings so semantic tokens flip identically in either
+     scope. */
+.dark,
+[data-theme="dark"] {
+  /* Semantic surfaces — dark (esmerald family) */
+  --color-surface: #002921;
+  --color-surface-muted: #001713;
+  --color-surface-raised: rgba(255, 255, 255, 0.04);
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-muted: rgba(255, 255, 255, 0.06);
+
+  /* Surfaces RGB triplets — dark
+     NOTE: surface-raised, border, border-muted are intrinsically rgba()
+     with a baked alpha. The triplet falls back to the underlying RGB
+     channels (white = 255 255 255) so opacity modifiers technically work
+     but compose on top of an already-translucent intent. Avoid using
+     `bg-surface-raised/N` etc. in dark — see file header note. */
+  --color-surface-rgb: 0 41 33;            /* #002921 */
+  --color-surface-muted-rgb: 0 23 19;      /* #001713 */
+  --color-surface-raised-rgb: 255 255 255; /* alpha baked in non-rgb var */
+  --color-border-rgb: 255 255 255;         /* alpha baked in non-rgb var */
+  --color-border-muted-rgb: 255 255 255;   /* alpha baked in non-rgb var */
+
+  /* Text — dark */
+  --color-text: #F9FAFB;
+  --color-text-muted: #D1D5DB;
+  --color-text-subtle: #9CA3AF;
+  --color-text-brand: #6EE7B7;       /* emerald-300 */
+
+  /* Text RGB triplets — dark */
+  --color-text-rgb: 249 250 251;     /* #F9FAFB */
+  --color-text-muted-rgb: 209 213 219; /* #D1D5DB */
+  --color-text-subtle-rgb: 156 163 175; /* #9CA3AF */
+  --color-text-brand-rgb: 110 231 183; /* #6EE7B7 */
+
+  /* Form controls — dark */
+  --color-input-bg: #001713;
+  --color-input-border: rgba(255, 255, 255, 0.08);
+  --color-input-text: #F9FAFB;
+  --color-input-placeholder: rgba(255, 255, 255, 0.40);
+  --color-focus-ring: #34D399;       /* emerald-400 */
+
+  /* Form controls RGB triplets — dark
+     input-border and input-placeholder are rgba()-based;
+     triplet falls back to white channels (alpha baked in non-rgb var). */
+  --color-input-bg-rgb: 0 23 19;
+  --color-input-border-rgb: 255 255 255; /* alpha baked in non-rgb var */
+  --color-input-text-rgb: 249 250 251;
+  --color-input-placeholder-rgb: 255 255 255; /* alpha baked in non-rgb var */
+  --color-focus-ring-rgb: 52 211 153;    /* #34D399 */
+
+  /* Status — dark (slightly muted soft tones) */
+  --color-success-soft: rgba(16, 185, 129, 0.15);
+  --color-success-strong: #6EE7B7;
+  --color-warning-soft: rgba(245, 158, 11, 0.15);
+  --color-warning-strong: #FCD34D;
+  --color-danger-soft: rgba(239, 68, 68, 0.15);
+  --color-danger-strong: #FCA5A5;
+
+  /* Status RGB triplets — dark
+     The *-soft variants are intrinsically rgba(); triplet exposes the
+     underlying solid hue so opacity modifiers don't compound predictably.
+     Use the bare class. The *-strong variants are solid — safe. */
+  --color-success-soft-rgb: 16 185 129;    /* #10B981 hue, alpha baked */
+  --color-success-strong-rgb: 110 231 183; /* #6EE7B7 */
+  --color-warning-soft-rgb: 245 158 11;    /* #F59E0B hue, alpha baked */
+  --color-warning-strong-rgb: 252 211 77;  /* #FCD34D */
+  --color-danger-soft-rgb: 239 68 68;      /* #EF4444 hue, alpha baked */
+  --color-danger-strong-rgb: 252 165 165;  /* #FCA5A5 */
+}

@@ -1,15 +1,11 @@
-import { ref, watch, onMounted } from 'vue';
+import { watch, onMounted } from 'vue';
+import { usePersistedRef } from './usePersistedRef';
 
 const STORAGE_KEY = 'proposal-dark-mode';
 
-// Shared state across components
-const isDark = ref(false);
+const persisted = usePersistedRef(STORAGE_KEY, false);
+const isDark = persisted.ref;
 
-/**
- * Composable for dark mode toggle in the client-facing proposal view.
- * Toggles a `data-theme="dark"` attribute on the proposal wrapper element.
- * Persists preference in localStorage.
- */
 export function useProposalDarkMode() {
   function applyTheme(dark) {
     /* c8 ignore next */
@@ -26,12 +22,12 @@ export function useProposalDarkMode() {
 
   watch(isDark, (val) => {
     applyTheme(val);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
-    } catch (_e) { /* ignore */ }
+    persisted.write(val);
   });
 
   onMounted(() => {
+    const stored = persisted.read();
+    if (stored !== null) isDark.value = stored;
     applyTheme(isDark.value);
   });
 

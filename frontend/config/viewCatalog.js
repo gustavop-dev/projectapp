@@ -220,6 +220,14 @@ export const viewCatalogSections = [
         viewType: 'config',
       },
       {
+        label: 'Design System Styleguide',
+        url: '/panel/styleguide',
+        file: 'frontend/pages/panel/styleguide.vue',
+        reference: 'catálogo visual de tokens semánticos y componentes base (BaseInput, BaseButton, BaseModal, etc.) en light y dark',
+        audience: 'admin',
+        viewType: 'config',
+      },
+      {
         label: 'Plantillas de email de propuestas',
         url: '/panel/proposals/email-templates',
         file: 'frontend/pages/panel/proposals/email-templates.vue',

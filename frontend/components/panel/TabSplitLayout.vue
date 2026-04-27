@@ -13,12 +13,13 @@
 
 <script setup>
 import { computed } from 'vue';
+import { oneOf } from '../base/propValidators';
 
 const props = defineProps({
   ratio: {
     type: String,
     default: '1:1',
-    validator: (value) => ['1:1', '3:2', '2:3', '5:4'].includes(value),
+    validator: oneOf(['1:1', '3:2', '2:3', '5:4']),
   },
 });
 

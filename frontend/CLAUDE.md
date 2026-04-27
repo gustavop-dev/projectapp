@@ -29,6 +29,13 @@
 - Run frontend coverage for a focused slice only when needed.
 - Run E2E: `npm --prefix frontend run e2e -- path/to/spec.js`
 - Build frontend: `npm --prefix frontend run build`
+- Check design tokens on a touched file: `node frontend/scripts/check-design-tokens.mjs --files <file>`
+
+## Design System
+- New views and components must use semantic tokens (`bg-surface`, `text-text-default`, `border-input-border`, etc.) and base components in `frontend/components/base/` (`BaseInput`, `BaseButton`, `BaseModal`, `BaseToggle`, `BaseSegmented`, etc.).
+- Never write `bg-white dark:bg-gray-800` patterns in new code — `bg-surface` flips automatically.
+- Live catalog and tokens reference: `/panel/styleguide` (admin) and `frontend/components/base/README.md`.
+- Legacy hex tokens (`esmerald`, `lemon`, `bone`) are kept for backwards compat; do not introduce new uses.
 
 ## Testing Rules
 - Never run the full frontend unit or E2E suite.

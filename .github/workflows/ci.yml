@@ -29,6 +29,58 @@ jobs:
         run: node frontend/scripts/check-flow-definitions-sync.mjs
 
   # ───────────────────────────────────────────
+  # Design tokens — fail PR if it adds new color literals to touched files.
+  # Legacy files keep working; only files modified in the PR are checked,
+  # so the migration stays incremental.
+  # ───────────────────────────────────────────
+  design-tokens-guard:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout (full history for diff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Collect changed Vue/JS/TS files in the PR
+        id: changed
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          files=$(git diff --name-only --diff-filter=ACMR "$base" "$head" \
+            | grep -E '^frontend/(pages|components|layouts)/.*\.(vue|js|ts|jsx|tsx)$' \
+            | sed 's|^frontend/||' || true)
+          if [ -z "$files" ]; then
+            echo "No frontend files touched in this PR"
+            echo "files=" >> "$GITHUB_OUTPUT"
+          else
+            # Print to logs
+            echo "Touched files:"
+            echo "$files"
+            # GitHub Actions output: collapse newlines to space
+            echo "files=$(echo "$files" | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run design-tokens guard on changed files
+        if: steps.changed.outputs.files != ''
+        working-directory: frontend
+        run: node scripts/check-design-tokens.mjs --strict --files ${{ steps.changed.outputs.files }}
+
+      - name: Strict gate on full panel scope
+        working-directory: frontend
+        run: node scripts/check-design-tokens.mjs --scope=panel --strict
+
+      - name: Public scope progress (warn-only)
+        working-directory: frontend
+        if: always()
+        run: node scripts/check-design-tokens.mjs --scope=public --quiet || true
+
+  # ───────────────────────────────────────────
   # Backend — pytest (Django + SQLite)
   # ───────────────────────────────────────────
   backend-tests:

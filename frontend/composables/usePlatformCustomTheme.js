@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformApi } from '~/composables/usePlatformApi'
+import { hexToRgb, luminance, toRgbString, measureBrightness } from '~/utils/colorUtils'
 
 const THEME_COLORS = [
   { name: 'Esmerald', shades: ['#e6efef', '#ccdedd', '#99bdbc', '#669c9a', '#337b79', '#002921', '#00231c', '#001d17', '#001713'] },
@@ -20,63 +21,11 @@ const customCoverImageUrl = ref('')
 const coverDark = ref(false)
 let initialized = false
 
-function hexToRgb(hex) {
-  const h = hex.replace('#', '')
-  return {
-    r: parseInt(h.substring(0, 2), 16),
-    g: parseInt(h.substring(2, 4), 16),
-    b: parseInt(h.substring(4, 6), 16),
-  }
-}
-
-/** Perceived brightness (0-255). > 186 = light color, needs dark text. */
-function luminance(hex) {
-  const { r, g, b } = hexToRgb(hex)
-  return r * 0.299 + g * 0.587 + b * 0.114
-}
-
-/** Find the shade family a hex color belongs to. Returns the 9-shade array or null. */
 function findColorFamily(hex) {
   for (const family of THEME_COLORS) {
     if (family.shades.includes(hex)) return family.shades
   }
   return null
-}
-
-/** Convert hex to "r, g, b" string for use in rgba(). */
-function toRgbString(hex) {
-  const { r, g, b } = hexToRgb(hex)
-  return `${r}, ${g}, ${b}`
-}
-
-/**
- * Sample an image's average brightness via a tiny canvas.
- * Returns a promise that resolves to 0-255 (0 = black, 255 = white).
- */
-function measureBrightness(url) {
-  return new Promise((resolve) => {
-    /* c8 ignore next */
-    if (typeof document === 'undefined') { resolve(128); return }
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      const size = 64 // small sample for speed
-      canvas.width = size
-      canvas.height = size
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, size, size)
-      const { data } = ctx.getImageData(0, 0, size, size)
-      let total = 0
-      for (let i = 0; i < data.length; i += 4) {
-        total += data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
-      }
-      resolve(total / (size * size))
-    }
-    /* c8 ignore next */
-    img.onerror = () => resolve(128)
-    img.src = url
-  })
 }
 
 /** Build the resolved cover URL from current state. */
@@ -99,6 +48,11 @@ const THEME_VARS = [
   '--theme-surface', '--theme-surface-hover', '--theme-border',
   '--theme-accent', '--theme-dark',
   '--theme-surface-rgb', '--theme-border-rgb', '--theme-accent-rgb', '--theme-dark-rgb',
+]
+
+const SEMANTIC_VARS = [
+  '--color-primary', '--color-primary-strong', '--color-primary-soft',
+  '--color-text-brand', '--color-focus-ring',
 ]
 
 export function usePlatformCustomTheme() {
@@ -132,6 +86,15 @@ export function usePlatformCustomTheme() {
       root.style.setProperty('--theme-rgb', `${r}, ${g}, ${b}`)
       root.style.setProperty('--theme-btn-text', isLight ? '#1a1a1a' : '#ffffff')
 
+      // Bridge to the semantic design-system tokens — overrides the values from
+      // assets/styles/theme.css so base components (BaseButton, BaseBadge, etc.)
+      // automatically pick up the tenant's brand color.
+      root.style.setProperty('--color-primary', themeColor.value)
+      root.style.setProperty('--color-primary-strong', shades ? shades[5] : themeColor.value)
+      root.style.setProperty('--color-primary-soft', shades ? shades[0] : `rgba(${r}, ${g}, ${b}, 0.10)`)
+      root.style.setProperty('--color-text-brand', shades ? shades[5] : themeColor.value)
+      root.style.setProperty('--color-focus-ring', themeColor.value)
+
       if (shades) {
         // Full semantic palette from the shade family
         // shades[0]=lightest … shades[8]=darkest
@@ -159,6 +122,8 @@ export function usePlatformCustomTheme() {
       }
     } else {
       THEME_VARS.forEach(v => root.style.removeProperty(v))
+      // Reset semantic-token overrides so theme.css defaults take over again.
+      SEMANTIC_VARS.forEach(v => root.style.removeProperty(v))
     }
   }
 

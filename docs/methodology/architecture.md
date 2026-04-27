@@ -239,6 +239,20 @@ flowchart TD
 
 ## 6. Frontend Architecture
 
+### 6.0 Design System
+
+Semantic theme tokens live in `frontend/assets/styles/theme.css` and are exposed
+as Tailwind colors (`bg-surface`, `text-text-default`, `border-input-border`,
+etc.). Light/dark values flip with the `.dark` class on `<html>`, toggled by
+`useDiagnosticDarkMode`. Base components in `frontend/components/base/`
+(`BaseInput`, `BaseSelect`, `BaseTextarea`, `BaseButton`, `BaseBadge`,
+`BaseCard`) wrap native HTML using these tokens, so consumer markup does not
+need `dark:` variants. New views must prefer these tokens and components;
+legacy code (with `bg-white dark:bg-gray-700` or `bg-esmerald` literals)
+coexists and migrates incrementally. See
+`frontend/components/base/README.md` for the full token table and migration
+example.
+
 ### 6.1 Page Routing
 
 ```mermaid
