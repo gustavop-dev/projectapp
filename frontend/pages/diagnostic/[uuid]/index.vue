@@ -25,7 +25,7 @@
         >
           <component
             :is="componentFor(activeSection.section_type)"
-            :content="activeSection.content_json || {}"
+            :content="activeContent"
             :diagnostic="store.current"
             :render-context="store.current.render_context || {}"
           />
@@ -234,6 +234,10 @@ const { isDark, toggle: toggleDarkMode, hydrate: hydrateTheme } = useDiagnosticD
 
 const sections = computed(() => store.current?.sections || []);
 const activeSection = computed(() => sections.value[activeIndex.value] || null);
+const activeContent = computed(() => ({
+  ...(activeSection.value?.content_json || {}),
+  index: String(activeIndex.value + 1),
+}));
 
 const canRespond = computed(() => (
   store.current?.status === DIAGNOSTIC_STATUS.SENT

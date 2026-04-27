@@ -281,10 +281,11 @@
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">% pago final</label>
                 <div class="flex items-center gap-2">
-                  <input v-model.number="form.payment_final_pct" type="number" min="0" max="100" step="1"
-                    class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                  <input v-model.number="form.payment_final_pct" type="number" min="0" max="100" step="1" disabled
+                    class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-esmerald-dark/50 text-gray-600 dark:text-white/60 rounded-xl text-sm cursor-not-allowed outline-none" />
                   <span class="text-sm text-gray-500">%</span>
                 </div>
+                <p class="mt-1 text-xs text-gray-500 dark:text-white/50">Calculado autom&aacute;ticamente como 100 &minus; % pago inicial.</p>
               </div>
             </div>
 
@@ -768,6 +769,16 @@ function pctOrNull(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
+
+watch(() => form.payment_initial_pct, (v) => {
+  const n = pctOrNull(v);
+  if (n === null) {
+    form.payment_final_pct = null;
+    return;
+  }
+  const clamped = Math.max(0, Math.min(100, n));
+  form.payment_final_pct = 100 - clamped;
+});
 
 function syncFormGeneral() {
   if (!store.current) return;

@@ -83,7 +83,7 @@ describe('CostSection', () => {
     expect(cards[1].find('p + p').exists()).toBe(false)
   })
 
-  it('computes per-tranche amounts as Math.round(investment * pct / 100)', () => {
+  it('computes per-segment amounts as Math.round(investment * pct / 100)', () => {
     const w = mountSection({
       content: {
         paymentDescription: [
@@ -94,8 +94,28 @@ describe('CostSection', () => {
       diagnostic: { investment_amount: 5000000, currency: 'COP' },
       renderContext: { payment_initial_pct: 40, payment_final_pct: 60 },
     })
-    expect(w.find('[data-testid="cost-tranche-amount-initial"]').text()).toContain('2.000.000')
-    expect(w.find('[data-testid="cost-tranche-amount-final"]').text()).toContain('3.000.000')
+    expect(w.find('[data-testid="cost-segment-amount-initial"]').text()).toContain('2.000.000')
+    expect(w.find('[data-testid="cost-segment-amount-final"]').text()).toContain('3.000.000')
+  })
+
+  it('renders payment detail text inside each bar segment (no separate tranche list)', () => {
+    const w = mountSection({
+      content: {
+        paymentDescription: [
+          { label: 'al inicio', detail: 'para dar apertura formal al diagnóstico' },
+          { label: 'al final', detail: 'contra entrega del informe' },
+        ],
+      },
+      diagnostic: { investment_amount: 5000000, currency: 'COP' },
+      renderContext: { payment_initial_pct: 50, payment_final_pct: 50 },
+    })
+    const initial = w.find('[data-testid="cost-bar-initial"]')
+    const final = w.find('[data-testid="cost-bar-final"]')
+    expect(initial.text()).toContain('para dar apertura formal al diagnóstico')
+    expect(final.text()).toContain('contra entrega del informe')
+    expect(w.find('[data-testid="cost-segment-detail-initial"]').exists()).toBe(true)
+    expect(w.find('[data-testid="cost-segment-detail-final"]').exists()).toBe(true)
+    expect(w.find('[data-testid="cost-tranche-list"]').exists()).toBe(false)
   })
 
   it('hides segmented bar and uses fallback list when no percentages are configured', () => {
@@ -129,7 +149,7 @@ describe('CostSection', () => {
     })
     expect(w.find('[data-testid="cost-bar-initial"]').text()).toContain('30%')
     expect(w.find('[data-testid="cost-bar-final"]').text()).toContain('70%')
-    expect(w.find('[data-testid="cost-tranche-amount-initial"]').exists()).toBe(false)
+    expect(w.find('[data-testid="cost-segment-amount-initial"]').exists()).toBe(false)
   })
 
   it('renders duration_label chip when present on diagnostic or renderContext', () => {

@@ -53,7 +53,7 @@
 
         <div
           v-if="paymentSegments.length === 2"
-          class="flex w-full overflow-hidden rounded-xl ring-1 ring-bone/15"
+          class="flex flex-col sm:flex-row w-full overflow-hidden rounded-xl ring-1 ring-bone/15"
           role="presentation"
           data-testid="cost-segmented-bar"
         >
@@ -61,45 +61,28 @@
             v-for="seg in paymentSegments"
             :key="seg.key"
             :style="{ flexGrow: seg.pct }"
-            :class="['flex flex-col items-center justify-center px-3 py-3 min-w-0 text-center', seg.barClass]"
+            :class="['flex flex-col gap-2 px-5 py-5 min-w-0', seg.barClass]"
             :data-testid="`cost-bar-${seg.key}`"
           >
-            <span class="text-lg font-semibold tabular-nums leading-none">{{ seg.pct }}%</span>
-            <span class="text-[11px] uppercase tracking-wider mt-1 truncate w-full">{{ seg.label }}</span>
+            <div class="flex items-baseline justify-between gap-3">
+              <span class="text-3xl font-semibold tabular-nums leading-none">{{ seg.pct }}%</span>
+              <span class="text-[11px] font-semibold uppercase tracking-[0.18em] opacity-80">{{ seg.label }}</span>
+            </div>
+            <div
+              v-if="seg.amountFormatted"
+              class="text-sm font-medium tabular-nums opacity-90"
+              :data-testid="`cost-segment-amount-${seg.key}`"
+            >{{ seg.amountFormatted }} {{ currencyCode }}</div>
+            <p
+              v-if="seg.detail"
+              class="text-xs leading-relaxed opacity-80"
+              :data-testid="`cost-segment-detail-${seg.key}`"
+            >{{ seg.detail }}</p>
           </div>
         </div>
 
         <ul
-          v-if="paymentSegments.length"
-          class="space-y-3"
-          data-testid="cost-tranche-list"
-        >
-          <li
-            v-for="seg in paymentSegments"
-            :key="`d-${seg.key}`"
-            class="flex gap-3"
-          >
-            <span
-              class="mt-1.5 shrink-0 size-2 rounded-full"
-              :class="seg.dotClass"
-              aria-hidden="true"
-            />
-            <div class="flex-1 min-w-0">
-              <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <span class="font-semibold text-bone">{{ seg.pct }}% {{ seg.label }}</span>
-                <span
-                  v-if="seg.amountFormatted"
-                  class="text-sm text-lemon tabular-nums"
-                  :data-testid="`cost-tranche-amount-${seg.key}`"
-                >{{ seg.amountFormatted }} {{ currencyCode }}</span>
-              </div>
-              <p v-if="seg.detail" class="text-sm text-bone/70 leading-relaxed mt-0.5">{{ seg.detail }}</p>
-            </div>
-          </li>
-        </ul>
-
-        <ul
-          v-else-if="fallbackPaymentItems.length"
+          v-if="!paymentSegments.length && fallbackPaymentItems.length"
           class="space-y-2 text-bone/80"
           data-testid="cost-fallback-list"
         >
@@ -137,7 +120,6 @@ const SIDES = [
     termKey: 'initial_pct',
     defaultLabel: 'al inicio',
     barClass: 'bg-lemon text-esmerald',
-    dotClass: 'bg-lemon',
   },
   {
     key: 'final',
@@ -145,7 +127,6 @@ const SIDES = [
     termKey: 'final_pct',
     defaultLabel: 'al final',
     barClass: 'bg-lemon/25 text-bone',
-    dotClass: 'bg-lemon/50',
   },
 ];
 
@@ -223,7 +204,6 @@ const paymentSegments = computed(() => {
       label: desc.label || side.defaultLabel,
       detail: desc.detail || '',
       barClass: side.barClass,
-      dotClass: side.dotClass,
       amount,
       amountFormatted: formatCurrency(amount),
     };
