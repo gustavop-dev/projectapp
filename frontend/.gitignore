@@ -20,6 +20,8 @@ coverage
 /cypress/screenshots/
 /e2e-results/
 /playwright-report/
+/.playwright-auth/
+/.playwright-mcp/
 
 # Editor directories and files
 .vscode/*

@@ -93,3 +93,5 @@ pse-seeklogo.png
 temp/
 *.cover
 *,cover
+.playwright-mcp/
+.playwright-auth/
