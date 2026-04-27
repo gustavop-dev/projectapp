@@ -5,23 +5,23 @@
       class="fixed inset-0 z-[9999] flex items-start justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-10"
       @click.self="$emit('cancel')"
     >
-      <div class="w-full max-w-2xl mx-4 bg-white rounded-2xl shadow-2xl">
+      <div class="w-full max-w-2xl mx-4 bg-surface rounded-2xl shadow-2xl">
         <!-- Header -->
-        <div class="px-6 py-5 border-b border-gray-100">
-          <h2 class="text-base font-semibold text-gray-900">
+        <div class="px-6 py-5 border-b border-border-muted">
+          <h2 class="text-base font-semibold text-text-default">
             Vista previa de sincronización
           </h2>
-          <p class="mt-1 text-sm text-gray-500">
+          <p class="mt-1 text-sm text-text-muted">
             Al confirmar, estos cambios se aplicarán al proyecto vinculado.
           </p>
           <div class="mt-3 flex flex-col gap-1">
-            <div class="flex items-center gap-2 text-sm text-gray-700">
+            <div class="flex items-center gap-2 text-sm text-text-default">
               <span class="font-medium">Proyecto:</span>
               <span>{{ projectInfo?.name }}</span>
-              <span class="text-gray-400">—</span>
-              <span class="text-gray-500">{{ projectInfo?.client_email }}</span>
+              <span class="text-text-subtle">—</span>
+              <span class="text-text-muted">{{ projectInfo?.client_email }}</span>
             </div>
-            <div class="flex items-center gap-2 text-sm text-gray-700">
+            <div class="flex items-center gap-2 text-sm text-text-default">
               <span class="font-medium">Entregable:</span>
               <span>{{ deliverableInfo?.title }}</span>
             </div>
@@ -33,7 +33,7 @@
           <!-- Empty state -->
           <div
             v-if="isEmpty"
-            class="flex items-center justify-center py-8 text-sm text-gray-400"
+            class="flex items-center justify-center py-8 text-sm text-text-subtle"
           >
             Sin cambios estructurales detectados.
           </div>
@@ -53,8 +53,8 @@
                 <span class="mt-0.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-200">
                   Módulo
                 </span>
-                <span class="text-gray-800">{{ item.title }}</span>
-                <span class="text-gray-400 text-xs ml-auto">{{ item.epicKey }}</span>
+                <span class="text-text-default">{{ item.title }}</span>
+                <span class="text-text-subtle text-xs ml-auto">{{ item.epicKey }}</span>
               </li>
               <li
                 v-for="item in diff.requirements.to_create"
@@ -64,8 +64,8 @@
                 <span class="mt-0.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-200">
                   Req.
                 </span>
-                <span class="text-gray-800">{{ item.title }}</span>
-                <span class="text-gray-400 text-xs ml-auto">{{ item.flowKey }}</span>
+                <span class="text-text-default">{{ item.title }}</span>
+                <span class="text-text-subtle text-xs ml-auto">{{ item.flowKey }}</span>
               </li>
             </ul>
           </div>
@@ -85,8 +85,8 @@
                 <span class="mt-0.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
                   Módulo
                 </span>
-                <span class="text-gray-800">{{ item.title }}</span>
-                <span class="text-gray-400 text-xs ml-1">({{ item.changed_fields.join(', ') }})</span>
+                <span class="text-text-default">{{ item.title }}</span>
+                <span class="text-text-subtle text-xs ml-1">({{ item.changed_fields.join(', ') }})</span>
               </li>
               <li
                 v-for="item in diff.requirements.to_update"
@@ -96,8 +96,8 @@
                 <span class="mt-0.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
                   Req.
                 </span>
-                <span class="text-gray-800">{{ item.title }}</span>
-                <span class="text-gray-400 text-xs ml-1">({{ item.changed_fields.join(', ') }})</span>
+                <span class="text-text-default">{{ item.title }}</span>
+                <span class="text-text-subtle text-xs ml-1">({{ item.changed_fields.join(', ') }})</span>
               </li>
             </ul>
           </div>
@@ -117,8 +117,8 @@
                 <span class="mt-0.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200">
                   Módulo
                 </span>
-                <span class="text-gray-800 line-through">{{ item.title }}</span>
-                <span class="text-gray-400 text-xs ml-auto">{{ item.epicKey }}</span>
+                <span class="text-text-default line-through">{{ item.title }}</span>
+                <span class="text-text-subtle text-xs ml-auto">{{ item.epicKey }}</span>
               </li>
               <li
                 v-for="item in diff.requirements.to_delete"
@@ -128,18 +128,18 @@
                 <span class="mt-0.5 shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200">
                   Req.
                 </span>
-                <span class="text-gray-800 line-through">{{ item.title }}</span>
-                <span class="text-gray-400 text-xs ml-auto">{{ item.flowKey }}</span>
+                <span class="text-text-default line-through">{{ item.title }}</span>
+                <span class="text-text-subtle text-xs ml-auto">{{ item.flowKey }}</span>
               </li>
             </ul>
           </div>
         </div>
 
         <!-- Footer -->
-        <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3">
+        <div class="px-6 py-4 border-t border-border-muted flex items-center justify-end gap-3">
           <button
             type="button"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            class="px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
             :disabled="isApplying"
             @click="$emit('cancel')"
           >

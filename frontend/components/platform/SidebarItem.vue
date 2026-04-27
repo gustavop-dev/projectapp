@@ -57,7 +57,7 @@ const itemClasses = computed(() => [
   'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
   props.isCollapsed ? 'justify-center' : '',
   props.isActive && !props.disabled
-    ? 'bg-esmerald text-white dark:bg-lemon dark:text-esmerald-dark'
-    : 'text-green-light hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white',
+    ? 'bg-primary text-white dark:bg-accent-soft dark:text-text-brand'
+    : 'text-green-light hover:bg-primary-soft hover:text-text-brand dark:hover:bg-surface/[0.06] dark:hover:text-white',
 ])
 </script>

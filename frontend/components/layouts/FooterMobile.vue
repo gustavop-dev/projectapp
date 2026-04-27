@@ -25,7 +25,7 @@
                 aria-label="Navigate to {{ item.name }}"
               >
                 {{ item.name }}
-                <div class="absolute ms-4 left-0 bottom-0 h-0.5 w-0 bg-white transition-all duration-300 group-hover:w-full"></div>
+                <div class="absolute ms-4 left-0 bottom-0 h-0.5 w-0 bg-surface transition-all duration-300 group-hover:w-full"></div>
                 <div class="relative ps-2 transform opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-regular">
                   ➜
                 </div>
@@ -73,7 +73,7 @@
                 </a>
                 <NuxtLink
                   to="/es-co/platform"
-                  class="inline-block mt-2 px-4 py-1.5 rounded-full text-xs font-medium bg-white text-esmerald hover:bg-white/80 transition-colors"
+                  class="inline-block mt-2 px-4 py-1.5 rounded-full text-xs font-medium bg-surface text-text-brand hover:bg-surface/80 transition-colors"
                 >
                   {{ globalMessages.sign_in || 'Sign In' }}
                 </NuxtLink>

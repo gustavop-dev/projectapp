@@ -6,41 +6,41 @@
         class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
         @click.self="close"
       >
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6" data-testid="task-form-modal">
+        <div class="bg-surface rounded-2xl shadow-2xl max-w-lg w-full p-6" data-testid="task-form-modal">
           <div class="flex items-center justify-between mb-5">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <h3 class="text-lg font-semibold text-text-default">
               {{ isEditing ? 'Edit task' : 'New task' }}
             </h3>
-            <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" @click="close">✕</button>
+            <button class="text-gray-400 hover:text-text-muted dark:hover:text-gray-200" @click="close">✕</button>
           </div>
 
           <form class="space-y-4" @submit.prevent="handleSubmit">
             <div>
-              <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Title</label>
+              <label class="block text-xs text-text-muted dark:text-gray-400 mb-1">Title</label>
               <input
                 v-model="form.title"
                 required
                 type="text"
-                class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500"
                 data-testid="task-title-input"
               />
             </div>
 
             <div>
-              <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Description</label>
+              <label class="block text-xs text-text-muted dark:text-gray-400 mb-1">Description</label>
               <textarea
                 v-model="form.description"
                 rows="3"
-                class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500"
               ></textarea>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Status</label>
+                <label class="block text-xs text-text-muted dark:text-gray-400 mb-1">Status</label>
                 <select
                   v-model="form.status"
-                  class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100"
+                  class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface"
                 >
                   <option value="todo">TO DO</option>
                   <option value="in_progress">In Progress</option>
@@ -49,10 +49,10 @@
                 </select>
               </div>
               <div>
-                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Priority</label>
+                <label class="block text-xs text-text-muted dark:text-gray-400 mb-1">Priority</label>
                 <select
                   v-model="form.priority"
-                  class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100"
+                  class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -62,10 +62,10 @@
             </div>
 
             <div>
-              <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Tablero</label>
+              <label class="block text-xs text-text-muted dark:text-gray-400 mb-1">Tablero</label>
               <select
                 v-model="form.board_type"
-                class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100"
+                class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface"
               >
                 <option value="standard">Sin periodicidad</option>
                 <option value="weekly">Semanal</option>
@@ -76,18 +76,18 @@
 
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Due date</label>
+                <label class="block text-xs text-text-muted dark:text-gray-400 mb-1">Due date</label>
                 <input
                   v-model="form.due_date"
                   type="date"
-                  class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100"
+                  class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface"
                 />
               </div>
               <div>
-                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Assigned to</label>
+                <label class="block text-xs text-text-muted dark:text-gray-400 mb-1">Assigned to</label>
                 <select
                   v-model="form.assignee_id"
-                  class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100"
+                  class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface"
                 >
                   <option value="">Unassigned</option>
                   <option v-for="user in assignees" :key="user.id" :value="user.id">
@@ -100,7 +100,7 @@
             <!-- Alertas manuales (solo en edición) -->
             <div v-if="isEditing" class="pt-1">
               <div class="flex items-center gap-2 mb-2">
-                <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Alertas</span>
+                <span class="text-xs font-semibold text-text-muted dark:text-gray-400 uppercase tracking-wide">Alertas</span>
                 <span
                   v-if="alerts.length"
                   class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
@@ -113,19 +113,19 @@
                 <li
                   v-for="alert in alerts"
                   :key="alert.id"
-                  class="flex items-start justify-between gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-sm"
+                  class="flex items-start justify-between gap-2 px-3 py-2 rounded-lg bg-gray-50/50 text-sm"
                 >
                   <div class="flex-1 min-w-0">
-                    <span class="font-medium text-gray-800 dark:text-gray-200">{{ formatAlertDate(alert.notify_at) }}</span>
+                    <span class="font-medium text-text-default">{{ formatAlertDate(alert.notify_at) }}</span>
                     <span
                       v-if="alert.sent"
                       class="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
                     >Enviada</span>
                     <span
                       v-else
-                      class="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-600 dark:text-gray-400"
+                      class="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-text-muted dark:text-gray-400"
                     >Pendiente</span>
-                    <p v-if="alert.note" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ alert.note }}</p>
+                    <p v-if="alert.note" class="text-xs text-text-muted dark:text-gray-400 mt-0.5 truncate">{{ alert.note }}</p>
                   </div>
                   <button
                     type="button"
@@ -135,25 +135,25 @@
                   >✕</button>
                 </li>
               </ul>
-              <p v-else class="text-xs text-gray-400 dark:text-gray-500 mb-3">No hay alertas definidas.</p>
+              <p v-else class="text-xs text-gray-400 dark:text-text-muted mb-3">No hay alertas definidas.</p>
 
               <!-- Add alert form -->
               <div class="flex gap-2 items-end">
                 <div class="flex-shrink-0">
-                  <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Fecha</label>
+                  <label class="block text-xs text-text-muted dark:text-gray-400 mb-1">Fecha</label>
                   <input
                     v-model="newAlert.notify_at"
                     type="date"
-                    class="px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+                    class="px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                   />
                 </div>
                 <div class="flex-1 min-w-0">
-                  <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Nota <span class="text-gray-400">(opcional)</span></label>
+                  <label class="block text-xs text-text-muted dark:text-gray-400 mb-1">Nota <span class="text-gray-400">(opcional)</span></label>
                   <input
                     v-model="newAlert.note"
                     type="text"
                     placeholder="Ej: Revisar avance con el cliente"
-                    class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+                    class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
                   />
                 </div>
                 <button
@@ -170,7 +170,7 @@
             <!-- Comment thread (edit mode only) -->
             <div v-if="isEditing" class="pt-1">
               <div class="flex items-center gap-2 mb-2">
-                <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Comentarios</span>
+                <span class="text-xs font-semibold text-text-muted dark:text-gray-400 uppercase tracking-wide">Comentarios</span>
                 <span
                   v-if="comments.length"
                   class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
@@ -183,14 +183,14 @@
                 <li
                   v-for="comment in comments"
                   :key="comment.id"
-                  class="flex items-start gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-sm"
+                  class="flex items-start gap-2 px-3 py-2 rounded-lg bg-gray-50/50 text-sm"
                 >
                   <div class="flex-1 min-w-0">
                     <div class="flex items-baseline gap-2">
-                      <span class="font-medium text-gray-800 dark:text-gray-200 text-xs">{{ comment.author_name }}</span>
+                      <span class="font-medium text-text-default text-xs">{{ comment.author_name }}</span>
                       <span class="text-[10px] text-gray-400">{{ formatCommentDate(comment.created_at) }}</span>
                     </div>
-                    <p class="mt-0.5 text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{{ comment.text }}</p>
+                    <p class="mt-0.5 text-xs text-text-muted whitespace-pre-wrap">{{ comment.text }}</p>
                   </div>
                   <button
                     type="button"
@@ -199,14 +199,14 @@
                   >✕</button>
                 </li>
               </ul>
-              <p v-else class="text-xs text-gray-400 dark:text-gray-500 mb-3">Sin comentarios aún.</p>
+              <p v-else class="text-xs text-gray-400 dark:text-text-muted mb-3">Sin comentarios aún.</p>
 
               <div class="flex gap-2">
                 <input
                   v-model="newComment"
                   type="text"
                   placeholder="Agregar comentario…"
-                  class="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  class="flex-1 px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   @keydown.enter.prevent="handleAddComment"
                 />
                 <button
@@ -240,7 +240,7 @@
                   v-model="archiveReason"
                   rows="2"
                   placeholder="Ej: Descartada por cambio de prioridades…"
-                  class="w-full px-3 py-2 border border-amber-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-amber-500"
+                  class="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm bg-surface focus:ring-2 focus:ring-amber-500"
                 ></textarea>
                 <div class="flex gap-2">
                   <button
@@ -249,7 +249,7 @@
                     class="px-3 py-1.5 text-xs rounded-lg bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50"
                     @click="handleArchive"
                   >Confirmar archivo</button>
-                  <button type="button" class="text-xs text-gray-500 hover:text-gray-700" @click="showArchiveForm = false">Cancelar</button>
+                  <button type="button" class="text-xs text-text-muted hover:text-text-default" @click="showArchiveForm = false">Cancelar</button>
                 </div>
               </div>
             </div>
@@ -268,7 +268,7 @@
               <div class="flex gap-2">
                 <button
                   type="button"
-                  class="px-4 py-2 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200"
+                  class="px-4 py-2 text-sm rounded-lg bg-gray-100 text-text-default hover:bg-gray-200"
                   @click="close"
                 >
                   Cancel
@@ -276,7 +276,7 @@
                 <button
                   type="submit"
                   :disabled="busy || !form.title.trim()"
-                  class="px-4 py-2 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                  class="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary-strong disabled:opacity-50"
                   data-testid="task-submit-btn"
                 >
                   {{ busy ? 'Saving...' : (isEditing ? 'Save' : 'Create') }}

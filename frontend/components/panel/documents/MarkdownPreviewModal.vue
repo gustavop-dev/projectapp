@@ -6,15 +6,15 @@
         class="fixed inset-0 z-[9990] bg-black/50 backdrop-blur-sm p-3 sm:p-6 flex"
         @click.self="close"
       >
-        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div class="flex items-center justify-between gap-3 px-5 sm:px-7 py-3 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+        <div class="bg-surface rounded-2xl shadow-2xl flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div class="flex items-center justify-between gap-3 px-5 sm:px-7 py-3 border-b border-border-muted flex-shrink-0">
             <div class="flex items-center gap-3 min-w-0">
-              <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{{ title }}</h3>
-              <span class="hidden md:inline-block text-xs text-gray-400 dark:text-gray-500">Presiona ESC para cerrar</span>
+              <h3 class="text-base font-semibold text-text-default truncate">{{ title }}</h3>
+              <span class="hidden md:inline-block text-xs text-text-subtle">Presiona ESC para cerrar</span>
             </div>
             <button
               type="button"
-              class="w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-700 transition-colors flex-shrink-0"
+              class="w-9 h-9 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-default hover:bg-surface-raised transition-colors flex-shrink-0"
               aria-label="Cerrar vista previa"
               @click="close"
             >

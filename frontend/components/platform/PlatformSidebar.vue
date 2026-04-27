@@ -2,28 +2,28 @@
   <aside
     :class="[
       'fixed inset-y-0 left-0 z-30 flex flex-col border-r transition-all duration-300 ease-in-out',
-      'border-esmerald/[0.06] bg-white dark:border-white/[0.06] dark:bg-esmerald-dark',
+      'border-input-border/[0.06] bg-surface dark:border-white/[0.06] dark:bg-primary-strong',
       isCollapsed ? 'w-[64px]' : 'w-[240px]',
     ]"
   >
     <!-- Logo header -->
     <div
       :class="[
-        'flex h-16 shrink-0 items-center border-b border-esmerald/[0.06] dark:border-white/[0.06]',
+        'flex h-16 shrink-0 items-center border-b border-input-border/[0.06] dark:border-white/[0.06]',
         isCollapsed ? 'justify-center px-2' : 'gap-3 px-5',
       ]"
     >
       <span
         v-if="!isCollapsed"
-        class="text-xl font-bold tracking-tight text-esmerald dark:text-white"
+        class="text-xl font-bold tracking-tight text-text-brand dark:text-white"
       >
-        Project<span class="text-esmerald dark:text-lemon">App.</span>
+        Project<span class="text-text-brand dark:text-accent">App.</span>
       </span>
       <span
         v-else
-        class="text-base font-bold tracking-tight text-esmerald dark:text-white"
+        class="text-base font-bold tracking-tight text-text-brand dark:text-white"
       >
-        P<span class="text-esmerald dark:text-lemon">A</span>
+        P<span class="text-text-brand dark:text-accent">A</span>
       </span>
     </div>
 
@@ -87,7 +87,7 @@
           :class="[
             'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
             isCollapsed ? 'justify-center' : '',
-            'text-green-light hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white',
+            'text-green-light hover:bg-primary-soft hover:text-text-brand dark:hover:bg-surface/[0.06] dark:hover:text-white',
           ]"
           :title="isCollapsed ? 'Personaliza' : undefined"
           @click="showThemePicker = true"
@@ -120,7 +120,7 @@
     </nav>
 
     <!-- User footer -->
-    <div class="shrink-0 border-t border-esmerald/[0.06] p-3 dark:border-white/[0.06]">
+    <div class="shrink-0 border-t border-input-border/[0.06] p-3 dark:border-white/[0.06]">
       <div
         :class="[
           'flex items-center rounded-xl transition',
@@ -134,12 +134,12 @@
             alt="Avatar"
             class="h-full w-full object-cover"
           />
-          <div v-else class="flex h-full w-full items-center justify-center bg-esmerald text-xs font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
+          <div v-else class="flex h-full w-full items-center justify-center bg-primary text-xs font-bold text-white dark:bg-accent-soft dark:text-text-brand">
             {{ authStore.userInitials }}
           </div>
         </div>
         <div v-if="!isCollapsed" class="min-w-0 flex-1">
-          <p class="truncate text-sm font-medium text-esmerald dark:text-white">{{ authStore.displayName }}</p>
+          <p class="truncate text-sm font-medium text-text-brand dark:text-white">{{ authStore.displayName }}</p>
           <p class="truncate text-xs text-green-light">{{ userSubtitle }}</p>
         </div>
       </div>
@@ -229,8 +229,8 @@ const userSubtitle = computed(() =>
 
 const sidebarActionClass = computed(() => [
   'flex h-8 w-8 items-center justify-center rounded-lg text-green-light transition',
-  'hover:bg-esmerald-light hover:text-esmerald',
-  'dark:hover:bg-white/[0.06] dark:hover:text-white',
+  'hover:bg-primary-soft hover:text-text-brand',
+  'dark:hover:bg-surface/[0.06] dark:hover:text-white',
 ])
 
 const lp = (path) => localePath(path)

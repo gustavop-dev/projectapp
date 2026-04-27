@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-esmerald-light" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="min-h-screen bg-primary-soft" itemscope itemtype="https://schema.org/BlogPosting">
     <!-- Reading progress bar + time remaining -->
     <ReadingProgressBar v-if="post" :read-time-minutes="post.read_time_minutes || 0" :lang="blogLang" />
 
@@ -8,7 +8,7 @@
       <div class="max-w-4xl mx-auto">
         <NuxtLink
           :to="localePath('/blog')"
-          class="inline-flex items-center gap-2 text-sm font-regular text-green-light hover:text-esmerald transition-colors"
+          class="inline-flex items-center gap-2 text-sm font-regular text-green-light hover:text-text-brand transition-colors"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -26,12 +26,12 @@
     <!-- Not found -->
     <div v-else-if="blogStore.error === 'not_found'" class="min-h-screen flex items-center justify-center px-6">
       <div class="text-center">
-        <h1 class="text-4xl font-light text-esmerald mb-4">
+        <h1 class="text-4xl font-light text-text-brand mb-4">
           {{ isEnglish ? 'Article not found' : 'Artículo no encontrado' }}
         </h1>
         <NuxtLink
           :to="localePath('/blog')"
-          class="inline-flex items-center gap-2 px-8 py-4 rounded-full transition-all hover:scale-105 bg-esmerald text-white"
+          class="inline-flex items-center gap-2 px-8 py-4 rounded-full transition-all hover:scale-105 bg-primary text-white"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -48,7 +48,7 @@
         <header ref="articleHeader" class="px-4 sm:px-6 pb-8 sm:pb-12">
           <div class="max-w-4xl mx-auto">
             <div class="flex flex-wrap items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-              <span v-if="post.category" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm bg-esmerald-light text-esmerald font-medium capitalize">
+              <span v-if="post.category" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm bg-primary-soft text-text-brand font-medium capitalize">
                 {{ formatCategory(post.category) }}
               </span>
               <div class="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-green-light">
@@ -63,7 +63,7 @@
               </div>
             </div>
 
-            <h1 data-enter class="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-light mb-6 sm:mb-8 tracking-tight leading-[1.05] text-esmerald" itemprop="headline">
+            <h1 data-enter class="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-light mb-6 sm:mb-8 tracking-tight leading-[1.05] text-text-brand" itemprop="headline">
               {{ post.title }}
             </h1>
 
@@ -71,7 +71,7 @@
               {{ post.excerpt }}
             </p>
 
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-8 sm:pb-10 border-b border-gray-200/60">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-8 sm:pb-10 border-b border-border-default/60">
               <div class="flex items-center gap-4">
                 <img
                   :src="authorProfile.image"
@@ -79,13 +79,13 @@
                   class="w-11 h-11 sm:w-14 sm:h-14 rounded-full object-cover"
                 />
                 <div>
-                  <p class="text-sm sm:text-base font-medium text-esmerald mb-0.5 sm:mb-1" itemprop="author">{{ authorProfile.name }}</p>
+                  <p class="text-sm sm:text-base font-medium text-text-brand mb-0.5 sm:mb-1" itemprop="author">{{ authorProfile.name }}</p>
                   <p class="text-xs sm:text-sm text-green-light font-regular">{{ isEnglish ? authorProfile.role_en : authorProfile.role_es }}</p>
                 </div>
               </div>
 
               <button
-                class="px-5 sm:px-6 py-2.5 sm:py-3 rounded-full flex items-center gap-2 transition-all hover:scale-105 border-2 border-gray-200 text-esmerald"
+                class="px-5 sm:px-6 py-2.5 sm:py-3 rounded-full flex items-center gap-2 transition-all hover:scale-105 border-2 border-border-default text-text-brand"
                 @click="handleShare"
               >
                 <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
@@ -113,7 +113,7 @@
                 :href="post.cover_image_credit_url"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="hover:text-esmerald transition-colors"
+                class="hover:text-text-brand transition-colors"
               >
                 {{ post.cover_image_credit }}
               </a>
@@ -131,8 +131,8 @@
             />
 
             <!-- CTA inline -->
-            <div class="bg-white rounded-2xl p-6 sm:p-10 shadow-sm border border-gray-200/60 text-center mt-12">
-              <h3 class="text-2xl sm:text-3xl font-light mb-3 sm:mb-4 text-esmerald">
+            <div class="bg-surface rounded-2xl p-6 sm:p-10 shadow-sm border border-border-default/60 text-center mt-12">
+              <h3 class="text-2xl sm:text-3xl font-light mb-3 sm:mb-4 text-text-brand">
                 {{ isEnglish ? 'Did This Article Inspire You?' : '¿Te Inspiró Este Artículo?' }}
               </h3>
               <p class="text-base sm:text-lg mb-6 sm:mb-8 text-green-light leading-relaxed font-regular">
@@ -143,7 +143,7 @@
               </p>
               <NuxtLink
                 :to="localePath('/contact')"
-                class="px-8 sm:px-10 py-4 sm:py-5 rounded-full inline-flex items-center justify-center gap-3 transition-all hover:scale-105 bg-esmerald text-white"
+                class="px-8 sm:px-10 py-4 sm:py-5 rounded-full inline-flex items-center justify-center gap-3 transition-all hover:scale-105 bg-primary text-white"
               >
                 <span class="text-base sm:text-lg font-medium">{{ isEnglish ? 'Contact Us' : 'Contáctanos' }}</span>
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
@@ -151,7 +151,7 @@
             </div>
 
             <!-- Sources -->
-            <section v-if="post.sources && post.sources.length > 0" class="mt-16 pt-8 border-t border-gray-200/50">
+            <section v-if="post.sources && post.sources.length > 0" class="mt-16 pt-8 border-t border-border-default/50">
               <h3 class="text-sm font-regular text-green-light uppercase tracking-wider mb-5">
                 {{ isEnglish ? 'Sources consulted' : 'Fuentes consultadas' }}
               </h3>
@@ -161,7 +161,7 @@
                     :href="source.url"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="inline-flex items-center gap-2 text-esmerald hover:text-esmerald/70 transition-colors text-sm font-regular"
+                    class="inline-flex items-center gap-2 text-text-brand hover:text-esmerald/70 transition-colors text-sm font-regular"
                   >
                     <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -173,29 +173,29 @@
             </section>
 
             <!-- Previous / Next Article Navigation -->
-            <nav v-if="prevPost || nextPost" class="mt-16 pt-8 border-t border-gray-200/50">
+            <nav v-if="prevPost || nextPost" class="mt-16 pt-8 border-t border-border-default/50">
               <div class="grid grid-cols-1 gap-4" :class="prevPost && nextPost ? 'sm:grid-cols-2' : ''">
                 <NuxtLink
                   v-if="prevPost"
                   :to="localePath(`/blog/${prevPost.slug}`)"
-                  class="group flex items-center gap-3 p-4 rounded-2xl bg-white border border-gray-200/60 hover:shadow-md transition-all overflow-hidden"
+                  class="group flex items-center gap-3 p-4 rounded-2xl bg-surface border border-border-default/60 hover:shadow-md transition-all overflow-hidden"
                 >
-                  <svg class="w-5 h-5 text-green-light group-hover:text-esmerald transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                  <svg class="w-5 h-5 text-green-light group-hover:text-text-brand transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                   <div class="min-w-0 flex-1">
                     <p class="text-xs text-green-light mb-1">{{ isEnglish ? 'Previous' : 'Anterior' }}</p>
-                    <p class="text-sm font-medium text-esmerald leading-tight line-clamp-2">{{ prevPost.title }}</p>
+                    <p class="text-sm font-medium text-text-brand leading-tight line-clamp-2">{{ prevPost.title }}</p>
                   </div>
                 </NuxtLink>
                 <NuxtLink
                   v-if="nextPost"
                   :to="localePath(`/blog/${nextPost.slug}`)"
-                  class="group flex items-center justify-end gap-3 p-4 rounded-2xl bg-white border border-gray-200/60 hover:shadow-md transition-all text-right overflow-hidden"
+                  class="group flex items-center justify-end gap-3 p-4 rounded-2xl bg-surface border border-border-default/60 hover:shadow-md transition-all text-right overflow-hidden"
                 >
                   <div class="min-w-0 flex-1">
                     <p class="text-xs text-green-light mb-1">{{ isEnglish ? 'Next' : 'Siguiente' }}</p>
-                    <p class="text-sm font-medium text-esmerald leading-tight line-clamp-2">{{ nextPost.title }}</p>
+                    <p class="text-sm font-medium text-text-brand leading-tight line-clamp-2">{{ nextPost.title }}</p>
                   </div>
-                  <svg class="w-5 h-5 text-green-light group-hover:text-esmerald transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                  <svg class="w-5 h-5 text-green-light group-hover:text-text-brand transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                 </NuxtLink>
               </div>
             </nav>
@@ -204,9 +204,9 @@
       </article>
 
       <!-- Related Posts -->
-      <section v-if="relatedPosts.length > 0" class="py-14 sm:py-20 px-4 sm:px-6 bg-esmerald-light">
+      <section v-if="relatedPosts.length > 0" class="py-14 sm:py-20 px-4 sm:px-6 bg-primary-soft">
         <div class="max-w-7xl mx-auto">
-          <h2 class="text-3xl sm:text-4xl font-light mb-8 sm:mb-12 text-center text-esmerald">
+          <h2 class="text-3xl sm:text-4xl font-light mb-8 sm:mb-12 text-center text-text-brand">
             {{ isEnglish ? 'Related Articles' : 'Artículos Relacionados' }}
           </h2>
 
@@ -214,7 +214,7 @@
             <article
               v-for="relPost in relatedPosts"
               :key="relPost.id"
-              class="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer"
+              class="group bg-surface rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer"
               @click="navigateTo(localePath(`/blog/${relPost.slug}`))"
             >
               <div class="relative aspect-[16/10] overflow-hidden">
@@ -229,14 +229,14 @@
                   <svg class="w-10 h-10 text-esmerald/15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
                 </div>
                 <div v-if="relPost.category" class="absolute top-4 left-4">
-                  <span class="px-3 py-1.5 rounded-full text-xs backdrop-blur-md bg-white/90 text-esmerald font-medium capitalize">
+                  <span class="px-3 py-1.5 rounded-full text-xs backdrop-blur-md bg-surface/90 text-text-brand font-medium capitalize">
                     {{ formatCategory(relPost.category) }}
                   </span>
                 </div>
               </div>
 
               <div class="p-6">
-                <h3 class="text-xl font-light mb-4 group-hover:text-green-light transition-colors leading-tight text-esmerald">
+                <h3 class="text-xl font-light mb-4 group-hover:text-green-light transition-colors leading-tight text-text-brand">
                   {{ relPost.title }}
                 </h3>
                 <div v-if="relPost.read_time_minutes" class="flex items-center gap-2 text-sm text-green-light">

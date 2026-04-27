@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" data-enter>
       <div>
-        <h1 class="text-2xl font-bold text-esmerald dark:text-white">Notificaciones</h1>
+        <h1 class="text-2xl font-bold text-text-default">Notificaciones</h1>
         <p class="mt-1 text-sm text-green-light">
           {{ notifStore.unreadCount > 0 ? `${notifStore.unreadCount} sin leer` : 'Todo al día' }}
         </p>
@@ -12,7 +12,7 @@
         <button
           v-if="notifStore.unreadCount > 0"
           type="button"
-          class="rounded-xl border border-esmerald/10 px-4 py-2 text-xs font-medium text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+          class="rounded-xl border border-border-default px-4 py-2 text-xs font-medium text-green-light transition hover:text-text-default dark:hover:text-white"
           @click="handleMarkAllRead"
         >
           Marcar todas como leídas
@@ -24,8 +24,8 @@
             type="button"
             class="rounded-full px-3.5 py-1.5 text-xs font-medium transition"
             :class="activeFilter === tab.value
-              ? 'bg-esmerald text-white dark:bg-lemon dark:text-esmerald-dark'
-              : 'text-green-light hover:bg-esmerald-light/50 dark:hover:bg-white/[0.06]'"
+              ? 'bg-primary text-white dark:bg-accent dark:text-text-default'
+              : 'text-green-light hover:bg-surface-muted/50 dark:hover:bg-white/10'"
             @click="activeFilter = tab.value"
           >
             {{ tab.label }}
@@ -36,12 +36,12 @@
 
     <!-- Loading -->
     <div v-if="notifStore.isLoading" class="py-20 text-center">
-      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-esmerald/20 border-t-esmerald dark:border-white/20 dark:border-t-lemon" />
+      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
     </div>
 
     <!-- Empty -->
     <div v-else-if="filteredNotifications.length === 0" class="py-16 text-center" data-enter>
-      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-esmerald-light/50 dark:bg-white/[0.04]">
+      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-muted/50 dark:bg-white/5">
         <svg class="h-8 w-8 text-green-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
       </div>
       <p class="text-sm text-green-light">
@@ -56,8 +56,8 @@
         :key="notif.id"
         class="group flex cursor-pointer items-start gap-4 rounded-2xl border p-4 transition"
         :class="notif.is_read
-          ? 'border-esmerald/[0.04] bg-white hover:border-esmerald/10 dark:border-white/[0.04] dark:bg-esmerald dark:hover:border-white/10'
-          : 'border-esmerald/[0.08] bg-esmerald-light/30 hover:border-esmerald/15 dark:border-white/[0.08] dark:bg-white/[0.03] dark:hover:border-white/15'"
+          ? 'border-border-muted bg-surface hover:border-border-default  dark:hover:border-white/10'
+          : 'border-border-default bg-surface-muted/30 hover:border-border-default dark:bg-white/5 dark:hover:border-white/15'"
         @click="handleNotifClick(notif)"
       >
         <!-- Icon -->
@@ -101,10 +101,10 @@
         <!-- Content -->
         <div class="flex-1 min-w-0">
           <div class="flex items-start justify-between gap-2">
-            <h4 class="text-sm font-medium" :class="notif.is_read ? 'text-green-light' : 'text-esmerald dark:text-white'">
+            <h4 class="text-sm font-medium" :class="notif.is_read ? 'text-green-light' : 'text-text-default'">
               {{ notif.title }}
             </h4>
-            <span v-if="!notif.is_read" class="mt-1 h-2 w-2 shrink-0 rounded-full bg-lemon" />
+            <span v-if="!notif.is_read" class="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" />
           </div>
           <p v-if="notif.message" class="mt-0.5 text-xs text-green-light/70">{{ notif.message }}</p>
           <div class="mt-2 flex items-center gap-3 text-[10px] text-green-light/50">
@@ -146,9 +146,9 @@ function typeIconColor(type) {
     cr_created: 'text-amber-500', cr_status_changed: 'text-amber-500', cr_converted: 'text-emerald-500',
     requirement_moved: 'text-blue-500', requirement_approved: 'text-emerald-500',
     deliverable_uploaded: 'text-purple-500', deliverable_new_version: 'text-purple-500',
-    comment_added: 'text-blue-500', general: 'text-gray-500',
+    comment_added: 'text-blue-500', general: 'text-text-muted',
   }
-  return map[type] || 'text-gray-500'
+  return map[type] || 'text-text-muted'
 }
 
 function typeIconBg(type) {

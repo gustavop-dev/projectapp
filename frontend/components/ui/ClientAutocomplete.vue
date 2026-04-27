@@ -3,7 +3,7 @@
     <!-- Input -->
     <div class="relative">
       <span
-        class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none"
+        class="absolute inset-y-0 left-0 flex items-center pl-3 text-text-subtle pointer-events-none"
       >
         <MagnifyingGlassIcon class="w-4 h-4" />
       </span>
@@ -14,7 +14,7 @@
         :placeholder="placeholder"
         :data-testid="testId"
         autocomplete="off"
-        class="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+        class="w-full pl-9 pr-9 py-2.5 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
         @input="onInput"
         @focus="onFocus"
         @keydown.down.prevent="onArrowDown"
@@ -30,7 +30,7 @@
       <button
         v-if="modelValue || inputText"
         type="button"
-        class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors"
+        class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-subtle hover:text-text-default transition-colors"
         :aria-label="$t ? $t('clients.autocomplete.clear') : 'Limpiar'"
         @click="clearSelection"
       >
@@ -41,26 +41,26 @@
     <!-- Dropdown -->
     <div
       v-if="isOpen"
-      class="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg max-h-72 overflow-auto"
+      class="absolute z-30 mt-1 w-full bg-surface border border-border-default rounded-xl shadow-lg max-h-72 overflow-auto"
       role="listbox"
     >
       <!-- Loading -->
       <div
         v-if="isSearching"
-        class="px-4 py-3 text-sm text-gray-400 text-center"
+        class="px-4 py-3 text-sm text-text-subtle text-center"
       >
         Buscando...
       </div>
 
       <!-- Results -->
-      <ul v-else-if="results.length > 0" class="divide-y divide-gray-50">
+      <ul v-else-if="results.length > 0" class="divide-y divide-border-muted">
         <li
           v-for="(client, idx) in results"
           :key="client.id"
           :data-testid="`client-autocomplete-option-${client.id}`"
           :class="[
             'px-4 py-2.5 cursor-pointer transition-colors',
-            highlightIndex === idx ? 'bg-emerald-50' : 'hover:bg-gray-50',
+            highlightIndex === idx ? 'bg-primary-soft' : 'hover:bg-surface-raised',
           ]"
           role="option"
           :aria-selected="highlightIndex === idx"
@@ -70,25 +70,25 @@
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2 flex-wrap">
-                <p class="font-medium text-gray-900 text-sm truncate">
+                <p class="font-medium text-text-default text-sm truncate">
                   {{ client.name }}
                 </p>
                 <span
                   v-if="client.is_email_placeholder"
-                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium uppercase tracking-wide"
+                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong font-medium uppercase tracking-wide"
                   :title="'Este cliente todavía no tiene un email real — sus automatizaciones de correo están pausadas hasta que lo agregues.'"
                 >
                   📧 placeholder
                 </span>
               </div>
-              <p class="text-xs text-gray-500 truncate mt-0.5">
+              <p class="text-xs text-text-muted truncate mt-0.5">
                 {{ client.is_email_placeholder ? 'Email pendiente' : client.email }}
-                <span v-if="client.company" class="text-gray-400">· {{ client.company }}</span>
+                <span v-if="client.company" class="text-text-subtle">· {{ client.company }}</span>
               </p>
             </div>
             <p
               v-if="client.phone"
-              class="text-xs text-gray-400 flex-shrink-0 tabular-nums"
+              class="text-xs text-text-subtle flex-shrink-0 tabular-nums"
             >
               {{ client.phone }}
             </p>
@@ -97,11 +97,11 @@
       </ul>
 
       <!-- No results — offer to create -->
-      <div v-else-if="hasSearched" class="px-4 py-3 text-sm text-gray-500">
+      <div v-else-if="hasSearched" class="px-4 py-3 text-sm text-text-muted">
         <p class="mb-2">No se encontraron clientes con "{{ inputText }}".</p>
         <button
           type="button"
-          class="w-full text-left px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors font-medium text-xs flex items-center gap-2"
+          class="w-full text-left px-3 py-2 rounded-lg bg-primary-soft text-text-brand hover:opacity-90 transition-colors font-medium text-xs flex items-center gap-2"
           data-testid="client-autocomplete-create-new"
           @click="emitCreateNew"
         >
@@ -111,7 +111,7 @@
       </div>
 
       <!-- Empty state (just opened, no input yet) -->
-      <div v-else class="px-4 py-3 text-sm text-gray-400 text-center">
+      <div v-else class="px-4 py-3 text-sm text-text-subtle text-center">
         Escribe al menos 1 caracter para buscar
       </div>
     </div>

@@ -1,72 +1,72 @@
 <template>
-  <section ref="sectionRef" class="proposal-closing min-h-screen w-full bg-white flex flex-col items-center justify-center py-8 px-6 md:px-12 lg:px-24">
+  <section ref="sectionRef" class="proposal-closing min-h-screen w-full bg-surface flex flex-col items-center justify-center py-8 px-6 md:px-12 lg:px-24">
     <div class="max-w-4xl w-full mx-auto text-center flex flex-col items-center gap-6">
       <!-- Validity notice -->
-      <div v-if="displayedValidity" ref="validityRef" data-animate="fade-up" class="validity-notice w-full bg-esmerald/5 border border-esmerald/15 p-4 md:p-6 rounded-xl text-left">
+      <div v-if="displayedValidity" ref="validityRef" data-animate="fade-up" class="validity-notice w-full bg-primary/5 border border-primary/15 p-4 md:p-6 rounded-xl text-left">
         <div class="flex items-start">
-          <svg class="w-5 h-5 text-esmerald/60 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+          <svg class="w-5 h-5 text-text-brand/60 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
           </svg>
           <div>
-            <h4 class="font-bold text-esmerald mb-1 text-sm md:text-base">{{ t.validityTitle }}</h4>
-            <p class="text-xs md:text-sm text-esmerald/70">{{ displayedValidity }}</p>
+            <h4 class="font-bold text-text-brand mb-1 text-sm md:text-base">{{ t.validityTitle }}</h4>
+            <p class="text-xs md:text-sm text-text-brand/70">{{ displayedValidity }}</p>
           </div>
         </div>
       </div>
 
       <!-- Thank you message -->
       <div v-if="thankYouMessage" data-animate="fade-up">
-        <h3 class="text-2xl md:text-3xl font-bold text-esmerald mb-2">{{ t.thankYouTitle }}</h3>
-        <p class="text-base md:text-lg text-esmerald/70 font-light max-w-2xl mx-auto">{{ thankYouMessage }}</p>
+        <h3 class="text-2xl md:text-3xl font-bold text-text-brand mb-2">{{ t.thankYouTitle }}</h3>
+        <p class="text-base md:text-lg text-text-brand/70 font-light max-w-2xl mx-auto">{{ thankYouMessage }}</p>
       </div>
 
       <!-- Discount badge near accept button -->
-      <div v-if="canRespond && !submitted && hasActiveDiscount" data-animate="fade-up" class="w-full max-w-md bg-lemon/20 border border-lemon/50 rounded-xl p-4 text-center">
-        <p class="text-xs font-semibold text-esmerald uppercase tracking-wider mb-1">🔥 {{ t.specialPrice }}</p>
+      <div v-if="canRespond && !submitted && hasActiveDiscount" data-animate="fade-up" class="w-full max-w-md bg-accent/20 border border-accent/50 rounded-xl p-4 text-center">
+        <p class="text-xs font-semibold text-text-brand uppercase tracking-wider mb-1">🔥 {{ t.specialPrice }}</p>
         <div class="flex items-baseline justify-center gap-2">
-          <span class="text-2xl font-bold text-esmerald">{{ formatCurrency(proposal?.discounted_investment) }}</span>
-          <span class="text-sm text-esmerald/40 line-through">{{ formatCurrency(effectiveTotal) }}</span>
-          <span class="text-xs text-esmerald/60">{{ proposal?.currency }}</span>
+          <span class="text-2xl font-bold text-text-brand">{{ formatCurrency(proposal?.discounted_investment) }}</span>
+          <span class="text-sm text-text-brand/40 line-through">{{ formatCurrency(effectiveTotal) }}</span>
+          <span class="text-xs text-text-brand/60">{{ proposal?.currency }}</span>
         </div>
       </div>
 
       <!-- F12: Payment plan milestones -->
-      <div v-if="canRespond && !submitted && paymentMilestones.length" data-animate="fade-up" class="w-full max-w-md bg-esmerald/5 border border-esmerald/15 rounded-xl p-4 text-left">
-        <p class="text-xs font-semibold text-green-light uppercase tracking-wider mb-2">{{ t.paymentPlanTitle }}</p>
+      <div v-if="canRespond && !submitted && paymentMilestones.length" data-animate="fade-up" class="w-full max-w-md bg-primary/5 border border-primary/15 rounded-xl p-4 text-left">
+        <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">{{ t.paymentPlanTitle }}</p>
         <div class="space-y-2">
           <div v-for="(m, i) in paymentMilestones" :key="i" class="flex items-center gap-3">
-            <span class="w-6 h-6 rounded-full bg-esmerald-light/60 text-esmerald text-xs font-bold flex items-center justify-center flex-shrink-0">{{ i + 1 }}</span>
+            <span class="w-6 h-6 rounded-full bg-primary-soft text-text-brand text-xs font-bold flex items-center justify-center flex-shrink-0">{{ i + 1 }}</span>
             <div class="flex-1 min-w-0">
-              <span class="text-sm font-medium text-esmerald/80">{{ m.label }}</span>
-              <span class="text-sm text-esmerald font-bold ml-2">{{ m.amount }}</span>
+              <span class="text-sm font-medium text-text-brand/80">{{ m.label }}</span>
+              <span class="text-sm text-text-brand font-bold ml-2">{{ m.amount }}</span>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Payment options breakdown — visible before accept -->
-      <div v-if="canRespond && !submitted && closingPaymentOptions.length" data-animate="fade-up" class="w-full max-w-md bg-esmerald rounded-2xl p-5 text-left">
-        <p class="text-xs font-semibold text-green-light uppercase tracking-wider mb-1">{{ t.paymentPlanTitle }}</p>
-        <p class="text-lg font-bold text-lemon mb-3">{{ closingPaymentOptions.length }} {{ t.flexiblePayments }}</p>
+      <div v-if="canRespond && !submitted && closingPaymentOptions.length" data-animate="fade-up" class="w-full max-w-md bg-primary rounded-2xl p-5 text-left">
+        <p class="text-xs font-semibold text-accent uppercase tracking-wider mb-1">{{ t.paymentPlanTitle }}</p>
+        <p class="text-lg font-bold text-accent mb-3">{{ closingPaymentOptions.length }} {{ t.flexiblePayments }}</p>
         <div class="space-y-2">
-          <div v-for="(opt, i) in closingPaymentOptions" :key="i" class="flex items-center justify-between gap-3 bg-white/10 rounded-xl px-4 py-3">
-            <span class="text-sm text-white/80">{{ opt.label }}</span>
-            <span class="text-sm font-bold text-lemon whitespace-nowrap">{{ opt.description }}</span>
+          <div v-for="(opt, i) in closingPaymentOptions" :key="i" class="flex items-center justify-between gap-3 bg-surface/10 rounded-xl px-4 py-3">
+            <span class="text-sm text-accent/80">{{ opt.label }}</span>
+            <span class="text-sm font-bold text-accent whitespace-nowrap">{{ opt.description }}</span>
           </div>
         </div>
-        <div v-if="effectiveTotal" class="text-center mt-4 pt-3 border-t border-white/15">
-          <span class="text-xs text-green-light/70">{{ t.scopeInvestment }}:</span>
-          <span class="text-lg font-bold text-lemon ml-2">{{ formatCurrency(effectiveTotal) }}</span>
-          <span class="text-xs text-green-light/70 ml-1">{{ proposal.currency }}</span>
+        <div v-if="effectiveTotal" class="text-center mt-4 pt-3 border-t border-border-default/15">
+          <span class="text-xs text-accent/70">{{ t.scopeInvestment }}:</span>
+          <span class="text-lg font-bold text-accent ml-2">{{ formatCurrency(effectiveTotal) }}</span>
+          <span class="text-xs text-accent/70 ml-1">{{ proposal.currency }}</span>
         </div>
       </div>
 
       <!-- Action buttons — professional B2B hierarchy -->
-      <div v-if="canRespond && !submitted" data-animate="fade-up" class="w-full max-w-md pt-4 border-t border-white/10">
+      <div v-if="canRespond && !submitted" data-animate="fade-up" class="w-full max-w-md pt-4 border-t border-border-default/10">
         <!-- Primary CTA -->
         <button
-          class="w-full py-4 bg-gradient-to-br from-esmerald to-esmerald/85 text-lemon rounded-2xl font-bold text-lg
-                 hover:from-esmerald/95 hover:to-esmerald/75 transition-all
+          class="w-full py-4 bg-gradient-to-br from-primary to-primary-strong text-accent rounded-2xl font-bold text-lg
+                 hover:opacity-95 transition-all
                  shadow-[0_4px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_6px_28px_rgba(16,185,129,0.38)]
                  flex items-center justify-center gap-2.5 accept-pulse disabled:opacity-60 disabled:cursor-not-allowed"
           :disabled="isSubmitting"
@@ -81,8 +81,8 @@
         <!-- Secondary actions — side by side -->
         <div class="grid grid-cols-2 gap-3 mt-3">
           <button
-            class="py-3 bg-white/8 border border-esmerald/25 text-esmerald rounded-xl font-medium text-sm
-                   hover:bg-white/15 hover:border-esmerald/40 transition-all shadow-sm
+            class="py-3 bg-surface/8 border border-primary/25 text-text-brand rounded-xl font-medium text-sm
+                   hover:bg-surface/15 hover:border-primary/40 transition-all shadow-sm
                    flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             :disabled="isSubmitting"
             @click="showNegotiateModal = true"
@@ -93,8 +93,8 @@
             {{ t.negotiateBtn }}
           </button>
           <button
-            class="py-3 bg-white/8 border border-esmerald/25 text-esmerald rounded-xl font-medium text-sm
-                   hover:bg-white/15 hover:border-esmerald/40 transition-all shadow-sm
+            class="py-3 bg-surface/8 border border-primary/25 text-text-brand rounded-xl font-medium text-sm
+                   hover:bg-surface/15 hover:border-primary/40 transition-all shadow-sm
                    flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             :disabled="isSubmitting"
             @click="showCommentModal = true"
@@ -109,18 +109,18 @@
         <!-- Tertiary links — inline, subtle -->
         <div class="flex items-center justify-center gap-3 mt-4">
           <button
-            class="text-xs text-esmerald/50 hover:text-esmerald/75 transition-colors font-medium tracking-wide disabled:opacity-40"
+            class="text-xs text-text-brand/50 hover:text-text-brand/75 transition-colors font-medium tracking-wide disabled:opacity-40"
             :disabled="isSubmitting"
             @click="showRejectModal = true"
           >
             {{ t.rejectBtn }}
           </button>
-          <span v-if="whatsappTalkUrl" class="text-esmerald/25 select-none">·</span>
+          <span v-if="whatsappTalkUrl" class="text-text-brand/25 select-none">·</span>
           <a
             v-if="whatsappTalkUrl"
             :href="whatsappTalkUrl"
             target="_blank"
-            class="text-xs text-esmerald/50 hover:text-esmerald/75 transition-colors font-medium tracking-wide flex items-center gap-1.5"
+            class="text-xs text-text-brand/50 hover:text-text-brand/75 transition-colors font-medium tracking-wide flex items-center gap-1.5"
           >
             <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -131,30 +131,30 @@
       </div>
 
       <!-- Comment submitted confirmation -->
-      <div v-if="commentSubmitted && canRespond && !submitted" data-animate="fade-up" class="w-full max-w-md bg-esmerald/5 border border-esmerald/15 rounded-xl p-4 text-center">
-        <p class="text-sm font-medium text-esmerald">✅ {{ t.commentSent }}</p>
+      <div v-if="commentSubmitted && canRespond && !submitted" data-animate="fade-up" class="w-full max-w-md bg-primary/5 border border-primary/15 rounded-xl p-4 text-center">
+        <p class="text-sm font-medium text-text-brand">✅ {{ t.commentSent }}</p>
       </div>
 
       <!-- F13: Post-acceptance welcome kit -->
       <div v-if="submitted || proposal?.status === 'accepted'" data-animate="fade-up" class="py-4 w-full max-w-lg">
         <div class="text-5xl mb-3 celebration-bounce">🎉</div>
-        <p class="text-xl font-bold text-esmerald">{{ t.accepted }}</p>
-        <p class="text-esmerald/70 mt-2 mb-6">{{ t.acceptedSub }}</p>
+        <p class="text-xl font-bold text-text-brand">{{ t.accepted }}</p>
+        <p class="text-text-brand/70 mt-2 mb-6">{{ t.acceptedSub }}</p>
 
         <!-- Payment options breakdown -->
-        <div v-if="closingPaymentOptions.length" class="w-full bg-esmerald p-5 rounded-2xl text-left mb-6">
-          <p class="text-xs font-semibold text-green-light uppercase tracking-wider mb-1">{{ t.paymentPlanTitle }}</p>
-          <p class="text-lg font-bold text-lemon mb-3">{{ closingPaymentOptions.length }} {{ t.flexiblePayments }}</p>
+        <div v-if="closingPaymentOptions.length" class="w-full bg-primary p-5 rounded-2xl text-left mb-6">
+          <p class="text-xs font-semibold text-accent uppercase tracking-wider mb-1">{{ t.paymentPlanTitle }}</p>
+          <p class="text-lg font-bold text-accent mb-3">{{ closingPaymentOptions.length }} {{ t.flexiblePayments }}</p>
           <div class="space-y-2">
-            <div v-for="(opt, i) in closingPaymentOptions" :key="i" class="flex items-center justify-between gap-3 bg-white/10 rounded-xl px-4 py-3">
-              <span class="text-sm text-white/80">{{ opt.label }}</span>
-              <span class="text-sm font-bold text-lemon whitespace-nowrap">{{ opt.description }}</span>
+            <div v-for="(opt, i) in closingPaymentOptions" :key="i" class="flex items-center justify-between gap-3 bg-surface/10 rounded-xl px-4 py-3">
+              <span class="text-sm text-accent/80">{{ opt.label }}</span>
+              <span class="text-sm font-bold text-accent whitespace-nowrap">{{ opt.description }}</span>
             </div>
           </div>
-          <div v-if="effectiveTotal" class="text-center mt-4 pt-3 border-t border-white/15">
-            <span class="text-xs text-green-light/70">{{ t.scopeInvestment }}:</span>
-            <span class="text-lg font-bold text-lemon ml-2">{{ formatCurrency(effectiveTotal) }}</span>
-            <span class="text-xs text-green-light/70 ml-1">{{ proposal.currency }}</span>
+          <div v-if="effectiveTotal" class="text-center mt-4 pt-3 border-t border-border-default/15">
+            <span class="text-xs text-accent/70">{{ t.scopeInvestment }}:</span>
+            <span class="text-lg font-bold text-accent ml-2">{{ formatCurrency(effectiveTotal) }}</span>
+            <span class="text-xs text-accent/70 ml-1">{{ proposal.currency }}</span>
           </div>
         </div>
 
@@ -164,19 +164,19 @@
           :href="pdfUrl"
           :download="pdfFilename"
           target="_blank"
-          class="inline-flex items-center gap-2 px-6 py-3 bg-esmerald text-lemon rounded-xl font-bold text-sm hover:bg-esmerald/90 transition-colors shadow-sm mb-6"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-accent rounded-xl font-bold text-sm hover:bg-primary-strong transition-colors shadow-sm mb-6"
         >
           📄 {{ t.downloadPdf }}
         </a>
 
         <!-- Onboarding timeline -->
-        <div class="bg-esmerald/5 border border-esmerald/15 rounded-xl p-5 text-left space-y-4">
-          <h4 class="font-bold text-esmerald text-sm">{{ t.onboardingTitle }}</h4>
+        <div class="bg-primary/5 border border-primary/15 rounded-xl p-5 text-left space-y-4">
+          <h4 class="font-bold text-text-brand text-sm">{{ t.onboardingTitle }}</h4>
           <div v-for="(step, i) in onboardingSteps" :key="i" class="flex items-start gap-3">
-            <div class="w-8 h-8 rounded-full bg-lemon text-esmerald text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{{ i + 1 }}</div>
+            <div class="w-8 h-8 rounded-full bg-accent text-text-brand text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{{ i + 1 }}</div>
             <div>
-              <p class="text-sm font-medium text-esmerald">{{ step.title }}</p>
-              <p class="text-xs text-esmerald/70">{{ step.desc }}</p>
+              <p class="text-sm font-medium text-text-brand">{{ step.title }}</p>
+              <p class="text-xs text-text-brand/70">{{ step.desc }}</p>
             </div>
           </div>
         </div>
@@ -186,7 +186,7 @@
           v-if="whatsappTalkUrl"
           :href="whatsappTalkUrl"
           target="_blank"
-          class="inline-flex items-center gap-2 px-5 py-2.5 bg-esmerald/5 border border-esmerald/15 text-esmerald rounded-xl text-sm font-medium hover:bg-esmerald/10 transition-colors mt-4"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary/5 border border-primary/15 text-text-brand rounded-xl text-sm font-medium hover:bg-primary/10 transition-colors mt-4"
         >
           💬 {{ t.contactPm }}
         </a>
@@ -195,57 +195,57 @@
       <!-- Negotiating success -->
       <div v-else-if="negotiatingSubmitted || proposal?.status === 'negotiating'" data-animate="fade-up" class="py-4 w-full max-w-lg">
         <div class="text-5xl mb-3 celebration-bounce">🤝</div>
-        <p class="text-xl font-bold text-amber-700">{{ t.negotiatingSuccess }}</p>
-        <p class="text-gray-500 mt-2">{{ t.negotiatingSub }}</p>
+        <p class="text-xl font-bold text-warning-strong">{{ t.negotiatingSuccess }}</p>
+        <p class="text-text-subtle mt-2">{{ t.negotiatingSub }}</p>
       </div>
 
       <!-- Smart rejection recovery (Feature 12) -->
       <div v-else-if="rejectionSubmitted || proposal?.status === 'rejected'" data-animate="fade-up" class="py-4 w-full max-w-lg">
-        <p class="text-lg text-gray-500 mb-6">{{ t.rejected }}</p>
+        <p class="text-lg text-text-subtle mb-6">{{ t.rejected }}</p>
 
         <!-- Budget too high -->
-        <div v-if="submittedReason === t.reasons[0]" class="bg-emerald-50 border border-emerald-200 rounded-xl p-5 text-left">
-          <h4 class="font-bold text-emerald-800 mb-2">💡 {{ t.recovery.budgetTitle }}</h4>
-          <p class="text-sm text-emerald-700 mb-4">{{ t.recovery.budgetText }}</p>
-          <a :href="whatsappRecoveryLink" target="_blank" class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors">
+        <div v-if="submittedReason === t.reasons[0]" class="bg-primary-soft border border-border-default rounded-xl p-5 text-left">
+          <h4 class="font-bold text-text-brand mb-2">💡 {{ t.recovery.budgetTitle }}</h4>
+          <p class="text-sm text-text-brand mb-4">{{ t.recovery.budgetText }}</p>
+          <a :href="whatsappRecoveryLink" target="_blank" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-accent rounded-xl text-sm font-medium hover:bg-primary-strong transition-colors">
             💬 {{ t.recovery.budgetCta }}
           </a>
         </div>
 
         <!-- Not the right time -->
-        <div v-else-if="submittedReason === t.reasons[2]" class="bg-blue-50 border border-blue-200 rounded-xl p-5 text-left">
-          <h4 class="font-bold text-blue-800 mb-2">⏰ {{ t.recovery.timeTitle }}</h4>
-          <p class="text-sm text-blue-700 mb-4">{{ t.recovery.timeText }}</p>
+        <div v-else-if="submittedReason === t.reasons[2]" class="bg-primary-soft border border-border-default rounded-xl p-5 text-left">
+          <h4 class="font-bold text-text-brand mb-2">⏰ {{ t.recovery.timeTitle }}</h4>
+          <p class="text-sm text-text-brand mb-4">{{ t.recovery.timeText }}</p>
           <button
             v-if="!followupScheduled"
-            class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+            class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-accent rounded-xl text-sm font-medium hover:bg-primary-strong transition-colors"
             :disabled="isScheduling"
             @click="scheduleReminder"
           >
             🔔 {{ isScheduling ? t.sending : t.recovery.timeCta }}
           </button>
-          <p v-else class="text-sm font-medium text-blue-600">✅ {{ t.recovery.timeScheduled }}</p>
+          <p v-else class="text-sm font-medium text-text-brand">✅ {{ t.recovery.timeScheduled }}</p>
         </div>
 
         <!-- Found another option -->
-        <div v-else-if="submittedReason === t.reasons[1]" class="bg-gray-50 border border-gray-200 rounded-xl p-5 text-left">
-          <h4 class="font-bold text-gray-800 mb-2">🤝 {{ t.recovery.otherTitle }}</h4>
-          <p class="text-sm text-gray-600">{{ t.recovery.otherText }}</p>
+        <div v-else-if="submittedReason === t.reasons[1]" class="bg-surface-muted border border-border-default rounded-xl p-5 text-left">
+          <h4 class="font-bold text-text-default mb-2">🤝 {{ t.recovery.otherTitle }}</h4>
+          <p class="text-sm text-text-muted">{{ t.recovery.otherText }}</p>
         </div>
 
         <!-- Does not meet expectations -->
-        <div v-else-if="submittedReason === t.reasons[3]" class="bg-purple-50 border border-purple-200 rounded-xl p-5 text-left">
-          <h4 class="font-bold text-purple-800 mb-2">🎯 {{ t.recovery.expectTitle }}</h4>
-          <p class="text-sm text-purple-700 mb-4">{{ t.recovery.expectText }}</p>
-          <a :href="whatsappRecoveryLink" target="_blank" class="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors">
+        <div v-else-if="submittedReason === t.reasons[3]" class="bg-primary-soft border border-border-default rounded-xl p-5 text-left">
+          <h4 class="font-bold text-text-brand mb-2">🎯 {{ t.recovery.expectTitle }}</h4>
+          <p class="text-sm text-text-brand mb-4">{{ t.recovery.expectText }}</p>
+          <a :href="whatsappRecoveryLink" target="_blank" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-accent rounded-xl text-sm font-medium hover:bg-primary-strong transition-colors">
             💬 {{ t.recovery.expectCta }}
           </a>
         </div>
 
         <!-- Generic / Other -->
-        <div v-else class="bg-gray-50 border border-gray-200 rounded-xl p-5 text-left">
-          <h4 class="font-bold text-gray-800 mb-2">🙏 {{ t.recovery.genericTitle }}</h4>
-          <p class="text-sm text-gray-600">{{ t.recovery.genericText }}</p>
+        <div v-else class="bg-surface-muted border border-border-default rounded-xl p-5 text-left">
+          <h4 class="font-bold text-text-default mb-2">🙏 {{ t.recovery.genericTitle }}</h4>
+          <p class="text-sm text-text-muted">{{ t.recovery.genericText }}</p>
         </div>
       </div>
     </div>
@@ -254,27 +254,27 @@
   <!-- F16: Accept confirmation modal with optional condition note -->
   <teleport to="body">
     <div v-if="showAcceptConfirm" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showAcceptConfirm = false">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-5 sm:p-8 text-center">
+      <div class="bg-surface rounded-2xl shadow-2xl max-w-md w-full mx-4 p-5 sm:p-8 text-center">
         <div class="text-5xl mb-4">🎉</div>
-        <h3 class="text-xl font-bold text-esmerald mb-2">{{ confirmTitleText }}</h3>
-        <p class="text-esmerald/70 text-sm mb-4">{{ t.confirmText }}</p>
-        <p v-if="scopeDisplay.length" class="text-xs text-green-light mb-4">
+        <h3 class="text-xl font-bold text-text-brand mb-2">{{ confirmTitleText }}</h3>
+        <p class="text-text-brand/70 text-sm mb-4">{{ t.confirmText }}</p>
+        <p v-if="scopeDisplay.length" class="text-xs text-text-muted mb-4">
           {{ scopeDisplay.map(i => `${i.label}: ${i.value}`).join(' · ') }}
         </p>
         <div class="text-left mb-4">
-          <label class="block text-xs text-esmerald/50 mb-1">{{ t.conditionLabel }}</label>
+          <label class="block text-xs text-text-brand/50 mb-1">{{ t.conditionLabel }}</label>
           <textarea
             v-model="conditionNote"
             rows="2"
             :placeholder="t.conditionPlaceholder"
-            class="w-full px-3 py-2 border border-esmerald/15 rounded-xl text-sm focus:ring-2 focus:ring-esmerald/30 outline-none resize-none"
+            class="w-full px-3 py-2 border border-primary/15 rounded-xl text-sm focus:ring-2 focus:ring-focus-ring outline-none resize-none bg-input-bg text-input-text"
           />
         </div>
         <div class="flex gap-3 justify-center">
-          <button class="px-6 py-2.5 bg-esmerald text-lemon rounded-xl font-medium text-sm hover:bg-esmerald/90 transition-colors" :disabled="isSubmitting" @click="confirmAccept">
+          <button class="px-6 py-2.5 bg-primary text-accent rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors" :disabled="isSubmitting" @click="confirmAccept">
             {{ isSubmitting ? t.sending : t.confirmYes }}
           </button>
-          <button class="px-6 py-2.5 bg-esmerald/5 text-esmerald rounded-xl text-sm font-medium hover:bg-esmerald/10 transition-colors" @click="showAcceptConfirm = false">{{ t.cancel }}</button>
+          <button class="px-6 py-2.5 bg-primary/5 text-text-brand rounded-xl text-sm font-medium hover:bg-primary/10 transition-colors" @click="showAcceptConfirm = false">{{ t.cancel }}</button>
         </div>
       </div>
     </div>
@@ -283,9 +283,9 @@
   <!-- Negotiate modal — adjustments only -->
   <teleport to="body">
     <div v-if="showNegotiateModal" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showNegotiateModal = false">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-5 sm:p-8">
-        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ t.negotiateTitle }}</h3>
-        <p class="text-gray-600 text-sm mb-4">{{ t.negotiateText }}</p>
+      <div class="bg-surface rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-5 sm:p-8">
+        <h3 class="text-xl font-bold text-text-default mb-2">{{ t.negotiateTitle }}</h3>
+        <p class="text-text-muted text-sm mb-4">{{ t.negotiateText }}</p>
 
         <!-- Structured adjustment reasons -->
         <div class="space-y-2 mb-4">
@@ -293,10 +293,10 @@
             v-for="reason in t.adjustmentReasons"
             :key="reason"
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors"
-            :class="selectedAdjustments.includes(reason) ? 'bg-amber-50 border-amber-300' : 'border-gray-200 hover:border-amber-200'"
+            :class="selectedAdjustments.includes(reason) ? 'bg-warning-soft border-warning-strong' : 'border-border-default hover:border-warning-strong'"
           >
-            <input type="checkbox" :value="reason" v-model="selectedAdjustments" class="w-4 h-4 accent-amber-600 rounded" />
-            <span class="text-sm text-gray-700">{{ reason }}</span>
+            <input type="checkbox" :value="reason" v-model="selectedAdjustments" class="w-4 h-4 accent-warning-strong rounded" />
+            <span class="text-sm text-text-default">{{ reason }}</span>
           </label>
         </div>
 
@@ -304,13 +304,13 @@
           v-model="negotiateComment"
           rows="3"
           :placeholder="t.negotiatePlaceholder"
-          class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 outline-none resize-none"
+          class="w-full px-4 py-3 border border-input-border rounded-xl text-sm focus:ring-2 focus:ring-focus-ring outline-none resize-none bg-input-bg text-input-text"
         />
 
         <div class="flex gap-3 justify-end mt-4">
-          <button class="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showNegotiateModal = false">{{ t.cancel }}</button>
+          <button class="px-5 py-2 bg-surface-muted text-text-muted rounded-xl text-sm font-medium hover:bg-surface-raised transition-colors" @click="showNegotiateModal = false">{{ t.cancel }}</button>
           <button
-            class="px-5 py-2 bg-amber-600 text-white rounded-xl text-sm font-medium hover:bg-amber-700 transition-colors"
+            class="px-5 py-2 bg-warning-strong text-text-default rounded-xl text-sm font-medium hover:opacity-90 transition-colors"
             :disabled="isSubmitting || (!negotiateComment.trim() && !selectedAdjustments.length)"
             @click="confirmNegotiate"
           >
@@ -324,21 +324,21 @@
   <!-- Comment modal — lightweight, separate from negotiate -->
   <teleport to="body">
     <div v-if="showCommentModal" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showCommentModal = false">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-5 sm:p-8">
-        <h3 class="text-lg font-bold text-gray-900 mb-2">💬 {{ t.commentBtn }}</h3>
-        <p class="text-gray-500 text-sm mb-4">{{ t.commentPlaceholder2 }}</p>
+      <div class="bg-surface rounded-2xl shadow-2xl max-w-md w-full mx-4 p-5 sm:p-8">
+        <h3 class="text-lg font-bold text-text-default mb-2">💬 {{ t.commentBtn }}</h3>
+        <p class="text-text-subtle text-sm mb-4">{{ t.commentPlaceholder2 }}</p>
 
         <textarea
           v-model="negotiationComment"
           rows="3"
           :placeholder="t.commentPlaceholder2"
-          class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
+          class="w-full px-4 py-3 border border-input-border rounded-xl text-sm focus:ring-2 focus:ring-focus-ring outline-none resize-none bg-input-bg text-input-text"
         />
 
         <div class="flex gap-3 justify-end mt-4">
-          <button class="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showCommentModal = false">{{ t.cancel }}</button>
+          <button class="px-5 py-2 bg-surface-muted text-text-muted rounded-xl text-sm font-medium hover:bg-surface-raised transition-colors" @click="showCommentModal = false">{{ t.cancel }}</button>
           <button
-            class="px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
+            class="px-5 py-2 bg-primary text-accent rounded-xl text-sm font-medium hover:bg-primary-strong transition-colors"
             :disabled="isCommenting || !negotiationComment.trim()"
             @click="submitComment"
           >
@@ -352,27 +352,27 @@
   <!-- Reject modal -->
   <teleport to="body">
     <div v-if="showRejectModal" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showRejectModal = false">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-5 sm:p-8">
-        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ t.rejectTitle }}</h3>
-        <p class="text-gray-600 text-sm mb-6">{{ t.rejectText }}</p>
+      <div class="bg-surface rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-5 sm:p-8">
+        <h3 class="text-xl font-bold text-text-default mb-2">{{ t.rejectTitle }}</h3>
+        <p class="text-text-muted text-sm mb-6">{{ t.rejectText }}</p>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t.reasonLabel }}</label>
-            <p class="text-xs text-gray-400 italic mb-2">{{ t.reasonNudge }}</p>
-            <select v-model="rejectReason" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
+            <label class="block text-sm font-medium text-text-default mb-1">{{ t.reasonLabel }}</label>
+            <p class="text-xs text-text-subtle italic mb-2">{{ t.reasonNudge }}</p>
+            <select v-model="rejectReason" class="w-full px-4 py-2.5 border border-input-border rounded-xl text-sm focus:ring-2 focus:ring-focus-ring outline-none bg-input-bg text-input-text">
               <option value="">{{ t.selectReason }}</option>
               <option v-for="reason in t.reasons" :key="reason" :value="reason">{{ reason }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ isOtherReason ? t.otherLabel : t.commentLabel }}</label>
+            <label class="block text-sm font-medium text-text-default mb-1">{{ isOtherReason ? t.otherLabel : t.commentLabel }}</label>
             <textarea v-model="rejectComment" rows="3" :placeholder="isOtherReason ? t.otherPlaceholder : t.commentPlaceholder"
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none" />
+              class="w-full px-4 py-2.5 border border-input-border rounded-xl text-sm focus:ring-2 focus:ring-focus-ring outline-none resize-none bg-input-bg text-input-text" />
           </div>
         </div>
         <div class="flex gap-3 justify-end mt-6">
-          <button class="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showRejectModal = false">{{ t.cancel }}</button>
-          <button class="px-5 py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors" :disabled="isSubmitting" @click="confirmReject">
+          <button class="px-5 py-2 bg-surface-muted text-text-muted rounded-xl text-sm font-medium hover:bg-surface-raised transition-colors" @click="showRejectModal = false">{{ t.cancel }}</button>
+          <button class="px-5 py-2 bg-danger-strong text-text-default rounded-xl text-sm font-medium hover:opacity-90 transition-colors" :disabled="isSubmitting" @click="confirmReject">
             {{ isSubmitting ? t.sending : t.confirmReject }}
           </button>
         </div>

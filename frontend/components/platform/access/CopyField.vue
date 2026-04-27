@@ -4,14 +4,14 @@
       {{ label }}
     </span>
     <span
-      class="min-w-0 flex-1 truncate rounded-lg bg-white/60 px-2 py-1 font-mono text-xs text-esmerald dark:bg-white/[0.04] dark:text-white"
+      class="min-w-0 flex-1 truncate rounded-lg bg-surface-raised px-2 py-1 font-mono text-xs text-text-brand"
       :title="isSecret ? '' : value"
     >
       {{ displayValue }}
     </span>
     <button
       type="button"
-      class="rounded-lg border border-esmerald/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-esmerald transition hover:bg-esmerald-light/60 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/[0.08] dark:text-lemon dark:hover:bg-white/[0.06]"
+      class="rounded-lg border border-esmerald/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-brand transition hover:bg-primary-soft disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/[0.08]"
       :disabled="!value"
       @click="copy"
     >

@@ -1,11 +1,11 @@
 <template>
   <div>
     <!-- Preloader animation inspired by Quechua -->
-    <div ref="preloaderContainer" v-show="isLoading" class="fixed inset-0 z-[999] bg-white flex flex-col items-center justify-center overflow-hidden">
+    <div ref="preloaderContainer" v-show="isLoading" class="fixed inset-0 z-[999] bg-surface flex flex-col items-center justify-center overflow-hidden">
       <!-- Scattered images like thrown photographs -->
       <div class="relative w-full h-full flex items-center justify-center">
         <!-- Central cube image -->
-        <div ref="centralCube" class="absolute rounded-xl bg-white overflow-hidden shadow-lg border-4 border-white transform scale-0 z-10 flex items-center justify-center">
+        <div ref="centralCube" class="absolute rounded-xl bg-surface overflow-hidden shadow-lg border-4 border-white transform scale-0 z-10 flex items-center justify-center">
           <img ref="centralImage" src="~/assets/images/preloadingAnimation/Logo-White-ProjectApp.png" alt="Project App central cube" class="max-w-full max-h-full object-contain" @load="handleImageLoad" />
         </div>
         
@@ -132,7 +132,7 @@
       
       <!-- Only the percentage centered on screen -->
       <div class="absolute bottom-10 left-0 right-0 flex justify-center">
-        <div :class="[isDesktop ? 'text-2xl' : 'text-lg', 'text-esmerald font-light']">
+        <div :class="[isDesktop ? 'text-2xl' : 'text-lg', 'text-text-brand font-light']">
           <span ref="progressText">0%</span>
         </div>
       </div>
@@ -141,17 +141,17 @@
       <div
         v-if="clientName"
         ref="personalizedOverlay"
-        class="absolute inset-0 z-20 flex items-center justify-center bg-white opacity-0 pointer-events-none"
+        class="absolute inset-0 z-20 flex items-center justify-center bg-surface opacity-0 pointer-events-none"
       >
-        <p class="text-2xl sm:text-3xl md:text-4xl font-light text-esmerald text-center px-8 leading-relaxed">
+        <p class="text-2xl sm:text-3xl md:text-4xl font-light text-text-brand text-center px-8 leading-relaxed">
           <span class="block text-base sm:text-lg text-esmerald/50 mb-2 font-light tracking-wider">{{ personalizedSubtext }}</span>
-          <span class="font-medium text-esmerald">{{ clientName }}</span>
+          <span class="font-medium text-text-brand">{{ clientName }}</span>
         </p>
       </div>
     </div>
 
     <!-- White overlay for transition animation - Removed when completely finished -->
-    <div v-if="isOverlayVisible" ref="whiteOverlay" class="fixed inset-0 z-[99] bg-white transform origin-center scale-0 rotate-0"></div>
+    <div v-if="isOverlayVisible" ref="whiteOverlay" class="fixed inset-0 z-[99] bg-surface transform origin-center scale-0 rotate-0"></div>
   </div>
 </template>
 

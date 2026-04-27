@@ -8,7 +8,7 @@
         </svg>
       </div>
 
-      <h1 class="text-3xl md:text-4xl font-light text-gray-900 mb-4">
+      <h1 class="text-3xl md:text-4xl font-light text-text-default mb-4">
         {{ clientName ? `${clientName}, esta` : 'Esta' }} propuesta ha expirado
       </h1>
 
@@ -16,11 +16,11 @@
         Expiró el {{ formattedExpiredAt }}
       </p>
 
-      <p class="text-gray-500 text-lg mb-4 leading-relaxed">
-        La propuesta <strong v-if="proposalTitle" class="text-gray-700">"{{ proposalTitle }}"</strong>
+      <p class="text-text-muted text-lg mb-4 leading-relaxed">
+        La propuesta <strong v-if="proposalTitle" class="text-text-default">"{{ proposalTitle }}"</strong>
         ya no está vigente.
         <template v-if="sellerName">
-          ¿Quieres que <strong class="text-gray-700">{{ sellerName }}</strong> te envíe una versión actualizada?
+          ¿Quieres que <strong class="text-text-default">{{ sellerName }}</strong> te envíe una versión actualizada?
         </template>
         <template v-else>
           Podemos reactivarla o preparar una versión actualizada para ti.
@@ -38,8 +38,8 @@
           target="_blank"
           rel="noopener noreferrer"
           class="inline-flex items-center justify-center gap-2 px-6 py-3
-                 bg-emerald-600 text-white rounded-xl font-medium
-                 hover:bg-emerald-700 transition-colors shadow-lg"
+                 bg-primary text-white rounded-xl font-medium
+                 hover:bg-primary-strong transition-colors shadow-lg"
         >
           <svg class="w-5 h-5" viewBox="0 0 448 512" fill="currentColor">
             <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222
@@ -54,8 +54,8 @@
           target="_blank"
           rel="noopener noreferrer"
           class="inline-flex items-center justify-center gap-2 px-6 py-3
-                 bg-emerald-600 text-white rounded-xl font-medium
-                 hover:bg-emerald-700 transition-colors shadow-lg"
+                 bg-primary text-white rounded-xl font-medium
+                 hover:bg-primary-strong transition-colors shadow-lg"
         >
           <svg class="w-5 h-5" viewBox="0 0 448 512" fill="currentColor">
             <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222
@@ -68,7 +68,7 @@
         <a
           href="mailto:team@projectapp.co"
           class="inline-flex items-center justify-center gap-2 px-6 py-3
-                 bg-white text-gray-700 rounded-xl font-medium border border-gray-200
+                 bg-surface text-text-default rounded-xl font-medium border border-border-default
                  hover:bg-gray-50 transition-colors"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,7 +80,7 @@
       </div>
 
       <!-- Magic link re-access -->
-      <div class="mt-10 pt-8 border-t border-gray-100 max-w-sm mx-auto">
+      <div class="mt-10 pt-8 border-t border-border-muted max-w-sm mx-auto">
         <p class="text-gray-400 text-sm mb-3">¿Perdiste el enlace? Ingresa tu email para recibirlo.</p>
         <form class="flex gap-2" @submit.prevent="handleMagicLink">
           <input
@@ -88,8 +88,8 @@
             type="email"
             placeholder="tu@email.com"
             required
-            class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                   focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            class="flex-1 px-4 py-2.5 border border-border-default rounded-xl text-sm
+                   focus:ring-1 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
           />
           <button
             type="submit"
@@ -100,7 +100,7 @@
             {{ magicLoading ? '...' : 'Enviar' }}
           </button>
         </form>
-        <p v-if="magicSent" class="text-emerald-600 text-xs mt-2">
+        <p v-if="magicSent" class="text-text-brand text-xs mt-2">
           Si tenemos propuestas asociadas a ese email, recibirás un enlace en breve.
         </p>
       </div>

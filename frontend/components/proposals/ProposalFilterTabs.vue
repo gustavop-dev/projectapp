@@ -4,9 +4,9 @@
     <div class="md:hidden mb-4">
       <select
         :value="activeTabId"
-        class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-medium
-               text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800
-               focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
+        class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm font-medium
+               text-text-default bg-surface
+               focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none
                appearance-none cursor-pointer"
         :style="selectArrowStyle"
         @change="$emit('select', $event.target.value)"
@@ -19,14 +19,14 @@
     </div>
 
     <!-- Desktop: horizontal tab bar -->
-    <div class="hidden md:flex items-center gap-1 mb-4 border-b border-gray-200 dark:border-gray-700">
+    <div class="hidden md:flex items-center gap-1 mb-4 border-b border-border-default">
       <!-- "Todas" tab -->
       <button
         type="button"
         class="px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap"
         :class="activeTabId === 'all'
-          ? 'border-emerald-600 text-emerald-600'
-          : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'"
+          ? 'border-emerald-600 text-text-brand'
+          : 'border-transparent text-text-muted hover:text-text-default dark:text-gray-400 dark:hover:text-gray-300'"
         @click="$emit('select', 'all')"
       >
         Todas
@@ -43,8 +43,8 @@
           :data-testid="`filter-tabs-tab-${tab.id}`"
           class="px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap"
           :class="activeTabId === tab.id
-            ? 'border-emerald-600 text-emerald-600'
-            : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'"
+            ? 'border-emerald-600 text-text-brand'
+            : 'border-transparent text-text-muted hover:text-text-default dark:text-gray-400 dark:hover:text-gray-300'"
           @click="$emit('select', tab.id)"
         >
           {{ tab.name }}
@@ -53,7 +53,7 @@
         <button
           type="button"
           :data-testid="`filter-tabs-menu-${tab.id}`"
-          class="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 mr-1"
+          class="p-0.5 rounded text-gray-400 hover:text-text-muted dark:hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 mr-1"
           @click.stop="toggleMenu(tab.id)"
         >
           <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -63,12 +63,12 @@
         <!-- Dropdown menu -->
         <div
           v-if="openMenuId === tab.id"
-          class="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 min-w-[140px]"
+          class="absolute top-full left-0 mt-1 z-50 bg-surface border border-border-default rounded-lg shadow-lg py-1 min-w-[140px]"
         >
           <button
             type="button"
             data-testid="filter-tabs-rename"
-            class="w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+            class="w-full px-3 py-1.5 text-left text-sm text-text-default hover:bg-gray-50 dark:hover:bg-gray-700"
             @click="startRename(tab)"
           >
             Renombrar
@@ -90,8 +90,8 @@
         data-testid="filter-tabs-create"
         class="px-3 py-2.5 text-sm font-medium transition-colors border-b-2 border-transparent -mb-px"
         :class="props.isTabLimitReached
-          ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-          : 'text-gray-400 hover:text-emerald-600 dark:text-gray-500 dark:hover:text-emerald-400'"
+          ? 'text-gray-300 dark:text-text-muted cursor-not-allowed'
+          : 'text-gray-400 hover:text-text-brand dark:text-text-muted dark:hover:text-emerald-400'"
         :disabled="props.isTabLimitReached"
         :title="props.isTabLimitReached ? `Máximo ${props.tabs.length} pestañas` : 'Guardar filtros como nueva pestaña'"
         @click="!props.isTabLimitReached && startCreate()"
@@ -114,16 +114,16 @@
           data-testid="filter-tabs-input"
           type="text"
           :placeholder="isRenaming ? 'Nuevo nombre...' : 'Nombre de la pestaña...'"
-          class="flex-1 max-w-xs px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm
-                 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
-                 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+          class="flex-1 max-w-xs px-3 py-2 border border-border-default rounded-lg text-sm
+                 bg-surface text-text-default
+                 focus:ring-1 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
           @keyup.enter="confirmInput"
           @keyup.escape="cancelInput"
         />
         <button
           type="button"
           data-testid="filter-tabs-confirm"
-          class="px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
+          class="px-3 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-strong transition-colors disabled:opacity-50"
           :disabled="!inputName.trim()"
           @click="confirmInput"
         >
@@ -132,7 +132,7 @@
         <button
           type="button"
           data-testid="filter-tabs-cancel"
-          class="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          class="px-3 py-2 bg-gray-100 text-text-muted rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           @click="cancelInput"
         >
           Cancelar

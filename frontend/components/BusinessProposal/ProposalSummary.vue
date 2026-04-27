@@ -1,12 +1,12 @@
 <template>
-  <section ref="sectionRef" class="proposal-summary min-h-screen py-16 md:py-24 bg-white">
+  <section ref="sectionRef" class="proposal-summary min-h-screen py-16 md:py-24 bg-surface">
     <div class="container mx-auto px-6 md:px-12 lg:px-24 max-w-5xl">
       <div class="section-header mb-12">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
             {{ content.index }}
           </span>
-          <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
+          <h2 class="text-text-brand font-light leading-tight text-4xl md:text-6xl">
             {{ content.title }}
           </h2>
         </div>
@@ -22,8 +22,8 @@
           class="summary-card bg-esmerald/5 border border-esmerald/10 rounded-2xl p-6 hover:border-esmerald/30 transition-all"
         >
           <div class="text-3xl mb-3">{{ card.icon }}</div>
-          <h3 class="font-bold text-esmerald text-base mb-1">{{ card.title }}</h3>
-          <p v-if="card.value" class="text-lg font-bold text-esmerald mb-2">{{ card.value }}</p>
+          <h3 class="font-bold text-text-brand text-base mb-1">{{ card.title }}</h3>
+          <p v-if="card.value" class="text-lg font-bold text-text-brand mb-2">{{ card.value }}</p>
           <p class="text-sm text-esmerald/60 leading-relaxed">{{ card.description }}</p>
         </div>
       </div>

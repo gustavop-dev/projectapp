@@ -2,7 +2,7 @@
   <form class="space-y-4" @submit.prevent="$emit('submit')">
     <div class="grid gap-4 md:grid-cols-2">
       <label class="block">
-        <span class="text-sm font-medium text-gray-700">Inversión</span>
+        <span class="text-sm font-medium text-text-default">Inversión</span>
         <input
           type="number"
           step="0.01"
@@ -12,7 +12,7 @@
         />
       </label>
       <label class="block">
-        <span class="text-sm font-medium text-gray-700">Moneda</span>
+        <span class="text-sm font-medium text-text-default">Moneda</span>
         <select
           class="mt-1 w-full border rounded px-3 py-2"
           :value="modelValue.currency"
@@ -23,7 +23,7 @@
         </select>
       </label>
       <label class="block">
-        <span class="text-sm font-medium text-gray-700">% inicial</span>
+        <span class="text-sm font-medium text-text-default">% inicial</span>
         <input
           type="number"
           min="0"
@@ -34,7 +34,7 @@
         />
       </label>
       <label class="block">
-        <span class="text-sm font-medium text-gray-700">% final</span>
+        <span class="text-sm font-medium text-text-default">% final</span>
         <input
           type="number"
           min="0"
@@ -45,7 +45,7 @@
         />
       </label>
       <label class="block md:col-span-2">
-        <span class="text-sm font-medium text-gray-700">Duración (texto)</span>
+        <span class="text-sm font-medium text-text-default">Duración (texto)</span>
         <input
           type="text"
           class="mt-1 w-full border rounded px-3 py-2"
@@ -58,7 +58,7 @@
     <div class="text-right">
       <button
         type="submit"
-        class="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+        class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-strong"
         :disabled="busy"
       >Guardar pricing</button>
     </div>

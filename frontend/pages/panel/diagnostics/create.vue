@@ -3,39 +3,39 @@
     <header class="mb-6">
       <NuxtLink
         :to="localePath('/panel/diagnostics')"
-        class="text-sm text-gray-500 dark:text-gray-400 hover:underline"
+        class="text-sm text-text-muted hover:underline"
       >← Diagnósticos</NuxtLink>
-      <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-1">Nuevo diagnóstico de aplicación</h1>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+      <h1 class="text-2xl font-light text-text-default mt-1">Nuevo diagnóstico de aplicación</h1>
+      <p class="text-sm text-text-muted mt-1">
         Crea un diagnóstico para un cliente existente. Podrás completar pricing, radiografía y documentos después.
       </p>
     </header>
 
     <form
-      class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6
-             dark:bg-gray-800 dark:border-gray-700"
+      class="bg-surface rounded-2xl shadow-sm border border-border-muted p-6 space-y-6
+            "
       @submit.prevent="submit"
     >
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cliente</label>
+        <label class="block text-sm font-medium text-text-default mb-1">Cliente</label>
         <ClientAutocomplete
           v-model="selectedClientId"
           placeholder="Buscar cliente por nombre, email o empresa..."
           test-id="diagnostic-client-autocomplete"
           @select="onClientSelected"
         />
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+        <p class="text-xs text-text-muted mt-1">
           Busca por nombre, email o empresa. Solo clientes existentes pueden recibir un diagnóstico.
         </p>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Idioma</label>
+        <label class="block text-sm font-medium text-text-default mb-1">Idioma</label>
         <select
           v-model="language"
-          class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white outline-none
-                 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500
-                 dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200"
+          class="w-full px-3 py-2 border border-border-default rounded-xl text-sm bg-surface outline-none
+                 focus:ring-1 focus:ring-focus-ring/30 focus:border-emerald-500
+                "
         >
           <option value="es">Español</option>
           <option value="en">English</option>
@@ -43,13 +43,13 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Título (opcional)</label>
+        <label class="block text-sm font-medium text-text-default mb-1">Título (opcional)</label>
         <input
           v-model="title"
           type="text"
-          class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm outline-none
-                 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500
-                 dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
+          class="w-full px-3 py-2 border border-border-default rounded-xl text-sm outline-none
+                 focus:ring-1 focus:ring-focus-ring/30 focus:border-emerald-500
+                 dark:placeholder-gray-500"
           placeholder="Se generará automáticamente si lo dejas vacío"
         />
       </div>
@@ -63,9 +63,9 @@
       <div class="text-right">
         <button
           type="submit"
-          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
-                 font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50
-                 dark:bg-emerald-700 dark:hover:bg-emerald-600"
+          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl
+                 font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50
+                 dark:bg-primary-strong dark:hover:bg-primary"
           :disabled="!selectedClientId || store.isUpdating"
           data-testid="diagnostic-submit-btn"
         >

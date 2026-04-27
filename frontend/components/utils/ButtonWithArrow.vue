@@ -1,7 +1,7 @@
 <template>
   <div class="flex justify-center">
     <button 
-      class="relative flex justify-center items-center py-4 w-3/4 my-4 font-regular rounded-xl bg-esmerald text-white lg:bg-lemon lg:text-esmerald js-hover-button"
+      class="relative flex justify-center items-center py-4 w-3/4 my-4 font-regular rounded-xl bg-primary text-white lg:bg-accent lg:text-text-brand js-hover-button"
       >
       <span class="inline-block js-text-animated">
         {{ globalMessages.contact_us }}

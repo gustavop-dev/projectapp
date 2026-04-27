@@ -3,7 +3,7 @@
     <div class="max-w-7xl mx-auto">
       <!-- Section Header -->
       <div class="mb-10 lg:mb-16">
-        <h2 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-light text-esmerald mb-4 lg:mb-6 leading-tight">
+        <h2 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-light text-text-brand mb-4 lg:mb-6 leading-tight">
           {{ messages?.study_cases?.title || 'Design and code made Simple' }}
         </h2>
         <p class="text-lg lg:text-2xl text-green-light max-w-3xl">

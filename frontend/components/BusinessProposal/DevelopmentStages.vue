@@ -1,11 +1,11 @@
 <template>
-  <section ref="sectionRef" class="development-stages py-16 md:py-24 bg-white">
+  <section ref="sectionRef" class="development-stages py-16 md:py-24 bg-surface">
     <div class="container mx-auto px-6 md:px-12 lg:px-24 max-w-5xl">
       <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
         <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
           {{ index }}
         </span>
-        <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
+        <h2 class="text-text-brand font-light leading-tight text-4xl md:text-6xl">
           {{ title }}
         </h2>
       </div>
@@ -24,30 +24,30 @@
             v-for="(stage, idx) in stages"
             :key="stage.title"
             class="relative rounded-2xl border px-6 py-5 md:ml-14 transition-all"
-            :class="stage.current ? 'bg-esmerald border-esmerald shadow-lg' : 'border-emerald-100 bg-white hover:border-emerald-200'"
+            :class="stage.current ? 'bg-primary border-border-default shadow-lg' : 'border-emerald-100 bg-surface hover:border-emerald-200'"
           >
             <!-- Timeline dot -->
             <div
               class="absolute -left-[2.35rem] top-6 h-3 w-3 rounded-full border-2 border-white hidden md:block"
-              :class="stage.current ? 'bg-emerald-600' : 'bg-emerald-300'"
+              :class="stage.current ? 'bg-primary' : 'bg-emerald-300'"
             ></div>
 
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                   <span class="text-xl md:text-2xl">{{ stage.icon }}</span>
-                  <h3 class="font-medium text-base sm:text-lg md:text-xl leading-snug" :class="stage.current ? 'text-esmerald-light' : 'text-esmerald'">
+                  <h3 class="font-medium text-base sm:text-lg md:text-xl leading-snug" :class="stage.current ? 'text-primary' : 'text-text-brand'">
                     {{ stage.title }}
                   </h3>
-                  <span v-if="stage.current" class="text-[10px] uppercase tracking-wider text-esmerald bg-lemon px-2 py-0.5 rounded-full font-medium">
+                  <span v-if="stage.current" class="text-[10px] uppercase tracking-wider text-text-brand bg-accent px-2 py-0.5 rounded-full font-medium">
                     {{ currentLabel }}
                   </span>
                 </div>
-                <p class="font-light leading-relaxed text-sm md:text-base" :class="stage.current ? 'text-esmerald-light/80' : 'text-esmerald/70'">
+                <p class="font-light leading-relaxed text-sm md:text-base" :class="stage.current ? 'text-primary' : 'text-esmerald/70'">
                   {{ stage.description }}
                 </p>
               </div>
-              <div class="flex-shrink-0 font-light tracking-[0.25em] text-xs pt-1" :class="stage.current ? 'text-lemon' : 'text-green-light'">
+              <div class="flex-shrink-0 font-light tracking-[0.25em] text-xs pt-1" :class="stage.current ? 'text-accent' : 'text-green-light'">
                 {{ String(idx + 1).padStart(2, '0') }}
               </div>
             </div>

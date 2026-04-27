@@ -1,5 +1,5 @@
 <template>
-  <div class="overflow-x-hidden bg-esmerald-light" itemscope itemtype="https://schema.org/WebPage">
+  <div class="overflow-x-hidden bg-primary-soft" itemscope itemtype="https://schema.org/WebPage">
     <!-- Hero section -->
     <Hero />
 
@@ -11,7 +11,7 @@
       <h1
         ref="mainTitleRef"
         id="main-intro-title"
-        class="block font-light text-2xl sm:text-3xl md:text-4xl lg:text-4xl xl:text-5xl 2xl:text-6xl text-esmerald lg:pe-60"
+        class="block font-light text-2xl sm:text-3xl md:text-4xl lg:text-4xl xl:text-5xl 2xl:text-6xl text-text-brand lg:pe-60"
         itemprop="headline"
       >
         {{ messages?.section_1?.title }}

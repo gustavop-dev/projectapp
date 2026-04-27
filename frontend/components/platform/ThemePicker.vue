@@ -9,7 +9,7 @@
           :key="idx"
           type="button"
           class="h-8 w-8 rounded-lg border-2 transition hover:scale-110"
-          :class="themeColor === shade ? 'border-esmerald ring-2 ring-esmerald/30 dark:border-white dark:ring-white/30' : 'border-transparent'"
+          :class="themeColor === shade ? 'border-input-border ring-2 ring-esmerald/30 dark:border-white dark:ring-white/30' : 'border-transparent'"
           :style="{ backgroundColor: shade }"
           :title="THEME_COLORS[Math.floor(idx / 9)]?.name"
           @click="handleColorSelect(shade)"
@@ -18,7 +18,7 @@
       <button
         v-if="themeColor"
         type="button"
-        class="mt-2 text-[10px] text-green-light transition hover:text-esmerald dark:hover:text-white"
+        class="mt-2 text-[10px] text-green-light transition hover:text-text-brand dark:hover:text-white"
         @click="handleClearColor"
       >
         Restablecer color
@@ -30,7 +30,7 @@
       <div class="mb-3 flex items-center justify-between">
         <p class="text-xs font-semibold uppercase tracking-widest text-green-light/60">Imagen de fondo</p>
         <div v-if="hasCover" class="flex items-center gap-3">
-          <div class="h-8 w-14 overflow-hidden rounded-md border border-esmerald/10 dark:border-white/10">
+          <div class="h-8 w-14 overflow-hidden rounded-md border border-input-border/10 dark:border-white/10">
             <img :src="currentCoverUrl" alt="Cover" class="h-full w-full object-cover" />
           </div>
           <button
@@ -46,7 +46,7 @@
       <!-- Upload custom -->
       <button
         type="button"
-        class="mb-4 flex w-full items-center gap-2 rounded-xl border border-dashed border-esmerald/10 p-3 text-xs text-green-light transition hover:border-esmerald/20 hover:text-esmerald dark:border-white/10 dark:hover:border-white/20 dark:hover:text-white"
+        class="mb-4 flex w-full items-center gap-2 rounded-xl border border-dashed border-input-border/10 p-3 text-xs text-green-light transition hover:border-input-border/20 hover:text-text-brand dark:border-white/10 dark:hover:border-white/20 dark:hover:text-white"
         @click="coverInputRef?.click()"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -62,14 +62,14 @@
       <div v-if="isLoadingGallery" class="py-8 text-center text-xs text-green-light">Cargando galeria...</div>
       <div v-else-if="gallery.length" class="max-h-[50vh] space-y-5 overflow-y-auto pr-1">
         <div v-for="category in gallery" :key="category.name">
-          <p class="sticky top-0 z-10 mb-2.5 bg-white/90 py-1 text-[11px] font-semibold text-green-light/70 backdrop-blur dark:bg-esmerald/90">{{ category.name }}</p>
+          <p class="sticky top-0 z-10 mb-2.5 bg-surface/90 py-1 text-[11px] font-semibold text-green-light/70 backdrop-blur dark:bg-primary/90">{{ category.name }}</p>
           <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
             <button
               v-for="img in category.images"
               :key="img.path"
               type="button"
               class="group relative aspect-[4/3] overflow-hidden rounded-xl border-2 transition hover:shadow-lg"
-              :class="coverImage === img.path ? 'border-esmerald ring-2 ring-esmerald/40 dark:border-lemon dark:ring-lemon/40' : 'border-transparent hover:border-esmerald/20 dark:hover:border-white/20'"
+              :class="coverImage === img.path ? 'border-input-border ring-2 ring-esmerald/40 dark:border-lemon dark:ring-lemon/40' : 'border-transparent hover:border-input-border/20 dark:hover:border-white/20'"
               @click="handleCoverSelect(img.path)"
             >
               <img :src="img.url" :alt="img.name" loading="lazy" class="h-full w-full object-cover transition group-hover:scale-105" />

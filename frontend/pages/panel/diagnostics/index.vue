@@ -13,15 +13,15 @@
 
     <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
       <div>
-        <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Diagnósticos de aplicaciones</h1>
-        <p class="text-sm text-gray-400 dark:text-gray-500 mt-0.5">Seguimiento de diagnósticos técnicos por cliente</p>
+        <h1 class="text-2xl font-light text-text-default">Diagnósticos de aplicaciones</h1>
+        <p class="text-sm text-text-subtle mt-0.5">Seguimiento de diagnósticos técnicos por cliente</p>
       </div>
       <div class="flex items-center gap-3">
-        <NuxtLink
+        <BaseButton
+          as="NuxtLink"
+          variant="secondary"
+          size="md"
           :to="localePath('/panel/defaults?mode=diagnostic')"
-          class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-gray-600 border border-gray-200 rounded-xl
-                 font-medium text-sm hover:bg-gray-50 hover:border-gray-300 transition-colors
-                 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-500"
           title="Configurar valores por defecto de los diagnósticos"
           data-testid="diagnostics-defaults-link"
         >
@@ -31,18 +31,19 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
           Valores por Defecto
-        </NuxtLink>
-        <NuxtLink
+        </BaseButton>
+        <BaseButton
+          as="NuxtLink"
+          variant="primary"
+          size="md"
           :to="localePath('/panel/diagnostics/create')"
-          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
-                 font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm shrink-0
-                 dark:bg-emerald-700 dark:hover:bg-emerald-600"
+          class="shrink-0"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
           Nuevo diagnóstico
-        </NuxtLink>
+        </BaseButton>
       </div>
     </header>
 
@@ -61,21 +62,19 @@
     <div class="flex flex-col sm:flex-row gap-3 mb-4">
       <div class="relative flex-1 max-w-sm">
         <svg
-          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500"
+          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-subtle pointer-events-none z-10"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
-        <input
+        <BaseInput
           v-model="searchQuery"
           type="text"
           placeholder="Buscar por título o cliente..."
           data-testid="diagnostics-search-input"
-          class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm
-                 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none
-                 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
+          class="!pl-10"
         />
       </div>
       <UiFilterToggleButton
@@ -95,43 +94,40 @@
     />
 
     <!-- Loading -->
-    <div v-if="store.isLoading" class="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">
+    <div v-if="store.isLoading" class="text-center py-12 text-text-subtle text-sm">
       Cargando…
     </div>
 
     <!-- Empty state -->
-    <div
+    <BaseEmptyState
       v-else-if="!sortedDiagnostics.length"
-      class="text-center py-16 dark:text-gray-400"
+      :description="activeFilterCount || searchQuery ? 'No hay diagnósticos que coincidan con los filtros.' : 'Aún no has creado diagnósticos.'"
     >
-      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center">
-        <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <template #icon>
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
-      </div>
-      <p class="text-gray-500 dark:text-gray-400 text-sm">
-        {{ activeFilterCount || searchQuery ? 'No hay diagnósticos que coincidan con los filtros.' : 'Aún no has creado diagnósticos.' }}
-      </p>
-      <NuxtLink
-        v-if="!store.diagnostics.length"
-        :to="localePath('/panel/diagnostics/create')"
-        class="inline-block mt-3 text-emerald-600 hover:underline text-sm dark:text-emerald-400"
-      >Crear el primero</NuxtLink>
-    </div>
+      </template>
+      <template v-if="!store.diagnostics.length" #actions>
+        <BaseButton as="NuxtLink" variant="primary" size="md" :to="localePath('/panel/diagnostics/create')">
+          Crear el primero
+        </BaseButton>
+      </template>
+    </BaseEmptyState>
 
     <!-- Table -->
     <div
       v-else
-      class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto dark:bg-gray-800 dark:border-gray-700"
+      class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-x-auto"
     >
       <table class="w-full min-w-[900px]">
-        <thead class="sticky top-0 z-10 bg-white dark:bg-gray-800">
-          <tr class="border-b border-gray-100 dark:border-gray-700 text-left">
-            <th class="px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12">ID</th>
+        <thead class="sticky top-0 z-10 bg-surface">
+          <tr class="border-b border-border-muted text-left">
+            <th class="px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider w-12">ID</th>
             <th
               class="px-6 py-3 text-xs font-medium uppercase tracking-wider cursor-pointer select-none transition-colors"
-              :class="sortKey === 'client_name' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400 hover:text-emerald-600'"
+              :class="sortKey === 'client_name' ? 'text-text-brand' : 'text-text-muted hover:text-text-brand'"
               @click="toggleSort('client_name')"
             >
               <span class="inline-flex items-center gap-1">
@@ -139,11 +135,11 @@
                 <SortIcon :active="sortKey === 'client_name'" :asc="sortDir === 'asc'" />
               </span>
             </th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Título</th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
+            <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Título</th>
+            <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
             <th
               class="px-6 py-3 text-xs font-medium uppercase tracking-wider cursor-pointer select-none transition-colors"
-              :class="sortKey === 'investment_amount' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400 hover:text-emerald-600'"
+              :class="sortKey === 'investment_amount' ? 'text-text-brand' : 'text-text-muted hover:text-text-brand'"
               @click="toggleSort('investment_amount')"
             >
               <span class="inline-flex items-center gap-1">
@@ -153,7 +149,7 @@
             </th>
             <th
               class="px-6 py-3 text-xs font-medium uppercase tracking-wider cursor-pointer select-none transition-colors hidden sm:table-cell"
-              :class="sortKey === 'created_at' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400 hover:text-emerald-600'"
+              :class="sortKey === 'created_at' ? 'text-text-brand' : 'text-text-muted hover:text-text-brand'"
               @click="toggleSort('created_at')"
             >
               <span class="inline-flex items-center gap-1">
@@ -163,7 +159,7 @@
             </th>
             <th
               class="px-6 py-3 text-xs font-medium uppercase tracking-wider cursor-pointer select-none transition-colors"
-              :class="sortKey === 'last_viewed_at' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400 hover:text-emerald-600'"
+              :class="sortKey === 'last_viewed_at' ? 'text-text-brand' : 'text-text-muted hover:text-text-brand'"
               @click="toggleSort('last_viewed_at')"
             >
               <span class="inline-flex items-center gap-1">
@@ -171,7 +167,7 @@
                 <SortIcon :active="sortKey === 'last_viewed_at'" :asc="sortDir === 'asc'" />
               </span>
             </th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
+            <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
@@ -182,33 +178,33 @@
             :data-testid="`diagnostic-row-${d.id}`"
             @click="navigateToDiagnostic(d.id, $event)"
           >
-            <td class="px-4 py-4 text-xs text-gray-400 dark:text-gray-500 tabular-nums">#{{ d.id }}</td>
+            <td class="px-4 py-4 text-xs text-text-subtle tabular-nums">#{{ d.id }}</td>
             <td class="px-6 py-4">
-              <div class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ d.client?.name || '—' }}</div>
-              <div v-if="d.client?.email" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ d.client.email }}</div>
+              <div class="text-sm font-medium text-text-default">{{ d.client?.name || '—' }}</div>
+              <div v-if="d.client?.email" class="text-xs text-text-muted mt-0.5">{{ d.client.email }}</div>
             </td>
-            <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ d.title }}</td>
+            <td class="px-6 py-4 text-sm text-text-default">{{ d.title }}</td>
             <td class="px-6 py-4">
               <DiagnosticStatusBadge :status="d.status" />
             </td>
-            <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 tabular-nums">
+            <td class="px-6 py-4 text-sm text-text-muted tabular-nums">
               <span v-if="d.investment_amount">{{ formatMoney(d.investment_amount) }} {{ d.currency }}</span>
-              <span v-else class="text-gray-300 dark:text-gray-500">—</span>
+              <span v-else class="text-text-subtle">—</span>
             </td>
-            <td class="px-6 py-4 text-xs text-gray-500 dark:text-gray-400 hidden sm:table-cell">
+            <td class="px-6 py-4 text-xs text-text-muted hidden sm:table-cell">
               <span v-if="d.created_at">{{ formatDate(d.created_at) }}</span>
-              <span v-else class="text-gray-300 dark:text-gray-500">—</span>
+              <span v-else class="text-text-subtle">—</span>
             </td>
-            <td class="px-6 py-4 text-xs text-gray-500 dark:text-gray-400">
+            <td class="px-6 py-4 text-xs text-text-muted">
               <span v-if="d.last_viewed_at">
                 {{ formatDate(d.last_viewed_at) }}
-                <span class="text-[10px] text-gray-400 dark:text-gray-500 ml-1">({{ d.view_count }} vistas)</span>
+                <span class="text-[10px] text-text-subtle ml-1">({{ d.view_count }} vistas)</span>
               </span>
-              <span v-else class="text-gray-300 dark:text-gray-500">—</span>
+              <span v-else class="text-text-subtle">—</span>
             </td>
             <td class="px-6 py-4" @click.stop>
               <button
-                class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-white"
+                class="p-1.5 rounded-lg hover:bg-surface-raised transition-colors text-text-subtle hover:text-text-default"
                 @click.stop="actionsModalDiagnostic = d"
               >
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -221,8 +217,8 @@
       </table>
 
       <!-- Pagination -->
-      <div v-if="sortedDiagnostics.length" class="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-gray-700">
-        <span class="text-xs text-gray-400 dark:text-gray-500">
+      <div v-if="sortedDiagnostics.length" class="flex items-center justify-between px-6 py-3 border-t border-border-muted">
+        <span class="text-xs text-text-subtle">
           Mostrando {{ paginationStart }}–{{ paginationEnd }} de {{ sortedDiagnostics.length }} diagnóstico{{ sortedDiagnostics.length !== 1 ? 's' : '' }}
         </span>
         <div v-if="totalPages > 1" class="flex gap-1">
@@ -231,8 +227,8 @@
             :key="page"
             class="w-8 h-8 rounded-lg text-xs font-medium transition-colors"
             :class="currentPage === page
-              ? 'bg-emerald-600 text-white dark:bg-emerald-500'
-              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.04]'"
+              ? 'bg-primary text-white'
+              : 'text-text-muted hover:bg-surface-raised'"
             @click="currentPage = page"
           >
             {{ page }}
@@ -249,13 +245,13 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="actionsModalDiagnostic = null"
         >
-          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full dark:bg-gray-800 dark:border dark:border-white/[0.06]">
-            <div class="px-6 py-4 border-b border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
+          <div class="bg-surface rounded-2xl shadow-2xl max-w-md w-full border border-border-muted">
+            <div class="px-6 py-4 border-b border-border-muted flex items-center justify-between">
               <div class="min-w-0">
-                <h3 class="text-base font-bold text-gray-900 dark:text-white truncate">
+                <h3 class="text-base font-bold text-text-default truncate">
                   {{ actionsModalDiagnostic.title }}
                 </h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <p class="text-xs text-text-muted mt-0.5">
                   {{ actionsModalDiagnostic.client?.name || '—' }}
                   <span v-if="actionsModalDiagnostic.created_at" class="ml-1 text-gray-400">
                     · {{ formatDate(actionsModalDiagnostic.created_at) }}
@@ -263,7 +259,7 @@
                 </p>
               </div>
               <button
-                class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+                class="w-8 h-8 rounded-lg flex items-center justify-center text-text-subtle hover:bg-surface-raised transition-colors"
                 @click="actionsModalDiagnostic = null"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -274,11 +270,11 @@
             <div class="p-3 space-y-1 max-h-[60vh] overflow-y-auto">
               <NuxtLink
                 :to="localePath(`/panel/diagnostics/${actionsModalDiagnostic.id}/edit`)"
-                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-surface-raised"
                 @click="actionsModalDiagnostic = null"
               >
-                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-gray-100 dark:bg-white/[0.06]">✏️</span>
-                <span class="text-sm font-medium text-gray-800 dark:text-white">Abrir editor</span>
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-surface-raised">✏️</span>
+                <span class="text-sm font-medium text-text-default">Abrir editor</span>
               </NuxtLink>
 
               <a
@@ -286,7 +282,7 @@
                 :href="actionsModalDiagnostic.public_url"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-surface-raised"
               >
                 <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400">👁️</span>
                 <span class="text-sm font-medium text-purple-700 dark:text-purple-300">Ver vista pública</span>
@@ -295,18 +291,18 @@
               <button
                 v-if="actionsModalDiagnostic.public_url"
                 type="button"
-                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-surface-raised"
                 @click="handleCopyLink(actionsModalDiagnostic)"
               >
                 <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg"
                   :class="copiedId === actionsModalDiagnostic.id
-                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
-                    : 'bg-gray-100 dark:bg-white/[0.06]'"
+                    ? 'bg-primary-soft text-text-brand'
+                    : 'bg-surface-raised'"
                 >{{ copiedId === actionsModalDiagnostic.id ? '✅' : '🔗' }}</span>
                 <span class="text-sm font-medium"
                   :class="copiedId === actionsModalDiagnostic.id
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-gray-800 dark:text-white'"
+                    ? 'text-text-brand'
+                    : 'text-text-default'"
                 >{{ copiedId === actionsModalDiagnostic.id ? '¡Enlace copiado!' : 'Copiar enlace' }}</span>
               </button>
 

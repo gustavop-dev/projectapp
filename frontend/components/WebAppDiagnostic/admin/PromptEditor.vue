@@ -4,17 +4,17 @@
       <template v-if="!state.isEditing.value">
         <button
           type="button"
-          class="px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/40 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+          class="px-3 py-1.5 text-xs font-medium text-text-brand border border-emerald-200 dark:border-emerald-500/40 rounded-lg hover:bg-primary-soft dark:hover:bg-emerald-500/10"
           @click="startEdit"
         >Editar</button>
         <button
           type="button"
-          class="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+          class="px-3 py-1.5 text-xs font-medium text-text-default border border-border-default rounded-lg hover:bg-surface-raised"
           @click="onCopy"
         >{{ copied ? '¡Copiado!' : 'Copiar' }}</button>
         <button
           type="button"
-          class="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+          class="px-3 py-1.5 text-xs font-medium text-text-default border border-border-default rounded-lg hover:bg-surface-raised"
           @click="onDownload"
         >Descargar .md</button>
         <button
@@ -27,26 +27,26 @@
       <template v-else>
         <button
           type="button"
-          class="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
+          class="px-3 py-1.5 text-xs font-medium text-white bg-primary rounded-lg hover:opacity-90"
           @click="saveEdit"
         >Guardar</button>
         <button
           type="button"
-          class="px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+          class="px-3 py-1.5 text-xs font-medium text-text-default border border-border-default rounded-lg hover:bg-surface-raised"
           @click="cancelEdit"
         >Cancelar</button>
       </template>
     </div>
 
-    <div v-if="state.isEditing.value" class="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+    <div v-if="state.isEditing.value" class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
       <textarea
         v-model="buffer"
         rows="24"
-        class="w-full px-4 py-3 text-xs font-mono leading-relaxed text-gray-800 dark:text-gray-100 bg-transparent focus:outline-none"
+        class="w-full px-4 py-3 text-xs font-mono leading-relaxed text-text-default bg-transparent focus:outline-none"
       ></textarea>
     </div>
-    <div v-else class="bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-700 p-4 max-h-[520px] overflow-auto">
-      <pre class="text-xs leading-relaxed text-gray-700 dark:text-gray-200 whitespace-pre-wrap font-mono break-words">{{ state.promptText.value }}</pre>
+    <div v-else class="bg-surface-muted rounded-xl border border-border-muted p-4 max-h-[520px] overflow-auto">
+      <pre class="text-xs leading-relaxed text-text-default whitespace-pre-wrap font-mono break-words">{{ state.promptText.value }}</pre>
     </div>
 
     <p v-if="isCustom" class="text-xs text-amber-600 dark:text-amber-400 mt-3">

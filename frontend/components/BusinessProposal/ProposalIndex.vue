@@ -4,9 +4,9 @@
     <button
       data-testid="index-toggle"
       class="index-toggle absolute left-4 top-4 z-50 pointer-events-auto
-             w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg
-             flex items-center justify-center text-esmerald
-             hover:bg-esmerald/5 transition-colors"
+             w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg
+             flex items-center justify-center text-text-brand
+             hover:bg-primary/5 transition-colors"
       @click="isOpen = !isOpen"
     >
       <svg v-if="!isOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -21,7 +21,7 @@
     <Transition name="idx-fade">
       <div
         v-if="isOpen"
-        class="fixed inset-0 z-[9990] bg-white/60 backdrop-blur-[3px] sm:bg-white/60 pointer-events-auto"
+        class="fixed inset-0 z-[9990] bg-surface/60 backdrop-blur-[3px] sm:bg-surface/60 pointer-events-auto"
         @click="isOpen = false"
       />
     </Transition>
@@ -29,19 +29,19 @@
     <!-- Index panel: fullscreen on mobile, floating on desktop -->
     <nav
       data-testid="index-panel"
-      class="index-panel z-[9999] bg-white/95 backdrop-blur-md overflow-y-auto transition-all duration-300
+      class="index-panel z-[9999] bg-surface/95 backdrop-blur-md overflow-y-auto transition-all duration-300
              fixed inset-0 py-4 px-4
              sm:relative sm:inset-auto sm:ml-3 sm:py-4 sm:px-3 sm:mt-[50vh] sm:-translate-y-1/2
-             sm:rounded-2xl sm:shadow-xl sm:border sm:border-gray-100
+             sm:rounded-2xl sm:shadow-xl sm:border sm:border-border-muted
              sm:max-h-[80vh]"
       :class="isOpen ? 'pointer-events-auto' : 'pointer-events-none translate-x-[-120%]'"
     >
       <!-- Mobile close button — same style/position as hamburger toggle -->
       <button
         class="sm:hidden absolute left-4 top-4 z-10
-               w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg
-               flex items-center justify-center text-esmerald
-               hover:bg-esmerald/5 transition-colors"
+               w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg
+               flex items-center justify-center text-text-brand
+               hover:bg-primary/5 transition-colors"
         @click="isOpen = false"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -49,7 +49,7 @@
         </svg>
       </button>
 
-      <p class="text-[10px] uppercase tracking-[0.2em] text-esmerald font-medium mb-2 px-2 mt-14 sm:mt-0">
+      <p class="text-[10px] uppercase tracking-[0.2em] text-text-brand font-medium mb-2 px-2 mt-14 sm:mt-0">
         Índice
       </p>
       <ul class="space-y-0.5">
@@ -61,17 +61,17 @@
           <button
             class="w-full text-left px-2.5 py-2 sm:py-1.5 rounded-xl text-sm transition-all duration-200 flex items-center gap-2"
             :class="idx === currentIndex
-              ? 'bg-esmerald/5 text-esmerald font-medium'
-              : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'"
+              ? 'bg-primary/5 text-text-brand font-medium'
+              : 'text-text-muted hover:text-text-default hover:bg-gray-50'"
             @click="$emit('navigate', idx); isOpen = false"
           >
             <span
               class="w-6 h-6 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[11px] sm:text-[10px] font-medium flex-shrink-0 transition-colors"
               :class="idx === currentIndex
-                ? 'bg-esmerald text-lemon'
+                ? 'bg-primary text-accent'
                 : visitedPanelIds.has(section.id)
-                  ? 'bg-esmerald/10 text-esmerald'
-                  : 'bg-gray-200 text-gray-500 group-hover:bg-gray-300'"
+                  ? 'bg-primary/10 text-text-brand'
+                  : 'bg-gray-200 text-text-muted group-hover:bg-gray-300'"
             >
               <svg
                 v-if="visitedPanelIds.has(section.id) && idx !== currentIndex"
@@ -92,8 +92,8 @@
         <button
           v-if="viewMode === 'executive'"
           data-testid="switch-to-detailed-btn"
-          class="sidebar-switch-detailed-btn w-full flex items-center gap-2 px-3 py-2.5 bg-esmerald text-lemon rounded-xl text-sm font-medium
-                 hover:bg-esmerald/90 transition-colors shadow-sm"
+          class="sidebar-switch-detailed-btn w-full flex items-center gap-2 px-3 py-2.5 bg-primary text-accent rounded-xl text-sm font-medium
+                 hover:bg-primary/90 transition-colors shadow-sm"
           @click="$emit('switchToDetailed'); isOpen = false"
         >
           <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -103,7 +103,7 @@
         </button>
         <button
           data-testid="back-to-gateway-btn"
-          class="w-full flex items-center gap-2 px-3 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium
+          class="w-full flex items-center gap-2 px-3 py-2.5 border border-border-default text-text-muted rounded-xl text-sm font-medium
                  hover:bg-gray-50 hover:border-gray-300 transition-colors"
           @click="$emit('backToGateway'); isOpen = false"
         >

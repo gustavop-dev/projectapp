@@ -4,13 +4,13 @@
     data-testid="download-diagnostic-pdf-btn"
     class="pdf-download fixed bottom-[4.75rem] right-4 z-40
            w-12 h-12 rounded-full
-           bg-white/90 dark:bg-esmerald/90 backdrop-blur-sm shadow-lg
-           border border-esmerald/15 dark:border-esmerald-light/20
+           bg-surface/90 dark:bg-primary/90 backdrop-blur-sm shadow-lg
+           border border-input-border/15 dark:border-input-border/20
            flex items-center justify-center
-           text-esmerald/70 dark:text-esmerald-light/80
-           hover:bg-esmerald/5 dark:hover:bg-esmerald-light/10
-           hover:text-esmerald dark:hover:text-esmerald-light
-           hover:border-esmerald/30 dark:hover:border-esmerald-light/30
+           text-text-brand/70 dark:text-text-brand/80
+           hover:bg-primary/5 dark:hover:bg-primary-soft/10
+           hover:text-text-brand dark:hover:text-text-brand
+           hover:border-input-border/30 dark:hover:border-input-border/30
            transition-colors"
     :disabled="isGenerating"
     :title="isGenerating ? 'Generando...' : 'Descargar PDF'"

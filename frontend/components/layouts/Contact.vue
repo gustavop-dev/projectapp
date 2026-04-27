@@ -1,12 +1,12 @@
 <template>
   <section class="p-3" aria-label="Contact and get in touch with our web design team">
-          <div class="border-t-2 border-t-gray-250 grid lg:h-80 lg:grid-cols-2">
+          <div class="border-t-2 border-t-gray-200 grid lg:h-80 lg:grid-cols-2">
               <div class="mt-16 lg:ps-8">
-                  <h2 class="text-esmerald text-4xl font-regular" v-html="globalMessages.heading"></h2>
+                  <h2 class="text-text-brand text-4xl font-regular" v-html="globalMessages.heading"></h2>
               </div>
               <div class="grid mt-16 lg:grid-cols-2">
-                  <article class="relative border-s-2 border-s-gray-250 ps-4 py-8">
-                      <h3 class="text-esmerald text-4xl font-regular">
+                  <article class="relative border-s-2 border-s-gray-200 ps-4 py-8">
+                      <h3 class="text-text-brand text-4xl font-regular">
                         {{ globalMessages.mail_us_title }}
                       </h3>
                       <p class="mt-4 text-green-light text-lg font-regular">
@@ -17,7 +17,7 @@
                         ref="emailLink" 
                         @mouseover="animateLink" 
                         @mouseleave="resetLink" 
-                        class="inline-block text-xl absolute bottom-0 text-esmerald cursor-pointer"
+                        class="inline-block text-xl absolute bottom-0 text-text-brand cursor-pointer"
                         aria-label="Email our website design and development team"
                         >
                         {{ globalMessages.email_address }}
@@ -37,8 +37,8 @@
                         <span class="sr-only">Open contact form to email our web development team</span>
                       </a>
                   </article>
-                  <article class="relative border-s-2 border-s-gray-250 ps-4 py-8">
-                      <h3 class="text-esmerald text-4xl font-regular">
+                  <article class="relative border-s-2 border-s-gray-200 ps-4 py-8">
+                      <h3 class="text-text-brand text-4xl font-regular">
                         {{ globalMessages.direct_contact_title }}
                       </h3>
                       <p class="mt-4 text-green-light text-lg font-regular">
@@ -51,7 +51,7 @@
                         ref="chatLink" 
                         @mouseover="animateLinkChat" 
                         @mouseleave="resetLinkChat" 
-                        class="inline-block text-xl absolute bottom-0 text-esmerald cursor-pointer"
+                        class="inline-block text-xl absolute bottom-0 text-text-brand cursor-pointer"
                         aria-label="Start a WhatsApp chat with our web design team"
                         >
                         {{ globalMessages.chat }}

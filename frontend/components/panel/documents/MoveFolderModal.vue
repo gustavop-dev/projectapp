@@ -6,10 +6,10 @@
         class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
         @click.self="close"
       >
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm dark:bg-gray-800">
+        <div class="bg-surface rounded-2xl shadow-2xl w-full max-w-sm">
 
           <!-- Header -->
-          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-border-muted">
             <div class="flex items-center gap-2.5">
               <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
                 <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -17,13 +17,13 @@
                 </svg>
               </div>
               <div class="min-w-0">
-                <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Mover documento</h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">{{ document.title }}</p>
+                <h3 class="text-base font-semibold text-text-default">Mover documento</h3>
+                <p class="text-xs text-text-muted truncate max-w-[200px]">{{ document.title }}</p>
               </div>
             </div>
             <button
               type="button"
-              class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              class="w-8 h-8 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               @click="close"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -41,15 +41,15 @@
               class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left disabled:opacity-50"
               :class="document.folder_id === null
                 ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
-                : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50'"
+                : 'border-border-muted hover:border-border-default dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50'"
               @click="moveToFolder(null)"
             >
-              <div class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
-                <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <svg class="w-3.5 h-3.5 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                 </svg>
               </div>
-              <span class="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300">Sin carpeta</span>
+              <span class="flex-1 text-sm font-medium text-text-default">Sin carpeta</span>
               <svg
                 v-if="document.folder_id === null"
                 class="w-4 h-4 text-blue-500 flex-shrink-0"
@@ -69,7 +69,7 @@
               class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left disabled:opacity-50"
               :class="document.folder_id === folder.id
                 ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
-                : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50'"
+                : 'border-border-muted hover:border-border-default dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50'"
               @click="moveToFolder(folder.id)"
             >
               <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0">
@@ -77,8 +77,8 @@
                   <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
                 </svg>
               </div>
-              <span class="flex-1 min-w-0 text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{{ folder.name }}</span>
-              <span class="flex-shrink-0 text-xs text-gray-400 dark:text-gray-500">{{ folder.document_count }}</span>
+              <span class="flex-1 min-w-0 text-sm font-medium text-text-default truncate">{{ folder.name }}</span>
+              <span class="flex-shrink-0 text-xs text-text-subtle">{{ folder.document_count }}</span>
               <svg
                 v-if="document.folder_id === folder.id"
                 class="w-4 h-4 text-blue-500 flex-shrink-0"
@@ -90,7 +90,7 @@
             </button>
 
             <div v-if="!folderStore.folders.length" class="text-center py-4">
-              <p class="text-sm text-gray-500 dark:text-gray-400">No hay carpetas creadas.</p>
+              <p class="text-sm text-text-muted">No hay carpetas creadas.</p>
             </div>
           </div>
 
@@ -100,10 +100,10 @@
           </div>
 
           <!-- Footer -->
-          <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+          <div class="px-6 py-4 border-t border-border-muted flex justify-end">
             <button
               type="button"
-              class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default dark:text-text-subtle dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               @click="close"
             >
               Cancelar

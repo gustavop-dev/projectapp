@@ -1,5 +1,5 @@
 <template>
-  <div v-if="sortedHistory.length" class="mt-4 border-t border-esmerald/10 pt-4 dark:border-white/10">
+  <div v-if="sortedHistory.length" class="mt-4 border-t border-input-border/10 pt-4 dark:border-white/10">
     <p class="mb-2 text-[10px] font-semibold uppercase tracking-wider text-green-light/60">
       {{ title }}
     </p>
@@ -7,9 +7,9 @@
       <li
         v-for="h in sortedHistory"
         :key="h.id"
-        class="flex flex-col gap-0.5 border-l-2 border-esmerald/15 pl-3 dark:border-white/10"
+        class="flex flex-col gap-0.5 border-l-2 border-input-border/15 pl-3 dark:border-white/10"
       >
-        <span class="text-xs font-medium text-esmerald dark:text-white">
+        <span class="text-xs font-medium text-text-brand dark:text-white">
           {{ statusLabel(h.from_status) }} → {{ statusLabel(h.to_status) }}
         </span>
         <span class="text-[10px] text-green-light/70">{{ formatDateTime(h.created_at) }}</span>

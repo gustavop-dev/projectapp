@@ -4,7 +4,7 @@
       <div class="min-w-0">
         <NuxtLink
           :to="localePath('/panel/documents')"
-          class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors"
+          class="inline-flex items-center gap-1 text-sm text-text-muted hover:text-text-default transition-colors"
           aria-label="Volver a documentos"
         >
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -12,23 +12,22 @@
           </svg>
           Volver a documentos
         </NuxtLink>
-        <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-2 truncate">
+        <h1 class="text-2xl font-light text-text-default mt-2 truncate">
           {{ documentStore.currentDocument?.title || 'Editar Documento' }}
         </h1>
-        <p v-if="documentStore.currentDocument" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        <p v-if="documentStore.currentDocument" class="text-sm text-text-muted mt-1">
           {{ statusLabel }}{{ form.client_name ? ` · ${form.client_name}` : '' }}
         </p>
       </div>
       <div v-if="documentStore.currentDocument && !loadError" class="hidden lg:flex items-center gap-3">
-        <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+        <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-text-muted hover:text-text-default">
           Cancelar
         </NuxtLink>
         <button
           type="button"
           :disabled="isDownloading"
-          class="px-5 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-xl font-medium text-sm
-                 hover:bg-gray-50 hover:border-gray-300 transition-colors
-                 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 disabled:opacity-50"
+          class="px-5 py-2.5 bg-surface text-text-default border border-border-default rounded-xl font-medium text-sm
+                 hover:bg-surface-raised hover:border-border-default transition-colors disabled:opacity-50"
           @click="handleDownloadPdf"
         >
           {{ isDownloading ? 'Descargando...' : 'Descargar PDF' }}
@@ -37,23 +36,23 @@
           type="submit"
           form="doc-edit-form"
           :disabled="documentStore.isUpdating"
-          class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
-                 hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-5 py-2.5 bg-primary text-white rounded-xl font-medium text-sm
+                 hover:bg-primary transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {{ documentStore.isUpdating ? 'Guardando...' : 'Guardar' }}
         </button>
       </div>
     </div>
 
-    <div v-if="documentStore.isLoading" class="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">
+    <div v-if="documentStore.isLoading" class="text-center py-12 text-text-subtle text-sm">
       Cargando...
     </div>
 
     <div v-else-if="loadError" class="text-center py-16">
-      <p class="text-gray-500 dark:text-gray-400 text-sm">No se pudo cargar el documento.</p>
+      <p class="text-text-muted text-sm">No se pudo cargar el documento.</p>
       <NuxtLink
         :to="localePath('/panel/documents')"
-        class="inline-flex items-center gap-1 mt-3 text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
+        class="inline-flex items-center gap-1 mt-3 text-sm text-text-brand hover:text-text-brand dark:text-emerald-400"
       >
         ← Volver a la lista
       </NuxtLink>
@@ -66,43 +65,40 @@
       @submit.prevent="handleSave"
     >
       <aside
-        class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 dark:bg-gray-800 dark:border-gray-700
+        class="bg-surface rounded-xl shadow-sm border border-border-muted p-5 sm:p-6
                lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
       >
         <div class="space-y-6">
           <div class="space-y-4">
-            <h2 class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Identificación</h2>
+            <h2 class="text-xs uppercase tracking-wide font-semibold text-text-muted">Identificación</h2>
             <div>
-              <label for="edit-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Título</label>
+              <label for="edit-title" class="block text-sm font-medium text-text-default mb-1">Título</label>
               <input
                 id="edit-title"
                 v-model="form.title"
                 type="text"
                 required
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
-                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
               />
             </div>
             <div>
-              <label for="edit-client" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del cliente</label>
+              <label for="edit-client" class="block text-sm font-medium text-text-default mb-1">Nombre del cliente</label>
               <input
                 id="edit-client"
                 v-model="form.client_name"
                 type="text"
                 placeholder="Empresa S.A."
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
-                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
+                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default placeholder:text-text-subtle
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Estado</label>
+              <label class="block text-sm font-medium text-text-default mb-1">Estado</label>
               <select
                 v-model="form.status"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white
-                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
               >
                 <option v-for="option in statusOptions" :key="option.value" :value="option.value">
                   {{ option.label }}
@@ -111,17 +107,16 @@
             </div>
           </div>
 
-          <hr class="border-gray-100 dark:border-gray-700" />
+          <hr class="border-border-muted" />
 
           <div class="space-y-4">
-            <h2 class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Organización</h2>
+            <h2 class="text-xs uppercase tracking-wide font-semibold text-text-muted">Organización</h2>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carpeta</label>
+              <label class="block text-sm font-medium text-text-default mb-1">Carpeta</label>
               <select
                 v-model="form.folder_id"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white
-                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
               >
                 <option :value="null">Sin carpeta</option>
                 <option v-for="folder in folderStore.folders" :key="folder.id" :value="folder.id">
@@ -132,17 +127,16 @@
             <TagSelector v-model="form.tag_ids" :tags="tagStore.tags" />
           </div>
 
-          <hr class="border-gray-100 dark:border-gray-700" />
+          <hr class="border-border-muted" />
 
           <div class="space-y-4">
-            <h2 class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Opciones de exportación</h2>
+            <h2 class="text-xs uppercase tracking-wide font-semibold text-text-muted">Opciones de exportación</h2>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Idioma</label>
+              <label class="block text-sm font-medium text-text-default mb-1">Idioma</label>
               <select
                 v-model="form.language"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white
-                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
               >
                 <option value="es">Español</option>
                 <option value="en">English</option>
@@ -156,10 +150,10 @@
               >
                 <span class="relative flex-shrink-0">
                   <input v-model="form[option.key]" type="checkbox" class="sr-only peer" />
-                  <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-gray-200 peer-checked:bg-emerald-500 dark:bg-gray-600 dark:peer-checked:bg-emerald-500"></span>
-                  <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
+                  <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-surface-raised peer-checked:bg-primary"></span>
+                  <span class="absolute top-1 left-1 w-4 h-4 bg-surface rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
                 </span>
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ option.label }}</span>
+                <span class="text-sm font-medium text-text-default">{{ option.label }}</span>
               </label>
             </div>
           </div>
@@ -167,19 +161,19 @@
       </aside>
 
       <section
-        class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 dark:bg-gray-800 dark:border-gray-700
+        class="bg-surface rounded-xl shadow-sm border border-border-muted p-5 sm:p-6
                flex flex-col min-w-0"
       >
         <div class="flex items-center justify-between mb-3 gap-3 flex-wrap">
-          <label for="edit-markdown" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contenido Markdown</label>
+          <label for="edit-markdown" class="block text-sm font-medium text-text-default">Contenido Markdown</label>
           <div class="flex items-center gap-2 flex-wrap">
-            <span v-if="form.content_markdown" class="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
+            <span v-if="form.content_markdown" class="text-xs text-text-subtle tabular-nums">
               {{ form.content_markdown.length.toLocaleString() }} caracteres
             </span>
             <button
               type="button"
               class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors
-                     bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                     bg-surface-raised text-text-muted hover:bg-surface-raised"
               :disabled="!form.content_markdown.trim()"
               @click="showFullPreview = true"
             >
@@ -192,8 +186,8 @@
               type="button"
               class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
               :class="showPreview
-                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'"
+                ? 'bg-primary-soft text-text-brand hover:bg-primary-soft'
+                : 'bg-surface-raised text-text-muted hover:bg-surface-raised'"
               @click="showPreview = !showPreview"
             >
               <svg v-if="showPreview" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -212,18 +206,17 @@
             id="edit-markdown"
             v-model="form.content_markdown"
             placeholder="# Contenido del documento..."
-            class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm font-mono leading-relaxed
-                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-none
-                   min-h-[24rem] lg:h-[calc(100vh-18rem)]
-                   dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
+            class="w-full px-4 py-3 border border-border-default rounded-xl text-sm font-mono leading-relaxed bg-surface text-text-default placeholder:text-text-subtle
+                   focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none resize-none
+                   min-h-[24rem] lg:h-[calc(100vh-18rem)]"
           ></textarea>
           <div
             v-if="showPreview"
-            class="border border-gray-200 rounded-xl bg-white overflow-y-auto dark:bg-gray-900 dark:border-gray-600
+            class="border border-border-default rounded-xl bg-surface overflow-y-auto
                    min-h-[24rem] lg:h-[calc(100vh-18rem)]"
           >
-            <div class="sticky top-0 px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-t-xl z-10">
-              <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Vista previa</span>
+            <div class="sticky top-0 px-3 py-2 border-b border-border-default bg-surface-raised rounded-t-xl z-10">
+              <span class="text-xs font-medium text-text-muted uppercase tracking-wide">Vista previa</span>
             </div>
             <div
               v-if="form.content_markdown.trim()"
@@ -232,7 +225,7 @@
             ></div>
             <div
               v-else
-              class="flex items-center justify-center h-64 text-sm text-gray-400 dark:text-gray-500"
+              class="flex items-center justify-center h-64 text-sm text-text-subtle"
             >
               Escribe markdown para ver la vista previa...
             </div>
@@ -243,7 +236,7 @@
           {{ errorMsg }}
         </div>
 
-        <div v-if="saveSuccess" class="mt-4 text-sm text-emerald-600 bg-emerald-50 px-4 py-3 rounded-xl dark:bg-emerald-900/20 dark:text-emerald-400">
+        <div v-if="saveSuccess" class="mt-4 text-sm text-text-brand bg-primary-soft px-4 py-3 rounded-xl dark:bg-emerald-900/20 dark:text-emerald-400">
           Documento guardado correctamente.
         </div>
 
@@ -251,22 +244,21 @@
           <button
             type="submit"
             :disabled="documentStore.isUpdating"
-            class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
-                   hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-5 sm:px-6 py-2.5 bg-primary text-white rounded-xl font-medium text-sm
+                   hover:bg-primary transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {{ documentStore.isUpdating ? 'Guardando...' : 'Guardar' }}
           </button>
           <button
             type="button"
             :disabled="isDownloading"
-            class="px-5 sm:px-6 py-2.5 bg-white text-gray-700 border border-gray-200 rounded-xl font-medium text-sm
-                   hover:bg-gray-50 hover:border-gray-300 transition-colors
-                   dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 disabled:opacity-50"
+            class="px-5 sm:px-6 py-2.5 bg-surface text-text-default border border-border-default rounded-xl font-medium text-sm
+                   hover:bg-surface-raised hover:border-border-default transition-colors disabled:opacity-50"
             @click="handleDownloadPdf"
           >
             {{ isDownloading ? 'Descargando...' : 'Descargar PDF' }}
           </button>
-          <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+          <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-text-muted hover:text-text-default">
             Cancelar
           </NuxtLink>
         </div>
@@ -282,7 +274,7 @@
         class="markdown-preview markdown-preview--full max-w-4xl mx-auto"
         v-html="previewHtml"
       ></div>
-      <div v-else class="flex items-center justify-center h-full text-sm text-gray-400 dark:text-gray-500">
+      <div v-else class="flex items-center justify-center h-full text-sm text-text-subtle">
         No hay contenido para mostrar.
       </div>
     </MarkdownPreviewModal>

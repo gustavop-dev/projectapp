@@ -7,7 +7,7 @@
         
         <!-- Column 1: Video with Play Reel button -->
         <div class="hidden lg:block">
-          <div class="relative rounded-3xl overflow-hidden h-full min-h-[500px] bg-esmerald">
+          <div class="relative rounded-3xl overflow-hidden h-full min-h-[500px] bg-primary">
             <!-- Video autoplay loop -->
             <video
               :src="videoMobile"
@@ -80,7 +80,7 @@
                 <!-- CTA Button -->
                 <div class="mt-8 flex justify-end">
                   <button 
-                    class="px-6 py-3 bg-lemon text-black rounded-full font-semibold text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg flex items-center gap-2"
+                    class="px-6 py-3 bg-accent text-black rounded-full font-semibold text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg flex items-center gap-2"
                     data-cal-link="projectapp/discovery-call-projectapp"
                     data-cal-namespace="discovery-call-projectapp"
                     data-cal-config='{"layout":"week_view","theme":"dark"}'

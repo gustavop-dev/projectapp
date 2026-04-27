@@ -1,7 +1,7 @@
 <template>
   <div id="platform-collection-accounts" class="space-y-6">
     <div data-enter>
-      <h1 class="text-2xl font-bold text-esmerald dark:text-white">
+      <h1 class="text-2xl font-bold text-text-default">
         {{ authStore.isAdmin ? 'Collection accounts' : 'My collection accounts' }}
       </h1>
       <p class="mt-1 text-sm text-green-light">
@@ -9,16 +9,16 @@
       </p>
     </div>
 
-    <div v-if="authStore.isAdmin" class="flex flex-wrap gap-3 rounded-2xl border border-esmerald/[0.06] bg-white p-4 dark:border-white/[0.06] dark:bg-esmerald" data-enter>
+    <div v-if="authStore.isAdmin" class="flex flex-wrap gap-3 rounded-2xl border border-border-default bg-surface p-4" data-enter>
       <input
         v-model.number="filters.project_id"
         type="number"
         placeholder="Project ID"
-        class="rounded-xl border border-esmerald/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-esmerald-dark dark:text-white"
+        class="rounded-xl border border-border-default bg-surface px-3 py-2 text-sm dark:bg-primary-strong dark:text-white"
       />
       <select
         v-model="filters.commercial_status"
-        class="rounded-xl border border-esmerald/10 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-esmerald-dark dark:text-white"
+        class="rounded-xl border border-border-default bg-surface px-3 py-2 text-sm dark:bg-primary-strong dark:text-white"
       >
         <option value="">All statuses</option>
         <option value="draft">draft</option>
@@ -28,14 +28,14 @@
       </select>
       <button
         type="button"
-        class="rounded-xl bg-esmerald px-4 py-2 text-sm font-medium text-white dark:bg-lemon dark:text-esmerald-dark"
+        class="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white dark:bg-accent dark:text-text-default"
         @click="applyFilters"
       >
         Apply filters
       </button>
       <button
         type="button"
-        class="rounded-xl border border-esmerald/20 px-4 py-2 text-sm text-esmerald dark:border-white/20 dark:text-lemon"
+        class="rounded-xl border border-border-default px-4 py-2 text-sm text-text-brand"
         @click="showCreate = true"
       >
         New collection account
@@ -43,17 +43,17 @@
     </div>
 
     <div v-if="store.isLoading" class="py-20 text-center">
-      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-esmerald/20 border-t-esmerald dark:border-white/20 dark:border-t-lemon" />
+      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
     </div>
 
-    <div v-else-if="store.accounts.length === 0" class="rounded-2xl border border-dashed border-esmerald/10 py-16 text-center text-sm text-green-light dark:border-white/10">
+    <div v-else-if="store.accounts.length === 0" class="rounded-2xl border border-dashed border-border-default py-16 text-center text-sm text-green-light">
       No collection accounts yet.
     </div>
 
-    <div v-else class="overflow-x-auto rounded-2xl border border-esmerald/[0.06] bg-white dark:border-white/[0.06] dark:bg-esmerald">
+    <div v-else class="overflow-x-auto rounded-2xl border border-border-default bg-surface">
       <table class="w-full text-left text-sm">
         <thead>
-          <tr class="border-b border-esmerald/[0.06] text-xs uppercase text-green-light dark:border-white/[0.06]">
+          <tr class="border-b border-border-default text-xs uppercase text-green-light">
             <th class="px-4 py-3">Number</th>
             <th class="px-4 py-3">Title</th>
             <th class="px-4 py-3">Status</th>
@@ -66,10 +66,10 @@
           <tr
             v-for="row in store.accounts"
             :key="row.id"
-            class="border-b border-esmerald/[0.04] last:border-0 dark:border-white/[0.04]"
+            class="border-b border-border-muted last:border-0"
           >
             <td class="px-4 py-3 font-mono text-xs text-green-light">{{ row.public_number || '—' }}</td>
-            <td class="px-4 py-3 font-medium text-esmerald dark:text-white">{{ row.title }}</td>
+            <td class="px-4 py-3 font-medium text-text-default">{{ row.title }}</td>
             <td class="px-4 py-3">
               <span class="rounded-full px-2 py-0.5 text-xs" :class="statusClass(row)">{{ row.commercial_status }}</span>
               <span v-if="row.is_overdue" class="ml-1 text-xs text-amber-500">overdue</span>
@@ -79,7 +79,7 @@
             <td class="px-4 py-3 text-right">
               <NuxtLink
                 :to="localePath(`/platform/collection-accounts/${row.id}`)"
-                class="text-sm font-medium text-esmerald dark:text-lemon"
+                class="text-sm font-medium text-text-brand"
               >
                 Open
               </NuxtLink>
@@ -95,31 +95,31 @@
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       @click.self="showCreate = false"
     >
-      <div class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 dark:bg-esmerald-dark">
-        <h2 class="text-lg font-semibold text-esmerald dark:text-white">New collection account</h2>
+      <div class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-surface p-6 dark:bg-primary-strong">
+        <h2 class="text-lg font-semibold text-text-default">New collection account</h2>
         <form class="mt-4 space-y-3" @submit.prevent="submitCreate">
           <div>
             <label class="block text-xs text-green-light">Title</label>
-            <input v-model="createForm.title" required class="mt-1 w-full rounded-xl border border-esmerald/10 px-3 py-2 text-sm dark:border-white/10 dark:bg-esmerald dark:text-white" />
+            <input v-model="createForm.title" required class="mt-1 w-full rounded-xl border border-border-default px-3 py-2 text-sm dark:text-white" />
           </div>
           <div>
             <label class="block text-xs text-green-light">Project ID</label>
-            <input v-model.number="createForm.project_id" type="number" class="mt-1 w-full rounded-xl border border-esmerald/10 px-3 py-2 text-sm dark:border-white/10 dark:bg-esmerald dark:text-white" />
+            <input v-model.number="createForm.project_id" type="number" class="mt-1 w-full rounded-xl border border-border-default px-3 py-2 text-sm dark:text-white" />
           </div>
           <div>
             <label class="block text-xs text-green-light">Client user ID (optional if project set)</label>
-            <input v-model.number="createForm.client_user_id" type="number" class="mt-1 w-full rounded-xl border border-esmerald/10 px-3 py-2 text-sm dark:border-white/10 dark:bg-esmerald dark:text-white" />
+            <input v-model.number="createForm.client_user_id" type="number" class="mt-1 w-full rounded-xl border border-border-default px-3 py-2 text-sm dark:text-white" />
           </div>
           <div>
             <label class="block text-xs text-green-light">Payment term days</label>
-            <input v-model.number="createForm.payment_term_days" type="number" min="0" class="mt-1 w-full rounded-xl border border-esmerald/10 px-3 py-2 text-sm dark:border-white/10 dark:bg-esmerald dark:text-white" />
+            <input v-model.number="createForm.payment_term_days" type="number" min="0" class="mt-1 w-full rounded-xl border border-border-default px-3 py-2 text-sm dark:text-white" />
           </div>
           <p v-if="createError" class="text-sm text-red-500">{{ createError }}</p>
           <div class="flex gap-2 pt-2">
-            <button type="submit" class="flex-1 rounded-xl bg-esmerald py-2 text-sm font-medium text-white dark:bg-lemon dark:text-esmerald-dark" :disabled="store.isUpdating">
+            <button type="submit" class="flex-1 rounded-xl bg-primary py-2 text-sm font-medium text-white dark:bg-accent dark:text-text-default" :disabled="store.isUpdating">
               Create
             </button>
-            <button type="button" class="rounded-xl border px-4 py-2 text-sm dark:border-white/20" @click="showCreate = false">Cancel</button>
+            <button type="button" class="rounded-xl border px-4 py-2 text-sm" @click="showCreate = false">Cancel</button>
           </div>
         </form>
       </div>
@@ -163,9 +163,9 @@ function formatMoney(v) {
 
 function statusClass(row) {
   const s = row.commercial_status
-  if (s === 'paid') return 'bg-emerald-500/15 text-emerald-600'
+  if (s === 'paid') return 'bg-emerald-500/15 text-text-brand'
   if (s === 'issued') return 'bg-blue-500/15 text-blue-500'
-  if (s === 'cancelled') return 'bg-gray-500/15 text-gray-500'
+  if (s === 'cancelled') return 'bg-gray-500/15 text-text-muted'
   return 'bg-amber-500/15 text-amber-600'
 }
 

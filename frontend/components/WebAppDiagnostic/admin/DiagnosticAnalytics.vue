@@ -14,7 +14,7 @@
       <!-- CSV Export button -->
       <div class="flex justify-end">
         <button
-          class="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl text-sm text-gray-600 dark:text-green-light hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors shadow-sm"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-surface border border-border-default dark:border-white/[0.08] rounded-xl text-sm text-text-muted hover:bg-surface-raised transition-colors shadow-sm"
           @click="downloadCSV"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,18 +28,18 @@
       <details
         v-if="analytics.engagement_score != null"
         open
-        class="group bg-white rounded-xl border shadow-sm dark:bg-gray-800"
+        class="group bg-surface rounded-xl border shadow-sm"
         :class="analytics.engagement_score >= 70 ? 'border-emerald-200' : analytics.engagement_score >= 40 ? 'border-yellow-200' : 'border-red-200'"
       >
-        <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-gray-200 dark:border-gray-700">
+        <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-default">
           <div class="flex items-center gap-1.5">
-            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Engagement Score</h3>
-            <UiTooltip position="right" width="max-w-2xl">
+            <h3 class="text-sm font-medium text-text-default">Engagement Score</h3>
+            <BaseTooltip position="right" width="max-w-2xl">
               <template #trigger>
-                <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
               </template>
               {{ tt.engagementScore }}
-            </UiTooltip>
+            </BaseTooltip>
           </div>
           <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -50,105 +50,105 @@
             :class="analytics.engagement_score >= 70 ? 'bg-emerald-500' : analytics.engagement_score >= 40 ? 'bg-yellow-500' : 'bg-red-400'">
             {{ analytics.engagement_score }}
           </div>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
+          <p class="text-xs text-text-muted">
             {{ analytics.engagement_score >= 70 ? 'Alto engagement — prioridad de follow-up' : analytics.engagement_score >= 40 ? 'Engagement moderado' : 'Bajo engagement — necesita atención' }}
           </p>
         </div>
       </details>
 
       <!-- Summary cards -->
-      <details open class="group bg-white rounded-xl border border-gray-100 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-        <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-gray-100 dark:border-gray-700">
+      <details open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
+        <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
           <div class="flex items-center gap-1.5">
-            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Resumen general</h3>
-            <UiTooltip position="right" width="max-w-2xl">
+            <h3 class="text-sm font-medium text-text-default">Resumen general</h3>
+            <BaseTooltip position="right" width="max-w-2xl">
               <template #trigger>
-                <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
               </template>
               {{ tt.summary }}
-            </UiTooltip>
+            </BaseTooltip>
           </div>
           <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </summary>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4 p-4">
-          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
+          <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
             <div class="flex items-center gap-1">
               <p class="text-xs text-gray-400 uppercase tracking-wider">Vistas</p>
-              <UiTooltip position="bottom" width="max-w-2xl">
+              <BaseTooltip position="bottom" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-gray-500 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-text-muted transition-colors" />
                 </template>
                 {{ tt.views }}
-              </UiTooltip>
+              </BaseTooltip>
             </div>
-            <p class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-1">{{ analytics.total_views }}</p>
+            <p class="text-2xl font-light text-text-default mt-1">{{ analytics.total_views }}</p>
           </div>
-          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
+          <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
             <div class="flex items-center gap-1">
               <p class="text-xs text-gray-400 uppercase tracking-wider">Sesiones</p>
-              <UiTooltip position="bottom" width="max-w-2xl">
+              <BaseTooltip position="bottom" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-gray-500 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-text-muted transition-colors" />
                 </template>
                 {{ tt.sessions }}
-              </UiTooltip>
+              </BaseTooltip>
             </div>
-            <p class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-1">{{ analytics.unique_sessions }}</p>
+            <p class="text-2xl font-light text-text-default mt-1">{{ analytics.unique_sessions }}</p>
           </div>
-          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
+          <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
             <div class="flex items-center gap-1">
               <p class="text-xs text-gray-400 uppercase tracking-wider">Primera vista</p>
-              <UiTooltip position="bottom" width="max-w-2xl">
+              <BaseTooltip position="bottom" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-gray-500 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-text-muted transition-colors" />
                 </template>
                 {{ tt.firstView }}
-              </UiTooltip>
+              </BaseTooltip>
             </div>
-            <p class="text-sm font-light text-gray-900 dark:text-gray-100 mt-1">
+            <p class="text-sm font-light text-text-default mt-1">
               {{ analytics.first_viewed_at ? formatDate(analytics.first_viewed_at) : '—' }}
             </p>
           </div>
-          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
+          <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
             <div class="flex items-center gap-1">
               <p class="text-xs text-gray-400 uppercase tracking-wider">Tiempo de lectura</p>
-              <UiTooltip position="bottom" width="max-w-2xl">
+              <BaseTooltip position="bottom" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-gray-500 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-text-muted transition-colors" />
                 </template>
                 {{ tt.readingTime }}
-              </UiTooltip>
+              </BaseTooltip>
             </div>
-            <p class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-1">{{ formatTime(totalReadingTime) }}</p>
+            <p class="text-2xl font-light text-text-default mt-1">{{ formatTime(totalReadingTime) }}</p>
           </div>
-          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
+          <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
             <div class="flex items-center gap-1">
               <p class="text-xs text-gray-400 uppercase tracking-wider">Cobertura</p>
-              <UiTooltip position="bottom" width="max-w-2xl">
+              <BaseTooltip position="bottom" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-gray-500 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-text-muted transition-colors" />
                 </template>
                 {{ tt.coverage }}
-              </UiTooltip>
+              </BaseTooltip>
             </div>
             <p class="text-2xl font-light mt-1"
-              :class="sectionCoverage == null ? 'text-gray-900 dark:text-gray-100' : sectionCoverage >= 80 ? 'text-emerald-600 dark:text-emerald-400' : sectionCoverage >= 50 ? 'text-amber-500 dark:text-amber-400' : 'text-red-500 dark:text-red-400'">
+              :class="sectionCoverage == null ? 'text-text-default' : sectionCoverage >= 80 ? 'text-text-brand' : sectionCoverage >= 50 ? 'text-amber-500 dark:text-amber-400' : 'text-red-500 dark:text-red-400'">
               {{ sectionCoverage != null ? sectionCoverage + '%' : '—' }}
             </p>
           </div>
-          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
+          <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
             <div class="flex items-center gap-1">
               <p class="text-xs text-gray-400 uppercase tracking-wider">Última visita</p>
-              <UiTooltip position="bottom" width="max-w-2xl">
+              <BaseTooltip position="bottom" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-gray-500 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-text-muted transition-colors" />
                 </template>
                 {{ tt.lastVisit }}
-              </UiTooltip>
+              </BaseTooltip>
             </div>
-            <p class="text-sm font-light text-gray-900 dark:text-gray-100 mt-1">
+            <p class="text-sm font-light text-text-default mt-1">
               {{ lastVisitedAt ? formatDate(lastVisitedAt) : '—' }}
             </p>
           </div>
@@ -156,16 +156,16 @@
       </details>
 
       <!-- Comparison with global average -->
-      <details v-if="analytics.comparison" open class="group bg-white rounded-xl border border-gray-100 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-        <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-gray-100 dark:border-gray-700">
+      <details v-if="analytics.comparison" open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
+        <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
           <div class="flex items-center gap-1.5">
-            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Comparación con promedio global</h3>
-            <UiTooltip position="right" width="max-w-2xl">
+            <h3 class="text-sm font-medium text-text-default">Comparación con promedio global</h3>
+            <BaseTooltip position="right" width="max-w-2xl">
               <template #trigger>
-                <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
               </template>
               {{ tt.globalComparison }}
-            </UiTooltip>
+            </BaseTooltip>
           </div>
           <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -175,7 +175,7 @@
           <div class="flex items-center gap-3 p-3 rounded-lg" :class="comparisonClass('ttfv')">
             <div class="text-2xl">{{ comparisonEmoji('ttfv') }}</div>
             <div>
-              <p class="text-xs text-gray-500">Tiempo a 1ra vista</p>
+              <p class="text-xs text-text-muted">Tiempo a 1ra vista</p>
               <p class="text-sm font-medium">
                 {{ analytics.time_to_first_view_hours != null ? analytics.time_to_first_view_hours + 'h' : '—' }}
                 <span v-if="analytics.comparison.avg_time_to_first_view_hours != null" class="text-xs text-gray-400">
@@ -187,7 +187,7 @@
           <div class="flex items-center gap-3 p-3 rounded-lg" :class="comparisonClass('ttr')">
             <div class="text-2xl">{{ comparisonEmoji('ttr') }}</div>
             <div>
-              <p class="text-xs text-gray-500">Tiempo a respuesta</p>
+              <p class="text-xs text-text-muted">Tiempo a respuesta</p>
               <p class="text-sm font-medium">
                 {{ analytics.time_to_response_hours != null ? analytics.time_to_response_hours + 'h' : '—' }}
                 <span v-if="analytics.comparison.avg_time_to_response_hours != null" class="text-xs text-gray-400">
@@ -199,7 +199,7 @@
           <div class="flex items-center gap-3 p-3 rounded-lg" :class="comparisonClass('views')">
             <div class="text-2xl">{{ comparisonEmoji('views') }}</div>
             <div>
-              <p class="text-xs text-gray-500">Total vistas</p>
+              <p class="text-xs text-text-muted">Total vistas</p>
               <p class="text-sm font-medium">
                 {{ analytics.total_views }}
                 <span v-if="analytics.comparison.avg_views != null" class="text-xs text-gray-400">
@@ -212,19 +212,19 @@
       </details>
 
       <!-- Funnel visualization -->
-      <details v-if="analytics.funnel?.length" open class="group bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
-        <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-gray-100 dark:border-gray-700">
+      <details v-if="analytics.funnel?.length" open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
+        <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
           <div>
             <div class="flex items-center gap-1.5">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Funnel de navegación</h3>
-              <UiTooltip position="right" width="max-w-2xl">
+              <h3 class="text-sm font-medium text-text-default">Funnel de navegación</h3>
+              <BaseTooltip position="right" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
                 </template>
                 {{ tt.funnel }}
-              </UiTooltip>
+              </BaseTooltip>
             </div>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Porcentaje de sesiones que alcanzaron cada sección</p>
+            <p class="text-xs text-text-subtle mt-0.5">Porcentaje de sesiones que alcanzaron cada sección</p>
           </div>
           <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -232,18 +232,18 @@
         </summary>
         <div class="px-4 sm:px-6 py-4 space-y-3">
           <div v-for="(step, idx) in analytics.funnel" :key="step.section_type" class="flex items-center gap-3">
-            <span class="text-xs text-gray-400 dark:text-gray-500 w-5 text-right">{{ idx + 1 }}</span>
+            <span class="text-xs text-text-subtle w-5 text-right">{{ idx + 1 }}</span>
             <div class="flex-1">
               <div class="flex items-center justify-between mb-1">
-                <span class="text-sm text-gray-700 dark:text-gray-200 font-medium truncate">{{ step.section_title }}</span>
+                <span class="text-sm text-text-default font-medium truncate">{{ step.section_title }}</span>
                 <div class="flex items-center gap-2">
-                  <span class="text-xs text-gray-500 dark:text-gray-400">{{ step.reached_count }} sesiones</span>
+                  <span class="text-xs text-text-muted">{{ step.reached_count }} sesiones</span>
                   <span v-if="step.drop_off_percent > 0" class="text-xs text-red-500 font-medium">
                     -{{ step.drop_off_percent }}%
                   </span>
                 </div>
               </div>
-              <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+              <div class="w-full bg-surface-raised rounded-full h-2">
                 <div
                   class="h-2 rounded-full transition-all"
                   :class="funnelBarColor(step.drop_off_percent)"
@@ -256,16 +256,16 @@
       </details>
 
       <!-- Device breakdown -->
-      <details v-if="hasDeviceData" open class="group bg-white rounded-xl border border-gray-100 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-        <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-gray-100 dark:border-gray-700">
+      <details v-if="hasDeviceData" open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
+        <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
           <div class="flex items-center gap-1.5">
-            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Dispositivos</h3>
-            <UiTooltip position="right" width="max-w-2xl">
+            <h3 class="text-sm font-medium text-text-default">Dispositivos</h3>
+            <BaseTooltip position="right" width="max-w-2xl">
               <template #trigger>
-                <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
               </template>
               {{ tt.devices }}
-            </UiTooltip>
+            </BaseTooltip>
           </div>
           <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -274,15 +274,15 @@
         <div class="flex gap-6 text-sm p-4">
           <div class="flex items-center gap-2">
             <span class="text-lg">🖥️</span>
-            <span class="text-gray-600 dark:text-gray-300">Desktop: <strong>{{ analytics.device_breakdown.desktop }}</strong></span>
+            <span class="text-text-muted">Desktop: <strong>{{ analytics.device_breakdown.desktop }}</strong></span>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-lg">📱</span>
-            <span class="text-gray-600 dark:text-gray-300">Mobile: <strong>{{ analytics.device_breakdown.mobile }}</strong></span>
+            <span class="text-text-muted">Mobile: <strong>{{ analytics.device_breakdown.mobile }}</strong></span>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-lg">📋</span>
-            <span class="text-gray-600 dark:text-gray-300">Tablet: <strong>{{ analytics.device_breakdown.tablet }}</strong></span>
+            <span class="text-text-muted">Tablet: <strong>{{ analytics.device_breakdown.tablet }}</strong></span>
           </div>
         </div>
       </details>
@@ -292,12 +292,12 @@
         <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-amber-100 dark:border-amber-900/40">
           <div class="flex items-center gap-1.5">
             <h3 class="text-sm font-medium text-amber-900 dark:text-amber-200">💡 Acciones sugeridas</h3>
-            <UiTooltip position="right" width="max-w-2xl">
+            <BaseTooltip position="right" width="max-w-2xl">
               <template #trigger>
                 <QuestionMarkCircleIcon class="w-4 h-4 text-amber-400 hover:text-amber-600 transition-colors" />
               </template>
               {{ tt.suggestedActions }}
-            </UiTooltip>
+            </BaseTooltip>
           </div>
           <svg class="w-4 h-4 text-amber-600 dark:text-amber-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -320,12 +320,12 @@
         <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-red-100 dark:border-red-900/40">
           <div class="flex items-center gap-1.5">
             <h3 class="text-sm font-medium text-red-800 dark:text-red-300">⚠️ Secciones no visitadas</h3>
-            <UiTooltip position="right" width="max-w-2xl">
+            <BaseTooltip position="right" width="max-w-2xl">
               <template #trigger>
                 <QuestionMarkCircleIcon class="w-4 h-4 text-red-400 hover:text-red-600 transition-colors" />
               </template>
               {{ tt.skippedSections }}
-            </UiTooltip>
+            </BaseTooltip>
           </div>
           <svg class="w-4 h-4 text-red-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -337,7 +337,7 @@
             <span
               v-for="s in analytics.skipped_sections"
               :key="s.section_type"
-              class="inline-flex items-center px-3 py-1.5 bg-white dark:bg-gray-800 border border-red-200 dark:border-red-900/50 rounded-lg text-xs text-red-700 dark:text-red-300 font-medium"
+              class="inline-flex items-center px-3 py-1.5 bg-surface border border-red-200 dark:border-red-900/50 rounded-lg text-xs text-red-700 dark:text-red-300 font-medium"
             >
               {{ s.section_title }}
             </span>
@@ -346,17 +346,17 @@
       </details>
 
       <!-- Section time heatmap -->
-      <details v-if="sortedSections.length" open class="group bg-white rounded-xl border border-gray-100 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-        <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-gray-100 dark:border-gray-700">
+      <details v-if="sortedSections.length" open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
+        <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
           <div>
             <div class="flex items-center gap-1.5">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">🔥 Heatmap de Interés</h3>
-              <UiTooltip position="right" width="max-w-2xl">
+              <h3 class="text-sm font-medium text-text-default">🔥 Heatmap de Interés</h3>
+              <BaseTooltip position="right" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
                 </template>
                 {{ tt.heatmap }}
-              </UiTooltip>
+              </BaseTooltip>
             </div>
             <p class="text-xs text-gray-400 mt-0.5">Secciones ordenadas por tiempo total — las más calientes son las que más le importan al cliente</p>
           </div>
@@ -369,10 +369,10 @@
             <span class="text-base w-5 flex-shrink-0">{{ heatEmoji(idx, sortedSections.length) }}</span>
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between mb-1 gap-2">
-                <span class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{{ section.section_title }}</span>
-                <span class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 tabular-nums">{{ formatTime(section.total_time_seconds) }}</span>
+                <span class="text-sm font-medium text-text-default truncate">{{ section.section_title }}</span>
+                <span class="text-xs text-text-muted flex-shrink-0 tabular-nums">{{ formatTime(section.total_time_seconds) }}</span>
               </div>
-              <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2.5">
+              <div class="w-full bg-surface-raised rounded-full h-2.5">
                 <div
                   class="h-2.5 rounded-full transition-all"
                   :class="heatBarColor(idx, sortedSections.length)"
@@ -386,29 +386,29 @@
           <div
             v-for="insight in sectionInsights"
             :key="insight.type"
-            class="flex items-start gap-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40 rounded-xl px-4 py-3"
+            class="flex items-start gap-2 bg-primary-soft border border-emerald-100 dark:border-emerald-900/40 rounded-xl px-4 py-3"
           >
             <span class="text-base flex-shrink-0">{{ insight.icon }}</span>
             <div>
               <p class="text-xs font-semibold text-emerald-800 dark:text-emerald-300">{{ insight.label }}</p>
-              <p class="text-xs text-emerald-700 dark:text-emerald-200 mt-0.5">{{ insight.text }}</p>
+              <p class="text-xs text-text-brand dark:text-emerald-200 mt-0.5">{{ insight.text }}</p>
             </div>
           </div>
         </div>
       </details>
 
       <!-- Section engagement table -->
-      <details open class="group bg-white rounded-xl border border-gray-100 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-        <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-gray-100 dark:border-gray-700">
+      <details open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
+        <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
           <div>
             <div class="flex items-center gap-1.5">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Engagement por sección</h3>
-              <UiTooltip position="right" width="max-w-2xl">
+              <h3 class="text-sm font-medium text-text-default">Engagement por sección</h3>
+              <BaseTooltip position="right" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
                 </template>
                 {{ tt.sectionEngagement }}
-              </UiTooltip>
+              </BaseTooltip>
             </div>
             <p class="text-xs text-gray-400 mt-0.5">Tiempo que el cliente pasó en cada sección</p>
           </div>
@@ -419,7 +419,7 @@
         <div v-if="analytics.sections.length" class="overflow-x-auto rounded-b-xl overflow-hidden">
           <table class="w-full text-sm">
             <thead>
-              <tr class="bg-gray-50 dark:bg-gray-700/50 text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
                 <th class="px-4 sm:px-6 py-3">Sección</th>
                 <th class="px-4 py-3 text-center">Visitas</th>
                 <th class="px-4 py-3 text-right">Tiempo total</th>
@@ -430,14 +430,14 @@
             <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
               <tr v-for="section in analytics.sections" :key="section.section_type" class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50">
                 <td class="px-4 sm:px-6 py-3">
-                  <span class="font-medium text-gray-900 dark:text-gray-100">{{ section.section_title }}</span>
+                  <span class="font-medium text-text-default">{{ section.section_title }}</span>
                 </td>
-                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ section.visit_count }}</td>
-                <td class="px-4 py-3 text-right text-gray-600 dark:text-gray-300">{{ formatTime(section.total_time_seconds) }}</td>
-                <td class="px-4 py-3 text-right text-gray-600 dark:text-gray-300">{{ formatTime(section.avg_time_seconds) }}</td>
+                <td class="px-4 py-3 text-center text-text-muted">{{ section.visit_count }}</td>
+                <td class="px-4 py-3 text-right text-text-muted">{{ formatTime(section.total_time_seconds) }}</td>
+                <td class="px-4 py-3 text-right text-text-muted">{{ formatTime(section.avg_time_seconds) }}</td>
                 <td class="px-4 sm:px-6 py-3">
                   <div class="flex items-center gap-2">
-                    <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-2 max-w-[120px]">
+                    <div class="flex-1 bg-surface-raised rounded-full h-2 max-w-[120px]">
                       <div
                         class="h-2 rounded-full transition-all"
                         :class="barColor(section.avg_time_seconds)"
@@ -456,17 +456,17 @@
       </details>
 
       <!-- Activity Timeline -->
-      <details open class="group bg-white rounded-xl border border-gray-100 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-        <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-gray-100 dark:border-gray-700">
+      <details open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
+        <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
           <div>
             <div class="flex items-center gap-1.5">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Historial de actividad</h3>
-              <UiTooltip position="right" width="max-w-2xl">
+              <h3 class="text-sm font-medium text-text-default">Historial de actividad</h3>
+              <BaseTooltip position="right" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
                 </template>
                 {{ tt.activityTimeline }}
-              </UiTooltip>
+              </BaseTooltip>
             </div>
             <p class="text-xs text-gray-400 mt-0.5">Timeline cronológico de eventos del diagnóstico</p>
           </div>
@@ -476,9 +476,9 @@
         </summary>
         <div v-if="analytics.timeline?.length" class="px-4 sm:px-6 py-4">
           <div class="relative">
-            <div class="absolute left-4 top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-600"></div>
+            <div class="absolute left-4 top-0 bottom-0 w-px bg-border-default"></div>
             <div v-for="(event, idx) in analytics.timeline" :key="idx" class="relative pl-10 pb-5 last:pb-0">
-              <div class="absolute left-2.5 w-3 h-3 rounded-full border-2 border-white dark:border-gray-800" :class="timelineColor(event.change_type)"></div>
+              <div class="absolute left-2.5 w-3 h-3 rounded-full border-2 border-surface" :class="timelineColor(event.change_type)"></div>
               <div class="flex flex-wrap items-center gap-2">
                 <span class="text-xs font-medium px-2 py-0.5 rounded-full" :class="timelineBadge(event.change_type)">
                   {{ timelineIcon(event.change_type) }} {{ timelineLabel(event.change_type) }}
@@ -489,7 +489,7 @@
                 <span class="text-xs text-gray-400">{{ formatDate(event.created_at) }}</span>
               </div>
               <!-- eslint-disable-next-line vue/no-v-html -->
-              <div class="text-sm text-gray-600 dark:text-gray-300 mt-1" v-html="formatTimelineDescription(event)"></div>
+              <div class="text-sm text-text-muted mt-1" v-html="formatTimelineDescription(event)"></div>
             </div>
           </div>
         </div>
@@ -499,17 +499,17 @@
       </details>
 
       <!-- Sessions history -->
-      <details open class="group bg-white rounded-xl border border-gray-100 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-        <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-gray-100 dark:border-gray-700">
+      <details open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
+        <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
           <div>
             <div class="flex items-center gap-1.5">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Historial de sesiones</h3>
-              <UiTooltip position="right" width="max-w-2xl">
+              <h3 class="text-sm font-medium text-text-default">Historial de sesiones</h3>
+              <BaseTooltip position="right" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
                 </template>
                 {{ tt.sessionHistory }}
-              </UiTooltip>
+              </BaseTooltip>
             </div>
             <p class="text-xs text-gray-400 mt-0.5">Últimas 50 sesiones de navegación</p>
           </div>
@@ -520,7 +520,7 @@
         <div v-if="analytics.sessions.length" class="overflow-x-auto rounded-b-xl overflow-hidden">
           <table class="w-full text-sm">
             <thead>
-              <tr class="bg-gray-50 dark:bg-gray-700/50 text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
                 <th class="px-4 sm:px-6 py-3">Sesión</th>
                 <th class="px-4 py-3">Fecha</th>
                 <th class="px-4 py-3 text-center">Secciones vistas</th>
@@ -530,12 +530,12 @@
             <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
               <tr v-for="session in analytics.sessions" :key="session.session_id" class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50">
                 <td class="px-4 sm:px-6 py-3">
-                  <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ (session.session_id || '').slice(0, 12) }}...</span>
+                  <span class="font-mono text-xs text-text-muted">{{ (session.session_id || '').slice(0, 12) }}...</span>
                   <span v-if="session.ip_address" class="text-xs text-gray-400 ml-2">{{ session.ip_address }}</span>
                 </td>
-                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ formatDate(session.viewed_at) }}</td>
-                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ session.sections_viewed }}</td>
-                <td class="px-4 sm:px-6 py-3 text-right text-gray-600 dark:text-gray-300">{{ formatTime(session.total_time_seconds) }}</td>
+                <td class="px-4 py-3 text-text-muted">{{ formatDate(session.viewed_at) }}</td>
+                <td class="px-4 py-3 text-center text-text-muted">{{ session.sections_viewed }}</td>
+                <td class="px-4 sm:px-6 py-3 text-right text-text-muted">{{ formatTime(session.total_time_seconds) }}</td>
               </tr>
             </tbody>
           </table>
@@ -808,8 +808,8 @@ const ACTOR_LABELS = { client: 'Cliente', seller: 'Ventas', system: 'Sistema', '
 const ACTOR_BADGE_CLASSES = {
   client: 'bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700',
   seller: 'bg-purple-50 text-purple-600 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-700',
-  system: 'bg-gray-50 text-gray-500 border border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600',
-  '': 'bg-gray-50 text-gray-500 border border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600',
+  system: 'bg-surface-raised text-text-muted border border-border-default',
+  '': 'bg-surface-raised text-text-muted border border-border-default',
 };
 
 const FIELD_LABELS = {
@@ -888,17 +888,17 @@ function timelineBadge(type) {
     sent: 'bg-indigo-50 text-indigo-700',
     viewed: 'bg-green-50 text-green-700',
     negotiating: 'bg-indigo-50 text-indigo-700',
-    accepted: 'bg-emerald-50 text-emerald-700',
+    accepted: 'bg-primary-soft text-text-brand',
     rejected: 'bg-red-50 text-red-700',
-    finished: 'bg-emerald-50 text-emerald-700',
+    finished: 'bg-primary-soft text-text-brand',
     email_sent: 'bg-indigo-50 text-indigo-700',
-    note: 'bg-gray-50 text-gray-600',
+    note: 'bg-gray-50 text-text-muted',
     call: 'bg-sky-50 text-sky-700',
     meeting: 'bg-indigo-50 text-indigo-700',
     followup: 'bg-amber-50 text-amber-700',
     status_change: 'bg-blue-50 text-blue-700',
   };
-  return badges[type] || 'bg-gray-50 text-gray-700';
+  return badges[type] || 'bg-gray-50 text-text-default';
 }
 
 function funnelBarWidth(step) {
@@ -915,26 +915,26 @@ function funnelBarColor(dropOff) {
 
 function comparisonClass(metric) {
   const c = analytics.value?.comparison;
-  if (!c) return 'bg-gray-50 dark:bg-gray-700/40';
+  if (!c) return 'bg-surface-raised';
   if (metric === 'ttfv') {
     const val = analytics.value?.time_to_first_view_hours;
     const avg = c.avg_time_to_first_view_hours;
-    if (val == null || avg == null) return 'bg-gray-50 dark:bg-gray-700/40';
-    return val < avg ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-amber-50 dark:bg-amber-900/20';
+    if (val == null || avg == null) return 'bg-surface-raised';
+    return val < avg ? 'bg-primary-soft' : 'bg-amber-50 dark:bg-amber-900/20';
   }
   if (metric === 'ttr') {
     const val = analytics.value?.time_to_response_hours;
     const avg = c.avg_time_to_response_hours;
-    if (val == null || avg == null) return 'bg-gray-50 dark:bg-gray-700/40';
-    return val < avg ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-amber-50 dark:bg-amber-900/20';
+    if (val == null || avg == null) return 'bg-surface-raised';
+    return val < avg ? 'bg-primary-soft' : 'bg-amber-50 dark:bg-amber-900/20';
   }
   if (metric === 'views') {
     const val = analytics.value?.total_views;
     const avg = c.avg_views;
-    if (val == null || avg == null) return 'bg-gray-50 dark:bg-gray-700/40';
-    return val > avg ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-amber-50 dark:bg-amber-900/20';
+    if (val == null || avg == null) return 'bg-surface-raised';
+    return val > avg ? 'bg-primary-soft' : 'bg-amber-50 dark:bg-amber-900/20';
   }
-  return 'bg-gray-50 dark:bg-gray-700/40';
+  return 'bg-surface-raised';
 }
 
 function comparisonEmoji(metric) {

@@ -1,7 +1,7 @@
 <template>
   <section>
     <SectionHeader :index="content.index" :title="content.title" fallback="Costo y Formas de Pago" />
-    <p v-if="content.intro" class="text-esmerald/80 dark:text-esmerald-light/80 leading-relaxed">{{ content.intro }}</p>
+    <p v-if="content.intro" class="text-text-brand/80 dark:text-text-brand/80 leading-relaxed">{{ content.intro }}</p>
 
     <div
       v-if="parsedBullets.length"
@@ -11,13 +11,13 @@
       <div
         v-for="(item, idx) in parsedBullets"
         :key="idx"
-        class="bg-white dark:bg-esmerald-light/5 border border-esmerald/10 dark:border-esmerald-light/15 rounded-2xl p-5 shadow-sm"
+        class="bg-surface dark:bg-primary-soft/5 border border-input-border/10 dark:border-input-border/15 rounded-2xl p-5 shadow-sm"
       >
         <div class="flex items-start gap-3">
-          <span class="mt-1 shrink-0 size-2 rounded-full bg-lemon" aria-hidden="true" />
+          <span class="mt-1 shrink-0 size-2 rounded-full bg-accent-soft" aria-hidden="true" />
           <div>
-            <p class="font-semibold text-esmerald dark:text-esmerald-light leading-snug">{{ item.title }}</p>
-            <p v-if="item.body" class="text-sm text-esmerald/70 dark:text-esmerald-light/70 leading-relaxed mt-1">{{ item.body }}</p>
+            <p class="font-semibold text-text-brand dark:text-text-brand leading-snug">{{ item.title }}</p>
+            <p v-if="item.body" class="text-sm text-text-brand/70 dark:text-text-brand/70 leading-relaxed mt-1">{{ item.body }}</p>
           </div>
         </div>
       </div>
@@ -25,7 +25,7 @@
 
     <div
       v-if="hasInvestmentCard"
-      class="my-6 relative overflow-hidden bg-white dark:bg-esmerald-light/5 text-esmerald dark:text-esmerald-light rounded-2xl p-6 shadow-sm border border-esmerald/10 dark:border-esmerald-light/15"
+      class="my-6 relative overflow-hidden bg-surface dark:bg-primary-soft/5 text-text-brand dark:text-text-brand rounded-2xl p-6 shadow-sm border border-input-border/10 dark:border-input-border/15"
       data-testid="cost-investment-card"
     >
       <div class="absolute inset-0 bg-gradient-to-br from-lemon/0 via-lemon/5 to-lemon/10 pointer-events-none" />
@@ -36,17 +36,17 @@
           class="flex flex-wrap items-end justify-between gap-3"
         >
           <div>
-            <div class="text-xs font-medium text-esmerald/60 dark:text-esmerald-light/60 uppercase tracking-[0.2em]">Inversión</div>
-            <div v-if="investmentFormatted" class="mt-1 text-4xl font-semibold text-esmerald dark:text-esmerald-light tabular-nums leading-none">
+            <div class="text-xs font-medium text-text-brand/60 dark:text-text-brand/60 uppercase tracking-[0.2em]">Inversión</div>
+            <div v-if="investmentFormatted" class="mt-1 text-4xl font-semibold text-text-brand dark:text-text-brand tabular-nums leading-none">
               {{ investmentFormatted }}
-              <span class="text-2xl text-esmerald/60 dark:text-esmerald-light/60 ml-1">{{ currencyCode }}</span>
+              <span class="text-2xl text-text-brand/60 dark:text-text-brand/60 ml-1">{{ currencyCode }}</span>
             </div>
           </div>
           <div
             v-if="durationLabel"
-            class="inline-flex items-center gap-1.5 text-xs text-esmerald/70 dark:text-esmerald-light/70 bg-esmerald/5 dark:bg-esmerald-light/10 ring-1 ring-esmerald/10 dark:ring-esmerald-light/15 rounded-full px-3 py-1"
+            class="inline-flex items-center gap-1.5 text-xs text-text-brand/70 dark:text-text-brand/70 bg-primary/5 dark:bg-primary-soft/10 ring-1 ring-esmerald/10 dark:ring-esmerald-light/15 rounded-full px-3 py-1"
           >
-            <span class="size-1.5 rounded-full bg-lemon" aria-hidden="true" />
+            <span class="size-1.5 rounded-full bg-accent-soft" aria-hidden="true" />
             <span>{{ durationLabel }}</span>
           </div>
         </header>
@@ -61,7 +61,7 @@
             v-for="seg in paymentSegments"
             :key="seg.key"
             :style="{ flexGrow: seg.pct }"
-            :class="['flex flex-col gap-2 px-5 py-5 min-w-0 text-esmerald', seg.barClass]"
+            :class="['flex flex-col gap-2 px-5 py-5 min-w-0 text-text-brand', seg.barClass]"
             :data-testid="`cost-bar-${seg.key}`"
           >
             <div class="flex items-baseline justify-between gap-3">
@@ -83,7 +83,7 @@
 
         <ul
           v-if="!paymentSegments.length && fallbackPaymentItems.length"
-          class="space-y-2 text-esmerald/80 dark:text-esmerald-light/80"
+          class="space-y-2 text-text-brand/80 dark:text-text-brand/80"
           data-testid="cost-fallback-list"
         >
           <li
@@ -91,9 +91,9 @@
             :key="idx"
             class="flex gap-3 items-baseline"
           >
-            <span class="mt-2 shrink-0 size-1.5 rounded-full bg-lemon" aria-hidden="true" />
-            <span class="font-semibold text-esmerald dark:text-esmerald-light">{{ item.label }}</span>
-            <span class="text-esmerald/70 dark:text-esmerald-light/70">{{ item.detail }}</span>
+            <span class="mt-2 shrink-0 size-1.5 rounded-full bg-accent-soft" aria-hidden="true" />
+            <span class="font-semibold text-text-brand dark:text-text-brand">{{ item.label }}</span>
+            <span class="text-text-brand/70 dark:text-text-brand/70">{{ item.detail }}</span>
           </li>
         </ul>
       </div>
@@ -101,9 +101,9 @@
 
     <aside
       v-if="content.note"
-      class="mt-6 flex gap-3 border-l-4 border-lemon/70 bg-esmerald/5 dark:bg-esmerald-light/5 text-esmerald/80 dark:text-esmerald-light/80 px-4 py-3 rounded-r-lg text-sm"
+      class="mt-6 flex gap-3 border-l-4 border-lemon/70 bg-primary/5 dark:bg-primary-soft/5 text-text-brand/80 dark:text-text-brand/80 px-4 py-3 rounded-r-lg text-sm"
     >
-      <span class="shrink-0 inline-flex items-center text-[10px] font-semibold uppercase tracking-wider text-esmerald dark:text-lemon bg-lemon/30 dark:bg-lemon/15 rounded px-1.5 py-0.5 h-fit">Nota</span>
+      <span class="shrink-0 inline-flex items-center text-[10px] font-semibold uppercase tracking-wider text-text-brand dark:text-accent bg-accent-soft/30 dark:bg-accent-soft/15 rounded px-1.5 py-0.5 h-fit">Nota</span>
       <span class="leading-relaxed">{{ content.note }}</span>
     </aside>
   </section>
@@ -119,14 +119,14 @@ const SIDES = [
     pctKey: 'payment_initial_pct',
     termKey: 'initial_pct',
     defaultLabel: 'al inicio',
-    barClass: 'bg-lemon/80',
+    barClass: 'bg-accent-soft/80',
   },
   {
     key: 'final',
     pctKey: 'payment_final_pct',
     termKey: 'final_pct',
     defaultLabel: 'al final',
-    barClass: 'bg-lemon/15',
+    barClass: 'bg-accent-soft/15',
   },
 ];
 

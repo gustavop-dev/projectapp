@@ -2,26 +2,26 @@
   <div id="platform-bugs">
     <!-- Loading -->
     <div v-if="bugStore.isLoading && !bugStore.bugReports.length" class="py-20 text-center">
-      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-esmerald/20 border-t-esmerald dark:border-white/20 dark:border-t-lemon" />
+      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
     </div>
 
     <template v-else>
       <!-- Header -->
       <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" data-enter>
         <div>
-          <NuxtLink :to="localePath('/platform/bugs')" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-esmerald dark:hover:text-white">
+          <NuxtLink :to="localePath('/platform/bugs')" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
             Bugs
           </NuxtLink>
-          <h1 class="text-xl font-bold text-esmerald dark:text-white sm:text-2xl">Reporte de bugs</h1>
+          <h1 class="text-xl font-bold text-text-default sm:text-2xl">Reporte de bugs</h1>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
           <label
             v-if="authStore.isAdmin"
-            class="flex cursor-pointer items-center gap-2 rounded-full border border-esmerald/10 px-3 py-1.5 text-xs font-medium text-green-light dark:border-white/10"
+            class="flex cursor-pointer items-center gap-2 rounded-full border border-border-default px-3 py-1.5 text-xs font-medium text-green-light"
           >
-            <input v-model="includeArchived" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+            <input v-model="includeArchived" type="checkbox" class="rounded border-border-default" />
             Mostrar archivados
           </label>
           <div class="hidden items-center gap-2 sm:flex">
@@ -35,7 +35,7 @@
 
           <button
             type="button"
-            class="flex items-center gap-1.5 rounded-xl bg-lemon px-4 py-2 text-sm font-semibold text-esmerald-dark transition hover:brightness-105"
+            class="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-text-default transition hover:brightness-105"
             @click="openCreateModal"
           >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
@@ -52,8 +52,8 @@
           type="button"
           class="shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition"
           :class="activeFilter === tab.value
-            ? 'bg-esmerald text-white dark:bg-lemon dark:text-esmerald-dark'
-            : 'text-green-light hover:bg-esmerald-light/50 dark:hover:bg-white/[0.06]'"
+            ? 'bg-primary text-white dark:bg-accent dark:text-text-default'
+            : 'text-green-light hover:bg-surface-muted/50 dark:hover:bg-white/10'"
           @click="activeFilter = tab.value"
         >
           {{ tab.label }}
@@ -66,7 +66,7 @@
         <div
           v-for="bug in filteredBugs"
           :key="bug.id"
-          class="group cursor-pointer rounded-2xl border border-esmerald/[0.06] bg-white p-5 transition hover:border-esmerald/15 hover:shadow-md dark:border-white/[0.06] dark:bg-esmerald dark:hover:border-white/12"
+          class="group cursor-pointer rounded-2xl border border-border-default bg-surface p-5 transition hover:border-border-default hover:shadow-md dark:hover:border-white/12"
           @click="openDetailModal(bug)"
         >
           <div class="flex items-start justify-between gap-3">
@@ -78,7 +78,7 @@
                 <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="severityBadgeClass(bug.severity)">
                   {{ severityLabel(bug.severity) }}
                 </span>
-                <span v-if="bug.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:text-gray-400">
+                <span v-if="bug.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">
                   Archivado
                 </span>
                 <span v-if="bug.is_recurring" class="rounded-full bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-purple-600 dark:text-purple-400">
@@ -88,10 +88,10 @@
                   <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 </span>
               </div>
-              <h3 class="text-sm font-semibold text-esmerald dark:text-white">{{ bug.title }}</h3>
+              <h3 class="text-sm font-semibold text-text-default">{{ bug.title }}</h3>
               <p v-if="bug.description" class="mt-1 line-clamp-2 text-xs leading-relaxed text-green-light">{{ bug.description }}</p>
             </div>
-            <svg class="h-4 w-4 shrink-0 text-green-light/30 transition group-hover:text-esmerald dark:group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            <svg class="h-4 w-4 shrink-0 text-green-light/30 transition group-hover:text-text-default dark:group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
           </div>
 
           <div class="mt-3 flex flex-wrap items-center gap-4 text-[10px] text-green-light/60">
@@ -110,13 +110,13 @@
 
       <!-- Empty -->
       <div v-else class="py-16 text-center" data-enter>
-        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-esmerald-light/50 dark:bg-white/[0.04]">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-muted/50 dark:bg-white/5">
           <svg class="h-8 w-8 text-green-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
         </div>
         <p class="text-sm text-green-light">
           {{ activeFilter === 'all' ? 'No hay bugs reportados aún.' : 'No hay bugs con este estado.' }}
         </p>
-        <button type="button" class="mt-4 rounded-xl bg-lemon px-5 py-2.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105" @click="openCreateModal">
+        <button type="button" class="mt-4 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105" @click="openCreateModal">
           Reportar primer bug
         </button>
       </div>
@@ -127,8 +127,8 @@
       <Transition name="modal-overlay">
         <div v-if="isCreateOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm" @click.self="isCreateOpen = false">
           <Transition name="modal-content" appear>
-            <div v-if="isCreateOpen" class="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-2xl dark:border-white/[0.06] dark:bg-esmerald sm:p-8">
-              <h2 class="mb-5 text-lg font-bold text-esmerald dark:text-white">Reportar bug</h2>
+            <div v-if="isCreateOpen" class="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-border-default bg-surface p-6 shadow-2xl sm:p-8">
+              <h2 class="mb-5 text-lg font-bold text-text-default">Reportar bug</h2>
 
               <p v-if="!deliverablesStore.deliverables.length && !deliverablesStore.isLoading" class="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-800 dark:text-amber-200">
                 No hay entregables en este proyecto. Un administrador debe crear al menos uno antes de reportar bugs.
@@ -140,7 +140,7 @@
                   <select
                     v-model.number="createForm.deliverable_id"
                     required
-                    class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+                    class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
                     :disabled="!deliverablesStore.deliverables.length"
                   >
                     <option v-if="!deliverablesStore.deliverables.length" :value="null" disabled>
@@ -153,11 +153,11 @@
                 </div>
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Título <span class="text-red-400">*</span></label>
-                  <input v-model="createForm.title" type="text" required placeholder="¿Qué está fallando?" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                  <input v-model="createForm.title" type="text" required placeholder="¿Qué está fallando?" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                 </div>
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Descripción</label>
-                  <textarea v-model="createForm.description" rows="2" placeholder="Describe el error con detalle..." class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                  <textarea v-model="createForm.description" rows="2" placeholder="Describe el error con detalle..." class="w-full resize-none rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                 </div>
 
                 <!-- Steps to reproduce -->
@@ -165,13 +165,13 @@
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Pasos para reproducir</label>
                   <div class="space-y-2">
                     <div v-for="(step, i) in createForm.steps_to_reproduce" :key="i" class="flex items-center gap-2">
-                      <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-esmerald/[0.06] text-[10px] font-bold text-green-light dark:bg-white/[0.06]">{{ i + 1 }}</span>
-                      <input v-model="createForm.steps_to_reproduce[i]" type="text" :placeholder="`Paso ${i + 1}`" class="flex-1 rounded-lg border border-esmerald/10 bg-esmerald-light/40 px-3 py-2 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                      <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-green-light dark:bg-white/10">{{ i + 1 }}</span>
+                      <input v-model="createForm.steps_to_reproduce[i]" type="text" :placeholder="`Paso ${i + 1}`" class="flex-1 rounded-lg border border-border-default bg-surface-muted/40 px-3 py-2 text-sm text-text-default outline-none placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                       <button v-if="createForm.steps_to_reproduce.length > 1" type="button" class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-green-light/40 hover:text-red-400" @click="createForm.steps_to_reproduce.splice(i, 1)">
                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
                     </div>
-                    <button type="button" class="text-xs font-medium text-esmerald/60 transition hover:text-esmerald dark:text-white/60 dark:hover:text-white" @click="createForm.steps_to_reproduce.push('')">
+                    <button type="button" class="text-xs font-medium text-esmerald/60 transition hover:text-text-default/60 dark:hover:text-white" @click="createForm.steps_to_reproduce.push('')">
                       + Agregar paso
                     </button>
                   </div>
@@ -180,18 +180,18 @@
                 <div class="grid grid-cols-2 gap-3">
                   <div>
                     <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Comportamiento esperado</label>
-                    <textarea v-model="createForm.expected_behavior" rows="2" placeholder="¿Qué debería pasar?" class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-3 py-2.5 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                    <textarea v-model="createForm.expected_behavior" rows="2" placeholder="¿Qué debería pasar?" class="w-full resize-none rounded-xl border border-border-default bg-surface-muted/40 px-3 py-2.5 text-sm text-text-default outline-none placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                   </div>
                   <div>
                     <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Comportamiento actual</label>
-                    <textarea v-model="createForm.actual_behavior" rows="2" placeholder="¿Qué pasa realmente?" class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-3 py-2.5 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                    <textarea v-model="createForm.actual_behavior" rows="2" placeholder="¿Qué pasa realmente?" class="w-full resize-none rounded-xl border border-border-default bg-surface-muted/40 px-3 py-2.5 text-sm text-text-default outline-none placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                   </div>
                 </div>
 
                 <div class="grid grid-cols-3 gap-3">
                   <div>
                     <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Severidad</label>
-                    <select v-model="createForm.severity" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-3 py-2.5 text-sm text-esmerald outline-none focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40">
+                    <select v-model="createForm.severity" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-3 py-2.5 text-sm text-text-default outline-none focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40">
                       <option value="low">Baja</option>
                       <option value="medium">Media</option>
                       <option value="high">Alta</option>
@@ -200,7 +200,7 @@
                   </div>
                   <div>
                     <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Entorno</label>
-                    <select v-model="createForm.environment" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-3 py-2.5 text-sm text-esmerald outline-none focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40">
+                    <select v-model="createForm.environment" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-3 py-2.5 text-sm text-text-default outline-none focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40">
                       <option value="production">Producción</option>
                       <option value="staging">Staging</option>
                       <option value="dev">Desarrollo</option>
@@ -208,12 +208,12 @@
                   </div>
                   <div>
                     <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Navegador</label>
-                    <input v-model="createForm.device_browser" type="text" placeholder="Chrome / iOS" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-3 py-2.5 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                    <input v-model="createForm.device_browser" type="text" placeholder="Chrome / iOS" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-3 py-2.5 text-sm text-text-default outline-none placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                   </div>
                 </div>
 
                 <label class="flex items-center gap-2 text-xs text-green-light">
-                  <input v-model="createForm.is_recurring" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+                  <input v-model="createForm.is_recurring" type="checkbox" class="rounded border-border-default" />
                   Es un error recurrente
                 </label>
 
@@ -221,7 +221,7 @@
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Pantallazo (opcional)</label>
                   <div
-                    class="relative flex min-h-[80px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-esmerald/15 bg-esmerald-light/20 transition hover:border-esmerald/30 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-white/20"
+                    class="relative flex min-h-[80px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border-default bg-surface-muted/20 transition hover:border-border-default dark:hover:border-white/20"
                     @click="$refs.screenshotInput.click()"
                     @dragover.prevent
                     @drop.prevent="handleScreenshotDrop"
@@ -241,8 +241,8 @@
                 </div>
 
                 <div class="flex justify-end gap-3 pt-2">
-                  <button type="button" class="rounded-xl border border-esmerald/10 px-5 py-2.5 text-sm text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white" @click="isCreateOpen = false">Cancelar</button>
-                  <button type="submit" :disabled="!createForm.title.trim() || bugStore.isUpdating" class="rounded-xl bg-lemon px-6 py-2.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50">
+                  <button type="button" class="rounded-xl border border-border-default px-5 py-2.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="isCreateOpen = false">Cancelar</button>
+                  <button type="submit" :disabled="!createForm.title.trim() || bugStore.isUpdating" class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50">
                     {{ bugStore.isUpdating ? 'Reportando...' : 'Reportar bug' }}
                   </button>
                 </div>
@@ -258,14 +258,14 @@
       <Transition name="modal-overlay">
         <div v-if="detailBug" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm" @click.self="detailBug = null">
           <Transition name="modal-content" appear>
-            <div v-if="detailBug" class="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-2xl dark:border-white/[0.06] dark:bg-esmerald sm:p-8">
+            <div v-if="detailBug" class="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-border-default bg-surface p-6 shadow-2xl sm:p-8">
               <!-- Header -->
               <div class="mb-5 flex items-start justify-between gap-4">
                 <div class="flex-1">
                   <div class="mb-2 flex flex-wrap items-center gap-2">
                     <span class="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase" :class="statusBadgeClass(detailBug.status)">{{ statusLabel(detailBug.status) }}</span>
                     <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="severityBadgeClass(detailBug.severity)">{{ severityLabel(detailBug.severity) }}</span>
-                    <span v-if="detailBug.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:text-gray-400">Archivado</span>
+                    <span v-if="detailBug.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivado</span>
                     <span v-if="detailBug.is_recurring" class="rounded-full bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-purple-600 dark:text-purple-400">Recurrente</span>
                   </div>
                   <p v-if="detailBug.is_archived && detailBug.archived_at" class="mb-1 text-[10px] text-green-light/60">
@@ -274,21 +274,21 @@
                   <p v-if="detailBug.deliverable_title" class="mb-1 text-xs font-medium text-green-light/70">
                     Entregable: {{ detailBug.deliverable_title }}
                   </p>
-                  <h2 class="text-lg font-bold text-esmerald dark:text-white">{{ detailBug.title }}</h2>
+                  <h2 class="text-lg font-bold text-text-default">{{ detailBug.title }}</h2>
                 </div>
-                <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white" @click="detailBug = null">
+                <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="detailBug = null">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
 
               <!-- Description -->
-              <div v-if="detailBug.description" class="mb-5 rounded-xl border border-esmerald/[0.04] bg-esmerald-light/20 p-4 text-sm leading-relaxed text-green-light dark:border-white/[0.04] dark:bg-white/[0.02]">
+              <div v-if="detailBug.description" class="mb-5 rounded-xl border border-border-muted bg-surface-muted/20 p-4 text-sm leading-relaxed text-green-light">
                 {{ detailBug.description }}
               </div>
 
               <!-- Screenshot -->
               <div v-if="detailBug.screenshot_url" class="mb-5">
-                <a :href="detailBug.screenshot_url" target="_blank" class="block overflow-hidden rounded-xl border border-esmerald/[0.06] transition hover:border-esmerald/20 dark:border-white/[0.06] dark:hover:border-white/15">
+                <a :href="detailBug.screenshot_url" target="_blank" class="block overflow-hidden rounded-xl border border-border-default transition hover:border-border-default dark:hover:border-white/15">
                   <img :src="detailBug.screenshot_url" alt="Pantallazo" class="w-full object-contain" style="max-height: 300px" />
                 </a>
               </div>
@@ -298,7 +298,7 @@
                 <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-green-light/60">Pasos para reproducir</p>
                 <ol class="space-y-1.5">
                   <li v-for="(step, i) in detailBug.steps_to_reproduce" :key="i" class="flex items-start gap-2 text-sm text-green-light">
-                    <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-esmerald/[0.06] text-[10px] font-bold dark:bg-white/[0.06]">{{ i + 1 }}</span>
+                    <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold dark:bg-white/10">{{ i + 1 }}</span>
                     <span>{{ step }}</span>
                   </li>
                 </ol>
@@ -307,7 +307,7 @@
               <!-- Expected vs Actual -->
               <div v-if="detailBug.expected_behavior || detailBug.actual_behavior" class="mb-5 grid grid-cols-2 gap-3">
                 <div v-if="detailBug.expected_behavior" class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-                  <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Esperado</p>
+                  <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-text-brand dark:text-emerald-400">Esperado</p>
                   <p class="text-xs leading-relaxed text-green-light">{{ detailBug.expected_behavior }}</p>
                 </div>
                 <div v-if="detailBug.actual_behavior" class="rounded-xl border border-red-500/20 bg-red-500/5 p-3">
@@ -318,42 +318,42 @@
 
               <!-- Meta -->
               <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div class="rounded-xl border border-esmerald/[0.04] p-3 dark:border-white/[0.04]">
+                <div class="rounded-xl border border-border-muted p-3">
                   <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Entorno</p>
-                  <p class="mt-1 text-xs font-semibold text-esmerald dark:text-white">{{ envLabel(detailBug.environment) }}</p>
+                  <p class="mt-1 text-xs font-semibold text-text-default">{{ envLabel(detailBug.environment) }}</p>
                 </div>
-                <div class="rounded-xl border border-esmerald/[0.04] p-3 dark:border-white/[0.04]">
+                <div class="rounded-xl border border-border-muted p-3">
                   <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Navegador</p>
-                  <p class="mt-1 text-xs font-semibold text-esmerald dark:text-white">{{ detailBug.device_browser || '—' }}</p>
+                  <p class="mt-1 text-xs font-semibold text-text-default">{{ detailBug.device_browser || '—' }}</p>
                 </div>
-                <div class="rounded-xl border border-esmerald/[0.04] p-3 dark:border-white/[0.04]">
+                <div class="rounded-xl border border-border-muted p-3">
                   <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Reportado por</p>
-                  <p class="mt-1 text-xs font-semibold text-esmerald dark:text-white">{{ detailBug.reported_by_name }}</p>
+                  <p class="mt-1 text-xs font-semibold text-text-default">{{ detailBug.reported_by_name }}</p>
                 </div>
-                <div class="rounded-xl border border-esmerald/[0.04] p-3 dark:border-white/[0.04]">
+                <div class="rounded-xl border border-border-muted p-3">
                   <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Fecha</p>
-                  <p class="mt-1 text-xs font-semibold text-esmerald dark:text-white">{{ formatDate(detailBug.created_at) }}</p>
+                  <p class="mt-1 text-xs font-semibold text-text-default">{{ formatDate(detailBug.created_at) }}</p>
                 </div>
               </div>
 
               <!-- Admin response -->
-              <div v-if="detailBug.admin_response" class="mb-5 rounded-xl border-l-2 border-l-esmerald/30 bg-esmerald-light/20 p-4 dark:border-l-lemon/40 dark:bg-white/[0.02]">
+              <div v-if="detailBug.admin_response" class="mb-5 rounded-xl border-l-2 border-l-esmerald/30 bg-surface-muted/20 p-4 dark:border-l-lemon/40">
                 <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-esmerald/60 dark:text-lemon/60">Respuesta del equipo</p>
                 <p class="text-sm leading-relaxed text-green-light">{{ detailBug.admin_response }}</p>
               </div>
 
               <!-- Admin actions -->
               <div v-if="authStore.isAdmin" class="mb-5 space-y-3">
-                <div v-if="detailBug.is_archived" class="rounded-xl border border-esmerald/[0.06] px-4 py-3 text-xs text-green-light/70 dark:border-white/[0.06]">
+                <div v-if="detailBug.is_archived" class="rounded-xl border border-border-default px-4 py-3 text-xs text-green-light/70">
                   Este reporte está archivado.
                 </div>
                 <template v-else>
-                  <div v-if="showEvaluateForm" class="rounded-xl border border-esmerald/[0.06] p-4 dark:border-white/[0.06]">
+                  <div v-if="showEvaluateForm" class="rounded-xl border border-border-default p-4">
                     <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-green-light/60">Evaluar bug</p>
                     <div class="space-y-3">
                       <div>
                         <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Estado</label>
-                        <select v-model="evalForm.status" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40">
+                        <select v-model="evalForm.status" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-2.5 text-sm text-text-default outline-none focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40">
                           <option value="reported">Reportado</option>
                           <option value="confirmed">Confirmado</option>
                           <option value="fixing">En corrección</option>
@@ -366,11 +366,11 @@
                       </div>
                       <div>
                         <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Respuesta</label>
-                        <textarea v-model="evalForm.admin_response" rows="2" placeholder="Respuesta para el cliente..." class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                        <textarea v-model="evalForm.admin_response" rows="2" placeholder="Respuesta para el cliente..." class="w-full resize-none rounded-xl border border-border-default bg-surface-muted/40 px-4 py-2.5 text-sm text-text-default outline-none placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                       </div>
                       <div class="flex justify-end gap-2">
-                        <button type="button" class="rounded-lg px-3 py-1.5 text-xs text-green-light hover:text-esmerald dark:hover:text-white" @click="showEvaluateForm = false">Cancelar</button>
-                        <button type="button" :disabled="bugStore.isUpdating" class="rounded-lg bg-esmerald px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-esmerald/90 disabled:opacity-50 dark:bg-lemon dark:text-esmerald-dark" @click="handleEvaluate">
+                        <button type="button" class="rounded-lg px-3 py-1.5 text-xs text-green-light hover:text-text-default dark:hover:text-white" @click="showEvaluateForm = false">Cancelar</button>
+                        <button type="button" :disabled="bugStore.isUpdating" class="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-esmerald/90 disabled:opacity-50 dark:bg-accent dark:text-text-default" @click="handleEvaluate">
                           {{ bugStore.isUpdating ? 'Guardando...' : 'Guardar' }}
                         </button>
                       </div>
@@ -378,7 +378,7 @@
                   </div>
 
                   <div v-else class="flex flex-wrap gap-2">
-                    <button type="button" class="rounded-xl border border-esmerald/10 px-4 py-2 text-xs font-medium text-esmerald transition hover:bg-esmerald-light dark:border-white/10 dark:text-white dark:hover:bg-white/[0.06]" @click="openEvaluateForm">
+                    <button type="button" class="rounded-xl border border-border-default px-4 py-2 text-xs font-medium text-text-default transition hover:bg-surface-muted dark:text-white dark:hover:bg-white/10" @click="openEvaluateForm">
                       Evaluar
                     </button>
                     <button
@@ -403,11 +403,11 @@
                   <div
                     v-for="comment in detailBug.comments"
                     :key="comment.id"
-                    class="rounded-xl border border-esmerald/[0.04] p-3 dark:border-white/[0.04]"
+                    class="rounded-xl border border-border-muted p-3"
                     :class="comment.is_internal ? 'border-l-2 border-l-amber-400' : ''"
                   >
                     <div class="mb-1 flex items-center justify-between">
-                      <span class="text-xs font-medium text-esmerald dark:text-white">{{ comment.user_name }}</span>
+                      <span class="text-xs font-medium text-text-default">{{ comment.user_name }}</span>
                       <span class="text-[10px] text-green-light/40">{{ formatDate(comment.created_at) }}</span>
                     </div>
                     <p class="text-sm leading-relaxed text-green-light">{{ comment.content }}</p>
@@ -416,13 +416,13 @@
                 </div>
 
                 <form class="flex gap-2" @submit.prevent="handleAddComment">
-                  <input v-model="newComment" type="text" placeholder="Escribe un comentario..." class="flex-1 rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
-                  <button type="submit" :disabled="!newComment.trim()" class="rounded-xl bg-esmerald px-4 py-2.5 text-sm font-medium text-white transition hover:bg-esmerald/90 disabled:opacity-40 dark:bg-lemon dark:text-esmerald-dark">
+                  <input v-model="newComment" type="text" placeholder="Escribe un comentario..." class="flex-1 rounded-xl border border-border-default bg-surface-muted/40 px-4 py-2.5 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                  <button type="submit" :disabled="!newComment.trim()" class="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-esmerald/90 disabled:opacity-40 dark:bg-accent dark:text-text-default">
                     Enviar
                   </button>
                 </form>
                 <label v-if="authStore.isAdmin" class="mt-2 flex items-center gap-2 text-xs text-green-light/60">
-                  <input v-model="commentInternal" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+                  <input v-model="commentInternal" type="checkbox" class="rounded border-border-default" />
                   Comentario interno (solo admins)
                 </label>
               </div>
@@ -494,10 +494,10 @@ function statusBadgeClass(s) {
     confirmed: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     fixing: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     qa: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
-    resolved: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-    not_reproducible: 'bg-gray-500/15 text-gray-500',
-    wont_fix: 'bg-gray-500/15 text-gray-500',
-    duplicate: 'bg-gray-500/15 text-gray-500',
+    resolved: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
+    not_reproducible: 'bg-gray-500/15 text-text-muted',
+    wont_fix: 'bg-gray-500/15 text-text-muted',
+    duplicate: 'bg-gray-500/15 text-text-muted',
   }
   return map[s] || map.reported
 }
@@ -516,7 +516,7 @@ function severityBadgeClass(sev) {
     critical: 'bg-red-500/15 text-red-600 dark:text-red-400',
     high: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     medium: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-    low: 'bg-gray-500/15 text-gray-500',
+    low: 'bg-gray-500/15 text-text-muted',
   }
   return map[sev] || map.medium
 }

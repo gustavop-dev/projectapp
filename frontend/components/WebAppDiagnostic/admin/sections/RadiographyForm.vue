@@ -2,27 +2,27 @@
   <div class="space-y-3">
     <div class="grid sm:grid-cols-6 gap-3">
       <div class="sm:col-span-1">
-        <label class="block text-xs font-medium text-gray-500 mb-1">Índice</label>
-        <input v-model="form.index" type="text" class="w-full px-2 py-1.5 border rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700" />
+        <label class="block text-xs font-medium text-text-muted mb-1">Índice</label>
+        <input v-model="form.index" type="text" class="w-full px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
       </div>
       <div class="sm:col-span-5">
-        <label class="block text-xs font-medium text-gray-500 mb-1">Título</label>
-        <input v-model="form.title" type="text" class="w-full px-2 py-1.5 border rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700" />
+        <label class="block text-xs font-medium text-text-muted mb-1">Título</label>
+        <input v-model="form.title" type="text" class="w-full px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
       </div>
     </div>
     <div>
-      <label class="block text-xs font-medium text-gray-500 mb-1">Intro</label>
-      <textarea v-model="form.intro" rows="3" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700"></textarea>
+      <label class="block text-xs font-medium text-text-muted mb-1">Intro</label>
+      <textarea v-model="form.intro" rows="3" class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface text-text-default"></textarea>
     </div>
 
-    <div class="pt-3 border-t border-gray-100 dark:border-gray-700 space-y-2">
+    <div class="pt-3 border-t border-border-muted space-y-2">
       <div>
-        <label class="block text-xs font-medium text-gray-500 mb-1">Título «¿Qué incluye?»</label>
-        <input v-model="form.includesTitle" type="text" class="w-full px-2 py-1.5 border rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700" />
+        <label class="block text-xs font-medium text-text-muted mb-1">Título «¿Qué incluye?»</label>
+        <input v-model="form.includesTitle" type="text" class="w-full px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
       </div>
       <div class="flex items-center justify-between">
-        <span class="text-xs font-medium text-gray-500">Elementos de la radiografía</span>
-        <button type="button" class="text-xs text-emerald-600 hover:underline" @click="addInclude">+ Agregar</button>
+        <span class="text-xs font-medium text-text-muted">Elementos de la radiografía</span>
+        <button type="button" class="text-xs text-text-brand hover:underline" @click="addInclude">+ Agregar</button>
       </div>
       <div class="space-y-2">
         <div
@@ -30,28 +30,28 @@
           :key="idx"
           class="grid sm:grid-cols-[1fr,2fr,auto] gap-2 items-start"
         >
-          <input v-model="it.title" type="text" placeholder="Título" class="px-2 py-1.5 border rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700" />
-          <textarea v-model="it.description" rows="2" placeholder="Descripción" class="px-2 py-1.5 border rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700"></textarea>
+          <input v-model="it.title" type="text" placeholder="Título" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
+          <textarea v-model="it.description" rows="2" placeholder="Descripción" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default"></textarea>
           <button type="button" class="text-xs text-rose-600 hover:underline" @click="removeInclude(idx)">Quitar</button>
         </div>
       </div>
     </div>
 
-    <div class="pt-3 border-t border-gray-100 dark:border-gray-700 space-y-2">
+    <div class="pt-3 border-t border-border-muted space-y-2">
       <div class="grid sm:grid-cols-2 gap-3">
         <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">Título de clasificación</label>
-          <input v-model="form.classificationTitle" type="text" class="w-full px-2 py-1.5 border rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700" />
+          <label class="block text-xs font-medium text-text-muted mb-1">Título de clasificación</label>
+          <input v-model="form.classificationTitle" type="text" class="w-full px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
         </div>
         <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">Intro clasificación</label>
-          <input v-model="form.classificationIntro" type="text" class="w-full px-2 py-1.5 border rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700" />
+          <label class="block text-xs font-medium text-text-muted mb-1">Intro clasificación</label>
+          <input v-model="form.classificationIntro" type="text" class="w-full px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
         </div>
       </div>
 
       <div class="flex items-center justify-between">
-        <span class="text-xs font-medium text-gray-500">Filas de tamaño</span>
-        <button type="button" class="text-xs text-emerald-600 hover:underline" @click="addRow">+ Agregar</button>
+        <span class="text-xs font-medium text-text-muted">Filas de tamaño</span>
+        <button type="button" class="text-xs text-text-brand hover:underline" @click="addRow">+ Agregar</button>
       </div>
       <div class="space-y-2">
         <div
@@ -59,17 +59,17 @@
           :key="idx"
           class="grid sm:grid-cols-[2fr,1fr,1fr,1fr,auto] gap-2 items-center"
         >
-          <input v-model="r.dimension" type="text" placeholder="Dimensión" class="px-2 py-1.5 border rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700" />
-          <input v-model="r.small" type="text" placeholder="Pequeña" class="px-2 py-1.5 border rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700" />
-          <input v-model="r.medium" type="text" placeholder="Mediana" class="px-2 py-1.5 border rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700" />
-          <input v-model="r.large" type="text" placeholder="Grande" class="px-2 py-1.5 border rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700" />
+          <input v-model="r.dimension" type="text" placeholder="Dimensión" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
+          <input v-model="r.small" type="text" placeholder="Pequeña" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
+          <input v-model="r.medium" type="text" placeholder="Mediana" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
+          <input v-model="r.large" type="text" placeholder="Grande" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
           <button type="button" class="text-xs text-rose-600 hover:underline" @click="removeRow(idx)">×</button>
         </div>
       </div>
 
       <div>
-        <label class="block text-xs font-medium text-gray-500 mb-1">Nota de clasificación</label>
-        <textarea v-model="form.classificationNote" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-900 dark:border-gray-700"></textarea>
+        <label class="block text-xs font-medium text-text-muted mb-1">Nota de clasificación</label>
+        <textarea v-model="form.classificationNote" rows="2" class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface text-text-default"></textarea>
       </div>
     </div>
   </div>

@@ -1,25 +1,25 @@
 <template>
   <div class="technical-document-editor space-y-8" data-testid="technical-document-editor">
-    <p class="text-xs text-gray-500 dark:text-green-light/60">
-      Detalle técnico: cómo se construye el sistema. Módulos del producto y requerimientos con <code class="text-[10px] bg-gray-100 dark:bg-white/[0.06] px-1 rounded">epicKey</code> /
-      <code class="text-[10px] bg-gray-100 dark:bg-white/[0.06] px-1 rounded">flowKey</code> para enlazar después con el tablero en plataforma.
-      Opcional: <code class="text-[10px] bg-gray-100 dark:bg-white/[0.06] px-1 rounded">linked_module_ids</code> alinea el detalle técnico con módulos comerciales de la propuesta. Los ids legacy se normalizan automáticamente al guardar.
+    <p class="text-xs text-text-muted">
+      Detalle técnico: cómo se construye el sistema. Módulos del producto y requerimientos con <code class="text-[10px] bg-surface-raised px-1 rounded">epicKey</code> /
+      <code class="text-[10px] bg-surface-raised px-1 rounded">flowKey</code> para enlazar después con el tablero en plataforma.
+      Opcional: <code class="text-[10px] bg-surface-raised px-1 rounded">linked_module_ids</code> alinea el detalle técnico con módulos comerciales de la propuesta. Los ids legacy se normalizan automáticamente al guardar.
     </p>
 
     <div
       v-if="moduleLinkOptions.length"
-      class="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/40 p-4 space-y-2"
+      class="rounded-xl border border-dashed border-emerald-200 bg-primary-soft/40 p-4 space-y-2"
     >
-      <p class="text-xs font-medium text-gray-700 dark:text-white/70">Plantilla genérica por módulo comercial</p>
-      <p class="text-[11px] text-gray-500 dark:text-green-light/60">
+      <p class="text-xs font-medium text-text-default">Plantilla genérica por módulo comercial</p>
+      <p class="text-[11px] text-text-muted">
         Inserta un módulo con texto neutro y vínculo al alcance comercial. Si el vínculo apunta a alcance opcional, solo será visible cuando el cliente lo incluya.
       </p>
       <div class="flex flex-wrap items-end gap-2">
-        <label class="text-xs text-gray-600 dark:text-green-light/60 flex flex-col gap-1">
+        <label class="text-xs text-text-muted/60 flex flex-col gap-1">
           <span>Módulo</span>
           <select
             v-model="stubModuleId"
-            class="px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm min-w-[12rem] bg-white dark:bg-esmerald-dark dark:text-white"
+            class="px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm min-w-[12rem] bg-surface dark:text-white"
           >
             <option value="">— Elegir —</option>
             <option v-for="opt in moduleLinkOptions" :key="'stub-'+opt.id" :value="opt.id">
@@ -29,7 +29,7 @@
         </label>
         <button
           type="button"
-          class="text-xs px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+          class="text-xs px-3 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary-strong"
           :disabled="!stubModuleId"
           @click="insertGenericStub"
         >
@@ -40,12 +40,12 @@
 
     <!-- Propósito -->
     <section class="space-y-2">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Propósito</h3>
+      <h3 class="text-sm font-semibold text-text-default">Propósito</h3>
       <textarea
         v-model="doc.purpose"
         v-auto-resize
         data-testid="technical-purpose-textarea"
-        class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
+        class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 outline-none"
         placeholder="Una frase sobre qué cubre este documento..."
       />
     </section>
@@ -53,14 +53,14 @@
     <!-- Stack -->
     <section class="space-y-3">
       <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Stack tecnológico</h3>
-        <button type="button" class="text-xs text-emerald-600 hover:underline" @click="addStackRow">+ Fila</button>
+        <h3 class="text-sm font-semibold text-text-default">Stack tecnológico</h3>
+        <button type="button" class="text-xs text-text-brand hover:underline" @click="addStackRow">+ Fila</button>
       </div>
-      <div v-for="(row, i) in doc.stack" :key="'st-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl border border-gray-100 dark:border-white/[0.06]">
-        <input v-model="row.layer" placeholder="Capa" class="px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.technology" placeholder="Tecnología" class="px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+      <div v-for="(row, i) in doc.stack" :key="'st-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-surface-raised rounded-xl border border-border-muted">
+        <input v-model="row.layer" placeholder="Capa" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
+        <input v-model="row.technology" placeholder="Tecnología" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <div class="flex gap-2">
-          <input v-model="row.rationale" placeholder="Justificación técnica" class="flex-1 px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+          <input v-model="row.rationale" placeholder="Justificación técnica" class="flex-1 px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
           <button type="button" class="text-xs text-red-500 shrink-0" @click="doc.stack.splice(i, 1)">✕</button>
         </div>
       </div>
@@ -68,48 +68,48 @@
 
     <!-- Arquitectura -->
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Arquitectura</h3>
-      <textarea v-model="doc.architecture.summary" v-auto-resize class="w-full px-3 py-2 border dark:border-white/[0.08] rounded-xl text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" placeholder="Resumen de capas y comunicación..." />
+      <h3 class="text-sm font-semibold text-text-default">Arquitectura</h3>
+      <textarea v-model="doc.architecture.summary" v-auto-resize class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm" placeholder="Resumen de capas y comunicación..." />
       <div class="flex items-center justify-between">
-        <span class="text-xs text-gray-500 dark:text-green-light/60">Patrones por componente</span>
-        <button type="button" class="text-xs text-emerald-600 hover:underline" @click="addPatternRow">+ Fila</button>
+        <span class="text-xs text-text-muted">Patrones por componente</span>
+        <button type="button" class="text-xs text-text-brand hover:underline" @click="addPatternRow">+ Fila</button>
       </div>
-      <div v-for="(row, i) in doc.architecture.patterns" :key="'pat-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl border dark:border-white/[0.06]">
-        <input v-model="row.component" placeholder="Componente" class="px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.pattern" placeholder="Patrón" class="px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+      <div v-for="(row, i) in doc.architecture.patterns" :key="'pat-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-surface-raised rounded-xl border border-border-muted">
+        <input v-model="row.component" placeholder="Componente" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
+        <input v-model="row.pattern" placeholder="Patrón" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <div class="flex gap-2">
-          <input v-model="row.description" placeholder="Descripción" class="flex-1 px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+          <input v-model="row.description" placeholder="Descripción" class="flex-1 px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
           <button type="button" class="text-xs text-red-500" @click="doc.architecture.patterns.splice(i, 1)">✕</button>
         </div>
       </div>
-      <p class="text-xs text-gray-500 dark:text-green-light/60">Diagramas / anexo (opcional)</p>
+      <p class="text-xs text-text-muted">Diagramas / anexo (opcional)</p>
       <textarea
         v-model="doc.architecture.diagramNote"
         v-auto-resize
-        class="w-full px-3 py-2 border dark:border-white/[0.08] rounded-xl text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
+        class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm"
         placeholder="Nota breve si hay diagrama en anexo o URL externa..."
       />
     </section>
 
     <!-- Modelo de datos -->
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Modelo de datos</h3>
-      <textarea v-model="doc.dataModel.summary" v-auto-resize class="w-full px-3 py-2 border dark:border-white/[0.08] rounded-xl text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" placeholder="Resumen..." />
-      <p class="text-xs text-gray-500 dark:text-green-light/60">Relaciones entre entidades (texto)</p>
+      <h3 class="text-sm font-semibold text-text-default">Modelo de datos</h3>
+      <textarea v-model="doc.dataModel.summary" v-auto-resize class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm" placeholder="Resumen..." />
+      <p class="text-xs text-text-muted">Relaciones entre entidades (texto)</p>
       <textarea
         v-model="doc.dataModel.relationships"
         v-auto-resize
-        class="w-full px-3 py-2 border dark:border-white/[0.08] rounded-xl text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
+        class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm"
         placeholder="Ej. Usuario tiene muchos Pedidos..."
       />
       <div class="flex justify-end">
-        <button type="button" class="text-xs text-emerald-600 hover:underline" @click="addEntityRow">+ Entidad</button>
+        <button type="button" class="text-xs text-text-brand hover:underline" @click="addEntityRow">+ Entidad</button>
       </div>
-      <div v-for="(row, i) in doc.dataModel.entities" :key="'ent-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl border dark:border-white/[0.06]">
-        <input v-model="row.name" placeholder="Entidad" class="px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.description" placeholder="Descripción" class="px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+      <div v-for="(row, i) in doc.dataModel.entities" :key="'ent-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-surface-raised rounded-xl border border-border-muted">
+        <input v-model="row.name" placeholder="Entidad" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
+        <input v-model="row.description" placeholder="Descripción" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <div class="flex gap-2">
-          <input v-model="row.keyFields" placeholder="Campos clave (texto libre)" class="flex-1 px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+          <input v-model="row.keyFields" placeholder="Campos clave (texto libre)" class="flex-1 px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
           <button type="button" class="text-xs text-red-500" @click="doc.dataModel.entities.splice(i, 1)">✕</button>
         </div>
       </div>
@@ -117,29 +117,29 @@
 
     <!-- Preparación para el crecimiento -->
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Preparación para el crecimiento</h3>
-      <p class="text-xs text-gray-500 dark:text-green-light/60">
+      <h3 class="text-sm font-semibold text-text-default">Preparación para el crecimiento</h3>
+      <p class="text-xs text-text-muted">
         Cómo se prepara el sistema para crecer (tráfico, datos, equipos, integraciones). Complementa «Rendimiento»; aquí el foco es capacidad de evolución, no solo métricas puntuales.
       </p>
       <textarea
         v-model="doc.growthReadiness.summary"
         v-auto-resize
-        class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
+        class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 outline-none"
         placeholder="Resumen: enfoque de crecimiento sin rediseño completo, supuestos y límites..."
       />
       <div class="flex items-center justify-between">
-        <span class="text-xs text-gray-500 dark:text-green-light/60">Estrategias por dimensión (tabla)</span>
-        <button type="button" class="text-xs text-emerald-600 hover:underline" @click="addGrowthStrategyRow">+ Fila</button>
+        <span class="text-xs text-text-muted">Estrategias por dimensión (tabla)</span>
+        <button type="button" class="text-xs text-text-brand hover:underline" @click="addGrowthStrategyRow">+ Fila</button>
       </div>
       <div
         v-for="(row, i) in doc.growthReadiness.strategies"
         :key="'gr-' + i"
-        class="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl border border-gray-100 dark:border-white/[0.06]"
+        class="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-surface-raised rounded-xl border border-border-muted"
       >
-        <input v-model="row.dimension" placeholder="Dimensión (ej. tráfico, datos)" class="px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.preparation" placeholder="Preparación actual" class="px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+        <input v-model="row.dimension" placeholder="Dimensión (ej. tráfico, datos)" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
+        <input v-model="row.preparation" placeholder="Preparación actual" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <div class="flex gap-2">
-          <input v-model="row.evolution" placeholder="Evolución ante crecimiento" class="flex-1 px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+          <input v-model="row.evolution" placeholder="Evolución ante crecimiento" class="flex-1 px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
           <button type="button" class="text-xs text-red-500 shrink-0" @click="doc.growthReadiness.strategies.splice(i, 1)">✕</button>
         </div>
       </div>
@@ -148,34 +148,34 @@
     <!-- Módulos del producto -->
     <section class="space-y-4">
       <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Módulos del producto</h3>
-        <button type="button" class="text-xs px-3 py-1.5 bg-emerald-600 text-white rounded-lg" @click="addEpic">+ Módulo</button>
+        <h3 class="text-sm font-semibold text-text-default">Módulos del producto</h3>
+        <button type="button" class="text-xs px-3 py-1.5 bg-primary text-on-primary rounded-lg" @click="addEpic">+ Módulo</button>
       </div>
       <div
         v-for="(epic, ei) in doc.epics"
         :key="'epic-' + ei"
-        class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-4 space-y-3 bg-white dark:bg-esmerald"
+        class="border border-border-default dark:border-white/[0.08] rounded-xl p-4 space-y-3 bg-surface"
       >
         <div class="flex flex-wrap gap-2 items-start justify-between">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1 min-w-0">
-            <input v-model="epic.epicKey" placeholder="epicKey (slug único)" class="px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm font-mono text-xs dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-            <input v-model="epic.title" placeholder="Título del módulo" class="px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+            <input v-model="epic.epicKey" placeholder="epicKey (slug único)" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm font-mono text-xs">
+            <input v-model="epic.title" placeholder="Título del módulo" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
           </div>
           <button type="button" class="text-xs text-red-600" @click="doc.epics.splice(ei, 1)">Eliminar módulo</button>
         </div>
-        <textarea v-model="epic.description" v-auto-resize data-testid="technical-epic-description-textarea" class="w-full px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" placeholder="Descripción del módulo" />
+        <textarea v-model="epic.description" v-auto-resize data-testid="technical-epic-description-textarea" class="w-full px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm" placeholder="Descripción del módulo" />
         <div v-if="moduleLinkOptions.length" class="space-y-1">
-          <p class="text-[11px] text-gray-500 dark:text-green-light/60">Vincular este módulo técnico con alcance comercial (modo técnico / PDF técnico):</p>
+          <p class="text-[11px] text-text-muted">Vincular este módulo técnico con alcance comercial (modo técnico / PDF técnico):</p>
           <div class="flex flex-wrap gap-x-3 gap-y-1">
             <label
               v-for="opt in moduleLinkOptions"
               :key="'epl-'+ei+'-'+opt.id"
-              class="flex items-center gap-1.5 text-xs text-gray-700 dark:text-white/70 cursor-pointer"
+              class="flex items-center gap-1.5 text-xs text-text-default cursor-pointer"
             >
               <input
                 type="checkbox"
                 :checked="epic.linked_module_ids.includes(opt.id)"
-                class="rounded border-gray-300 dark:border-white/[0.08] text-emerald-600"
+                class="rounded border-gray-300 dark:border-white/[0.08] text-text-brand"
                 @change="toggleLinkedId(epic.linked_module_ids, opt.id)"
               >
               <span class="max-w-[14rem] truncate" :title="opt.label">{{ opt.label }}</span>
@@ -184,18 +184,18 @@
         </div>
         <div class="pl-3 border-l-2 border-emerald-200 space-y-2">
           <div class="flex justify-between items-center">
-            <span class="text-xs font-medium text-gray-600 dark:text-green-light/60">Requerimientos</span>
-            <button type="button" class="text-xs text-emerald-600" @click="addRequirement(epic)">+ Requerimiento</button>
+            <span class="text-xs font-medium text-text-muted/60">Requerimientos</span>
+            <button type="button" class="text-xs text-text-brand" @click="addRequirement(epic)">+ Requerimiento</button>
           </div>
           <div
             v-for="(req, ri) in epic.requirements"
             :key="'req-' + ei + '-' + ri"
-            class="p-3 bg-gray-50 dark:bg-white/[0.03] rounded-lg space-y-2 text-sm"
+            class="p-3 bg-surface-raised rounded-lg space-y-2 text-sm"
           >
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <input v-model="req.flowKey" placeholder="flowKey (slug único global)" class="px-2 py-1 border dark:border-white/[0.08] rounded font-mono text-xs dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-              <input v-model="req.title" placeholder="Título (obligatorio)" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-              <select v-model="req.priority" class="px-2 py-1 border dark:border-white/[0.08] rounded text-xs dark:bg-esmerald-dark dark:text-white">
+              <input v-model="req.flowKey" placeholder="flowKey (slug único global)" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded font-mono text-xs">
+              <input v-model="req.title" placeholder="Título (obligatorio)" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
+              <select v-model="req.priority" class="px-2 py-1 border border-input-border bg-input-bg text-input-text rounded text-xs">
                 <option value="">Prioridad (opc.)</option>
                 <option value="critical">Crítico</option>
                 <option value="high">Alta</option>
@@ -203,21 +203,21 @@
                 <option value="low">Baja</option>
               </select>
             </div>
-            <textarea v-model="req.description" v-auto-resize data-testid="technical-req-description-textarea" class="w-full px-2 py-1 border dark:border-white/[0.08] rounded text-xs dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" placeholder="Descripción" />
-            <textarea v-model="req.configuration" v-auto-resize class="w-full px-2 py-1 border dark:border-white/[0.08] rounded text-xs dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" placeholder="Configuración (roles, permisos...)" />
-            <textarea v-model="req.usageFlow" v-auto-resize class="w-full px-2 py-1 border dark:border-white/[0.08] rounded text-xs dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" placeholder="Flujo de uso (ej. Login → Dashboard → ...)" />
+            <textarea v-model="req.description" v-auto-resize data-testid="technical-req-description-textarea" class="w-full px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-xs" placeholder="Descripción" />
+            <textarea v-model="req.configuration" v-auto-resize class="w-full px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-xs" placeholder="Configuración (roles, permisos...)" />
+            <textarea v-model="req.usageFlow" v-auto-resize class="w-full px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-xs" placeholder="Flujo de uso (ej. Login → Dashboard → ...)" />
             <div v-if="moduleLinkOptions.length" class="space-y-1 pt-1">
-              <p class="text-[10px] text-gray-500 dark:text-green-light/60">Vincular a alcance comercial (vacío = alcance base, siempre visible):</p>
+              <p class="text-[10px] text-text-muted">Vincular a alcance comercial (vacío = alcance base, siempre visible):</p>
               <div class="flex flex-wrap gap-x-2 gap-y-1">
                 <label
                   v-for="opt in moduleLinkOptions"
                   :key="'rql-'+ei+'-'+ri+'-'+opt.id"
-                  class="flex items-center gap-1 text-[11px] text-gray-700 dark:text-white/70 cursor-pointer"
+                  class="flex items-center gap-1 text-[11px] text-text-default cursor-pointer"
                 >
                   <input
                     type="checkbox"
                     :checked="req.linked_module_ids.includes(opt.id)"
-                    class="rounded border-gray-300 dark:border-white/[0.08] text-emerald-600"
+                    class="rounded border-gray-300 dark:border-white/[0.08] text-text-brand"
                     @change="toggleLinkedId(req.linked_module_ids, opt.id)"
                   >
                   <span class="max-w-[10rem] truncate" :title="opt.label">{{ opt.label }}</span>
@@ -232,21 +232,21 @@
 
     <!-- API (resumen por dominio) -->
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-white">API y endpoints (resumen)</h3>
+      <h3 class="text-sm font-semibold text-text-default">API y endpoints (resumen)</h3>
       <textarea
         v-model="doc.apiSummary"
         v-auto-resize
-        class="w-full px-3 py-2 border dark:border-white/[0.08] rounded-xl text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
+        class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm"
         placeholder="Resumen de la API sin enumerar cada ruta..."
       />
       <div class="flex items-center justify-between">
-        <span class="text-xs text-gray-500 dark:text-green-light/60">Por dominio / módulo</span>
-        <button type="button" class="text-xs text-emerald-600 hover:underline" @click="addApiDomain">+ Dominio</button>
+        <span class="text-xs text-text-muted">Por dominio / módulo</span>
+        <button type="button" class="text-xs text-text-brand hover:underline" @click="addApiDomain">+ Dominio</button>
       </div>
-      <div v-for="(row, i) in doc.apiDomains" :key="'api-' + i" class="grid grid-cols-1 md:grid-cols-2 gap-2 p-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl border dark:border-white/[0.06]">
-        <input v-model="row.domain" placeholder="Dominio o área" class="px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+      <div v-for="(row, i) in doc.apiDomains" :key="'api-' + i" class="grid grid-cols-1 md:grid-cols-2 gap-2 p-3 bg-surface-raised rounded-xl border border-border-muted">
+        <input v-model="row.domain" placeholder="Dominio o área" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <div class="flex gap-2">
-          <input v-model="row.summary" placeholder="Resumen de endpoints / contratos" class="flex-1 px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+          <input v-model="row.summary" placeholder="Resumen de endpoints / contratos" class="flex-1 px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
           <button type="button" class="text-xs text-red-500" @click="doc.apiDomains.splice(i, 1)">✕</button>
         </div>
       </div>
@@ -254,57 +254,57 @@
 
     <!-- Integraciones -->
     <section class="space-y-4">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Integraciones incluidas</h3>
-      <button type="button" class="text-xs text-emerald-600 mb-2" @click="addIncluded">+ Fila</button>
-      <div v-for="(row, i) in doc.integrations.included" :key="'inc-' + i" class="grid grid-cols-1 md:grid-cols-5 gap-2 p-2 bg-gray-50 dark:bg-white/[0.03] rounded-lg text-xs">
-        <input v-model="row.service" placeholder="Servicio" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.provider" placeholder="Proveedor" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.connection" placeholder="Conexión" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.dataExchange" placeholder="Datos" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+      <h3 class="text-sm font-semibold text-text-default">Integraciones incluidas</h3>
+      <button type="button" class="text-xs text-text-brand mb-2" @click="addIncluded">+ Fila</button>
+      <div v-for="(row, i) in doc.integrations.included" :key="'inc-' + i" class="grid grid-cols-1 md:grid-cols-5 gap-2 p-2 bg-surface-raised rounded-lg text-xs">
+        <input v-model="row.service" placeholder="Servicio" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
+        <input v-model="row.provider" placeholder="Proveedor" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
+        <input v-model="row.connection" placeholder="Conexión" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
+        <input v-model="row.dataExchange" placeholder="Datos" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
-          <input v-model="row.accountOwner" placeholder="Responsable cuenta" class="flex-1 px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+          <input v-model="row.accountOwner" placeholder="Responsable cuenta" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
           <button type="button" class="text-red-500" @click="doc.integrations.included.splice(i, 1)">✕</button>
         </div>
       </div>
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-white pt-2">No incluidas</h3>
-      <button type="button" class="text-xs text-emerald-600 mb-2" @click="addExcluded">+ Fila</button>
-      <div v-for="(row, i) in doc.integrations.excluded" :key="'exc-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-2 bg-gray-50 dark:bg-white/[0.03] rounded-lg text-xs">
-        <input v-model="row.service" placeholder="Servicio" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.reason" placeholder="Motivo" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+      <h3 class="text-sm font-semibold text-text-default pt-2">No incluidas</h3>
+      <button type="button" class="text-xs text-text-brand mb-2" @click="addExcluded">+ Fila</button>
+      <div v-for="(row, i) in doc.integrations.excluded" :key="'exc-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-2 bg-surface-raised rounded-lg text-xs">
+        <input v-model="row.service" placeholder="Servicio" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
+        <input v-model="row.reason" placeholder="Motivo" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
-          <input v-model="row.availability" placeholder="Disponibilidad futura" class="flex-1 px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+          <input v-model="row.availability" placeholder="Disponibilidad futura" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
           <button type="button" class="text-red-500" @click="doc.integrations.excluded.splice(i, 1)">✕</button>
         </div>
       </div>
-      <p class="text-xs text-gray-500 pt-2">Notas técnicas (viñetas, una por línea)</p>
+      <p class="text-xs text-text-muted pt-2">Notas técnicas (viñetas, una por línea)</p>
       <textarea
         v-model="doc.integrations.notes"
         v-auto-resize
-        class="w-full px-3 py-2 border dark:border-white/[0.08] rounded-xl text-sm font-mono text-xs dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
+        class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm font-mono text-xs"
         placeholder="Línea por línea..."
       />
     </section>
 
     <!-- Ambientes -->
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Ambientes (opcional)</h3>
+      <h3 class="text-sm font-semibold text-text-default">Ambientes (opcional)</h3>
       <textarea
         v-model="doc.environmentsNote"
         v-auto-resize
-        class="w-full px-3 py-2 border dark:border-white/[0.08] rounded-xl text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
+        class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm"
         placeholder="Nota general sobre ambientes si no usas tabla..."
       />
       <div class="flex items-center justify-between">
-        <span class="text-xs text-gray-500 dark:text-green-light/60">Tabla por ambiente</span>
-        <button type="button" class="text-xs text-emerald-600 hover:underline" @click="addEnvironmentRow">+ Fila</button>
+        <span class="text-xs text-text-muted">Tabla por ambiente</span>
+        <button type="button" class="text-xs text-text-brand hover:underline" @click="addEnvironmentRow">+ Fila</button>
       </div>
-      <div v-for="(row, i) in doc.environments" :key="'env-' + i" class="grid grid-cols-1 md:grid-cols-5 gap-2 p-2 bg-gray-50 dark:bg-white/[0.03] rounded-lg text-xs">
-        <input v-model="row.name" placeholder="Nombre" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.purpose" placeholder="Propósito" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.url" placeholder="URL / acceso" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.database" placeholder="Base de datos" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+      <div v-for="(row, i) in doc.environments" :key="'env-' + i" class="grid grid-cols-1 md:grid-cols-5 gap-2 p-2 bg-surface-raised rounded-lg text-xs">
+        <input v-model="row.name" placeholder="Nombre" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
+        <input v-model="row.purpose" placeholder="Propósito" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
+        <input v-model="row.url" placeholder="URL / acceso" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
+        <input v-model="row.database" placeholder="Base de datos" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
-          <input v-model="row.whoAccesses" placeholder="Quién accede" class="flex-1 px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+          <input v-model="row.whoAccesses" placeholder="Quién accede" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
           <button type="button" class="text-red-500" @click="doc.environments.splice(i, 1)">✕</button>
         </div>
       </div>
@@ -313,82 +313,82 @@
     <!-- Seguridad -->
     <section class="space-y-2">
       <div class="flex justify-between items-center">
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Seguridad técnica</h3>
-        <button type="button" class="text-xs text-emerald-600" @click="addSecurityRow">+ Fila</button>
+        <h3 class="text-sm font-semibold text-text-default">Seguridad técnica</h3>
+        <button type="button" class="text-xs text-text-brand" @click="addSecurityRow">+ Fila</button>
       </div>
-      <div v-for="(row, i) in doc.security" :key="'sec-' + i" class="flex gap-2 p-2 bg-gray-50 dark:bg-white/[0.03] rounded-lg">
-        <input v-model="row.aspect" placeholder="Aspecto" class="flex-1 px-2 py-1 border dark:border-white/[0.08] rounded text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.implementation" placeholder="Implementación" class="flex-[2] px-2 py-1 border dark:border-white/[0.08] rounded text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+      <div v-for="(row, i) in doc.security" :key="'sec-' + i" class="flex gap-2 p-2 bg-surface-raised rounded-lg">
+        <input v-model="row.aspect" placeholder="Aspecto" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm">
+        <input v-model="row.implementation" placeholder="Implementación" class="flex-[2] px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm">
         <button type="button" class="text-red-500 text-xs" @click="doc.security.splice(i, 1)">✕</button>
       </div>
     </section>
 
     <!-- Rendimiento y calidad -->
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Rendimiento y calidad</h3>
-      <p class="text-xs text-gray-500 dark:text-green-light/60">Métricas</p>
-      <button type="button" class="text-xs text-emerald-600" @click="addMetric">+ Métrica</button>
-      <div v-for="(row, i) in doc.performanceQuality.metrics" :key="'met-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-2 bg-gray-50 dark:bg-white/[0.03] rounded-lg text-sm">
-        <input v-model="row.metric" placeholder="Métrica" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.target" placeholder="Objetivo" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+      <h3 class="text-sm font-semibold text-text-default">Rendimiento y calidad</h3>
+      <p class="text-xs text-text-muted">Métricas</p>
+      <button type="button" class="text-xs text-text-brand" @click="addMetric">+ Métrica</button>
+      <div v-for="(row, i) in doc.performanceQuality.metrics" :key="'met-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-2 bg-surface-raised rounded-lg text-sm">
+        <input v-model="row.metric" placeholder="Métrica" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
+        <input v-model="row.target" placeholder="Objetivo" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
-          <input v-model="row.howMeasured" placeholder="Cómo se mide" class="flex-1 px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+          <input v-model="row.howMeasured" placeholder="Cómo se mide" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
           <button type="button" class="text-red-500" @click="doc.performanceQuality.metrics.splice(i, 1)">✕</button>
         </div>
       </div>
-      <p class="text-xs text-gray-500 dark:text-green-light/60">Prácticas</p>
-      <button type="button" class="text-xs text-emerald-600" @click="addPractice">+ Práctica</button>
-      <div v-for="(row, i) in doc.performanceQuality.practices" :key="'prac-' + i" class="flex gap-2 p-2 bg-gray-50 dark:bg-white/[0.03] rounded-lg">
-        <input v-model="row.strategy" placeholder="Estrategia" class="w-1/3 px-2 py-1 border dark:border-white/[0.08] rounded text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.description" placeholder="Descripción" class="flex-1 px-2 py-1 border dark:border-white/[0.08] rounded text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+      <p class="text-xs text-text-muted">Prácticas</p>
+      <button type="button" class="text-xs text-text-brand" @click="addPractice">+ Práctica</button>
+      <div v-for="(row, i) in doc.performanceQuality.practices" :key="'prac-' + i" class="flex gap-2 p-2 bg-surface-raised rounded-lg">
+        <input v-model="row.strategy" placeholder="Estrategia" class="w-1/3 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm">
+        <input v-model="row.description" placeholder="Descripción" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm">
         <button type="button" class="text-red-500" @click="doc.performanceQuality.practices.splice(i, 1)">✕</button>
       </div>
     </section>
 
     <!-- Backups -->
     <section class="space-y-2">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Backups</h3>
+      <h3 class="text-sm font-semibold text-text-default">Backups</h3>
       <textarea
         v-model="doc.backupsNote"
         v-auto-resize
-        class="w-full px-3 py-2 border dark:border-white/[0.08] rounded-xl text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
+        class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm"
         placeholder="Hosting propio vs según proveedor del cliente..."
       />
     </section>
 
     <!-- Calidad (pruebas) -->
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Calidad y pruebas</h3>
+      <h3 class="text-sm font-semibold text-text-default">Calidad y pruebas</h3>
       <div class="flex items-center justify-between">
-        <span class="text-xs text-gray-500 dark:text-green-light/60">Dimensiones</span>
-        <button type="button" class="text-xs text-emerald-600" @click="addQualityDimension">+ Fila</button>
+        <span class="text-xs text-text-muted">Dimensiones</span>
+        <button type="button" class="text-xs text-text-brand" @click="addQualityDimension">+ Fila</button>
       </div>
-      <div v-for="(row, i) in doc.quality.dimensions" :key="'qd-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-2 bg-gray-50 dark:bg-white/[0.03] rounded-lg text-sm">
-        <input v-model="row.dimension" placeholder="Dimensión" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.evaluates" placeholder="Qué evalúa" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+      <div v-for="(row, i) in doc.quality.dimensions" :key="'qd-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-2 bg-surface-raised rounded-lg text-sm">
+        <input v-model="row.dimension" placeholder="Dimensión" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
+        <input v-model="row.evaluates" placeholder="Qué evalúa" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
-          <input v-model="row.standard" placeholder="Estándar / umbral" class="flex-1 px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+          <input v-model="row.standard" placeholder="Estándar / umbral" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
           <button type="button" class="text-red-500" @click="doc.quality.dimensions.splice(i, 1)">✕</button>
         </div>
       </div>
       <div class="flex items-center justify-between">
-        <span class="text-xs text-gray-500 dark:text-green-light/60">Tipos de prueba</span>
-        <button type="button" class="text-xs text-emerald-600" @click="addTestType">+ Fila</button>
+        <span class="text-xs text-text-muted">Tipos de prueba</span>
+        <button type="button" class="text-xs text-text-brand" @click="addTestType">+ Fila</button>
       </div>
-      <div v-for="(row, i) in doc.quality.testTypes" :key="'qt-' + i" class="grid grid-cols-1 md:grid-cols-4 gap-2 p-2 bg-gray-50 dark:bg-white/[0.03] rounded-lg text-xs">
-        <input v-model="row.type" placeholder="Tipo" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.validates" placeholder="Qué valida" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.tool" placeholder="Herramienta" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+      <div v-for="(row, i) in doc.quality.testTypes" :key="'qt-' + i" class="grid grid-cols-1 md:grid-cols-4 gap-2 p-2 bg-surface-raised rounded-lg text-xs">
+        <input v-model="row.type" placeholder="Tipo" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
+        <input v-model="row.validates" placeholder="Qué valida" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
+        <input v-model="row.tool" placeholder="Herramienta" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
-          <input v-model="row.whenRun" placeholder="Cuándo" class="flex-1 px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+          <input v-model="row.whenRun" placeholder="Cuándo" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
           <button type="button" class="text-red-500" @click="doc.quality.testTypes.splice(i, 1)">✕</button>
         </div>
       </div>
-      <p class="text-xs text-gray-500 dark:text-green-light/60">Flujos críticos de aceptación (texto; no duplicar módulos)</p>
+      <p class="text-xs text-text-muted">Flujos críticos de aceptación (texto; no duplicar módulos)</p>
       <textarea
         v-model="doc.quality.criticalFlowsNote"
         v-auto-resize
-        class="w-full px-3 py-2 border dark:border-white/[0.08] rounded-xl text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
+        class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm"
         placeholder="Alineación con requerimientos priorizados..."
       />
     </section>
@@ -396,14 +396,14 @@
     <!-- Decisiones -->
     <section class="space-y-2">
       <div class="flex justify-between">
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Decisiones técnicas (ADRs)</h3>
-        <button type="button" class="text-xs text-emerald-600" @click="addDecision">+ Fila</button>
+        <h3 class="text-sm font-semibold text-text-default">Decisiones técnicas (ADRs)</h3>
+        <button type="button" class="text-xs text-text-brand" @click="addDecision">+ Fila</button>
       </div>
-      <div v-for="(row, i) in doc.decisions" :key="'dec-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-2 bg-gray-50 dark:bg-white/[0.03] rounded-lg text-sm">
-        <input v-model="row.decision" placeholder="Decisión" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
-        <input v-model="row.alternative" placeholder="Alternativa descartada" class="px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+      <div v-for="(row, i) in doc.decisions" :key="'dec-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-2 bg-surface-raised rounded-lg text-sm">
+        <input v-model="row.decision" placeholder="Decisión" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
+        <input v-model="row.alternative" placeholder="Alternativa descartada" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
-          <input v-model="row.reason" placeholder="Razón" class="flex-1 px-2 py-1 border dark:border-white/[0.08] rounded dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40">
+          <input v-model="row.reason" placeholder="Razón" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
           <button type="button" class="text-red-500" @click="doc.decisions.splice(i, 1)">✕</button>
         </div>
       </div>
@@ -413,12 +413,12 @@
       <button
         type="button"
         :disabled="isSaving"
-        class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+        class="px-5 py-2.5 bg-primary text-on-primary rounded-xl text-sm font-medium hover:bg-primary-strong disabled:opacity-50"
         @click="handleSave"
       >
         {{ isSaving ? 'Guardando...' : 'Guardar detalle técnico' }}
       </button>
-      <span v-if="savedMsg" class="text-sm text-emerald-600">{{ savedMsg }}</span>
+      <span v-if="savedMsg" class="text-sm text-text-brand">{{ savedMsg }}</span>
       <span v-if="validationError" class="text-sm text-red-600">{{ validationError }}</span>
     </div>
   </div>

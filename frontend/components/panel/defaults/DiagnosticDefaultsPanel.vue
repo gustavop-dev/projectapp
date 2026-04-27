@@ -11,155 +11,137 @@
       @cancel="handleCancelled"
     />
 
-    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+    <p class="text-sm text-text-muted mb-6">
       Configura los valores iniciales que se aplicarán a los nuevos diagnósticos.
     </p>
 
-    <ResponsiveTabs v-model="activeTab" :tabs="tabs" />
+    <BaseTabs v-model="activeTab" :tabs="tabs" />
     <PanelToast />
 
     <!-- ═══ TAB: Vista General ═══ -->
     <section v-show="activeTab === 'general'" class="max-w-5xl mx-auto">
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+      <p class="text-sm text-text-muted mb-6">
         Estos valores se aplican al crear cada nuevo diagnóstico. Puedes seguir ajustándolos por diagnóstico.
       </p>
       <form
-        class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 sm:p-8 space-y-6"
+        class="bg-surface rounded-xl shadow-sm border border-border-muted p-4 sm:p-8 space-y-6"
         @submit.prevent="handleSaveGeneral"
       >
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Idioma</label>
-            <select
+          <BaseFormField label="Idioma" for="defaults-language">
+            <BaseSelect
+              id="defaults-language"
               v-model="generalForm.language"
               data-testid="defaults-language"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
+              :options="[{ value: 'es', label: 'Español' }, { value: 'en', label: 'English' }]"
               @change="onLanguageChange"
-            >
-              <option value="es">Español</option>
-              <option value="en">English</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Moneda</label>
-            <select
+            />
+          </BaseFormField>
+          <BaseFormField label="Moneda" for="defaults-currency">
+            <BaseSelect
+              id="defaults-currency"
               v-model="generalForm.default_currency"
               data-testid="defaults-currency"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100"
-            >
-              <option value="COP">COP</option>
-              <option value="USD">USD</option>
-            </select>
-          </div>
+              :options="[{ value: 'COP', label: 'COP' }, { value: 'USD', label: 'USD' }]"
+            />
+          </BaseFormField>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Inversión por defecto</label>
-            <input
+          <BaseFormField label="Inversión por defecto">
+            <BaseInput
               v-model.number="generalForm.default_investment_amount"
               type="number"
               min="0"
               step="0.01"
               data-testid="defaults-investment"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100"
             />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Duración por defecto</label>
-            <input
+          </BaseFormField>
+          <BaseFormField label="Duración por defecto">
+            <BaseInput
               v-model="generalForm.default_duration_label"
               type="text"
               maxlength="80"
               placeholder="ej. 4 semanas"
               data-testid="defaults-duration-label"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100"
             />
-          </div>
+          </BaseFormField>
         </div>
 
-        <fieldset class="border border-gray-100 dark:border-gray-700 rounded-xl p-4">
-          <legend class="px-2 text-sm font-medium text-gray-700 dark:text-gray-300">Distribución de pagos</legend>
+        <fieldset class="border border-border-muted rounded-xl p-4">
+          <legend class="px-2 text-sm font-medium text-text-default">Distribución de pagos</legend>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">% Pago inicial</label>
+            <BaseFormField label="% Pago inicial">
               <div class="flex items-center gap-3">
-                <input
+                <BaseInput
                   v-model.number="generalForm.payment_initial_pct"
                   type="number"
                   min="0"
                   max="100"
+                  class="w-32"
                   data-testid="defaults-payment-initial"
-                  class="w-32 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100"
                   @input="syncPaymentFinal"
                 />
-                <span class="text-sm text-gray-500 dark:text-gray-400">%</span>
+                <span class="text-sm text-text-muted">%</span>
               </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">% Pago final</label>
+            </BaseFormField>
+            <BaseFormField label="% Pago final">
               <div class="flex items-center gap-3">
-                <input
+                <BaseInput
                   v-model.number="generalForm.payment_final_pct"
                   type="number"
                   min="0"
                   max="100"
+                  class="w-32"
                   data-testid="defaults-payment-final"
-                  class="w-32 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100"
                   @input="syncPaymentInitial"
                 />
-                <span class="text-sm text-gray-500 dark:text-gray-400">%</span>
+                <span class="text-sm text-text-muted">%</span>
               </div>
-            </div>
+            </BaseFormField>
           </div>
           <p
             v-if="!isPaymentValid"
-            class="text-xs text-rose-600 dark:text-rose-400 mt-2"
+            class="text-xs text-danger-strong mt-2"
             data-testid="defaults-payment-warning"
           >La suma debe ser exactamente 100% (actual: {{ paymentSum }}%).</p>
-          <p v-else class="text-xs text-gray-400 dark:text-gray-500 mt-2">Suma: {{ paymentSum }}%.</p>
+          <p v-else class="text-xs text-text-subtle mt-2">Suma: {{ paymentSum }}%.</p>
         </fieldset>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Días de recordatorio</label>
-            <input
+          <BaseFormField label="Días de recordatorio">
+            <BaseInput
               v-model.number="generalForm.reminder_days"
               type="number"
               min="1"
               max="60"
               data-testid="defaults-reminder-days"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100"
             />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Días de urgencia</label>
-            <input
+          </BaseFormField>
+          <BaseFormField label="Días de urgencia">
+            <BaseInput
               v-model.number="generalForm.urgency_reminder_days"
               type="number"
               min="1"
               max="60"
               data-testid="defaults-urgency-days"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100"
             />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Días de expiración</label>
-            <input
+          </BaseFormField>
+          <BaseFormField label="Días de expiración">
+            <BaseInput
               v-model.number="generalForm.expiration_days"
               type="number"
               min="1"
               max="365"
               data-testid="defaults-expiration-days"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100"
             />
-          </div>
+          </BaseFormField>
         </div>
 
         <div>
-          <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label class="flex items-center gap-2 text-sm font-medium text-text-default mb-1">
             Patrón de URL personalizada
-            <UiTooltip position="right" width="max-w-xs">
+            <BaseTooltip position="right" width="max-w-xs">
               <div class="space-y-2 text-left">
                 <p>Puedes usar <strong>texto libre</strong> o combinarlo con placeholders.</p>
                 <p>
@@ -176,50 +158,53 @@
                   Ejemplos: <code>mi-diagnostico</code>, <code>{client_name}-2026</code>.
                 </p>
               </div>
-            </UiTooltip>
+            </BaseTooltip>
           </label>
-          <input
+          <BaseInput
             v-model="generalForm.default_slug_pattern"
             type="text"
+            class="font-mono"
             data-testid="diagnostic-defaults-slug-pattern"
-            class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100"
             placeholder="{client_name}"
           />
-          <p class="text-xs text-gray-400 mt-1">
+          <p class="text-xs text-text-subtle mt-1">
             Texto libre permitido. Se aplica al crear un diagnóstico si el admin no escribe una URL manualmente.
           </p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Vista previa: <span class="font-mono text-emerald-600 dark:text-emerald-400">/diagnostic/{{ slugPatternPreview }}</span>
+          <p class="text-xs text-text-muted mt-1">
+            Vista previa: <span class="font-mono text-text-brand">/diagnostic/{{ slugPatternPreview }}</span>
           </p>
         </div>
 
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-          <button
-            type="button"
-            class="text-sm text-gray-500 hover:text-rose-600 dark:text-gray-400 dark:hover:text-rose-400"
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-border-muted">
+          <BaseButton
+            variant="ghost"
+            size="md"
+            class="!text-text-muted hover:!text-danger-strong"
             data-testid="defaults-reset-btn"
             @click="confirmReset"
           >
             Restablecer a valores del sistema
-          </button>
-          <button
+          </BaseButton>
+          <BaseButton
             type="submit"
-            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 dark:bg-emerald-700 dark:hover:bg-emerald-600"
+            variant="primary"
+            size="lg"
+            :loading="isSaving"
             :disabled="!isPaymentValid || isSaving"
             data-testid="defaults-save-btn"
-          >{{ isSaving ? 'Guardando…' : 'Guardar cambios' }}</button>
+          >{{ isSaving ? 'Guardando…' : 'Guardar cambios' }}</BaseButton>
         </div>
       </form>
     </section>
 
     <!-- ═══ TAB: Secciones ═══ -->
     <section v-show="activeTab === 'sections'" class="max-w-7xl mx-auto">
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+      <p class="text-sm text-text-muted mb-6">
         Lista de las secciones que se sembrarán en cada nuevo diagnóstico para el idioma seleccionado.
         Para editar el contenido detallado, abre un diagnóstico real y modifícalo allí — el editor por
         defecto se gestiona desde el JSON de cada sección.
       </p>
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+      <div class="bg-surface rounded-xl shadow-sm border border-border-muted divide-y divide-gray-100 dark:divide-gray-700">
         <div
           v-for="section in sectionsList"
           :key="section.section_type"
@@ -227,46 +212,45 @@
           data-testid="defaults-section-row"
         >
           <div>
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ section.title }}</p>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            <p class="text-sm font-medium text-text-default">{{ section.title }}</p>
+            <p class="text-xs text-text-subtle mt-0.5">
               {{ section.section_type }} · orden {{ section.order }} · visibilidad {{ section.visibility }}
             </p>
           </div>
-          <span
-            class="text-xs px-2 py-1 rounded-full"
-            :class="section.is_enabled
-              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-              : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300'"
-          >{{ section.is_enabled ? 'Activa' : 'Desactivada' }}</span>
+          <BaseBadge :variant="section.is_enabled ? 'success' : 'neutral'" size="sm">
+            {{ section.is_enabled ? 'Activa' : 'Desactivada' }}
+          </BaseBadge>
         </div>
         <div
           v-if="!sectionsList.length"
-          class="px-4 py-6 text-sm text-gray-500 dark:text-gray-400 text-center"
+          class="px-4 py-6 text-sm text-text-muted text-center"
         >No hay secciones configuradas.</div>
       </div>
     </section>
 
     <!-- ═══ TAB: Plantillas de Email ═══ -->
     <section v-show="activeTab === 'emails'" class="max-w-3xl">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 space-y-3">
-        <h2 class="text-base font-medium text-gray-800 dark:text-gray-100">Plantillas de email del diagnóstico</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">
+      <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-6 space-y-3">
+        <h2 class="text-base font-medium text-text-default">Plantillas de email del diagnóstico</h2>
+        <p class="text-sm text-text-muted">
           Las plantillas <code class="text-xs">diagnostic_initial_sent</code>, <code class="text-xs">diagnostic_final_sent</code>,
           <code class="text-xs">diagnostic_custom_email</code> y <code class="text-xs">diagnostic_documents_sent</code> se
           editan desde el panel central de plantillas de email.
         </p>
-        <NuxtLink
+        <BaseButton
+          as="NuxtLink"
+          variant="primary"
+          size="md"
           :to="localePath('/panel/email-templates')"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
-        >Ir a Plantillas de Email →</NuxtLink>
+        >Ir a Plantillas de Email →</BaseButton>
       </div>
     </section>
 
     <!-- ═══ TAB: Diagnostic Prompt ═══ -->
     <section v-show="activeTab === 'prompt'" class="max-w-3xl">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 space-y-3">
-        <h2 class="text-base font-medium text-gray-800 dark:text-gray-100">Diagnostic Prompt (IA)</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">
+      <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-6 space-y-3">
+        <h2 class="text-base font-medium text-text-default">Diagnostic Prompt (IA)</h2>
+        <p class="text-sm text-text-muted">
           El panel de prompts de IA del diagnóstico se gestiona por diagnóstico desde la pestaña
           “Prompt” del editor. Aquí no hay todavía un prompt por defecto compartido.
         </p>
@@ -276,8 +260,8 @@
     <!-- ═══ TAB: JSON ═══ -->
     <section v-show="activeTab === 'json'" class="max-w-7xl mx-auto">
       <div class="flex items-center justify-between mb-2">
-        <h2 class="text-sm text-gray-500 dark:text-gray-400">JSON crudo del config activo</h2>
-        <span v-if="rawConfig?.updated_at" class="text-xs text-gray-400">
+        <h2 class="text-sm text-text-muted">JSON crudo del config activo</h2>
+        <span v-if="rawConfig?.updated_at" class="text-xs text-text-subtle">
           Actualizado: {{ formatDate(rawConfig.updated_at) }}
         </span>
       </div>
@@ -291,7 +275,6 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import PanelToast from '~/components/panel/PanelToast.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';

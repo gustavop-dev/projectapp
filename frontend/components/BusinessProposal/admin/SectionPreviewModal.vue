@@ -9,7 +9,7 @@
       <button
         type="button"
         class="absolute top-4 right-4 z-[10000] w-10 h-10 flex items-center justify-center
-               rounded-full bg-white/90 text-gray-600 hover:bg-white hover:text-gray-900
+               rounded-full bg-surface text-text-muted hover:bg-surface-raised hover:text-text-default
                shadow-lg transition-colors"
         @click="$emit('close')"
       >
@@ -19,7 +19,7 @@
       </button>
 
       <!-- Preview panel -->
-      <div class="preview-panel w-[95vw] h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-white">
+      <div class="preview-panel w-[95vw] h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-surface">
         <div class="w-full h-full overflow-y-auto">
           <RawContentSection
             v-if="subSection && subSection.group._pasteMode"

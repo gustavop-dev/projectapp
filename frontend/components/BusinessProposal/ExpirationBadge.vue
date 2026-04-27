@@ -7,7 +7,7 @@
            bg-red-600 text-white text-center urgent-pulse"
   >
     <span class="flex items-center justify-center gap-2 text-sm font-bold">
-      <span class="inline-block w-2 h-2 rounded-full bg-white animate-ping" />
+      <span class="inline-block w-2 h-2 rounded-full bg-white/95 animate-ping" />
       Expira en {{ formattedCountdown }}
     </span>
   </div>
@@ -50,7 +50,7 @@ const badgeClasses = computed(() => {
     case 'notice':
       return 'bg-yellow-50/90 border-yellow-200 text-yellow-700';
     default:
-      return 'bg-emerald-50/90 border-emerald-200 text-emerald-700';
+      return 'bg-primary-soft/90 border-emerald-200 text-text-brand';
   }
 });
 

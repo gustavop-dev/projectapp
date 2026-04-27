@@ -2,7 +2,7 @@
   <form class="space-y-6" @submit.prevent="$emit('submit')">
     <div>
       <label class="block">
-        <span class="text-sm font-medium text-gray-700">Clasificación de tamaño</span>
+        <span class="text-sm font-medium text-text-default">Clasificación de tamaño</span>
         <select
           class="mt-1 w-full border rounded px-3 py-2"
           :value="modelValue.size_category"
@@ -17,7 +17,7 @@
     </div>
 
     <fieldset>
-      <legend class="text-sm font-semibold text-gray-700 mb-2">Stack</legend>
+      <legend class="text-sm font-semibold text-text-default mb-2">Stack</legend>
       <div class="grid gap-3 md:grid-cols-2">
         <input class="border rounded px-3 py-2" placeholder="Backend (nombre)"
           :value="stack.backend?.name"
@@ -35,7 +35,7 @@
     </fieldset>
 
     <fieldset>
-      <legend class="text-sm font-semibold text-gray-700 mb-2">Inventario técnico</legend>
+      <legend class="text-sm font-semibold text-text-default mb-2">Inventario técnico</legend>
       <div class="grid gap-3 md:grid-cols-3">
         <NumField label="Migraciones"   field="migrations_count"   :radiography="rad" @update="updateRad" />
         <NumField label="Entidades / modelos"   field="entities_count"     :radiography="rad" @update="updateRad" />
@@ -52,7 +52,7 @@
         <NumField label="Archivos Docker"       field="docker_files_count" :radiography="rad" @update="updateRad" />
       </div>
       <label class="block mt-3">
-        <span class="text-sm font-medium text-gray-700">Etiqueta de cobertura de pruebas</span>
+        <span class="text-sm font-medium text-text-default">Etiqueta de cobertura de pruebas</span>
         <input class="mt-1 w-full border rounded px-3 py-2"
           placeholder="Ej: 0%, ~30%, etc."
           :value="rad.test_coverage_label"
@@ -61,7 +61,7 @@
     </fieldset>
 
     <fieldset>
-      <legend class="text-sm font-semibold text-gray-700 mb-2">Módulos funcionales (uno por línea)</legend>
+      <legend class="text-sm font-semibold text-text-default mb-2">Módulos funcionales (uno por línea)</legend>
       <textarea
         rows="6"
         class="w-full border rounded px-3 py-2 font-mono text-sm"
@@ -73,7 +73,7 @@
     <div class="text-right">
       <button
         type="submit"
-        class="px-4 sm:px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-100 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50"
+        class="px-4 sm:px-5 py-2 bg-primary text-white rounded-xl font-medium text-sm hover:bg-primary-strong transition-all shadow-sm shadow-emerald-100 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50"
         :disabled="busy"
       >{{ busy ? 'Guardando...' : 'Guardar radiografía' }}</button>
     </div>
@@ -112,7 +112,7 @@ const NumField = {
   emits: ['update'],
   setup(p, { emit }) {
     return () => h('label', { class: 'block' }, [
-      h('span', { class: 'text-sm font-medium text-gray-700' }, p.label),
+      h('span', { class: 'text-sm font-medium text-text-default' }, p.label),
       h('input', {
         type: 'number',
         min: 0,

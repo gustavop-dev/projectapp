@@ -103,7 +103,7 @@
                 :class="[
                   'px-4 py-2 text-sm rounded-xl border border-zinc-600 transition-all duration-200 cursor-pointer',
                   form.budget === option
-                    ? 'bg-lemon text-esmerald border-lemon'
+                    ? 'bg-accent-soft text-text-brand border-lemon'
                     : 'bg-transparent text-zinc-300 hover:border-zinc-400'
                 ]"
               >
@@ -120,7 +120,7 @@
             id="form-submit-btn"
             :disabled="!isFormValid"
             :class="{
-              'bg-lemon text-esmerald': isFormValid,
+              'bg-accent-soft text-text-brand': isFormValid,
               'bg-zinc-400 text-white': !isFormValid,
             }"
             type="submit"

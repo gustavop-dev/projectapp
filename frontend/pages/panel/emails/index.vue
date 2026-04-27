@@ -4,35 +4,35 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Emails</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Envía correos con el branding de la marca a cualquier destinatario.</p>
+        <h1 class="text-2xl font-light text-text-default">Emails</h1>
+        <p class="text-sm text-text-muted mt-1">Envía correos con el branding de la marca a cualquier destinatario.</p>
       </div>
     </div>
 
     <!-- ── Email composer ── -->
-    <section class="bg-white border border-gray-100 rounded-xl p-5 dark:bg-gray-800 dark:border-gray-700">
+    <section class="bg-surface border border-border-muted rounded-xl p-5  ">
       <div class="flex items-center gap-2 mb-5">
-        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Correo general con branding</h3>
+        <h3 class="text-sm font-semibold text-text-default">Correo general con branding</h3>
       </div>
 
       <!-- Sub-tab switcher -->
-      <div class="flex gap-4 border-b border-gray-100 dark:border-gray-600 mb-5">
+      <div class="flex gap-4 border-b border-border-muted  mb-5">
         <button type="button"
           class="pb-2 text-sm transition-colors border-b-2"
           :class="activeSubTab === 'edit'
-            ? 'border-emerald-600 text-emerald-700 dark:text-emerald-400 font-semibold'
-            : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+            ? 'border-emerald-600 text-text-brand  font-semibold'
+            : 'border-transparent text-text-muted hover:text-text-default'"
           @click="activeSubTab = 'edit'">
           Editar
         </button>
         <button type="button"
           class="pb-2 text-sm transition-colors border-b-2"
           :class="activeSubTab === 'preview'
-            ? 'border-emerald-600 text-emerald-700 dark:text-emerald-400 font-semibold'
-            : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+            ? 'border-emerald-600 text-text-brand  font-semibold'
+            : 'border-transparent text-text-muted hover:text-text-default'"
           @click="activeSubTab = 'preview'">
           Vista previa
         </button>
@@ -42,34 +42,34 @@
       <div v-if="activeSubTab === 'edit'" class="space-y-4">
         <!-- Recipient -->
         <div>
-          <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Para</label>
+          <label class="block text-xs text-text-muted mb-1">Para</label>
           <input v-model="recipient" type="email" placeholder="correo@ejemplo.com"
-            class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+            class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring" />
         </div>
 
         <!-- Subject -->
         <div>
-          <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Asunto</label>
+          <label class="block text-xs text-text-muted mb-1">Asunto</label>
           <input v-model="subject" type="text" placeholder="Asunto del correo"
-            class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+            class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring" />
         </div>
 
         <!-- Greeting -->
         <div>
-          <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Saludo</label>
+          <label class="block text-xs text-text-muted mb-1">Saludo</label>
           <input v-model="greeting" type="text" placeholder="Hola"
-            class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+            class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring" />
         </div>
 
         <!-- Sections (draggable) -->
         <div>
-          <label class="block text-xs text-gray-500 dark:text-gray-400 mb-2">Secciones del correo</label>
+          <label class="block text-xs text-text-muted mb-2">Secciones del correo</label>
           <draggable v-model="sections" item-key="id" handle=".drag-handle" ghost-class="opacity-30"
             class="space-y-3">
             <template #item="{ element: section, index: idx }">
-              <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 border border-gray-100 dark:border-gray-600">
+              <div class="bg-gray-50  rounded-lg p-3 border border-border-muted ">
                 <div class="flex items-center gap-2 mb-2">
-                  <span class="drag-handle cursor-grab text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 select-none text-sm">⠿</span>
+                  <span class="drag-handle cursor-grab text-gray-400 hover:text-text-muted select-none text-sm">⠿</span>
                   <span class="text-[10px] text-gray-400 uppercase tracking-wide">Sección {{ idx + 1 }}</span>
                   <button v-if="sections.length > 1" type="button" @click="removeSection(idx)"
                     class="ml-auto text-gray-400 hover:text-red-500 transition-colors p-0.5">
@@ -79,12 +79,12 @@
                   </button>
                 </div>
                 <textarea v-model="section.text" rows="3" placeholder="Escribe el contenido de esta sección..."
-                  class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-y" />
+                  class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface  focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring resize-y" />
               </div>
             </template>
           </draggable>
           <button type="button" @click="addSection"
-            class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors">
+            class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-brand  bg-primary-soft rounded-lg hover:bg-primary-soft dark:hover:bg-emerald-900/50 transition-colors">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
@@ -94,22 +94,22 @@
 
         <!-- Footer -->
         <div>
-          <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Pie de correo</label>
+          <label class="block text-xs text-text-muted mb-1">Pie de correo</label>
           <textarea v-model="footer" rows="2" placeholder="Texto de cierre..."
-            class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-y" />
+            class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring resize-y" />
         </div>
 
         <!-- Attachments -->
         <div>
-          <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Adjuntos</label>
+          <label class="block text-xs text-text-muted mb-1">Adjuntos</label>
           <input ref="fileInput" type="file" multiple
             accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-            class="text-xs file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-emerald-50 file:text-emerald-700 file:rounded-lg hover:file:bg-emerald-100 dark:text-gray-300"
+            class="text-xs file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-primary-soft file:text-text-brand file:rounded-lg hover:file:bg-primary-soft "
             @change="handleFilesChange" />
           <div v-if="attachments.length" class="mt-2 space-y-1">
             <div v-for="(file, idx) in attachments" :key="idx"
-              class="flex items-center justify-between py-1.5 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <span class="text-xs text-gray-700 dark:text-gray-300 truncate">{{ file.name }}</span>
+              class="flex items-center justify-between py-1.5 px-3 bg-gray-50  rounded-lg">
+              <span class="text-xs text-text-default truncate">{{ file.name }}</span>
               <button type="button" @click="removeAttachment(idx)"
                 class="text-gray-400 hover:text-red-500 transition-colors p-0.5">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,10 +123,10 @@
         <!-- Send button -->
         <div class="flex items-center justify-between pt-2">
           <p v-if="sendError" class="text-xs text-red-500">{{ sendError }}</p>
-          <p v-else-if="sendSuccess" class="text-xs text-emerald-600">Correo enviado correctamente.</p>
+          <p v-else-if="sendSuccess" class="text-xs text-text-brand">Correo enviado correctamente.</p>
           <span v-else />
           <button type="button" :disabled="!canSend || sending" @click="handleSend"
-            class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
             <svg v-if="!sending" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
@@ -142,8 +142,8 @@
       <!-- ── Preview sub-tab ── -->
       <div v-else>
         <!-- Subject badge -->
-        <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 mb-4 text-xs text-gray-500 dark:text-gray-400">
-          <span class="font-medium text-gray-700 dark:text-gray-300">Asunto:</span>
+        <div class="flex items-center gap-2 bg-gray-50  rounded-lg px-3 py-2 mb-4 text-xs text-text-muted">
+          <span class="font-medium text-text-default">Asunto:</span>
           <span>{{ subject || '(sin asunto)' }}</span>
         </div>
 
@@ -211,12 +211,12 @@
     </section>
 
     <!-- ── History ── -->
-    <section class="bg-white border border-gray-100 rounded-xl p-5 dark:bg-gray-800 dark:border-gray-700">
+    <section class="bg-surface border border-border-muted rounded-xl p-5  ">
       <div class="flex items-center gap-2 mb-4">
         <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Historial de correos enviados</h3>
+        <h3 class="text-sm font-semibold text-text-default">Historial de correos enviados</h3>
       </div>
 
       <div v-if="emailStore.isLoadingHistory" class="text-xs text-gray-400 py-4 text-center">Cargando historial...</div>
@@ -227,23 +227,23 @@
 
       <div v-else class="space-y-2">
         <div v-for="entry in emailStore.history" :key="entry.id"
-          class="border border-gray-100 dark:border-gray-600 rounded-lg overflow-hidden">
+          class="border border-border-muted  rounded-lg overflow-hidden">
           <!-- Summary row -->
           <button type="button" @click="toggleExpand(entry.id)"
             class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
-                <span class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{{ entry.subject }}</span>
+                <span class="text-xs font-medium text-text-default truncate">{{ entry.subject }}</span>
                 <span class="px-1.5 py-0.5 rounded text-[10px] font-medium"
                   :class="{
-                    'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400': entry.status === 'sent' || entry.status === 'delivered',
+                    'bg-primary-soft text-text-brand dark:bg-emerald-900/40 ': entry.status === 'sent' || entry.status === 'delivered',
                     'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400': entry.status === 'failed' || entry.status === 'bounced',
                   }">
                   {{ statusLabel(entry.status) }}
                 </span>
               </div>
               <div class="flex items-center gap-2 mt-0.5">
-                <span class="text-[11px] text-gray-500 dark:text-gray-400">{{ entry.recipient }}</span>
+                <span class="text-[11px] text-text-muted">{{ entry.recipient }}</span>
                 <span class="text-[10px] text-gray-400">{{ formatDate(entry.sent_at) }}</span>
               </div>
             </div>
@@ -254,27 +254,27 @@
           </button>
 
           <!-- Expanded detail -->
-          <div v-if="expandedIds[entry.id]" class="border-t border-gray-100 dark:border-gray-600 px-4 py-3 bg-gray-50 dark:bg-gray-700 space-y-3">
+          <div v-if="expandedIds[entry.id]" class="border-t border-border-muted  px-4 py-3 bg-gray-50  space-y-3">
             <div v-if="entry.metadata?.greeting">
               <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Saludo</p>
-              <p class="text-xs text-gray-700 dark:text-gray-300">{{ entry.metadata.greeting }}</p>
+              <p class="text-xs text-text-default">{{ entry.metadata.greeting }}</p>
             </div>
             <div v-if="entry.metadata?.sections?.length">
               <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Secciones</p>
               <div v-for="(section, idx) in entry.metadata.sections" :key="idx"
-                class="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 mb-1.5 border border-gray-100 dark:border-gray-600">
-                <p class="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ section }}</p>
+                class="bg-surface rounded-lg px-3 py-2 mb-1.5 border border-border-muted ">
+                <p class="text-xs text-text-default whitespace-pre-wrap">{{ section }}</p>
               </div>
             </div>
             <div v-if="entry.metadata?.footer">
               <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Pie de correo</p>
-              <p class="text-xs text-gray-700 dark:text-gray-300">{{ entry.metadata.footer }}</p>
+              <p class="text-xs text-text-default">{{ entry.metadata.footer }}</p>
             </div>
             <div v-if="entry.metadata?.attachment_names?.length">
               <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Adjuntos</p>
               <div class="flex flex-wrap gap-1">
                 <span v-for="(name, idx) in entry.metadata.attachment_names" :key="idx"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded text-[11px] text-gray-600 dark:text-gray-300">
+                  class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border-default rounded text-[11px] text-text-muted">
                   &#128206; {{ name }}
                 </span>
               </div>
@@ -285,7 +285,7 @@
         <!-- Load more -->
         <div v-if="emailStore.historyPagination.has_next" class="pt-3 text-center">
           <button type="button" :disabled="emailStore.isLoadingHistory" @click="loadMore"
-            class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors disabled:opacity-50">
+            class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-text-muted bg-gray-50  rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors disabled:opacity-50">
             {{ emailStore.isLoadingHistory ? 'Cargando...' : 'Cargar más' }}
           </button>
         </div>

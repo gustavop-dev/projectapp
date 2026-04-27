@@ -3,17 +3,17 @@
     <Transition name="modal-fade">
       <div v-if="visible" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6" :class="{ 'dark-modal': isDark }">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="$emit('close')" />
-        <div class="modal-panel relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="modal-panel relative bg-surface rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <!-- Header -->
-          <div class="modal-header flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <div class="modal-header flex items-center justify-between px-6 py-5 border-b border-border-muted">
             <div class="flex items-center gap-3">
-              <div class="modal-icon-badge w-10 h-10 rounded-xl flex items-center justify-center bg-esmerald-light/60">
+              <div class="modal-icon-badge w-10 h-10 rounded-xl flex items-center justify-center bg-primary-soft/60">
                 <span class="text-xl">{{ group.icon || '🧩' }}</span>
               </div>
-              <h3 class="modal-title text-xl font-medium text-esmerald">{{ group.title }}</h3>
+              <h3 class="modal-title text-xl font-medium text-text-brand">{{ group.title }}</h3>
             </div>
             <button
-              class="modal-close w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              class="modal-close w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-text-default hover:bg-gray-100 transition-colors"
               @click="$emit('close')"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,11 +32,11 @@
               <div v-for="(item, idx) in group.items" :key="idx"
                    class="requirement-card bg-esmerald/5 p-5 rounded-xl border border-esmerald/10">
                 <div class="flex items-start">
-                  <div class="req-icon-badge w-9 h-9 rounded-lg bg-esmerald-light/60 border border-esmerald/10 flex items-center justify-center mr-3 flex-shrink-0">
+                  <div class="req-icon-badge w-9 h-9 rounded-lg bg-primary-soft/60 border border-esmerald/10 flex items-center justify-center mr-3 flex-shrink-0">
                     <span class="text-lg">{{ item.icon || '✅' }}</span>
                   </div>
                   <div>
-                    <h4 class="req-title font-bold text-esmerald mb-1">{{ item.name }}</h4>
+                    <h4 class="req-title font-bold text-text-brand mb-1">{{ item.name }}</h4>
                     <p class="req-description text-sm text-esmerald/70 font-light">{{ item.description }}</p>
                   </div>
                 </div>

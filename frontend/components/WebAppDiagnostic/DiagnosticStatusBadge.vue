@@ -13,6 +13,6 @@ const props = defineProps({
   status: { type: String, required: true },
 });
 
-const FALLBACK = { label: '—', cls: 'bg-gray-100 text-gray-700' };
+const FALLBACK = { label: '—', cls: 'bg-gray-100 text-text-default' };
 const meta = computed(() => STATUS_META[props.status] || { ...FALLBACK, label: props.status });
 </script>

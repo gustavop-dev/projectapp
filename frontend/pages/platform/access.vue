@@ -2,7 +2,7 @@
   <div id="platform-access" class="space-y-6">
     <section class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between" data-enter>
       <div>
-        <h1 class="font-light text-3xl text-esmerald dark:text-white">Accesos</h1>
+        <h1 class="font-light text-3xl text-text-default">Accesos</h1>
         <p class="mt-2 max-w-2xl text-sm leading-7 text-green-light">
           URLs y credenciales de cada proyecto para entrar rápido a producción, staging, admin de Django y el repo.
         </p>
@@ -14,12 +14,12 @@
             v-model="search"
             type="text"
             placeholder="Buscar por proyecto, cliente o URL"
-            class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10 dark:border-white/[0.08] dark:bg-esmerald dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20"
+            class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/60 focus:border-border-default focus:ring-1 focus:ring-esmerald/10 dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20"
           >
         </div>
         <button
           type="button"
-          class="text-xs font-medium text-green-light transition hover:text-esmerald dark:hover:text-lemon"
+          class="text-xs font-medium text-green-light transition hover:text-text-default dark:hover:text-accent"
           @click="load"
         >
           Actualizar
@@ -27,15 +27,15 @@
       </div>
     </section>
 
-    <div v-if="feedback" class="rounded-2xl border px-4 py-3 text-sm" :class="feedbackVariant === 'success' ? 'border-emerald-500/20 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300' : 'border-red-500/20 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-200'">
+    <div v-if="feedback" class="rounded-2xl border px-4 py-3 text-sm" :class="feedbackVariant === 'success' ? 'border-emerald-500/20 bg-primary-soft text-text-brand dark:bg-emerald-500/10 dark:text-emerald-300' : 'border-red-500/20 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-200'">
       {{ feedback }}
     </div>
 
-    <div v-if="isLoading" class="rounded-3xl border border-esmerald/[0.06] bg-white px-6 py-14 text-center text-sm text-green-light dark:border-white/[0.06] dark:bg-esmerald">
+    <div v-if="isLoading" class="rounded-3xl border border-border-default bg-surface px-6 py-14 text-center text-sm text-green-light">
       Cargando accesos...
     </div>
 
-    <div v-else-if="filteredProjects.length === 0" class="rounded-3xl border border-esmerald/[0.06] bg-white px-6 py-14 text-center text-sm text-green-light dark:border-white/[0.06] dark:bg-esmerald">
+    <div v-else-if="filteredProjects.length === 0" class="rounded-3xl border border-border-default bg-surface px-6 py-14 text-center text-sm text-green-light">
       {{ search.trim() ? 'Ningún proyecto coincide con esa búsqueda.' : 'Todavía no hay proyectos con accesos configurados.' }}
     </div>
 
@@ -44,11 +44,11 @@
         v-for="project in filteredProjects"
         :key="project.id"
         data-testid="access-card"
-        class="flex flex-col gap-4 rounded-3xl border border-esmerald/[0.06] bg-white p-5 shadow-sm dark:border-white/[0.06] dark:bg-esmerald"
+        class="flex flex-col gap-4 rounded-3xl border border-border-default bg-surface p-5 shadow-sm"
       >
         <header class="flex items-start justify-between gap-3">
           <div class="min-w-0">
-            <h2 class="truncate text-base font-semibold text-esmerald dark:text-white">
+            <h2 class="truncate text-base font-semibold text-text-default">
               {{ project.name }}
             </h2>
             <p class="mt-1 truncate text-xs text-green-light">
@@ -70,13 +70,13 @@
           <UrlRow label="Repositorio" :url="project.repository_url" data-testid="url-repo" />
         </div>
 
-        <div class="rounded-2xl border border-esmerald/10 bg-esmerald-light/40 p-3 dark:border-white/[0.06] dark:bg-esmerald-dark">
+        <div class="rounded-2xl border border-border-default bg-surface-muted/40 p-3 dark:bg-primary-strong">
           <div class="mb-2 flex items-center justify-between">
             <span class="text-[10px] font-semibold uppercase tracking-widest text-green-light/70">Credenciales admin</span>
             <button
               v-if="project.admin_password"
               type="button"
-              class="text-xs font-medium text-esmerald transition hover:underline dark:text-lemon"
+              class="text-xs font-medium text-text-default transition hover:underline dark:text-accent"
               @click="toggleReveal(project.id)"
             >
               {{ revealed[project.id] ? 'Ocultar' : 'Revelar' }}
@@ -178,7 +178,7 @@ const statusLabel = (s) => ({
 }[s] || s)
 
 const statusBadgeClass = (s) => ({
-  active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+  active: 'bg-primary-soft text-text-brand dark:bg-emerald-500/15 dark:text-emerald-300',
   paused: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
   completed: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
   archived: 'bg-neutral-100 text-neutral-600 dark:bg-white/5 dark:text-green-light',

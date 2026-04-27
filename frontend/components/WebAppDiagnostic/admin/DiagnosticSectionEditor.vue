@@ -1,17 +1,17 @@
 <template>
-  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+  <div class="bg-surface rounded-2xl shadow-sm border border-border-muted">
     <!-- Header -->
     <div
-      class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-gray-100 dark:border-gray-700 cursor-pointer select-none"
+      class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-border-muted cursor-pointer select-none"
       @click="expanded = !expanded"
     >
       <div class="flex items-center gap-2 min-w-0">
         <span class="text-base">{{ meta.icon }}</span>
         <div class="min-w-0">
-          <div class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
+          <div class="text-sm font-semibold text-text-default truncate">
             {{ section.title || meta.label }}
           </div>
-          <div class="text-xs text-gray-400 dark:text-gray-500">
+          <div class="text-xs text-text-subtle">
             {{ meta.label }} · orden {{ section.order }}
           </div>
         </div>
@@ -20,13 +20,13 @@
         <span
           class="px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide"
           :class="section.is_enabled
-            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300'
-            : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'"
+            ? 'bg-primary-soft text-text-brand dark:bg-emerald-500/20 dark:text-emerald-300'
+            : 'bg-surface-raised text-text-muted'"
         >
           {{ section.is_enabled ? 'Activa' : 'Oculta' }}
         </span>
         <span
-          class="px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+          class="px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide bg-surface-raised text-text-muted"
         >
           {{ visibilityLabel }}
         </span>
@@ -47,26 +47,26 @@
       <!-- Meta bar -->
       <div class="grid sm:grid-cols-3 gap-3 text-sm">
         <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Título</label>
+          <label class="block text-xs font-medium text-text-muted mb-1">Título</label>
           <input
             type="text"
             v-model="localSection.title"
-            class="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded-lg text-sm"
+            class="w-full px-3 py-2 border border-border-default bg-surface text-text-default rounded-lg text-sm"
             @change="onMetaChange"
           />
         </div>
         <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Visibilidad</label>
+          <label class="block text-xs font-medium text-text-muted mb-1">Visibilidad</label>
           <select
             v-model="localSection.visibility"
-            class="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded-lg text-sm"
+            class="w-full px-3 py-2 border border-border-default bg-surface text-text-default rounded-lg text-sm"
             @change="onMetaChange"
           >
             <option v-for="opt in visibilityOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
         </div>
         <div class="flex items-center gap-3 sm:self-center">
-          <label class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+          <label class="inline-flex items-center gap-2 text-sm text-text-muted">
             <input type="checkbox" v-model="localSection.is_enabled" class="rounded" @change="onMetaChange" />
             Activa en la vista pública
           </label>
@@ -81,7 +81,7 @@
       />
 
       <!-- Footer -->
-      <div class="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
+      <div class="flex items-center justify-between pt-3 border-t border-border-muted">
         <button
           type="button"
           class="text-xs text-rose-600 dark:text-rose-400 hover:underline"
@@ -89,7 +89,7 @@
         >
           Restaurar contenido por defecto
         </button>
-        <div class="text-xs text-gray-400 dark:text-gray-500">
+        <div class="text-xs text-text-subtle">
           <span v-if="isSaving">Guardando…</span>
           <span v-else-if="lastSavedAt">Guardado {{ lastSavedAt }}</span>
         </div>

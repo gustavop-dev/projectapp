@@ -3,10 +3,10 @@
     <div class="w-full max-w-lg">
       <!-- Logo -->
       <div class="mb-8 text-center">
-        <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-esmerald text-lg font-bold text-white">
+        <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-lg font-bold text-white">
           PA
         </div>
-        <h1 class="text-2xl font-bold text-esmerald">
+        <h1 class="text-2xl font-bold text-text-default">
           Completa tu perfil
         </h1>
         <p class="mt-2 text-sm text-green-light">
@@ -16,7 +16,7 @@
 
       <!-- Form card -->
       <form
-        class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm sm:p-8"
+        class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm sm:p-8"
         @submit.prevent="handleSubmit"
       >
         <!-- Error message -->
@@ -30,7 +30,7 @@
         <!-- Avatar upload -->
         <div class="mb-6 flex flex-col items-center gap-3">
           <div
-            class="relative flex h-20 w-20 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-esmerald/20 bg-esmerald-light transition hover:border-esmerald/40"
+            class="relative flex h-20 w-20 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-border-default bg-surface-muted transition hover:border-border-default"
             @click="triggerFileInput"
           >
             <img
@@ -53,7 +53,7 @@
           />
           <button
             type="button"
-            class="text-xs text-green-light transition hover:text-esmerald"
+            class="text-xs text-green-light transition hover:text-text-default"
             @click="triggerFileInput"
           >
             {{ avatarPreview ? 'Cambiar foto' : 'Subir foto (opcional)' }}
@@ -63,82 +63,82 @@
         <!-- Name row -->
         <div class="mb-4 grid grid-cols-2 gap-3">
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Nombre</label>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70">Nombre</label>
             <input
               v-model="form.first_name"
               type="text"
               placeholder="Tu nombre"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 "
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default"
             />
           </div>
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Apellido</label>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70">Apellido</label>
             <input
               v-model="form.last_name"
               type="text"
               placeholder="Tu apellido"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 "
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default"
             />
           </div>
         </div>
 
         <!-- Company -->
         <div class="mb-4">
-          <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Empresa <span class="text-red-400">*</span></label>
+          <label class="mb-1.5 block text-xs font-medium text-esmerald/70">Empresa <span class="text-red-400">*</span></label>
           <input
             v-model="form.company_name"
             type="text"
             required
             placeholder="Nombre de tu empresa"
-            class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 "
+            class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default"
           />
         </div>
 
         <!-- Phone + Cedula row -->
         <div class="mb-4 grid grid-cols-2 gap-3">
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Teléfono <span class="text-red-400">*</span></label>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70">Teléfono <span class="text-red-400">*</span></label>
             <input
               v-model="form.phone"
               type="tel"
               required
               placeholder="+57 300 000 0000"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 "
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default"
             />
           </div>
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Cédula <span class="text-red-400">*</span></label>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70">Cédula <span class="text-red-400">*</span></label>
             <input
               v-model="form.cedula"
               type="text"
               required
               placeholder="1020304050"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 "
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default"
             />
           </div>
         </div>
 
         <!-- Date of birth -->
         <div class="mb-4">
-          <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Fecha de nacimiento <span class="text-red-400">*</span></label>
+          <label class="mb-1.5 block text-xs font-medium text-esmerald/70">Fecha de nacimiento <span class="text-red-400">*</span></label>
           <input
             v-model="form.date_of_birth"
             type="date"
             required
             data-testid="date-of-birth"
-            class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 "
+            class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default"
           />
         </div>
 
         <!-- Gender + Education row -->
         <div class="mb-6 grid grid-cols-2 gap-3">
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Sexo <span class="text-red-400">*</span></label>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70">Sexo <span class="text-red-400">*</span></label>
             <select
               v-model="form.gender"
               required
               data-testid="gender-select"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 "
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default"
             >
               <option value="" disabled>Selecciona</option>
               <option value="male">Masculino</option>
@@ -148,12 +148,12 @@
             </select>
           </div>
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Nivel de educación <span class="text-red-400">*</span></label>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70">Nivel de educación <span class="text-red-400">*</span></label>
             <select
               v-model="form.education_level"
               required
               data-testid="education-select"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 "
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default"
             >
               <option value="" disabled>Selecciona</option>
               <option value="primaria">Primaria</option>
@@ -170,7 +170,7 @@
         <button
           type="submit"
           :disabled="!canSubmit || authStore.isLoading"
-          class="flex w-full items-center justify-center rounded-xl bg-lemon px-6 py-3.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50 disabled:hover:brightness-100"
+          class="flex w-full items-center justify-center rounded-xl bg-accent px-6 py-3.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50 disabled:hover:brightness-100"
         >
           <svg
             v-if="authStore.isLoading"

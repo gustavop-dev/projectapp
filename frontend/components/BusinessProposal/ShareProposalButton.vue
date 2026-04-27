@@ -3,13 +3,13 @@
     <!-- Floating share button: click = open share modal -->
     <button
       data-testid="share-proposal-btn"
-      class="share-btn fixed bottom-[8.5rem] right-4 z-40 w-12 h-12 bg-white border border-gray-200
+      class="share-btn fixed bottom-[8.5rem] right-4 z-40 w-12 h-12 bg-surface border border-border-default
              rounded-full shadow-lg flex items-center justify-center
              hover:bg-gray-50 transition-colors group"
       :title="t.shareTitle"
       @click="showModal = true"
     >
-      <svg class="w-5 h-5 text-gray-500 group-hover:text-emerald-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-5 h-5 text-text-muted group-hover:text-text-brand transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
       </svg>
@@ -23,23 +23,23 @@
           class="fixed inset-0 z-[9990] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm"
           @click.self="closeModal"
         >
-          <div class="share-modal-card bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md sm:mx-4 p-6 sm:p-8">
+          <div class="share-modal-card bg-surface rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md sm:mx-4 p-6 sm:p-8">
             <!-- Header -->
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
-                  <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-10 h-10 bg-primary-soft rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                   </svg>
                 </div>
                 <div>
-                  <h3 class="text-lg font-bold text-gray-900">{{ t.shareTitle }}</h3>
+                  <h3 class="text-lg font-bold text-text-default">{{ t.shareTitle }}</h3>
                   <p class="text-xs text-gray-400">{{ t.shareSubtitle }}</p>
                 </div>
               </div>
               <button
-                class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-text-muted hover:bg-gray-200 transition-colors"
                 @click="closeModal"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -49,16 +49,16 @@
             </div>
 
             <!-- Link display + copy -->
-            <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 sm:p-4 flex items-center gap-3 mb-4">
+            <div class="bg-gray-50 border border-border-default rounded-xl p-3 sm:p-4 flex items-center gap-3 mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-[11px] text-gray-400 mb-0.5 font-medium uppercase tracking-wider">{{ t.linkLabel }}</p>
-                <p class="text-sm text-gray-700 truncate">{{ currentUrl }}</p>
+                <p class="text-sm text-text-default truncate">{{ currentUrl }}</p>
               </div>
               <button
                 class="flex-shrink-0 px-4 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap"
                 :class="copied
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-emerald-600 text-white hover:bg-emerald-700'"
+                  ? 'bg-primary-soft text-text-brand'
+                  : 'bg-primary text-white hover:bg-primary-strong'"
                 @click="copyLink"
               >
                 <span v-if="copied" class="flex items-center gap-1.5">
@@ -79,7 +79,7 @@
             <!-- Native share button (Web Share API) -->
             <button
               v-if="canNativeShare"
-              class="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+              class="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 bg-primary text-white rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm"
               @click="nativeShare"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

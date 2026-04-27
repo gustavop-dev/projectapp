@@ -12,7 +12,7 @@
     />
 
     <div class="max-w-4xl mx-auto">
-      <div v-if="store.isLoading" class="text-center text-esmerald/60 dark:text-esmerald-light/60">Cargando…</div>
+      <div v-if="store.isLoading" class="text-center text-text-brand/60 dark:text-text-brand/60">Cargando…</div>
 
       <div v-else-if="store.error === 'not_found'" class="text-center py-16">
         <p class="text-rose-600 dark:text-rose-300">Diagnóstico no encontrado.</p>
@@ -21,7 +21,7 @@
       <template v-else-if="store.current">
         <article
           v-if="sections.length"
-          class="diagnostic-card bg-white dark:bg-esmerald rounded-3xl shadow-[0_6px_30px_-12px_rgba(0,41,33,0.25)] dark:shadow-[0_6px_30px_-12px_rgba(0,0,0,0.5)] border border-esmerald/10 dark:border-esmerald-light/15 p-6 md:p-12 mb-6 text-esmerald dark:text-esmerald-light"
+          class="diagnostic-card bg-surface rounded-3xl shadow-[0_6px_30px_-12px_rgba(0,41,33,0.25)] dark:shadow-[0_6px_30px_-12px_rgba(0,0,0,0.5)] border border-input-border/10 dark:border-input-border/15 p-6 md:p-12 mb-6 text-text-default"
         >
           <component
             :is="componentFor(activeSection.section_type)"
@@ -33,22 +33,22 @@
 
         <div
           v-else
-          class="diagnostic-card bg-white dark:bg-esmerald rounded-3xl shadow-sm border border-esmerald/10 dark:border-esmerald-light/15 p-6 text-center"
+          class="diagnostic-card bg-surface rounded-3xl shadow-sm border border-input-border/10 dark:border-input-border/15 p-6 text-center"
         >
-          <p class="text-esmerald dark:text-esmerald-light font-medium">{{ emptyStateCopy.title }}</p>
-          <p class="text-sm text-esmerald/60 dark:text-esmerald-light/60 mt-2">{{ emptyStateCopy.hint }}</p>
+          <p class="text-text-default font-medium">{{ emptyStateCopy.title }}</p>
+          <p class="text-sm text-text-brand/60 dark:text-text-brand/60 mt-2">{{ emptyStateCopy.hint }}</p>
         </div>
 
         <!-- Prev / next -->
         <div v-if="sections.length > 1" class="section-nav flex justify-between items-center mb-8">
           <button
-            class="px-4 py-2 text-sm rounded-lg border border-esmerald/20 dark:border-esmerald-light/20 text-esmerald/80 dark:text-esmerald-light/80 hover:bg-esmerald/5 dark:hover:bg-esmerald-light/10 disabled:opacity-30"
+            class="px-4 py-2 text-sm rounded-lg border border-input-border/20 dark:border-input-border/20 text-text-brand/80 dark:text-text-brand/80 hover:bg-primary/5 dark:hover:bg-primary-soft/10 disabled:opacity-30"
             :disabled="activeIndex === 0"
             @click="selectSection(activeIndex - 1)"
           >← Anterior</button>
-          <span class="section-counter text-xs text-esmerald/60 dark:text-esmerald-light/60">Sección {{ activeIndex + 1 }} de {{ sections.length }}</span>
+          <span class="section-counter text-xs text-text-brand/60 dark:text-text-brand/60">Sección {{ activeIndex + 1 }} de {{ sections.length }}</span>
           <button
-            class="px-4 py-2 text-sm rounded-lg border border-esmerald/20 dark:border-esmerald-light/20 text-esmerald/80 dark:text-esmerald-light/80 hover:bg-esmerald/5 dark:hover:bg-esmerald-light/10 disabled:opacity-30"
+            class="px-4 py-2 text-sm rounded-lg border border-input-border/20 dark:border-input-border/20 text-text-brand/80 dark:text-text-brand/80 hover:bg-primary/5 dark:hover:bg-primary-soft/10 disabled:opacity-30"
             :disabled="activeIndex === sections.length - 1"
             @click="selectSection(activeIndex + 1)"
           >Siguiente →</button>
@@ -56,12 +56,12 @@
 
         <footer
           v-if="canRespond"
-          class="diagnostic-card diagnostic-cta mt-8 bg-white dark:bg-esmerald rounded-3xl border border-esmerald/10 dark:border-esmerald-light/15 p-6 text-center shadow-sm"
+          class="diagnostic-card diagnostic-cta mt-8 bg-surface rounded-3xl border border-input-border/10 dark:border-input-border/15 p-6 text-center shadow-sm"
         >
-          <p class="text-esmerald dark:text-esmerald-light mb-4">¿Quieres avanzar con el diagnóstico?</p>
+          <p class="text-text-default mb-4">¿Quieres avanzar con el diagnóstico?</p>
           <div class="flex justify-center gap-3 flex-wrap">
             <button
-              class="px-6 py-3 bg-esmerald dark:bg-lemon text-lemon dark:text-esmerald rounded-xl hover:bg-esmerald-dark dark:hover:bg-lemon/90 disabled:opacity-50 font-medium"
+              class="px-6 py-3 bg-primary dark:bg-accent text-accent dark:text-primary rounded-xl hover:bg-primary-strong dark:hover:bg-accent/90 disabled:opacity-50 font-medium"
               :disabled="store.isUpdating"
               @click="respond('accept')"
             >Aceptar propuesta</button>
@@ -71,12 +71,12 @@
               @click="respond('reject')"
             >No por ahora</button>
           </div>
-          <p v-if="responseMsg" class="mt-4 text-sm text-esmerald/70 dark:text-esmerald-light/70">{{ responseMsg }}</p>
+          <p v-if="responseMsg" class="mt-4 text-sm text-text-brand/70 dark:text-text-brand/70">{{ responseMsg }}</p>
         </footer>
 
         <footer
           v-else-if="store.current.status === DIAGNOSTIC_STATUS.ACCEPTED"
-          class="diagnostic-card mt-8 bg-esmerald/5 dark:bg-esmerald-light/5 border border-esmerald/15 dark:border-esmerald-light/15 rounded-3xl p-6 text-center text-esmerald dark:text-esmerald-light"
+          class="diagnostic-card mt-8 bg-primary/5 dark:bg-primary-soft/5 border border-input-border/15 dark:border-input-border/15 rounded-3xl p-6 text-center text-text-brand dark:text-text-brand"
         >
           ¡Gracias! Confirmamos tu aceptación. Te contactaremos para coordinar el inicio.
         </footer>
@@ -100,11 +100,11 @@
           type="button"
           data-testid="diagnostic-restart-tutorial"
           class="restart-tutorial-btn fixed bottom-[76px] left-6 z-[9990] w-11 h-11 rounded-full
-                 bg-white dark:bg-esmerald-dark shadow-lg
-                 border border-esmerald/15 dark:border-esmerald-light/25
-                 text-esmerald dark:text-esmerald-light
+                 bg-surface shadow-lg
+                 border border-input-border/15 dark:border-input-border/25
+                 text-text-default
                  flex items-center justify-center
-                 hover:bg-esmerald/5 dark:hover:bg-esmerald/80
+                 hover:bg-primary/5 dark:hover:bg-primary/80
                  focus:outline-none focus-visible:ring-2 focus-visible:ring-lemon focus-visible:ring-offset-2
                  transition-all hover:scale-110"
           :aria-label="restartTutorialLabel"
@@ -125,11 +125,11 @@
           type="button"
           data-testid="diagnostic-theme-toggle"
           class="theme-toggle fixed bottom-6 left-6 z-[9990] w-11 h-11 rounded-full
-                 bg-white/90 dark:bg-esmerald/90 backdrop-blur-sm shadow-lg
-                 border border-esmerald/15 dark:border-esmerald-light/20
-                 text-esmerald dark:text-esmerald-light
+                 bg-surface/90 dark:bg-primary/90 backdrop-blur-sm shadow-lg
+                 border border-input-border/15 dark:border-input-border/20
+                 text-text-default
                  flex items-center justify-center
-                 hover:bg-esmerald/5 dark:hover:bg-esmerald-light/10
+                 hover:bg-primary/5 dark:hover:bg-primary-soft/10
                  focus:outline-none focus-visible:ring-2 focus-visible:ring-lemon focus-visible:ring-offset-2
                  transition-colors"
           :aria-label="isDark ? 'Activar modo claro' : 'Activar modo oscuro'"

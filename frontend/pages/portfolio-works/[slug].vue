@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-esmerald-light" itemscope itemtype="https://schema.org/CreativeWork">
+  <div class="min-h-screen bg-primary-soft" itemscope itemtype="https://schema.org/CreativeWork">
     <!-- Loading -->
     <div v-if="portfolioStore.isLoading" class="flex items-center justify-center min-h-screen">
       <div class="w-8 h-8 border-2 border-esmerald/30 border-t-esmerald rounded-full animate-spin" />
@@ -8,10 +8,10 @@
     <!-- Not found -->
     <div v-else-if="portfolioStore.error === 'not_found'" class="min-h-screen flex items-center justify-center px-6">
       <div class="text-center">
-        <h1 class="text-4xl font-light text-esmerald mb-4">
+        <h1 class="text-4xl font-light text-text-brand mb-4">
           {{ isEnglish ? 'Project not found' : 'Proyecto no encontrado' }}
         </h1>
-        <NuxtLink :to="localePath('/portfolio-works')" class="inline-flex items-center gap-2 px-8 py-4 rounded-full transition-all hover:scale-105 bg-esmerald text-white">
+        <NuxtLink :to="localePath('/portfolio-works')" class="inline-flex items-center gap-2 px-8 py-4 rounded-full transition-all hover:scale-105 bg-primary text-white">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
           {{ isEnglish ? 'Back to portfolio' : 'Volver al portafolio' }}
         </NuxtLink>
@@ -24,7 +24,7 @@
         <!-- Back button -->
         <div class="pt-24 sm:pt-28 pb-6 sm:pb-8 px-4 sm:px-6">
           <div class="max-w-4xl mx-auto">
-            <NuxtLink :to="localePath('/portfolio-works')" class="inline-flex items-center gap-2 text-sm font-regular text-green-light hover:text-esmerald transition-colors">
+            <NuxtLink :to="localePath('/portfolio-works')" class="inline-flex items-center gap-2 text-sm font-regular text-green-light hover:text-text-brand transition-colors">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
               {{ isEnglish ? 'All projects' : 'Todos los proyectos' }}
             </NuxtLink>
@@ -34,14 +34,14 @@
         <!-- Title + Excerpt + Share (above the image) -->
         <header ref="titleSection" class="px-4 sm:px-6 pb-8 sm:pb-12">
           <div class="max-w-4xl mx-auto text-center">
-            <h1 data-enter class="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-light mb-6 sm:mb-8 tracking-tight leading-[1.05] text-esmerald" itemprop="name">
+            <h1 data-enter class="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-light mb-6 sm:mb-8 tracking-tight leading-[1.05] text-text-brand" itemprop="name">
               {{ work.title }}
             </h1>
             <p v-if="work.excerpt" data-enter class="text-lg sm:text-xl md:text-2xl max-w-3xl mx-auto text-green-light leading-relaxed font-regular mb-8 sm:mb-10" itemprop="description">
               {{ work.excerpt }}
             </p>
             <div data-enter class="flex items-center justify-center gap-3">
-              <button class="px-5 sm:px-6 py-2.5 sm:py-3 rounded-full flex items-center gap-2 transition-all hover:scale-105 border-2 border-gray-200 text-esmerald" @click="handleShare">
+              <button class="px-5 sm:px-6 py-2.5 sm:py-3 rounded-full flex items-center gap-2 transition-all hover:scale-105 border-2 border-border-default text-text-brand" @click="handleShare">
                 <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
                 <span class="text-sm font-regular">{{ isEnglish ? 'Share' : 'Compartir' }}</span>
               </button>
@@ -50,7 +50,7 @@
                 :href="work.project_url"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="px-5 sm:px-6 py-2.5 sm:py-3 rounded-full flex items-center gap-2 transition-all hover:scale-105 bg-esmerald text-white"
+                class="px-5 sm:px-6 py-2.5 sm:py-3 rounded-full flex items-center gap-2 transition-all hover:scale-105 bg-primary text-white"
               >
                 <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                 <span class="text-sm font-medium">{{ isEnglish ? 'Visit Site' : 'Visitar Sitio' }}</span>
@@ -77,7 +77,7 @@
                 <span class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
                 </span>
-                <h2 class="text-3xl sm:text-4xl font-light text-esmerald">
+                <h2 class="text-3xl sm:text-4xl font-light text-text-brand">
                   {{ cJson.problem.title || (isEnglish ? 'The Challenge' : 'El Desafío') }}
                 </h2>
               </div>
@@ -96,7 +96,7 @@
                 <span class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
                 </span>
-                <h2 class="text-3xl sm:text-4xl font-light text-esmerald">
+                <h2 class="text-3xl sm:text-4xl font-light text-text-brand">
                   {{ cJson.solution.title || (isEnglish ? 'Our Solution' : 'Nuestra Solución') }}
                 </h2>
               </div>
@@ -112,10 +112,10 @@
             <!-- Results -->
             <section v-if="cJson?.results" id="results" class="scroll-mt-24">
               <div class="flex items-center gap-3 mb-6">
-                <span class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 flex-shrink-0">
+                <span class="w-10 h-10 rounded-full bg-primary-soft flex items-center justify-center text-text-brand flex-shrink-0">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 </span>
-                <h2 class="text-3xl sm:text-4xl font-light text-esmerald">
+                <h2 class="text-3xl sm:text-4xl font-light text-text-brand">
                   {{ cJson.results.title || (isEnglish ? 'The Results' : 'Los Resultados') }}
                 </h2>
               </div>
@@ -128,7 +128,7 @@
               </ul>
               <!-- YouTube testimonial -->
               <div v-if="videoEmbedUrl" class="mt-8">
-                <h3 class="text-xl font-light text-esmerald mb-4">{{ isEnglish ? 'Client Testimonial' : 'Testimonio del Cliente' }}</h3>
+                <h3 class="text-xl font-light text-text-brand mb-4">{{ isEnglish ? 'Client Testimonial' : 'Testimonio del Cliente' }}</h3>
                 <div class="relative aspect-video rounded-2xl overflow-hidden shadow-lg bg-black">
                   <iframe :src="videoEmbedUrl" class="absolute inset-0 w-full h-full" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen />
                 </div>
@@ -139,7 +139,7 @@
       </article>
 
       <!-- CTA Section -->
-      <section class="py-14 sm:py-20 px-4 sm:px-6 bg-esmerald">
+      <section class="py-14 sm:py-20 px-4 sm:px-6 bg-primary">
         <div class="max-w-4xl mx-auto text-center">
           <h2 class="text-3xl sm:text-4xl md:text-5xl font-light mb-6 tracking-tight text-white">
             {{ isEnglish ? 'Ready to Build Something Like This?' : '¿Listo para Construir Algo Así?' }}
@@ -152,7 +152,7 @@
           </p>
           <NuxtLink
             :to="localePath('/contact')"
-            class="px-8 sm:px-10 py-4 sm:py-5 rounded-full inline-flex items-center justify-center gap-3 transition-all hover:scale-105 bg-lemon text-esmerald"
+            class="px-8 sm:px-10 py-4 sm:py-5 rounded-full inline-flex items-center justify-center gap-3 transition-all hover:scale-105 bg-accent text-text-brand"
           >
             <span class="text-base sm:text-lg font-medium">{{ isEnglish ? 'Get a Quote' : 'Cotizar tu Proyecto' }}</span>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
@@ -165,23 +165,23 @@
 
       <!-- Sticky Awwwards bar — desktop only, hidden on mobile to not conflict with WhatsApp button -->
       <div class="hidden lg:block fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-auto">
-        <div class="bg-esmerald-dark/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2 sm:gap-3">
+        <div class="bg-primary-strong/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2 sm:gap-3">
           <!-- Pr. logo circle -->
-          <NuxtLink :to="localePath('/')" class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white flex items-center justify-center flex-shrink-0 hover:scale-105 transition-transform">
-            <span class="text-esmerald font-bold text-sm sm:text-base tracking-tight">Pr.</span>
+          <NuxtLink :to="localePath('/')" class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-surface flex items-center justify-center flex-shrink-0 hover:scale-105 transition-transform">
+            <span class="text-text-brand font-bold text-sm sm:text-base tracking-tight">Pr.</span>
           </NuxtLink>
           <!-- Nav buttons with border pills -->
-          <button class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/25 text-xs sm:text-sm font-medium text-white/90 hover:text-white hover:border-white/50 hover:bg-white/10 transition-all" @click="scrollTo('problem')">
+          <button class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/25 text-xs sm:text-sm font-medium text-white/90 hover:text-white hover:border-white/50 hover:bg-surface/10 transition-all" @click="scrollTo('problem')">
             {{ isEnglish ? 'Problem' : 'Problema' }}
           </button>
-          <button class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/25 text-xs sm:text-sm font-medium text-white/90 hover:text-white hover:border-white/50 hover:bg-white/10 transition-all" @click="scrollTo('solution')">
+          <button class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/25 text-xs sm:text-sm font-medium text-white/90 hover:text-white hover:border-white/50 hover:bg-surface/10 transition-all" @click="scrollTo('solution')">
             {{ isEnglish ? 'Solution' : 'Solución' }}
           </button>
-          <button class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/25 text-xs sm:text-sm font-medium text-white/90 hover:text-white hover:border-white/50 hover:bg-white/10 transition-all" @click="scrollTo('results')">
+          <button class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/25 text-xs sm:text-sm font-medium text-white/90 hover:text-white hover:border-white/50 hover:bg-surface/10 transition-all" @click="scrollTo('results')">
             {{ isEnglish ? 'Result' : 'Resultado' }}
           </button>
           <!-- Visit Site lemon pill -->
-          <a :href="work.project_url" target="_blank" rel="noopener noreferrer" class="px-4 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium bg-lemon text-esmerald hover:bg-lemon/90 transition-all">
+          <a :href="work.project_url" target="_blank" rel="noopener noreferrer" class="px-4 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium bg-accent text-text-brand hover:bg-accent/90 transition-all">
             {{ isEnglish ? 'Visit Site' : 'Visitar Sitio' }}
           </a>
         </div>

@@ -1,12 +1,12 @@
 <template>
-  <section ref="sectionRef" class="conversion-strategy min-h-screen w-full bg-white">
+  <section ref="sectionRef" class="conversion-strategy min-h-screen w-full bg-surface">
     <div class="w-full px-6 md:px-12 lg:px-24 py-10 md:py-14">
       <div class="max-w-7xl mx-auto">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
             {{ content.index }}
           </span>
-          <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
+          <h2 class="text-text-brand font-light leading-tight text-4xl md:text-6xl">
             {{ content.title }}
           </h2>
         </div>
@@ -22,7 +22,7 @@
                 class="rounded-3xl border border-esmerald/20 bg-esmerald/5 p-6 md:p-7"
               >
                 <div class="flex items-baseline justify-between gap-6 mb-4">
-                  <h3 class="text-esmerald font-light text-lg md:text-xl leading-snug">
+                  <h3 class="text-text-brand font-light text-lg md:text-xl leading-snug">
                     {{ step.title }}
                   </h3>
                   <span class="text-green-light font-light tracking-[0.25em] text-xs">
@@ -32,7 +32,7 @@
 
                 <ul class="space-y-3">
                   <li v-for="(item, j) in step.bullets" :key="j" class="flex gap-3">
-                    <span class="mt-3 h-1.5 w-1.5 rounded-full bg-esmerald flex-shrink-0"></span>
+                    <span class="mt-3 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0"></span>
                     <p class="text-esmerald/80 font-light leading-relaxed" v-html="linkify(item)" />
                   </li>
                 </ul>
@@ -41,11 +41,11 @@
           </div>
 
           <aside v-if="content.result" data-animate="fade-up" class="lg:col-span-4">
-            <div class="rounded-3xl bg-esmerald p-6 md:p-8">
-              <h3 class="text-lemon font-light text-base md:text-lg tracking-wide mb-4">
+            <div class="rounded-3xl bg-primary p-6 md:p-8">
+              <h3 class="text-accent font-light text-base md:text-lg tracking-wide mb-4">
                 {{ content.resultTitle }}
               </h3>
-              <p class="text-esmerald-light font-light leading-relaxed text-lg" v-html="linkify(content.result)" />
+              <p class="text-text-brand font-light leading-relaxed text-lg" v-html="linkify(content.result)" />
             </div>
           </aside>
         </div>

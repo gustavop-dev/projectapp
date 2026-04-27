@@ -4,10 +4,10 @@
       <div v-if="visible" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/50" @click="$emit('cancel')" />
 
-        <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-          <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-6 py-4 rounded-t-2xl z-10">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Acuerdo de Confidencialidad</h2>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+        <div class="relative bg-surface rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+          <div class="sticky top-0 bg-surface border-b border-border-muted px-6 py-4 rounded-t-2xl z-10">
+            <h2 class="text-lg font-semibold text-text-default dark:text-white">Acuerdo de Confidencialidad</h2>
+            <p class="text-xs text-text-muted dark:text-gray-400 mt-0.5">
               Datos para rellenar la plantilla. Los campos vacíos quedarán como
               <span class="font-mono">_______________</span> en el PDF.
             </p>
@@ -15,72 +15,72 @@
 
           <form class="overflow-y-auto flex-1 px-6 py-5 space-y-6" @submit.prevent="handleSave">
             <section>
-              <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 mb-3">
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-text-brand dark:text-emerald-400 mb-3">
                 Cliente
               </h3>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label class="block">
-                  <span class="text-xs text-gray-500 dark:text-white/70">Razón social / Nombre</span>
+                  <span class="text-xs text-text-muted dark:text-white/70">Razón social / Nombre</span>
                   <input v-model="form.client_full_name" type="text" class="nda-input" />
                 </label>
                 <label class="block">
-                  <span class="text-xs text-gray-500 dark:text-white/70">NIT / C.C.</span>
+                  <span class="text-xs text-text-muted dark:text-white/70">NIT / C.C.</span>
                   <input v-model="form.client_cedula" type="text" class="nda-input" />
                 </label>
                 <label class="block sm:col-span-2">
-                  <span class="text-xs text-gray-500 dark:text-white/70">Representante legal</span>
+                  <span class="text-xs text-text-muted dark:text-white/70">Representante legal</span>
                   <input v-model="form.client_legal_representative" type="text" class="nda-input" />
                 </label>
                 <label class="block sm:col-span-2">
-                  <span class="text-xs text-gray-500 dark:text-white/70">Correo electrónico</span>
+                  <span class="text-xs text-text-muted dark:text-white/70">Correo electrónico</span>
                   <input v-model="form.client_email" type="email" class="nda-input" />
                 </label>
               </div>
             </section>
 
             <section>
-              <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 mb-3">
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-text-brand dark:text-emerald-400 mb-3">
                 Consultor (Project App)
               </h3>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label class="block">
-                  <span class="text-xs text-gray-500 dark:text-white/70">Razón social / Nombre</span>
+                  <span class="text-xs text-text-muted dark:text-white/70">Razón social / Nombre</span>
                   <input v-model="form.contractor_full_name" type="text" class="nda-input" />
                 </label>
                 <label class="block">
-                  <span class="text-xs text-gray-500 dark:text-white/70">NIT / C.C.</span>
+                  <span class="text-xs text-text-muted dark:text-white/70">NIT / C.C.</span>
                   <input v-model="form.contractor_cedula" type="text" class="nda-input" />
                 </label>
                 <label class="block sm:col-span-2">
-                  <span class="text-xs text-gray-500 dark:text-white/70">Correo electrónico</span>
+                  <span class="text-xs text-text-muted dark:text-white/70">Correo electrónico</span>
                   <input v-model="form.contractor_email" type="email" class="nda-input" />
                 </label>
               </div>
             </section>
 
             <section>
-              <h3 class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 mb-3">
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-text-brand dark:text-emerald-400 mb-3">
                 Datos del acuerdo
               </h3>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label class="block sm:col-span-2">
-                  <span class="text-xs text-gray-500 dark:text-white/70">Ciudad</span>
+                  <span class="text-xs text-text-muted dark:text-white/70">Ciudad</span>
                   <input v-model="form.contract_city" type="text" class="nda-input" />
                 </label>
                 <label class="block">
-                  <span class="text-xs text-gray-500 dark:text-white/70">Día</span>
+                  <span class="text-xs text-text-muted dark:text-white/70">Día</span>
                   <input v-model="form.contract_day" type="text" placeholder="Ej: 16" class="nda-input" />
                 </label>
                 <label class="block">
-                  <span class="text-xs text-gray-500 dark:text-white/70">Mes</span>
+                  <span class="text-xs text-text-muted dark:text-white/70">Mes</span>
                   <input v-model="form.contract_month" type="text" placeholder="Ej: abril" class="nda-input" />
                 </label>
                 <label class="block">
-                  <span class="text-xs text-gray-500 dark:text-white/70">Año</span>
+                  <span class="text-xs text-text-muted dark:text-white/70">Año</span>
                   <input v-model="form.contract_year" type="text" placeholder="Ej: 2026" class="nda-input" />
                 </label>
                 <label class="block sm:col-span-2">
-                  <span class="text-xs text-gray-500 dark:text-white/70">Cláusula penal (valor)</span>
+                  <span class="text-xs text-text-muted dark:text-white/70">Cláusula penal (valor)</span>
                   <input v-model="form.penal_clause_value" type="text" class="nda-input" />
                 </label>
               </div>
@@ -89,13 +89,13 @@
             <p v-if="error" class="text-xs text-red-500">{{ error }}</p>
           </form>
 
-          <div class="border-t border-gray-100 dark:border-gray-700 px-6 py-4 rounded-b-2xl bg-white dark:bg-gray-800">
+          <div class="border-t border-border-muted px-6 py-4 rounded-b-2xl bg-surface">
             <div class="flex items-center justify-end gap-3">
               <button type="button"
-                class="px-4 py-2 text-sm text-gray-600 dark:text-white hover:text-gray-800 dark:hover:text-white transition-colors"
+                class="px-4 py-2 text-sm text-text-muted dark:text-white hover:text-text-default dark:hover:text-white transition-colors"
                 @click="$emit('cancel')">Cancelar</button>
               <button type="button" :disabled="saving"
-                class="inline-flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                class="inline-flex items-center gap-1.5 px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-strong transition-colors disabled:opacity-50"
                 @click="handleSave">
                 <svg v-if="saving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -188,7 +188,7 @@ async function handleSave() {
 
 <style scoped>
 .nda-input {
-  @apply mt-1 w-full px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500;
+  @apply mt-1 w-full px-3 py-2 border border-border-default dark:text-white dark:placeholder:text-text-muted rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500;
 }
 
 .modal-fade-enter-active,

@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-bone flex items-center justify-center">
     <main class="w-full py-20 px-6 lg:px-32">
       <div class="max-w-3xl mx-auto">
-        <h1 ref="titleRef" class="text-5xl lg:text-7xl font-bold text-esmerald mb-6 opacity-0">
+        <h1 ref="titleRef" class="text-5xl lg:text-7xl font-bold text-text-brand mb-6 opacity-0">
           <span ref="waveEmoji" class="inline-block">👋</span> {{ messages?.title || 'Need a professional website?' }}
         </h1>
         
@@ -16,7 +16,7 @@
               v-model="form.fullName"
               type="text"
               :placeholder="messages?.form?.fullName || 'Full name'"
-              class="w-full text-2xl lg:text-3xl font-light text-esmerald placeholder-green-light bg-transparent border-b-2 border-esmerald-light focus:border-esmerald outline-none py-4 transition-colors"
+              class="w-full text-2xl lg:text-3xl font-light text-text-brand placeholder-green-light bg-transparent border-b-2 border-input-border focus:border-border-default outline-none py-4 transition-colors"
               required
             />
           </div>
@@ -26,7 +26,7 @@
               v-model="form.phone"
               type="tel"
               :placeholder="messages?.form?.phone || 'Phone number'"
-              class="w-full text-2xl lg:text-3xl font-light text-esmerald placeholder-green-light bg-transparent border-b-2 border-esmerald-light focus:border-esmerald outline-none py-4 transition-colors"
+              class="w-full text-2xl lg:text-3xl font-light text-text-brand placeholder-green-light bg-transparent border-b-2 border-input-border focus:border-border-default outline-none py-4 transition-colors"
               required
             />
           </div>
@@ -36,7 +36,7 @@
               v-model="form.email"
               type="email"
               :placeholder="messages?.form?.email || 'Your email'"
-              class="w-full text-2xl lg:text-3xl font-light text-esmerald placeholder-green-light bg-transparent border-b-2 border-esmerald-light focus:border-esmerald outline-none py-4 transition-colors"
+              class="w-full text-2xl lg:text-3xl font-light text-text-brand placeholder-green-light bg-transparent border-b-2 border-input-border focus:border-border-default outline-none py-4 transition-colors"
               required
             />
           </div>
@@ -46,7 +46,7 @@
               v-model="form.project"
               :placeholder="messages?.form?.project || 'Tell us about your web project'"
               rows="4"
-              class="w-full text-2xl lg:text-3xl font-light text-esmerald placeholder-green-light bg-transparent border-b-2 border-esmerald-light focus:border-esmerald outline-none py-4 transition-colors resize-none"
+              class="w-full text-2xl lg:text-3xl font-light text-text-brand placeholder-green-light bg-transparent border-b-2 border-input-border focus:border-border-default outline-none py-4 transition-colors resize-none"
             ></textarea>
           </div>
 
@@ -61,8 +61,8 @@
                 :class="[
                   'px-6 py-3 text-lg lg:text-xl rounded-full border-2 transition-all duration-200',
                   form.budget === option
-                    ? 'bg-esmerald text-bone border-esmerald'
-                    : 'bg-transparent text-esmerald border-esmerald hover:bg-esmerald-light'
+                    ? 'bg-primary text-bone border-border-default'
+                    : 'bg-transparent text-text-brand border-border-default hover:bg-primary-soft'
                 ]"
               >
                 {{ option }}
@@ -74,7 +74,7 @@
             <button
               type="submit"
               :disabled="isSubmitting"
-              class="w-full lg:w-auto px-12 py-5 text-2xl lg:text-3xl font-medium bg-esmerald text-bone rounded-full hover:bg-esmerald-dark transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="w-full lg:w-auto px-12 py-5 text-2xl lg:text-3xl font-medium bg-primary text-bone rounded-full hover:bg-primary-strong transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span v-if="!isSubmitting">{{ messages?.form?.submit || 'Send message' }}</span>
               <span v-else>Enviando...</span>

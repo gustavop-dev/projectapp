@@ -12,19 +12,19 @@
     <section
       v-for="row in stagesWithStatus"
       :key="row.stage_key"
-      class="bg-white dark:bg-esmerald border border-gray-100 dark:border-white/[0.06] rounded-xl p-5"
+      class="bg-surface border border-border-muted rounded-xl p-5"
       :data-testid="`stage-card-${row.stage_key}`"
     >
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2">
           <span class="text-2xl" aria-hidden="true">{{ row.emoji }}</span>
-          <h3 class="text-sm font-semibold text-gray-800 dark:text-white">
+          <h3 class="text-sm font-semibold text-text-default dark:text-white">
             Etapa de {{ row.stage_label }}
           </h3>
         </div>
         <span
           v-if="row.completed_at"
-          class="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded text-[11px] font-medium"
+          class="px-2 py-0.5 bg-primary-soft text-text-brand dark:text-emerald-400 rounded text-[11px] font-medium"
           :data-testid="`stage-status-${row.stage_key}`"
         >
           🟢 Completada
@@ -45,14 +45,14 @@
         </span>
         <span
           v-else-if="row.status.kind === 'not_started'"
-          class="px-2 py-0.5 bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light/60 rounded text-[11px] font-medium"
+          class="px-2 py-0.5 bg-surface-raised text-text-muted/60 rounded text-[11px] font-medium"
           :data-testid="`stage-status-${row.stage_key}`"
         >
           ⏳ Aún no inicia
         </span>
         <span
           v-else
-          class="px-2 py-0.5 bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-green-light/40 rounded text-[11px] font-medium"
+          class="px-2 py-0.5 bg-surface-raised text-text-muted dark:text-text-subtle rounded text-[11px] font-medium"
           :data-testid="`stage-status-${row.stage_key}`"
         >
           Sin programar
@@ -63,7 +63,7 @@
         <div>
           <label
             :for="`start-${row.stage_key}`"
-            class="block text-xs text-gray-500 dark:text-white/70 mb-1"
+            class="block text-xs text-text-muted dark:text-white/70 mb-1"
           >
             Fecha de inicio
           </label>
@@ -73,13 +73,13 @@
             type="date"
             :disabled="!!row.completed_at"
             :data-testid="`stage-start-${row.stage_key}`"
-            class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-50 dark:disabled:bg-white/[0.03] disabled:text-gray-400 dark:disabled:text-green-light/40"
+            class="w-full px-3 py-2 border border-border-default dark:bg-primary-strong dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 disabled:bg-surface-raised disabled:text-text-subtle dark:disabled:text-green-light/40"
           />
         </div>
         <div>
           <label
             :for="`end-${row.stage_key}`"
-            class="block text-xs text-gray-500 dark:text-white/70 mb-1"
+            class="block text-xs text-text-muted dark:text-white/70 mb-1"
           >
             Fecha fin planeada
           </label>
@@ -89,7 +89,7 @@
             type="date"
             :disabled="!!row.completed_at"
             :data-testid="`stage-end-${row.stage_key}`"
-            class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-50 dark:disabled:bg-white/[0.03] disabled:text-gray-400 dark:disabled:text-green-light/40"
+            class="w-full px-3 py-2 border border-border-default dark:bg-primary-strong dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 disabled:bg-surface-raised disabled:text-text-subtle dark:disabled:text-green-light/40"
           />
         </div>
       </div>
@@ -107,7 +107,7 @@
           type="button"
           :disabled="isSaving[row.stage_key] || !!row.completed_at"
           :data-testid="`stage-save-${row.stage_key}`"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           @click="handleSave(row.stage_key)"
         >
           {{ isSaving[row.stage_key] ? 'Guardando…' : 'Guardar fechas' }}
@@ -117,14 +117,14 @@
           type="button"
           :disabled="isCompleting[row.stage_key]"
           :data-testid="`stage-complete-${row.stage_key}`"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/[0.03] text-gray-700 dark:text-green-light rounded-lg text-xs font-medium hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors disabled:opacity-50"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-raised text-text-default rounded-lg text-xs font-medium hover:bg-surface-raised transition-colors disabled:opacity-50"
           @click="handleComplete(row.stage_key)"
         >
           ✅ {{ isCompleting[row.stage_key] ? 'Marcando…' : 'Marcar como completada' }}
         </button>
         <span
           v-if="row.completed_at"
-          class="text-xs text-gray-500 dark:text-green-light/60"
+          class="text-xs text-text-muted"
         >
           Completada el {{ formatHumanDate(row.completed_at) }}
         </span>

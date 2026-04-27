@@ -3,7 +3,7 @@
     <div class="grid lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
       
       <!-- Left Card - Book a Call -->
-      <div class="bg-white rounded-3xl p-8 lg:p-12 flex flex-col justify-between min-h-[300px] lg:min-h-[400px]">
+      <div class="bg-surface rounded-3xl p-8 lg:p-12 flex flex-col justify-between min-h-[300px] lg:min-h-[400px]">
         <div>
           <div class="w-32 h-32 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mb-8">
             <img 
@@ -14,7 +14,7 @@
             />
           </div>
           
-          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-esmerald mb-4">
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-text-brand mb-4">
             {{ messages?.book_call?.title || 'Book a 15-min intro call' }}
           </h2>
         </div>
@@ -24,14 +24,14 @@
           :href="messages.book_call.whatsapp_url"
           target="_blank"
           rel="noopener noreferrer"
-          class="px-6 py-3 bg-lemon text-black rounded-full font-semibold text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg inline-flex items-center gap-2 w-fit"
+          class="px-6 py-3 bg-accent text-black rounded-full font-semibold text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg inline-flex items-center gap-2 w-fit"
         >
           {{ messages?.book_call?.cta || "Let's Talk" }}
           <span class="text-xl">•</span>
         </a>
         <button
           v-else
-          class="px-6 py-3 bg-lemon text-black rounded-full font-semibold text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg inline-flex items-center gap-2 w-fit"
+          class="px-6 py-3 bg-accent text-black rounded-full font-semibold text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg inline-flex items-center gap-2 w-fit"
           data-cal-link="projectapp/discovery-call-projectapp"
           data-cal-namespace="discovery-call-projectapp"
           data-cal-config='{"layout":"week_view","theme":"dark"}'
@@ -57,23 +57,23 @@
           :href="messages.book_call.whatsapp_url"
           target="_blank"
           rel="noopener noreferrer"
-          class="relative z-10 bg-white rounded-full px-6 py-3 flex items-center gap-3 hover:scale-105 transition-transform shadow-lg cursor-pointer"
+          class="relative z-10 bg-surface rounded-full px-6 py-3 flex items-center gap-3 hover:scale-105 transition-transform shadow-lg cursor-pointer"
         >
           <span class="text-3xl">👋</span>
           <div class="text-left">
-            <p class="text-xs font-semibold text-esmerald">{{ messages?.book_call?.prefer_email || 'Prefer WhatsApp?' }}</p>
-            <p class="text-sm font-bold text-esmerald">{{ messages?.book_call?.say_hi || 'Say hi!' }}</p>
+            <p class="text-xs font-semibold text-text-brand">{{ messages?.book_call?.prefer_email || 'Prefer WhatsApp?' }}</p>
+            <p class="text-sm font-bold text-text-brand">{{ messages?.book_call?.say_hi || 'Say hi!' }}</p>
           </div>
         </a>
         <button 
           v-else
           @click="goToContact"
-          class="relative z-10 bg-white rounded-full px-6 py-3 flex items-center gap-3 hover:scale-105 transition-transform shadow-lg cursor-pointer"
+          class="relative z-10 bg-surface rounded-full px-6 py-3 flex items-center gap-3 hover:scale-105 transition-transform shadow-lg cursor-pointer"
         >
           <span class="text-3xl">👋</span>
           <div class="text-left">
-            <p class="text-xs font-semibold text-esmerald">{{ messages?.book_call?.prefer_email || 'Prefer to email?' }}</p>
-            <p class="text-sm font-bold text-esmerald">{{ messages?.book_call?.say_hi || 'Say hi!' }}</p>
+            <p class="text-xs font-semibold text-text-brand">{{ messages?.book_call?.prefer_email || 'Prefer to email?' }}</p>
+            <p class="text-sm font-bold text-text-brand">{{ messages?.book_call?.say_hi || 'Say hi!' }}</p>
           </div>
         </button>
       </div>

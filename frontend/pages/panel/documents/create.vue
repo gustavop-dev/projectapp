@@ -4,7 +4,7 @@
       <div>
         <NuxtLink
           :to="localePath('/panel/documents')"
-          class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors"
+          class="inline-flex items-center gap-1 text-sm text-text-muted hover:text-text-default transition-colors"
           aria-label="Volver a documentos"
         >
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -12,11 +12,11 @@
           </svg>
           Volver a documentos
         </NuxtLink>
-        <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-2">Nuevo Documento</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Crea un documento a partir de Markdown (pegado o subido).</p>
+        <h1 class="text-2xl font-light text-text-default mt-2">Nuevo Documento</h1>
+        <p class="text-sm text-text-muted mt-1">Crea un documento a partir de Markdown (pegado o subido).</p>
       </div>
       <div class="hidden lg:flex items-center gap-3">
-        <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+        <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-text-muted hover:text-text-default">
           Cancelar
         </NuxtLink>
         <button
@@ -24,8 +24,8 @@
           form="doc-create-form"
           :disabled="!canSubmit"
           :title="canSubmit ? '' : 'Falta título o contenido'"
-          class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
-                 hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-5 py-2.5 bg-primary text-white rounded-xl font-medium text-sm
+                 hover:bg-primary transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {{ documentStore.isUpdating ? 'Creando...' : 'Crear Documento' }}
         </button>
@@ -38,50 +38,47 @@
       @submit.prevent="handleSubmit"
     >
       <aside
-        class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 dark:bg-gray-800 dark:border-gray-700
+        class="bg-surface rounded-xl shadow-sm border border-border-muted p-5 sm:p-6
                lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
       >
         <div class="space-y-6">
           <div class="space-y-4">
-            <h2 class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Identificación</h2>
+            <h2 class="text-xs uppercase tracking-wide font-semibold text-text-muted">Identificación</h2>
             <div>
-              <label for="doc-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Título *</label>
+              <label for="doc-title" class="block text-sm font-medium text-text-default mb-1">Título *</label>
               <input
                 id="doc-title"
                 v-model="form.title"
                 type="text"
                 required
                 placeholder="Mi Documento"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
-                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
+                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default placeholder:text-text-subtle
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
               />
             </div>
             <div>
-              <label for="doc-client" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del cliente</label>
+              <label for="doc-client" class="block text-sm font-medium text-text-default mb-1">Nombre del cliente</label>
               <input
                 id="doc-client"
                 v-model="form.client_name"
                 type="text"
                 placeholder="Empresa S.A."
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
-                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
+                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default placeholder:text-text-subtle
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
               />
             </div>
           </div>
 
-          <hr class="border-gray-100 dark:border-gray-700" />
+          <hr class="border-border-muted" />
 
           <div class="space-y-4">
-            <h2 class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Organización</h2>
+            <h2 class="text-xs uppercase tracking-wide font-semibold text-text-muted">Organización</h2>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carpeta</label>
+              <label class="block text-sm font-medium text-text-default mb-1">Carpeta</label>
               <select
                 v-model="form.folder_id"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white
-                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
               >
                 <option :value="null">Sin carpeta</option>
                 <option v-for="folder in folderStore.folders" :key="folder.id" :value="folder.id">
@@ -92,17 +89,16 @@
             <TagSelector v-model="form.tag_ids" :tags="tagStore.tags" />
           </div>
 
-          <hr class="border-gray-100 dark:border-gray-700" />
+          <hr class="border-border-muted" />
 
           <div class="space-y-4">
-            <h2 class="text-xs uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">Opciones de exportación</h2>
+            <h2 class="text-xs uppercase tracking-wide font-semibold text-text-muted">Opciones de exportación</h2>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Idioma</label>
+              <label class="block text-sm font-medium text-text-default mb-1">Idioma</label>
               <select
                 v-model="form.language"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white
-                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
               >
                 <option value="es">Español</option>
                 <option value="en">English</option>
@@ -116,10 +112,10 @@
               >
                 <span class="relative flex-shrink-0">
                   <input v-model="form[option.key]" type="checkbox" class="sr-only peer" />
-                  <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-gray-200 peer-checked:bg-emerald-500 dark:bg-gray-600 dark:peer-checked:bg-emerald-500"></span>
-                  <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
+                  <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-surface-raised peer-checked:bg-primary"></span>
+                  <span class="absolute top-1 left-1 w-4 h-4 bg-surface rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
                 </span>
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ option.label }}</span>
+                <span class="text-sm font-medium text-text-default">{{ option.label }}</span>
               </label>
             </div>
           </div>
@@ -127,10 +123,10 @@
       </aside>
 
       <section
-        class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 dark:bg-gray-800 dark:border-gray-700
+        class="bg-surface rounded-xl shadow-sm border border-border-muted p-5 sm:p-6
                flex flex-col min-w-0"
       >
-        <div class="flex gap-1 mb-5 bg-gray-100 dark:bg-gray-700 rounded-xl p-1 w-full sm:w-fit">
+        <div class="flex gap-1 mb-5 bg-surface-raised rounded-xl p-1 w-full sm:w-fit">
           <button
             v-for="tab in modeTabs"
             :key="tab.id"
@@ -138,8 +134,8 @@
             :class="[
               'inline-flex items-center justify-center gap-2 flex-1 sm:flex-none sm:min-w-[11rem] px-4 py-2 text-sm rounded-lg transition-all',
               mode === tab.id
-                ? 'bg-white dark:bg-gray-800 shadow-sm font-medium text-gray-900 dark:text-gray-100 ring-1 ring-emerald-500/20'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                ? 'bg-surface shadow-sm font-medium text-text-default ring-1 ring-focus-ring/30/20'
+                : 'text-text-muted hover:text-text-default'
             ]"
             @click="mode = tab.id"
           >
@@ -152,17 +148,17 @@
 
         <div v-if="mode === 'paste'" class="flex-1 flex flex-col min-h-0">
           <div class="flex items-center justify-between mb-2 gap-3 flex-wrap">
-            <label for="doc-markdown" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contenido Markdown *</label>
+            <label for="doc-markdown" class="block text-sm font-medium text-text-default">Contenido Markdown *</label>
             <div class="flex items-center gap-3">
-              <span v-if="form.content_markdown" class="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
+              <span v-if="form.content_markdown" class="text-xs text-text-subtle tabular-nums">
                 {{ form.content_markdown.length.toLocaleString() }} caracteres
               </span>
               <button
                 type="button"
                 class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
                 :class="showPreview
-                  ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'"
+                  ? 'bg-primary-soft text-text-brand hover:bg-primary-soft'
+                  : 'bg-surface-raised text-text-muted hover:bg-surface-raised'"
                 @click="showPreview = !showPreview"
               >
                 <svg v-if="showPreview" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,18 +177,17 @@
               id="doc-markdown"
               v-model="form.content_markdown"
               placeholder="# Mi Documento&#10;&#10;Escribe o pega tu contenido en formato Markdown..."
-              class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm font-mono leading-relaxed
-                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-none
-                     min-h-[24rem] lg:h-[calc(100vh-20rem)]
-                     dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
+              class="w-full px-4 py-3 border border-border-default rounded-xl text-sm font-mono leading-relaxed bg-surface text-text-default placeholder:text-text-subtle
+                     focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none resize-none
+                     min-h-[24rem] lg:h-[calc(100vh-20rem)]"
             ></textarea>
             <div
               v-if="showPreview"
-              class="border border-gray-200 rounded-xl bg-white overflow-y-auto dark:bg-gray-900 dark:border-gray-600
+              class="border border-border-default rounded-xl bg-surface overflow-y-auto
                      min-h-[24rem] lg:h-[calc(100vh-20rem)]"
             >
-              <div class="sticky top-0 px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-t-xl z-10">
-                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Vista previa</span>
+              <div class="sticky top-0 px-3 py-2 border-b border-border-default bg-surface-raised rounded-t-xl z-10">
+                <span class="text-xs font-medium text-text-muted uppercase tracking-wide">Vista previa</span>
               </div>
               <div
                 v-if="form.content_markdown.trim()"
@@ -201,7 +196,7 @@
               ></div>
               <div
                 v-else
-                class="flex items-center justify-center h-64 text-sm text-gray-400 dark:text-gray-500"
+                class="flex items-center justify-center h-64 text-sm text-text-subtle"
               >
                 Escribe markdown para ver la vista previa...
               </div>
@@ -210,33 +205,33 @@
         </div>
 
         <div v-if="mode === 'upload'" class="flex-1 flex flex-col">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Archivo Markdown (.md)</label>
+          <label class="block text-sm font-medium text-text-default mb-2">Archivo Markdown (.md)</label>
           <div
             :class="[
               'border-2 border-dashed rounded-xl p-8 sm:p-10 text-center transition-colors',
               isDragging
-                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                : 'border-gray-200 hover:border-gray-300 dark:border-gray-600 dark:hover:border-gray-500'
+                ? 'border-emerald-500 bg-primary-soft'
+                : 'border-border-default hover:border-border-default'
             ]"
             @dragover.prevent="isDragging = true"
             @dragleave.prevent="handleDragLeave"
             @drop.prevent="handleDrop"
           >
-            <svg class="w-10 h-10 mx-auto text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-10 h-10 mx-auto text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
-            <p class="mt-3 text-sm text-gray-600 dark:text-gray-300">
-              Arrastra un archivo <code class="text-xs px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">.md</code> aquí
+            <p class="mt-3 text-sm text-text-muted">
+              Arrastra un archivo <code class="text-xs px-1 py-0.5 bg-surface-raised rounded">.md</code> aquí
             </p>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">o</p>
+            <p class="text-xs text-text-subtle mt-1">o</p>
             <label
-              class="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium
-                     hover:bg-emerald-700 cursor-pointer transition-colors shadow-sm"
+              class="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium
+                     hover:bg-primary cursor-pointer transition-colors shadow-sm"
             >
               Seleccionar archivo
               <input type="file" accept=".md,.markdown,.txt" class="hidden" @change="handleFileUpload" />
             </label>
-            <p v-if="uploadedFileName" class="mt-4 text-xs text-gray-500 dark:text-gray-400">
+            <p v-if="uploadedFileName" class="mt-4 text-xs text-text-muted">
               <span class="font-medium">Archivo:</span> {{ uploadedFileName }}
             </p>
           </div>
@@ -245,9 +240,8 @@
             rows="12"
             readonly
             placeholder="El contenido del archivo aparecerá aquí..."
-            class="w-full mt-4 px-4 py-3 border border-gray-200 rounded-xl text-sm font-mono leading-relaxed
-                   bg-gray-50 outline-none resize-y
-                   dark:bg-gray-700/50 dark:border-gray-600 dark:text-gray-300 dark:placeholder-gray-500"
+            class="w-full mt-4 px-4 py-3 border border-border-default rounded-xl text-sm font-mono leading-relaxed
+                   bg-surface-raised text-text-muted placeholder:text-text-subtle outline-none resize-y"
           ></textarea>
         </div>
 
@@ -259,12 +253,12 @@
           <button
             type="submit"
             :disabled="!canSubmit"
-            class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
-                   hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-5 sm:px-6 py-2.5 bg-primary text-white rounded-xl font-medium text-sm
+                   hover:bg-primary transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {{ documentStore.isUpdating ? 'Creando...' : 'Crear Documento' }}
           </button>
-          <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+          <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-text-muted hover:text-text-default">
             Cancelar
           </NuxtLink>
         </div>

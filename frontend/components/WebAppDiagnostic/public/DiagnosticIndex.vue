@@ -4,11 +4,11 @@
       data-testid="diagnostic-index-toggle"
       class="index-toggle absolute left-4 top-4 z-50 pointer-events-auto
              w-10 h-10 rounded-full
-             bg-white dark:bg-esmerald-dark shadow-lg
-             border border-esmerald/10 dark:border-esmerald-light/25
+             bg-surface dark:bg-primary-strong shadow-lg
+             border border-input-border/10 dark:border-input-border/25
              flex items-center justify-center
-             text-esmerald dark:text-esmerald-light
-             hover:bg-esmerald/5 dark:hover:bg-esmerald/80
+             text-text-brand dark:text-text-brand
+             hover:bg-primary/5 dark:hover:bg-primary/80
              transition-colors"
       @click="isOpen = !isOpen"
     >
@@ -23,7 +23,7 @@
     <Transition name="idx-fade">
       <div
         v-if="isOpen"
-        class="fixed inset-0 z-[9990] bg-white/60 dark:bg-black/60 backdrop-blur-[3px] pointer-events-auto"
+        class="fixed inset-0 z-[9990] bg-surface/60 dark:bg-black/60 backdrop-blur-[3px] pointer-events-auto"
         @click="isOpen = false"
       />
     </Transition>
@@ -31,21 +31,21 @@
     <nav
       data-testid="diagnostic-index-panel"
       class="index-panel z-[9999]
-             bg-white/95 dark:bg-esmerald/95 backdrop-blur-md overflow-y-auto transition-all duration-300
+             bg-surface/95 dark:bg-primary/95 backdrop-blur-md overflow-y-auto transition-all duration-300
              fixed inset-0 py-4 px-4
              sm:relative sm:inset-auto sm:ml-3 sm:py-4 sm:px-3 sm:mt-[50vh] sm:-translate-y-1/2
-             sm:rounded-2xl sm:shadow-xl sm:border sm:border-gray-100 dark:sm:border-esmerald-light/15
+             sm:rounded-2xl sm:shadow-xl sm:border sm:border-border-muted dark:sm:border-input-border/15
              sm:max-h-[80vh]"
       :class="isOpen ? 'pointer-events-auto' : 'pointer-events-none translate-x-[-120%]'"
     >
       <button
         class="sm:hidden absolute left-4 top-4 z-10
                w-10 h-10 rounded-full
-               bg-white dark:bg-esmerald-dark shadow-lg
-               border border-esmerald/10 dark:border-esmerald-light/25
+               bg-surface dark:bg-primary-strong shadow-lg
+               border border-input-border/10 dark:border-input-border/25
                flex items-center justify-center
-               text-esmerald dark:text-esmerald-light
-               hover:bg-esmerald/5 dark:hover:bg-esmerald/80
+               text-text-brand dark:text-text-brand
+               hover:bg-primary/5 dark:hover:bg-primary/80
                transition-colors"
         @click="isOpen = false"
       >
@@ -54,7 +54,7 @@
         </svg>
       </button>
 
-      <p class="text-[10px] uppercase tracking-[0.2em] text-esmerald dark:text-esmerald-light font-medium mb-2 px-2 mt-14 sm:mt-0">
+      <p class="text-[10px] uppercase tracking-[0.2em] text-text-brand dark:text-text-brand font-medium mb-2 px-2 mt-14 sm:mt-0">
         Índice
       </p>
       <ul class="space-y-0.5">
@@ -66,17 +66,17 @@
           <button
             class="w-full text-left px-2.5 py-2 sm:py-1.5 rounded-xl text-sm transition-all duration-200 flex items-center gap-2"
             :class="idx === currentIndex
-              ? 'bg-esmerald/5 dark:bg-esmerald-light/10 text-esmerald dark:text-esmerald-light font-medium'
-              : 'text-gray-500 dark:text-esmerald-light/60 hover:text-gray-700 dark:hover:text-esmerald-light hover:bg-gray-50 dark:hover:bg-esmerald-light/5'"
+              ? 'bg-primary/5 dark:bg-primary-soft/10 text-text-brand dark:text-text-brand font-medium'
+              : 'text-text-muted dark:text-text-brand/60 hover:text-text-default dark:hover:text-text-brand hover:bg-gray-50 dark:hover:bg-primary-soft/5'"
             @click="$emit('navigate', idx); isOpen = false"
           >
             <span
               class="w-6 h-6 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[11px] sm:text-[10px] font-medium flex-shrink-0 transition-colors"
               :class="idx === currentIndex
-                ? 'bg-esmerald text-lemon dark:bg-lemon dark:text-esmerald'
+                ? 'bg-primary text-accent dark:bg-accent-soft dark:text-text-brand'
                 : visitedIds.has(section.id)
-                  ? 'bg-esmerald/10 dark:bg-esmerald-light/15 text-esmerald dark:text-esmerald-light'
-                  : 'bg-gray-200 dark:bg-esmerald-light/10 text-gray-500 dark:text-esmerald-light/60 group-hover:bg-gray-300 dark:group-hover:bg-esmerald-light/20'"
+                  ? 'bg-primary/10 dark:bg-primary-soft/15 text-text-brand dark:text-text-brand'
+                  : 'bg-gray-200 dark:bg-primary-soft/10 text-text-muted dark:text-text-brand/60 group-hover:bg-gray-300 dark:group-hover:bg-primary-soft/20'"
             >
               <svg
                 v-if="visitedIds.has(section.id) && idx !== currentIndex"

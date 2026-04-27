@@ -1,16 +1,16 @@
 <template>
-  <div class="min-h-screen bg-esmerald-light" itemscope itemtype="https://schema.org/Blog">
+  <div class="min-h-screen bg-primary-soft" itemscope itemtype="https://schema.org/Blog">
     <!-- Hero Section -->
     <section ref="heroSection" class="relative pt-32 sm:pt-40 pb-16 sm:pb-20 px-4 sm:px-6 overflow-hidden" aria-labelledby="blog-title">
       <!-- Subtle decorative circles -->
       <div class="absolute top-20 -left-32 w-96 h-96 bg-esmerald/5 rounded-full blur-3xl" />
-      <div class="absolute top-40 -right-32 w-80 h-80 bg-lemon/10 rounded-full blur-3xl" />
+      <div class="absolute top-40 -right-32 w-80 h-80 bg-accent/10 rounded-full blur-3xl" />
       <div class="max-w-7xl mx-auto relative">
         <div class="text-center mb-16">
           <h1
             id="blog-title"
             data-enter
-            class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-light mb-6 tracking-tight leading-[1.05] text-esmerald"
+            class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-light mb-6 tracking-tight leading-[1.05] text-text-brand"
           >
             Blog
           </h1>
@@ -33,7 +33,7 @@
                 v-model="searchQuery"
                 type="text"
                 :placeholder="isEnglish ? 'Search articles...' : 'Buscar artículos...'"
-                class="w-full pl-14 pr-6 py-5 rounded-2xl border-2 border-gray-200 focus:outline-none focus:border-esmerald transition-all text-lg bg-white font-regular"
+                class="w-full pl-14 pr-6 py-5 rounded-2xl border-2 border-border-default focus:outline-none focus:border-primary transition-all text-lg bg-surface font-regular"
               />
             </div>
           </div>
@@ -43,8 +43,8 @@
               :class="[
                 'flex-shrink-0 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full transition-all hover:scale-105 border-2 text-sm sm:text-base whitespace-nowrap',
                 selectedCategory === ''
-                  ? 'bg-esmerald text-white border-esmerald font-medium'
-                  : 'bg-white text-green-light border-gray-200 font-regular hover:border-esmerald/40'
+                  ? 'bg-primary text-white border-primary font-medium'
+                  : 'bg-surface text-green-light border-border-default font-regular hover:border-esmerald/40'
               ]"
               @click="selectedCategory = ''"
             >
@@ -56,8 +56,8 @@
               :class="[
                 'flex-shrink-0 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full transition-all hover:scale-105 border-2 text-sm sm:text-base capitalize whitespace-nowrap',
                 selectedCategory === cat
-                  ? 'bg-esmerald text-white border-esmerald font-medium'
-                  : 'bg-white text-green-light border-gray-200 font-regular hover:border-esmerald/40'
+                  ? 'bg-primary text-white border-primary font-medium'
+                  : 'bg-surface text-green-light border-border-default font-regular hover:border-esmerald/40'
               ]"
               @click="selectedCategory = cat"
             >
@@ -94,7 +94,7 @@
             itemscope
             itemtype="https://schema.org/BlogPosting"
           >
-            <div class="relative aspect-[16/9] sm:aspect-[21/9] rounded-2xl sm:rounded-3xl overflow-hidden bg-white shadow-lg hover:shadow-2xl transition-all duration-500">
+            <div class="relative aspect-[16/9] sm:aspect-[21/9] rounded-2xl sm:rounded-3xl overflow-hidden bg-surface shadow-lg hover:shadow-2xl transition-all duration-500">
               <img
                 v-if="featured.cover_image"
                 :src="featured.cover_image"
@@ -111,10 +111,10 @@
 
               <div class="absolute inset-0 flex flex-col justify-end p-5 sm:p-8 md:p-12 lg:p-16">
                 <div class="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
-                  <span class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm bg-lemon text-esmerald font-medium">
+                  <span class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm bg-accent text-text-brand font-medium">
                     {{ isEnglish ? '⭐ Featured' : '⭐ Destacado' }}
                   </span>
-                  <span v-if="featured.category" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm bg-white/20 text-white font-regular capitalize">
+                  <span v-if="featured.category" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm bg-surface/20 text-white font-regular capitalize">
                     {{ formatCategory(featured.category) }}
                   </span>
                 </div>
@@ -150,7 +150,7 @@
             <article
               v-for="post in filteredPosts"
               :key="post.id"
-              class="group bg-white rounded-2xl overflow-hidden shadow-sm active:scale-[0.98] transition-transform border border-gray-200/60 cursor-pointer"
+              class="group bg-surface rounded-2xl overflow-hidden shadow-sm active:scale-[0.98] transition-transform border border-border-default/60 cursor-pointer"
               @click="navigateTo(localePath(`/blog/${post.slug}`))"
               itemscope
               itemtype="https://schema.org/BlogPosting"
@@ -165,17 +165,17 @@
                     loading="lazy"
                     itemprop="image"
                   />
-                  <div v-else class="w-full h-full bg-esmerald-light flex items-center justify-center">
+                  <div v-else class="w-full h-full bg-primary-soft flex items-center justify-center">
                     <svg class="w-8 h-8 text-esmerald/15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
                   </div>
                   <div v-if="post.category" class="absolute top-1.5 left-1.5">
-                    <span class="px-2 py-0.5 rounded-full text-[10px] backdrop-blur-md bg-white/90 text-esmerald font-medium capitalize">
+                    <span class="px-2 py-0.5 rounded-full text-[10px] backdrop-blur-md bg-surface/90 text-text-brand font-medium capitalize">
                       {{ formatCategory(post.category) }}
                     </span>
                   </div>
                 </div>
                 <div class="flex-1 min-w-0 py-0.5 flex flex-col">
-                  <h3 class="text-sm font-medium text-esmerald mb-1 leading-tight line-clamp-2" itemprop="headline">
+                  <h3 class="text-sm font-medium text-text-brand mb-1 leading-tight line-clamp-2" itemprop="headline">
                     {{ post.title }}
                   </h3>
                   <p class="text-xs text-green-light line-clamp-2 mb-1.5 flex-1 font-regular" itemprop="description">{{ post.excerpt }}</p>
@@ -199,7 +199,7 @@
             <article
               v-for="post in filteredPosts"
               :key="post.id"
-              class="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 h-full flex flex-col cursor-pointer border border-gray-200/40"
+              class="group bg-surface rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 h-full flex flex-col cursor-pointer border border-border-default/40"
               @click="navigateTo(localePath(`/blog/${post.slug}`))"
               itemscope
               itemtype="https://schema.org/BlogPosting"
@@ -217,7 +217,7 @@
                   <svg class="w-10 h-10 text-esmerald/15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
                 </div>
                 <div v-if="post.category" class="absolute top-4 left-4">
-                  <span class="px-3 py-1.5 rounded-full text-xs backdrop-blur-md bg-white/90 text-esmerald font-medium capitalize">
+                  <span class="px-3 py-1.5 rounded-full text-xs backdrop-blur-md bg-surface/90 text-text-brand font-medium capitalize">
                     {{ formatCategory(post.category) }}
                   </span>
                 </div>
@@ -235,7 +235,7 @@
                   </div>
                 </div>
 
-                <h3 class="text-xl font-light mb-3 group-hover:text-green-light transition-colors leading-tight text-esmerald" itemprop="headline">
+                <h3 class="text-xl font-light mb-3 group-hover:text-green-light transition-colors leading-tight text-text-brand" itemprop="headline">
                   {{ post.title }}
                 </h3>
 
@@ -243,7 +243,7 @@
                   {{ post.excerpt }}
                 </p>
 
-                <div class="flex items-center gap-2 text-sm text-esmerald font-medium group-hover:gap-4 transition-all">
+                <div class="flex items-center gap-2 text-sm text-text-brand font-medium group-hover:gap-4 transition-all">
                   <span>{{ isEnglish ? 'Read more' : 'Leer más' }}</span>
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                 </div>
@@ -257,7 +257,7 @@
               {{ isEnglish ? 'No articles match your criteria' : 'No encontramos artículos con esos criterios' }}
             </p>
             <button
-              class="text-sm font-medium text-esmerald hover:opacity-60 transition-opacity"
+              class="text-sm font-medium text-text-brand hover:opacity-60 transition-opacity"
               @click="searchQuery = ''; selectedCategory = ''"
             >
               {{ isEnglish ? 'Clear filters' : 'Limpiar filtros' }}
@@ -269,7 +269,7 @@
             <button
               :disabled="currentPage <= 1"
               class="px-4 py-2.5 rounded-full border-2 text-sm transition-all hover:scale-105 disabled:opacity-30 disabled:hover:scale-100"
-              :class="currentPage <= 1 ? 'border-gray-200 text-gray-400' : 'border-gray-200 text-esmerald hover:border-esmerald/40'"
+              :class="currentPage <= 1 ? 'border-border-default text-gray-400' : 'border-border-default text-text-brand hover:border-esmerald/40'"
               @click="goToPage(currentPage - 1)"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
@@ -279,8 +279,8 @@
               :key="p"
               class="w-10 h-10 rounded-full text-sm font-medium transition-all hover:scale-105 border-2"
               :class="p === currentPage
-                ? 'bg-esmerald text-white border-esmerald'
-                : 'bg-white text-green-light border-gray-200 hover:border-esmerald/40'"
+                ? 'bg-primary text-white border-primary'
+                : 'bg-surface text-green-light border-border-default hover:border-esmerald/40'"
               @click="goToPage(p)"
             >
               {{ p }}
@@ -288,7 +288,7 @@
             <button
               :disabled="currentPage >= totalPages"
               class="px-4 py-2.5 rounded-full border-2 text-sm transition-all hover:scale-105 disabled:opacity-30 disabled:hover:scale-100"
-              :class="currentPage >= totalPages ? 'border-gray-200 text-gray-400' : 'border-gray-200 text-esmerald hover:border-esmerald/40'"
+              :class="currentPage >= totalPages ? 'border-border-default text-gray-400' : 'border-border-default text-text-brand hover:border-esmerald/40'"
               @click="goToPage(currentPage + 1)"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
@@ -299,7 +299,7 @@
     </main>
 
     <!-- CTA Section -->
-    <section class="py-14 sm:py-20 px-4 sm:px-6 bg-esmerald">
+    <section class="py-14 sm:py-20 px-4 sm:px-6 bg-primary">
       <div class="max-w-4xl mx-auto text-center">
         <h2 class="text-3xl sm:text-4xl md:text-5xl font-light mb-6 tracking-tight text-white">
           {{ isEnglish ? 'Have a Project in Mind?' : '¿Tienes un Proyecto en Mente?' }}
@@ -313,7 +313,7 @@
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
           <NuxtLink
             :to="localePath('/contact')"
-            class="px-8 sm:px-10 py-4 sm:py-5 rounded-full flex items-center justify-center gap-3 transition-all hover:scale-105 bg-lemon text-esmerald"
+            class="px-8 sm:px-10 py-4 sm:py-5 rounded-full flex items-center justify-center gap-3 transition-all hover:scale-105 bg-accent text-text-brand"
           >
             <span class="text-base sm:text-lg font-medium">{{ isEnglish ? 'Contact Us' : 'Contáctanos' }}</span>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>

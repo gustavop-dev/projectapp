@@ -21,7 +21,7 @@
       @delete="onDelete"
     />
 
-    <div v-if="store.isLoading && !store.current" class="py-16 text-center text-gray-400 dark:text-green-light/60 text-sm">
+    <div v-if="store.isLoading && !store.current" class="py-16 text-center text-text-subtle text-sm">
       Cargando…
     </div>
 
@@ -33,7 +33,7 @@
       <div class="mb-8">
         <NuxtLink
           :to="localePath('/panel/diagnostics')"
-          class="text-sm text-gray-500 dark:text-green-light/60 hover:text-gray-700 dark:hover:text-white transition-colors"
+          class="text-sm text-text-muted hover:text-text-default transition-colors"
         >
           ← Volver a diagnósticos
         </NuxtLink>
@@ -42,16 +42,16 @@
       <!-- Sticky header: title + investment + status -->
       <div
         class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6
-               bg-white/80 dark:bg-esmerald-dark/80 backdrop-blur-md
-               border-b border-gray-100 dark:border-white/[0.06] transition-all"
+               bg-surface/80 backdrop-blur-md
+               border-b border-border-muted transition-all"
       >
         <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-          <h1 class="text-lg sm:text-xl font-light text-gray-900 dark:text-white truncate">
+          <h1 class="text-lg sm:text-xl font-light text-text-default truncate">
             {{ store.current.title }}
           </h1>
           <span
             v-if="store.current.investment_amount > 0"
-            class="text-sm sm:text-base font-light text-gray-400 dark:text-green-light/60 whitespace-nowrap"
+            class="text-sm sm:text-base font-light text-text-subtle whitespace-nowrap"
           >
             ({{ formatInvestment(store.current.investment_amount, store.current.currency) }})
           </span>
@@ -60,104 +60,104 @@
       </div>
 
       <!-- Tabs -->
-      <ResponsiveTabs :tabs="tabs" v-model="activeTab" />
+      <BaseTabs :tabs="tabs" v-model="activeTab" />
 
       <!-- General -->
       <section v-if="activeTab === 'general'">
         <TabSplitLayout ratio="3:2">
           <template #aside>
         <!-- Editable slug (URL personalizada) -->
-        <div class="bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06] rounded-xl p-4 sm:p-5 mb-4">
-          <label class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" for="diagnostic-slug-input">
+        <div class="bg-surface border border-border-muted rounded-xl p-4 sm:p-5 mb-4">
+          <label class="text-xs font-medium text-text-muted uppercase tracking-wider" for="diagnostic-slug-input">
             URL personalizada
           </label>
           <div class="mt-2 flex flex-wrap items-stretch gap-2">
-            <div class="flex-1 min-w-[260px] flex items-stretch rounded-lg border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.03] focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
-              <span class="px-3 flex items-center text-xs text-gray-400 border-r border-gray-200 dark:border-white/[0.08] select-none">/diagnostic/</span>
+            <div class="flex-1 min-w-[260px] flex items-stretch rounded-lg border border-input-border bg-surface-raised focus-within:border-focus-ring focus-within:ring-1 focus-within:ring-focus-ring/30">
+              <span class="px-3 flex items-center text-xs text-text-subtle border-r border-input-border select-none">/diagnostic/</span>
               <input
                 id="diagnostic-slug-input"
                 v-model="slugDraft"
                 type="text"
                 data-testid="diagnostic-slug-input"
-                class="flex-1 bg-transparent px-3 py-2 text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none font-mono"
+                class="flex-1 bg-transparent px-3 py-2 text-sm text-text-default placeholder:text-text-subtle focus:outline-none font-mono"
                 placeholder="maria-lopez"
                 maxlength="120"
                 @keydown.enter.prevent="saveSlug"
               />
             </div>
-            <button
-              type="button"
-              class="px-3 py-2 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+            <BaseButton
+              variant="primary"
+              size="sm"
               :disabled="slugSaving || slugDraft === (store.current?.slug || '')"
               @click="saveSlug"
             >
               {{ slugSaving ? 'Guardando…' : (slugSaved ? 'Guardado' : 'Guardar') }}
-            </button>
-            <button
-              type="button"
-              class="px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 dark:border-white/[0.08] text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/[0.2]"
+            </BaseButton>
+            <BaseButton
+              variant="secondary"
+              size="sm"
               title="Regenerar desde el nombre del cliente"
               @click="regenerateSlugFromName"
             >
               Regenerar
-            </button>
+            </BaseButton>
           </div>
-          <p v-if="slugError" class="text-xs text-rose-500 mt-2">{{ slugError }}</p>
-          <p v-else class="text-xs text-gray-400 mt-2">
+          <p v-if="slugError" class="text-xs text-danger-strong mt-2">{{ slugError }}</p>
+          <p v-else class="text-xs text-text-subtle mt-2">
             Solo minúsculas, números y guiones. El cliente verá esta URL en el enlace.
           </p>
         </div>
 
         <!-- Read-only info grid -->
-        <div class="bg-gray-50 dark:bg-white/[0.03] rounded-xl p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+        <div class="bg-surface-raised rounded-xl p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
-            <span class="text-gray-400 text-xs">ID</span>
-            <p class="text-gray-700 dark:text-green-light/60 font-mono text-xs mt-0.5">#{{ store.current.id }}</p>
+            <span class="text-text-subtle text-xs">ID</span>
+            <p class="text-text-muted font-mono text-xs mt-0.5">#{{ store.current.id }}</p>
           </div>
 
           <div v-if="store.current.public_url">
             <div class="flex items-center gap-1">
-              <span class="text-gray-400 text-xs">URL pública</span>
+              <span class="text-text-subtle text-xs">URL pública</span>
               <button
                 type="button"
                 :title="urlCopied ? 'Copiado!' : 'Copiar URL'"
-                class="text-gray-400 hover:text-emerald-600 transition-colors"
+                class="text-text-subtle hover:text-text-brand transition-colors"
                 @click="copyPublicUrl"
               >
                 <DocumentDuplicateIcon v-if="!urlCopied" class="w-3.5 h-3.5" />
-                <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
+                <CheckIcon v-else class="w-3.5 h-3.5 text-success-strong" />
               </button>
             </div>
             <p class="mt-0.5">
-              <a :href="store.current.public_url" target="_blank" rel="noopener noreferrer" class="text-emerald-600 hover:underline text-xs break-all">
+              <a :href="store.current.public_url" target="_blank" rel="noopener noreferrer" class="text-text-brand hover:underline text-xs break-all">
                 {{ store.current.public_url }}
               </a>
             </p>
           </div>
 
           <div>
-            <span class="text-gray-400 text-xs">Vistas</span>
-            <p class="text-gray-700 dark:text-green-light/60 mt-0.5">
+            <span class="text-text-subtle text-xs">Vistas</span>
+            <p class="text-text-muted mt-0.5">
               <span class="font-medium">{{ store.current.view_count }}</span>
-              <span v-if="store.current.last_viewed_at" class="text-gray-400 text-xs ml-1">· última {{ formatDate(store.current.last_viewed_at) }}</span>
-              <span v-else class="text-gray-400 text-xs ml-1">· sin vistas</span>
+              <span v-if="store.current.last_viewed_at" class="text-text-subtle text-xs ml-1">· última {{ formatDate(store.current.last_viewed_at) }}</span>
+              <span v-else class="text-text-subtle text-xs ml-1">· sin vistas</span>
             </p>
           </div>
           <div>
-            <span class="text-gray-400 text-xs">Creado</span>
-            <p class="text-gray-700 dark:text-green-light/60 mt-0.5 text-xs">{{ formatDate(store.current.created_at) }}</p>
+            <span class="text-text-subtle text-xs">Creado</span>
+            <p class="text-text-muted mt-0.5 text-xs">{{ formatDate(store.current.created_at) }}</p>
           </div>
           <div v-if="store.current.initial_sent_at">
-            <span class="text-gray-400 text-xs">Envío inicial</span>
-            <p class="text-gray-700 dark:text-green-light/60 mt-0.5 text-xs">{{ formatDate(store.current.initial_sent_at) }}</p>
+            <span class="text-text-subtle text-xs">Envío inicial</span>
+            <p class="text-text-muted mt-0.5 text-xs">{{ formatDate(store.current.initial_sent_at) }}</p>
           </div>
           <div v-if="store.current.final_sent_at">
-            <span class="text-gray-400 text-xs">Envío final</span>
-            <p class="text-gray-700 dark:text-green-light/60 mt-0.5 text-xs">{{ formatDate(store.current.final_sent_at) }}</p>
+            <span class="text-text-subtle text-xs">Envío final</span>
+            <p class="text-text-muted mt-0.5 text-xs">{{ formatDate(store.current.final_sent_at) }}</p>
           </div>
           <div v-if="store.current.responded_at">
-            <span class="text-gray-400 text-xs">Respondido</span>
-            <p class="text-gray-700 dark:text-green-light/60 mt-0.5 text-xs">{{ formatDate(store.current.responded_at) }}</p>
+            <span class="text-text-subtle text-xs">Respondido</span>
+            <p class="text-text-muted mt-0.5 text-xs">{{ formatDate(store.current.responded_at) }}</p>
           </div>
         </div>
 
@@ -165,19 +165,16 @@
 
           <template #main>
         <!-- Editable form -->
-        <form class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06]" @submit.prevent="handleUpdate">
+        <form class="bg-surface rounded-xl shadow-sm border border-border-muted" @submit.prevent="handleUpdate">
           <div class="p-4 sm:p-8 space-y-6">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Título</label>
-              <input v-model="form.title" type="text" required
-                data-testid="diagnostic-edit-title"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-            </div>
+            <BaseFormField label="Título">
+              <BaseInput v-model="form.title" type="text" required data-testid="diagnostic-edit-title" />
+            </BaseFormField>
 
             <!-- Client picker (autocomplete + snapshot fields) -->
-            <div class="space-y-4 border border-gray-100 dark:border-white/[0.06] rounded-xl p-4 bg-gray-50/30 dark:bg-white/[0.03]">
+            <div class="space-y-4 border border-border-muted rounded-xl p-4 bg-surface-raised">
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Cliente</label>
+                <label class="block text-sm font-medium text-text-default mb-1">Cliente</label>
                 <ClientAutocomplete
                   v-model="form.client_id"
                   :initial-label="form.client_label"
@@ -185,7 +182,7 @@
                   placeholder="Buscar cliente por nombre, email o empresa…"
                   @select="onClientSelected"
                 />
-                <p class="text-xs text-gray-400 mt-1">
+                <p class="text-xs text-text-subtle mt-1">
                   Busca y selecciona un cliente existente. Si no tiene email real, las automatizaciones de correo quedarán pausadas.
                 </p>
               </div>
@@ -202,121 +199,98 @@
 
               <!-- Snapshot fields -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Nombre snapshot</label>
-                  <input v-model="form.client_name" type="text"
-                    data-testid="diagnostic-edit-client-name"
-                    class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-                </div>
-                <div>
-                  <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Email snapshot</label>
-                  <input v-model="form.client_email" type="email"
-                    data-testid="diagnostic-edit-client-email"
-                    class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-                </div>
-                <div>
-                  <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Teléfono / WhatsApp</label>
-                  <input v-model="form.client_phone" type="tel" placeholder="+57 300 123 4567"
-                    data-testid="diagnostic-edit-client-phone"
-                    class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-                </div>
-                <div>
-                  <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Empresa</label>
-                  <input v-model="form.client_company" type="text" placeholder="Acme Inc."
-                    data-testid="diagnostic-edit-client-company"
-                    class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-                </div>
+                <BaseFormField label="Nombre snapshot" size="sm">
+                  <BaseInput v-model="form.client_name" type="text" size="sm" data-testid="diagnostic-edit-client-name" />
+                </BaseFormField>
+                <BaseFormField label="Email snapshot" size="sm">
+                  <BaseInput v-model="form.client_email" type="email" size="sm" data-testid="diagnostic-edit-client-email" />
+                </BaseFormField>
+                <BaseFormField label="Teléfono / WhatsApp" size="sm">
+                  <BaseInput v-model="form.client_phone" type="tel" size="sm" placeholder="+57 300 123 4567" data-testid="diagnostic-edit-client-phone" />
+                </BaseFormField>
+                <BaseFormField label="Empresa" size="sm">
+                  <BaseInput v-model="form.client_company" type="text" size="sm" placeholder="Acme Inc." data-testid="diagnostic-edit-client-company" />
+                </BaseFormField>
               </div>
 
               <!-- Propagate-to-profile checkbox -->
-              <label class="flex items-start gap-2 cursor-pointer">
-                <input
-                  v-model="form.propagate_client_updates"
-                  type="checkbox"
-                  data-testid="diagnostic-edit-client-propagate"
-                  class="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                />
-                <span class="text-xs text-gray-600 dark:text-green-light/60">
-                  Actualizar el perfil del cliente con estos cambios (también se reflejarán en sus otras propuestas y diagnósticos).
-                </span>
-              </label>
+              <BaseCheckbox v-model="form.propagate_client_updates" data-testid="diagnostic-edit-client-propagate">
+                Actualizar el perfil del cliente con estos cambios (también se reflejarán en sus otras propuestas y diagnósticos).
+              </BaseCheckbox>
             </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Idioma</label>
-              <select v-model="form.language"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
-                <option value="es">Español</option>
-                <option value="en">English</option>
-              </select>
-              <p class="text-xs text-gray-400 mt-1">Solo afecta los títulos por defecto al crear. Cambiar aquí no regenera las secciones existentes.</p>
-            </div>
+            <BaseFormField label="Idioma" hint="Solo afecta los títulos por defecto al crear. Cambiar aquí no regenera las secciones existentes.">
+              <BaseSelect
+                v-model="form.language"
+                :options="[{ value: 'es', label: 'Español' }, { value: 'en', label: 'English' }]"
+              />
+            </BaseFormField>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Inversión total</label>
-                <input v-model.number="form.investment_amount" type="number" min="0" step="0.01"
+              <BaseFormField label="Inversión total">
+                <BaseInput
+                  v-model.number="form.investment_amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
                   data-testid="diagnostic-edit-investment"
-                  class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Moneda</label>
-                <select v-model="form.currency"
-                  class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
-                  <option value="COP">COP</option>
-                  <option value="USD">USD</option>
-                </select>
-              </div>
+                />
+              </BaseFormField>
+              <BaseFormField label="Moneda">
+                <BaseSelect
+                  v-model="form.currency"
+                  :options="[{ value: 'COP', label: 'COP' }, { value: 'USD', label: 'USD' }]"
+                />
+              </BaseFormField>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">% pago inicial</label>
+              <BaseFormField label="% pago inicial">
                 <div class="flex items-center gap-2">
-                  <input v-model.number="form.payment_initial_pct" type="number" min="0" max="100" step="1"
-                    class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-                  <span class="text-sm text-gray-500">%</span>
+                  <BaseInput v-model.number="form.payment_initial_pct" type="number" min="0" max="100" step="1" />
+                  <span class="text-sm text-text-muted">%</span>
                 </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">% pago final</label>
+              </BaseFormField>
+              <BaseFormField label="% pago final" hint="Calculado automáticamente como 100 − % pago inicial.">
                 <div class="flex items-center gap-2">
-                  <input v-model.number="form.payment_final_pct" type="number" min="0" max="100" step="1" disabled
-                    class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-esmerald-dark/50 text-gray-600 dark:text-white/60 rounded-xl text-sm cursor-not-allowed outline-none" />
-                  <span class="text-sm text-gray-500">%</span>
+                  <BaseInput v-model.number="form.payment_final_pct" type="number" min="0" max="100" step="1" disabled />
+                  <span class="text-sm text-text-muted">%</span>
                 </div>
-                <p class="mt-1 text-xs text-gray-500 dark:text-white/50">Calculado autom&aacute;ticamente como 100 &minus; % pago inicial.</p>
-              </div>
+              </BaseFormField>
             </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Duración (texto)</label>
-              <input v-model="form.duration_label" type="text" placeholder="Ej: 1 semana"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-            </div>
+            <BaseFormField label="Duración (texto)">
+              <BaseInput v-model="form.duration_label" type="text" placeholder="Ej: 1 semana" />
+            </BaseFormField>
           </div>
 
           <!-- Sticky action bar -->
-          <div class="sticky bottom-0 rounded-b-xl bg-white/95 dark:bg-esmerald/95 backdrop-blur-sm border-t border-gray-100 dark:border-white/[0.06] px-4 sm:px-5 py-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
+          <div class="sticky bottom-0 rounded-b-xl bg-surface/95 backdrop-blur-sm border-t border-border-muted px-4 sm:px-5 py-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
             <div class="flex flex-wrap items-center gap-2 sm:gap-3 pr-14 sm:pr-0">
-              <button type="submit" :disabled="store.isUpdating"
+              <BaseButton
+                type="submit"
+                variant="primary"
+                size="md"
+                :loading="store.isUpdating"
+                :disabled="store.isUpdating"
                 data-testid="diagnostic-edit-submit"
-                class="px-4 sm:px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-100 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50">
+              >
                 {{ store.isUpdating ? 'Guardando...' : 'Guardar Cambios' }}
-              </button>
+              </BaseButton>
 
-              <button
-                type="button"
+              <BaseButton
+                variant="secondary"
+                size="md"
                 data-testid="diagnostic-actions-menu"
                 aria-label="Acciones del diagnóstico"
                 title="Más acciones"
-                class="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 dark:border-white/[0.08] text-gray-500 dark:text-green-light hover:text-gray-700 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-all"
+                class="!w-10 !h-10 !p-0"
                 @click="showActionsModal = true"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
                   <path fill-rule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.818a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .845-.143Z" clip-rule="evenodd" />
                 </svg>
-              </button>
+              </BaseButton>
 
               <button
                 v-if="nextAction"
@@ -347,14 +321,14 @@
 
       <!-- Secciones (JSON-driven content) -->
       <section v-if="activeTab === 'sections'" class="max-w-7xl mx-auto">
-        <div v-if="orderedSections.length" class="mb-4 bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] px-5 py-4">
+        <div v-if="orderedSections.length" class="mb-4 bg-surface rounded-xl shadow-sm border border-border-muted px-5 py-4">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Completitud de secciones</span>
+            <span class="text-xs font-semibold text-text-muted uppercase tracking-wider">Completitud de secciones</span>
             <span class="text-sm font-bold" :class="sectionCompletenessColor.text">
               {{ sectionCompleteness }}%
             </span>
           </div>
-          <div class="w-full h-2 bg-gray-100 dark:bg-white/[0.06] rounded-full overflow-hidden">
+          <div class="w-full h-2 bg-surface-raised rounded-full overflow-hidden">
             <div
               class="h-full rounded-full transition-all duration-500"
               :class="sectionCompletenessColor.bar"
@@ -365,7 +339,7 @@
             {{ sectionsWithContent }}/{{ enabledSectionsCount }} secciones habilitadas tienen contenido.
           </p>
         </div>
-        <div class="text-xs text-gray-500 dark:text-green-light/60 mb-3">
+        <div class="text-xs text-text-muted mb-3">
           Cada tarjeta representa una sección visible para el cliente. Los cambios se guardan
           automáticamente al perder foco.
         </div>
@@ -392,57 +366,57 @@
       <section v-if="activeTab === 'json'" class="max-w-screen-2xl mx-auto">
         <!-- Summary metrics -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4">
+          <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4">
             <p class="text-xs font-medium text-gray-400 dark:text-green-light/40 uppercase tracking-wide">Secciones</p>
-            <p class="mt-1.5 text-2xl font-light text-gray-900 dark:text-white tabular-nums">{{ jsonSummary.total }}</p>
-            <p class="text-xs text-gray-500 dark:text-green-light/60 mt-0.5">
+            <p class="mt-1.5 text-2xl font-light text-text-default tabular-nums">{{ jsonSummary.total }}</p>
+            <p class="text-xs text-text-muted mt-0.5">
               {{ jsonSummary.enabled }} habilitadas · {{ jsonSummary.enabledPct }}%
             </p>
           </div>
-          <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4">
+          <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4">
             <p class="text-xs font-medium text-gray-400 dark:text-green-light/40 uppercase tracking-wide">Progreso</p>
-            <p class="mt-1.5 text-2xl font-light text-gray-900 dark:text-white tabular-nums">{{ jsonSummary.progressPct }}%</p>
-            <div class="mt-2 h-1.5 rounded-full bg-gray-100 dark:bg-white/[0.06] overflow-hidden">
+            <p class="mt-1.5 text-2xl font-light text-text-default tabular-nums">{{ jsonSummary.progressPct }}%</p>
+            <div class="mt-2 h-1.5 rounded-full bg-surface-raised overflow-hidden">
               <div
-                class="h-full bg-emerald-500 transition-all"
+                class="h-full bg-primary transition-all"
                 :style="{ width: `${jsonSummary.progressPct}%` }"
               />
             </div>
-            <p class="text-xs text-gray-500 dark:text-green-light/60 mt-1.5">
+            <p class="text-xs text-text-muted mt-1.5">
               {{ jsonSummary.completed }}/{{ jsonSummary.enabled }} con contenido
             </p>
           </div>
-          <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4">
+          <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4">
             <p class="text-xs font-medium text-gray-400 dark:text-green-light/40 uppercase tracking-wide">Tamaño JSON</p>
-            <p class="mt-1.5 text-2xl font-light text-gray-900 dark:text-white tabular-nums">{{ jsonSummary.sizeLabel }}</p>
-            <p class="text-xs text-gray-500 dark:text-green-light/60 mt-0.5">Metadata + secciones</p>
+            <p class="mt-1.5 text-2xl font-light text-text-default tabular-nums">{{ jsonSummary.sizeLabel }}</p>
+            <p class="text-xs text-text-muted mt-0.5">Metadata + secciones</p>
           </div>
-          <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4">
+          <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4">
             <p class="text-xs font-medium text-gray-400 dark:text-green-light/40 uppercase tracking-wide">Última actualización</p>
             <p
-              class="mt-1.5 text-sm font-medium text-gray-900 dark:text-white"
+              class="mt-1.5 text-sm font-medium text-text-default"
               :title="jsonSummary.updatedAt || ''"
             >
               <span v-if="jsonSummary.updatedAt">{{ formatDate(jsonSummary.updatedAt) }}</span>
               <span v-else class="text-gray-400 dark:text-green-light/40">—</span>
             </p>
-            <p class="text-xs text-gray-500 dark:text-green-light/60 mt-0.5">Al guardar cambios</p>
+            <p class="text-xs text-text-muted mt-0.5">Al guardar cambios</p>
           </div>
         </div>
 
         <TabSplitLayout>
           <template #main>
         <!-- Current JSON (read-only) -->
-        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6">
+        <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4 sm:p-6">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
-              <h3 class="text-sm font-medium text-gray-900 dark:text-white">JSON del diagnóstico</h3>
+              <h3 class="text-sm font-medium text-text-default">JSON del diagnóstico</h3>
               <p class="text-xs text-gray-400 dark:text-green-light/40 mt-0.5">Representación JSON completa — se actualiza al guardar cambios en otras pestañas.</p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <button
                 type="button"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-muted bg-surface border border-border-default dark:border-white/[0.08] rounded-lg hover:bg-surface-raised transition-colors"
                 @click="refreshExportJson"
               >
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -452,7 +426,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-muted bg-surface border border-border-default dark:border-white/[0.08] rounded-lg hover:bg-surface-raised transition-colors"
                 @click="copyExportJson"
               >
                 <DocumentDuplicateIcon class="w-3.5 h-3.5" />
@@ -460,7 +434,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-muted bg-surface border border-border-default dark:border-white/[0.08] rounded-lg hover:bg-surface-raised transition-colors"
                 @click="downloadExportJson"
               >
                 <ArrowDownTrayIcon class="w-3.5 h-3.5" />
@@ -472,8 +446,8 @@
             :value="exportJsonString"
             readonly
             rows="18"
-            class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-mono leading-relaxed
-                   bg-gray-50 dark:bg-esmerald-dark text-gray-700 dark:text-gray-300 outline-none resize-y cursor-text select-all"
+            class="w-full px-4 py-3 border border-border-default dark:border-white/[0.08] rounded-xl text-xs font-mono leading-relaxed
+                   bg-gray-50  text-text-default outline-none resize-y cursor-text select-all"
           />
         </div>
 
@@ -481,14 +455,14 @@
 
           <template #aside>
         <!-- Import JSON -->
-        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6">
-          <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-1">Importar JSON</h3>
+        <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4 sm:p-6">
+          <h3 class="text-sm font-medium text-text-default mb-1">Importar JSON</h3>
           <p class="text-xs text-gray-400 mb-4">Pega o sube un JSON para reemplazar el contenido del diagnóstico (metadata + secciones).</p>
 
           <div class="flex items-center gap-3 mb-3">
             <label
-              class="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-200 dark:border-white/[0.08] rounded-lg text-xs
-                     text-gray-700 dark:text-green-light hover:bg-gray-50 dark:hover:bg-white/[0.04] cursor-pointer transition-colors"
+              class="inline-flex items-center gap-2 px-3 py-1.5 border border-border-default dark:border-white/[0.08] rounded-lg text-xs
+                     text-text-default hover:bg-surface-raised cursor-pointer transition-colors"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -496,15 +470,15 @@
               Subir .json
               <input type="file" accept=".json" class="hidden" @change="handleJsonFileUpload" />
             </label>
-            <span v-if="jsonImportFileName" class="text-xs text-gray-500 dark:text-green-light/60">{{ jsonImportFileName }}</span>
+            <span v-if="jsonImportFileName" class="text-xs text-text-muted">{{ jsonImportFileName }}</span>
           </div>
 
           <textarea
             v-model="jsonImportRaw"
             rows="10"
             placeholder="Pega aquí el JSON completo del diagnóstico..."
-            class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-xs font-mono leading-relaxed
-                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y"
+            class="w-full px-4 py-3 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-xs font-mono leading-relaxed
+                   focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
             @input="parseImportJson"
           />
 
@@ -512,11 +486,11 @@
             {{ jsonImportError }}
           </div>
 
-          <div v-if="jsonImportParsed && !jsonImportError" class="mt-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/30 rounded-lg px-4 py-3">
+          <div v-if="jsonImportParsed && !jsonImportError" class="mt-3 bg-primary-soft border border-emerald-200 dark:border-emerald-700/30 rounded-lg px-4 py-3">
             <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-              <span><span class="text-gray-500 dark:text-green-light/60">Cliente:</span> <span class="font-medium text-gray-900 dark:text-white">{{ jsonImportPreview.clientName }}</span></span>
-              <span><span class="text-gray-500 dark:text-green-light/60">Secciones:</span> <span class="font-medium text-gray-900 dark:text-white">{{ jsonImportPreview.sectionCount }}</span></span>
-              <span v-if="jsonImportPreview.investment"><span class="text-gray-500 dark:text-green-light/60">Inversión:</span> <span class="font-medium text-gray-900 dark:text-white">{{ jsonImportPreview.investment }}</span></span>
+              <span><span class="text-text-muted">Cliente:</span> <span class="font-medium text-text-default">{{ jsonImportPreview.clientName }}</span></span>
+              <span><span class="text-text-muted">Secciones:</span> <span class="font-medium text-text-default">{{ jsonImportPreview.sectionCount }}</span></span>
+              <span v-if="jsonImportPreview.investment"><span class="text-text-muted">Inversión:</span> <span class="font-medium text-text-default">{{ jsonImportPreview.investment }}</span></span>
             </div>
           </div>
 
@@ -524,8 +498,8 @@
             <button
               type="button"
               :disabled="store.isUpdating"
-              class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
-                     hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-100 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-wait"
+              class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl font-medium text-sm
+                     hover:bg-primary-strong transition-all shadow-sm shadow-emerald-100 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-wait"
               @click="handleApplyImportJson"
             >
               <svg v-if="store.isUpdating" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -579,7 +553,6 @@ import DiagnosticEmailsTab from '~/components/WebAppDiagnostic/DiagnosticEmailsT
 import DiagnosticDocumentsTab from '~/components/WebAppDiagnostic/DiagnosticDocumentsTab.vue';
 import DiagnosticActionsModal from '~/components/WebAppDiagnostic/DiagnosticActionsModal.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
-import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import PanelToast from '~/components/panel/PanelToast.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
@@ -881,7 +854,7 @@ const sectionCompleteness = computed(() =>
 );
 const sectionCompletenessColor = computed(() => {
   const pct = sectionCompleteness.value;
-  if (pct >= 80) return { text: 'text-emerald-600', bar: 'bg-emerald-500' };
+  if (pct >= 80) return { text: 'text-text-brand', bar: 'bg-primary' };
   if (pct >= 50) return { text: 'text-amber-600', bar: 'bg-amber-500' };
   return { text: 'text-red-500', bar: 'bg-red-400' };
 });

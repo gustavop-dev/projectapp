@@ -12,19 +12,19 @@
         v-if="isOpen"
         :class="[
           'fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r md:hidden',
-          'border-esmerald/[0.06] bg-white dark:border-white/[0.06] dark:bg-esmerald-dark',
+          'border-input-border/[0.06] bg-surface dark:border-white/[0.06] dark:bg-primary-strong',
         ]"
       >
         <!-- Header -->
-        <div class="flex h-16 shrink-0 items-center justify-between border-b border-esmerald/[0.06] px-5 dark:border-white/[0.06]">
+        <div class="flex h-16 shrink-0 items-center justify-between border-b border-input-border/[0.06] px-5 dark:border-white/[0.06]">
           <div class="flex items-center gap-3">
-            <span class="text-xl font-bold tracking-tight text-esmerald dark:text-white">
-              Project<span class="text-esmerald dark:text-lemon">App.</span>
+            <span class="text-xl font-bold tracking-tight text-text-brand dark:text-white">
+              Project<span class="text-text-brand dark:text-accent">App.</span>
             </span>
           </div>
           <button
             type="button"
-            class="flex h-9 w-9 items-center justify-center rounded-full text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
+            class="flex h-9 w-9 items-center justify-center rounded-full text-green-light transition hover:bg-primary-soft hover:text-text-brand dark:hover:bg-surface/[0.06] dark:hover:text-white"
             @click="$emit('close')"
           >
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,7 +74,7 @@
             />
             <button
               type="button"
-              class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-green-light transition-all duration-150 hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
+              class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-green-light transition-all duration-150 hover:bg-primary-soft hover:text-text-brand dark:hover:bg-surface/[0.06] dark:hover:text-white"
               @click="$emit('close'); $emit('openThemePicker')"
             >
               <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -100,7 +100,7 @@
         </nav>
 
         <!-- User footer -->
-        <div class="shrink-0 border-t border-esmerald/[0.06] p-4 dark:border-white/[0.06]">
+        <div class="shrink-0 border-t border-input-border/[0.06] p-4 dark:border-white/[0.06]">
           <div class="flex items-center gap-3 rounded-xl p-2">
             <div class="h-9 w-9 shrink-0 overflow-hidden rounded-full">
               <img
@@ -109,12 +109,12 @@
                 alt="Avatar"
                 class="h-full w-full object-cover"
               />
-              <div v-else class="flex h-full w-full items-center justify-center bg-esmerald text-xs font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
+              <div v-else class="flex h-full w-full items-center justify-center bg-primary text-xs font-bold text-white dark:bg-accent-soft dark:text-text-brand">
                 {{ authStore.userInitials }}
               </div>
             </div>
             <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-medium text-esmerald dark:text-white">{{ authStore.displayName }}</p>
+              <p class="truncate text-sm font-medium text-text-brand dark:text-white">{{ authStore.displayName }}</p>
               <p class="truncate text-xs text-green-light">{{ userSubtitle }}</p>
             </div>
           </div>
@@ -123,7 +123,7 @@
             <!-- Theme customization -->
             <button
               type="button"
-              class="flex h-9 w-9 items-center justify-center rounded-lg text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
+              class="flex h-9 w-9 items-center justify-center rounded-lg text-green-light transition hover:bg-primary-soft hover:text-text-brand dark:hover:bg-surface/[0.06] dark:hover:text-white"
               @click="$emit('close'); $emit('openThemePicker')"
             >
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -137,7 +137,7 @@
 
             <button
               type="button"
-              class="ml-auto rounded-full border border-esmerald/10 px-4 py-2 text-sm text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+              class="ml-auto rounded-full border border-input-border/10 px-4 py-2 text-sm text-green-light transition hover:text-text-brand dark:border-white/10 dark:hover:text-white"
               @click="$emit('logout')"
             >
               Salir

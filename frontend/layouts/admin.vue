@@ -1,5 +1,5 @@
 <template>
-  <div class="admin-layout min-h-screen bg-gray-50 transition-colors duration-200 dark:bg-esmerald-dark">
+  <div class="admin-layout min-h-screen bg-gray-50 transition-colors duration-200 dark:bg-primary-strong">
     <div class="hidden md:block">
       <PanelSidebar
         :is-collapsed="isCollapsed"
@@ -9,12 +9,12 @@
     </div>
 
     <div
-      class="mobile-topbar sticky top-0 z-30 flex h-14 items-center justify-between border-b border-esmerald/[0.06] px-4 md:hidden"
-      :class="isDark ? 'bg-esmerald-dark/95 backdrop-blur-xl' : 'bg-white/90 backdrop-blur-xl'"
+      class="mobile-topbar sticky top-0 z-30 flex h-14 items-center justify-between border-b border-input-border/[0.06] px-4 md:hidden"
+      :class="isDark ? 'bg-primary-strong/95 backdrop-blur-xl' : 'bg-surface/90 backdrop-blur-xl'"
     >
       <button
         type="button"
-        class="flex h-10 w-10 items-center justify-center rounded-full bg-esmerald-light text-esmerald dark:bg-esmerald dark:text-white"
+        class="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-text-brand dark:bg-primary dark:text-white"
         aria-label="Abrir menú"
         @click="openMobile"
       >
@@ -23,21 +23,21 @@
         </svg>
       </button>
 
-      <span v-if="_panelViewLabel && route.path !== localePath('/panel')" class="text-sm font-medium text-esmerald dark:text-white truncate max-w-[180px]">
+      <span v-if="_panelViewLabel && route.path !== localePath('/panel')" class="text-sm font-medium text-text-brand dark:text-white truncate max-w-[180px]">
         {{ _panelViewLabel }}
       </span>
       <NuxtLink
         v-else
         :to="localePath('/panel')"
-        class="text-base font-bold tracking-tight text-esmerald dark:text-white"
+        class="text-base font-bold tracking-tight text-text-brand dark:text-white"
       >
-        Project<span class="text-green-light dark:text-lemon">App.</span>
+        Project<span class="text-green-light dark:text-accent">App.</span>
       </NuxtLink>
 
       <button
         type="button"
-        class="flex h-10 w-10 items-center justify-center rounded-full bg-esmerald-light text-esmerald dark:bg-esmerald dark:text-white"
-        :aria-label="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+        class="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-text-brand dark:bg-primary dark:text-white"
+        :aria-label="themeToggleLabel(isDark)"
         @click="toggle"
       >
         <svg v-if="isDark" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -61,7 +61,7 @@
         'relative z-10 transition-all duration-300 ease-in-out',
         'px-4 py-6 sm:px-6 lg:px-8',
         isCollapsed ? 'md:ml-[64px]' : 'md:ml-[240px]',
-        isDark ? 'text-gray-200' : 'text-gray-900',
+        isDark ? 'text-gray-200' : 'text-text-default',
       ]"
     >
       <div
@@ -71,7 +71,7 @@
       >
         <span>{{ _panelSectionLabel }}</span>
         <span class="text-green-light/40 dark:text-green-light/30">›</span>
-        <span :class="isDark ? 'text-gray-400' : 'text-gray-500'">{{ _panelViewLabel }}</span>
+        <span :class="isDark ? 'text-gray-400' : 'text-text-muted'">{{ _panelViewLabel }}</span>
       </div>
       <slot />
     </main>
@@ -80,7 +80,7 @@
 
 <script setup>
 import { provide, watch, computed, onMounted, onUnmounted } from 'vue'
-import { useDarkMode } from '~/composables/useDarkMode'
+import { useDarkMode, themeToggleLabel } from '~/composables/useDarkMode'
 import { usePanelSidebar } from '~/composables/usePanelSidebar'
 import { getPanelNavSections } from '~/config/panelNav'
 import { isPanelNavItemActive } from '~/utils/panelNavActive'

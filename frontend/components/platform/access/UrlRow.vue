@@ -6,7 +6,7 @@
       :href="url"
       target="_blank"
       rel="noopener noreferrer"
-      class="inline-flex min-w-0 items-center gap-1 truncate text-xs font-medium text-esmerald transition hover:underline dark:text-lemon"
+      class="inline-flex min-w-0 items-center gap-1 truncate text-xs font-medium text-text-brand transition hover:underline"
       :title="url"
     >
       <span class="truncate">{{ displayUrl }}</span>

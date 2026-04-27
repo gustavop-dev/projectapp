@@ -6,10 +6,10 @@
         class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
         @click.self="close"
       >
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 dark:bg-gray-800">
+        <div class="bg-surface rounded-2xl shadow-2xl max-w-md w-full p-6">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Gestionar etiquetas</h3>
-            <button type="button" class="text-gray-400 hover:text-gray-600" @click="close">✕</button>
+            <h3 class="text-lg font-semibold text-text-default">Gestionar etiquetas</h3>
+            <button type="button" class="text-text-subtle hover:text-text-muted" @click="close">✕</button>
           </div>
 
           <!-- New tag form -->
@@ -18,18 +18,18 @@
               v-model="newName"
               type="text"
               placeholder="Nombre"
-              class="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+              class="flex-1 px-3 py-2 border border-border-default rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 outline-none"
             />
             <select
               v-model="newColor"
-              class="px-3 py-2 border border-gray-200 rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+              class="px-3 py-2 border border-border-default rounded-lg text-sm"
             >
               <option v-for="c in COLORS" :key="c.value" :value="c.value">{{ c.label }}</option>
             </select>
             <button
               type="submit"
               :disabled="!newName.trim() || tagStore.isUpdating"
-              class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+              class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-strong disabled:opacity-50"
             >
               Crear
             </button>
@@ -37,7 +37,7 @@
 
           <!-- Tag list -->
           <div class="max-h-80 overflow-y-auto">
-            <div v-if="!tagStore.tags.length" class="text-sm text-gray-500 dark:text-gray-400 text-center py-6">
+            <div v-if="!tagStore.tags.length" class="text-sm text-text-muted text-center py-6">
               No hay etiquetas todavía.
             </div>
             <ul v-else class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -48,15 +48,15 @@
                   v-if="editingId === tag.id"
                   v-model="editingName"
                   type="text"
-                  class="flex-1 px-2 py-1 border border-gray-200 rounded text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                  class="flex-1 px-2 py-1 border border-border-default rounded text-sm"
                   @keyup.enter="commitRename(tag)"
                 />
-                <span v-else class="flex-1 text-sm text-gray-800 dark:text-gray-200 truncate">{{ tag.name }}</span>
+                <span v-else class="flex-1 text-sm text-text-default truncate">{{ tag.name }}</span>
 
                 <select
                   v-if="editingId === tag.id"
                   v-model="editingColor"
-                  class="text-xs px-2 py-1 border border-gray-200 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                  class="text-xs px-2 py-1 border border-border-default rounded"
                 >
                   <option v-for="c in COLORS" :key="c.value" :value="c.value">{{ c.label }}</option>
                 </select>
@@ -64,7 +64,7 @@
                 <button
                   v-if="editingId === tag.id"
                   type="button"
-                  class="text-xs text-emerald-600 hover:text-emerald-700"
+                  class="text-xs text-text-brand hover:text-text-brand"
                   @click="commitRename(tag)"
                 >
                   Guardar
@@ -72,14 +72,14 @@
                 <button
                   v-else
                   type="button"
-                  class="text-xs text-gray-500 hover:text-emerald-600"
+                  class="text-xs text-text-muted hover:text-text-brand"
                   @click="startRename(tag)"
                 >
                   Editar
                 </button>
                 <button
                   type="button"
-                  class="text-xs text-gray-500 hover:text-red-600"
+                  class="text-xs text-text-muted hover:text-red-600"
                   @click="handleDelete(tag)"
                 >
                   Eliminar
@@ -93,7 +93,7 @@
           <div class="flex justify-end mt-4">
             <button
               type="button"
-              class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-300"
+              class="px-4 py-2 text-sm text-text-muted hover:text-text-default dark:text-text-subtle"
               @click="close"
             >
               Cerrar

@@ -2,8 +2,8 @@
   <div>
     <!-- Floating trigger button -->
     <button
-      class="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-emerald-600 text-white shadow-lg
-             hover:bg-emerald-700 transition-all flex items-center justify-center text-lg font-bold
+      class="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-primary text-white shadow-lg
+             hover:bg-primary-strong transition-all flex items-center justify-center text-lg font-bold
              hover:scale-105"
       @click="isOpen = true"
       title="Manual de métricas"
@@ -16,11 +16,11 @@
       <Transition name="manual-slide">
         <div v-if="isOpen" class="fixed inset-0 z-[9980]" @click.self="isOpen = false">
           <div class="absolute inset-0 bg-black/20 backdrop-blur-[2px]" @click="isOpen = false" />
-          <div class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl flex flex-col">
+          <div class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-surface shadow-2xl flex flex-col">
             <!-- Header -->
-            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h2 class="text-lg font-bold text-gray-900">Manual de Métricas</h2>
-              <button class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400" @click="isOpen = false">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-border-muted">
+              <h2 class="text-lg font-bold text-text-default">Manual de Métricas</h2>
+              <button class="p-1.5 rounded-lg hover:bg-gray-100 text-text-subtle" @click="isOpen = false">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -33,9 +33,9 @@
                 v-model="search"
                 type="text"
                 placeholder="Buscar métrica..."
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
               />
-              <p v-if="search" class="text-[10px] text-gray-400 mt-1">{{ filteredMetrics.length }} resultado{{ filteredMetrics.length !== 1 ? 's' : '' }}</p>
+              <p v-if="search" class="text-[10px] text-text-subtle mt-1">{{ filteredMetrics.length }} resultado{{ filteredMetrics.length !== 1 ? 's' : '' }}</p>
             </div>
 
             <!-- Metrics list -->
@@ -43,21 +43,21 @@
               <div
                 v-for="metric in filteredMetrics"
                 :key="metric.id"
-                class="rounded-xl border border-gray-100 p-4 hover:border-emerald-100 transition-colors"
+                class="rounded-xl border border-border-muted p-4 hover:border-emerald-100 transition-colors"
               >
                 <div class="flex items-start gap-3">
                   <span class="text-lg flex-shrink-0">{{ metric.icon }}</span>
                   <div class="min-w-0">
-                    <h3 class="text-sm font-semibold text-gray-900">{{ metric.name }}</h3>
-                    <p class="text-xs text-gray-500 mt-1 leading-relaxed">{{ metric.description }}</p>
+                    <h3 class="text-sm font-semibold text-text-default">{{ metric.name }}</h3>
+                    <p class="text-xs text-text-muted mt-1 leading-relaxed">{{ metric.description }}</p>
                     <div class="mt-2 space-y-1">
-                      <p class="text-[11px] text-gray-400"><span class="font-medium text-gray-500">Cálculo:</span> {{ metric.calculation }}</p>
-                      <p class="text-[11px] text-gray-400"><span class="font-medium text-gray-500">Acción:</span> {{ metric.action }}</p>
+                      <p class="text-[11px] text-text-subtle"><span class="font-medium text-text-muted">Cálculo:</span> {{ metric.calculation }}</p>
+                      <p class="text-[11px] text-text-subtle"><span class="font-medium text-text-muted">Acción:</span> {{ metric.action }}</p>
                     </div>
                   </div>
                 </div>
               </div>
-              <p v-if="!filteredMetrics.length" class="text-center text-sm text-gray-400 py-8">
+              <p v-if="!filteredMetrics.length" class="text-center text-sm text-text-subtle py-8">
                 No se encontraron métricas para "{{ search }}"
               </p>
             </div>

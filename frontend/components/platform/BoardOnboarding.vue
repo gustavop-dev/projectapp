@@ -3,7 +3,7 @@
     <Transition name="fade">
       <div
         v-if="visible"
-        class="onb-backdrop fixed inset-0 z-[9998] bg-white/60 backdrop-blur-[2px] dark:bg-esmerald-dark/60"
+        class="onb-backdrop fixed inset-0 z-[9998] bg-surface/60 backdrop-blur-[2px] dark:bg-primary-strong/60"
       />
     </Transition>
 
@@ -33,33 +33,33 @@
         :style="tooltipStyle"
       >
         <div
-          class="tooltip-arrow absolute w-3 h-3 bg-white rotate-45 border border-gray-100 dark:bg-esmerald dark:border-white/10"
+          class="tooltip-arrow absolute w-3 h-3 bg-surface rotate-45 border border-border-muted dark:bg-primary dark:border-white/10"
           :style="arrowComputedStyle"
         />
 
-        <div class="relative bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 w-[272px] sm:w-[296px] dark:bg-esmerald dark:border-white/10">
+        <div class="relative bg-surface rounded-2xl shadow-2xl border border-border-muted p-5 w-[272px] sm:w-[296px] dark:bg-primary dark:border-white/10">
           <div class="flex items-center gap-1.5 mb-3">
             <div
               v-for="i in totalSteps"
               :key="i"
               class="h-1.5 rounded-full transition-all duration-300"
               :class="i - 1 === currentStep
-                ? 'w-5 bg-esmerald dark:bg-lemon'
+                ? 'w-5 bg-primary dark:bg-accent-soft'
                 : i - 1 < currentStep
-                  ? 'w-1.5 bg-esmerald/40 dark:bg-lemon/40'
-                  : 'w-1.5 bg-gray-200 dark:bg-white/10'"
+                  ? 'w-1.5 bg-primary/40 dark:bg-accent-soft/40'
+                  : 'w-1.5 bg-gray-200 dark:bg-surface/10'"
             />
             <span class="ml-auto text-[10px] text-gray-400 dark:text-white/40 font-medium tabular-nums">
               {{ currentStep + 1 }}/{{ totalSteps }}
             </span>
           </div>
 
-          <h4 class="text-sm font-bold text-gray-900 dark:text-white mb-1">{{ currentStepData.title }}</h4>
-          <p class="text-xs text-gray-500 dark:text-white/60 leading-relaxed mb-4">{{ currentStepData.description }}</p>
+          <h4 class="text-sm font-bold text-text-default dark:text-white mb-1">{{ currentStepData.title }}</h4>
+          <p class="text-xs text-text-muted dark:text-white/60 leading-relaxed mb-4">{{ currentStepData.description }}</p>
 
           <div class="flex items-center justify-between">
             <button
-              class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-white/80 transition-colors pointer-events-auto"
+              class="text-xs text-gray-400 hover:text-text-muted dark:hover:text-white/80 transition-colors pointer-events-auto"
               @click="dismiss"
             >
               Omitir
@@ -67,15 +67,15 @@
             <div class="flex items-center gap-2">
               <button
                 v-if="currentStep > 0"
-                class="px-3 py-1.5 text-xs text-gray-600 dark:text-white/60 hover:text-gray-800 dark:hover:text-white transition-colors pointer-events-auto"
+                class="px-3 py-1.5 text-xs text-text-muted dark:text-white/60 hover:text-text-default dark:hover:text-white transition-colors pointer-events-auto"
                 @click="prev"
               >
                 Atrás
               </button>
               <button
-                class="px-4 py-1.5 text-xs font-medium text-white bg-esmerald rounded-lg
-                       hover:bg-esmerald/90 transition-colors shadow-sm pointer-events-auto
-                       dark:bg-lemon dark:text-esmerald-dark dark:hover:bg-lemon/90"
+                class="px-4 py-1.5 text-xs font-medium text-white bg-primary rounded-lg
+                       hover:bg-primary/90 transition-colors shadow-sm pointer-events-auto
+                       dark:bg-accent-soft dark:text-text-brand dark:hover:bg-accent-soft/90"
                 @click="next"
               >
                 {{ isLastStep ? 'Entendido' : 'Siguiente' }}

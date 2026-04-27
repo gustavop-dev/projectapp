@@ -1,12 +1,12 @@
 <template>
   <div id="platform-profile">
-    <h1 class="mb-1 text-xl font-bold text-esmerald dark:text-white">Configuracion</h1>
+    <h1 class="mb-1 text-xl font-bold text-text-default">Configuracion</h1>
     <p class="mb-8 text-sm text-green-light">Revisa y actualiza tu informacion personal.</p>
 
     <!-- Success message -->
     <div
       v-if="successMessage"
-      class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
+      class="mb-6 rounded-xl border border-emerald-200 bg-primary-soft px-4 py-3 text-sm text-text-brand dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
     >
       {{ successMessage }}
     </div>
@@ -21,17 +21,17 @@
 
     <div class="grid gap-6 lg:grid-cols-3">
       <!-- Avatar card -->
-      <div class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
+      <div class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
         <div class="flex flex-col items-center gap-4">
           <div class="group relative h-24 w-24 cursor-pointer" @click="triggerFileInput">
-            <div class="h-full w-full overflow-hidden rounded-full border-2 border-esmerald/10 dark:border-white/10">
+            <div class="h-full w-full overflow-hidden rounded-full border-2 border-border-default">
               <img
                 v-if="avatarPreview || avatarUrl"
                 :src="avatarPreview || avatarUrl"
                 alt="Avatar"
                 class="h-full w-full object-cover"
               />
-              <div v-else class="flex h-full w-full items-center justify-center bg-esmerald text-2xl font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
+              <div v-else class="flex h-full w-full items-center justify-center bg-primary text-2xl font-bold text-white dark:bg-accent dark:text-text-default">
                 {{ authStore.userInitials }}
               </div>
             </div>
@@ -55,13 +55,13 @@
             @change="handleFileSelect"
           />
           <div class="text-center">
-            <p class="text-base font-semibold text-esmerald dark:text-white">{{ authStore.displayName }}</p>
+            <p class="text-base font-semibold text-text-default">{{ authStore.displayName }}</p>
             <p class="text-xs text-green-light">{{ authStore.user?.email }}</p>
             <span
               class="mt-2 inline-block rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
               :class="authStore.isAdmin
                 ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400'
-                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400'"
+                : 'bg-primary-soft text-text-brand dark:bg-emerald-500/15 dark:text-emerald-400'"
             >
               {{ authStore.isAdmin ? 'Administrador' : 'Cliente' }}
             </span>
@@ -71,10 +71,10 @@
 
       <!-- Profile form -->
       <form
-        class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none lg:col-span-2"
+        class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm lg:col-span-2"
         @submit.prevent="handleUpdate"
       >
-        <h2 class="mb-5 text-base font-semibold text-esmerald dark:text-white">Informacion personal</h2>
+        <h2 class="mb-5 text-base font-semibold text-text-default">Informacion personal</h2>
 
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
@@ -82,7 +82,7 @@
             <input
               v-model="form.first_name"
               type="text"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
             />
           </div>
           <div>
@@ -90,7 +90,7 @@
             <input
               v-model="form.last_name"
               type="text"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
             />
           </div>
           <div>
@@ -98,7 +98,7 @@
             <input
               v-model="form.company_name"
               type="text"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
             />
           </div>
           <div>
@@ -106,7 +106,7 @@
             <input
               v-model="form.phone"
               type="tel"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
             />
           </div>
           <div>
@@ -114,7 +114,7 @@
             <input
               v-model="form.cedula"
               type="text"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
             />
           </div>
           <div>
@@ -122,14 +122,14 @@
             <input
               v-model="form.date_of_birth"
               type="date"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
             />
           </div>
           <div>
             <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Sexo</label>
             <select
               v-model="form.gender"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
             >
               <option value="">Sin especificar</option>
               <option value="male">Masculino</option>
@@ -142,7 +142,7 @@
             <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Nivel de educacion</label>
             <select
               v-model="form.education_level"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
             >
               <option value="">Sin especificar</option>
               <option value="primaria">Primaria</option>
@@ -159,7 +159,7 @@
           <button
             type="submit"
             :disabled="authStore.isLoading"
-            class="rounded-xl bg-lemon px-6 py-3 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50"
+            class="rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50"
           >
             {{ authStore.isLoading ? 'Guardando...' : 'Guardar cambios' }}
           </button>
@@ -168,8 +168,8 @@
     </div>
 
     <!-- Theme customization -->
-    <div class="mt-6 rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
-      <h2 class="mb-5 text-base font-semibold text-esmerald dark:text-white">Personalizar interfaz</h2>
+    <div class="mt-6 rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
+      <h2 class="mb-5 text-base font-semibold text-text-default">Personalizar interfaz</h2>
       <ThemePicker />
     </div>
 
@@ -181,10 +181,10 @@
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
           @click.self="cancelCrop"
         >
-          <div class="w-full max-w-sm rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-2xl dark:border-white/[0.06] dark:bg-esmerald">
-            <h3 class="mb-4 text-base font-semibold text-esmerald dark:text-white">Ajustar foto de perfil</h3>
+          <div class="w-full max-w-sm rounded-3xl border border-border-default bg-surface p-6 shadow-2xl">
+            <h3 class="mb-4 text-base font-semibold text-text-default">Ajustar foto de perfil</h3>
 
-            <div class="relative mx-auto mb-4 h-64 w-64 overflow-hidden rounded-full border-2 border-esmerald/10 bg-black dark:border-white/10">
+            <div class="relative mx-auto mb-4 h-64 w-64 overflow-hidden rounded-full border-2 border-border-default bg-black">
               <img
                 v-if="cropSrc"
                 ref="cropImage"
@@ -213,7 +213,7 @@
             <div class="flex gap-3">
               <button
                 type="button"
-                class="flex-1 rounded-xl border border-esmerald/10 px-4 py-2.5 text-sm font-medium text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+                class="flex-1 rounded-xl border border-border-default px-4 py-2.5 text-sm font-medium text-green-light transition hover:text-text-default dark:hover:text-white"
                 @click="cancelCrop"
               >
                 Cancelar
@@ -221,7 +221,7 @@
               <button
                 type="button"
                 :disabled="isUploadingAvatar"
-                class="flex-1 rounded-xl bg-lemon px-4 py-2.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50"
+                class="flex-1 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50"
                 @click="confirmCrop"
               >
                 {{ isUploadingAvatar ? 'Subiendo...' : 'Guardar' }}

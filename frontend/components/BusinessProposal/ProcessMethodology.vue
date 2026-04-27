@@ -1,11 +1,11 @@
 <template>
-  <section ref="sectionRef" class="process-methodology min-h-screen py-16 md:py-24 bg-white">
+  <section ref="sectionRef" class="process-methodology min-h-screen py-16 md:py-24 bg-surface">
     <div class="container mx-auto px-6 md:px-12 lg:px-24 max-w-5xl">
       <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
         <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
           {{ index }}
         </span>
-        <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
+        <h2 class="text-text-brand font-light leading-tight text-4xl md:text-6xl">
           {{ title }}
         </h2>
       </div>
@@ -28,17 +28,17 @@
           <div
             class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-2xl
                    transition-all group-hover:scale-110 group-hover:shadow-lg"
-            :class="idx <= activeStep ? 'bg-esmerald text-lemon shadow-md' : 'bg-emerald-50 text-emerald-400 border border-emerald-200'"
+            :class="idx <= activeStep ? 'bg-primary text-accent shadow-md' : 'bg-primary-soft text-emerald-400 border border-emerald-200'"
           >
             {{ step.icon }}
           </div>
-          <h3 class="text-sm font-semibold mb-1.5" :class="idx <= activeStep ? 'text-esmerald' : 'text-gray-500'">
+          <h3 class="text-sm font-semibold mb-1.5" :class="idx <= activeStep ? 'text-text-brand' : 'text-text-muted'">
             {{ step.title }}
           </h3>
           <p class="text-xs font-light leading-relaxed px-2" :class="idx <= activeStep ? 'text-esmerald/70' : 'text-gray-400'">
             {{ step.description }}
           </p>
-          <div v-if="step.clientAction" class="mt-2 text-[10px] text-emerald-600 bg-emerald-50 rounded-lg px-2 py-1 inline-block">
+          <div v-if="step.clientAction" class="mt-2 text-[10px] text-text-brand bg-primary-soft rounded-lg px-2 py-1 inline-block">
             {{ step.clientAction }}
           </div>
         </div>
@@ -52,22 +52,22 @@
             v-for="(step, idx) in steps"
             :key="step.title"
             class="relative rounded-2xl border px-5 py-4 ml-14 transition-all"
-            :class="idx <= activeStep ? 'bg-esmerald/5 border-esmerald/20' : 'border-gray-100'"
+            :class="idx <= activeStep ? 'bg-esmerald/5 border-esmerald/20' : 'border-border-muted'"
           >
             <div
               class="absolute -left-[2.35rem] top-5 h-3 w-3 rounded-full border-2 border-white"
-              :class="idx <= activeStep ? 'bg-emerald-600' : 'bg-emerald-200'"
+              :class="idx <= activeStep ? 'bg-primary' : 'bg-emerald-200'"
             ></div>
             <div class="flex items-start gap-3">
               <span class="text-xl flex-shrink-0">{{ step.icon }}</span>
               <div class="min-w-0">
-                <h3 class="text-sm font-semibold" :class="idx <= activeStep ? 'text-esmerald' : 'text-gray-500'">
+                <h3 class="text-sm font-semibold" :class="idx <= activeStep ? 'text-text-brand' : 'text-text-muted'">
                   {{ step.title }}
                 </h3>
                 <p class="text-xs font-light leading-relaxed mt-1" :class="idx <= activeStep ? 'text-esmerald/70' : 'text-gray-400'">
                   {{ step.description }}
                 </p>
-                <div v-if="step.clientAction" class="mt-1.5 text-[10px] text-emerald-600 bg-emerald-50 rounded-lg px-2 py-0.5 inline-block">
+                <div v-if="step.clientAction" class="mt-1.5 text-[10px] text-text-brand bg-primary-soft rounded-lg px-2 py-0.5 inline-block">
                   {{ step.clientAction }}
                 </div>
               </div>

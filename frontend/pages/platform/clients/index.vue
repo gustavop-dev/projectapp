@@ -2,7 +2,7 @@
   <div id="platform-clients" class="space-y-6">
     <section class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between" data-enter>
       <div>
-        <h1 class="font-light text-3xl text-esmerald dark:text-white">Clientes</h1>
+        <h1 class="font-light text-3xl text-text-default">Clientes</h1>
         <p class="mt-2 max-w-2xl text-sm leading-7 text-green-light">
           Invita clientes, revisa su estado de onboarding y administra sus accesos.
         </p>
@@ -10,7 +10,7 @@
 
       <button
         type="button"
-        class="rounded-full bg-esmerald px-5 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 dark:bg-lemon dark:text-esmerald-dark dark:hover:bg-lemon/90"
+        class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 dark:bg-accent dark:text-text-default dark:hover:bg-lemon/90"
         @click="openInviteModal"
       >
         Invitar cliente
@@ -24,7 +24,7 @@
           :key="filter.value"
           type="button"
           class="rounded-full px-4 py-2 text-sm font-medium transition"
-          :class="activeFilter === filter.value ? 'bg-esmerald text-white dark:bg-lemon dark:text-esmerald-dark' : 'text-green-light hover:text-esmerald dark:hover:text-white'"
+          :class="activeFilter === filter.value ? 'bg-primary text-white dark:bg-accent dark:text-text-default' : 'text-green-light hover:text-text-default dark:hover:text-white'"
           @click="activeFilter = filter.value"
         >
           {{ filter.label }}
@@ -36,16 +36,16 @@
           v-model="search"
           type="text"
           placeholder="Buscar por nombre, email o empresa"
-          class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10 dark:border-white/[0.08] dark:bg-esmerald dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20"
+          class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/60 focus:border-border-default focus:ring-1 focus:ring-esmerald/10 dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20"
         >
       </div>
     </section>
 
-    <div v-if="pageMessage" class="rounded-2xl border px-4 py-3 text-sm" :class="pageMessageVariant === 'success' ? 'border-emerald-500/20 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300' : 'border-red-500/20 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-200'">
+    <div v-if="pageMessage" class="rounded-2xl border px-4 py-3 text-sm" :class="pageMessageVariant === 'success' ? 'border-emerald-500/20 bg-primary-soft text-text-brand dark:bg-emerald-500/10 dark:text-emerald-300' : 'border-red-500/20 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-200'">
       {{ pageMessage }}
     </div>
 
-    <section class="rounded-3xl border border-esmerald/[0.06] bg-white shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none" data-enter>
+    <section class="rounded-3xl border border-border-default bg-surface shadow-sm" data-enter>
       <div v-if="platformClientsStore.isLoading" class="px-6 py-14 text-center text-sm text-green-light">
         Cargando clientes...
       </div>
@@ -57,7 +57,7 @@
       <div v-else class="overflow-x-auto">
         <table class="min-w-full text-left text-sm">
           <thead>
-            <tr class="border-b border-esmerald/[0.06] text-xs uppercase tracking-[0.16em] text-green-light/60 dark:border-white/[0.06]">
+            <tr class="border-b border-border-default text-xs uppercase tracking-[0.16em] text-green-light/60">
               <th class="px-6 py-4 font-medium">Cliente</th>
               <th class="px-6 py-4 font-medium">Empresa</th>
               <th class="px-6 py-4 font-medium">Estado</th>
@@ -66,7 +66,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="client in filteredClients" :key="client.user_id" class="border-b border-esmerald/[0.04] last:border-b-0 dark:border-white/[0.03]">
+            <tr v-for="client in filteredClients" :key="client.user_id" class="border-b border-border-muted last:border-b-0">
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
                   <div class="h-9 w-9 shrink-0 overflow-hidden rounded-full">
@@ -76,12 +76,12 @@
                       alt="Avatar"
                       class="h-full w-full object-cover"
                     />
-                    <div v-else class="flex h-full w-full items-center justify-center bg-esmerald-light text-xs font-semibold text-esmerald dark:bg-white/10 dark:text-white">
+                    <div v-else class="flex h-full w-full items-center justify-center bg-surface-muted text-xs font-semibold text-text-default dark:bg-white/10 dark:text-white">
                       {{ initials(client) }}
                     </div>
                   </div>
                   <div>
-                    <p class="font-medium text-esmerald dark:text-white">{{ client.first_name }} {{ client.last_name }}</p>
+                    <p class="font-medium text-text-default">{{ client.first_name }} {{ client.last_name }}</p>
                     <p class="mt-0.5 text-xs text-green-light/60">{{ client.email }}</p>
                   </div>
                 </div>
@@ -97,13 +97,13 @@
                 <div class="flex flex-wrap gap-2">
                   <NuxtLink
                     :to="localePath(`/platform/clients/${client.user_id}`)"
-                    class="rounded-full border border-esmerald/10 px-3 py-1.5 text-xs text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+                    class="rounded-full border border-border-default px-3 py-1.5 text-xs text-green-light transition hover:text-text-default dark:hover:text-white"
                   >
                     Detalle
                   </NuxtLink>
                   <button
                     type="button"
-                    class="rounded-full border border-esmerald/10 px-3 py-1.5 text-xs text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+                    class="rounded-full border border-border-default px-3 py-1.5 text-xs text-green-light transition hover:text-text-default dark:hover:text-white"
                     @click="handleResendInvite(client)"
                   >
                     Reenviar
@@ -127,10 +127,10 @@
     <Teleport to="body">
       <Transition name="platform-modal">
         <div v-if="isInviteModalOpen" class="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" @click.self="closeInviteModal">
-          <div class="w-full max-w-lg rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-2xl dark:border-white/[0.06] dark:bg-esmerald dark:shadow-black/40 sm:p-8">
+          <div class="w-full max-w-lg rounded-3xl border border-border-default bg-surface p-6 shadow-2xl dark:shadow-black/40 sm:p-8">
             <div class="flex items-start justify-between gap-4">
               <div>
-                <h2 class="text-xl font-medium text-esmerald dark:text-white">Invitar cliente</h2>
+                <h2 class="text-xl font-medium text-text-default">Invitar cliente</h2>
                 <p class="mt-2 text-sm text-green-light">
                   Crea el acceso inicial y envía credenciales temporales por email.
                 </p>
@@ -138,7 +138,7 @@
 
               <button
                 type="button"
-                class="flex h-9 w-9 items-center justify-center rounded-full text-green-light transition hover:text-esmerald dark:hover:text-white"
+                class="flex h-9 w-9 items-center justify-center rounded-full text-green-light transition hover:text-text-default dark:hover:text-white"
                 @click="closeInviteModal"
               >
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,34 +154,34 @@
             <form class="mt-6 grid gap-5 sm:grid-cols-2" @submit.prevent="handleCreateClient">
               <div class="sm:col-span-2">
                 <label for="invite-email" class="mb-2 block text-sm font-medium text-esmerald/70 dark:text-white/70">Email</label>
-                <input id="invite-email" v-model="inviteForm.email" type="email" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20" placeholder="cliente@empresa.com">
+                <input id="invite-email" v-model="inviteForm.email" type="email" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/60 focus:border-border-default focus:ring-1 focus:ring-esmerald/10 dark:bg-primary-strong dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20" placeholder="cliente@empresa.com">
               </div>
 
               <div>
                 <label for="invite-first-name" class="mb-2 block text-sm font-medium text-esmerald/70 dark:text-white/70">Nombre</label>
-                <input id="invite-first-name" v-model="inviteForm.first_name" type="text" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20" placeholder="Nombre">
+                <input id="invite-first-name" v-model="inviteForm.first_name" type="text" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/60 focus:border-border-default focus:ring-1 focus:ring-esmerald/10 dark:bg-primary-strong dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20" placeholder="Nombre">
               </div>
 
               <div>
                 <label for="invite-last-name" class="mb-2 block text-sm font-medium text-esmerald/70 dark:text-white/70">Apellido</label>
-                <input id="invite-last-name" v-model="inviteForm.last_name" type="text" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20" placeholder="Apellido">
+                <input id="invite-last-name" v-model="inviteForm.last_name" type="text" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/60 focus:border-border-default focus:ring-1 focus:ring-esmerald/10 dark:bg-primary-strong dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20" placeholder="Apellido">
               </div>
 
               <div>
                 <label for="invite-company" class="mb-2 block text-sm font-medium text-esmerald/70 dark:text-white/70">Empresa</label>
-                <input id="invite-company" v-model="inviteForm.company_name" type="text" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20" placeholder="Empresa">
+                <input id="invite-company" v-model="inviteForm.company_name" type="text" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/60 focus:border-border-default focus:ring-1 focus:ring-esmerald/10 dark:bg-primary-strong dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20" placeholder="Empresa">
               </div>
 
               <div>
                 <label for="invite-phone" class="mb-2 block text-sm font-medium text-esmerald/70 dark:text-white/70">Teléfono</label>
-                <input id="invite-phone" v-model="inviteForm.phone" type="text" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20" placeholder="+57 300 000 0000">
+                <input id="invite-phone" v-model="inviteForm.phone" type="text" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/60 focus:border-border-default focus:ring-1 focus:ring-esmerald/10 dark:bg-primary-strong dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20" placeholder="+57 300 000 0000">
               </div>
 
               <div class="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:justify-end">
-                <button type="button" class="rounded-full border border-esmerald/10 px-4 py-3 text-sm text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white" @click="closeInviteModal">
+                <button type="button" class="rounded-full border border-border-default px-4 py-3 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="closeInviteModal">
                   Cancelar
                 </button>
-                <button type="submit" class="rounded-full bg-esmerald px-5 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-lemon dark:text-esmerald-dark dark:hover:bg-lemon/90" :disabled="platformClientsStore.isUpdating">
+                <button type="submit" class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-accent dark:text-text-default dark:hover:bg-lemon/90" :disabled="platformClientsStore.isUpdating">
                   {{ platformClientsStore.isUpdating ? 'Enviando...' : 'Crear e invitar' }}
                 </button>
               </div>
@@ -301,7 +301,7 @@ function statusLabel(client) {
 
 function statusClass(client) {
   if (!client.is_active) return 'bg-white/10 text-green-light/60'
-  if (!client.is_onboarded) return 'bg-amber-100 text-amber-700 dark:bg-lemon/10 dark:text-lemon'
+  if (!client.is_onboarded) return 'bg-amber-100 text-amber-700 dark:bg-lemon/10 dark:text-accent'
   return 'bg-emerald-500/15 text-emerald-400'
 }
 

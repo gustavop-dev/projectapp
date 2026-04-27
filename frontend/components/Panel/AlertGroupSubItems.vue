@@ -25,12 +25,12 @@ const emit = defineEmits<{
     <div
       v-for="proposal in proposals"
       :key="proposal.id"
-      class="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-2 border border-gray-100 cursor-pointer transition-colors hover:border-gray-300 dark:bg-gray-700/50 dark:border-gray-600 dark:hover:border-gray-500"
+      class="flex items-center justify-between bg-surface-raised rounded-lg px-4 py-2 border border-border-muted cursor-pointer transition-colors hover:border-border-default"
       @click="emit('select', proposal.id, $event)"
     >
       <div class="min-w-0">
-        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ proposal.title }}</span>
-        <div v-for="(alert, idx) in proposal.alerts" :key="`${proposal.id}-${alert.alert_type}-${idx}`" class="text-xs text-gray-500 dark:text-gray-400">
+        <span class="text-sm font-medium text-text-default">{{ proposal.title }}</span>
+        <div v-for="(alert, idx) in proposal.alerts" :key="`${proposal.id}-${alert.alert_type}-${idx}`" class="text-xs text-text-muted">
           {{ alert.icon }} {{ alert.message }}
         </div>
       </div>

@@ -9,7 +9,7 @@
       <div
         v-if="toastMsg"
         class="fixed bottom-6 right-6 z-[9999] max-w-sm w-full px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-3"
-        :class="toastMsg.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'"
+        :class="toastMsg.type === 'success' ? 'bg-success-strong text-white' : 'bg-danger-strong text-white'"
       >
         <span class="flex-1">{{ toastMsg.text }}</span>
         <button type="button" class="opacity-70 hover:opacity-100 transition-opacity" @click="clearToast">✕</button>

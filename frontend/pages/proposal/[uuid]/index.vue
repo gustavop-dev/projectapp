@@ -1,5 +1,5 @@
 <template>
-  <div class="business-proposal" :class="(proposalDarkMode && viewMode) ? 'bg-[#0a1f1c]' : 'bg-white'">
+  <div class="business-proposal" :class="(proposalDarkMode && viewMode) ? 'bg-[#0a1f1c]' : 'bg-surface'">
     <!-- Loading state -->
     <PreloaderAnimation
       v-if="!showContent && !loadError"
@@ -13,7 +13,7 @@
     <div v-else-if="loadError === 'not_found'" class="min-h-screen flex items-center justify-center">
       <div class="text-center">
         <h1 class="text-4xl font-light text-gray-400 mb-4">404</h1>
-        <p class="text-gray-500">{{ browserLang === 'es' ? 'Esta propuesta no fue encontrada.' : 'This proposal was not found.' }}</p>
+        <p class="text-text-muted">{{ browserLang === 'es' ? 'Esta propuesta no fue encontrada.' : 'This proposal was not found.' }}</p>
       </div>
     </div>
 
@@ -46,7 +46,7 @@
             :href="expiredWhatsappUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-white text-amber-700 rounded-lg text-sm font-semibold hover:bg-amber-50 transition-colors flex-shrink-0"
+            class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-surface text-amber-700 rounded-lg text-sm font-semibold hover:bg-amber-50 transition-colors flex-shrink-0"
           >
             <svg class="w-4 h-4" viewBox="0 0 448 512" fill="currentColor"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157"/></svg>
             {{ pLang === 'es' ? 'Contactar por WhatsApp' : 'Contact via WhatsApp' }}
@@ -103,7 +103,7 @@
         <button
           v-if="viewMode && viewMode !== 'technical'"
           class="restart-tutorial-btn fixed bottom-[68px] left-6 z-[9990] w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110"
-          :class="proposalDarkMode ? 'bg-gray-700 text-emerald-300 hover:bg-gray-600' : 'bg-white text-emerald-600 border border-gray-200 hover:bg-gray-50'"
+          :class="proposalDarkMode ? 'bg-gray-700 text-emerald-300 hover:bg-gray-600' : 'bg-surface text-text-brand border border-border-default hover:bg-gray-50'"
           :title="pLang === 'es' ? 'Reiniciar tutorial' : 'Restart tutorial'"
           @click="onboardingRef?.forceStart()"
         >
@@ -116,7 +116,7 @@
         <button
           v-if="viewMode && viewMode !== 'technical'"
           class="dark-mode-toggle fixed bottom-6 left-6 z-[9990] w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-lg transition-all hover:scale-110"
-          :class="proposalDarkMode ? 'bg-gray-700 text-yellow-300 hover:bg-gray-600' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'"
+          :class="proposalDarkMode ? 'bg-gray-700 text-yellow-300 hover:bg-gray-600' : 'bg-surface text-text-muted border border-border-default hover:bg-gray-50'"
           :title="pLang === 'es' ? 'Cambiar tema' : 'Toggle theme'"
           @click="toggleProposalDarkMode"
         >
@@ -161,23 +161,23 @@
       <!-- View mode transition overlay (used for gateway selection + switch-to-detailed) -->
       <Teleport to="body">
         <Transition name="switch-mode-overlay">
-          <div v-if="switchOverlayVisible" class="fixed inset-0 z-[10001] flex items-center justify-center bg-esmerald">
+          <div v-if="switchOverlayVisible" class="fixed inset-0 z-[10001] flex items-center justify-center bg-primary">
             <div class="text-center px-6">
-              <div class="w-16 h-16 bg-lemon rounded-2xl flex items-center justify-center mx-auto mb-6 animate-bounce">
-                <svg v-if="switchOverlayMode === 'executive'" class="w-8 h-8 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="w-16 h-16 bg-accent rounded-2xl flex items-center justify-center mx-auto mb-6 animate-bounce">
+                <svg v-if="switchOverlayMode === 'executive'" class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                <svg v-else-if="switchOverlayMode === 'technical'" class="w-8 h-8 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg v-else-if="switchOverlayMode === 'technical'" class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                 </svg>
-                <svg v-else-if="switchOverlayMode === 'gateway'" class="w-8 h-8 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg v-else-if="switchOverlayMode === 'gateway'" class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                 </svg>
-                <svg v-else class="w-8 h-8 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg v-else class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h2 class="text-2xl sm:text-3xl font-bold text-lemon mb-3">
+              <h2 class="text-2xl sm:text-3xl font-bold text-accent mb-3">
                 {{ switchOverlayMode === 'executive'
                   ? (pLang === 'es' ? 'Vista Ejecutiva' : 'Executive View')
                   : switchOverlayMode === 'technical'
@@ -186,7 +186,7 @@
                       ? (pLang === 'es' ? 'Seleccionar vista' : 'Select view')
                       : (pLang === 'es' ? 'Propuesta Completa' : 'Full Proposal') }}
               </h2>
-              <p class="text-sm text-lemon/70 font-light max-w-xs mx-auto">
+              <p class="text-sm text-accent/70 font-light max-w-xs mx-auto">
                 {{ switchOverlayMode === 'executive'
                   ? (pLang === 'es' ? 'Lo esencial de tu proyecto en un vistazo' : 'The essentials of your project at a glance')
                   : switchOverlayMode === 'technical'
@@ -204,34 +204,34 @@
       <Teleport to="body">
         <Transition name="fade-popup">
           <div v-if="welcomeBack" class="fixed bottom-6 right-6 z-[10000] max-w-xs w-full">
-            <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 relative">
+            <div class="bg-surface rounded-2xl shadow-2xl border border-border-muted p-5 relative">
               <button
-                class="absolute top-3 right-3 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors text-xs"
+                class="absolute top-3 right-3 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-text-muted hover:bg-gray-200 transition-colors text-xs"
                 @click="welcomeBack = null"
               >✕</button>
               <div class="flex items-center gap-3 mb-3">
-                <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                <div class="w-10 h-10 bg-primary-soft rounded-xl flex items-center justify-center flex-shrink-0">
                   <span class="text-xl">👋</span>
                 </div>
-                <h3 class="text-sm font-bold text-esmerald leading-tight">
+                <h3 class="text-sm font-bold text-primary leading-tight">
                   {{ pLang === 'es' ? 'Bienvenido de nuevo' : 'Welcome back' }}{{ welcomeBack.clientName ? ', ' + welcomeBack.clientName : '' }}
                 </h3>
               </div>
-              <p class="text-xs text-esmerald/70 font-light leading-relaxed mb-4">
+              <p class="text-xs text-primary/70 font-light leading-relaxed mb-4">
                 <span v-if="welcomeBack.lastVisitTimestamp" class="block text-[10px] text-gray-400 mb-1">
                   {{ formatRelativeTime(welcomeBack.lastVisitTimestamp, pLang) }}
                 </span>
                 {{ pLang === 'es' ? 'La última vez llegaste hasta' : 'Last time you reached' }} <strong>{{ welcomeBack.sectionTitle }}</strong>.
               </p>
               <button
-                class="w-full px-4 py-2.5 bg-esmerald text-lemon rounded-xl font-bold text-xs
-                       hover:bg-esmerald/90 transition-colors shadow-sm"
+                class="w-full px-4 py-2.5 bg-primary text-accent rounded-xl font-bold text-xs
+                       hover:bg-primary/90 transition-colors shadow-sm"
                 @click="navigateTo(welcomeBack.sectionIndex); welcomeBack = null"
               >
                 {{ pLang === 'es' ? 'Continuar donde lo dejé' : 'Continue where I left off' }}
               </button>
               <button
-                class="w-full mt-2 px-4 py-2 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                class="w-full mt-2 px-4 py-2 text-xs text-gray-400 hover:text-text-muted transition-colors"
                 @click="navigateTo(0); welcomeBack = null"
               >
                 {{ pLang === 'es' ? 'Ver desde el inicio' : 'Start from the beginning' }}
@@ -246,19 +246,19 @@
         <Transition name="fade-popup">
           <div v-if="readingPopupVisible" class="fixed inset-0 z-[10000] flex items-center justify-center p-6">
             <div class="absolute inset-0 bg-white/60 backdrop-blur-[3px]" />
-            <div class="relative bg-white rounded-3xl shadow-2xl border border-gray-100 p-6 sm:p-8 max-w-sm w-full text-center">
-              <div class="w-14 h-14 bg-esmerald rounded-2xl flex items-center justify-center mx-auto mb-5">
-                <svg class="w-7 h-7 text-lemon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="relative bg-surface rounded-3xl shadow-2xl border border-border-muted p-6 sm:p-8 max-w-sm w-full text-center">
+              <div class="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-5">
+                <svg class="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 class="text-lg font-bold text-esmerald mb-2">{{ pLang === 'es' ? `Tiempo de lectura: ~${readMinutesEstimate} minutos` : `Reading time: ~${readMinutesEstimate} minutes` }}</h3>
-              <p class="text-sm text-esmerald/70 font-light leading-relaxed mb-6">
+              <h3 class="text-lg font-bold text-primary mb-2">{{ pLang === 'es' ? `Tiempo de lectura: ~${readMinutesEstimate} minutos` : `Reading time: ~${readMinutesEstimate} minutes` }}</h3>
+              <p class="text-sm text-primary/70 font-light leading-relaxed mb-6">
                 {{ pLang === 'es' ? 'Por favor lee el contenido de todas las secciones. Cada una aborda un punto importante y diferente de la propuesta.' : 'Please read through all sections. Each one covers an important and different aspect of the proposal.' }}
               </p>
               <button
-                class="w-full px-6 py-3 bg-esmerald text-lemon rounded-xl font-bold text-sm
-                       hover:bg-esmerald/90 transition-colors shadow-sm"
+                class="w-full px-6 py-3 bg-primary text-accent rounded-xl font-bold text-sm
+                       hover:bg-primary/90 transition-colors shadow-sm"
                 @click="readingPopupVisible = false"
               >
                 {{ pLang === 'es' ? 'Entendido' : 'Got it' }}
@@ -1372,15 +1372,6 @@ onBeforeUnmount(() => {
   box-shadow: none !important;
 }
 
-/* White & light backgrounds → dark (elevated for contrast) */
-[data-theme="dark"] :deep(.bg-white) {
-  background-color: #143d35 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
-}
-[data-theme="dark"] :deep(.bg-esmerald\/5),
-[data-theme="dark"] :deep(.bg-esmerald\/10) {
-  background-color: #133832 !important;
-}
 [data-theme="dark"] :deep(.bg-gray-50) {
   background-color: #112e29 !important;
 }
@@ -1414,60 +1405,20 @@ onBeforeUnmount(() => {
   border-color: rgba(16, 185, 129, 0.30) !important;
 }
 
-/* Esmerald text → light */
-[data-theme="dark"] :deep(.text-esmerald) {
-  color: #E6EFEF !important;
-}
-[data-theme="dark"] :deep(.text-esmerald\/80) {
-  color: rgba(230, 239, 239, 0.8) !important;
-}
-[data-theme="dark"] :deep(.text-esmerald\/70) {
-  color: rgba(230, 239, 239, 0.72) !important;
-}
-[data-theme="dark"] :deep(.text-esmerald\/60) {
-  color: rgba(230, 239, 239, 0.62) !important;
-}
-[data-theme="dark"] :deep(.text-esmerald\/40) {
-  color: rgba(230, 239, 239, 0.4) !important;
-}
 
-/* Esmerald-light text (used inside dark-bg asides) */
-[data-theme="dark"] :deep(.text-esmerald-light) {
-  color: #c8ddd8 !important;
-}
-[data-theme="dark"] :deep(.text-esmerald-light\/80) {
-  color: rgba(200, 221, 216, 0.8) !important;
-}
 
 /* Green-light text */
 [data-theme="dark"] :deep(.text-green-light) {
   color: #a0b8b2 !important;
 }
 
-/* Esmerald-light backgrounds (timeline duration box, icon badges) */
-[data-theme="dark"] :deep(.bg-esmerald-light\/60) {
-  background-color: rgba(16, 185, 129, 0.30) !important;
-}
 
-/* Borders — esmerald shades */
-[data-theme="dark"] :deep(.border-esmerald\/10) {
-  border-color: rgba(16, 185, 129, 0.18) !important;
-}
-[data-theme="dark"] :deep(.border-esmerald\/15) {
-  border-color: rgba(16, 185, 129, 0.22) !important;
-}
-[data-theme="dark"] :deep(.border-esmerald\/20) {
-  border-color: rgba(16, 185, 129, 0.28) !important;
-}
-[data-theme="dark"] :deep(.border-esmerald\/30) {
-  border-color: rgba(16, 185, 129, 0.38) !important;
-}
 
 /* Borders — gray shades */
-[data-theme="dark"] :deep(.border-gray-100) {
+[data-theme="dark"] :deep(.border-border-muted) {
   border-color: rgba(230, 239, 239, 0.20) !important;
 }
-[data-theme="dark"] :deep(.border-gray-200) {
+[data-theme="dark"] :deep(.border-border-default) {
   border-color: rgba(230, 239, 239, 0.25) !important;
 }
 
@@ -1487,35 +1438,15 @@ onBeforeUnmount(() => {
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 18px rgba(16, 185, 129, 0.14), inset 0 1px 0 rgba(16, 185, 129, 0.08) !important;
 }
 
-/* Gray text adjustments */
-[data-theme="dark"] :deep(.text-gray-400) {
-  color: rgba(230, 239, 239, 0.45) !important;
-}
-[data-theme="dark"] :deep(.text-gray-500),
-[data-theme="dark"] :deep(.text-gray-600) {
-  color: rgba(230, 239, 239, 0.55) !important;
-}
-[data-theme="dark"] :deep(.text-gray-700) {
-  color: rgba(230, 239, 239, 0.65) !important;
-}
-[data-theme="dark"] :deep(.text-gray-800),
-[data-theme="dark"] :deep(.text-gray-900) {
-  color: rgba(230, 239, 239, 0.9) !important;
-}
 
-/* Lemon stays visible on dark */
-[data-theme="dark"] :deep(.bg-lemon) {
-  background-color: #F0FF3D !important;
-}
 
 /* Emerald backgrounds in sections */
-[data-theme="dark"] :deep(.bg-emerald-50),
-[data-theme="dark"] :deep(.bg-emerald-100) {
+[data-theme="dark"] :deep(.bg-primary-soft) {
   background-color: rgba(16, 185, 129, 0.25) !important;
 }
 
 /* Client-action badges (ProcessMethodology "Tu aporte" pills) */
-[data-theme="dark"] :deep(.bg-emerald-50.text-emerald-600) {
+[data-theme="dark"] :deep(.bg-primary-soft.text-text-brand) {
   background-color: rgba(16, 185, 129, 0.18) !important;
   color: #6ee7b7 !important;
   border: 1px solid rgba(16, 185, 129, 0.30);
@@ -1526,37 +1457,17 @@ onBeforeUnmount(() => {
   background-color: rgba(16, 185, 129, 0.40) !important;
 }
 
-/* Modals keep their own styling, override outer bg */
-[data-theme="dark"] :deep(.fixed.inset-0 .bg-white) {
-  background-color: #1a3d36 !important;
-}
 
 /* Welcome-back & reading-time popups */
-[data-theme="dark"] :deep(.shadow-2xl.border.border-gray-100) {
+[data-theme="dark"] :deep(.shadow-2xl.border.border-border-muted) {
   background-color: #16423a !important;
   border-color: rgba(16, 185, 129, 0.22) !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), 0 0 24px rgba(16, 185, 129, 0.15) !important;
 }
 
-/* Overlay components (nav buttons, counters, badges) */
-[data-theme="dark"] :deep(.bg-white\/80) {
-  background-color: rgba(15, 43, 38, 0.8) !important;
-}
-[data-theme="dark"] :deep(.bg-white\/90) {
-  background-color: rgba(15, 43, 38, 0.9) !important;
-}
-[data-theme="dark"] :deep(.bg-white\/95) {
-  background-color: rgba(15, 43, 38, 0.95) !important;
-}
-[data-theme="dark"] :deep(.bg-white\/60) {
-  background-color: rgba(15, 43, 38, 0.6) !important;
-}
 
 /* SectionCounter, PdfDownloadButton, ShareButton text in dark */
-[data-theme="dark"] :deep(.text-emerald-600) {
-  color: #6ee7b7 !important;
-}
-[data-theme="dark"] :deep(.text-emerald-700) {
+[data-theme="dark"] :deep(.text-text-brand) {
   color: #6ee7b7 !important;
 }
 
@@ -1580,7 +1491,7 @@ onBeforeUnmount(() => {
 }
 
 /* Expiration badge dark variants */
-[data-theme="dark"] :deep(.bg-emerald-50\/90) {
+[data-theme="dark"] :deep(.bg-primary-soft\/90) {
   background-color: rgba(16, 185, 129, 0.28) !important;
 }
 [data-theme="dark"] :deep(.bg-yellow-50\/90) {
@@ -1665,10 +1576,6 @@ onBeforeUnmount(() => {
   border-color: rgba(16, 185, 129, 0.35) !important;
 }
 
-/* Timeline phase cards get shadow */
-[data-theme="dark"] :deep(.timeline-item .bg-white) {
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 18px rgba(16, 185, 129, 0.14) !important;
-}
 
 /* DevelopmentStages cards */
 [data-theme="dark"] :deep(.development-stages .border-emerald-100) {
@@ -1696,29 +1603,12 @@ onBeforeUnmount(() => {
   border-color: rgba(139, 92, 246, 0.30) !important;
 }
 
-/* Keep checkmark strokes dark inside lemon boxes */
-[data-theme="dark"] :deep(.bg-lemon .text-esmerald) {
-  color: #064e3b !important;
-}
-/* Keep text dark on lemon-bg elements (e.g. customize investment button) */
-[data-theme="dark"] :deep(.bg-lemon.text-esmerald) {
-  color: #064e3b !important;
-}
-[data-theme="dark"] :deep(button.bg-lemon) {
-  background-color: #F0FF3D !important;
-  color: #064e3b !important;
-  box-shadow: 0 4px 16px rgba(240, 255, 61, 0.15), 0 0 12px rgba(240, 255, 61, 0.10) !important;
-}
 
 /* Pricing card — intensify shadow for premium feel */
 [data-theme="dark"] :deep(.pricing-card) {
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7), 0 0 32px rgba(16, 185, 129, 0.18) !important;
 }
 
-/* Value proposition dark-bg sections — subtle inner glow */
-[data-theme="dark"] :deep(.bg-esmerald) {
-  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.2), 0 8px 32px rgba(0, 0, 0, 0.5) !important;
-}
 
 /* Section dividers — subtle gradient line between sections */
 [data-theme="dark"] :deep(section + section)::before {

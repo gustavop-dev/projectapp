@@ -3,9 +3,9 @@
     :href="previewUrl"
     target="_blank"
     rel="noopener noreferrer"
-    class="inline-flex items-center gap-2 px-4 py-2 text-sm text-emerald-600
-           hover:text-emerald-700 border border-emerald-200 rounded-xl
-           hover:bg-emerald-50 transition-colors"
+    class="inline-flex items-center gap-2 px-4 py-2 text-sm text-text-brand
+           hover:text-text-brand border border-emerald-200 rounded-xl
+           hover:bg-primary-soft transition-colors"
   >
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

@@ -1,17 +1,17 @@
 <template>
   <div class="relative">
-    <label v-if="label" class="block text-xs text-gray-500 mb-0.5">{{ label }}</label>
+    <label v-if="label" class="block text-xs text-text-muted mb-0.5">{{ label }}</label>
     <div class="flex items-center gap-1">
       <input
         :value="modelValue"
         :placeholder="placeholder || '😀'"
-        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+        class="w-full px-3 py-2 border border-border-default rounded-lg text-sm focus:ring-1 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
         @input="$emit('update:modelValue', $event.target.value)"
       />
       <button
         ref="buttonRef"
         type="button"
-        class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-sm cursor-pointer"
+        class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border border-border-default hover:bg-gray-50 text-sm cursor-pointer"
         @click.stop="showPicker = !showPicker"
       >😀</button>
     </div>

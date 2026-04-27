@@ -3,7 +3,7 @@
     <div class="max-w-4xl mx-auto">
       <h2
         ref="titleRef"
-        class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold text-esmerald mb-12 lg:mb-16 leading-tight opacity-0"
+        class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold text-text-brand mb-12 lg:mb-16 leading-tight opacity-0"
       >
         {{ messages?.faq?.title }}
       </h2>
@@ -12,16 +12,16 @@
         <details
           v-for="(item, index) in messages?.faq?.questions"
           :key="index"
-          class="faq-item group bg-white rounded-3xl overflow-hidden opacity-0"
+          class="faq-item group bg-surface rounded-3xl overflow-hidden opacity-0"
           :itemscope="true"
           itemtype="https://schema.org/Question"
         >
           <summary class="flex items-center justify-between gap-4 p-6 lg:p-8 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
-            <h3 class="text-lg lg:text-xl font-bold text-esmerald pr-4" itemprop="name">
+            <h3 class="text-lg lg:text-xl font-bold text-text-brand pr-4" itemprop="name">
               {{ item.q }}
             </h3>
-            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-esmerald flex items-center justify-center group-open:rotate-180 transition-transform duration-300">
-              <svg class="w-5 h-5 text-lemon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center group-open:rotate-180 transition-transform duration-300">
+              <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
               </svg>
             </div>

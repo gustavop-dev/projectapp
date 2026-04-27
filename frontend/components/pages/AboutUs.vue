@@ -1,16 +1,16 @@
 <template>
     <div itemscope itemtype="https://schema.org/Organization">
         <main>
-            <section class="bg-lemon px-3 py-32 lg:pt-52 lg:pb-60" aria-labelledby="about-main-title">
+            <section class="bg-accent px-3 py-32 lg:pt-52 lg:pb-60" aria-labelledby="about-main-title">
                 <div class="grid lg:grid-cols-2">
                     <div class="mb-24 lg:ps-6 lg:mb-0">
-                        <span class="bg-window-black bg-opacity-40 backdrop-blur-md px-6 py-2 inline-block rounded-3xl text-esmerald text-sm">
+                        <span class="bg-window-black bg-opacity-40 backdrop-blur-md px-6 py-2 inline-block rounded-3xl text-text-brand text-sm">
                             {{ messages.about.label }}
                             <span class="sr-only">Project App.</span>
                         </span>
                     </div>
                     <div>
-                        <h1 id="about-main-title" class="inline-block text-6xl font-regular text-esmerald" itemprop="name">
+                        <h1 id="about-main-title" class="inline-block text-6xl font-regular text-text-brand" itemprop="name">
                             {{ messages.about.main_title_1 }}<br>
                             {{ messages.about.main_title_2 }}<br>
                             <span class="border-4 border-transparent border-b-esmerald">
@@ -18,7 +18,7 @@
                             </span>
                             <span class="sr-only">Project App. - Web development professionals</span>
                         </h1>
-                        <p class="mt-6 font-regular text-esmerald text-md" itemprop="description">
+                        <p class="mt-6 font-regular text-text-brand text-md" itemprop="description">
                             {{ messages.about.sub_title_1 }}<br>
                             {{ messages.about.sub_title_2 }}
                             <span class="sr-only">by Project App.</span>
@@ -26,24 +26,24 @@
                     </div>
                 </div>
             </section>
-            <section class="bg-lemon h-auto p-3" aria-label="Animated visual showcase">
+            <section class="bg-accent h-auto p-3" aria-label="Animated visual showcase">
                 <div class="w-full rounded-xl overflow-hidden" style="height: 60vh;">
                     <PastelGradient />
                 </div>
             </section>
             <section class="grid justify-items-end max-w-7xl mx-auto px-3 py-32 lg:py-52 lg:justify-items-start" aria-labelledby="digital-landscape-title" itemscope itemtype="https://schema.org/CreativeWork">
-                <h2 id="digital-landscape-title" class="text-4xl text-esmerald font-light lg:text-6xl" itemprop="headline">
+                <h2 id="digital-landscape-title" class="text-4xl text-text-brand font-light lg:text-6xl" itemprop="headline">
                     {{ messages.digital_landscape.title }}
                     <span class="sr-only">Project App. digital expertise</span>
                 </h2>
                 <div class="grid flex-initial w-3/5 mt-20 lg:grid-cols-2 lg:mt-32 lg:w-full">
-                    <h3 class="inline-block font-light text-sm text-esmerald" itemprop="alternativeHeadline">
+                    <h3 class="inline-block font-light text-sm text-text-brand" itemprop="alternativeHeadline">
                         {{ messages.digital_landscape.section_label }}
                         <span class="sr-only">Project App.</span>
                     </h3>
                     <div itemprop="text">
                         <p class="lg:w-1/2">
-                            <span class="text-esmerald font-regular text-lg">
+                            <span class="text-text-brand font-regular text-lg">
                                 {{ messages.digital_landscape.text_1 }}
                             </span>
                             <span class="text-green-light text-lg font-regular">
@@ -88,12 +88,12 @@
             </section>
             <section class="max-w-7xl mx-auto px-3 py-32 lg:py-52" aria-labelledby="team-support-title" itemscope itemtype="https://schema.org/Service">
                 <div class="inline-block mx-auto space-y-20">
-                    <h2 id="team-support-title" class="inline-block font-regular text-esmerald text-4xl border-2 border-transparent border-b-esmerald" itemprop="name">
+                    <h2 id="team-support-title" class="inline-block font-regular text-text-brand text-4xl border-2 border-transparent border-b-esmerald" itemprop="name">
                         {{ messages.team_support.title }}
                         <span class="sr-only">Project App. team support</span>
                     </h2>
                     <p class="w-1/2 ms-32 inline-block font-regular text-lg" itemprop="description">
-                        <span class="text-esmerald">
+                        <span class="text-text-brand">
                             {{ messages.team_support.text_1 }}
                         </span>
                         <span class="text-green-light">
@@ -133,7 +133,7 @@
             </section>
 
             <section class="pt-32 lg:py-52" aria-labelledby="motivation-title" itemscope itemtype="https://schema.org/CreativeWork">
-                <h2 id="motivation-title" class="text-7xl text-esmerald font-light text-center lg:text-9xl" itemprop="headline">
+                <h2 id="motivation-title" class="text-7xl text-text-brand font-light text-center lg:text-9xl" itemprop="headline">
                     {{ messages.motivation.title_1 }} <br>
                     {{ messages.motivation.title_2 }}<br>
                     {{ messages.motivation.title_3 }}

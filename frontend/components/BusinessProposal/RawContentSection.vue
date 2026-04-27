@@ -1,19 +1,19 @@
 <template>
-  <section ref="sectionRef" class="raw-content min-h-screen w-full bg-white py-16" data-testid="raw-content">
+  <section ref="sectionRef" class="raw-content min-h-screen w-full bg-surface py-16" data-testid="raw-content">
     <div class="w-full px-6 md:px-12 lg:px-24">
       <div class="max-w-4xl mx-auto">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span v-if="index" data-testid="raw-content-index" class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
             {{ index }}
           </span>
-          <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
+          <h2 class="text-text-brand font-light leading-tight text-4xl md:text-6xl">
             {{ title }}
           </h2>
         </div>
 
         <div
           data-animate="fade-up"
-          class="raw-content-card bg-gray-50/80 backdrop-blur-sm border border-gray-200/60
+          class="raw-content-card bg-gray-50/80 backdrop-blur-sm border border-border-default/60
                  rounded-2xl p-5 sm:p-8 md:p-12 shadow-sm prose prose-emerald max-w-none"
           data-testid="raw-content-card"
           v-html="renderedHtml"

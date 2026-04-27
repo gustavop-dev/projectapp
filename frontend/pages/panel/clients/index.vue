@@ -3,20 +3,20 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
-        <h1 class="text-2xl font-light text-gray-900 dark:text-white">Clientes</h1>
-        <p class="text-sm text-gray-400 dark:text-green-light/60 mt-1">
+        <h1 class="text-2xl font-light text-text-default">Clientes</h1>
+        <p class="text-sm text-text-subtle mt-1">
           Perfiles de clientes para propuestas y plataforma. Los huérfanos pueden eliminarse.
         </p>
       </div>
-      <button
-        type="button"
+      <BaseButton
+        variant="primary"
+        size="md"
         data-testid="clients-new-button"
-        class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-colors"
         @click="openCreateModal"
       >
         <PlusIcon class="w-4 h-4" />
         <span>Nuevo cliente</span>
-      </button>
+      </BaseButton>
     </div>
 
     <!-- Filter tabs (Todos / Activos / Huérfanos) -->
@@ -28,8 +28,8 @@
         :class="[
           'px-4 py-2 rounded-xl text-sm font-medium transition-colors',
           activeTab === tab.id
-            ? 'bg-emerald-600 text-white dark:bg-lemon dark:text-esmerald-dark'
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-white/[0.06] dark:text-green-light dark:hover:bg-white/[0.10]',
+            ? 'bg-primary text-white'
+            : 'bg-surface-raised text-text-muted hover:bg-border-muted',
         ]"
         @click="setActiveTab(tab.id)"
       >
@@ -50,14 +50,12 @@
 
     <!-- Search + Filter toggle -->
     <div class="flex items-center gap-2 mb-5">
-      <input
+      <BaseInput
         v-model="search"
         type="text"
         placeholder="Buscar por nombre, email o empresa..."
         data-testid="clients-search-input"
-        class="w-full sm:max-w-xs px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-               focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
-               dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
+        class="w-full sm:max-w-xs"
         @input="onSearchInput"
       />
       <UiFilterToggleButton
@@ -77,14 +75,14 @@
     />
 
     <!-- Loading -->
-    <div v-if="clientsStore.isLoading" class="text-center py-16 text-gray-400 dark:text-green-light/60 text-sm">
+    <div v-if="clientsStore.isLoading" class="text-center py-16 text-text-subtle text-sm">
       Cargando clientes...
     </div>
 
     <!-- Empty -->
     <div
       v-else-if="filteredClients.length === 0"
-      class="text-center py-16 text-gray-400 dark:text-green-light/60 text-sm"
+      class="text-center py-16 text-text-subtle text-sm"
     >
       {{ search || hasActiveFilters ? 'No se encontraron clientes con ese criterio.' : 'No hay clientes aún.' }}
     </div>
@@ -95,41 +93,41 @@
         v-for="client in filteredClients"
         :key="client.id"
         :data-testid="`client-row-${client.id}`"
-        class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden"
+        class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden"
       >
         <!-- Client row header -->
         <div
-          class="px-5 py-4 flex flex-wrap items-center justify-between gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
+          class="px-5 py-4 flex flex-wrap items-center justify-between gap-3 cursor-pointer hover:bg-surface-raised transition-colors"
           @click="toggleClient(client)"
         >
           <div class="flex items-center gap-4 flex-1 min-w-0">
             <!-- Avatar -->
             <div
-              class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-white/10 flex items-center justify-center flex-shrink-0"
+              class="w-10 h-10 rounded-full bg-primary-soft flex items-center justify-center flex-shrink-0"
             >
-              <span class="text-emerald-700 dark:text-white font-bold text-sm">{{ initials(client.name) }}</span>
+              <span class="text-text-brand font-bold text-sm">{{ initials(client.name) }}</span>
             </div>
             <div class="min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
-                <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ client.name }}</p>
+                <p class="text-sm font-semibold text-text-default truncate">{{ client.name }}</p>
                 <span
                   v-if="client.is_email_placeholder"
-                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-400/10 text-amber-700 dark:text-amber-300 font-medium uppercase tracking-wide"
+                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong font-medium uppercase tracking-wide"
                   title="Email pendiente — automatizaciones de correo pausadas para este cliente"
                 >
                   📧 placeholder
                 </span>
                 <span
                   v-if="client.is_orphan"
-                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-green-light/60 font-medium uppercase tracking-wide"
+                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-raised text-text-muted font-medium uppercase tracking-wide"
                   title="Sin propuestas ni proyectos — puede eliminarse"
                 >
                   Huérfano
                 </span>
               </div>
-              <p class="text-xs text-gray-400 dark:text-green-light/60 mt-0.5 truncate">
+              <p class="text-xs text-text-subtle mt-0.5 truncate">
                 {{ client.is_email_placeholder ? 'Email pendiente' : client.email }}
-                <span v-if="client.company" class="text-gray-400 dark:text-green-light/60">· {{ client.company }}</span>
+                <span v-if="client.company" class="text-text-subtle">· {{ client.company }}</span>
               </p>
             </div>
           </div>
@@ -137,7 +135,7 @@
           <div class="flex items-center gap-3 flex-shrink-0">
             <!-- Stats pills -->
             <span
-              class="text-xs px-2.5 py-1 rounded-full bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light font-medium"
+              class="text-xs px-2.5 py-1 rounded-full bg-surface-raised text-text-muted font-medium"
             >
               {{ client.total_proposals }} propuesta{{ client.total_proposals !== 1 ? 's' : '' }}
             </span>
@@ -146,7 +144,7 @@
               v-if="client.accepted_count > 0"
               type="button"
               :data-testid="`client-platform-${client.id}`"
-              class="p-1.5 rounded-lg text-gray-400 dark:text-green-light/60 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:text-white dark:hover:bg-white/[0.06] transition-colors"
+              class="p-1.5 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors"
               :disabled="isBridging"
               title="Ver en plataforma"
               @click.stop="goToPlatform('/platform/clients/' + client.user_id)"
@@ -158,7 +156,7 @@
             <button
               type="button"
               :data-testid="`client-edit-${client.id}`"
-              class="p-1.5 rounded-lg text-gray-400 dark:text-green-light/60 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:text-white dark:hover:bg-white/[0.06] transition-colors"
+              class="p-1.5 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors"
               title="Editar cliente"
               @click.stop="openEditModal(client)"
             >
@@ -169,7 +167,7 @@
             <button
               type="button"
               :data-testid="`client-delete-${client.id}`"
-              class="p-1.5 rounded-lg text-gray-400 dark:text-green-light/60 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+              class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
               :title="'Eliminar cliente'"
               @click.stop="confirmDelete(client)"
             >
@@ -178,7 +176,7 @@
 
             <!-- Expand chevron -->
             <svg
-              class="w-4 h-4 text-gray-400 dark:text-green-light/60 transition-transform flex-shrink-0"
+              class="w-4 h-4 text-text-subtle transition-transform flex-shrink-0"
               :class="{ 'rotate-180': expandedClients.has(client.id) }"
               fill="none"
               stroke="currentColor"
@@ -197,19 +195,19 @@
         <!-- Expanded: proposals, projects, and diagnostics -->
         <div
           v-if="expandedClients.has(client.id)"
-          class="border-t border-gray-100 dark:border-white/[0.04] bg-gray-50/40 dark:bg-white/[0.03]"
+          class="border-t border-border-muted bg-surface-raised"
         >
-          <div v-if="loadingDetails.has(client.id)" class="px-5 py-4 text-sm text-gray-400 dark:text-green-light/60">
+          <div v-if="loadingDetails.has(client.id)" class="px-5 py-4 text-sm text-text-subtle">
             Cargando...
           </div>
           <template v-else>
             <!-- Proposals -->
             <div class="px-5 pt-4 pb-1">
-              <p class="text-xs font-semibold text-gray-400 dark:text-green-light/50 uppercase tracking-wider mb-2">Propuestas</p>
+              <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mb-2">Propuestas</p>
             </div>
             <div
               v-if="(detailCache[client.id]?.proposals || []).length === 0"
-              class="px-5 pb-4 text-sm text-gray-400 dark:text-green-light/60"
+              class="px-5 pb-4 text-sm text-text-subtle"
             >
               Sin propuestas.
             </div>
@@ -217,7 +215,7 @@
               <table class="w-full min-w-[600px] text-sm">
                 <thead>
                   <tr
-                    class="bg-gray-50 dark:bg-white/[0.03] text-left text-xs text-gray-500 dark:text-green-light/60 uppercase tracking-wider"
+                    class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider"
                   >
                     <th class="px-5 py-3">Propuesta</th>
                     <th class="px-4 py-3">Estado</th>
@@ -226,16 +224,16 @@
                     <th class="px-4 py-3">Enviada</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50 dark:divide-white/[0.04]">
+                <tbody class="divide-y divide-border-muted">
                   <tr
                     v-for="p in detailCache[client.id].proposals"
                     :key="p.id"
-                    class="hover:bg-gray-50/60 dark:hover:bg-white/[0.04] transition-colors bg-white dark:bg-transparent"
+                    class="hover:bg-surface-raised transition-colors bg-surface"
                   >
                     <td class="px-5 py-3">
                       <NuxtLink
                         :to="localePath(`/panel/proposals/${p.id}/edit`)"
-                        class="font-medium text-gray-900 dark:text-white hover:text-emerald-600 transition-colors"
+                        class="font-medium text-text-default hover:text-text-brand transition-colors"
                       >
                         {{ p.title }}
                       </NuxtLink>
@@ -248,11 +246,11 @@
                         {{ p.status }}
                       </span>
                     </td>
-                    <td class="px-4 py-3 text-gray-600 dark:text-green-light/60 tabular-nums">
+                    <td class="px-4 py-3 text-text-muted/60 tabular-nums">
                       ${{ Number(p.total_investment).toLocaleString() }} {{ p.currency }}
                     </td>
-                    <td class="px-4 py-3 text-center text-gray-600 dark:text-green-light/60">{{ p.view_count }}</td>
-                    <td class="px-4 py-3 text-gray-500 dark:text-green-light/60 text-xs">
+                    <td class="px-4 py-3 text-center text-text-muted/60">{{ p.view_count }}</td>
+                    <td class="px-4 py-3 text-text-muted text-xs">
                       {{ p.sent_at ? formatDate(p.sent_at) : '—' }}
                     </td>
                   </tr>
@@ -262,33 +260,33 @@
 
             <!-- Platform projects -->
             <template v-if="(detailCache[client.id]?.projects || []).length > 0">
-              <div class="px-5 pt-4 pb-1 border-t border-gray-100 dark:border-white/[0.04] mt-2">
-                <p class="text-xs font-semibold text-gray-400 dark:text-green-light/50 uppercase tracking-wider mb-2">Proyectos de plataforma</p>
+              <div class="px-5 pt-4 pb-1 border-t border-border-muted mt-2">
+                <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mb-2">Proyectos de plataforma</p>
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full min-w-[500px] text-sm">
                   <thead>
-                    <tr class="bg-gray-50 dark:bg-white/[0.03] text-left text-xs text-gray-500 dark:text-green-light/60 uppercase tracking-wider">
+                    <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
                       <th class="px-5 py-3">Proyecto</th>
                       <th class="px-4 py-3">Estado</th>
                       <th class="px-4 py-3 text-center">Progreso</th>
                       <th class="px-4 py-3">Inicio</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-gray-50 dark:divide-white/[0.04]">
+                  <tbody class="divide-y divide-border-muted">
                     <tr
                       v-for="proj in detailCache[client.id].projects"
                       :key="proj.id"
-                      class="hover:bg-gray-50/60 dark:hover:bg-white/[0.04] transition-colors bg-white dark:bg-transparent"
+                      class="hover:bg-surface-raised transition-colors bg-surface"
                     >
-                      <td class="px-5 py-3 font-medium text-gray-900 dark:text-white">{{ proj.name }}</td>
+                      <td class="px-5 py-3 font-medium text-text-default">{{ proj.name }}</td>
                       <td class="px-4 py-3">
                         <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(proj.status)">
                           {{ proj.status }}
                         </span>
                       </td>
-                      <td class="px-4 py-3 text-center text-gray-600 dark:text-green-light/60">{{ proj.progress }}%</td>
-                      <td class="px-4 py-3 text-gray-500 dark:text-green-light/60 text-xs">
+                      <td class="px-4 py-3 text-center text-text-muted/60">{{ proj.progress }}%</td>
+                      <td class="px-4 py-3 text-text-muted text-xs">
                         {{ proj.start_date ? formatDate(proj.start_date) : '—' }}
                       </td>
                     </tr>
@@ -299,31 +297,31 @@
 
             <!-- Web diagnostics -->
             <template v-if="(detailCache[client.id]?.diagnostics || []).length > 0">
-              <div class="px-5 pt-4 pb-1 border-t border-gray-100 dark:border-white/[0.04] mt-2">
-                <p class="text-xs font-semibold text-gray-400 dark:text-green-light/50 uppercase tracking-wider mb-2">Diagnósticos web</p>
+              <div class="px-5 pt-4 pb-1 border-t border-border-muted mt-2">
+                <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mb-2">Diagnósticos web</p>
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full min-w-[500px] text-sm">
                   <thead>
-                    <tr class="bg-gray-50 dark:bg-white/[0.03] text-left text-xs text-gray-500 dark:text-green-light/60 uppercase tracking-wider">
+                    <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
                       <th class="px-5 py-3">Diagnóstico</th>
                       <th class="px-4 py-3">Estado</th>
                       <th class="px-4 py-3">Creado</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-gray-50 dark:divide-white/[0.04]">
+                  <tbody class="divide-y divide-border-muted">
                     <tr
                       v-for="diag in detailCache[client.id].diagnostics"
                       :key="diag.id"
-                      class="hover:bg-gray-50/60 dark:hover:bg-white/[0.04] transition-colors bg-white dark:bg-transparent"
+                      class="hover:bg-surface-raised transition-colors bg-surface"
                     >
-                      <td class="px-5 py-3 font-medium text-gray-900 dark:text-white">{{ diag.title }}</td>
+                      <td class="px-5 py-3 font-medium text-text-default">{{ diag.title }}</td>
                       <td class="px-4 py-3">
                         <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(diag.status)">
                           {{ diag.status }}
                         </span>
                       </td>
-                      <td class="px-4 py-3 text-gray-500 dark:text-green-light/60 text-xs">
+                      <td class="px-4 py-3 text-text-muted text-xs">
                         {{ diag.created_at ? formatDate(diag.created_at) : '—' }}
                       </td>
                     </tr>
@@ -342,57 +340,57 @@
       class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       @click.self="closeCreateModal"
     >
-      <div class="bg-white dark:bg-esmerald dark:border dark:border-white/[0.06] rounded-2xl shadow-2xl dark:shadow-black/40 w-full max-w-md overflow-hidden">
+      <div class="bg-surface border border-border-muted rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         <div class="px-6 pt-6 pb-2">
-          <h3 class="text-lg font-bold text-gray-900 dark:text-white">Nuevo cliente</h3>
-          <p class="mt-1 text-sm text-gray-500 dark:text-green-light/60">
+          <h3 class="text-lg font-bold text-text-default">Nuevo cliente</h3>
+          <p class="mt-1 text-sm text-text-muted">
             Crea un perfil sin propuesta. Si no agregas email, generaremos uno temporal y las
             automatizaciones quedarán pausadas para este cliente.
           </p>
         </div>
         <form @submit.prevent="submitCreate" class="px-6 py-4 space-y-4">
           <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Nombre</label>
+            <label class="block text-xs font-medium text-text-muted mb-1">Nombre</label>
             <input
               v-model="createForm.name"
               type="text"
               required
               data-testid="clients-new-name"
-              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Email (opcional)</label>
+            <label class="block text-xs font-medium text-text-muted mb-1">Email (opcional)</label>
             <input
               v-model="createForm.email"
               type="email"
               data-testid="clients-new-email"
-              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Teléfono</label>
+            <label class="block text-xs font-medium text-text-muted mb-1">Teléfono</label>
             <input
               v-model="createForm.phone"
               type="tel"
               data-testid="clients-new-phone"
-              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Empresa</label>
+            <label class="block text-xs font-medium text-text-muted mb-1">Empresa</label>
             <input
               v-model="createForm.company"
               type="text"
               data-testid="clients-new-company"
-              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
             />
           </div>
-          <p v-if="createError" class="text-xs text-red-600">{{ createError }}</p>
+          <p v-if="createError" class="text-xs text-danger-strong">{{ createError }}</p>
           <div class="flex items-center justify-end gap-3 pt-2">
             <button
               type="button"
-              class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-green-light bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/[0.10] rounded-xl transition-colors"
+              class="px-4 py-2 text-sm font-medium text-text-muted bg-surface-raised hover:bg-border-muted rounded-xl transition-colors"
               @click="closeCreateModal"
             >
               Cancelar
@@ -401,7 +399,7 @@
               type="submit"
               :disabled="clientsStore.isUpdating"
               data-testid="clients-new-submit"
-              class="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-xl transition-colors"
+              class="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-strong disabled:opacity-50 rounded-xl transition-colors"
             >
               Crear cliente
             </button>
@@ -416,56 +414,56 @@
       class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       @click.self="closeEditModal"
     >
-      <div class="bg-white dark:bg-esmerald dark:border dark:border-white/[0.06] rounded-2xl shadow-2xl dark:shadow-black/40 w-full max-w-md overflow-hidden">
+      <div class="bg-surface border border-border-muted rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         <div class="px-6 pt-6 pb-2">
-          <h3 class="text-lg font-bold text-gray-900 dark:text-white">Editar cliente</h3>
-          <p class="mt-1 text-sm text-gray-500 dark:text-green-light/60">
+          <h3 class="text-lg font-bold text-text-default">Editar cliente</h3>
+          <p class="mt-1 text-sm text-text-muted">
             Los cambios se propagarán a todas las propuestas vinculadas a este cliente.
           </p>
         </div>
         <form @submit.prevent="submitEdit" class="px-6 py-4 space-y-4">
           <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Nombre</label>
+            <label class="block text-xs font-medium text-text-muted mb-1">Nombre</label>
             <input
               v-model="editForm.name"
               type="text"
               required
               data-testid="clients-edit-name"
-              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Email (opcional)</label>
+            <label class="block text-xs font-medium text-text-muted mb-1">Email (opcional)</label>
             <input
               v-model="editForm.email"
               type="email"
               data-testid="clients-edit-email"
-              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Teléfono</label>
+            <label class="block text-xs font-medium text-text-muted mb-1">Teléfono</label>
             <input
               v-model="editForm.phone"
               type="tel"
               data-testid="clients-edit-phone"
-              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Empresa</label>
+            <label class="block text-xs font-medium text-text-muted mb-1">Empresa</label>
             <input
               v-model="editForm.company"
               type="text"
               data-testid="clients-edit-company"
-              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
             />
           </div>
-          <p v-if="editError" class="text-xs text-red-600">{{ editError }}</p>
+          <p v-if="editError" class="text-xs text-danger-strong">{{ editError }}</p>
           <div class="flex items-center justify-end gap-3 pt-2">
             <button
               type="button"
-              class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-green-light bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/[0.10] rounded-xl transition-colors"
+              class="px-4 py-2 text-sm font-medium text-text-muted bg-surface-raised hover:bg-border-muted rounded-xl transition-colors"
               @click="closeEditModal"
             >
               Cancelar
@@ -474,7 +472,7 @@
               type="submit"
               :disabled="clientsStore.isUpdating"
               data-testid="clients-edit-submit"
-              class="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-xl transition-colors"
+              class="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-strong disabled:opacity-50 rounded-xl transition-colors"
             >
               Guardar cambios
             </button>
@@ -768,19 +766,19 @@ function formatDate(iso) {
 
 function statusClass(s) {
   const map = {
-    draft: 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light',
+    draft: 'bg-surface-raised text-text-muted',
     sent: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300',
     viewed: 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300',
-    accepted: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
-    finished: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    accepted: 'bg-primary-soft text-text-brand dark:text-emerald-400',
+    finished: 'bg-primary-soft text-text-brand dark:text-emerald-400',
     rejected: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300',
     expired: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
     negotiating: 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300',
     active: 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300',
     paused: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
-    completed: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
-    archived: 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light',
+    completed: 'bg-primary-soft text-text-brand dark:text-emerald-400',
+    archived: 'bg-surface-raised text-text-muted',
   };
-  return map[s] || 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light';
+  return map[s] || 'bg-surface-raised text-text-muted';
 }
 </script>

@@ -44,7 +44,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const trackClass = computed(() =>
-  (props.darkTrack ? 'bg-gray-100 dark:bg-gray-900/40' : 'bg-gray-100'),
+  (props.darkTrack ? 'bg-surface-raised' : 'bg-surface-raised'),
 );
 
 function tabButtonClass(tab) {
@@ -53,15 +53,15 @@ function tabButtonClass(tab) {
     return [
       'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
       active
-        ? 'bg-white dark:bg-gray-800 shadow-sm font-medium text-gray-900 dark:text-gray-100'
-        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400',
+        ? 'bg-surface shadow-sm font-medium text-text-default'
+        : 'text-text-muted hover:text-text-default',
     ];
   }
   return [
     'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
     active
-      ? 'bg-white shadow-sm font-medium text-gray-900'
-      : 'text-gray-500 hover:text-gray-700',
+      ? 'bg-surface shadow-sm font-medium text-text-default'
+      : 'text-text-muted hover:text-text-default',
   ];
 }
 

@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between" data-enter>
       <div>
-        <h1 class="text-2xl font-bold text-esmerald dark:text-white sm:text-3xl">
+        <h1 class="text-2xl font-bold text-text-default sm:text-3xl">
           {{ authStore.isAdmin ? 'Proyectos' : 'Mis proyectos' }}
         </h1>
         <p class="mt-1 text-sm text-green-light">
@@ -13,7 +13,7 @@
       <button
         v-if="authStore.isAdmin"
         type="button"
-        class="flex items-center gap-2 rounded-xl bg-lemon px-5 py-2.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105"
+        class="flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105"
         @click="isCreateModalOpen = true"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
@@ -29,8 +29,8 @@
         type="button"
         class="rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wider transition"
         :class="activeFilter === filter.value
-          ? 'bg-esmerald text-white dark:bg-lemon dark:text-esmerald-dark'
-          : 'border border-esmerald/10 text-green-light hover:text-esmerald dark:border-white/10 dark:hover:text-white'"
+          ? 'bg-primary text-white dark:bg-accent dark:text-text-default'
+          : 'border border-border-default text-green-light hover:text-text-default dark:hover:text-white'"
         @click="handleFilterChange(filter.value)"
       >
         {{ filter.label }}
@@ -39,20 +39,20 @@
 
     <!-- Loading state -->
     <div v-if="projectsStore.isLoading" class="py-20 text-center" data-enter>
-      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-esmerald/20 border-t-esmerald dark:border-white/20 dark:border-t-lemon" />
+      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
       <p class="mt-4 text-sm text-green-light">Cargando proyectos...</p>
     </div>
 
     <!-- Empty state -->
     <div
       v-else-if="projectsStore.projects.length === 0"
-      class="rounded-3xl border border-dashed border-esmerald/10 py-20 text-center dark:border-white/10"
+      class="rounded-3xl border border-dashed border-border-default py-20 text-center"
       data-enter
     >
       <svg class="mx-auto h-12 w-12 text-green-light/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
       </svg>
-      <p class="mt-4 text-sm font-medium text-esmerald dark:text-white">
+      <p class="mt-4 text-sm font-medium text-text-default">
         {{ authStore.isAdmin ? 'No hay proyectos creados.' : 'Todavía no tienes proyectos asignados.' }}
       </p>
       <p class="mt-1 text-xs text-green-light">
@@ -66,7 +66,7 @@
         v-for="project in projectsStore.projects"
         :key="project.id"
         :to="localePath(`/platform/projects/${project.id}`)"
-        class="project-card group relative overflow-hidden rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm transition-all duration-300 hover:border-esmerald/20 hover:shadow-md dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none dark:hover:border-white/15"
+        class="project-card group relative overflow-hidden rounded-3xl border border-border-default bg-surface p-6 shadow-sm transition-all duration-300 hover:border-border-default hover:shadow-md dark:hover:border-white/15"
         data-enter
       >
         <!-- Status badge -->
@@ -78,7 +78,7 @@
         </span>
 
         <!-- Project name -->
-        <h3 class="mt-4 text-lg font-semibold text-esmerald transition group-hover:text-esmerald/80 dark:text-white dark:group-hover:text-lemon">
+        <h3 class="mt-4 text-lg font-semibold text-text-default transition group-hover:text-esmerald/80 dark:text-white dark:group-hover:text-accent">
           {{ project.name }}
         </h3>
 
@@ -91,12 +91,12 @@
         <div class="mt-5">
           <div class="mb-1.5 flex items-center justify-between text-xs">
             <span class="font-medium text-green-light/60">Progreso</span>
-            <span class="font-bold text-esmerald dark:text-white">{{ project.progress }}%</span>
+            <span class="font-bold text-text-default">{{ project.progress }}%</span>
           </div>
-          <div class="h-1.5 overflow-hidden rounded-full bg-esmerald/[0.06] dark:bg-white/[0.06]">
+          <div class="h-1.5 overflow-hidden rounded-full bg-primary/10 dark:bg-white/10">
             <div
               class="h-full rounded-full transition-all duration-700 ease-out"
-              :class="project.progress === 100 ? 'bg-emerald-500' : 'bg-esmerald dark:bg-lemon'"
+              :class="project.progress === 100 ? 'bg-emerald-500' : 'bg-primary dark:bg-accent'"
               :style="{ width: `${project.progress}%` }"
             />
           </div>
@@ -105,7 +105,7 @@
         <!-- Meta row -->
         <div class="mt-5 flex items-center justify-between">
           <div v-if="authStore.isAdmin" class="flex items-center gap-2">
-            <div class="flex h-6 w-6 items-center justify-center rounded-full bg-esmerald/10 text-[10px] font-bold text-esmerald dark:bg-lemon/15 dark:text-lemon">
+            <div class="flex h-6 w-6 items-center justify-center rounded-full bg-esmerald/10 text-[10px] font-bold text-text-default dark:bg-lemon/15 dark:text-accent">
               {{ clientInitials(project) }}
             </div>
             <span class="text-xs text-green-light">{{ project.client_company || project.client_name }}</span>
@@ -120,7 +120,7 @@
 
         <!-- Hover arrow -->
         <div class="absolute right-5 top-6 translate-x-2 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-          <svg class="h-5 w-5 text-esmerald dark:text-lemon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+          <svg class="h-5 w-5 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
         </div>
       </NuxtLink>
     </div>
@@ -136,13 +136,13 @@
           <Transition name="modal-content" appear>
             <div
               v-if="isCreateModalOpen"
-              class="w-full max-w-lg rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-2xl dark:border-white/[0.06] dark:bg-esmerald sm:p-8"
+              class="w-full max-w-lg rounded-3xl border border-border-default bg-surface p-6 shadow-2xl sm:p-8"
             >
               <div class="mb-6 flex items-center justify-between">
-                <h2 class="text-lg font-bold text-esmerald dark:text-white">Nuevo proyecto</h2>
+                <h2 class="text-lg font-bold text-text-default">Nuevo proyecto</h2>
                 <button
                   type="button"
-                  class="flex h-8 w-8 items-center justify-center rounded-full text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
+                  class="flex h-8 w-8 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white"
                   @click="closeCreateModal"
                 >
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -164,7 +164,7 @@
                     type="text"
                     required
                     placeholder="Ej: Plataforma E-commerce"
-                    class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+                    class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
                   />
                 </div>
 
@@ -174,7 +174,7 @@
                     v-model="createForm.description"
                     rows="3"
                     placeholder="Breve descripción del proyecto..."
-                    class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+                    class="w-full resize-none rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
                   />
                 </div>
 
@@ -183,7 +183,7 @@
                   <select
                     v-model="createForm.client_id"
                     required
-                    class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+                    class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
                   >
                     <option value="" disabled>Selecciona un cliente</option>
                     <option
@@ -200,7 +200,7 @@
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Propuesta de negocio</label>
                   <select
                     v-model="createForm.proposal_id"
-                    class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+                    class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
                   >
                     <option :value="null">Sin propuesta vinculada</option>
                     <option
@@ -221,7 +221,7 @@
                   <input
                     v-model="createForm.hosting_start_date"
                     type="date"
-                    class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+                    class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
                   />
                   <p class="mt-1 text-[11px] text-green-light/60">Fecha a partir de la cual el cliente puede activar su plan de hosting.</p>
                 </div>
@@ -232,7 +232,7 @@
                     <input
                       v-model="createForm.start_date"
                       type="date"
-                      class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+                      class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
                     />
                   </div>
                   <div>
@@ -240,7 +240,7 @@
                     <input
                       v-model="createForm.estimated_end_date"
                       type="date"
-                      class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+                      class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
                     />
                   </div>
                 </div>
@@ -248,7 +248,7 @@
                 <div class="flex justify-end gap-3 pt-2">
                   <button
                     type="button"
-                    class="rounded-xl border border-esmerald/10 px-5 py-2.5 text-sm font-medium text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+                    class="rounded-xl border border-border-default px-5 py-2.5 text-sm font-medium text-green-light transition hover:text-text-default dark:hover:text-white"
                     @click="closeCreateModal"
                   >
                     Cancelar
@@ -256,7 +256,7 @@
                   <button
                     type="submit"
                     :disabled="!canCreate || projectsStore.isUpdating"
-                    class="rounded-xl bg-lemon px-6 py-2.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50"
+                    class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50"
                   >
                     {{ projectsStore.isUpdating ? 'Creando...' : 'Crear proyecto' }}
                   </button>
@@ -321,7 +321,7 @@ const canCreate = computed(() => Boolean(createForm.name.trim()) && Boolean(crea
 
 function statusBadgeClass(status) {
   const map = {
-    active: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+    active: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
     paused: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     completed: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     archived: 'bg-white/10 text-green-light/60',

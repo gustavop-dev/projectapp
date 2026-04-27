@@ -2,7 +2,7 @@
   <div class="max-w-4xl">
     <PromptSubTabsPanel v-model="subTab" dark-track>
       <template #commercial>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <p class="text-sm text-text-muted mb-4">
           Este prompt se usa con IA (ChatGPT, Claude) para generar el JSON comercial del
           diagnóstico (propósito, entrega, costo, cronograma, alcance) a partir de la
           plantilla de 8 secciones.
@@ -14,8 +14,8 @@
       </template>
 
       <template #technical>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Prompt para generar solo el objeto <code class="text-xs bg-gray-100 dark:bg-gray-800 px-1 rounded">categories</code>
+        <p class="text-sm text-text-muted mb-4">
+          Prompt para generar solo el objeto <code class="text-xs bg-surface-raised px-1 rounded">categories</code>
           (14 categorías con hallazgos, fortalezas y recomendaciones) a partir del
           análisis del repositorio.
         </p>

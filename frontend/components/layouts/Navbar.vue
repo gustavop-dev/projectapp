@@ -1,16 +1,16 @@
 <template>
   <!--Navbar Desktop — Glassmorphism pill with sliding lemon indicator -->
   <nav
-    class="hidden lg:flex fixed top-6 left-1/2 -translate-x-1/2 z-50 items-center gap-2 pl-7 pr-3 py-3.5 rounded-full bg-white/60 backdrop-blur-2xl border border-white/30 shadow-xl"
+    class="hidden lg:flex fixed top-6 left-1/2 -translate-x-1/2 z-50 items-center gap-2 pl-7 pr-3 py-3.5 rounded-full bg-surface/60 backdrop-blur-2xl border border-white/30 shadow-xl"
     aria-label="Main navigation"
   >
     <!-- Logo -->
     <NuxtLink
       :to="localePath('/')"
-      class="flex items-center pr-4 mr-2 text-esmerald font-bold text-xl tracking-tight hover:opacity-80 transition-opacity flex-shrink-0 border-r border-esmerald/10"
+      class="flex items-center pr-4 mr-2 text-text-brand font-bold text-xl tracking-tight hover:opacity-80 transition-opacity flex-shrink-0 border-r border-input-border/10"
       aria-label="Project App. - Homepage"
     >
-      Project<span class="text-esmerald">App.</span>
+      Project<span class="text-text-brand">App.</span>
     </NuxtLink>
 
     <!-- Nav links container with sliding lemon pill -->
@@ -18,7 +18,7 @@
       <!-- Sliding lemon pill indicator -->
       <div
         ref="lemonPill"
-        class="absolute top-0 left-0 h-full rounded-full bg-lemon pointer-events-none will-change-transform"
+        class="absolute top-0 left-0 h-full rounded-full bg-accent-soft pointer-events-none will-change-transform"
         style="width: 0; opacity: 0;"
       />
 
@@ -31,7 +31,7 @@
         :target="item.external ? '_blank' : undefined"
         :rel="item.external ? 'noopener noreferrer' : undefined"
         class="relative z-10 px-6 py-3 rounded-full text-base transition-colors duration-200 whitespace-nowrap"
-        :class="isActiveRoute(item.routeKey) ? 'text-esmerald font-medium' : 'text-esmerald/60 font-regular hover:text-esmerald'"
+        :class="isActiveRoute(item.routeKey) ? 'text-text-brand font-medium' : 'text-text-brand/60 font-regular hover:text-text-brand'"
       >
         {{ item.name }}
       </NuxtLink>
@@ -40,7 +40,7 @@
     <!-- Language toggle -->
     <button
       @click="toggleLanguage"
-      class="px-4 py-2.5 rounded-full text-sm font-medium text-esmerald/50 hover:text-esmerald hover:bg-white/40 transition-all uppercase tracking-wider ml-2"
+      class="px-4 py-2.5 rounded-full text-sm font-medium text-text-brand/50 hover:text-text-brand hover:bg-surface/40 transition-all uppercase tracking-wider ml-2"
       :aria-label="`Switch to ${isEnglish ? 'Spanish' : 'English'}`"
     >
       {{ isEnglish ? 'EN' : 'ES' }}
@@ -49,17 +49,17 @@
     <!-- Sign In -->
     <NuxtLink
       to="/es-co/platform"
-      class="px-5 py-2.5 rounded-full text-sm font-medium bg-esmerald text-white hover:bg-esmerald/90 transition-colors ml-1 whitespace-nowrap"
+      class="px-5 py-2.5 rounded-full text-sm font-medium bg-primary text-white hover:bg-primary/90 transition-colors ml-1 whitespace-nowrap"
     >
       {{ globalMessages.sign_in || 'Sign In' }}
     </NuxtLink>
   </nav>
 
   <!--Navbar Mobile — Fixed glassmorphism bar -->
-  <nav class="flex lg:hidden fixed top-0 left-0 right-0 z-50 items-center justify-between px-5 py-4 bg-white/60 backdrop-blur-2xl border-b border-white/20" aria-label="Mobile navigation">
+  <nav class="flex lg:hidden fixed top-0 left-0 right-0 z-50 items-center justify-between px-5 py-4 bg-surface/60 backdrop-blur-2xl border-b border-white/20" aria-label="Mobile navigation">
     <NuxtLink
       :to="localePath('/')"
-      class="text-esmerald font-bold text-lg tracking-tight"
+      class="text-text-brand font-bold text-lg tracking-tight"
       aria-label="Project App. - Homepage"
     >
       Project<span>App.</span>
@@ -68,20 +68,20 @@
     <div class="flex items-center gap-2">
       <button
         @click="toggleLanguage"
-        class="px-2.5 py-1.5 rounded-full text-xs font-medium text-esmerald/50 uppercase tracking-wider"
+        class="px-2.5 py-1.5 rounded-full text-xs font-medium text-text-brand/50 uppercase tracking-wider"
         :aria-label="`Switch to ${isEnglish ? 'Spanish' : 'English'}`"
       >
         {{ isEnglish ? 'EN' : 'ES' }}
       </button>
       <NuxtLink
         to="/es-co/platform"
-        class="px-3 py-1.5 rounded-full text-xs font-medium bg-esmerald text-white hover:bg-esmerald/90 transition-colors whitespace-nowrap"
+        class="px-3 py-1.5 rounded-full text-xs font-medium bg-primary text-white hover:bg-primary/90 transition-colors whitespace-nowrap"
       >
         {{ globalMessages.sign_in || 'Sign In' }}
       </NuxtLink>
       <button
         @click="openMenuMobile"
-        class="w-10 h-10 rounded-full bg-esmerald flex items-center justify-center"
+        class="w-10 h-10 rounded-full bg-primary flex items-center justify-center"
         aria-label="Open menu"
       >
         <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
@@ -102,28 +102,28 @@
       <div
         ref="background"
         @click="closeBackdrop"
-        class="absolute inset-0 bg-white/40 backdrop-blur-xl"
+        class="absolute inset-0 bg-surface/40 backdrop-blur-xl"
         style="opacity: 0;"
       />
 
       <!-- Menu panel -->
       <div
         ref="menuBox"
-        class="absolute inset-0 flex flex-col bg-esmerald-light/95 backdrop-blur-md"
+        class="absolute inset-0 flex flex-col bg-primary-soft/95 backdrop-blur-md"
         style="opacity: 0;"
       >
         <!-- Top bar: logo + close -->
         <div class="flex items-center justify-between px-5 py-4">
           <NuxtLink
             :to="localePath('/')"
-            class="text-esmerald font-bold text-lg tracking-tight"
+            class="text-text-brand font-bold text-lg tracking-tight"
             @click="closeMenu"
           >
             ProjectApp.
           </NuxtLink>
           <button
             @click="closeMenuMobile"
-            class="w-10 h-10 rounded-full bg-esmerald/10 flex items-center justify-center text-esmerald hover:bg-esmerald/20 transition-colors"
+            class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-text-brand hover:bg-primary/20 transition-colors"
             aria-label="Close menu"
           >
             <XMarkIcon class="w-6 h-6" />
@@ -138,7 +138,7 @@
             :to="item.external ? item.href : localePath(item.href)"
             :target="item.external ? '_blank' : undefined"
             :ref="el => { if (el) mobileNavRefs[index] = el.$el || el; }"
-            class="mobile-nav-item text-esmerald font-light text-5xl py-3 border-b border-esmerald/10 transition-colors hover:text-green-light"
+            class="mobile-nav-item text-text-brand font-light text-5xl py-3 border-b border-input-border/10 transition-colors hover:text-green-light"
             style="opacity: 0; transform: translateY(20px);"
             @click="closeMenu"
           >
@@ -152,16 +152,16 @@
             href="https://wa.me/message/XX77FJEUEM26H1?src=qr"
             target="_blank"
             rel="noopener noreferrer"
-            class="flex items-center justify-center gap-3 w-full py-4 rounded-2xl bg-esmerald text-white text-base font-medium transition-all hover:bg-esmerald/90"
+            class="flex items-center justify-center gap-3 w-full py-4 rounded-2xl bg-primary text-white text-base font-medium transition-all hover:bg-primary/90"
           >
             <svg class="w-5 h-5" viewBox="0 0 448 512" fill="currentColor"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157" /></svg>
             {{ globalMessages?.contact_us || 'Contact' }}
           </a>
-          <div class="flex items-center justify-center gap-6 text-sm text-esmerald/50">
-            <a href="https://instagram.com/projectapp.co" target="_blank" rel="noopener noreferrer" class="hover:text-esmerald transition-colors">Instagram</a>
-            <a href="https://facebook.com/projectapp.co" target="_blank" rel="noopener noreferrer" class="hover:text-esmerald transition-colors">Facebook</a>
-            <button @click="toggleLanguage" class="hover:text-esmerald transition-colors uppercase">{{ isEnglish ? 'ES' : 'EN' }}</button>
-            <NuxtLink to="/es-co/platform" class="hover:text-esmerald transition-colors" @click="closeMenu">{{ globalMessages.sign_in || 'Sign In' }}</NuxtLink>
+          <div class="flex items-center justify-center gap-6 text-sm text-text-brand/50">
+            <a href="https://instagram.com/projectapp.co" target="_blank" rel="noopener noreferrer" class="hover:text-text-brand transition-colors">Instagram</a>
+            <a href="https://facebook.com/projectapp.co" target="_blank" rel="noopener noreferrer" class="hover:text-text-brand transition-colors">Facebook</a>
+            <button @click="toggleLanguage" class="hover:text-text-brand transition-colors uppercase">{{ isEnglish ? 'ES' : 'EN' }}</button>
+            <NuxtLink to="/es-co/platform" class="hover:text-text-brand transition-colors" @click="closeMenu">{{ globalMessages.sign_in || 'Sign In' }}</NuxtLink>
           </div>
         </div>
       </div>

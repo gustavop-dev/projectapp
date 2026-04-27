@@ -1,9 +1,9 @@
 <template>
   <div>
-    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Etiquetas</label>
+    <label class="block text-sm font-medium text-text-default mb-1">Etiquetas</label>
     <div
       v-if="tags.length"
-      class="flex flex-wrap gap-2 px-3 py-2 border border-gray-200 rounded-xl dark:bg-gray-700 dark:border-gray-600"
+      class="flex flex-wrap gap-2 px-3 py-2 border border-border-default rounded-xl bg-surface"
     >
       <button
         v-for="tag in tags"
@@ -17,7 +17,7 @@
         {{ tag.name }}
       </button>
     </div>
-    <p v-else class="text-xs text-gray-500 dark:text-gray-400 italic">
+    <p v-else class="text-xs text-text-muted italic">
       Aún no hay etiquetas disponibles.
     </p>
   </div>

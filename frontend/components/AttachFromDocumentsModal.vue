@@ -1,12 +1,12 @@
 <template>
   <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
     @click.self="$emit('close')">
-    <div class="bg-white dark:bg-esmerald rounded-xl shadow-xl max-w-lg w-full max-h-[85vh] flex flex-col border border-gray-200 dark:border-white/[0.08]">
-      <header class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/[0.06]">
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-white">
+    <div class="bg-surface rounded-xl shadow-xl max-w-lg w-full max-h-[85vh] flex flex-col border border-border-default dark:border-white/[0.08]">
+      <header class="flex items-center justify-between px-5 py-4 border-b border-border-muted">
+        <h3 class="text-sm font-semibold text-text-default">
           Adjuntar desde Documentos
         </h3>
-        <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-white/70"
+        <button type="button" class="text-text-subtle hover:text-text-default"
           @click="$emit('close')">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -21,23 +21,23 @@
         <ul v-else class="divide-y divide-gray-100 dark:divide-white/[0.06]">
           <li v-for="doc in availableDocs" :key="doc.key" class="py-2.5 flex items-center gap-3">
             <input :id="`attach-${doc.key}`" v-model="selectedKeys" type="checkbox" :value="doc.key"
-              class="rounded border-gray-300 dark:border-white/[0.15] text-emerald-600 focus:ring-emerald-500" />
+              class="rounded border-gray-300 dark:border-white/[0.15] text-text-brand focus:ring-focus-ring/30" />
             <label :for="`attach-${doc.key}`" class="flex-1 min-w-0 cursor-pointer">
-              <div class="text-sm text-gray-800 dark:text-white truncate">{{ doc.label }}</div>
+              <div class="text-sm text-text-default truncate">{{ doc.label }}</div>
               <div class="text-[11px] text-gray-400 dark:text-white/40 mt-0.5">{{ doc.description }}</div>
             </label>
           </li>
         </ul>
       </div>
 
-      <footer class="flex items-center justify-end gap-2 px-5 py-3 border-t border-gray-100 dark:border-white/[0.06]">
+      <footer class="flex items-center justify-end gap-2 px-5 py-3 border-t border-border-muted">
         <button type="button"
-          class="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-white/70 hover:text-gray-800 dark:hover:text-white"
+          class="px-3 py-1.5 text-xs font-medium text-text-muted hover:text-text-default"
           @click="$emit('close')">
           Cancelar
         </button>
         <button type="button" :disabled="!selectedKeys.length"
-          class="px-4 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+          class="px-4 py-1.5 text-xs font-medium bg-primary text-white rounded-lg hover:bg-primary-strong disabled:opacity-50"
           @click="confirm">
           Adjuntar ({{ selectedKeys.length }})
         </button>

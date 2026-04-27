@@ -1,27 +1,27 @@
 <template>
   <div id="platform-project-payments">
     <div v-if="payStore.isLoading" class="py-20 text-center">
-      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-esmerald/20 border-t-esmerald dark:border-white/20 dark:border-t-lemon" />
+      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
     </div>
 
     <template v-else>
       <!-- Header -->
       <div class="mb-6" data-enter>
-        <NuxtLink :to="localePath('/platform/payments')" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-esmerald dark:hover:text-white">
+        <NuxtLink :to="localePath('/platform/payments')" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
           Pagos
         </NuxtLink>
         <p class="mb-1 text-xs text-green-light/60">{{ projectName }}</p>
-        <h1 class="text-xl font-bold text-esmerald dark:text-white sm:text-2xl">Suscripción</h1>
+        <h1 class="text-xl font-bold text-text-default sm:text-2xl">Suscripción</h1>
       </div>
 
       <!-- No subscription — client picks plan; admin sees waiting message -->
       <div v-if="!sub" data-enter>
-        <div v-if="authStore.isAdmin" class="rounded-3xl border border-dashed border-esmerald/10 py-16 text-center dark:border-white/10">
+        <div v-if="authStore.isAdmin" class="rounded-3xl border border-dashed border-border-default py-16 text-center">
           <p class="text-sm text-green-light">El cliente aún no ha activado su plan de hosting.</p>
         </div>
-        <div v-else-if="project?.hosting_tiers?.length" class="rounded-2xl border border-esmerald/[0.06] bg-white p-6 dark:border-white/[0.06] dark:bg-esmerald">
-          <h2 class="mb-1 text-lg font-bold text-esmerald dark:text-white">Elige tu plan de hosting</h2>
+        <div v-else-if="project?.hosting_tiers?.length" class="rounded-2xl border border-border-default bg-surface p-6">
+          <h2 class="mb-1 text-lg font-bold text-text-default">Elige tu plan de hosting</h2>
           <p class="mb-5 text-xs text-green-light">Selecciona la frecuencia de pago que prefieras. Puedes cambiarla después.</p>
 
           <div class="mb-5 grid gap-3 sm:grid-cols-3">
@@ -31,15 +31,15 @@
               type="button"
               class="relative rounded-xl border p-5 text-center transition"
               :class="selectedPlan === tier.frequency
-                ? 'border-esmerald bg-esmerald/5 shadow-sm dark:border-lemon dark:bg-lemon/10'
-                : 'border-esmerald/10 hover:border-esmerald/20 dark:border-white/[0.08] dark:hover:border-white/15'"
+                ? 'border-border-default bg-esmerald/5 shadow-sm dark:border-lemon dark:bg-lemon/10'
+                : 'border-border-default hover:border-border-default dark:hover:border-white/15'"
               @click="selectedPlan = tier.frequency"
             >
-              <span v-if="tier.badge" class="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-lemon px-2.5 py-0.5 text-[9px] font-bold text-esmerald-dark">{{ tier.badge }}</span>
-              <p class="text-xs font-bold uppercase tracking-wider text-esmerald dark:text-white">{{ tier.label }}</p>
-              <p class="mt-2 text-2xl font-bold text-esmerald dark:text-lemon">${{ formatMoney(tier.billing_amount) }}</p>
+              <span v-if="tier.badge" class="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent px-2.5 py-0.5 text-[9px] font-bold text-text-default">{{ tier.badge }}</span>
+              <p class="text-xs font-bold uppercase tracking-wider text-text-default">{{ tier.label }}</p>
+              <p class="mt-2 text-2xl font-bold text-text-brand">${{ formatMoney(tier.billing_amount) }}</p>
               <p class="text-[11px] text-green-light">{{ tier.currency }} / {{ tier.months === 1 ? 'mes' : `${tier.months} meses` }}</p>
-              <p v-if="tier.discount_percent" class="mt-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">{{ tier.discount_percent }}% descuento</p>
+              <p v-if="tier.discount_percent" class="mt-1 text-[10px] font-semibold text-text-brand dark:text-emerald-400">{{ tier.discount_percent }}% descuento</p>
               <p class="mt-1 text-[10px] text-green-light/50">${{ formatMoney(tier.effective_monthly) }}/mes</p>
             </button>
           </div>
@@ -51,7 +51,7 @@
           <button
             type="button"
             :disabled="!selectedPlan || isCreatingSub"
-            class="flex w-full items-center justify-center gap-2 rounded-xl bg-lemon px-5 py-3.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50"
+            class="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50"
             @click="handleCreateSubscription"
           >
             <svg v-if="isCreatingSub" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
@@ -59,7 +59,7 @@
           </button>
         </div>
 
-        <div v-else class="rounded-3xl border border-dashed border-esmerald/10 py-16 text-center dark:border-white/10">
+        <div v-else class="rounded-3xl border border-dashed border-border-default py-16 text-center">
           <p class="text-sm text-green-light">Este proyecto no tiene suscripción de hosting.</p>
         </div>
       </div>
@@ -67,17 +67,17 @@
       <template v-else>
         <div
           v-if="sub.is_archived && authStore.isAdmin"
-          class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-500/20 bg-gray-500/5 px-4 py-3 dark:border-white/10"
+          class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-500/20 bg-gray-500/5 px-4 py-3"
           data-enter
         >
           <div class="flex items-center gap-2 text-xs text-green-light">
-            <span class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:text-gray-400">Suscripción archivada</span>
+            <span class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">Suscripción archivada</span>
             <span v-if="sub.archived_at">desde {{ formatDate(sub.archived_at) }}</span>
           </div>
           <button
             type="button"
             :disabled="payStore.isUpdating"
-            class="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-500/10 dark:text-emerald-400"
+            class="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-medium text-text-brand transition hover:bg-emerald-500/10 dark:text-emerald-400"
             @click="handleRestoreSubscription"
           >
             {{ payStore.isUpdating ? '…' : 'Restaurar suscripción' }}
@@ -85,31 +85,31 @@
         </div>
         <!-- ACTIVE / UP TO DATE state (like Netflix) -->
         <div v-if="payStore.subscriptionUpToDate" data-enter>
-          <div class="mb-6 rounded-2xl border border-emerald-500/20 bg-white p-6 dark:border-emerald-500/15 dark:bg-esmerald">
+          <div class="mb-6 rounded-2xl border border-emerald-500/20 bg-surface p-6 dark:border-emerald-500/15">
             <div class="flex items-center gap-4">
               <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10">
-                <svg class="h-7 w-7 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <svg class="h-7 w-7 text-text-brand dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </span>
               <div class="flex-1">
-                <h2 class="text-lg font-bold text-esmerald dark:text-white">Hosting {{ sub.plan_display }}</h2>
-                <p class="mt-0.5 text-sm text-emerald-700 dark:text-emerald-400">Suscripción activa</p>
+                <h2 class="text-lg font-bold text-text-default">Hosting {{ sub.plan_display }}</h2>
+                <p class="mt-0.5 text-sm text-text-brand dark:text-emerald-400">Suscripción activa</p>
               </div>
               <div class="text-right">
-                <p class="text-2xl font-bold text-esmerald dark:text-lemon">${{ formatMoney(sub.billing_amount) }}</p>
+                <p class="text-2xl font-bold text-text-brand">${{ formatMoney(sub.billing_amount) }}</p>
                 <p class="text-xs text-green-light">COP / {{ sub.plan_display.toLowerCase() }}</p>
               </div>
             </div>
 
-            <div class="mt-5 flex items-center gap-3 rounded-xl bg-emerald-50/60 px-4 py-3 dark:bg-emerald-900/15">
-              <svg class="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              <p class="text-sm text-emerald-700 dark:text-emerald-400">
+            <div class="mt-5 flex items-center gap-3 rounded-xl bg-primary-soft/60 px-4 py-3 dark:bg-emerald-900/15">
+              <svg class="h-4 w-4 shrink-0 text-text-brand dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              <p class="text-sm text-text-brand dark:text-emerald-400">
                 Se renueva automáticamente el <strong>{{ formatDate(payStore.nextRenewalDate) }}</strong>
               </p>
             </div>
 
             <div class="mt-4 flex items-center gap-3 text-[11px] text-green-light/50">
               <span>Inicio: {{ formatDate(sub.start_date) }}</span>
-              <span v-if="sub.discount_percent > 0" class="font-medium text-emerald-600 dark:text-emerald-400">{{ sub.discount_percent }}% de descuento aplicado</span>
+              <span v-if="sub.discount_percent > 0" class="font-medium text-text-brand dark:text-emerald-400">{{ sub.discount_percent }}% de descuento aplicado</span>
             </div>
           </div>
         </div>
@@ -117,31 +117,31 @@
         <!-- PENDING FIRST PAYMENT or NEEDS ACTION state -->
         <div v-else data-enter>
           <!-- Subscription header -->
-          <div class="mb-4 rounded-2xl border border-esmerald/[0.06] bg-white p-5 dark:border-white/[0.06] dark:bg-esmerald">
+          <div class="mb-4 rounded-2xl border border-border-default bg-surface p-5">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div class="flex items-center gap-2">
-                  <h2 class="text-lg font-bold text-esmerald dark:text-white">Hosting {{ sub.plan_display }}</h2>
+                  <h2 class="text-lg font-bold text-text-default">Hosting {{ sub.plan_display }}</h2>
                   <span class="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase" :class="subStatusClass(sub.status)">{{ sub.status_display }}</span>
                 </div>
                 <p class="mt-1 text-xs text-green-light">Inicio: {{ formatDate(sub.start_date) }}</p>
               </div>
               <div class="text-right">
-                <p class="text-2xl font-bold text-esmerald dark:text-lemon">${{ formatMoney(sub.billing_amount) }}</p>
+                <p class="text-2xl font-bold text-text-brand">${{ formatMoney(sub.billing_amount) }}</p>
                 <p class="text-xs text-green-light">COP / {{ sub.plan_display.toLowerCase() }}</p>
               </div>
             </div>
           </div>
 
           <!-- Payment action card -->
-          <div v-if="currentPayment" class="mb-4 rounded-2xl border bg-white p-5 dark:bg-esmerald" :class="currentPeriodBorderClass">
+          <div v-if="currentPayment" class="mb-4 rounded-2xl border bg-surface p-5" :class="currentPeriodBorderClass">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div class="flex items-start gap-3">
                 <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" :class="paymentIconBg(currentPayment.status)">
                   <span class="text-base">{{ paymentIcon(currentPayment.status) }}</span>
                 </span>
                 <div>
-                  <p class="text-sm font-semibold text-esmerald dark:text-white">
+                  <p class="text-sm font-semibold text-text-default">
                     {{ currentPayment.status === 'pending' ? (authStore.isAdmin ? 'Pago pendiente del cliente' : 'Pago requerido') : currentPayment.status === 'processing' ? 'Procesando pago' : (authStore.isAdmin ? 'Requiere accion del cliente' : 'Accion requerida') }}
                   </p>
                   <p class="mt-0.5 text-xs text-green-light">
@@ -160,12 +160,12 @@
               </div>
 
               <div class="flex items-center gap-4">
-                <p class="text-2xl font-bold text-esmerald dark:text-white">${{ formatMoney(currentPayment.amount) }}</p>
+                <p class="text-2xl font-bold text-text-default">${{ formatMoney(currentPayment.amount) }}</p>
                 <button
                   v-if="!authStore.isAdmin && canPay(currentPayment)"
                   type="button"
                   :disabled="payStore.isUpdating"
-                  class="flex shrink-0 items-center gap-2 rounded-xl bg-lemon px-5 py-3 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50"
+                  class="flex shrink-0 items-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50"
                   @click="openCheckout(currentPayment)"
                 >
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
@@ -191,12 +191,12 @@
           </div>
 
           <!-- Payment methods (only when there's something to pay — client only) -->
-          <div v-if="!authStore.isAdmin && currentPayment && canPay(currentPayment)" class="mb-4 rounded-2xl border border-esmerald/[0.06] bg-white px-5 py-3 dark:border-white/[0.06] dark:bg-esmerald">
+          <div v-if="!authStore.isAdmin && currentPayment && canPay(currentPayment)" class="mb-4 rounded-2xl border border-border-default bg-surface px-5 py-3">
             <div class="flex items-center gap-3">
-              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]"><img src="/images/payments/card.svg" alt="Tarjeta" class="h-5 w-5 dark:invert dark:opacity-70" /></div>
-              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]"><img src="/images/payments/pse-seeklogo.png" alt="PSE" class="h-6 w-6 rounded object-contain" /></div>
-              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]"><img src="/images/payments/Nequi.jpeg" alt="Nequi" class="h-6 w-6 rounded object-contain" /></div>
-              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]"><img src="/images/payments/Bancolombia.png" alt="Bancolombia" class="h-6 w-6 rounded-full object-contain" /></div>
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/10"><img src="/images/payments/card.svg" alt="Tarjeta" class="h-5 w-5 dark:invert dark:opacity-70" /></div>
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/10"><img src="/images/payments/pse-seeklogo.png" alt="PSE" class="h-6 w-6 rounded object-contain" /></div>
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/10"><img src="/images/payments/Nequi.jpeg" alt="Nequi" class="h-6 w-6 rounded object-contain" /></div>
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/10"><img src="/images/payments/Bancolombia.png" alt="Bancolombia" class="h-6 w-6 rounded-full object-contain" /></div>
               <span class="text-[10px] text-green-light/50">Procesado por Wompi</span>
             </div>
           </div>
@@ -218,7 +218,7 @@
               <div
                 v-for="payment in payStore.pastPayments"
                 :key="payment.id"
-                class="rounded-xl border border-esmerald/[0.04] bg-white px-5 py-3.5 dark:border-white/[0.04] dark:bg-esmerald"
+                class="rounded-xl border border-border-muted bg-surface px-5 py-3.5"
               >
                 <div class="flex items-center justify-between gap-4">
                   <div class="flex items-center gap-2.5">
@@ -226,16 +226,16 @@
                       <span class="text-xs">{{ paymentIcon(payment.status) }}</span>
                     </span>
                     <div>
-                      <p class="text-xs font-medium text-esmerald dark:text-white">
+                      <p class="text-xs font-medium text-text-default">
                         {{ formatDate(payment.billing_period_start) }} — {{ formatDate(payment.billing_period_end) }}
                       </p>
-                      <div v-if="payment.status === 'paid' && payment.paid_at" class="mt-0.5 text-[10px] text-emerald-600/70 dark:text-emerald-400/60">
+                      <div v-if="payment.status === 'paid' && payment.paid_at" class="mt-0.5 text-[10px] text-text-brand/70 dark:text-emerald-400/60">
                         Pagado el {{ formatDate(payment.paid_at) }}
                       </div>
                     </div>
                   </div>
                   <div class="flex items-center gap-3">
-                    <p class="text-sm font-semibold text-esmerald dark:text-white">${{ formatMoney(payment.amount) }}</p>
+                    <p class="text-sm font-semibold text-text-default">${{ formatMoney(payment.amount) }}</p>
                     <span class="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="paymentStatusClass(payment.status)">
                       {{ paymentStatusLabel(payment.status) }}
                     </span>
@@ -258,14 +258,14 @@
       <Transition name="modal-overlay">
         <div v-if="checkoutPayment" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm" @click.self="closeCheckout">
           <Transition name="modal-content" appear>
-            <div v-if="checkoutPayment" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-2xl dark:border-white/[0.06] dark:bg-esmerald sm:p-8">
+            <div v-if="checkoutPayment" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl border border-border-default bg-surface p-6 shadow-2xl sm:p-8">
               <!-- Header -->
               <div class="mb-5 flex items-center justify-between">
                 <div>
-                  <h2 class="text-lg font-bold text-esmerald dark:text-white">Pagar suscripción</h2>
+                  <h2 class="text-lg font-bold text-text-default">Pagar suscripción</h2>
                   <p class="mt-0.5 text-xs text-green-light">${{ formatMoney(checkoutPayment.amount) }} COP</p>
                 </div>
-                <button type="button" class="flex h-8 w-8 items-center justify-center rounded-full text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white" @click="closeCheckout">
+                <button type="button" class="flex h-8 w-8 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="closeCheckout">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
@@ -276,12 +276,12 @@
                   v-for="m in paymentMethods" :key="m.key" type="button"
                   class="flex flex-col items-center gap-1.5 rounded-xl border p-3 transition"
                   :class="selectedMethod === m.key
-                    ? 'border-esmerald bg-esmerald-light/40 dark:border-lemon dark:bg-lemon/10'
-                    : 'border-esmerald/10 hover:border-esmerald/20 dark:border-white/10 dark:hover:border-white/20'"
+                    ? 'border-border-default bg-surface-muted/40 dark:border-lemon dark:bg-lemon/10'
+                    : 'border-border-default hover:border-border-default dark:hover:border-white/20'"
                   @click="selectedMethod = m.key"
                 >
                   <img :src="m.logo" :alt="m.label" class="h-8 w-8 rounded object-contain" :class="m.logoClass" />
-                  <span class="text-[9px] font-medium text-esmerald dark:text-white">{{ m.label }}</span>
+                  <span class="text-[9px] font-medium text-text-default">{{ m.label }}</span>
                 </button>
               </div>
 
@@ -289,24 +289,24 @@
               <form v-if="selectedMethod === 'card'" class="space-y-3" @submit.prevent="handleCardPay">
                 <div>
                   <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Número de tarjeta</label>
-                  <input :value="cardForm.card_number" type="text" inputmode="numeric" maxlength="19" placeholder="4242 4242 4242 4242" required autocomplete="cc-number" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 font-mono text-sm tracking-wider text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" @input="formatCardNumber" />
+                  <input :value="cardForm.card_number" type="text" inputmode="numeric" maxlength="19" placeholder="4242 4242 4242 4242" required autocomplete="cc-number" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 font-mono text-sm tracking-wider text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" @input="formatCardNumber" />
                 </div>
                 <div>
                   <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Titular de la tarjeta</label>
-                  <input v-model="cardForm.card_holder" type="text" placeholder="Nombre como aparece en la tarjeta" required minlength="5" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                  <input v-model="cardForm.card_holder" type="text" placeholder="Nombre como aparece en la tarjeta" required minlength="5" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                 </div>
                 <div class="grid grid-cols-3 gap-3">
                   <div>
                     <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Mes</label>
-                    <input v-model="cardForm.exp_month" type="text" inputmode="numeric" maxlength="2" placeholder="MM" required class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-3 py-3 text-center text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                    <input v-model="cardForm.exp_month" type="text" inputmode="numeric" maxlength="2" placeholder="MM" required class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-3 py-3 text-center text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                   </div>
                   <div>
                     <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Año</label>
-                    <input v-model="cardForm.exp_year" type="text" inputmode="numeric" maxlength="2" placeholder="AA" required class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-3 py-3 text-center text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                    <input v-model="cardForm.exp_year" type="text" inputmode="numeric" maxlength="2" placeholder="AA" required class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-3 py-3 text-center text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                   </div>
                   <div>
                     <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">CVC</label>
-                    <input v-model="cardForm.cvc" type="text" inputmode="numeric" maxlength="4" placeholder="123" required class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-3 py-3 text-center text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                    <input v-model="cardForm.cvc" type="text" inputmode="numeric" maxlength="4" placeholder="123" required class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-3 py-3 text-center text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                   </div>
                 </div>
 
@@ -314,7 +314,7 @@
                   {{ checkoutError }}
                 </div>
 
-                <button type="submit" :disabled="payStore.isUpdating" class="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-lemon px-5 py-3.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50">
+                <button type="submit" :disabled="payStore.isUpdating" class="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50">
                   <svg v-if="payStore.isUpdating" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                   <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                   {{ payStore.isUpdating ? 'Procesando...' : `Pagar $${formatMoney(checkoutPayment.amount)} COP` }}
@@ -325,12 +325,12 @@
 
               <!-- PSE / Nequi / Bancolombia — uses Wompi widget -->
               <div v-else class="space-y-3">
-                <div class="rounded-xl border border-esmerald/[0.06] bg-esmerald-light/20 p-4 text-center dark:border-white/[0.06] dark:bg-white/[0.02]">
-                  <p class="text-sm font-medium text-esmerald dark:text-white">{{ selectedMethodLabel }}</p>
+                <div class="rounded-xl border border-border-default bg-surface-muted/20 p-4 text-center">
+                  <p class="text-sm font-medium text-text-default">{{ selectedMethodLabel }}</p>
                   <p class="mt-1 text-xs text-green-light">Se abrirá la pasarela de pago segura para completar tu transacción.</p>
                 </div>
 
-                <button type="button" :disabled="payStore.isUpdating" class="flex w-full items-center justify-center gap-2 rounded-xl bg-lemon px-5 py-3.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50" @click="handleWidgetPay">
+                <button type="button" :disabled="payStore.isUpdating" class="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50" @click="handleWidgetPay">
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                   Continuar con {{ selectedMethodLabel }}
                 </button>
@@ -400,7 +400,7 @@ const selectedMethodLabel = computed(() => {
 })
 
 const currentPeriodBorderClass = computed(() => {
-  if (!currentPayment.value) return 'border-esmerald/[0.06] dark:border-white/[0.06]'
+  if (!currentPayment.value) return 'border-border-default'
   return paymentBorderClass(currentPayment.value.status)
 })
 
@@ -410,10 +410,10 @@ function canPay(payment) {
 
 function subStatusClass(s) {
   const map = {
-    active: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+    active: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
     pending: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     suspended: 'bg-red-500/15 text-red-600 dark:text-red-400',
-    cancelled: 'bg-gray-500/15 text-gray-500',
+    cancelled: 'bg-gray-500/15 text-text-muted',
   }
   return map[s] || map.pending
 }
@@ -422,11 +422,11 @@ function paymentBorderClass(s) {
   const map = {
     pending: 'border-amber-500/20 dark:border-amber-500/15',
     overdue: 'border-red-500/20 dark:border-red-500/15',
-    paid: 'border-esmerald/[0.06] dark:border-white/[0.06]',
+    paid: 'border-border-default',
     processing: 'border-blue-500/20 dark:border-blue-500/15',
     failed: 'border-red-500/20 dark:border-red-500/15',
   }
-  return map[s] || 'border-esmerald/[0.06] dark:border-white/[0.06]'
+  return map[s] || 'border-border-default'
 }
 
 function paymentIconBg(s) {
@@ -446,7 +446,7 @@ function paymentStatusClass(s) {
   const map = {
     pending: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     overdue: 'bg-red-500/15 text-red-600 dark:text-red-400',
-    paid: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+    paid: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
     processing: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     failed: 'bg-red-500/15 text-red-600 dark:text-red-400',
   }

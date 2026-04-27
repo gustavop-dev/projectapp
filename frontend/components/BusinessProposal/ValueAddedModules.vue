@@ -1,5 +1,5 @@
 <template>
-  <section v-if="resolvedCards.length > 0" ref="sectionRef" class="value-added-modules min-h-screen w-full bg-white py-16">
+  <section v-if="resolvedCards.length > 0" ref="sectionRef" class="value-added-modules min-h-screen w-full bg-surface py-16">
     <div class="w-full px-6 md:px-12 lg:px-24">
       <div class="max-w-5xl mx-auto">
         <!-- Header -->
@@ -8,10 +8,10 @@
             {{ content.index || '' }}
           </span>
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-esmerald-light/60">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-primary-soft">
               <span class="text-2xl">🎁</span>
             </div>
-            <h2 class="text-esmerald font-light leading-tight text-3xl md:text-5xl">
+            <h2 class="text-text-brand font-light leading-tight text-3xl md:text-5xl">
               {{ content.title || defaultTitle }}
             </h2>
           </div>
@@ -19,7 +19,7 @@
 
         <!-- Free badge + intro -->
         <div data-animate="fade-up" class="mb-10">
-          <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold uppercase tracking-wider mb-5 border border-emerald-200">
+          <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-soft text-text-brand text-xs font-semibold uppercase tracking-wider mb-5 border border-emerald-200">
             <span>✨</span>
             <span>{{ noCostLabel }}</span>
           </span>
@@ -42,13 +42,13 @@
             @keydown.space.prevent="openModal(card)"
           >
             <div class="flex items-start gap-4">
-              <div class="w-11 h-11 rounded-xl bg-esmerald-light/60 border border-esmerald/10 flex items-center justify-center flex-shrink-0">
+              <div class="w-11 h-11 rounded-xl bg-primary-soft border border-esmerald/10 flex items-center justify-center flex-shrink-0">
                 <span class="text-2xl">{{ card.icon || '🧩' }}</span>
               </div>
               <div class="flex-1">
                 <div class="flex items-start justify-between gap-3 mb-2">
-                  <h3 class="font-bold text-esmerald text-lg leading-snug">{{ card.title }}</h3>
-                  <span class="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                  <h3 class="font-bold text-text-brand text-lg leading-snug">{{ card.title }}</h3>
+                  <span class="text-xs font-semibold text-text-brand bg-primary-soft px-2 py-0.5 rounded-full whitespace-nowrap">
                     {{ freeBadge }}
                   </span>
                 </div>
@@ -58,7 +58,7 @@
                 <p v-if="card.description" class="text-xs text-esmerald/60 italic leading-relaxed mb-3">
                   {{ card.description }}
                 </p>
-                <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-light group-hover:text-esmerald transition-colors">
+                <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-light group-hover:text-text-brand transition-colors">
                   {{ viewDetailLabel }}
                   <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -70,7 +70,7 @@
         </div>
 
         <!-- Footer note -->
-        <div v-if="content.footer_note" data-animate="fade-up" class="bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-4 text-center">
+        <div v-if="content.footer_note" data-animate="fade-up" class="bg-primary-soft border border-emerald-200 rounded-xl px-5 py-4 text-center">
           <p class="text-emerald-800 text-sm md:text-base font-medium">
             {{ content.footer_note }}
           </p>

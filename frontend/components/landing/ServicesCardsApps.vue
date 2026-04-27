@@ -6,7 +6,7 @@
         {{ messages?.contactForm?.title || 'Hi there!' }} <span ref="waveEmoji" class="inline-block">👋</span><br>
         {{ messages?.contactForm?.subtitle || 'tell us what you need' }}
       </h2>
-      <form @submit.prevent="handleSubmit" class="space-y-6 sm:space-y-8 bg-white rounded-3xl p-6 sm:p-8 lg:p-12">
+      <form @submit.prevent="handleSubmit" class="space-y-6 sm:space-y-8 bg-surface rounded-3xl p-6 sm:p-8 lg:p-12">
         <!-- Full Name -->
         <input
           v-model="form.fullName"
@@ -44,9 +44,9 @@
         ></textarea>
 
         <!-- Privacy Policy -->
-        <p class="text-xs text-gray-600 leading-relaxed">
+        <p class="text-xs text-text-muted leading-relaxed">
           {{ messages?.contactForm?.privacy || 'By submitting this form, your information will be sent directly to the listed business. It will not be sold, shared, or disclosed by Chilliwack Connect.' }}
-          <a href="/privacy-policy" class="text-esmerald underline">{{ messages?.contactForm?.privacyLink || 'Privacy Policy.' }}</a>
+          <a href="/privacy-policy" class="text-text-brand underline">{{ messages?.contactForm?.privacyLink || 'Privacy Policy.' }}</a>
         </p>
 
         <!-- Buttons Row -->

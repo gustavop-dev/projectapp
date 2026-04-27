@@ -1,13 +1,13 @@
 <template>
   <div>
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
-      <h1 class="text-2xl font-light text-gray-900 dark:text-white">Dashboard</h1>
+      <h1 class="text-2xl font-light text-text-default">Dashboard</h1>
       <div class="flex flex-wrap items-center gap-3">
-        <NuxtLink
+        <BaseButton
+          as="NuxtLink"
+          variant="secondary"
+          size="md"
           :to="localePath('/panel/defaults?mode=proposal')"
-          class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors
-                 border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50
-                 dark:border-gray-600 dark:bg-gray-800/80 dark:text-gray-300 dark:hover:border-gray-500 dark:hover:bg-gray-800"
           title="Proposal defaults and email templates"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -16,17 +16,19 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
           Proposal defaults
-        </NuxtLink>
-        <NuxtLink
+        </BaseButton>
+        <BaseButton
+          as="NuxtLink"
+          variant="primary"
+          size="md"
           :to="localePath('/panel/proposals/create')"
-          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white shadow-sm transition-colors w-fit
-                 bg-esmerald hover:bg-esmerald-dark dark:bg-lemon dark:text-esmerald-dark dark:hover:opacity-90"
+          class="w-fit"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
           New proposal
-        </NuxtLink>
+        </BaseButton>
       </div>
     </div>
 
@@ -40,19 +42,19 @@
           v-for="card in quickAccessCards"
           :key="card.href"
           :to="card.href"
-          class="group flex flex-col rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-colors
-                 hover:border-esmerald/20 hover:bg-esmerald-light/30 dark:border-white/[0.06] dark:bg-white/[0.04] dark:hover:bg-white/[0.08]"
+          class="group flex flex-col rounded-xl border border-border-muted bg-surface p-4 shadow-sm transition-colors
+                 hover:border-text-muted hover:bg-surface-raised"
         >
-          <span class="text-sm font-medium text-esmerald group-hover:text-esmerald-dark dark:text-white dark:group-hover:text-lemon">
+          <span class="text-sm font-medium text-text-default group-hover:text-text-brand">
             {{ card.label }}
           </span>
-          <span class="mt-1 text-xs text-gray-500 dark:text-green-light/70">{{ card.hint }}</span>
+          <span class="mt-1 text-xs text-text-subtle">{{ card.hint }}</span>
         </NuxtLink>
       </div>
     </div>
 
     <!-- Loading skeleton -->
-    <div v-if="loading" class="text-center py-20 text-gray-400 text-sm dark:text-green-light/50">
+    <div v-if="loading" class="text-center py-20 text-text-subtle text-sm">
       Loading metrics…
     </div>
 
@@ -72,11 +74,11 @@
 
       <!-- Pipeline Value card -->
       <div v-if="kpis?.pipeline_value != null" class="mb-4">
-        <div class="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl shadow-sm p-5 flex items-center justify-between">
+        <div class="bg-primary-soft border border-primary/20 rounded-xl shadow-sm p-5 flex items-center justify-between">
           <div>
-            <p class="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wider font-medium mb-1">Pipeline activo</p>
-            <p class="text-3xl font-light text-emerald-700 dark:text-emerald-300">${{ Number(kpis.pipeline_value).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}</p>
-            <p class="text-xs text-emerald-500 dark:text-emerald-400/70 mt-1">{{ kpis.pipeline_count }} propuesta{{ kpis.pipeline_count !== 1 ? 's' : '' }} en curso (enviadas + vistas)</p>
+            <p class="text-xs text-text-brand uppercase tracking-wider font-medium mb-1">Pipeline activo</p>
+            <p class="text-3xl font-light text-text-brand">${{ Number(kpis.pipeline_value).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}</p>
+            <p class="text-xs text-text-brand/80 mt-1">{{ kpis.pipeline_count }} propuesta{{ kpis.pipeline_count !== 1 ? 's' : '' }} en curso (enviadas + vistas)</p>
           </div>
           <div class="text-5xl opacity-20">💰</div>
         </div>
@@ -84,82 +86,82 @@
 
       <!-- Primary KPI cards -->
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-        <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] shadow-sm p-4">
-          <p class="text-xs text-gray-400 dark:text-green-light/60 uppercase tracking-wider leading-tight mb-1">Tasa de cierre</p>
-          <p class="text-2xl font-light" :class="kpis?.conversion_rate >= 50 ? 'text-emerald-600' : 'text-gray-900 dark:text-white'">
+        <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
+          <p class="text-xs text-text-subtle uppercase tracking-wider leading-tight mb-1">Tasa de cierre</p>
+          <p class="text-2xl font-light" :class="kpis?.conversion_rate >= 50 ? 'text-text-brand' : 'text-text-default'">
             {{ kpis?.conversion_rate != null ? kpis.conversion_rate + '%' : '—' }}
           </p>
-          <p class="text-xs text-gray-400 dark:text-green-light/60 mt-1">de propuestas terminales</p>
+          <p class="text-xs text-text-subtle mt-1">de propuestas terminales</p>
         </div>
-        <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] shadow-sm p-4">
-          <p class="text-xs text-gray-400 dark:text-green-light/60 uppercase tracking-wider leading-tight mb-1">1ra apertura</p>
-          <p class="text-2xl font-light text-gray-900 dark:text-white">
+        <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
+          <p class="text-xs text-text-subtle uppercase tracking-wider leading-tight mb-1">1ra apertura</p>
+          <p class="text-2xl font-light text-text-default">
             {{ kpis?.avg_time_to_first_view_hours != null ? kpis.avg_time_to_first_view_hours + 'h' : '—' }}
           </p>
-          <p class="text-xs text-gray-400 dark:text-green-light/60 mt-1">tiempo promedio</p>
+          <p class="text-xs text-text-subtle mt-1">tiempo promedio</p>
         </div>
-        <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] shadow-sm p-4">
-          <p class="text-xs text-gray-400 dark:text-green-light/60 uppercase tracking-wider leading-tight mb-1">A respuesta</p>
-          <p class="text-2xl font-light text-gray-900 dark:text-white">
+        <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
+          <p class="text-xs text-text-subtle uppercase tracking-wider leading-tight mb-1">A respuesta</p>
+          <p class="text-2xl font-light text-text-default">
             {{ kpis?.avg_time_to_response_hours != null ? kpis.avg_time_to_response_hours + 'h' : '—' }}
           </p>
-          <p class="text-xs text-gray-400 dark:text-green-light/60 mt-1">desde primera vista</p>
+          <p class="text-xs text-text-subtle mt-1">desde primera vista</p>
         </div>
-        <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] shadow-sm p-4">
-          <p class="text-xs text-gray-400 dark:text-green-light/60 uppercase tracking-wider leading-tight mb-1">Abre en &lt;24h</p>
-          <p class="text-2xl font-light" :class="kpis?.pct_viewed_within_24h >= 70 ? 'text-emerald-600' : 'text-gray-900 dark:text-white'">
+        <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
+          <p class="text-xs text-text-subtle uppercase tracking-wider leading-tight mb-1">Abre en &lt;24h</p>
+          <p class="text-2xl font-light" :class="kpis?.pct_viewed_within_24h >= 70 ? 'text-text-brand' : 'text-text-default'">
             {{ kpis?.pct_viewed_within_24h != null ? kpis.pct_viewed_within_24h + '%' : '—' }}
           </p>
-          <p class="text-xs text-gray-400 dark:text-green-light/60 mt-1">de los enviados</p>
+          <p class="text-xs text-text-subtle mt-1">de los enviados</p>
         </div>
-        <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] shadow-sm p-4">
-          <p class="text-xs text-gray-400 dark:text-green-light/60 uppercase tracking-wider leading-tight mb-1">Re-abre</p>
-          <p class="text-2xl font-light" :class="kpis?.pct_revisit >= 30 ? 'text-emerald-600' : 'text-gray-900 dark:text-white'">
+        <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
+          <p class="text-xs text-text-subtle uppercase tracking-wider leading-tight mb-1">Re-abre</p>
+          <p class="text-2xl font-light" :class="kpis?.pct_revisit >= 30 ? 'text-text-brand' : 'text-text-default'">
             {{ kpis?.pct_revisit != null ? kpis.pct_revisit + '%' : '—' }}
           </p>
-          <p class="text-xs text-gray-400 dark:text-green-light/60 mt-1">vuelven a leer</p>
+          <p class="text-xs text-text-subtle mt-1">vuelven a leer</p>
         </div>
-        <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] shadow-sm p-4">
-          <p class="text-xs text-gray-400 dark:text-green-light/60 uppercase tracking-wider leading-tight mb-1">Llega a Inversión</p>
-          <p class="text-2xl font-light" :class="kpis?.pct_reaching_investment >= 60 ? 'text-emerald-600' : 'text-amber-500'">
+        <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
+          <p class="text-xs text-text-subtle uppercase tracking-wider leading-tight mb-1">Llega a Inversión</p>
+          <p class="text-2xl font-light" :class="kpis?.pct_reaching_investment >= 60 ? 'text-text-brand' : 'text-amber-500'">
             {{ kpis?.pct_reaching_investment != null ? kpis.pct_reaching_investment + '%' : '—' }}
           </p>
-          <p class="text-xs text-gray-400 dark:text-green-light/60 mt-1">de los que leen</p>
+          <p class="text-xs text-text-subtle mt-1">de los que leen</p>
         </div>
       </div>
 
       <!-- Discount comparison + Top drop-off row -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <!-- Discount vs no-discount -->
-        <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] shadow-sm p-5">
-          <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-4">💸 Cierre con vs sin descuento</h3>
+        <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-5">
+          <h3 class="text-sm font-medium text-text-default mb-4">💸 Cierre con vs sin descuento</h3>
           <div class="flex items-end gap-6">
             <div class="flex-1 text-center">
-              <div class="text-3xl font-light mb-1" :class="discountDelta > 0 ? 'text-emerald-600' : 'text-gray-900 dark:text-white'">
+              <div class="text-3xl font-light mb-1" :class="discountDelta > 0 ? 'text-text-brand' : 'text-text-default'">
                 {{ kpis?.discount_close_rate != null ? kpis.discount_close_rate + '%' : '—' }}
               </div>
-              <p class="text-xs text-gray-500 dark:text-green-light/60">Con descuento</p>
-              <p v-if="kpis?.discount_analysis" class="text-[10px] text-gray-400 dark:text-green-light/60 mt-0.5">n={{ kpis.discount_analysis.with_discount_count }}</p>
+              <p class="text-xs text-text-muted">Con descuento</p>
+              <p v-if="kpis?.discount_analysis" class="text-[10px] text-text-subtle mt-0.5">n={{ kpis.discount_analysis.with_discount_count }}</p>
             </div>
-            <div class="text-gray-200 dark:text-white/20 text-2xl font-light pb-4">vs</div>
+            <div class="text-text-subtle/40 text-2xl font-light pb-4">vs</div>
             <div class="flex-1 text-center">
-              <div class="text-3xl font-light mb-1 text-gray-900 dark:text-white">
+              <div class="text-3xl font-light mb-1 text-text-default">
                 {{ kpis?.no_discount_close_rate != null ? kpis.no_discount_close_rate + '%' : '—' }}
               </div>
-              <p class="text-xs text-gray-500 dark:text-green-light/60">Sin descuento</p>
-              <p v-if="kpis?.discount_analysis" class="text-[10px] text-gray-400 dark:text-green-light/60 mt-0.5">n={{ kpis.discount_analysis.without_discount_count }}</p>
+              <p class="text-xs text-text-muted">Sin descuento</p>
+              <p v-if="kpis?.discount_analysis" class="text-[10px] text-text-subtle mt-0.5">n={{ kpis.discount_analysis.without_discount_count }}</p>
             </div>
           </div>
           <div v-if="discountDelta !== null" class="mt-3 text-center">
             <span
               class="inline-flex items-center gap-1 text-xs font-medium px-3 py-1 rounded-full"
-              :class="discountDelta > 0 ? 'bg-emerald-50 text-emerald-700' : discountDelta < 0 ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'"
+              :class="discountDelta > 0 ? 'bg-primary-soft text-text-brand' : discountDelta < 0 ? 'bg-danger-soft text-danger-strong' : 'bg-surface-raised text-text-muted'"
             >
               {{ discountDelta > 0 ? '▲' : discountDelta < 0 ? '▼' : '=' }}
               {{ Math.abs(discountDelta) }}pp {{ discountDelta > 0 ? 'más con descuento' : discountDelta < 0 ? 'menos con descuento' : 'igual' }}
             </span>
           </div>
-          <div v-if="kpis?.discount_analysis?.avg_discount_percent" class="mt-3 text-center text-xs text-gray-500 dark:text-green-light/60">
+          <div v-if="kpis?.discount_analysis?.avg_discount_percent" class="mt-3 text-center text-xs text-text-muted">
             Descuento promedio: <strong>{{ kpis.discount_analysis.avg_discount_percent }}%</strong>
             <span v-if="kpis.discount_analysis.avg_discount_accepted"> · En aceptadas: <strong>{{ kpis.discount_analysis.avg_discount_accepted }}%</strong></span>
           </div>
@@ -169,14 +171,14 @@
         </div>
 
         <!-- Top drop-off section -->
-        <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] shadow-sm p-5">
-          <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-4">🚪 Sección con mayor abandono</h3>
+        <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-5">
+          <h3 class="text-sm font-medium text-text-default mb-4">🚪 Sección con mayor abandono</h3>
           <div v-if="kpis?.top_dropoff_section" class="flex flex-col items-center justify-center h-20 text-center">
-            <p class="text-base font-semibold text-gray-800 dark:text-white">{{ sectionLabel(kpis.top_dropoff_section.section_type) }}</p>
-            <p class="text-3xl font-light text-red-500 mt-1">{{ kpis.top_dropoff_section.dropoff_percent }}%</p>
-            <p class="text-xs text-gray-400 dark:text-green-light/60 mt-1">de sesiones no la visitan</p>
+            <p class="text-base font-semibold text-text-default">{{ sectionLabel(kpis.top_dropoff_section.section_type) }}</p>
+            <p class="text-3xl font-light text-danger-strong mt-1">{{ kpis.top_dropoff_section.dropoff_percent }}%</p>
+            <p class="text-xs text-text-subtle mt-1">de sesiones no la visitan</p>
           </div>
-          <div v-else class="flex items-center justify-center h-20 text-gray-400 dark:text-green-light/60 text-sm">
+          <div v-else class="flex items-center justify-center h-20 text-text-subtle text-sm">
             Sin datos suficientes
           </div>
         </div>
@@ -185,9 +187,9 @@
       <!-- Rejection reasons + Monthly trend row -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <!-- Top rejection reasons -->
-        <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] shadow-sm overflow-hidden">
-          <div class="px-5 py-4 border-b border-gray-100 dark:border-white/[0.06]">
-            <h3 class="text-sm font-medium text-gray-900 dark:text-white">❌ Motivos de rechazo</h3>
+        <div class="bg-surface rounded-xl border border-border-muted shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-border-muted">
+            <h3 class="text-sm font-medium text-text-default">❌ Motivos de rechazo</h3>
           </div>
           <div v-if="rejectionReasons.length" class="px-5 py-4 space-y-3">
             <div
@@ -195,29 +197,29 @@
               :key="r.rejection_reason"
               class="flex items-center gap-3"
             >
-              <span class="text-xs text-gray-600 dark:text-green-light/60 w-28 flex-shrink-0 truncate">{{ rejectionLabel(r.rejection_reason) }}</span>
-              <div class="flex-1 bg-gray-100 dark:bg-white/[0.06] rounded-full h-2">
+              <span class="text-xs text-text-muted w-28 flex-shrink-0 truncate">{{ rejectionLabel(r.rejection_reason) }}</span>
+              <div class="flex-1 bg-surface-raised rounded-full h-2">
                 <div
                   class="h-2 bg-red-400 rounded-full transition-all"
                   :style="{ width: rejectionBarWidth(r.count) + '%' }"
                 />
               </div>
-              <span class="text-xs text-gray-500 dark:text-green-light/60 w-4 text-right flex-shrink-0">{{ r.count }}</span>
+              <span class="text-xs text-text-muted w-4 text-right flex-shrink-0">{{ r.count }}</span>
             </div>
           </div>
-          <div v-else class="px-5 py-8 text-center text-gray-400 dark:text-green-light/60 text-sm">
+          <div v-else class="px-5 py-8 text-center text-text-subtle text-sm">
             Sin rechazos registrados
           </div>
         </div>
 
         <!-- Monthly trend -->
-        <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-100 dark:border-white/[0.06] shadow-sm overflow-hidden">
-          <div class="px-5 py-4 border-b border-gray-100 dark:border-white/[0.06]">
-            <h3 class="text-sm font-medium text-gray-900 dark:text-white">📈 Tendencia mensual</h3>
+        <div class="bg-surface rounded-xl border border-border-muted shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-border-muted">
+            <h3 class="text-sm font-medium text-text-default">📈 Tendencia mensual</h3>
             <div class="flex items-center gap-3 mt-2">
-              <span class="flex items-center gap-1 text-xs text-gray-400 dark:text-green-light/60"><span class="w-2.5 h-2.5 rounded-sm bg-blue-300 inline-block" /> Enviadas</span>
-              <span class="flex items-center gap-1 text-xs text-gray-400 dark:text-green-light/60"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-400 inline-block" /> Aceptadas</span>
-              <span class="flex items-center gap-1 text-xs text-gray-400 dark:text-green-light/60"><span class="w-2.5 h-2.5 rounded-sm bg-red-300 inline-block" /> Rechazadas</span>
+              <span class="flex items-center gap-1 text-xs text-text-subtle"><span class="w-2.5 h-2.5 rounded-sm bg-blue-300 inline-block" /> Enviadas</span>
+              <span class="flex items-center gap-1 text-xs text-text-subtle"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-400 inline-block" /> Aceptadas</span>
+              <span class="flex items-center gap-1 text-xs text-text-subtle"><span class="w-2.5 h-2.5 rounded-sm bg-red-300 inline-block" /> Rechazadas</span>
             </div>
           </div>
           <div v-if="monthlyTrend.length" class="px-5 py-4">
@@ -244,28 +246,28 @@
                     :title="`En curso: ${row.sent - row.accepted - row.rejected}`"
                   />
                 </div>
-                <span class="text-[10px] text-gray-400 dark:text-green-light/60">{{ formatMonth(row.month) }}</span>
+                <span class="text-[10px] text-text-subtle">{{ formatMonth(row.month) }}</span>
               </div>
             </div>
           </div>
-          <div v-else class="px-5 py-8 text-center text-gray-400 dark:text-green-light/60 text-sm">
+          <div v-else class="px-5 py-8 text-center text-text-subtle text-sm">
             Sin datos de tendencia
           </div>
         </div>
       </div>
 
       <!-- Recent proposals -->
-      <div class="bg-white dark:bg-white/[0.04] rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06]">
-        <div class="px-6 py-4 border-b border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
-          <h2 class="text-sm font-medium text-gray-700 dark:text-white">Recent proposals</h2>
+      <div class="bg-surface rounded-xl shadow-sm border border-border-muted">
+        <div class="px-6 py-4 border-b border-border-muted flex items-center justify-between">
+          <h2 class="text-sm font-medium text-text-default">Recent proposals</h2>
           <NuxtLink
             :to="localePath('/panel/proposals')"
-            class="text-xs text-esmerald hover:text-esmerald-dark dark:text-lemon dark:hover:opacity-90"
+            class="text-xs text-text-brand hover:underline"
           >
             View all →
           </NuxtLink>
         </div>
-        <div v-if="recentProposals.length === 0" class="px-6 py-12 text-center text-gray-400 text-sm dark:text-green-light/60">
+        <div v-if="recentProposals.length === 0" class="px-6 py-12 text-center text-text-subtle text-sm">
           No proposals yet. Create the first one.
         </div>
         <ul v-else class="divide-y divide-gray-50 dark:divide-white/[0.04]">
@@ -275,13 +277,13 @@
           >
             <NuxtLink
               :to="localePath(`/panel/proposals/${p.id}/edit`)"
-              class="block px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
+              class="block px-6 py-4 flex items-center justify-between hover:bg-surface-raised transition-colors cursor-pointer"
             >
               <div>
-                <span class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-emerald-600 transition-colors">
+                <span class="text-sm font-medium text-text-default group-hover:text-text-brand transition-colors">
                   {{ p.title }}
                 </span>
-                <p class="text-xs text-gray-400 dark:text-green-light/60 mt-0.5">{{ p.client_name }}</p>
+                <p class="text-xs text-text-subtle mt-0.5">{{ p.client_name }}</p>
               </div>
               <span
                 class="text-xs px-2.5 py-1 rounded-full font-medium"
@@ -397,13 +399,13 @@ function sectionLabel(s) { return SECTION_LABELS[s] || s; }
 
 function pillClass(s) {
   const map = {
-    draft: 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light',
+    draft: 'bg-surface-raised text-text-muted',
     sent: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300',
     viewed: 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300',
-    accepted: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    accepted: 'bg-primary-soft dark:bg-primary/10 text-text-brand dark:text-emerald-400',
     rejected: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300',
     expired: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
   };
-  return map[s] || 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light';
+  return map[s] || 'bg-surface-raised text-text-muted';
 }
 </script>

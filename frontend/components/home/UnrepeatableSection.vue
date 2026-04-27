@@ -34,10 +34,10 @@
       <div class="process-section mt-12 lg:mt-20">
         <!-- Title -->
         <h3 class="mb-12 text-left">
-          <span class="block font-light text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl text-esmerald">
+          <span class="block font-light text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl text-text-brand">
             {{ messages?.unrepeatable?.processTitle1 || 'A Thoughtful Process Designed for' }}
           </span>
-          <span class="inline-block font-light text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl text-black bg-lemon px-2">
+          <span class="inline-block font-light text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl text-black bg-accent px-2">
             {{ messages?.unrepeatable?.processTitle2 || 'Outstanding Results' }}
           </span>
         </h3>

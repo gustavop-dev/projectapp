@@ -1,5 +1,5 @@
 <template>
-  <section class="relative overflow-hidden bg-esmerald-light min-h-screen flex flex-col">
+  <section class="relative overflow-hidden bg-primary-soft min-h-screen flex flex-col">
 
     <!-- Arc Gallery (sits behind text, pushed down to overlap headline) -->
     <div
@@ -22,7 +22,7 @@
           }"
         >
           <div
-            class="rounded-2xl shadow-xl overflow-hidden ring-1 ring-slate-200 bg-white transition-transform hover:scale-105"
+            class="rounded-2xl shadow-xl overflow-hidden ring-1 ring-slate-200 bg-surface transition-transform hover:scale-105"
             :style="{ transform: `rotate(${getAngle(i) / 4}deg)` }"
           >
             <img
@@ -52,7 +52,7 @@
         <!-- Main Headline -->
         <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-slate-900 leading-tight">
           {{ messages?.hero?.title_part1 || 'Your App Ready' }}
-          <span class="block text-esmerald mt-2">
+          <span class="block text-text-brand mt-2">
             {{ messages?.hero?.title_part2 || 'in 30 Days.' }}
           </span>
         </h1>
@@ -71,21 +71,21 @@
             target="_blank"
             rel="noopener noreferrer"
             @click="trackWhatsAppClick()"
-            class="px-6 py-3 bg-lemon text-black rounded-full font-semibold text-sm sm:text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg"
+            class="px-6 py-3 bg-accent text-black rounded-full font-semibold text-sm sm:text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg"
           >
             {{ messages?.hero?.cta_primary || 'Get In Touch' }}
           </a>
           <button
             v-else
             @click="goToContact"
-            class="px-6 py-3 bg-lemon text-black rounded-full font-semibold text-sm sm:text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg"
+            class="px-6 py-3 bg-accent text-black rounded-full font-semibold text-sm sm:text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg"
           >
             {{ messages?.hero?.cta_primary || 'Get In Touch' }}
           </button>
 
           <button
             v-if="messages?.hero?.cta_book_call"
-            class="px-6 py-3 bg-white text-slate-900 rounded-full font-medium text-sm sm:text-base hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm"
+            class="px-6 py-3 bg-surface text-slate-900 rounded-full font-medium text-sm sm:text-base hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm"
             data-cal-link="projectapp/discovery-call-projectapp"
             data-cal-namespace="discovery-call-projectapp"
             data-cal-config='{"layout":"week_view","theme":"dark"}'
@@ -97,7 +97,7 @@
         <!-- Key Benefits -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-12 max-w-3xl w-full mx-auto">
           <div class="flex items-start gap-3 text-left">
-            <svg class="w-6 h-6 text-esmerald flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="w-6 h-6 text-text-brand flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
             </svg>
             <div>
@@ -107,7 +107,7 @@
           </div>
 
           <div class="flex items-start gap-3 text-left">
-            <svg class="w-6 h-6 text-esmerald flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="w-6 h-6 text-text-brand flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
             </svg>
             <div>
@@ -117,7 +117,7 @@
           </div>
 
           <div class="flex items-start gap-3 text-left">
-            <svg class="w-6 h-6 text-esmerald flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="w-6 h-6 text-text-brand flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
             </svg>
             <div>
@@ -127,7 +127,7 @@
           </div>
 
           <div class="flex items-start gap-3 text-left">
-            <svg class="w-6 h-6 text-esmerald flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="w-6 h-6 text-text-brand flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
             </svg>
             <div>

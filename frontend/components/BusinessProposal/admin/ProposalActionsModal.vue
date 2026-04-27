@@ -4,17 +4,17 @@
       <div v-if="visible" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/50" @click="$emit('close')" />
 
-        <div class="relative bg-white dark:bg-esmerald rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-          <div class="sticky top-0 bg-white dark:bg-esmerald border-b border-gray-100 dark:border-white/[0.06] px-6 py-4 rounded-t-2xl z-10 flex items-start justify-between">
+        <div class="relative bg-surface rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div class="sticky top-0 bg-surface border-b border-border-muted px-6 py-4 rounded-t-2xl z-10 flex items-start justify-between">
             <div>
-              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Acciones de la propuesta</h2>
-              <p class="text-xs text-gray-500 dark:text-green-light/60 mt-1">
+              <h2 class="text-lg font-semibold text-text-default">Acciones de la propuesta</h2>
+              <p class="text-xs text-text-muted mt-1">
                 Selecciona una acción para esta propuesta.
               </p>
             </div>
             <button
               type="button"
-              class="text-gray-400 hover:text-gray-600 dark:hover:text-white text-sm px-2"
+              class="text-text-subtle hover:text-text-default text-sm px-2"
               aria-label="Cerrar"
               @click="$emit('close')"
             >
@@ -32,27 +32,27 @@
               :rel="action.href ? 'noopener' : null"
               :type="action.href ? null : 'button'"
               :data-testid="'proposal-action-' + action.key"
-              class="w-full flex items-start gap-3 p-3 rounded-xl border border-gray-100 dark:border-white/[0.06] hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors text-left"
+              class="w-full flex items-start gap-3 p-3 rounded-xl border border-border-muted hover:bg-surface-raised transition-colors text-left"
               @click="handleActionClick(action)"
             >
               <span :class="['inline-block w-2 h-2 mt-2 rounded-full flex-shrink-0', action.dotClass]"></span>
               <span class="flex-1 min-w-0">
                 <span class="flex items-center gap-2 flex-wrap">
-                  <span class="text-sm font-medium text-gray-900 dark:text-white">{{ action.label }}</span>
+                  <span class="text-sm font-medium text-text-default">{{ action.label }}</span>
                   <span
                     v-if="action.key === suggestedKey"
-                    class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
+                    class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-primary-soft text-text-brand"
                   >
                     Sugerido
                   </span>
                 </span>
-                <span class="block text-xs text-gray-500 dark:text-green-light/60 mt-0.5">
+                <span class="block text-xs text-text-muted mt-0.5">
                   {{ action.description }}
                 </span>
               </span>
             </component>
 
-            <p v-if="actions.length === 0" class="text-sm text-gray-500 dark:text-green-light/60 text-center py-6">
+            <p v-if="actions.length === 0" class="text-sm text-text-muted text-center py-6">
               No hay acciones disponibles para esta propuesta.
             </p>
           </div>

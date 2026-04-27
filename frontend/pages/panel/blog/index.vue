@@ -11,39 +11,41 @@
       @cancel="handleCancelled"
     />
     <div class="flex items-center justify-between mb-8">
-      <h1 class="text-2xl font-light text-gray-900 dark:text-white">Blog Posts</h1>
+      <h1 class="text-2xl font-light text-text-default">Blog Posts</h1>
       <div class="flex items-center gap-3">
-        <NuxtLink
+        <BaseButton
+          as="NuxtLink"
+          variant="secondary"
+          size="md"
           :to="localePath('/panel/blog/calendar')"
-          class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-green-light rounded-xl
-                 font-medium text-sm hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
           Calendario
-        </NuxtLink>
-        <NuxtLink
+        </BaseButton>
+        <BaseButton
+          as="NuxtLink"
+          variant="primary"
+          size="md"
           :to="localePath('/panel/blog/create')"
-          class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
-                 font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
           Nuevo Post
-        </NuxtLink>
+        </BaseButton>
       </div>
     </div>
 
     <!-- Loading -->
     <div v-if="blogStore.isLoading" class="flex justify-center py-12">
-      <div class="w-6 h-6 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+      <div class="w-6 h-6 border-2 border-focus-ring/30 border-t-focus-ring rounded-full animate-spin" />
     </div>
 
     <!-- Table (desktop) / Cards (mobile) -->
     <div v-else>
-      <div v-if="posts.length === 0" class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] px-6 py-12 text-center text-gray-400 dark:text-green-light/60 text-sm">
+      <div v-if="posts.length === 0" class="bg-surface rounded-xl shadow-sm border border-border-muted px-6 py-12 text-center text-text-subtle text-sm">
         No hay posts aún. Crea el primero.
       </div>
 
@@ -52,12 +54,12 @@
         <div
           v-for="post in posts"
           :key="post.id"
-          class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4"
+          class="bg-surface rounded-xl shadow-sm border border-border-muted p-4"
         >
           <div class="flex items-start justify-between gap-3 mb-2">
             <NuxtLink
               :to="localePath(`/panel/blog/${post.id}/edit`)"
-              class="text-sm font-medium text-gray-900 dark:text-white hover:text-emerald-600 transition-colors leading-tight"
+              class="text-sm font-medium text-text-default hover:text-text-brand transition-colors leading-tight"
             >
               {{ post.title_es }}
             </NuxtLink>
@@ -68,22 +70,22 @@
               {{ statusLabel(post) }}
             </span>
           </div>
-          <p class="text-xs text-gray-400 dark:text-green-light/60 mb-3">{{ post.slug }} · {{ formatDate(post.published_at || post.created_at) }}</p>
+          <p class="text-xs text-text-subtle mb-3">{{ post.slug }} · {{ formatDate(post.published_at || post.created_at) }}</p>
           <div class="flex items-center gap-3">
             <NuxtLink
               :to="localePath(`/panel/blog/${post.id}/edit`)"
-              class="text-xs text-emerald-600 font-medium"
+              class="text-xs text-text-brand font-medium"
             >
               Editar
             </NuxtLink>
             <button
-              class="text-xs text-gray-500 dark:text-green-light/60 hover:text-emerald-600 dark:hover:text-white transition-colors"
+              class="text-xs text-text-muted hover:text-text-brand transition-colors"
               @click="handleDuplicate(post)"
             >
               Duplicar
             </button>
             <button
-              class="text-xs text-red-400 hover:text-red-600 transition-colors"
+              class="text-xs text-danger-strong/70 hover:text-danger-strong transition-colors"
               @click="handleDelete(post)"
             >
               Eliminar
@@ -93,27 +95,27 @@
       </div>
 
       <!-- Desktop table -->
-      <div class="hidden sm:block bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden">
+      <div class="hidden sm:block bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead>
-              <tr class="border-b border-gray-100 dark:border-white/[0.06] text-left">
-                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider">Título</th>
-                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider">Estado</th>
-                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider">Fecha</th>
-                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider text-right">Acciones</th>
+              <tr class="border-b border-border-muted text-left">
+                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Título</th>
+                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
+                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Fecha</th>
+                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50 dark:divide-white/[0.04]">
-              <tr v-for="post in posts" :key="post.id" class="hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors">
+            <tbody class="divide-y divide-border-muted">
+              <tr v-for="post in posts" :key="post.id" class="hover:bg-surface-raised transition-colors">
                 <td class="px-6 py-4">
                   <NuxtLink
                     :to="localePath(`/panel/blog/${post.id}/edit`)"
-                    class="text-sm font-medium text-gray-900 dark:text-white hover:text-emerald-600 transition-colors"
+                    class="text-sm font-medium text-text-default hover:text-text-brand transition-colors"
                   >
                     {{ post.title_es }}
                   </NuxtLink>
-                  <p class="text-xs text-gray-400 dark:text-green-light/60 mt-0.5">{{ post.title_en }} · {{ post.slug }}</p>
+                  <p class="text-xs text-text-subtle mt-0.5">{{ post.title_en }} · {{ post.slug }}</p>
                 </td>
                 <td class="px-6 py-4">
                   <span
@@ -123,25 +125,25 @@
                     {{ statusLabel(post) }}
                   </span>
                 </td>
-                <td class="px-6 py-4 text-sm text-gray-500 dark:text-green-light/60">
+                <td class="px-6 py-4 text-sm text-text-muted">
                   {{ formatDate(post.published_at || post.created_at) }}
                 </td>
                 <td class="px-6 py-4 text-right">
                   <div class="flex items-center justify-end gap-2">
                     <NuxtLink
                       :to="localePath(`/panel/blog/${post.id}/edit`)"
-                      class="text-xs text-gray-500 dark:text-green-light/60 hover:text-emerald-600 dark:hover:text-white transition-colors"
+                      class="text-xs text-text-muted hover:text-text-brand transition-colors"
                     >
                       Editar
                     </NuxtLink>
                     <button
-                      class="text-xs text-gray-500 dark:text-green-light/60 hover:text-emerald-600 dark:hover:text-white transition-colors"
+                      class="text-xs text-text-muted hover:text-text-brand transition-colors"
                       @click="handleDuplicate(post)"
                     >
                       Duplicar
                     </button>
                     <button
-                      class="text-xs text-red-400 hover:text-red-600 transition-colors"
+                      class="text-xs text-danger-strong/70 hover:text-danger-strong transition-colors"
                       @click="handleDelete(post)"
                     >
                       Eliminar
@@ -155,12 +157,12 @@
       </div>
 
       <!-- Pagination controls -->
-      <div v-if="blogStore.adminPagination.totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-white/[0.06] bg-white dark:bg-esmerald rounded-b-xl">
-        <span class="text-xs text-gray-400 dark:text-green-light/60">{{ blogStore.adminPagination.count }} posts · Página {{ blogStore.adminPagination.page }} de {{ blogStore.adminPagination.totalPages }}</span>
+      <div v-if="blogStore.adminPagination.totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-border-muted bg-surface rounded-b-xl">
+        <span class="text-xs text-text-subtle">{{ blogStore.adminPagination.count }} posts · Página {{ blogStore.adminPagination.page }} de {{ blogStore.adminPagination.totalPages }}</span>
         <div class="flex gap-1">
           <button
             :disabled="blogStore.adminPagination.page <= 1"
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-gray-200 dark:border-white/[0.08] dark:text-green-light/60 hover:bg-gray-50 dark:hover:bg-white/[0.06] disabled:opacity-40"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-border-default text-text-muted hover:bg-surface-raised disabled:opacity-40"
             @click="goToPage(blogStore.adminPagination.page - 1)"
           >
             ← Anterior
@@ -169,14 +171,14 @@
             v-for="page in visiblePages"
             :key="page"
             class="w-8 h-8 rounded-lg text-xs font-medium transition-colors"
-            :class="blogStore.adminPagination.page === page ? 'bg-emerald-600 text-white' : 'text-gray-500 dark:text-green-light/60 hover:bg-gray-100 dark:hover:bg-white/[0.06]'"
+            :class="blogStore.adminPagination.page === page ? 'bg-primary text-white' : 'text-text-muted hover:bg-surface-raised'"
             @click="goToPage(page)"
           >
             {{ page }}
           </button>
           <button
             :disabled="blogStore.adminPagination.page >= blogStore.adminPagination.totalPages"
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-gray-200 dark:border-white/[0.08] dark:text-green-light/60 hover:bg-gray-50 dark:hover:bg-white/[0.06] disabled:opacity-40"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-border-default text-text-muted hover:bg-surface-raised disabled:opacity-40"
             @click="goToPage(blogStore.adminPagination.page + 1)"
           >
             Siguiente →
@@ -240,9 +242,9 @@ function statusLabel(post) {
 }
 
 function statusBadgeClass(post) {
-  if (post.is_published) return 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400';
+  if (post.is_published) return 'bg-primary-soft text-text-brand dark:text-emerald-400';
   if (isScheduled(post)) return 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300';
-  return 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light';
+  return 'bg-surface-raised text-text-muted';
 }
 
 function handleDuplicate(post) {

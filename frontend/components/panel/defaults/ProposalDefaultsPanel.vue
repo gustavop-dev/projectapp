@@ -10,95 +10,85 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
-    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+    <p class="text-sm text-text-muted mb-6">
       Configura los valores iniciales que se aplicarán a las nuevas propuestas.
     </p>
 
     <!-- Tabs -->
-    <ResponsiveTabs v-model="activeTab" :tabs="tabs" />
+    <BaseTabs v-model="activeTab" :tabs="tabs" />
 
     <!-- ═══ TAB: Vista General ═══ -->
     <div v-show="activeTab === 'general'" class="max-w-5xl mx-auto">
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+      <p class="text-sm text-text-muted mb-6">
         Estos son los valores por defecto que se aplican al crear una nueva propuesta. Puedes modificarlos aquí para que se pre-llenen automáticamente.
       </p>
-      <form class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 sm:p-8 space-y-6" @submit.prevent="handleSaveGeneral">
+      <form class="bg-surface rounded-xl shadow-sm border border-border-muted p-4 sm:p-8 space-y-6" @submit.prevent="handleSaveGeneral">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Idioma por defecto</label>
-            <select v-model="generalForm.language"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100">
-              <option value="es">Español</option>
-              <option value="en">English</option>
-            </select>
+            <label class="block text-sm font-medium text-text-default mb-1">Idioma por defecto</label>
+            <BaseSelect
+              v-model="generalForm.language"
+              :options="[{ value: 'es', label: 'Español' }, { value: 'en', label: 'English' }]"
+            />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Moneda</label>
-            <select v-model="generalForm.currency"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-100">
-              <option value="COP">COP</option>
-              <option value="USD">USD</option>
-            </select>
+            <label class="block text-sm font-medium text-text-default mb-1">Moneda</label>
+            <BaseSelect
+              v-model="generalForm.currency"
+              :options="[{ value: 'COP', label: 'COP' }, { value: 'USD', label: 'USD' }]"
+            />
           </div>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Inversión total por defecto</label>
-            <input v-model.number="generalForm.total_investment" type="number" min="0" step="0.01"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
+            <label class="block text-sm font-medium text-text-default mb-1">Inversión total por defecto</label>
+            <BaseInput v-model.number="generalForm.total_investment" type="number" min="0" step="0.01" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hosting (% de inversión)</label>
+            <label class="block text-sm font-medium text-text-default mb-1">Hosting (% de inversión)</label>
             <div class="flex items-center gap-3">
-              <input v-model.number="generalForm.hosting_percent" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
-              <span class="text-sm text-gray-500 dark:text-green-light/60">%</span>
+              <BaseInput v-model.number="generalForm.hosting_percent" type="number" min="0" max="100" class="w-32" />
+              <span class="text-sm text-text-muted">%</span>
             </div>
           </div>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dcto. semestral hosting (%)</label>
-            <input v-model.number="generalForm.hosting_discount_semiannual" type="number" min="0" max="100"
-              class="w-32 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
+            <label class="block text-sm font-medium text-text-default mb-1">Dcto. semestral hosting (%)</label>
+            <BaseInput v-model.number="generalForm.hosting_discount_semiannual" type="number" min="0" max="100" class="w-32" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dcto. trimestral hosting (%)</label>
-            <input v-model.number="generalForm.hosting_discount_quarterly" type="number" min="0" max="100"
-              class="w-32 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
+            <label class="block text-sm font-medium text-text-default mb-1">Dcto. trimestral hosting (%)</label>
+            <BaseInput v-model.number="generalForm.hosting_discount_quarterly" type="number" min="0" max="100" class="w-32" />
           </div>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Recordatorio (días después de enviar)</label>
-            <input v-model.number="generalForm.reminder_days" type="number" min="1" max="30"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
+            <label class="block text-sm font-medium text-text-default mb-1">Recordatorio (días después de enviar)</label>
+            <BaseInput v-model.number="generalForm.reminder_days" type="number" min="1" max="30" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Urgencia (días después de enviar)</label>
-            <input v-model.number="generalForm.urgency_reminder_days" type="number" min="1" max="30"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
+            <label class="block text-sm font-medium text-text-default mb-1">Urgencia (días después de enviar)</label>
+            <BaseInput v-model.number="generalForm.urgency_reminder_days" type="number" min="1" max="30" />
           </div>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de expiración</label>
+          <label class="block text-sm font-medium text-text-default mb-1">Fecha de expiración</label>
           <div class="flex items-center gap-3">
-            <input v-model.number="generalForm.expiration_days" type="number" min="1" max="365"
-              class="w-32 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
-            <span class="text-sm text-gray-500">días</span>
+            <BaseInput v-model.number="generalForm.expiration_days" type="number" min="1" max="365" class="w-32" />
+            <span class="text-sm text-text-muted">días</span>
           </div>
           <p class="text-xs text-gray-400 mt-1">3 semanas = 21 días.</p>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descuento por defecto (%)</label>
-          <input v-model.number="generalForm.discount_percent" type="number" min="0" max="100"
-            class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
+          <label class="block text-sm font-medium text-text-default mb-1">Descuento por defecto (%)</label>
+          <BaseInput v-model.number="generalForm.discount_percent" type="number" min="0" max="100" />
           <p class="text-xs text-gray-400 mt-1">0 = sin descuento en email de urgencia.</p>
         </div>
         <div>
-          <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label class="flex items-center gap-2 text-sm font-medium text-text-default mb-1">
             Patrón de URL personalizada
-            <UiTooltip position="right" width="max-w-xs">
+            <BaseTooltip position="right" width="max-w-xs">
               <div class="space-y-2 text-left">
                 <p>Puedes usar <strong>texto libre</strong> o combinarlo con placeholders.</p>
                 <p>
@@ -115,25 +105,25 @@
                   Ejemplos: <code>mi-propuesta</code>, <code>{client_name}-2026</code>, <code>promo especial</code>.
                 </p>
               </div>
-            </UiTooltip>
+            </BaseTooltip>
           </label>
-          <input
+          <BaseInput
             v-model="generalForm.default_slug_pattern"
             type="text"
             data-testid="defaults-slug-pattern"
-            class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100"
+            class="font-mono"
             placeholder="{client_name}"
           />
           <p class="text-xs text-gray-400 mt-1">
             Texto libre permitido. Se aplica al crear una propuesta si el vendedor no escribe una URL manualmente.
           </p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Vista previa: <span class="font-mono text-emerald-600 dark:text-emerald-400">/proposal/{{ slugPatternPreview }}</span>
+          <p class="text-xs text-text-muted mt-1">
+            Vista previa: <span class="font-mono text-text-brand">/proposal/{{ slugPatternPreview }}</span>
           </p>
         </div>
         <div class="flex items-center gap-3 pt-2">
           <button type="submit" :disabled="isSaving"
-            class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
+            class="px-5 py-2.5 bg-primary text-on-primary rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50">
             {{ isSaving ? 'Guardando...' : 'Guardar Vista General' }}
           </button>
         </div>
@@ -142,16 +132,16 @@
 
     <!-- ═══ TAB: Secciones ═══ -->
     <div v-show="activeTab === 'sections'" class="max-w-7xl mx-auto">
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4 max-w-3xl">
+      <p class="text-sm text-text-muted mb-4 max-w-3xl">
         Edita las secciones comerciales del modelo por defecto. El
-        <strong class="text-gray-700 dark:text-gray-300">detalle técnico</strong>
-        (<code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">technical_document</code>)
-        tiene su propia pestaña <strong class="text-gray-700 dark:text-gray-300">Det. técnico</strong>
+        <strong class="text-text-default">detalle técnico</strong>
+        (<code class="text-xs bg-surface-raised px-1 rounded">technical_document</code>)
+        tiene su propia pestaña <strong class="text-text-default">Det. técnico</strong>
         con editor estructurado y JSON, igual que al editar una propuesta.
       </p>
       <!-- Language selector -->
       <div class="mb-6 flex items-center gap-3">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Idioma:</span>
+        <span class="text-xs font-medium text-text-muted uppercase tracking-wider">Idioma:</span>
         <div class="flex gap-2">
           <button
             v-for="opt in languageOptions"
@@ -159,8 +149,8 @@
             type="button"
             class="px-4 py-2 rounded-xl text-sm font-medium border transition-colors"
             :class="selectedLang === opt.value
-              ? 'bg-emerald-600 text-white border-emerald-600'
-              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600'"
+              ? 'bg-primary text-on-primary border-primary'
+              : 'bg-surface text-text-muted border-border-default hover:border-text-muted'"
             @click="switchLanguage(opt.value)"
           >
             {{ opt.label }}
@@ -181,7 +171,7 @@
         <div
           v-for="{ section, idx } in commercialDefaultsEntries"
           :key="`${selectedLang}-${section.section_type}-${idx}`"
-          class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
+          class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden"
         >
           <div
             class="px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
@@ -189,13 +179,13 @@
           >
             <div class="flex items-center gap-4">
               <span class="text-xs text-gray-400 font-mono w-6">{{ section.order + 1 }}</span>
-              <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ section.title }}</span>
+              <span class="text-sm font-medium text-text-default">{{ section.title }}</span>
               <span class="text-xs text-gray-400">({{ section.section_type }})</span>
             </div>
             <div class="flex items-center gap-3">
               <span
                 v-if="savedSections.has(idx)"
-                class="text-xs text-emerald-600 font-medium"
+                class="text-xs text-text-brand font-medium"
               >✓ Modificado</span>
               <button
                 type="button"
@@ -218,7 +208,7 @@
             </div>
           </div>
 
-          <div v-if="expandedSections.has(idx)" class="border-t border-gray-100 dark:border-gray-700 px-3 sm:px-6 py-4 sm:py-6">
+          <div v-if="expandedSections.has(idx)" class="border-t border-border-muted px-3 sm:px-6 py-4 sm:py-6">
             <SectionEditor
               :key="`editor-${selectedLang}-${section.section_type}-${idx}`"
               :section="toVirtualSection(section, idx)"
@@ -231,13 +221,13 @@
       </div>
 
       <div v-else class="text-center py-16">
-        <p class="text-gray-500 text-sm">No se encontraron secciones por defecto.</p>
+        <p class="text-text-muted text-sm">No se encontraron secciones por defecto.</p>
       </div>
 
       <!-- Sticky action bar for sections -->
-      <div v-if="sections.length && !isLoading" class="sticky bottom-0 mt-6 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border border-gray-100 dark:border-gray-700 rounded-xl shadow-lg px-5 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 z-10">
-        <div class="flex items-center gap-2 text-xs text-gray-500">
-          <span v-if="savedSections.size > 0" class="text-emerald-600 font-medium">
+      <div v-if="sections.length && !isLoading" class="sticky bottom-0 mt-6 bg-surface/95 backdrop-blur-sm border border-border-muted rounded-xl shadow-lg px-5 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 z-10">
+        <div class="flex items-center gap-2 text-xs text-text-muted">
+          <span v-if="savedSections.size > 0" class="text-text-brand font-medium">
             {{ savedSections.size }} sección(es) modificada(s)
           </span>
           <span v-else>Sin cambios pendientes</span>
@@ -253,7 +243,7 @@
           </button>
           <button
             type="button"
-            class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+            class="px-5 py-2 bg-primary text-on-primary rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50"
             :disabled="savedSections.size === 0 || isSaving"
             @click="handleSaveAll"
           >
@@ -265,18 +255,18 @@
 
     <!-- ═══ TAB: Det. técnico (misma UX que editar propuesta) ═══ -->
     <div v-show="activeTab === 'technical'" class="max-w-7xl mx-auto">
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+      <p class="text-sm text-text-muted mb-4">
         Valores por defecto del bloque técnico (nuevas propuestas). Idioma actual:
         <strong>{{ selectedLang === 'es' ? 'Español' : 'English' }}</strong> — cambia el idioma en la pestaña Secciones si necesitas la otra plantilla.
       </p>
-      <div class="flex gap-1 mb-4 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 max-w-sm">
+      <div class="flex gap-1 mb-4 bg-surface-raised rounded-xl p-1 max-w-sm">
         <button
           type="button"
           :class="[
             'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
             defaultsTechnicalSubTab === 'editor'
-              ? 'bg-white dark:bg-gray-700 shadow-sm font-medium text-gray-900 dark:text-gray-100'
-              : 'text-gray-500',
+              ? 'bg-surface shadow-sm font-medium text-text-default'
+              : 'text-text-muted',
           ]"
           @click="defaultsTechnicalSubTab = 'editor'"
         >
@@ -287,8 +277,8 @@
           :class="[
             'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
             defaultsTechnicalSubTab === 'json'
-              ? 'bg-white dark:bg-gray-700 shadow-sm font-medium text-gray-900 dark:text-gray-100'
-              : 'text-gray-500',
+              ? 'bg-surface shadow-sm font-medium text-text-default'
+              : 'text-text-muted',
           ]"
           @click="defaultsTechnicalSubTab = 'json'"
         >
@@ -314,32 +304,28 @@
       </div>
 
       <div v-show="defaultsTechnicalSubTab === 'json'" class="space-y-4">
-        <p class="text-xs text-gray-500 dark:text-gray-400">
-          Solo el objeto <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">content_json</code> del detalle técnico. Mismo esquema que en el editor. Pulsa «Aplicar» para actualizar la plantilla en memoria; luego
+        <p class="text-xs text-text-muted">
+          Solo el objeto <code class="bg-surface-raised px-1 rounded">content_json</code> del detalle técnico. Mismo esquema que en el editor. Pulsa «Aplicar» para actualizar la plantilla en memoria; luego
           <strong>Guardar todos los cambios</strong> en Secciones o guarda desde JSON global.
         </p>
-        <textarea
+        <BaseTextarea
           v-model="defaultsTechnicalJsonRaw"
-          rows="24"
-          class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-xs font-mono bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 resize-y outline-none focus:ring-2 focus:ring-emerald-500"
+          :rows="24"
+          class="font-mono"
         />
-        <div v-if="defaultsTechnicalJsonError" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-lg">
+        <div v-if="defaultsTechnicalJsonError" class="text-sm text-danger-strong bg-danger-soft px-4 py-2 rounded-lg">
           {{ defaultsTechnicalJsonError }}
         </div>
         <div
           v-if="defaultsTechnicalJsonMsg"
           class="text-sm px-4 py-2 rounded-lg"
-          :class="defaultsTechnicalJsonMsg.type === 'success' ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-50 text-red-600'"
+          :class="defaultsTechnicalJsonMsg.type === 'success' ? 'bg-success-soft text-success-strong' : 'bg-danger-soft text-danger-strong'"
         >
           {{ defaultsTechnicalJsonMsg.text }}
         </div>
-        <button
-          type="button"
-          class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700"
-          @click="handleApplyDefaultsTechnicalJson"
-        >
+        <BaseButton variant="primary" size="lg" @click="handleApplyDefaultsTechnicalJson">
           Aplicar a plantilla
-        </button>
+        </BaseButton>
       </div>
     </div>
 
@@ -348,15 +334,15 @@
       <TabSplitLayout ratio="2:3">
         <template #main>
           <div class="mb-4 flex flex-wrap items-center gap-2">
-            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mr-1">Filtrar:</span>
+            <span class="text-xs font-medium text-text-muted uppercase tracking-wider mr-1">Filtrar:</span>
             <button
               v-for="cat in emailCategoryOptions"
               :key="cat.value"
               type="button"
               class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors"
               :class="emailSelectedCategory === cat.value
-                ? 'bg-emerald-600 text-white border-emerald-600'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:border-gray-500'"
+                ? 'bg-primary text-on-primary border-primary'
+                : 'bg-surface text-text-muted border-border-default hover:border-text-muted'"
               @click="emailSelectedCategory = cat.value"
             >
               {{ cat.label }}
@@ -373,19 +359,19 @@
               v-for="tpl in filteredEmailTemplates"
               :key="tpl.template_key"
               type="button"
-              class="w-full text-left bg-white dark:bg-gray-800 rounded-xl shadow-sm border transition-colors px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
+              class="w-full text-left bg-surface rounded-xl shadow-sm border transition-colors px-4 py-3 cursor-pointer hover:bg-surface-raised"
               :class="emailSelectedTemplate === tpl.template_key
-                ? 'border-emerald-500 ring-1 ring-emerald-500'
-                : 'border-gray-100 dark:border-gray-700'"
+                ? 'border-emerald-500 ring-1 ring-focus-ring/30'
+                : 'border-border-muted'"
               @click="selectEmailTemplate(tpl.template_key)"
             >
               <div class="flex items-start gap-3 min-w-0">
                 <span class="text-lg flex-shrink-0">{{ emailCategoryIcon(tpl.category) }}</span>
                 <div class="min-w-0 flex-1">
-                  <div class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ tpl.name }}</div>
+                  <div class="text-sm font-medium text-text-default truncate">{{ tpl.name }}</div>
                   <div class="text-xs text-gray-400 truncate">{{ tpl.description }}</div>
                   <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <span v-if="tpl.is_customized" class="text-[10px] text-emerald-600 font-medium bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 px-1.5 py-0.5 rounded-full">Personalizado</span>
+                    <span v-if="tpl.is_customized" class="text-[10px] text-text-brand font-medium bg-primary-soft dark:text-emerald-400 px-1.5 py-0.5 rounded-full">Personalizado</span>
                     <span v-if="!tpl.is_active" class="text-[10px] text-red-600 font-medium bg-red-50 dark:bg-red-900/20 dark:text-red-400 px-1.5 py-0.5 rounded-full">Desactivado</span>
                     <span class="text-[10px] text-gray-400">{{ tpl.editable_fields_count }} campos</span>
                   </div>
@@ -395,32 +381,32 @@
           </div>
 
           <div v-else class="text-center py-16">
-            <p class="text-gray-500 text-sm">No se encontraron plantillas de email.</p>
+            <p class="text-text-muted text-sm">No se encontraron plantillas de email.</p>
           </div>
         </template>
 
         <template #aside>
           <div
             v-if="!emailSelectedTemplate"
-            class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-dashed border-gray-200 dark:border-gray-700 px-6 py-16 text-center"
+            class="bg-surface rounded-xl shadow-sm border border-dashed border-border-default px-6 py-16 text-center"
           >
             <p class="text-sm text-gray-400">Selecciona una plantilla a la izquierda para editar sus campos.</p>
           </div>
           <div
             v-else-if="emailIsLoadingDetail && !emailTemplateDetail"
-            class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 px-6 py-12 text-center text-gray-400 text-sm"
+            class="bg-surface rounded-xl shadow-sm border border-border-muted px-6 py-12 text-center text-gray-400 text-sm"
           >
             Cargando campos editables...
           </div>
           <div
             v-else-if="emailTemplateDetail"
-            class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 px-4 sm:px-6 py-4 sm:py-6 space-y-5"
+            class="bg-surface rounded-xl shadow-sm border border-border-muted px-4 sm:px-6 py-4 sm:py-6 space-y-5"
           >
-            <div class="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-gray-100 dark:border-gray-700">
+            <div class="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-border-muted">
               <div class="flex items-start gap-3 min-w-0">
                 <span class="text-2xl flex-shrink-0">{{ emailCategoryIcon(emailTemplateDetail.category) }}</span>
                 <div class="min-w-0">
-                  <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 truncate">{{ emailTemplateDetail.name }}</h3>
+                  <h3 class="text-base font-medium text-text-default truncate">{{ emailTemplateDetail.name }}</h3>
                   <p class="text-xs text-gray-400 mt-0.5">{{ emailTemplateDetail.description }}</p>
                 </div>
               </div>
@@ -436,27 +422,21 @@
 
             <div class="flex items-center justify-between">
               <div>
-                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">Estado del email</span>
+                <span class="text-sm font-medium text-text-default">Estado del email</span>
                 <p class="text-xs text-gray-400 mt-0.5">Desactiva para dejar de enviar este correo.</p>
               </div>
-              <button
-                type="button"
-                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                :class="emailEditIsActive ? 'bg-emerald-600' : 'bg-gray-200'"
-                @click="emailEditIsActive = !emailEditIsActive"
-              >
-                <span
-                  class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                  :class="emailEditIsActive ? 'translate-x-5' : 'translate-x-0'"
-                />
-              </button>
+              <BaseToggle
+                v-model="emailEditIsActive"
+                size="md"
+                aria-label="Activar / desactivar plantilla"
+              />
             </div>
 
             <div v-for="field in emailTemplateDetail.editable_fields" :key="field.key" class="space-y-1.5">
               <div class="flex items-center justify-between">
-                <label class="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                <label class="text-xs font-medium text-text-muted uppercase tracking-wider flex items-center gap-2">
                   {{ field.label }}
-                  <span v-if="field.is_overridden" class="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full normal-case tracking-normal">modificado</span>
+                  <span v-if="field.is_overridden" class="text-[10px] text-text-brand bg-primary-soft px-1.5 py-0.5 rounded-full normal-case tracking-normal">modificado</span>
                 </label>
                 <button
                   v-if="emailEditFields[field.key] && emailEditFields[field.key] !== field.default_value"
@@ -465,40 +445,38 @@
                   @click="emailEditFields[field.key] = field.default_value || ''"
                 >restaurar campo</button>
               </div>
-              <input
+              <BaseInput
                 v-if="field.type === 'text'"
                 v-model="emailEditFields[field.key]"
                 type="text"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors dark:bg-gray-700"
                 :placeholder="field.default_value"
-                :ref="el => { if (el) emailFieldRefs[field.key] = el }"
+                :ref="el => { if (el?.$el) emailFieldRefs[field.key] = el.$el; else if (el) emailFieldRefs[field.key] = el }"
                 @focus="emailLastFocusedField = field.key"
               />
-              <textarea
+              <BaseTextarea
                 v-else
                 v-model="emailEditFields[field.key]"
-                rows="3"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors resize-y dark:bg-gray-700"
+                :rows="3"
                 :placeholder="field.default_value"
-                :ref="el => { if (el) emailFieldRefs[field.key] = el }"
+                :ref="el => { if (el?.$el) emailFieldRefs[field.key] = el.$el; else if (el) emailFieldRefs[field.key] = el }"
                 @focus="emailLastFocusedField = field.key"
               />
-              <p v-if="field.default_value" class="text-[11px] text-gray-400">
+              <p v-if="field.default_value" class="text-[11px] text-text-subtle">
                 Por defecto: {{ truncateText(field.default_value, 100) }}
               </p>
             </div>
 
-            <div v-if="emailTemplateDetail.available_variables?.length" class="pt-3 border-t border-gray-100 dark:border-gray-700">
-              <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+            <div v-if="emailTemplateDetail.available_variables?.length" class="pt-3 border-t border-border-muted">
+              <p class="text-xs font-medium text-text-muted mb-2">
                 Variables disponibles
-                <span v-if="emailLastFocusedField" class="text-emerald-500 font-normal">(click para insertar en {{ emailLastFocusedField }})</span>
-                <span v-else class="text-gray-400 font-normal">(haz clic en un campo primero)</span>
+                <span v-if="emailLastFocusedField" class="text-text-brand font-normal">(click para insertar en {{ emailLastFocusedField }})</span>
+                <span v-else class="text-text-subtle font-normal">(haz clic en un campo primero)</span>
               </p>
               <div class="flex flex-wrap gap-1.5">
                 <code
                   v-for="v in emailTemplateDetail.available_variables"
                   :key="v"
-                  class="text-[11px] bg-gray-100 text-gray-600 px-2 py-1 rounded-lg cursor-pointer hover:bg-emerald-50 hover:text-emerald-700 transition-colors dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400"
+                  class="text-[11px] bg-surface-raised text-text-muted px-2 py-1 rounded-lg cursor-pointer hover:bg-primary-soft hover:text-text-brand transition-colors"
                   @click="emailInsertVariable(v)"
                 >
                   {<span>{{ v }}</span>}
@@ -506,22 +484,24 @@
               </div>
             </div>
 
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-              <button
-                type="button"
-                class="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-border-muted">
+              <BaseButton
+                variant="ghost"
+                size="md"
+                class="!text-danger-strong hover:!bg-danger-soft"
                 @click="handleResetEmailTemplate(emailSelectedTemplate)"
               >
                 Restaurar
-              </button>
-              <button
-                type="button"
-                class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+              </BaseButton>
+              <BaseButton
+                variant="primary"
+                size="lg"
+                :loading="isSaving"
                 :disabled="isSaving"
                 @click="handleSaveEmailTemplate(emailSelectedTemplate)"
               >
                 {{ isSaving ? 'Guardando...' : 'Guardar Cambios' }}
-              </button>
+              </BaseButton>
             </div>
           </div>
         </template>
@@ -532,10 +512,10 @@
     <div v-show="activeTab === 'prompt'" class="max-w-7xl mx-auto">
       <PromptSubTabsPanel v-model="defaultsPromptSubTab" dark-track>
         <template #commercial>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+        <p class="text-sm text-text-muted mb-6">
           Este prompt se usa con IA (ChatGPT, Claude, etc.) para generar propuestas comerciales personalizadas a partir del JSON plantilla.
-          El detalle técnico por defecto se edita en la pestaña <strong class="text-gray-600 dark:text-gray-300">Det. técnico</strong>;
-          para la IA solo técnica usa la subpestaña <strong class="text-gray-600 dark:text-gray-300">Técnico</strong> aquí abajo.
+          El detalle técnico por defecto se edita en la pestaña <strong class="text-text-default">Det. técnico</strong>;
+          para la IA solo técnica usa la subpestaña <strong class="text-text-default">Técnico</strong> aquí abajo.
         </p>
 
         <!-- Action bar -->
@@ -543,7 +523,7 @@
           <template v-if="!promptIsEditing">
             <button
               type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
               @click="startEditPrompt"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -551,7 +531,7 @@
             </button>
             <button
               type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
               @click="handleCopyPrompt"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
@@ -559,7 +539,7 @@
             </button>
             <button
               type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
               @click="promptDownload"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -568,7 +548,7 @@
             <button
               v-if="promptText !== promptDefault"
               type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-danger-strong bg-surface border border-border-default rounded-xl hover:bg-danger-soft transition-colors"
               @click="handleResetPrompt"
             >
               Restaurar original
@@ -577,14 +557,14 @@
           <template v-else>
             <button
               type="button"
-              class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+              class="px-5 py-2 bg-primary text-on-primary rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm"
               @click="saveEditPrompt"
             >
               Guardar cambios
             </button>
             <button
               type="button"
-              class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default transition-colors"
               @click="cancelEditPrompt"
             >
               Cancelar
@@ -593,18 +573,18 @@
         </div>
 
         <!-- Editing mode -->
-        <div v-if="promptIsEditing" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div v-if="promptIsEditing" class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
           <textarea
             v-model="promptEditBuffer"
             rows="30"
-            class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 dark:text-gray-200 bg-transparent border-0 outline-none resize-y focus:ring-0"
+            class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-text-default bg-transparent border-0 outline-none resize-y focus:ring-0"
           ></textarea>
         </div>
 
         <!-- Read-only mode -->
-        <div v-else class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div v-else class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
           <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
-            <pre class="text-xs leading-relaxed text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono break-words">{{ promptText }}</pre>
+            <pre class="text-xs leading-relaxed text-text-default whitespace-pre-wrap font-mono break-words">{{ promptText }}</pre>
           </div>
         </div>
 
@@ -614,29 +594,29 @@
         </template>
 
         <template #technical>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          Prompt para generar la clave <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">technicalDocument</code> (arquitectura, módulos del producto, requerimientos). Sin narrativa comercial ni precios.
-          La estructura por defecto del detalle técnico está en la pestaña <strong class="text-gray-600 dark:text-gray-300">Det. técnico</strong> (editor o JSON) y en la pestaña <strong class="text-gray-600 dark:text-gray-300">JSON</strong> global.
+        <p class="text-sm text-text-muted mb-6">
+          Prompt para generar la clave <code class="text-xs bg-surface-raised px-1 rounded">technicalDocument</code> (arquitectura, módulos del producto, requerimientos). Sin narrativa comercial ni precios.
+          La estructura por defecto del detalle técnico está en la pestaña <strong class="text-text-default">Det. técnico</strong> (editor o JSON) y en la pestaña <strong class="text-text-default">JSON</strong> global.
         </p>
         <div class="flex flex-wrap items-center gap-2 mb-4">
           <template v-if="!technicalDefaultsPromptIsEditing">
             <button
               type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
               @click="startEditTechnicalDefaultsPrompt"
             >
               Editar
             </button>
             <button
               type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
               @click="handleCopyTechnicalDefaultsPrompt"
             >
               {{ technicalDefaultsPromptCopied ? '¡Copiado!' : 'Copiar' }}
             </button>
             <button
               type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
               @click="technicalDefaultsPromptDownload"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -645,7 +625,7 @@
             <button
               v-if="technicalDefaultsPromptText !== technicalDefaultsPromptDefault"
               type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-danger-strong bg-surface border border-border-default rounded-xl hover:bg-danger-soft transition-colors"
               @click="handleResetTechnicalDefaultsPrompt"
             >
               Restaurar original
@@ -654,30 +634,30 @@
           <template v-else>
             <button
               type="button"
-              class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+              class="px-5 py-2 bg-primary text-on-primary rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm"
               @click="saveEditTechnicalDefaultsPrompt"
             >
               Guardar cambios
             </button>
             <button
               type="button"
-              class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default transition-colors"
               @click="cancelEditTechnicalDefaultsPrompt"
             >
               Cancelar
             </button>
           </template>
         </div>
-        <div v-if="technicalDefaultsPromptIsEditing" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div v-if="technicalDefaultsPromptIsEditing" class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
           <textarea
             v-model="technicalDefaultsPromptEditBuffer"
             rows="28"
-            class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 dark:text-gray-200 bg-transparent border-0 outline-none resize-y focus:ring-0"
+            class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-text-default bg-transparent border-0 outline-none resize-y focus:ring-0"
           ></textarea>
         </div>
-        <div v-else class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div v-else class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
           <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
-            <pre class="text-xs leading-relaxed text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono break-words">{{ technicalDefaultsPromptText }}</pre>
+            <pre class="text-xs leading-relaxed text-text-default whitespace-pre-wrap font-mono break-words">{{ technicalDefaultsPromptText }}</pre>
           </div>
         </div>
         <p v-if="technicalDefaultsPromptText !== technicalDefaultsPromptDefault" class="text-xs text-amber-600 mt-3">
@@ -689,16 +669,16 @@
 
     <!-- ═══ TAB: JSON ═══ -->
     <div v-show="activeTab === 'json'" class="max-w-7xl mx-auto">
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+      <p class="text-sm text-text-muted mb-2">
         Representación JSON de la configuración por defecto (secciones plantilla). Puedes editar directamente el JSON y guardar los cambios.
       </p>
-      <ul class="text-xs text-gray-500 dark:text-gray-400 mb-4 list-disc list-inside space-y-1">
+      <ul class="text-xs text-text-muted mb-4 list-disc list-inside space-y-1">
         <li>
-          Debe existir una entrada con <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">section_type: &quot;technical_document&quot;</code> y su
-          <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">content_json</code> (arquitectura, módulos del producto, <code class="text-[10px]">epicKey</code> / <code class="text-[10px]">flowKey</code>, etc.).
+          Debe existir una entrada con <code class="bg-surface-raised px-1 rounded">section_type: &quot;technical_document&quot;</code> y su
+          <code class="bg-surface-raised px-1 rounded">content_json</code> (arquitectura, módulos del producto, <code class="text-[10px]">epicKey</code> / <code class="text-[10px]">flowKey</code>, etc.).
         </li>
         <li>
-          Al importar una propuesta desde JSON global, la clave camelCase es <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">technicalDocument</code> — distinta de este formato de plantilla.
+          Al importar una propuesta desde JSON global, la clave camelCase es <code class="bg-surface-raised px-1 rounded">technicalDocument</code> — distinta de este formato de plantilla.
         </li>
       </ul>
       <p
@@ -713,7 +693,7 @@
         <template v-if="!jsonIsEditing">
           <button
             type="button"
-            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
             @click="startEditJson"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -721,7 +701,7 @@
           </button>
           <button
             type="button"
-            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
             @click="copyDefaultsJson"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
@@ -729,7 +709,7 @@
           </button>
           <button
             type="button"
-            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
             @click="downloadDefaultsJson"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -739,7 +719,7 @@
         <template v-else>
           <button
             type="button"
-            class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+            class="px-5 py-2 bg-primary text-on-primary rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50"
             :disabled="isSaving"
             @click="saveEditJson"
           >
@@ -747,7 +727,7 @@
           </button>
           <button
             type="button"
-            class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default transition-colors"
             @click="cancelEditJson"
           >
             Cancelar
@@ -761,12 +741,12 @@
 
       <!-- Editing mode -->
       <div v-else-if="jsonIsEditing" class="space-y-2">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
           <textarea
             v-model="jsonEditBuffer"
             rows="24"
             class="w-full px-4 py-3 border-0 text-xs font-mono leading-relaxed
-                   bg-transparent text-gray-800 dark:text-gray-200 outline-none resize-y focus:ring-0"
+                   bg-transparent text-text-default outline-none resize-y focus:ring-0"
           />
         </div>
         <p v-if="jsonEditError" class="text-xs text-red-600 dark:text-red-400 px-1">
@@ -775,9 +755,9 @@
       </div>
 
       <!-- Read-only mode -->
-      <div v-else class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div v-else class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
         <div class="px-4 py-3 max-h-[70vh] overflow-y-auto">
-          <pre class="text-xs leading-relaxed text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono break-words">{{ defaultsJsonString }}</pre>
+          <pre class="text-xs leading-relaxed text-text-default whitespace-pre-wrap font-mono break-words">{{ defaultsJsonString }}</pre>
         </div>
       </div>
     </div>
@@ -788,13 +768,13 @@
     <Teleport to="body">
       <Transition name="fade-modal">
         <div v-if="emailShowPreview" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" @click.self="emailShowPreview = false">
-          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <div class="bg-surface rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-border-muted">
               <div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Vista Previa</h3>
-                <p v-if="emailPreviewSubject" class="text-xs text-gray-500 mt-0.5 truncate max-w-md">Asunto: {{ emailPreviewSubject }}</p>
+                <h3 class="text-lg font-semibold text-text-default">Vista Previa</h3>
+                <p v-if="emailPreviewSubject" class="text-xs text-text-muted mt-0.5 truncate max-w-md">Asunto: {{ emailPreviewSubject }}</p>
               </div>
-              <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors" @click="emailShowPreview = false">
+              <button class="p-2 text-text-subtle hover:text-text-muted rounded-lg transition-colors" @click="emailShowPreview = false">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -810,15 +790,15 @@
     <Teleport to="body">
       <Transition name="fade-modal">
         <div v-if="emailShowResetConfirm" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" @click.self="emailShowResetConfirm = false">
-          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+          <div class="bg-surface rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
             <div class="text-4xl mb-3">⚠️</div>
-            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">¿Restaurar valores originales?</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Esto eliminará las personalizaciones de esta plantilla y volverá al contenido por defecto del sistema.</p>
+            <h3 class="text-lg font-bold text-text-default mb-2">¿Restaurar valores originales?</h3>
+            <p class="text-sm text-text-muted mb-6">Esto eliminará las personalizaciones de esta plantilla y volverá al contenido por defecto del sistema.</p>
             <div class="flex gap-3 justify-center">
               <button class="px-6 py-2.5 bg-red-600 text-white rounded-xl font-medium text-sm hover:bg-red-700 transition-colors" :disabled="isSaving" @click="confirmResetEmailTemplate">
                 {{ isSaving ? 'Restaurando...' : 'Sí, restaurar' }}
               </button>
-              <button class="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="emailShowResetConfirm = false">Cancelar</button>
+              <button class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-surface-raised transition-colors" @click="emailShowResetConfirm = false">Cancelar</button>
             </div>
           </div>
         </div>
@@ -833,10 +813,10 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="showResetConfirm = false"
         >
-          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+          <div class="bg-surface rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
             <div class="text-4xl mb-3">⚠️</div>
-            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">¿Restaurar valores originales?</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            <h3 class="text-lg font-bold text-text-default mb-2">¿Restaurar valores originales?</h3>
+            <p class="text-sm text-text-muted mb-6">
               Esto eliminará toda la configuración personalizada para <strong>{{ selectedLang === 'es' ? 'Español' : 'English' }}</strong>
               y volverá a los valores del sistema. Las propuestas existentes no se verán afectadas.
             </p>
@@ -849,7 +829,7 @@
                 {{ isSaving ? 'Restaurando...' : 'Sí, restaurar' }}
               </button>
               <button
-                class="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
+                class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-surface-raised transition-colors"
                 @click="showResetConfirm = false"
               >
                 Cancelar
@@ -871,7 +851,7 @@
     <!-- Feedback messages -->
     <Transition name="fade-modal">
       <div v-if="feedbackMsg" class="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium"
-        :class="feedbackType === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'"
+        :class="feedbackType === 'success' ? 'bg-primary text-on-primary' : 'bg-danger-strong text-on-danger'"
       >
         {{ feedbackMsg }}
       </div>
@@ -880,7 +860,7 @@
     <!-- Floating refresh button -->
     <button
       type="button"
-      class="fixed bottom-[68px] right-6 z-50 w-12 h-12 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 disabled:opacity-50 flex items-center justify-center dark:bg-emerald-700 dark:hover:bg-emerald-600"
+      class="fixed bottom-[68px] right-6 z-50 w-12 h-12 rounded-full bg-primary hover:bg-primary-strong text-on-primary shadow-lg transition-all hover:shadow-xl hover:scale-105 disabled:opacity-50 flex items-center justify-center"
       :disabled="isRefreshing"
       :title="isRefreshing ? 'Actualizando...' : 'Actualizar datos'"
       @click="refreshData"
@@ -899,7 +879,6 @@ import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/Technic
 import SectionPreviewModal from '~/components/BusinessProposal/admin/SectionPreviewModal.vue';
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
-import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
 import { useConfirmModal } from '~/composables/useConfirmModal';

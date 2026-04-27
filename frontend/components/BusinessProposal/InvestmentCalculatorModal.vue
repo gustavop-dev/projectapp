@@ -3,15 +3,15 @@
     <Transition name="modal-fade">
       <div v-if="visible" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="$emit('close')" />
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="relative bg-surface rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <!-- Header -->
-          <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-esmerald">
+          <div class="flex items-center justify-between px-6 py-5 border-b border-border-default bg-primary">
             <div>
-              <h3 class="text-xl font-bold text-lemon">{{ t.title }}</h3>
-              <p class="text-sm text-esmerald-light/70 mt-1">{{ t.subtitle }}</p>
+              <h3 class="text-xl font-bold text-accent">{{ t.title }}</h3>
+              <p class="text-sm text-accent/70 mt-1">{{ t.subtitle }}</p>
             </div>
             <button
-              class="w-8 h-8 rounded-lg flex items-center justify-center text-esmerald-light/60 hover:text-white hover:bg-white/10 transition-colors"
+              class="w-8 h-8 rounded-lg flex items-center justify-center text-accent/60 hover:text-accent hover:bg-surface/10 transition-colors"
               :aria-label="t.close"
               @click="$emit('close')"
             >
@@ -24,13 +24,13 @@
           <!-- Body -->
           <div class="overflow-y-auto px-6 py-6 flex-1">
             <!-- Informational badge -->
-            <div class="mb-5 bg-amber-50 border-l-4 border-amber-400 rounded-xl px-5 py-4 shadow-sm">
-              <p class="text-sm text-amber-800 leading-relaxed font-medium">
+            <div class="mb-5 bg-warning-soft border-l-4 border-warning-strong rounded-xl px-5 py-4 shadow-sm">
+              <p class="text-sm text-warning-strong leading-relaxed font-medium">
                 💡 {{ t.optionalItemsBadge }}
               </p>
               <button
                 type="button"
-                class="mt-1.5 text-[11px] text-blue-600 font-semibold hover:text-blue-800 transition-colors flex items-center gap-1"
+                class="mt-1.5 text-[11px] text-text-brand font-semibold hover:opacity-80 transition-colors flex items-center gap-1"
                 @click="$emit('navigateToRequirements')"
               >
                 📋 {{ t.viewRequirements }}
@@ -42,7 +42,7 @@
 
             <template v-for="(group, gKey) in groupedModules" :key="gKey">
               <div class="mb-1 mt-4 first:mt-0">
-                <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">{{ group.label }}</h4>
+                <h4 class="text-xs font-semibold text-text-subtle uppercase tracking-wider px-1">{{ group.label }}</h4>
               </div>
               <div class="space-y-2 mb-4">
                 <div
@@ -51,9 +51,9 @@
                   class="rounded-xl border transition-all"
                   :class="[
                     mod.selected
-                      ? 'bg-esmerald/5 border-esmerald/20'
-                      : 'bg-gray-50 border-gray-200',
-                    mod._locked ? 'opacity-80' : 'cursor-pointer hover:border-esmerald/40'
+                      ? 'bg-primary-soft border-border-default'
+                      : 'bg-surface-muted border-border-default',
+                    mod._locked ? 'opacity-80' : 'cursor-pointer hover:border-border-muted'
                   ]"
                   @click="toggleModule(mod)"
                 >
@@ -62,27 +62,27 @@
                       <div
                         class="w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0"
                         :class="mod.selected
-                          ? 'bg-esmerald border-esmerald text-white scale-110'
-                          : 'border-gray-300 bg-white scale-100'"
+                          ? 'bg-primary border-primary text-accent scale-110'
+                          : 'border-input-border bg-surface scale-100'"
                       >
                         <svg v-if="mod.selected" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
                       <div class="min-w-0">
-                        <span class="font-medium" :class="mod.selected ? 'text-esmerald' : 'text-gray-500'">
+                        <span class="font-medium" :class="mod.selected ? 'text-text-brand' : 'text-text-muted'">
                           {{ mod.name }}
                         </span>
                         <span v-if="mod._locked" class="ml-2 text-[10px] text-esmerald/50 font-medium uppercase">{{ t.required }}</span>
-                        <p v-if="!mod.selected && !mod._locked && !mod.is_invite" class="text-[11px] text-amber-600 leading-snug mt-0.5">
+                        <p v-if="!mod.selected && !mod._locked && !mod.is_invite" class="text-[11px] text-warning-strong leading-snug mt-0.5">
                           ⚠ {{ impactMessage(mod) }}
                         </p>
                       </div>
                     </div>
-                    <span v-if="mod.is_invite" class="text-[11px] font-semibold text-purple-600 flex-shrink-0">
+                    <span v-if="mod.is_invite" class="text-[11px] font-semibold text-text-brand flex-shrink-0">
                       {{ t.scheduleCall }}
                     </span>
-                    <span v-else class="font-bold text-sm flex-shrink-0" :class="mod.selected ? 'text-esmerald' : 'text-gray-400'">
+                    <span v-else class="font-bold text-sm flex-shrink-0" :class="mod.selected ? 'text-text-brand' : 'text-text-subtle'">
                       {{ mod.price ? (mod._source === 'calculator_module' && mod.selected ? '+' : '') + formatPrice(mod.price) : t.included }}
                     </span>
                     <!-- Micro-feedback badge -->
@@ -90,7 +90,7 @@
                       <span
                         v-if="priceFeedback[mod.id]"
                         class="ml-2 text-xs font-bold flex-shrink-0 whitespace-nowrap"
-                        :class="priceFeedback[mod.id].startsWith('+') ? 'text-emerald-600' : 'text-red-500'"
+                        :class="priceFeedback[mod.id].startsWith('+') ? 'text-success-strong' : 'text-danger-strong'"
                       >
                         {{ priceFeedback[mod.id] }}
                       </span>
@@ -98,8 +98,8 @@
                   </div>
                   <!-- Invite creative note -->
                   <div v-if="mod.is_invite" class="px-4 pb-4 -mt-1">
-                    <div class="bg-purple-50 border border-purple-100 rounded-lg px-3 py-2.5">
-                      <p class="text-[11px] text-purple-700 leading-relaxed">
+                    <div class="bg-primary-soft border border-border-default rounded-lg px-3 py-2.5">
+                      <p class="text-[11px] text-text-brand leading-relaxed">
                         {{ mod.invite_note || t.inviteNote }}
                       </p>
                     </div>
@@ -108,7 +108,7 @@
                   <div v-if="mod._source === 'calculator_module' && (mod.description || mod.detailItems?.length)" class="px-4 pb-3 -mt-1">
                     <button
                       type="button"
-                      class="text-[11px] font-semibold text-esmerald/70 hover:text-esmerald transition-colors flex items-center gap-1"
+                      class="text-[11px] font-semibold text-esmerald/70 hover:text-text-brand transition-colors flex items-center gap-1"
                       @click.stop="toggleDetail(mod.id)"
                     >
                       {{ expandedModules.has(mod.id) ? t.hideDetail : t.viewDetail }}
@@ -117,16 +117,16 @@
                       </svg>
                     </button>
                     <Transition name="detail-slide">
-                      <div v-if="expandedModules.has(mod.id)" class="mt-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 space-y-2">
-                        <p v-if="mod.description" class="text-[11px] text-gray-600 leading-relaxed">
+                      <div v-if="expandedModules.has(mod.id)" class="mt-2 bg-surface-muted border border-border-default rounded-lg px-3 py-2.5 space-y-2">
+                        <p v-if="mod.description" class="text-[11px] text-text-muted leading-relaxed">
                           {{ mod.description }}
                         </p>
                         <ul v-if="mod.detailItems?.length" class="space-y-1.5">
                           <li v-for="(item, idx) in mod.detailItems" :key="idx" class="flex items-start gap-2">
                             <span class="text-xs flex-shrink-0">{{ item.icon || '•' }}</span>
                             <div class="min-w-0">
-                              <span class="text-[11px] font-medium text-gray-700">{{ item.name }}</span>
-                              <span v-if="item.description" class="text-[11px] text-gray-500 ml-1">— {{ item.description }}</span>
+                              <span class="text-[11px] font-medium text-text-default">{{ item.name }}</span>
+                              <span v-if="item.description" class="text-[11px] text-text-subtle ml-1">— {{ item.description }}</span>
                             </div>
                           </li>
                         </ul>
@@ -139,38 +139,38 @@
           </div>
 
           <!-- Footer with total -->
-          <div class="px-6 py-5 border-t border-gray-100 bg-gray-50">
+          <div class="px-6 py-5 border-t border-border-default bg-surface-muted">
             <!-- Discount badge -->
-            <div v-if="hasActiveDiscount" class="mb-3 flex items-center gap-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-xl px-4 py-2.5">
-              <span class="text-xs font-bold text-amber-700">🔥 {{ props.discountPercent }}% OFF</span>
-              <span class="text-xs text-amber-600">{{ t.discountApplied }}</span>
+            <div v-if="hasActiveDiscount" class="mb-3 flex items-center gap-2 bg-warning-soft border border-warning-strong rounded-xl px-4 py-2.5">
+              <span class="text-xs font-bold text-warning-strong">🔥 {{ props.discountPercent }}% OFF</span>
+              <span class="text-xs text-warning-strong">{{ t.discountApplied }}</span>
             </div>
             <div class="flex items-center justify-between mb-4">
               <div>
-                <span class="text-sm text-gray-500">{{ t.selectedModules }}</span>
-                <span class="ml-1 text-sm font-medium text-esmerald">{{ selectedCount }}/{{ localModules.length }}</span>
+                <span class="text-sm text-text-subtle">{{ t.selectedModules }}</span>
+                <span class="ml-1 text-sm font-medium text-text-brand">{{ selectedCount }}/{{ localModules.length }}</span>
               </div>
               <div class="text-right">
-                <span class="text-sm text-gray-500 block">{{ t.estimatedTotal }}</span>
-                <span class="text-2xl font-bold text-esmerald transition-transform" :class="{ 'total-pulse': totalPulsing }">{{ formatPrice(animatedTotal) }}</span>
-                <span class="text-xs text-gray-400 ml-1">{{ currency }}</span>
+                <span class="text-sm text-text-subtle block">{{ t.estimatedTotal }}</span>
+                <span class="text-2xl font-bold text-text-brand transition-transform" :class="{ 'total-pulse': totalPulsing }">{{ formatPrice(animatedTotal) }}</span>
+                <span class="text-xs text-text-subtle ml-1">{{ currency }}</span>
               </div>
             </div>
             <!-- Dynamic timeline -->
-            <div v-if="baseWeeks > 0" class="flex items-center justify-between mb-4 px-3 py-2.5 rounded-xl" :class="timelineChanged ? 'bg-blue-50 border border-blue-200' : 'bg-gray-100'">
+            <div v-if="baseWeeks > 0" class="flex items-center justify-between mb-4 px-3 py-2.5 rounded-xl" :class="timelineChanged ? 'bg-primary-soft border border-border-default' : 'bg-surface-raised'">
               <div class="flex items-center gap-2">
                 <span class="text-sm">⏱</span>
-                <span class="text-sm text-gray-600">{{ t.estimatedDuration }}</span>
+                <span class="text-sm text-text-muted">{{ t.estimatedDuration }}</span>
               </div>
               <div class="text-right">
-                <span class="text-lg font-bold" :class="timelineChanged ? 'text-blue-600' : 'text-esmerald'">{{ dynamicWeeks }} {{ t.weeks }}</span>
-                <span v-if="timelineChanged" class="block text-[11px] text-blue-500 font-medium">
+                <span class="text-lg font-bold" :class="timelineChanged ? 'text-text-brand' : 'text-text-brand'">{{ dynamicWeeks }} {{ t.weeks }}</span>
+                <span v-if="timelineChanged" class="block text-[11px] text-text-brand font-medium">
                   {{ dynamicWeeks > baseWeeks ? t.extendedFrom : t.reducedFrom }} {{ baseWeeks }} {{ t.to }} {{ dynamicWeeks }} {{ t.weeks }}
                 </span>
               </div>
             </div>
             <button
-              class="w-full py-3 bg-esmerald text-lemon rounded-xl font-bold text-sm hover:bg-esmerald/90 transition-colors shadow-md"
+              class="w-full py-3 bg-primary text-accent rounded-xl font-bold text-sm hover:bg-primary-strong transition-colors shadow-md"
               @click="confirmSelection"
             >
               {{ t.confirm }}

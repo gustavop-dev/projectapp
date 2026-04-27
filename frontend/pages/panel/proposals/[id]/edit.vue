@@ -42,17 +42,17 @@
       @cancel="handleSyncCancel"
     />
     <div class="mb-8">
-      <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-gray-500 dark:text-green-light/60 hover:text-gray-700 dark:hover:text-white transition-colors">
+      <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-text-muted hover:text-text-default transition-colors">
         ← Volver a propuestas
       </NuxtLink>
     </div>
 
     <!-- Sticky header: title + investment + status -->
     <div v-if="proposal"
-         class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 bg-white/80 dark:bg-esmerald-dark/80 backdrop-blur-md border-b border-gray-100 dark:border-white/[0.06] transition-all">
+         class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 bg-surface/80 backdrop-blur-md border-b border-border-muted transition-all">
       <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-        <h1 class="text-lg sm:text-xl font-light text-gray-900 dark:text-white truncate">{{ proposal.title }}</h1>
-        <span v-if="proposal.total_investment > 0" class="text-sm sm:text-base font-light text-gray-400 dark:text-green-light/60 whitespace-nowrap">
+        <h1 class="text-lg sm:text-xl font-light text-text-default truncate">{{ proposal.title }}</h1>
+        <span v-if="proposal.total_investment > 0" class="text-sm sm:text-base font-light text-text-subtle whitespace-nowrap">
           ({{ formatInvestment(proposal.total_investment, proposal.currency) }})
         </span>
         <span
@@ -70,32 +70,32 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="proposalStore.isLoading" class="text-center py-12 text-gray-400 dark:text-green-light/60 text-sm">
+    <div v-if="proposalStore.isLoading" class="text-center py-12 text-text-subtle text-sm">
       Cargando...
     </div>
 
     <template v-else-if="proposal">
       <!-- Tabs -->
-      <ResponsiveTabs v-model="activeTab" :tabs="tabs" />
+      <BaseTabs v-model="activeTab" :tabs="tabs" />
 
       <!-- Tab: General -->
       <div v-show="activeTab === 'general'">
         <TabSplitLayout ratio="1:1">
           <template #aside>
         <!-- Editable slug (URL personalizada) -->
-        <div class="bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06] rounded-xl p-4 sm:p-5 mb-4">
-          <label class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" for="proposal-slug-input">
+        <div class="bg-surface border border-border-muted rounded-xl p-4 sm:p-5 mb-4">
+          <label class="text-xs font-medium text-text-muted uppercase tracking-wider" for="proposal-slug-input">
             URL personalizada
           </label>
           <div class="mt-2 flex flex-wrap items-stretch gap-2">
-            <div class="flex-1 min-w-[260px] flex items-stretch rounded-lg border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.03] focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
-              <span class="px-3 flex items-center text-xs text-gray-400 border-r border-gray-200 dark:border-white/[0.08] select-none">/proposal/</span>
+            <div class="flex-1 min-w-[260px] flex items-stretch rounded-lg border border-border-default dark:border-white/[0.08] bg-surface-raised focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-focus-ring/30">
+              <span class="px-3 flex items-center text-xs text-gray-400 border-r border-border-default dark:border-white/[0.08] select-none">/proposal/</span>
               <input
                 id="proposal-slug-input"
                 v-model="slugDraft"
                 type="text"
                 data-testid="proposal-slug-input"
-                class="flex-1 bg-transparent px-3 py-2 text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none font-mono"
+                class="flex-1 bg-transparent px-3 py-2 text-sm text-text-default placeholder:text-gray-400 focus:outline-none font-mono"
                 placeholder="maria-lopez"
                 maxlength="120"
                 @keydown.enter.prevent="saveSlug"
@@ -103,7 +103,7 @@
             </div>
             <button
               type="button"
-              class="px-3 py-2 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+              class="px-3 py-2 text-xs font-medium rounded-lg bg-primary text-white hover:bg-primary disabled:opacity-50"
               :disabled="slugSaving || slugDraft === (proposal.slug || '')"
               @click="saveSlug"
             >
@@ -111,7 +111,7 @@
             </button>
             <button
               type="button"
-              class="px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 dark:border-white/[0.08] text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/[0.2]"
+              class="px-3 py-2 text-xs font-medium rounded-lg border border-border-default dark:border-white/[0.08] text-text-muted hover:border-border-default"
               :title="'Regenerar desde el nombre del cliente'"
               @click="regenerateSlugFromName"
             >
@@ -125,16 +125,16 @@
         </div>
 
         <div
-          class="mb-4 rounded-xl border border-emerald-200/70 dark:border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-500/[0.06] px-4 py-3 sm:px-5 sm:py-4 text-sm"
+          class="mb-4 rounded-xl border border-emerald-200/70 dark:border-emerald-500/20 bg-primary-soft/60 dark:bg-primary/[0.06] px-4 py-3 sm:px-5 sm:py-4 text-sm"
           aria-label="Identificación y estado de la propuesta"
         >
-          <span class="inline-flex items-center gap-1 mb-3 px-2 py-0.5 rounded-full bg-emerald-100/80 dark:bg-emerald-500/15 text-[10px] font-medium uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+          <span class="inline-flex items-center gap-1 mb-3 px-2 py-0.5 rounded-full bg-primary-soft/80 dark:bg-primary/15 text-[10px] font-medium uppercase tracking-wider text-text-brand">
             Identificación
           </span>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <span class="text-gray-400 text-xs">UUID</span>
-              <p class="text-gray-700 dark:text-green-light/60 font-mono text-xs mt-0.5">{{ proposal.uuid }}</p>
+              <p class="text-text-muted font-mono text-xs mt-0.5">{{ proposal.uuid }}</p>
             </div>
             <div>
               <div class="flex items-center gap-1">
@@ -142,13 +142,13 @@
                 <button type="button"
                   :title="copied ? 'Copiado!' : 'Copiar URL'"
                   @click="copyUrl"
-                  class="text-gray-400 hover:text-emerald-600 transition-colors">
+                  class="text-gray-400 hover:text-text-brand transition-colors">
                   <DocumentDuplicateIcon v-if="!copied" class="w-3.5 h-3.5" />
                   <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
                 </button>
               </div>
               <p class="mt-0.5">
-                <a :href="'/proposal/' + publicIdentifier" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
+                <a :href="'/proposal/' + publicIdentifier" target="_blank" class="text-text-brand hover:underline text-xs break-all">
                   /proposal/{{ publicIdentifier }}
                 </a>
               </p>
@@ -158,13 +158,13 @@
                   <button type="button"
                     :title="copiedMode === link.mode ? 'Copiado!' : 'Copiar URL'"
                     @click="copyModeUrl(link.mode)"
-                    class="text-gray-400 hover:text-emerald-600 transition-colors">
+                    class="text-gray-400 hover:text-text-brand transition-colors">
                     <DocumentDuplicateIcon v-if="copiedMode !== link.mode" class="w-3.5 h-3.5" />
                     <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
                   </button>
                 </div>
                 <p class="mt-0.5">
-                  <a :href="'/proposal/' + publicIdentifier + '?mode=' + link.mode" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
+                  <a :href="'/proposal/' + publicIdentifier + '?mode=' + link.mode" target="_blank" class="text-text-brand hover:underline text-xs break-all">
                     /proposal/{{ publicIdentifier }}?mode={{ link.mode }}
                   </a>
                 </p>
@@ -172,17 +172,17 @@
             </div>
             <div>
               <span class="text-gray-400 text-xs">Vistas</span>
-              <p class="text-gray-700 dark:text-green-light/60 mt-0.5">{{ proposal.view_count }}</p>
+              <p class="text-text-muted mt-0.5">{{ proposal.view_count }}</p>
             </div>
             <div>
               <span class="text-gray-400 text-xs">Enviada</span>
-              <p class="text-gray-700 dark:text-green-light/60 mt-0.5">
+              <p class="text-text-muted mt-0.5">
                 {{ proposal.sent_at ? new Date(proposal.sent_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : '—' }}
               </p>
             </div>
             <div v-if="proposal.platform_onboarding_completed_at">
               <span class="text-gray-400 text-xs">Plataforma lanzada</span>
-              <p class="text-gray-700 dark:text-green-light/60 mt-0.5 text-xs">
+              <p class="text-text-muted mt-0.5 text-xs">
                 {{ new Date(proposal.platform_onboarding_completed_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
               </p>
             </div>
@@ -191,7 +191,7 @@
               <div class="flex items-center gap-3 mt-0.5 flex-wrap">
                 <a :href="'/api/proposals/' + proposal.uuid + '/pdf/'"
                    target="_blank"
-                   class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
+                   class="inline-flex items-center gap-1.5 text-text-brand hover:text-text-brand text-xs font-medium transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
@@ -200,7 +200,7 @@
                 <span class="text-gray-300 text-xs">|</span>
                 <a :href="'/api/proposals/' + proposal.uuid + '/pdf/?doc=technical'"
                    target="_blank"
-                   class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
+                   class="inline-flex items-center gap-1.5 text-text-brand hover:text-text-brand text-xs font-medium transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
@@ -213,26 +213,21 @@
                 <div>
                   <div class="flex items-center gap-1">
                     <span class="text-gray-400 text-xs">Estado activo</span>
-                    <UiTooltip position="right">
+                    <BaseTooltip position="right">
                       <template #trigger>
-                        <QuestionMarkCircleIcon class="w-3 h-3 text-gray-300 hover:text-gray-500 transition-colors" />
+                        <QuestionMarkCircleIcon class="w-3 h-3 text-text-subtle hover:text-text-muted transition-colors" />
                       </template>
                       {{ tt.activeStatus }}
-                    </UiTooltip>
+                    </BaseTooltip>
                   </div>
                   <div class="flex items-center gap-2 mt-1">
-                    <button
-                      type="button"
-                      class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                      :class="proposal.is_active ? 'bg-emerald-600' : 'bg-gray-200 dark:bg-white/[0.15]'"
-                      @click="handleToggleActive"
-                    >
-                      <span
-                        class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                        :class="proposal.is_active ? 'translate-x-4' : 'translate-x-0'"
-                      />
-                    </button>
-                    <span class="text-xs" :class="proposal.is_active ? 'text-emerald-600' : 'text-gray-400'">
+                    <BaseToggle
+                      :model-value="proposal.is_active"
+                      size="sm"
+                      aria-label="Activar propuesta"
+                      @update:model-value="handleToggleActive"
+                    />
+                    <span class="text-xs" :class="proposal.is_active ? 'text-primary' : 'text-text-subtle'">
                       {{ proposal.is_active ? 'Activa' : 'Inactiva' }}
                     </span>
                   </div>
@@ -240,26 +235,23 @@
                 <div>
                   <div class="flex items-center gap-1">
                     <span class="text-gray-400 text-xs">Automatizaciones</span>
-                    <UiTooltip position="right">
+                    <BaseTooltip position="right">
                       <template #trigger>
-                        <QuestionMarkCircleIcon class="w-3 h-3 text-gray-300 hover:text-gray-500 transition-colors" />
+                        <QuestionMarkCircleIcon class="w-3 h-3 text-text-subtle hover:text-text-muted transition-colors" />
                       </template>
                       {{ tt.automations }}
-                    </UiTooltip>
+                    </BaseTooltip>
                   </div>
                   <div class="flex items-center gap-2 mt-1">
-                    <button
-                      type="button"
-                      class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                      :class="form.automations_paused ? 'bg-amber-500' : 'bg-emerald-600'"
-                      @click="toggleAutomationsPaused"
-                    >
-                      <span
-                        class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                        :class="form.automations_paused ? 'translate-x-4' : 'translate-x-0'"
-                      />
-                    </button>
-                    <span class="text-xs" :class="form.automations_paused ? 'text-amber-600' : 'text-emerald-600'">
+                    <BaseToggle
+                      :model-value="form.automations_paused"
+                      size="sm"
+                      on-class="bg-warning-strong"
+                      off-class="bg-primary"
+                      aria-label="Pausar automatizaciones"
+                      @update:model-value="toggleAutomationsPaused"
+                    />
+                    <span class="text-xs" :class="form.automations_paused ? 'text-warning-strong' : 'text-primary'">
                       {{ form.automations_paused ? '⏸ Pausadas' : 'Activas' }}
                     </span>
                   </div>
@@ -270,15 +262,14 @@
           </div>
         </div>
 
-        <div data-testid="general-finance-sidebar" class="bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06] rounded-xl p-4 sm:p-5 mb-4 space-y-5">
-          <h3 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+        <div data-testid="general-finance-sidebar" class="bg-surface border border-border-muted rounded-xl p-4 sm:p-5 mb-4 space-y-5">
+          <h3 class="text-xs font-medium text-text-muted uppercase tracking-wider">
             Inversión, pagos y hosting
           </h3>
           <div data-testid="general-finance-investment-card" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Inversión total</label>
-              <input v-model.number="form.total_investment" data-testid="general-finance-total-investment" type="number" min="0" step="0.01"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              <label class="block text-sm font-medium text-text-default mb-1">Inversión total</label>
+              <BaseInput v-model.number="form.total_investment" type="number" min="0" step="0.01" data-testid="general-finance-total-investment" />
               <p
                 v-if="hasCustomizedEffectiveTotal"
                 data-testid="general-finance-effective-total-note"
@@ -290,15 +281,15 @@
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Moneda</label>
-              <select v-model="form.currency" data-testid="general-finance-currency"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
-                <option value="COP">COP</option>
-                <option value="USD">USD</option>
-              </select>
+              <label class="block text-sm font-medium text-text-default mb-1">Moneda</label>
+              <BaseSelect
+                v-model="form.currency"
+                data-testid="general-finance-currency"
+                :options="[{ value: 'COP', label: 'COP' }, { value: 'USD', label: 'USD' }]"
+              />
             </div>
           </div>
-          <div v-if="investmentSection" class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/30 rounded-xl px-4 py-3">
+          <div v-if="investmentSection" class="bg-primary-soft border border-emerald-200 dark:border-emerald-700/30 rounded-xl px-4 py-3">
             <label class="block text-sm font-medium text-emerald-900 dark:text-emerald-200 mb-2">Porcentajes de pago (sección Inversión)</label>
             <div v-if="investmentPaymentPercentages.length" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <label
@@ -306,44 +297,50 @@
                 :key="`payment-percent-${idx}`"
                 class="block"
               >
-                <span class="block text-xs text-emerald-700 dark:text-emerald-300 mb-1">Pago {{ idx + 1 }}</span>
+                <span class="block text-xs text-text-brand mb-1">Pago {{ idx + 1 }}</span>
                 <div class="flex items-center gap-2">
-                  <input
+                  <BaseInput
                     v-model.number="investmentPaymentPercentages[idx]"
                     type="number"
+                    size="sm"
                     min="0"
                     max="100"
                     step="0.01"
-                    class="w-full px-3 py-2 border border-emerald-200 dark:border-emerald-700/30 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white dark:bg-esmerald-dark dark:text-white"
                     @blur="normalizeGeneralPaymentPercentage(idx)"
                   />
-                  <span class="text-sm text-emerald-700 dark:text-emerald-300">%</span>
+                  <span class="text-sm text-text-brand">%</span>
                 </div>
                 <span
                   v-if="form.total_investment > 0 && investmentPaymentPercentages[idx] > 0"
-                  class="block text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium"
+                  class="block text-xs text-text-brand mt-1 font-medium"
                 >
                   {{ paymentAmounts[idx] }}
                 </span>
               </label>
             </div>
-            <p v-else class="text-xs text-emerald-700 dark:text-emerald-300">No se detectaron porcentajes en "Secciones → Inversión → Opciones de pago".</p>
-            <p class="text-xs text-emerald-700 dark:text-emerald-300 mt-2">Se sincroniza con los porcentajes definidos en "Secciones → Inversión → Opciones de pago".</p>
+            <p v-else class="text-xs text-text-brand">No se detectaron porcentajes en "Secciones → Inversión → Opciones de pago".</p>
+            <p class="text-xs text-text-brand mt-2">Se sincroniza con los porcentajes definidos en "Secciones → Inversión → Opciones de pago".</p>
           </div>
           <div data-testid="general-finance-hosting-card">
             <div class="flex items-center gap-1.5 mb-1">
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70">Hosting (% de inversión total)</label>
-              <UiTooltip position="right">
+              <label class="block text-sm font-medium text-text-default">Hosting (% de inversión total)</label>
+              <BaseTooltip position="right">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-text-subtle hover:text-text-muted transition-colors" />
                 </template>
                 {{ tt.hostingPercent }}
-              </UiTooltip>
+              </BaseTooltip>
             </div>
             <div class="flex items-center gap-3">
-              <input v-model.number="form.hosting_percent" data-testid="general-finance-hosting-percent" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-              <span class="text-sm text-gray-500">%</span>
+              <BaseInput
+                v-model.number="form.hosting_percent"
+                data-testid="general-finance-hosting-percent"
+                type="number"
+                min="0"
+                max="100"
+                class="w-32"
+              />
+              <span class="text-sm text-text-muted">%</span>
             </div>
             <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-700/30 rounded-xl overflow-hidden">
               <div class="px-4 py-2 text-[11px] uppercase tracking-wider text-blue-600 dark:text-blue-300/70 border-b border-blue-100 dark:border-blue-900/30">
@@ -358,10 +355,10 @@
 
                 <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
                   Trimestral
-                  <span v-if="form.hosting_discount_quarterly" class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_quarterly }}% dcto)</span>
+                  <span v-if="form.hosting_discount_quarterly" class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_quarterly }}% dcto)</span>
                 </div>
                 <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
-                     :class="form.hosting_discount_quarterly ? 'text-emerald-700 dark:text-emerald-300' : 'text-blue-800 dark:text-blue-200'">
+                     :class="form.hosting_discount_quarterly ? 'text-text-brand' : 'text-blue-800 dark:text-blue-200'">
                   ${{ hostingMonthlyWithDiscount(form.hosting_discount_quarterly).toLocaleString() }} {{ form.currency }}/mes
                 </div>
                 <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
@@ -370,10 +367,10 @@
 
                 <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
                   Semestral
-                  <span v-if="form.hosting_discount_semiannual" class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_semiannual }}% dcto)</span>
+                  <span v-if="form.hosting_discount_semiannual" class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_semiannual }}% dcto)</span>
                 </div>
                 <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
-                     :class="form.hosting_discount_semiannual ? 'text-emerald-700 dark:text-emerald-300' : 'text-blue-800 dark:text-blue-200'">
+                     :class="form.hosting_discount_semiannual ? 'text-text-brand' : 'text-blue-800 dark:text-blue-200'">
                   ${{ hostingMonthlyWithDiscount(form.hosting_discount_semiannual).toLocaleString() }} {{ form.currency }}/mes
                 </div>
                 <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
@@ -391,14 +388,26 @@
           </div>
           <div data-testid="general-finance-discounts-card" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. semestral (%)</label>
-              <input v-model.number="form.hosting_discount_semiannual" data-testid="general-finance-semiannual-discount" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              <label class="block text-sm font-medium text-text-default mb-1">Dcto. semestral (%)</label>
+              <BaseInput
+                v-model.number="form.hosting_discount_semiannual"
+                data-testid="general-finance-semiannual-discount"
+                type="number"
+                min="0"
+                max="100"
+                class="w-32"
+              />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. trimestral (%)</label>
-              <input v-model.number="form.hosting_discount_quarterly" data-testid="general-finance-quarterly-discount" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              <label class="block text-sm font-medium text-text-default mb-1">Dcto. trimestral (%)</label>
+              <BaseInput
+                v-model.number="form.hosting_discount_quarterly"
+                data-testid="general-finance-quarterly-discount"
+                type="number"
+                min="0"
+                max="100"
+                class="w-32"
+              />
             </div>
           </div>
         </div>
@@ -407,17 +416,16 @@
 
           <template #main>
         <!-- Editable form -->
-        <form class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06]" @submit.prevent="handleUpdate">
+        <form class="bg-surface rounded-xl shadow-sm border border-border-muted" @submit.prevent="handleUpdate">
           <div class="p-4 sm:p-8 space-y-6">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Título</label>
-            <input v-model="form.title" type="text" required
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+            <label class="block text-sm font-medium text-text-default mb-1">Título</label>
+            <BaseInput v-model="form.title" type="text" required />
           </div>
           <!-- Client picker (autocomplete + snapshot fields) -->
-          <div class="space-y-4 border border-gray-100 dark:border-white/[0.06] rounded-xl p-4 bg-gray-50/30 dark:bg-white/[0.03]">
+          <div class="space-y-4 border border-border-muted rounded-xl p-4 bg-surface-raised">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Cliente</label>
+              <label class="block text-sm font-medium text-text-default mb-1">Cliente</label>
               <ClientAutocomplete
                 v-model="form.client_id"
                 :initial-label="form.client_name"
@@ -443,28 +451,47 @@
             <!-- Snapshot fields (still editable, but clearly subordinated) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Nombre snapshot</label>
-                <input id="edit-client-name" v-model="form.client_name" type="text" required
+                <label class="block text-xs font-medium text-text-muted mb-1">Nombre snapshot</label>
+                <BaseInput
+                  id="edit-client-name"
+                  v-model="form.client_name"
+                  type="text"
+                  required
+                  size="sm"
                   data-testid="edit-client-name"
-                  class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                />
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Email snapshot</label>
-                <input id="edit-client-email" v-model="form.client_email" type="email"
+                <label class="block text-xs font-medium text-text-muted mb-1">Email snapshot</label>
+                <BaseInput
+                  id="edit-client-email"
+                  v-model="form.client_email"
+                  type="email"
+                  size="sm"
                   data-testid="edit-client-email"
-                  class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                />
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Teléfono / WhatsApp</label>
-                <input id="edit-client-phone" v-model="form.client_phone" type="tel" placeholder="+57 300 123 4567"
+                <label class="block text-xs font-medium text-text-muted mb-1">Teléfono / WhatsApp</label>
+                <BaseInput
+                  id="edit-client-phone"
+                  v-model="form.client_phone"
+                  type="tel"
+                  size="sm"
+                  placeholder="+57 300 123 4567"
                   data-testid="edit-client-phone"
-                  class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                />
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Empresa</label>
-                <input id="edit-client-company" v-model="form.client_company" type="text" placeholder="Acme Inc."
+                <label class="block text-xs font-medium text-text-muted mb-1">Empresa</label>
+                <BaseInput
+                  id="edit-client-company"
+                  v-model="form.client_company"
+                  type="text"
+                  size="sm"
+                  placeholder="Acme Inc."
                   data-testid="edit-client-company"
-                  class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                />
               </div>
             </div>
 
@@ -474,18 +501,17 @@
                 v-model="form.propagate_client_updates"
                 type="checkbox"
                 data-testid="edit-client-propagate"
-                class="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                class="mt-0.5 rounded border-gray-300 text-text-brand focus:ring-focus-ring/30"
               />
-              <span class="text-xs text-gray-600 dark:text-green-light/60">
+              <span class="text-xs text-text-muted/60">
                 Actualizar el perfil del cliente con estos cambios (también se reflejarán en sus otras propuestas).
               </span>
             </label>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Tipo de proyecto</label>
-              <select v-model="form.project_type"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+              <label class="block text-sm font-medium text-text-default mb-1">Tipo de proyecto</label>
+              <BaseSelect v-model="form.project_type">
                 <option value="">— Sin definir —</option>
                 <option value="website">Sitio Web</option>
                 <option value="ecommerce">E-commerce</option>
@@ -509,19 +535,18 @@
                 <option value="data_analytics">Analítica de Datos / BI</option>
                 <option value="plugin_extension">Plugin / Extensión</option>
                 <option value="other">Otro</option>
-              </select>
-              <input
+              </BaseSelect>
+              <BaseInput
                 v-if="form.project_type === 'other'"
                 v-model="form.project_type_custom"
                 type="text"
                 placeholder="Especificar tipo de proyecto..."
-                class="mt-2 w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                class="mt-2"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Tipo de mercado</label>
-              <select v-model="form.market_type"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+              <label class="block text-sm font-medium text-text-default mb-1">Tipo de mercado</label>
+              <BaseSelect v-model="form.market_type">
                 <option value="">— Sin definir —</option>
                 <option value="b2b">B2B</option>
                 <option value="b2c">B2C</option>
@@ -550,94 +575,111 @@
                 <option value="energy">Energía / Utilities</option>
                 <option value="gaming">Videojuegos / Gaming</option>
                 <option value="other">Otro</option>
-              </select>
-              <input
+              </BaseSelect>
+              <BaseInput
                 v-if="form.market_type === 'other'"
                 v-model="form.market_type_custom"
                 type="text"
                 placeholder="Especificar tipo de mercado..."
-                class="mt-2 w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                class="mt-2"
               />
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Idioma</label>
-            <select v-model="form.language"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
-              <option value="es">Español</option>
-              <option value="en">English</option>
-            </select>
+            <label class="block text-sm font-medium text-text-default mb-1">Idioma</label>
+            <BaseSelect
+              v-model="form.language"
+              :options="[{ value: 'es', label: 'Español' }, { value: 'en', label: 'English' }]"
+            />
             <p class="text-xs text-gray-400 mt-1">Solo afecta los títulos por defecto al crear. Cambiar aquí no regenera las secciones existentes.</p>
           </div>
           <div>
             <div class="flex items-center gap-1.5 mb-1">
-              <label class="block text-sm font-medium text-gray-700">Fecha de expiración</label>
-              <UiTooltip position="right">
+              <label class="block text-sm font-medium text-text-default">Fecha de expiración</label>
+              <BaseTooltip position="right">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-text-subtle hover:text-text-muted transition-colors" />
                 </template>
                 {{ tt.expirationDate }}
-              </UiTooltip>
+              </BaseTooltip>
             </div>
             <div class="flex items-center gap-2">
-              <input v-model="form.expires_at" type="datetime-local"
-                class="flex-1 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-              <input v-model.number="expiryDaysInput" type="number" min="1" max="365"
-                class="w-20 px-3 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-xl text-sm text-center focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-              <span class="text-xs text-gray-400 dark:text-green-light/60 whitespace-nowrap">días</span>
+              <BaseInput
+                v-model="form.expires_at"
+                type="datetime-local"
+                class="flex-1"
+              />
+              <BaseInput
+                v-model.number="expiryDaysInput"
+                type="number"
+                min="1"
+                max="365"
+                class="w-20 text-center"
+              />
+              <span class="text-xs text-text-subtle whitespace-nowrap">días</span>
             </div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Recordatorio (días después de enviar)</label>
-              <input v-model.number="form.reminder_days" type="number" min="1" max="30"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              <label class="block text-sm font-medium text-text-default mb-1">Recordatorio (días después de enviar)</label>
+              <BaseInput v-model.number="form.reminder_days" type="number" min="1" max="30" />
               <p class="text-xs text-gray-400 mt-1">Se enviará un email recordatorio al cliente X días después de enviar la propuesta.</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Urgencia (días después de enviar)</label>
-              <input v-model.number="form.urgency_reminder_days" type="number" min="1" max="30"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              <label class="block text-sm font-medium text-text-default mb-1">Urgencia (días después de enviar)</label>
+              <BaseInput v-model.number="form.urgency_reminder_days" type="number" min="1" max="30" />
               <p class="text-xs text-gray-400 mt-1">Se enviará un email de urgencia X días después de enviar (incluye descuento si % > 0).</p>
             </div>
           </div>
           <div>
             <div class="flex items-center gap-1.5 mb-1">
-              <label class="block text-sm font-medium text-gray-700">Descuento (%)</label>
-              <UiTooltip position="right">
+              <label class="block text-sm font-medium text-text-default">Descuento (%)</label>
+              <BaseTooltip position="right">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-text-subtle hover:text-text-muted transition-colors" />
                 </template>
                 {{ tt.discount }}
-              </UiTooltip>
+              </BaseTooltip>
             </div>
-            <input v-model.number="form.discount_percent" data-testid="general-finance-general-discount" type="number" min="0" max="100"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+            <BaseInput
+              v-model.number="form.discount_percent"
+              data-testid="general-finance-general-discount"
+              type="number"
+              min="0"
+              max="100"
+            />
             <p class="text-xs text-gray-400 mt-1">0 = sin descuento en email de urgencia.</p>
           </div>
 
           </div>
 
           <!-- Sticky action bar -->
-          <div class="sticky bottom-0 rounded-b-xl bg-white/95 dark:bg-esmerald/95 backdrop-blur-sm border-t border-gray-100 dark:border-white/[0.06] px-4 sm:px-5 py-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
+          <div class="sticky bottom-0 rounded-b-xl bg-surface/95 backdrop-blur-sm border-t border-border-muted px-4 sm:px-5 py-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
             <div class="flex flex-wrap items-center gap-2 sm:gap-3 pr-14 sm:pr-0">
-              <button type="submit" :disabled="proposalStore.isUpdating" data-testid="proposal-edit-submit"
-                class="px-4 sm:px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-100 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50">
+              <BaseButton
+                type="submit"
+                variant="primary"
+                size="md"
+                :loading="proposalStore.isUpdating"
+                :disabled="proposalStore.isUpdating"
+                data-testid="proposal-edit-submit"
+              >
                 {{ proposalStore.isUpdating ? 'Guardando...' : 'Guardar Cambios' }}
-              </button>
+              </BaseButton>
 
-              <button
-                type="button"
+              <BaseButton
+                variant="secondary"
+                size="md"
                 data-testid="proposal-actions-menu"
                 aria-label="Acciones de la propuesta"
                 title="Más acciones"
-                class="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 dark:border-white/[0.08] text-gray-500 dark:text-green-light hover:text-gray-700 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-all"
+                class="!w-10 !h-10 !p-0"
                 @click="showActionsModal = true"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
                   <path fill-rule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.818a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .845-.143Z" clip-rule="evenodd" />
                 </svg>
-              </button>
+              </BaseButton>
 
               <button
                 v-if="nextAction"
@@ -682,75 +724,56 @@
       <div v-show="activeTab === 'prompt'" class="max-w-7xl mx-auto">
         <PromptSubTabsPanel v-model="promptSubTab">
           <template #commercial>
-          <p class="text-sm text-gray-500 mb-6">
+          <p class="text-sm text-text-muted mb-6">
             Este prompt se usa con IA (ChatGPT, Claude, etc.) para generar propuestas comerciales personalizadas a partir del JSON plantilla.
           </p>
 
           <!-- Action bar -->
           <div class="flex flex-wrap items-center gap-2 mb-4">
             <template v-if="!promptIsEditing">
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
-                @click="startEditPrompt"
-              >
+              <BaseButton variant="secondary" size="md" @click="startEditPrompt">
                 <PencilIcon class="w-4 h-4" />
                 Editar
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
-                @click="handleCopyPrompt"
-              >
+              </BaseButton>
+              <BaseButton variant="secondary" size="md" @click="handleCopyPrompt">
                 <DocumentDuplicateIcon class="w-4 h-4" />
                 {{ promptCopied ? '¡Copiado!' : 'Copiar' }}
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
-                @click="promptDownload"
-              >
+              </BaseButton>
+              <BaseButton variant="secondary" size="md" @click="promptDownload">
                 <ArrowDownTrayIcon class="w-4 h-4" />
                 Descargar .md
-              </button>
-              <button
+              </BaseButton>
+              <BaseButton
                 v-if="promptText !== promptDefault"
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                variant="secondary"
+                size="md"
+                class="!text-danger-strong"
                 @click="handleResetPrompt"
               >
                 Restaurar original
-              </button>
+              </BaseButton>
             </template>
             <template v-else>
-              <button
-                type="button"
-                class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
-                @click="saveEditPrompt"
-              >
+              <BaseButton variant="primary" size="md" @click="saveEditPrompt">
                 Guardar cambios
-              </button>
-              <button
-                type="button"
-                class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-                @click="cancelEditPrompt"
-              >
+              </BaseButton>
+              <BaseButton variant="ghost" size="md" @click="cancelEditPrompt">
                 Cancelar
-              </button>
+              </BaseButton>
             </template>
           </div>
 
-          <div v-if="promptIsEditing" class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden">
+          <div v-if="promptIsEditing" class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
             <textarea
               v-model="promptEditBuffer"
               rows="30"
-              class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 bg-transparent border-0 outline-none resize-y focus:ring-0"
+              class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-text-default bg-transparent border-0 outline-none resize-y focus:ring-0"
             />
           </div>
 
-          <div v-else class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden">
+          <div v-else class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
             <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
-              <pre class="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap font-mono break-words">{{ promptText }}</pre>
+              <pre class="text-xs leading-relaxed text-text-default whitespace-pre-wrap font-mono break-words">{{ promptText }}</pre>
             </div>
           </div>
 
@@ -760,71 +783,52 @@
           </template>
 
           <template #technical>
-          <p class="text-sm text-gray-500 mb-6">
+          <p class="text-sm text-text-muted mb-6">
             Prompt para generar solo la clave <code class="text-xs bg-gray-100 px-1 rounded">technicalDocument</code> del JSON (arquitectura, módulos del producto, requerimientos, integraciones, etc.). Sin narrativa comercial ni precios.
           </p>
           <div class="flex flex-wrap items-center gap-2 mb-4">
             <template v-if="!technicalPromptIsEditing">
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
-                @click="startEditTechnicalPrompt"
-              >
+              <BaseButton variant="secondary" size="md" @click="startEditTechnicalPrompt">
                 <PencilIcon class="w-4 h-4" />
                 Editar
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
-                @click="handleCopyTechnicalPrompt"
-              >
+              </BaseButton>
+              <BaseButton variant="secondary" size="md" @click="handleCopyTechnicalPrompt">
                 <DocumentDuplicateIcon class="w-4 h-4" />
                 {{ technicalPromptCopied ? '¡Copiado!' : 'Copiar' }}
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
-                @click="technicalPromptDownload"
-              >
+              </BaseButton>
+              <BaseButton variant="secondary" size="md" @click="technicalPromptDownload">
                 <ArrowDownTrayIcon class="w-4 h-4" />
                 Descargar .md
-              </button>
-              <button
+              </BaseButton>
+              <BaseButton
                 v-if="technicalPromptText !== technicalPromptDefault"
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                variant="secondary"
+                size="md"
+                class="!text-danger-strong"
                 @click="handleResetTechnicalPrompt"
               >
                 Restaurar original
-              </button>
+              </BaseButton>
             </template>
             <template v-else>
-              <button
-                type="button"
-                class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
-                @click="saveEditTechnicalPrompt"
-              >
+              <BaseButton variant="primary" size="md" @click="saveEditTechnicalPrompt">
                 Guardar cambios
-              </button>
-              <button
-                type="button"
-                class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-                @click="cancelEditTechnicalPrompt"
-              >
+              </BaseButton>
+              <BaseButton variant="ghost" size="md" @click="cancelEditTechnicalPrompt">
                 Cancelar
-              </button>
+              </BaseButton>
             </template>
           </div>
-          <div v-if="technicalPromptIsEditing" class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden">
+          <div v-if="technicalPromptIsEditing" class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
             <textarea
               v-model="technicalPromptEditBuffer"
               rows="28"
-              class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 bg-transparent border-0 outline-none resize-y focus:ring-0"
+              class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-text-default bg-transparent border-0 outline-none resize-y focus:ring-0"
             />
           </div>
-          <div v-else class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden">
+          <div v-else class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
             <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
-              <pre class="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap font-mono break-words">{{ technicalPromptText }}</pre>
+              <pre class="text-xs leading-relaxed text-text-default whitespace-pre-wrap font-mono break-words">{{ technicalPromptText }}</pre>
             </div>
           </div>
           <p v-if="technicalPromptText !== technicalPromptDefault" class="text-xs text-amber-600 mt-3">
@@ -839,40 +843,27 @@
         <TabSplitLayout>
           <template #main>
         <!-- Current JSON (read-only) -->
-        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6">
+        <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4 sm:p-6">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
-              <h3 class="text-sm font-medium text-gray-900 dark:text-white">JSON de la propuesta</h3>
+              <h3 class="text-sm font-medium text-text-default">JSON de la propuesta</h3>
               <p class="text-xs text-gray-400 dark:text-green-light/40 mt-0.5">Representación JSON completa — se actualiza al guardar cambios en otras pestañas.</p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
-              <button
-                type="button"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
-                :disabled="jsonExportLoading"
-                @click="refreshExportJson"
-              >
+              <BaseButton variant="secondary" size="sm" :disabled="jsonExportLoading" @click="refreshExportJson">
                 <svg class="w-3.5 h-3.5" :class="{ 'animate-spin': jsonExportLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Actualizar
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
-                @click="copyExportJson"
-              >
+              </BaseButton>
+              <BaseButton variant="secondary" size="sm" @click="copyExportJson">
                 <DocumentDuplicateIcon class="w-3.5 h-3.5" />
                 {{ jsonCopied ? '¡Copiado!' : 'Copiar' }}
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
-                @click="downloadExportJson"
-              >
+              </BaseButton>
+              <BaseButton variant="secondary" size="sm" @click="downloadExportJson">
                 <ArrowDownTrayIcon class="w-3.5 h-3.5" />
                 Descargar
-              </button>
+              </BaseButton>
             </div>
           </div>
 
@@ -886,8 +877,8 @@
               readonly
               data-testid="proposal-export-json-textarea"
               :rows="JSON_TEXTAREA_ROWS"
-              class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-mono leading-relaxed
-                     bg-gray-50 dark:bg-esmerald-dark text-gray-700 dark:text-gray-300 outline-none resize-y cursor-text select-all"
+              class="w-full px-4 py-3 border border-border-default dark:border-white/[0.08] rounded-xl text-xs font-mono leading-relaxed
+                     bg-surface-raised text-text-default outline-none resize-y cursor-text select-all"
             />
           </template>
         </div>
@@ -896,14 +887,14 @@
 
           <template #aside>
         <!-- Import JSON -->
-        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6">
-          <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-1">Importar JSON</h3>
+        <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4 sm:p-6">
+          <h3 class="text-sm font-medium text-text-default mb-1">Importar JSON</h3>
           <p class="text-xs text-gray-400 mb-4">Pega o sube un JSON para reemplazar el contenido de la propuesta (metadata + secciones).</p>
 
           <div class="flex items-center gap-3 mb-3">
             <label
-              class="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-200 dark:border-white/[0.08] rounded-lg text-xs
-                     text-gray-700 dark:text-green-light hover:bg-gray-50 dark:hover:bg-white/[0.04] cursor-pointer transition-colors"
+              class="inline-flex items-center gap-2 px-3 py-1.5 border border-border-default dark:border-white/[0.08] rounded-lg text-xs
+                     text-text-default hover:bg-surface-raised cursor-pointer transition-colors"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -911,7 +902,7 @@
               Subir .json
               <input type="file" accept=".json" class="hidden" @change="handleJsonFileUpload" />
             </label>
-            <span v-if="jsonImportFileName" class="text-xs text-gray-500 dark:text-green-light/60">{{ jsonImportFileName }}</span>
+            <span v-if="jsonImportFileName" class="text-xs text-text-muted">{{ jsonImportFileName }}</span>
           </div>
 
           <textarea
@@ -919,8 +910,8 @@
             data-testid="proposal-import-json-textarea"
             :rows="JSON_TEXTAREA_ROWS"
             placeholder='Pega aquí el JSON completo de la propuesta...'
-            class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-xs font-mono leading-relaxed
-                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y"
+            class="w-full px-4 py-3 border border-border-default dark:border-white/[0.08]  rounded-xl text-xs font-mono leading-relaxed
+                   focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none resize-y"
             @input="parseImportJson"
           />
 
@@ -930,12 +921,12 @@
           </div>
 
           <!-- Preview -->
-          <div v-if="jsonImportParsed && !jsonImportError" class="mt-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/30 rounded-lg px-4 py-3">
+          <div v-if="jsonImportParsed && !jsonImportError" class="mt-3 bg-primary-soft border border-emerald-200 dark:border-emerald-700/30 rounded-lg px-4 py-3">
             <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-              <span><span class="text-gray-500 dark:text-green-light/60">Cliente:</span> <span class="font-medium text-gray-900 dark:text-white">{{ jsonImportPreview.clientName }}</span></span>
-              <span><span class="text-gray-500 dark:text-green-light/60">Secciones:</span> <span class="font-medium text-gray-900 dark:text-white">{{ jsonImportPreview.sectionCount }}</span></span>
-              <span v-if="jsonImportPreview.epicCount != null"><span class="text-gray-500 dark:text-green-light/60">Módulos (téc.):</span> <span class="font-medium text-gray-900 dark:text-white">{{ jsonImportPreview.epicCount }}</span></span>
-              <span v-if="jsonImportPreview.investment"><span class="text-gray-500 dark:text-green-light/60">Inversión:</span> <span class="font-medium text-gray-900 dark:text-white">{{ jsonImportPreview.investment }}</span></span>
+              <span><span class="text-text-muted">Cliente:</span> <span class="font-medium text-text-default">{{ jsonImportPreview.clientName }}</span></span>
+              <span><span class="text-text-muted">Secciones:</span> <span class="font-medium text-text-default">{{ jsonImportPreview.sectionCount }}</span></span>
+              <span v-if="jsonImportPreview.epicCount != null"><span class="text-text-muted">Módulos (téc.):</span> <span class="font-medium text-text-default">{{ jsonImportPreview.epicCount }}</span></span>
+              <span v-if="jsonImportPreview.investment"><span class="text-text-muted">Inversión:</span> <span class="font-medium text-text-default">{{ jsonImportPreview.investment }}</span></span>
             </div>
           </div>
 
@@ -953,8 +944,8 @@
             <button
               type="button"
               :disabled="proposalStore.isUpdating"
-              class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
-                     hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-wait"
+              class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl font-medium text-sm
+                     hover:bg-primary transition-colors shadow-sm disabled:opacity-50 disabled:cursor-wait"
               @click="handleApplyImportJson"
             >
               <svg v-if="proposalStore.isUpdating" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -974,46 +965,53 @@
       <!-- Tab: Activity -->
       <div v-show="activeTab === 'activity'" class="max-w-5xl mx-auto">
         <!-- Log activity form -->
-        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-5 mb-6">
+        <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-5 mb-6">
           <div class="flex items-center gap-1.5 mb-3">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-white">Registrar actividad</h3>
-            <UiTooltip position="right">
+            <h3 class="text-sm font-semibold text-text-default">Registrar actividad</h3>
+            <BaseTooltip position="right">
               <template #trigger>
-                <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-text-subtle hover:text-text-muted transition-colors" />
               </template>
               {{ tt.logActivity }}
-            </UiTooltip>
+            </BaseTooltip>
           </div>
           <div class="flex flex-col sm:flex-row gap-3">
-            <select v-model="activityForm.change_type" class="px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-xl text-sm bg-white focus:ring-1 focus:ring-emerald-500 outline-none sm:w-40">
+            <BaseSelect v-model="activityForm.change_type" size="sm" class="sm:w-40">
               <option value="call">📞 Llamada</option>
               <option value="meeting">🤝 Reunión</option>
               <option value="followup">📩 Seguimiento</option>
               <option value="note">📝 Nota</option>
-            </select>
-            <input v-model="activityForm.description" type="text" placeholder="Descripción de la actividad..." class="flex-1 px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-1 focus:ring-emerald-500 outline-none" @keydown.enter.prevent="submitActivity" />
-            <button type="button" :disabled="!activityForm.description.trim() || isSubmittingActivity" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 whitespace-nowrap" @click="submitActivity">
+            </BaseSelect>
+            <BaseInput
+              v-model="activityForm.description"
+              type="text"
+              size="sm"
+              placeholder="Descripción de la actividad..."
+              class="flex-1"
+              @keydown.enter.prevent="submitActivity"
+            />
+            <button type="button" :disabled="!activityForm.description.trim() || isSubmittingActivity" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary transition-colors disabled:opacity-50 whitespace-nowrap" @click="submitActivity">
               {{ isSubmittingActivity ? 'Guardando...' : 'Agregar' }}
             </button>
           </div>
         </div>
 
         <!-- Timeline -->
-        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-5">
+        <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-5">
           <div class="flex items-center gap-1.5 mb-4">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-white">Historial de actividad</h3>
-            <UiTooltip position="right">
+            <h3 class="text-sm font-semibold text-text-default">Historial de actividad</h3>
+            <BaseTooltip position="right">
               <template #trigger>
-                <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-text-subtle hover:text-text-muted transition-colors" />
               </template>
               {{ tt.activityHistory }}
-            </UiTooltip>
+            </BaseTooltip>
           </div>
           <div v-if="!changeLogs.length" class="text-center py-8 text-sm text-gray-400 dark:text-green-light/40">Sin actividad registrada.</div>
           <div v-else class="relative pl-6 space-y-0">
-            <div class="absolute left-[9px] top-2 bottom-2 w-px bg-gray-200 dark:bg-white/[0.08]" />
+            <div class="absolute left-[9px] top-2 bottom-2 w-px bg-surface-raised" />
             <div v-for="log in changeLogs" :key="log.id" class="relative pb-5 last:pb-0">
-              <div class="absolute -left-6 top-1 w-[18px] h-[18px] rounded-full border-2 border-white dark:border-esmerald shadow-sm flex items-center justify-center text-[10px]" :class="activityDotClass(log.change_type)">
+              <div class="absolute -left-6 top-1 w-[18px] h-[18px] rounded-full border-2 border-border-default shadow-sm flex items-center justify-center text-[10px]" :class="activityDotClass(log.change_type)">
                 {{ activityIcon(log.change_type) }}
               </div>
               <div class="ml-2">
@@ -1022,7 +1020,7 @@
                   <span class="text-[10px] text-gray-400 dark:text-green-light/40">{{ formatLogDate(log.created_at) }}</span>
                 </div>
                 <!-- eslint-disable-next-line vue/no-v-html -->
-                <p class="text-sm text-gray-600 dark:text-green-light/60 mt-0.5" v-html="formatActivityDescription(log)"></p>
+                <p class="text-sm text-text-muted/60 mt-0.5" v-html="formatActivityDescription(log)"></p>
               </div>
             </div>
           </div>
@@ -1036,44 +1034,27 @@
 
       <!-- Tab: Detalle técnico -->
       <div v-show="activeTab === 'technical'" class="max-w-7xl mx-auto">
-        <div class="flex gap-1 mb-4 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 max-w-sm">
-          <button
-            type="button"
-            data-testid="technical-editor-subtab"
-            :class="[
-              'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
-              technicalSubTab === 'editor' ? 'bg-white dark:bg-gray-700 shadow-sm font-medium text-gray-900 dark:text-gray-100' : 'text-gray-500',
-            ]"
-            @click="technicalSubTab = 'editor'"
-          >
-            Editor
-          </button>
-          <button
-            type="button"
-            data-testid="technical-json-subtab"
-            :class="[
-              'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
-              technicalSubTab === 'json' ? 'bg-white dark:bg-gray-700 shadow-sm font-medium text-gray-900 dark:text-gray-100' : 'text-gray-500',
-            ]"
-            @click="technicalSubTab = 'json'"
-          >
-            JSON
-          </button>
-        </div>
+        <BaseSegmented
+          v-model="technicalSubTab"
+          class="mb-4 max-w-sm"
+          full-width
+          :options="[
+            { value: 'editor', label: 'Editor', testId: 'technical-editor-subtab' },
+            { value: 'json', label: 'JSON', testId: 'technical-json-subtab' },
+          ]"
+        />
         <div v-show="technicalSubTab === 'editor'">
           <p v-if="!technicalSection" class="text-sm text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-700/30 rounded-lg px-4 py-3">
             No se encontró la sección «Detalle técnico». Ejecuta migraciones o crea la propuesta de nuevo.
           </p>
           <template v-else>
-            <label class="flex items-center gap-2 text-sm text-gray-600 mb-4 cursor-pointer">
-              <input
-                type="checkbox"
-                class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                :checked="technicalSection.is_enabled"
-                @change="toggleTechnicalSectionEnabled"
-              />
+            <BaseCheckbox
+              :model-value="technicalSection.is_enabled"
+              class="mb-4"
+              @update:model-value="toggleTechnicalSectionEnabled"
+            >
               Visible en la propuesta (cuando exista vista pública del modo técnico)
-            </label>
+            </BaseCheckbox>
             <TechnicalDocumentEditor
               :key="technicalSection.id"
               :section="technicalSection"
@@ -1083,49 +1064,45 @@
           </template>
         </div>
         <div v-show="technicalSubTab === 'json'" class="space-y-4">
-          <p class="text-xs text-gray-500 dark:text-white/40">
-            Solo el objeto <code class="bg-gray-100 dark:bg-white/[0.06] px-1 rounded">content_json</code> del detalle técnico. Debe ser JSON válido (mismo esquema que el editor).
+          <p class="text-xs text-text-muted">
+            Solo el objeto <code class="bg-surface-raised px-1 rounded">content_json</code> del detalle técnico. Debe ser JSON válido (mismo esquema que el editor).
           </p>
           <JsonStatsPanel :stats="technicalJsonStats" test-id="technical-json-stats" />
-          <textarea
+          <BaseTextarea
             v-model="technicalJsonRaw"
             data-testid="technical-json-textarea"
             :rows="JSON_TEXTAREA_ROWS"
-            class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-mono bg-white dark:bg-esmerald-dark text-gray-800 dark:text-white resize-y outline-none focus:ring-2 focus:ring-emerald-500"
+            class="font-mono"
           />
-          <div v-if="technicalJsonError" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-4 py-2 rounded-lg">{{ technicalJsonError }}</div>
-          <button
-            type="button"
-            class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700"
-            @click="handleApplyTechnicalJson"
-          >
+          <div v-if="technicalJsonError" class="text-sm text-danger-strong bg-danger-soft px-4 py-2 rounded-lg">{{ technicalJsonError }}</div>
+          <BaseButton variant="primary" size="lg" @click="handleApplyTechnicalJson">
             Guardar JSON
-          </button>
+          </BaseButton>
         </div>
       </div>
 
       <!-- Tab: Sections -->
       <div v-show="activeTab === 'sections'" class="max-w-7xl mx-auto">
         <!-- F10: Section completeness indicator -->
-        <div v-if="allSections.length" class="mb-4 bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] px-5 py-4">
+        <div v-if="allSections.length" class="mb-4 bg-surface rounded-xl shadow-sm border border-border-muted px-5 py-4">
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-1">
-              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Completitud de secciones</span>
-              <UiTooltip position="right">
+              <span class="text-xs font-semibold text-text-muted uppercase tracking-wider">Completitud de secciones</span>
+              <BaseTooltip position="right">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-text-subtle hover:text-text-muted transition-colors" />
                 </template>
                 {{ tt.sectionCompleteness }}
-              </UiTooltip>
+              </BaseTooltip>
             </div>
-            <span class="text-sm font-bold" :class="sectionCompleteness >= 80 ? 'text-emerald-600' : sectionCompleteness >= 50 ? 'text-amber-600' : 'text-red-500'">
+            <span class="text-sm font-bold" :class="sectionCompleteness >= 80 ? 'text-text-brand' : sectionCompleteness >= 50 ? 'text-amber-600' : 'text-red-500'">
               {{ sectionCompleteness }}%
             </span>
           </div>
           <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
               class="h-full rounded-full transition-all duration-500"
-              :class="sectionCompleteness >= 80 ? 'bg-emerald-500' : sectionCompleteness >= 50 ? 'bg-amber-500' : 'bg-red-400'"
+              :class="sectionCompleteness >= 80 ? 'bg-primary' : sectionCompleteness >= 50 ? 'bg-amber-500' : 'bg-red-400'"
               :style="{ width: sectionCompleteness + '%' }"
             />
           </div>
@@ -1138,17 +1115,17 @@
           <div
             v-for="section in commercialSections"
             :key="section.id"
-            class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden"
+            class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden"
           >
             <!-- Section header -->
             <div
               :data-testid="`section-header-${section.section_type}`"
-              class="px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
+              class="px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-surface-raised transition-colors"
               @click="toggleSection(section.id)"
             >
               <div class="flex items-center gap-4">
                 <span class="text-xs text-gray-400 font-mono w-6">{{ section.order + 1 }}</span>
-                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ section.title }}</span>
+                <span class="text-sm font-medium text-text-default">{{ section.title }}</span>
                 <span class="text-xs text-gray-400">({{ section.section_type }})</span>
               </div>
               <div class="flex items-center gap-3">
@@ -1156,10 +1133,10 @@
                   <input
                     type="checkbox"
                     :checked="section.is_enabled"
-                    class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                    class="rounded border-gray-300 text-text-brand focus:ring-focus-ring/30"
                     @change="toggleEnabled(section)"
                   />
-                  <span class="text-gray-500">Visible</span>
+                  <span class="text-text-muted">Visible</span>
                 </label>
                 <svg
                   class="w-4 h-4 text-gray-400 transition-transform"
@@ -1172,7 +1149,7 @@
             </div>
 
             <!-- Section content editor (expanded) -->
-            <div v-if="expandedSections.has(section.id)" class="border-t border-gray-100 px-3 sm:px-6 py-4 sm:py-6">
+            <div v-if="expandedSections.has(section.id)" class="border-t border-border-muted px-3 sm:px-6 py-4 sm:py-6">
               <SectionEditor
                 :section="section"
                 :proposalData="proposal"
@@ -1186,79 +1163,81 @@
         </div>
 
         <!-- Sticky send bar for sections tab -->
-        <div v-if="proposal.client_email" class="sticky bottom-0 mt-4 bg-white/95 backdrop-blur-sm border border-gray-100 rounded-xl shadow-lg px-5 py-3 flex items-center justify-between gap-3 z-10">
-          <div class="flex items-center gap-2 text-xs text-gray-500">
-            <a :href="'/proposal/' + proposal.uuid + '?preview=1'" target="_blank" class="text-emerald-600 hover:underline">Preview →</a>
+        <div v-if="proposal.client_email" class="sticky bottom-0 mt-4 bg-surface/95 backdrop-blur-sm border border-border-muted rounded-xl shadow-lg px-5 py-3 flex items-center justify-between gap-3 z-10">
+          <div class="flex items-center gap-2 text-xs text-text-muted">
+            <a :href="'/proposal/' + proposal.uuid + '?preview=1'" target="_blank" class="text-text-brand hover:underline">Preview →</a>
           </div>
           <div class="flex items-center gap-3">
-            <button
+            <BaseButton
               v-if="proposal.status === 'draft'"
-              type="button"
-              class="px-5 py-2 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
+              variant="primary"
+              size="md"
+              class="!bg-blue-600 hover:!bg-blue-700"
               @click="handleSend"
             >
               📤 Enviar al Cliente
-            </button>
-            <button
+            </BaseButton>
+            <BaseButton
               v-else-if="['sent', 'viewed'].includes(proposal.status)"
-              type="button"
-              class="px-5 py-2 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
+              variant="primary"
+              size="md"
+              class="!bg-blue-600 hover:!bg-blue-700"
               @click="handleResend"
             >
               🔄 Re-enviar al Cliente
-            </button>
+            </BaseButton>
           </div>
         </div>
       </div>
     </template>
 
     <!-- Pre-send scorecard modal -->
-    <Teleport to="body">
-      <div v-if="showSendChecklist" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="showSendChecklist = false">
-        <div class="bg-white dark:bg-esmerald rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 sm:p-8">
-          <div class="flex items-center justify-between mb-1">
-            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Scorecard pre-envío</h3>
-            <span v-if="scorecardData" class="text-sm font-bold px-2.5 py-1 rounded-full"
-              :class="scorecardData.score >= 8 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : scorecardData.score >= 5 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'">
-              {{ scorecardData.score }}/10
-            </span>
-          </div>
-          <p class="text-sm text-gray-500 dark:text-white/50 mb-5">{{ scorecardLoading ? 'Verificando...' : 'Verifica que todo esté listo antes de enviar.' }}</p>
-          <ul v-if="!scorecardLoading" class="space-y-3 mb-6">
-            <li v-for="(item, idx) in sendChecklist" :key="idx" class="flex items-center gap-3">
-              <span class="w-6 h-6 rounded-full flex items-center justify-center text-sm flex-shrink-0"
-                :class="item.pass ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : item.blocker ? 'bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-500 dark:text-amber-400'">
-                {{ item.pass ? '✓' : '✗' }}
-              </span>
-              <div class="flex-1 min-w-0">
-                <span class="text-sm" :class="item.pass ? 'text-gray-700 dark:text-white/70' : item.blocker ? 'text-red-600 dark:text-red-400 font-medium' : 'text-amber-600 dark:text-amber-400'">{{ item.label }}</span>
-                <span v-if="!item.pass && item.blocker" class="ml-1 text-[10px] text-red-400 font-semibold uppercase">bloqueante</span>
-              </div>
-            </li>
-          </ul>
-          <div v-else class="flex items-center justify-center py-8">
-            <span class="text-sm text-gray-400 dark:text-white/40">Cargando scorecard...</span>
-          </div>
-          <div class="flex gap-3 justify-end">
-            <button class="px-5 py-2.5 bg-gray-100 dark:bg-white/[0.08] text-gray-600 dark:text-white/70 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-white/[0.12] transition-colors" @click="showSendChecklist = false">
-              Cancelar
-            </button>
-            <button
-              class="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
-              :disabled="!allChecksPassing || scorecardLoading"
-              @click="confirmSend"
-            >
-              Enviar al Cliente
-            </button>
-          </div>
-        </div>
+    <BaseModal v-model="showSendChecklist" size="md" padding="md">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="text-lg font-bold text-text-default">Scorecard pre-envío</h3>
+        <BaseBadge
+          v-if="scorecardData"
+          :variant="scorecardData.score >= 8 ? 'success' : scorecardData.score >= 5 ? 'warning' : 'danger'"
+        >
+          {{ scorecardData.score }}/10
+        </BaseBadge>
       </div>
-    </Teleport>
+      <p class="text-sm text-text-muted mb-5">{{ scorecardLoading ? 'Verificando...' : 'Verifica que todo esté listo antes de enviar.' }}</p>
+      <ul v-if="!scorecardLoading" class="space-y-3 mb-6">
+        <li v-for="(item, idx) in sendChecklist" :key="idx" class="flex items-center gap-3">
+          <span class="w-6 h-6 rounded-full flex items-center justify-center text-sm flex-shrink-0"
+            :class="item.pass ? 'bg-success-soft text-success-strong' : item.blocker ? 'bg-danger-soft text-danger-strong' : 'bg-warning-soft text-warning-strong'">
+            {{ item.pass ? '✓' : '✗' }}
+          </span>
+          <div class="flex-1 min-w-0">
+            <span class="text-sm" :class="item.pass ? 'text-text-muted' : item.blocker ? 'text-danger-strong font-medium' : 'text-warning-strong'">{{ item.label }}</span>
+            <span v-if="!item.pass && item.blocker" class="ml-1 text-[10px] text-danger-strong font-semibold uppercase">bloqueante</span>
+          </div>
+        </li>
+      </ul>
+      <div v-else class="flex items-center justify-center py-8">
+        <span class="text-sm text-text-subtle">Cargando scorecard...</span>
+      </div>
+      <div class="flex gap-3 justify-end">
+        <BaseButton variant="ghost" size="lg" @click="showSendChecklist = false">
+          Cancelar
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          size="lg"
+          class="!bg-blue-600 hover:!bg-blue-700"
+          :disabled="!allChecksPassing || scorecardLoading"
+          @click="confirmSend"
+        >
+          Enviar al Cliente
+        </BaseButton>
+      </div>
+    </BaseModal>
 
     <!-- Floating refresh button -->
     <button
       type="button"
-      class="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 disabled:opacity-50 flex items-center justify-center dark:bg-emerald-700 dark:hover:bg-emerald-600"
+      class="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-primary hover:bg-primary text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 disabled:opacity-50 flex items-center justify-center"
       :disabled="isRefreshing"
       :title="isRefreshing ? 'Actualizando...' : 'Actualizar datos'"
       @click="refreshData"
@@ -1290,7 +1269,6 @@ import ProjectScheduleEditor from '~/components/BusinessProposal/admin/ProjectSc
 import JsonStatsPanel from '~/components/BusinessProposal/admin/JsonStatsPanel.vue';
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
-import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
@@ -2194,14 +2172,14 @@ function formatInvestment(value, currency = 'COP') {
 
 function statusClass(status) {
   const map = {
-    draft: 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light',
+    draft: 'bg-surface-raised text-text-muted',
     sent: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300',
     viewed: 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300',
-    accepted: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    accepted: 'bg-primary-soft dark:bg-primary/10 text-text-brand dark:text-emerald-400',
     rejected: 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300',
     expired: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
   };
-  return map[status] || 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light';
+  return map[status] || 'bg-surface-raised text-text-muted';
 }
 
 // --- JSON tab ---
@@ -2525,11 +2503,11 @@ async function submitActivity() {
 }
 
 const AC = {
-  gray:    { dot: 'bg-gray-200 dark:bg-gray-700',    text: 'text-gray-500 dark:text-white/50' },
-  grayMd:  { dot: 'bg-gray-200 dark:bg-gray-700',    text: 'text-gray-600 dark:text-white/60' },
+  gray:    { dot: 'bg-surface-raised',    text: 'text-text-muted' },
+  grayMd:  { dot: 'bg-surface-raised',    text: 'text-text-muted' },
   blue:    { dot: 'bg-blue-100 dark:bg-blue-900/30',    text: 'text-blue-600 dark:text-blue-400' },
   green:   { dot: 'bg-green-100 dark:bg-green-900/30',   text: 'text-green-600 dark:text-green-400' },
-  emerald: { dot: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-600 dark:text-emerald-400' },
+  emerald: { dot: 'bg-primary-soft', text: 'text-text-brand' },
   red:     { dot: 'bg-red-100 dark:bg-red-900/30',     text: 'text-red-600 dark:text-red-400' },
   yellow:  { dot: 'bg-yellow-100 dark:bg-yellow-900/30',  text: 'text-yellow-600 dark:text-yellow-400' },
   purple:  { dot: 'bg-purple-100 dark:bg-purple-900/30',  text: 'text-purple-600 dark:text-purple-400' },

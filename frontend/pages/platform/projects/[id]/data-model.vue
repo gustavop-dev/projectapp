@@ -1,14 +1,14 @@
 <template>
   <div id="platform-data-model" class="pb-12">
     <div v-if="dataModelStore.isLoading" class="py-20 text-center">
-      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-esmerald/20 border-t-esmerald dark:border-white/20 dark:border-t-lemon" />
+      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
     </div>
 
     <div v-else-if="dataModelStore.error" class="py-10 text-center" data-enter>
       <p class="text-sm text-red-600 dark:text-red-400">{{ dataModelStore.error }}</p>
       <button
         type="button"
-        class="mt-3 rounded-xl border border-esmerald/15 px-4 py-2 text-xs font-medium text-esmerald transition hover:bg-esmerald-light/40 dark:border-white/15 dark:text-lemon dark:hover:bg-white/[0.06]"
+        class="mt-3 rounded-xl border border-border-default px-4 py-2 text-xs font-medium text-text-default transition hover:bg-surface-muted/40 dark:text-accent dark:hover:bg-white/10"
         @click="dataModelStore.fetchEntities(projectId)"
       >
         Reintentar
@@ -20,13 +20,13 @@
       <div class="mb-6" data-enter>
         <NuxtLink
           :to="localePath(`/platform/projects/${projectId}`)"
-          class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-esmerald dark:hover:text-white"
+          class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white"
         >
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
           Proyecto
         </NuxtLink>
         <div class="flex items-center gap-3">
-          <h1 class="text-xl font-bold text-esmerald dark:text-white sm:text-2xl">Modelo de datos</h1>
+          <h1 class="text-xl font-bold text-text-default sm:text-2xl">Modelo de datos</h1>
           <span
             v-if="dataModelStore.entityCount"
             class="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-indigo-500/10 px-2 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400"
@@ -39,7 +39,7 @@
       <!-- Admin: JSON upload section -->
       <div
         v-if="authStore.isAdmin"
-        class="mb-8 rounded-2xl border border-esmerald/[0.06] bg-white p-5 dark:border-white/[0.06] dark:bg-esmerald"
+        class="mb-8 rounded-2xl border border-border-default bg-surface p-5"
         data-enter
       >
         <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-green-light/60">Subir modelo de datos</h2>
@@ -48,14 +48,14 @@
         <div class="mb-4 flex flex-wrap gap-2">
           <button
             type="button"
-            class="rounded-xl border border-esmerald/15 px-3 py-2 text-xs font-medium text-esmerald transition hover:bg-esmerald-light/40 dark:border-white/15 dark:text-lemon dark:hover:bg-white/[0.06]"
+            class="rounded-xl border border-border-default px-3 py-2 text-xs font-medium text-text-default transition hover:bg-surface-muted/40 dark:text-accent dark:hover:bg-white/10"
             @click="copyTemplate"
           >
             {{ templateCopied ? 'Copiado' : 'Copiar plantilla' }}
           </button>
           <button
             type="button"
-            class="rounded-xl border border-esmerald/15 px-3 py-2 text-xs font-medium text-esmerald transition hover:bg-esmerald-light/40 dark:border-white/15 dark:text-lemon dark:hover:bg-white/[0.06]"
+            class="rounded-xl border border-border-default px-3 py-2 text-xs font-medium text-text-default transition hover:bg-surface-muted/40 dark:text-accent dark:hover:bg-white/10"
             @click="downloadTemplate"
           >
             Descargar plantilla
@@ -68,7 +68,7 @@
             ref="fileInput"
             type="file"
             accept=".json"
-            class="text-xs text-green-light file:mr-3 file:rounded-xl file:border-0 file:bg-esmerald-light/30 file:px-3 file:py-2 file:text-xs file:font-medium file:text-esmerald dark:file:bg-white/[0.06] dark:file:text-lemon"
+            class="text-xs text-green-light file:mr-3 file:rounded-xl file:border-0 file:bg-surface-muted/30 file:px-3 file:py-2 file:text-xs file:font-medium file:text-text-default dark:file:bg-white/10 dark:file:text-accent"
             @change="handleFileUpload"
           />
         </div>
@@ -78,7 +78,7 @@
           v-model="jsonRaw"
           rows="10"
           placeholder='{"entities": [{"name": "...", "description": "...", "keyFields": "...", "relationship": "..."}]}'
-          class="mb-3 w-full rounded-xl border border-esmerald/10 bg-esmerald-light/20 px-4 py-3 font-mono text-xs text-esmerald dark:border-white/10 dark:bg-esmerald-dark dark:text-white"
+          class="mb-3 w-full rounded-xl border border-border-default bg-surface-muted/20 px-4 py-3 font-mono text-xs text-text-default dark:bg-primary-strong dark:text-white"
           @input="parseJson"
         />
 
@@ -88,7 +88,7 @@
         </div>
 
         <!-- Preview -->
-        <div v-if="jsonParsed && !jsonError" class="mb-3 rounded-xl bg-emerald-50 px-4 py-2 text-xs text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">
+        <div v-if="jsonParsed && !jsonError" class="mb-3 rounded-xl bg-primary-soft px-4 py-2 text-xs text-text-brand dark:bg-emerald-900/20 dark:text-emerald-400">
           {{ jsonParsed.entities.length }} entidad{{ jsonParsed.entities.length !== 1 ? 'es' : '' }} detectada{{ jsonParsed.entities.length !== 1 ? 's' : '' }}:
           {{ jsonParsed.entities.map(e => e.name).join(', ') }}
         </div>
@@ -97,7 +97,7 @@
         <button
           type="button"
           :disabled="!jsonParsed || jsonError || dataModelStore.isUploading"
-          class="rounded-xl bg-esmerald px-5 py-2.5 text-sm font-semibold text-white transition disabled:opacity-50 dark:bg-lemon dark:text-esmerald-dark"
+          class="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition disabled:opacity-50 dark:bg-accent dark:text-text-default"
           @click="handleSubmit"
         >
           {{ dataModelStore.isUploading ? 'Subiendo...' : 'Subir modelo de datos' }}
@@ -109,7 +109,7 @@
         </div>
 
         <!-- Upload success -->
-        <div v-if="uploadSuccess" class="mt-3 rounded-xl bg-emerald-50 px-4 py-2 text-xs text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">
+        <div v-if="uploadSuccess" class="mt-3 rounded-xl bg-primary-soft px-4 py-2 text-xs text-text-brand dark:bg-emerald-900/20 dark:text-emerald-400">
           Modelo de datos actualizado correctamente.
         </div>
       </div>
@@ -117,13 +117,13 @@
       <!-- Entities table -->
       <div
         v-if="dataModelStore.entities.length"
-        class="rounded-2xl border border-esmerald/[0.06] bg-white dark:border-white/[0.06] dark:bg-esmerald"
+        class="rounded-2xl border border-border-default bg-surface"
         data-enter
       >
         <div class="overflow-x-auto">
           <table class="w-full text-left text-sm">
             <thead>
-              <tr class="border-b border-esmerald/[0.06] dark:border-white/[0.06]">
+              <tr class="border-b border-border-default">
                 <th class="px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-green-light/60">Entidad</th>
                 <th class="px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-green-light/60">Descripcion</th>
                 <th class="px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-green-light/60">Campos clave</th>
@@ -134,16 +134,16 @@
               <tr
                 v-for="entity in dataModelStore.entities"
                 :key="entity.id"
-                class="border-b border-esmerald/[0.04] last:border-0 dark:border-white/[0.04]"
+                class="border-b border-border-muted last:border-0"
               >
-                <td class="px-5 py-3 font-semibold text-esmerald dark:text-white">{{ entity.name }}</td>
+                <td class="px-5 py-3 font-semibold text-text-default">{{ entity.name }}</td>
                 <td class="px-5 py-3 text-xs text-green-light">{{ entity.description || '\u2014' }}</td>
                 <td class="px-5 py-3">
                   <div v-if="entity.key_fields" class="flex flex-wrap gap-1">
                     <span
                       v-for="field in entity.key_fields.split(',')"
                       :key="field.trim()"
-                      class="rounded-md bg-esmerald-light/30 px-2 py-0.5 text-[11px] font-medium text-esmerald dark:bg-white/[0.06] dark:text-lemon"
+                      class="rounded-md bg-surface-muted/30 px-2 py-0.5 text-[11px] font-medium text-text-default dark:bg-white/10 dark:text-accent"
                     >
                       {{ field.trim() }}
                     </span>
@@ -160,7 +160,7 @@
       <!-- Empty state -->
       <div
         v-else
-        class="rounded-2xl border border-esmerald/[0.06] bg-white p-10 text-center dark:border-white/[0.06] dark:bg-esmerald"
+        class="rounded-2xl border border-border-default bg-surface p-10 text-center"
         data-enter
       >
         <p class="text-sm text-green-light">No hay modelo de datos definido para este proyecto.</p>

@@ -3,12 +3,12 @@
     <!-- Page header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
-        <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Tasks</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Tableros internos del equipo.</p>
+        <h1 class="text-2xl font-light text-text-default">Tasks</h1>
+        <p class="text-sm text-text-muted mt-1">Tableros internos del equipo.</p>
       </div>
-      <button
-        type="button"
-        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+      <BaseButton
+        variant="primary"
+        size="md"
         data-testid="new-task-btn"
         @click="openCreate('todo')"
       >
@@ -16,10 +16,10 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
         Nueva tarea
-      </button>
+      </BaseButton>
     </div>
 
-    <div v-if="taskStore.isLoading" class="text-center py-12 text-gray-400 text-sm">
+    <div v-if="taskStore.isLoading" class="text-center py-12 text-text-subtle text-sm">
       Cargando tableros…
     </div>
 
@@ -28,20 +28,20 @@
       <div
         v-for="board in boards"
         :key="board.key"
-        class="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+        class="rounded-xl border border-border-default overflow-hidden"
       >
         <!-- Board header (toggle) -->
         <button
           type="button"
-          class="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors text-left"
+          class="w-full flex items-center justify-between px-4 py-3 bg-surface-raised hover:bg-border-muted transition-colors text-left"
           @click="toggleBoard(board.key)"
         >
           <div class="flex items-center gap-3">
-            <span class="text-base font-semibold text-gray-800 dark:text-gray-200">{{ board.label }}</span>
-            <span class="text-xs text-gray-400 dark:text-gray-500">{{ boardTaskCount(board.key) }} tarea{{ boardTaskCount(board.key) === 1 ? '' : 's' }}</span>
+            <span class="text-base font-semibold text-text-default">{{ board.label }}</span>
+            <span class="text-xs text-text-subtle">{{ boardTaskCount(board.key) }} tarea{{ boardTaskCount(board.key) === 1 ? '' : 's' }}</span>
           </div>
           <svg
-            class="w-4 h-4 text-gray-400 transition-transform"
+            class="w-4 h-4 text-text-subtle transition-transform"
             :class="openBoards[board.key] ? 'rotate-180' : ''"
             fill="none" stroke="currentColor" viewBox="0 0 24 24"
           >
@@ -53,12 +53,12 @@
         <div v-if="openBoards[board.key]" class="p-3">
           <!-- Macro board: flat card list -->
           <div v-if="board.key === 'macro'">
-            <div v-if="!taskStore.boardTasks.macro.length" class="text-sm text-gray-400 py-4 text-center">Sin macro-tareas todavía.</div>
+            <div v-if="!taskStore.boardTasks.macro.length" class="text-sm text-text-subtle py-4 text-center">Sin macro-tareas todavía.</div>
             <ul v-else class="space-y-2">
               <li
                 v-for="task in taskStore.boardTasks.macro"
                 :key="task.id"
-                class="flex items-center justify-between px-4 py-3 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+                class="flex items-center justify-between px-4 py-3 rounded-lg bg-surface border border-border-default cursor-pointer hover:bg-surface-raised transition-colors"
                 @click="openEdit(task)"
               >
                 <div class="flex items-center gap-3 min-w-0">
@@ -66,17 +66,17 @@
                     class="inline-block w-2 h-2 rounded-full flex-shrink-0"
                     :class="priorityDot(task.priority)"
                   />
-                  <span class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{{ task.title }}</span>
+                  <span class="text-sm font-medium text-text-default truncate">{{ task.title }}</span>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0 ml-3">
-                  <span v-if="task.due_date" class="text-xs" :class="task.is_overdue ? 'text-red-500' : 'text-gray-400'">{{ task.due_date }}</span>
-                  <span v-if="task.assignee_name" class="text-xs text-gray-400">{{ task.assignee_name }}</span>
+                  <span v-if="task.due_date" class="text-xs" :class="task.is_overdue ? 'text-danger-strong' : 'text-text-subtle'">{{ task.due_date }}</span>
+                  <span v-if="task.assignee_name" class="text-xs text-text-subtle">{{ task.assignee_name }}</span>
                 </div>
               </li>
             </ul>
             <button
               type="button"
-              class="mt-3 text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
+              class="mt-3 text-xs text-text-brand hover:underline"
               @click="openCreateOnBoard('macro', 'todo')"
             >+ Agregar macro-tarea</button>
           </div>
@@ -98,18 +98,18 @@
       </div>
 
       <!-- ── Archived tasks accordion ── -->
-      <div class="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div class="rounded-xl border border-border-default overflow-hidden">
         <button
           type="button"
-          class="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors text-left"
+          class="w-full flex items-center justify-between px-4 py-3 bg-surface-raised hover:bg-border-muted transition-colors text-left"
           @click="toggleArchive"
         >
           <div class="flex items-center gap-3">
-            <span class="text-sm font-semibold text-gray-500 dark:text-gray-400">Archivadas</span>
-            <span v-if="taskStore.archivedTasks.length" class="text-xs text-gray-400">{{ taskStore.archivedTasks.length }}</span>
+            <span class="text-sm font-semibold text-text-muted">Archivadas</span>
+            <span v-if="taskStore.archivedTasks.length" class="text-xs text-text-subtle">{{ taskStore.archivedTasks.length }}</span>
           </div>
           <svg
-            class="w-4 h-4 text-gray-400 transition-transform"
+            class="w-4 h-4 text-text-subtle transition-transform"
             :class="archiveOpen ? 'rotate-180' : ''"
             fill="none" stroke="currentColor" viewBox="0 0 24 24"
           >
@@ -118,23 +118,23 @@
         </button>
 
         <div v-if="archiveOpen" class="p-4">
-          <div v-if="taskStore.archivedLoading" class="text-sm text-gray-400 py-4 text-center">Cargando…</div>
-          <div v-else-if="!taskStore.archivedTasks.length" class="text-sm text-gray-400 py-4 text-center">No hay tareas archivadas.</div>
+          <div v-if="taskStore.archivedLoading" class="text-sm text-text-subtle py-4 text-center">Cargando…</div>
+          <div v-else-if="!taskStore.archivedTasks.length" class="text-sm text-text-subtle py-4 text-center">No hay tareas archivadas.</div>
           <ul v-else class="space-y-2">
             <li
               v-for="task in taskStore.archivedTasks"
               :key="task.id"
-              class="flex items-center justify-between px-4 py-3 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+              class="flex items-center justify-between px-4 py-3 rounded-lg bg-surface border border-border-default"
             >
               <div class="min-w-0">
-                <p class="text-sm text-gray-600 dark:text-gray-300 font-medium truncate">{{ task.title }}</p>
-                <p v-if="task.archive_reason" class="text-xs text-gray-400 truncate mt-0.5">{{ task.archive_reason }}</p>
-                <p class="text-xs text-gray-300 dark:text-gray-600 mt-0.5">{{ boardLabel(task.board_type) }}</p>
+                <p class="text-sm text-text-muted font-medium truncate">{{ task.title }}</p>
+                <p v-if="task.archive_reason" class="text-xs text-text-subtle truncate mt-0.5">{{ task.archive_reason }}</p>
+                <p class="text-xs text-text-subtle mt-0.5">{{ boardLabel(task.board_type) }}</p>
               </div>
               <button
                 type="button"
                 :disabled="taskStore.isUpdating"
-                class="ml-4 flex-shrink-0 text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 disabled:opacity-50"
+                class="ml-4 flex-shrink-0 text-xs text-text-brand hover:underline disabled:opacity-50"
                 @click="handleUnarchive(task)"
               >Restaurar</button>
             </li>

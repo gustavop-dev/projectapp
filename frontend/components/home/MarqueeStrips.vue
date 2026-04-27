@@ -3,7 +3,7 @@
     <div class="marquee-inner">
       <!-- Top strip: dark esmerald background, white text -->
       <div ref="ribbonTop" class="ribbon-wrapper ribbon-wrapper--top">
-        <div class="ribbon bg-esmerald text-white">
+        <div class="ribbon bg-primary text-white">
           <div class="ribbon-track">
             <span
               v-for="n in 4"
@@ -18,7 +18,7 @@
 
       <!-- Bottom strip: lemon background, dark esmerald text -->
       <div ref="ribbonBottom" class="ribbon-wrapper ribbon-wrapper--bottom">
-        <div class="ribbon bg-lemon text-esmerald">
+        <div class="ribbon bg-accent text-text-brand">
           <div class="ribbon-track ribbon-track--reverse">
             <span
               v-for="n in 4"

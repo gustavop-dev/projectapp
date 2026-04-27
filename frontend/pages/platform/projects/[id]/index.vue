@@ -2,13 +2,13 @@
   <div id="platform-project-detail">
     <!-- Loading -->
     <div v-if="projectsStore.isLoading" class="py-20 text-center">
-      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-esmerald/20 border-t-esmerald dark:border-white/20 dark:border-t-lemon" />
+      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
     </div>
 
     <!-- Not found -->
     <div v-else-if="!project" class="py-20 text-center" data-enter>
       <p class="text-sm text-green-light">Proyecto no encontrado.</p>
-      <NuxtLink :to="localePath('/platform/projects')" class="mt-4 inline-block text-sm font-medium text-esmerald dark:text-lemon">
+      <NuxtLink :to="localePath('/platform/projects')" class="mt-4 inline-block text-sm font-medium text-text-brand">
         ← Volver a proyectos
       </NuxtLink>
     </div>
@@ -16,7 +16,7 @@
     <template v-else>
       <!-- Back link + header -->
       <div class="mb-8" data-enter>
-        <NuxtLink :to="localePath('/platform/projects')" class="mb-4 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-esmerald dark:hover:text-white">
+        <NuxtLink :to="localePath('/platform/projects')" class="mb-4 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
           Proyectos
         </NuxtLink>
@@ -24,7 +24,7 @@
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div class="flex items-center gap-3">
-              <h1 class="text-2xl font-bold text-esmerald dark:text-white sm:text-3xl">{{ project.name }}</h1>
+              <h1 class="text-2xl font-bold text-text-default sm:text-3xl">{{ project.name }}</h1>
               <span
                 class="inline-flex rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
                 :class="statusBadgeClass(project.status)"
@@ -41,7 +41,7 @@
           <div v-if="authStore.isAdmin" class="flex shrink-0 flex-wrap gap-2">
             <button
               type="button"
-              class="rounded-xl border border-esmerald/10 px-4 py-2 text-sm font-medium text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+              class="rounded-xl border border-border-default px-4 py-2 text-sm font-medium text-green-light transition hover:text-text-default dark:hover:text-white"
               :disabled="syncLoading"
               @click="runTechnicalSync"
             >
@@ -49,7 +49,7 @@
             </button>
             <button
               type="button"
-              class="rounded-xl border border-esmerald/10 px-4 py-2 text-sm font-medium text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+              class="rounded-xl border border-border-default px-4 py-2 text-sm font-medium text-green-light transition hover:text-text-default dark:hover:text-white"
               @click="isEditModalOpen = true"
             >
               Editar
@@ -60,34 +60,34 @@
 
       <!-- Stats row -->
       <div class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-enter>
-        <div class="rounded-2xl border border-esmerald/[0.06] bg-white p-5 dark:border-white/[0.06] dark:bg-esmerald">
+        <div class="rounded-2xl border border-border-default bg-surface p-5">
           <p class="text-xs font-medium uppercase tracking-[0.16em] text-green-light/60">Progreso</p>
           <div class="mt-3 flex items-end gap-2">
-            <span class="text-3xl font-bold text-esmerald dark:text-lemon">{{ project.progress }}%</span>
+            <span class="text-3xl font-bold text-text-brand">{{ project.progress }}%</span>
           </div>
-          <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-esmerald/[0.06] dark:bg-white/[0.06]">
+          <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-primary/10 dark:bg-white/10">
             <div
               class="progress-bar h-full rounded-full"
-              :class="project.progress === 100 ? 'bg-emerald-500' : 'bg-esmerald dark:bg-lemon'"
+              :class="project.progress === 100 ? 'bg-emerald-500' : 'bg-primary dark:bg-accent'"
               :style="{ width: `${project.progress}%` }"
             />
           </div>
         </div>
 
-        <div class="rounded-2xl border border-esmerald/[0.06] bg-white p-5 dark:border-white/[0.06] dark:bg-esmerald">
+        <div class="rounded-2xl border border-border-default bg-surface p-5">
           <p class="text-xs font-medium uppercase tracking-[0.16em] text-green-light/60">Cliente</p>
-          <p class="mt-3 text-base font-semibold text-esmerald dark:text-white">{{ project.client_company || project.client_name }}</p>
+          <p class="mt-3 text-base font-semibold text-text-default">{{ project.client_company || project.client_name }}</p>
           <p class="mt-0.5 text-xs text-green-light">{{ project.client_email }}</p>
         </div>
 
-        <div class="rounded-2xl border border-esmerald/[0.06] bg-white p-5 dark:border-white/[0.06] dark:bg-esmerald">
+        <div class="rounded-2xl border border-border-default bg-surface p-5">
           <p class="text-xs font-medium uppercase tracking-[0.16em] text-green-light/60">Inicio</p>
-          <p class="mt-3 text-base font-semibold text-esmerald dark:text-white">{{ formatDate(project.start_date) }}</p>
+          <p class="mt-3 text-base font-semibold text-text-default">{{ formatDate(project.start_date) }}</p>
         </div>
 
-        <div class="rounded-2xl border border-esmerald/[0.06] bg-white p-5 dark:border-white/[0.06] dark:bg-esmerald">
+        <div class="rounded-2xl border border-border-default bg-surface p-5">
           <p class="text-xs font-medium uppercase tracking-[0.16em] text-green-light/60">Entrega estimada</p>
-          <p class="mt-3 text-base font-semibold text-esmerald dark:text-white">{{ formatDate(project.estimated_end_date) }}</p>
+          <p class="mt-3 text-base font-semibold text-text-default">{{ formatDate(project.estimated_end_date) }}</p>
           <p v-if="daysRemaining !== null" class="mt-0.5 text-xs" :class="daysRemaining <= 7 ? 'text-red-400' : 'text-green-light'">
             {{ daysRemaining > 0 ? `${daysRemaining} días restantes` : daysRemaining === 0 ? 'Hoy' : `${Math.abs(daysRemaining)} días de retraso` }}
           </p>
@@ -95,17 +95,17 @@
       </div>
 
       <!-- Payment milestones (admin only) -->
-      <div v-if="authStore.isAdmin && project.payment_milestones?.length" class="mb-8 rounded-2xl border border-esmerald/[0.06] bg-white p-5 dark:border-white/[0.06] dark:bg-esmerald" data-enter>
+      <div v-if="authStore.isAdmin && project.payment_milestones?.length" class="mb-8 rounded-2xl border border-border-default bg-surface p-5" data-enter>
         <h3 class="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-green-light/60">Hitos de pago del desarrollo</h3>
         <div class="flex flex-wrap gap-3">
           <div
             v-for="(milestone, idx) in project.payment_milestones"
             :key="idx"
-            class="flex items-center gap-2 rounded-xl border border-esmerald/[0.06] bg-esmerald-light/40 px-4 py-2.5 dark:border-white/[0.06] dark:bg-esmerald-dark"
+            class="flex items-center gap-2 rounded-xl border border-border-default bg-surface-muted/40 px-4 py-2.5 dark:bg-primary-strong"
           >
-            <span class="flex h-6 w-6 items-center justify-center rounded-full bg-esmerald/10 text-[10px] font-bold text-esmerald dark:bg-lemon/15 dark:text-lemon">{{ idx + 1 }}</span>
+            <span class="flex h-6 w-6 items-center justify-center rounded-full bg-esmerald/10 text-[10px] font-bold text-text-default dark:bg-lemon/15 dark:text-accent">{{ idx + 1 }}</span>
             <div>
-              <p class="text-xs font-semibold text-esmerald dark:text-white">{{ milestone.label }}</p>
+              <p class="text-xs font-semibold text-text-default">{{ milestone.label }}</p>
               <p v-if="milestone.description" class="text-[11px] text-green-light">{{ milestone.description }}</p>
             </div>
           </div>
@@ -114,20 +114,20 @@
       </div>
 
       <!-- Hosting tiers -->
-      <div v-if="project.hosting_tiers?.length" class="mb-8 rounded-2xl border border-esmerald/[0.06] bg-white p-5 dark:border-white/[0.06] dark:bg-esmerald" data-enter>
+      <div v-if="project.hosting_tiers?.length" class="mb-8 rounded-2xl border border-border-default bg-surface p-5" data-enter>
         <h3 class="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-green-light/60">Planes de hosting</h3>
         <div class="grid gap-3 sm:grid-cols-3">
           <div
             v-for="tier in project.hosting_tiers"
             :key="tier.frequency"
             class="relative rounded-xl border p-4 text-center"
-            :class="tier.badge ? 'border-esmerald/20 dark:border-lemon/30' : 'border-esmerald/[0.06] dark:border-white/[0.06]'"
+            :class="tier.badge ? 'border-border-default dark:border-lemon/30' : 'border-border-default'"
           >
-            <span v-if="tier.badge" class="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-lemon px-2 py-0.5 text-[9px] font-bold text-esmerald-dark">{{ tier.badge }}</span>
-            <p class="text-xs font-bold uppercase tracking-wider text-esmerald dark:text-white">{{ tier.label }}</p>
-            <p class="mt-2 text-xl font-bold text-esmerald dark:text-lemon">{{ formatCurrency(tier.billing_amount) }}</p>
+            <span v-if="tier.badge" class="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent px-2 py-0.5 text-[9px] font-bold text-text-default">{{ tier.badge }}</span>
+            <p class="text-xs font-bold uppercase tracking-wider text-text-default">{{ tier.label }}</p>
+            <p class="mt-2 text-xl font-bold text-text-brand">{{ formatCurrency(tier.billing_amount) }}</p>
             <p class="text-[11px] text-green-light">cada {{ tier.months === 1 ? 'mes' : `${tier.months} meses` }}</p>
-            <p v-if="tier.discount_percent" class="mt-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">{{ tier.discount_percent }}% descuento</p>
+            <p v-if="tier.discount_percent" class="mt-1 text-[10px] font-medium text-text-brand dark:text-emerald-400">{{ tier.discount_percent }}% descuento</p>
           </div>
         </div>
       </div>
@@ -135,7 +135,7 @@
       <!-- Linked proposal badge -->
       <div v-if="project.proposal_title" class="mb-8 flex items-center gap-2 text-xs text-green-light" data-enter>
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-        Propuesta vinculada: <span class="font-medium text-esmerald dark:text-white">{{ project.proposal_title }}</span>
+        Propuesta vinculada: <span class="font-medium text-text-default">{{ project.proposal_title }}</span>
       </div>
 
       <!-- Module cards -->
@@ -144,32 +144,32 @@
           <NuxtLink
             v-if="module.href"
             :to="module.href"
-            class="group rounded-2xl border border-esmerald/[0.06] bg-white p-6 transition hover:border-esmerald/20 hover:shadow-md dark:border-white/[0.06] dark:bg-esmerald dark:hover:border-white/15"
+            class="group rounded-2xl border border-border-default bg-surface p-6 transition hover:border-border-default hover:shadow-md dark:hover:border-white/15"
           >
             <div class="flex items-center gap-3">
               <div class="flex h-10 w-10 items-center justify-center rounded-xl" :class="module.iconBg">
                 <SidebarIcon :name="module.icon" class="h-5 w-5" :class="module.iconColor" />
               </div>
               <div>
-                <h3 class="text-sm font-semibold text-esmerald dark:text-white">{{ module.title }}</h3>
+                <h3 class="text-sm font-semibold text-text-default">{{ module.title }}</h3>
                 <p class="text-xs text-green-light">{{ module.subtitle }}</p>
               </div>
             </div>
             <p class="mt-4 text-xs leading-relaxed text-green-light/80">{{ module.description }}</p>
-            <div class="mt-3 flex items-center gap-1 text-xs font-medium text-esmerald opacity-0 transition group-hover:opacity-100 dark:text-lemon">
+            <div class="mt-3 flex items-center gap-1 text-xs font-medium text-text-default opacity-0 transition group-hover:opacity-100 dark:text-accent">
               Abrir <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             </div>
           </NuxtLink>
           <div
             v-else
-            class="rounded-2xl border border-esmerald/[0.06] bg-white p-6 opacity-50 dark:border-white/[0.06] dark:bg-esmerald"
+            class="rounded-2xl border border-border-default bg-surface p-6 opacity-50"
           >
             <div class="flex items-center gap-3">
               <div class="flex h-10 w-10 items-center justify-center rounded-xl" :class="module.iconBg">
                 <SidebarIcon :name="module.icon" class="h-5 w-5" :class="module.iconColor" />
               </div>
               <div>
-                <h3 class="text-sm font-semibold text-esmerald dark:text-white">{{ module.title }}</h3>
+                <h3 class="text-sm font-semibold text-text-default">{{ module.title }}</h3>
                 <p class="text-xs text-green-light">{{ module.subtitle }}</p>
               </div>
             </div>
@@ -193,13 +193,13 @@
           <Transition name="modal-content" appear>
             <div
               v-if="isEditModalOpen"
-              class="w-full max-w-lg rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-2xl dark:border-white/[0.06] dark:bg-esmerald sm:p-8"
+              class="w-full max-w-lg rounded-3xl border border-border-default bg-surface p-6 shadow-2xl sm:p-8"
             >
               <div class="mb-6 flex items-center justify-between">
-                <h2 class="text-lg font-bold text-esmerald dark:text-white">Editar proyecto</h2>
+                <h2 class="text-lg font-bold text-text-default">Editar proyecto</h2>
                 <button
                   type="button"
-                  class="flex h-8 w-8 items-center justify-center rounded-full text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
+                  class="flex h-8 w-8 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white"
                   @click="closeEditModal"
                 >
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -216,15 +216,15 @@
               <form class="space-y-4" @submit.prevent="handleUpdateProject">
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Nombre</label>
-                  <input v-model="editForm.name" type="text" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40" />
+                  <input v-model="editForm.name" type="text" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40" />
                 </div>
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Descripción</label>
-                  <textarea v-model="editForm.description" rows="3" class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40" />
+                  <textarea v-model="editForm.description" rows="3" class="w-full resize-none rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40" />
                 </div>
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Estado</label>
-                  <select v-model="editForm.status" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40">
+                  <select v-model="editForm.status" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40">
                     <option value="active">Activo</option>
                     <option value="paused">Pausado</option>
                     <option value="completed">Completado</option>
@@ -235,16 +235,16 @@
                 <div class="grid grid-cols-2 gap-3">
                   <div>
                     <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Inicio</label>
-                    <input v-model="editForm.start_date" type="date" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40" />
+                    <input v-model="editForm.start_date" type="date" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40" />
                   </div>
                   <div>
                     <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Entrega estimada</label>
-                    <input v-model="editForm.estimated_end_date" type="date" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40" />
+                    <input v-model="editForm.estimated_end_date" type="date" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40" />
                   </div>
                 </div>
                 <div class="flex justify-end gap-3 pt-2">
-                  <button type="button" class="rounded-xl border border-esmerald/10 px-5 py-2.5 text-sm font-medium text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white" @click="closeEditModal">Cancelar</button>
-                  <button type="submit" :disabled="projectsStore.isUpdating" class="rounded-xl bg-lemon px-6 py-2.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50">
+                  <button type="button" class="rounded-xl border border-border-default px-5 py-2.5 text-sm font-medium text-green-light transition hover:text-text-default dark:hover:text-white" @click="closeEditModal">Cancelar</button>
+                  <button type="submit" :disabled="projectsStore.isUpdating" class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50">
                     {{ projectsStore.isUpdating ? 'Guardando...' : 'Guardar cambios' }}
                   </button>
                 </div>
@@ -344,7 +344,7 @@ const projectModules = computed(() => [
     description: 'View collection accounts and PDFs linked to this project.',
     icon: 'file',
     iconBg: 'bg-emerald-500/10',
-    iconColor: 'text-emerald-600',
+    iconColor: 'text-text-brand',
     href: localePath(`/platform/projects/${route.params.id}/collection-accounts`),
   },
   {
@@ -374,7 +374,7 @@ function formatCurrency(amount) {
 
 function statusBadgeClass(status) {
   const map = {
-    active: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+    active: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
     paused: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     completed: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     archived: 'bg-white/10 text-green-light/60',

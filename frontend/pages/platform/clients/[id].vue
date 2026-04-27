@@ -1,27 +1,27 @@
 <template>
   <div id="platform-client-detail" class="space-y-6">
     <div data-enter>
-      <NuxtLink :to="localePath('/platform/clients')" class="inline-flex items-center text-sm font-medium text-green-light transition hover:text-esmerald dark:hover:text-white">
+      <NuxtLink :to="localePath('/platform/clients')" class="inline-flex items-center text-sm font-medium text-green-light transition hover:text-text-default dark:hover:text-white">
         ← Volver a clientes
       </NuxtLink>
-      <h1 class="mt-3 font-light text-3xl text-esmerald dark:text-white">Detalle del cliente</h1>
+      <h1 class="mt-3 font-light text-3xl text-text-default">Detalle del cliente</h1>
     </div>
 
-    <div v-if="pageMessage" class="rounded-2xl border px-4 py-3 text-sm" :class="pageMessageVariant === 'success' ? 'border-emerald-500/20 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300' : 'border-red-500/20 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-200'">
+    <div v-if="pageMessage" class="rounded-2xl border px-4 py-3 text-sm" :class="pageMessageVariant === 'success' ? 'border-emerald-500/20 bg-primary-soft text-text-brand dark:bg-emerald-500/10 dark:text-emerald-300' : 'border-red-500/20 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-200'">
       {{ pageMessage }}
     </div>
 
-    <div v-if="platformClientsStore.isLoading" class="rounded-3xl border border-esmerald/[0.06] bg-white px-6 py-14 text-center text-sm text-green-light shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none" data-enter>
+    <div v-if="platformClientsStore.isLoading" class="rounded-3xl border border-border-default bg-surface px-6 py-14 text-center text-sm text-green-light shadow-sm" data-enter>
       Cargando cliente...
     </div>
 
-    <div v-else-if="!platformClientsStore.currentClient" class="rounded-3xl border border-esmerald/[0.06] bg-white px-6 py-14 text-center text-sm text-green-light shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none" data-enter>
+    <div v-else-if="!platformClientsStore.currentClient" class="rounded-3xl border border-border-default bg-surface px-6 py-14 text-center text-sm text-green-light shadow-sm" data-enter>
       No encontramos el cliente solicitado.
     </div>
 
     <div v-else class="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
       <section class="space-y-6" data-enter>
-        <article class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
+        <article class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
           <div class="flex items-center gap-4">
             <div class="h-14 w-14 shrink-0 overflow-hidden rounded-full">
               <img
@@ -30,27 +30,27 @@
                 alt="Avatar"
                 class="h-full w-full object-cover"
               />
-              <div v-else class="flex h-full w-full items-center justify-center bg-esmerald text-base font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
+              <div v-else class="flex h-full w-full items-center justify-center bg-primary text-base font-bold text-white dark:bg-accent dark:text-text-default">
                 {{ clientInitials }}
               </div>
             </div>
             <div>
-              <h2 class="text-lg font-medium text-esmerald dark:text-white">{{ form.first_name }} {{ form.last_name }}</h2>
+              <h2 class="text-lg font-medium text-text-default">{{ form.first_name }} {{ form.last_name }}</h2>
               <p class="mt-0.5 text-sm text-green-light">{{ platformClientsStore.currentClient.email }}</p>
             </div>
           </div>
 
           <dl class="mt-6 grid gap-3">
-            <div class="rounded-xl border border-esmerald/[0.06] p-4 dark:border-white/[0.06]">
+            <div class="rounded-xl border border-border-default p-4">
               <dt class="text-xs uppercase tracking-[0.16em] text-green-light/60">Empresa</dt>
-              <dd class="mt-2 text-sm font-medium text-esmerald dark:text-white">{{ form.company_name || '—' }}</dd>
+              <dd class="mt-2 text-sm font-medium text-text-default">{{ form.company_name || '—' }}</dd>
             </div>
-            <div class="rounded-xl border border-esmerald/[0.06] p-4 dark:border-white/[0.06]">
+            <div class="rounded-xl border border-border-default p-4">
               <dt class="text-xs uppercase tracking-[0.16em] text-green-light/60">Teléfono</dt>
-              <dd class="mt-2 text-sm font-medium text-esmerald dark:text-white">{{ form.phone || '—' }}</dd>
+              <dd class="mt-2 text-sm font-medium text-text-default">{{ form.phone || '—' }}</dd>
             </div>
             <div class="grid gap-3 sm:grid-cols-2">
-              <div class="rounded-xl border border-esmerald/[0.06] p-4 dark:border-white/[0.06]">
+              <div class="rounded-xl border border-border-default p-4">
                 <dt class="text-xs uppercase tracking-[0.16em] text-green-light/60">Estado</dt>
                 <dd class="mt-2">
                   <span class="inline-flex rounded-full px-3 py-1 text-xs font-medium" :class="statusClass(platformClientsStore.currentClient)">
@@ -58,20 +58,20 @@
                   </span>
                 </dd>
               </div>
-              <div class="rounded-xl border border-esmerald/[0.06] p-4 dark:border-white/[0.06]">
+              <div class="rounded-xl border border-border-default p-4">
                 <dt class="text-xs uppercase tracking-[0.16em] text-green-light/60">Creado</dt>
-                <dd class="mt-2 text-sm font-medium text-esmerald dark:text-white">{{ formatDate(platformClientsStore.currentClient.created_at) }}</dd>
+                <dd class="mt-2 text-sm font-medium text-text-default">{{ formatDate(platformClientsStore.currentClient.created_at) }}</dd>
               </div>
             </div>
           </dl>
         </article>
 
-        <article class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
-          <h2 class="text-base font-medium text-esmerald dark:text-white">Acciones rápidas</h2>
+        <article class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
+          <h2 class="text-base font-medium text-text-default">Acciones rápidas</h2>
           <div class="mt-5 flex flex-col gap-3">
             <button
               type="button"
-              class="rounded-full border border-esmerald/10 px-4 py-3 text-sm text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white disabled:opacity-50"
+              class="rounded-full border border-border-default px-4 py-3 text-sm text-green-light transition hover:text-text-default dark:hover:text-white disabled:opacity-50"
               :disabled="platformClientsStore.isUpdating"
               @click="handleResendInvite"
             >
@@ -91,7 +91,7 @@
             <button
               v-else
               type="button"
-              class="rounded-full border border-emerald-500/20 px-4 py-3 text-sm text-emerald-600 transition hover:bg-emerald-500/10 dark:text-emerald-400 disabled:opacity-50"
+              class="rounded-full border border-emerald-500/20 px-4 py-3 text-sm text-text-brand transition hover:bg-emerald-500/10 dark:text-emerald-400 disabled:opacity-50"
               :disabled="platformClientsStore.isUpdating"
               @click="handleReactivate"
             >
@@ -102,8 +102,8 @@
       </section>
 
       <section data-enter>
-        <article class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
-          <h2 class="text-base font-medium text-esmerald dark:text-white">Editar cliente</h2>
+        <article class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
+          <h2 class="text-base font-medium text-text-default">Editar cliente</h2>
           <p class="mt-2 text-sm leading-6 text-green-light">
             Ajusta la información visible para el equipo y el cliente dentro del portal.
           </p>
@@ -111,48 +111,48 @@
           <form class="mt-6 grid gap-5 sm:grid-cols-2" @submit.prevent="handleSave">
             <div>
               <label for="client-first-name" class="mb-2 block text-sm font-medium text-esmerald/70 dark:text-white/70">Nombre</label>
-              <input id="client-first-name" v-model="form.first_name" type="text" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20">
+              <input id="client-first-name" v-model="form.first_name" type="text" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/60 focus:border-border-default focus:ring-1 focus:ring-esmerald/10 dark:bg-primary-strong dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20">
             </div>
 
             <div>
               <label for="client-last-name" class="mb-2 block text-sm font-medium text-esmerald/70 dark:text-white/70">Apellido</label>
-              <input id="client-last-name" v-model="form.last_name" type="text" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20">
+              <input id="client-last-name" v-model="form.last_name" type="text" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/60 focus:border-border-default focus:ring-1 focus:ring-esmerald/10 dark:bg-primary-strong dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20">
             </div>
 
             <div class="sm:col-span-2">
               <label for="client-email" class="mb-2 block text-sm font-medium text-esmerald/70 dark:text-white/70">Email</label>
-              <input id="client-email" :value="platformClientsStore.currentClient.email" type="email" disabled class="w-full rounded-xl border border-esmerald/[0.06] bg-esmerald-light/20 px-4 py-3 text-sm text-green-light outline-none dark:border-white/[0.06] dark:bg-white/[0.03]">
+              <input id="client-email" :value="platformClientsStore.currentClient.email" type="email" disabled class="w-full rounded-xl border border-border-default bg-surface-muted/20 px-4 py-3 text-sm text-green-light outline-none dark:bg-white/5">
             </div>
 
             <div>
               <label for="client-company" class="mb-2 block text-sm font-medium text-esmerald/70 dark:text-white/70">Empresa</label>
-              <input id="client-company" v-model="form.company_name" type="text" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20">
+              <input id="client-company" v-model="form.company_name" type="text" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/60 focus:border-border-default focus:ring-1 focus:ring-esmerald/10 dark:bg-primary-strong dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20">
             </div>
 
             <div>
               <label for="client-phone" class="mb-2 block text-sm font-medium text-esmerald/70 dark:text-white/70">Teléfono</label>
-              <input id="client-phone" v-model="form.phone" type="text" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20">
+              <input id="client-phone" v-model="form.phone" type="text" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/60 focus:border-border-default focus:ring-1 focus:ring-esmerald/10 dark:bg-primary-strong dark:text-white dark:placeholder:text-green-light/40 dark:focus:border-lemon/40 dark:focus:ring-lemon/20">
             </div>
 
-            <label class="sm:col-span-2 flex items-center justify-between rounded-xl border border-esmerald/[0.06] px-4 py-4 dark:border-white/[0.06]">
+            <label class="sm:col-span-2 flex items-center justify-between rounded-xl border border-border-default px-4 py-4">
               <div>
-                <p class="text-sm font-medium text-esmerald dark:text-white">Cuenta activa</p>
+                <p class="text-sm font-medium text-text-default">Cuenta activa</p>
                 <p class="mt-1 text-xs text-green-light">Desactiva esta opción si necesitas pausar el acceso del cliente.</p>
               </div>
-              <input v-model="form.is_active" type="checkbox" class="h-5 w-5 rounded border-esmerald/10 bg-esmerald-light/40 text-esmerald focus:ring-esmerald/30 dark:border-white/10 dark:bg-esmerald-dark dark:text-lemon dark:focus:ring-lemon/30">
+              <input v-model="form.is_active" type="checkbox" class="h-5 w-5 rounded border-border-default bg-surface-muted/40 text-text-default focus:ring-esmerald/30 dark:bg-primary-strong dark:text-accent dark:focus:ring-lemon/30">
             </label>
 
             <div class="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:justify-end">
               <button
                 type="button"
-                class="rounded-full border border-esmerald/10 px-4 py-3 text-sm text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+                class="rounded-full border border-border-default px-4 py-3 text-sm text-green-light transition hover:text-text-default dark:hover:text-white"
                 @click="syncFormFromClient"
               >
                 Restablecer
               </button>
               <button
                 type="submit"
-                class="rounded-full bg-esmerald px-5 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-lemon dark:text-esmerald-dark dark:hover:bg-lemon/90"
+                class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-accent dark:text-text-default dark:hover:bg-lemon/90"
                 :disabled="platformClientsStore.isUpdating"
               >
                 {{ platformClientsStore.isUpdating ? 'Guardando...' : 'Guardar cambios' }}
@@ -222,7 +222,7 @@ function statusLabel(client) {
 
 function statusClass(client) {
   if (!client?.is_active) return 'bg-white/10 text-green-light/60'
-  if (!client?.is_onboarded) return 'bg-amber-100 text-amber-700 dark:bg-lemon/10 dark:text-lemon'
+  if (!client?.is_onboarded) return 'bg-amber-100 text-amber-700 dark:bg-lemon/10 dark:text-accent'
   return 'bg-emerald-500/15 text-emerald-400'
 }
 

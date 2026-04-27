@@ -1,5 +1,5 @@
 <template>
-  <section ref="sectionRef" class="fr-group min-h-screen w-full bg-white py-16">
+  <section ref="sectionRef" class="fr-group min-h-screen w-full bg-surface py-16">
     <div class="w-full px-6 md:px-12 lg:px-24">
       <div class="max-w-5xl mx-auto">
         <!-- Sub-section number + title -->
@@ -8,10 +8,10 @@
             {{ subIndex }}
           </span>
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-esmerald-light/60">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-primary-soft/60">
               <span class="text-2xl">{{ group.icon || '🧩' }}</span>
             </div>
-            <h2 class="text-esmerald font-light leading-tight text-3xl md:text-5xl">
+            <h2 class="text-text-brand font-light leading-tight text-3xl md:text-5xl">
               {{ group.title }}
             </h2>
           </div>
@@ -28,13 +28,13 @@
         <div v-if="group.items && group.items.length" data-animate="fade-up-stagger"
              class="requirements-grid grid md:grid-cols-2 gap-4">
           <div v-for="(item, idx) in group.items" :key="idx"
-               class="requirement-card bg-esmerald/5 p-5 rounded-xl hover:bg-esmerald-light/60 transition-colors border border-esmerald/10 hover:border-esmerald/20">
+               class="requirement-card bg-esmerald/5 p-5 rounded-xl hover:bg-primary-soft/60 transition-colors border border-esmerald/10 hover:border-esmerald/20">
             <div class="flex items-start">
-              <div class="w-9 h-9 rounded-lg bg-esmerald-light/60 border border-esmerald/10 flex items-center justify-center mr-3 flex-shrink-0">
+              <div class="w-9 h-9 rounded-lg bg-primary-soft/60 border border-esmerald/10 flex items-center justify-center mr-3 flex-shrink-0">
                 <span class="text-lg">{{ item.icon || '✅' }}</span>
               </div>
               <div>
-                <h4 class="font-bold text-esmerald mb-1">{{ item.name }}</h4>
+                <h4 class="font-bold text-text-brand mb-1">{{ item.name }}</h4>
                 <p class="text-sm text-esmerald/70 font-light">{{ item.description }}</p>
               </div>
             </div>

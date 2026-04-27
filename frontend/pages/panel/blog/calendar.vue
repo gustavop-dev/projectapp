@@ -1,12 +1,12 @@
 <template>
   <div>
     <div class="flex items-center justify-between mb-8">
-      <h1 class="text-2xl font-light text-gray-900 dark:text-white">Calendario de Blog</h1>
+      <h1 class="text-2xl font-light text-text-default">Calendario de Blog</h1>
       <div class="flex items-center gap-3">
         <NuxtLink
           :to="localePath('/panel/blog')"
-          class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-green-light rounded-xl
-                 font-medium text-sm hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors"
+          class="inline-flex items-center gap-2 px-4 py-2.5 border border-border-default text-text-default rounded-xl
+                 font-medium text-sm hover:bg-surface-raised transition-colors"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -15,8 +15,8 @@
         </NuxtLink>
         <NuxtLink
           :to="localePath('/panel/blog/create')"
-          class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
-                 font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl
+                 font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -27,11 +27,11 @@
     </div>
 
     <!-- Week navigation -->
-    <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] mb-6">
-      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/[0.06]">
+    <div class="bg-surface rounded-xl shadow-sm border border-border-muted mb-6">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-border-muted">
         <button
           type="button"
-          class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors text-gray-500 dark:text-green-light/60"
+          class="p-2 rounded-lg hover:bg-surface-raised transition-colors text-text-muted"
           @click="prevWeek"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,20 +39,20 @@
           </svg>
         </button>
         <div class="text-center">
-          <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ weekRangeLabel }}</h2>
-          <p class="text-xs text-gray-400 dark:text-green-light/60 mt-0.5">Semana {{ weekNumber }}</p>
+          <h2 class="text-sm font-semibold text-text-default">{{ weekRangeLabel }}</h2>
+          <p class="text-xs text-text-subtle mt-0.5">Semana {{ weekNumber }}</p>
         </div>
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="px-3 py-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors"
+            class="px-3 py-1.5 text-xs font-medium text-text-brand dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:bg-primary-soft dark:hover:bg-primary-soft transition-colors"
             @click="goToToday"
           >
             Hoy
           </button>
           <button
             type="button"
-            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors text-gray-500 dark:text-green-light/60"
+            class="p-2 rounded-lg hover:bg-surface-raised transition-colors text-text-muted"
             @click="nextWeek"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,14 +73,14 @@
           v-for="day in weekDays"
           :key="day.date"
           class="min-h-[160px] p-3"
-          :class="{ 'bg-emerald-50/40 dark:bg-emerald-500/10': day.isToday }"
+          :class="{ 'bg-primary-soft/40 dark:bg-primary-soft': day.isToday }"
         >
           <!-- Day header -->
           <div class="mb-2">
-            <p class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-green-light/60 font-medium">{{ day.dayName }}</p>
+            <p class="text-[10px] uppercase tracking-wider text-text-subtle font-medium">{{ day.dayName }}</p>
             <p
               class="text-sm font-semibold"
-              :class="day.isToday ? 'text-emerald-600' : 'text-gray-700 dark:text-white'"
+              :class="day.isToday ? 'text-text-brand' : 'text-text-default dark:text-white'"
             >
               {{ day.dayNumber }}
             </p>
@@ -101,15 +101,15 @@
           </div>
 
           <!-- Empty state -->
-          <p v-if="day.posts.length === 0" class="text-[10px] text-gray-300 dark:text-white/20 mt-3">Sin posts</p>
+          <p v-if="day.posts.length === 0" class="text-[10px] text-text-subtle dark:text-white/20 mt-3">Sin posts</p>
         </div>
       </div>
     </div>
 
     <!-- Legend -->
-    <div class="flex items-center gap-6 text-xs text-gray-500 dark:text-green-light/60">
+    <div class="flex items-center gap-6 text-xs text-text-muted">
       <div class="flex items-center gap-1.5">
-        <span class="w-3 h-3 rounded bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 inline-block" />
+        <span class="w-3 h-3 rounded bg-primary-soft dark:bg-primary-soft border border-emerald-200 dark:border-emerald-500/30 inline-block" />
         Publicado
       </div>
       <div class="flex items-center gap-1.5">
@@ -117,7 +117,7 @@
         Programado
       </div>
       <div class="flex items-center gap-1.5">
-        <span class="w-3 h-3 rounded bg-gray-100 dark:bg-white/[0.08] border border-gray-200 dark:border-white/[0.12] inline-block" />
+        <span class="w-3 h-3 rounded bg-surface-raised border border-border-default inline-block" />
         Borrador
       </div>
     </div>
@@ -211,9 +211,9 @@ function nextWeek() { weekOffset.value++; }
 function goToToday() { weekOffset.value = 0; }
 
 function postCardClass(post) {
-  if (post.calendar_status === 'published') return 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/20';
+  if (post.calendar_status === 'published') return 'bg-primary-soft dark:bg-primary-soft text-emerald-800 dark:text-emerald-300 hover:bg-primary-soft dark:hover:bg-primary-soft border border-emerald-200 dark:border-emerald-500/20';
   if (post.calendar_status === 'scheduled') return 'bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/20';
-  return 'bg-gray-50 dark:bg-white/[0.04] text-gray-600 dark:text-green-light hover:bg-gray-100 dark:hover:bg-white/[0.08] border border-gray-200 dark:border-white/[0.06]';
+  return 'bg-surface-raised text-text-muted hover:bg-surface-raised border border-border-default';
 }
 
 async function fetchWeekData() {

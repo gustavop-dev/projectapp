@@ -1,12 +1,12 @@
 <template>
-  <section ref="sectionRef" class="functional-requirements min-h-screen w-full bg-white flex items-center">
+  <section ref="sectionRef" class="functional-requirements min-h-screen w-full bg-surface flex items-center">
     <div class="w-full px-6 md:px-12 lg:px-24 py-12 md:py-6">
       <div class="max-w-5xl mx-auto">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
             {{ data.index }}
           </span>
-          <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
+          <h2 class="text-text-brand font-light leading-tight text-4xl md:text-6xl">
             {{ data.title }}
           </h2>
         </div>
@@ -22,26 +22,26 @@
           <div v-for="group in allGroups" :key="group.id || group.title"
                class="overview-card group p-6 rounded-2xl border-2 cursor-pointer transition-all"
                :class="isGroupDeselected(group)
-                 ? 'bg-gray-50 border-gray-200 opacity-50'
+                 ? 'bg-gray-50 border-border-default opacity-50'
                  : 'bg-esmerald/5 border-esmerald/10 hover:border-esmerald/30'"
                @click="openModal(group)">
             <div class="flex items-center gap-3 mb-3">
-              <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-esmerald-light/60 group-hover:scale-110 transition-transform">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-primary-soft group-hover:scale-110 transition-transform">
                 <span class="text-xl">{{ group.icon || '🧩' }}</span>
               </div>
-              <h3 class="text-lg font-medium text-esmerald">{{ group.title }}</h3>
-              <span v-if="groupPrice(group) && group.is_calculator_module" class="ml-auto text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+              <h3 class="text-lg font-medium text-text-brand">{{ group.title }}</h3>
+              <span v-if="groupPrice(group) && group.is_calculator_module" class="ml-auto text-[11px] font-bold text-text-brand bg-primary-soft border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
                 💰 {{ group.is_calculator_module ? '+' : '' }}{{ formatPrice(groupPrice(group)) }}
               </span>
-              <span v-if="isGroupDeselected(group)" class="ml-auto text-[10px] font-medium text-gray-400 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+              <span v-if="isGroupDeselected(group)" class="ml-auto text-[10px] font-medium text-gray-400 bg-gray-100 border border-border-default px-2 py-0.5 rounded-full whitespace-nowrap">
                 No incluido
               </span>
-              <span v-else-if="group.items?.length" class="ml-auto badge-count text-xs font-bold text-white bg-esmerald/70 px-2.5 py-1 rounded-full group-hover:bg-esmerald group-hover:scale-110 transition-all" style="color: white">
+              <span v-else-if="group.items?.length" class="ml-auto badge-count text-xs font-bold text-white bg-esmerald/70 px-2.5 py-1 rounded-full group-hover:bg-primary group-hover:scale-110 transition-all" style="color: white">
                 {{ group.items.length }}
               </span>
             </div>
             <p class="text-sm text-esmerald/70 font-light leading-relaxed mb-3">{{ group.description }}</p>
-            <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-light group-hover:text-esmerald transition-colors">
+            <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-light group-hover:text-text-brand transition-colors">
               {{ t.viewDetail }}
               <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />

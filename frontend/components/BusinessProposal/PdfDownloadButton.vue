@@ -3,9 +3,9 @@
     type="button"
     class="pdf-download fixed bottom-[4.75rem] right-4 z-40
            w-12 h-12 rounded-full
-           bg-white/90 backdrop-blur-sm shadow-lg border border-gray-200
-           flex items-center justify-center text-gray-700
-           hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200
+           bg-white/90 backdrop-blur-sm shadow-lg border border-border-default
+           flex items-center justify-center text-text-default
+           hover:bg-primary-soft hover:text-text-brand hover:border-emerald-200
            transition-colors"
     :disabled="isGenerating"
     :title="isGenerating ? 'Generando...' : 'Descargar PDF'"

@@ -1,11 +1,11 @@
 <template>
-  <section ref="sectionRef" class="technical-doc-public min-h-screen w-full bg-white flex items-center">
+  <section ref="sectionRef" class="technical-doc-public min-h-screen w-full bg-surface flex items-center">
     <div class="w-full px-6 md:px-12 lg:px-24 py-12 md:py-10">
       <div class="max-w-5xl mx-auto">
         <!-- Intro -->
         <template v-if="fragment === 'intro'">
           <div data-animate="fade-up" class="mb-8">
-            <h2 class="text-esmerald font-light text-3xl md:text-5xl leading-tight mb-6">
+            <h2 class="text-text-brand font-light text-3xl md:text-5xl leading-tight mb-6">
               {{ titles.intro }}
             </h2>
             <p v-if="purposeText" class="text-esmerald/80 font-light text-lg md:text-xl leading-relaxed whitespace-pre-wrap">
@@ -30,10 +30,10 @@
 
         <!-- Stack -->
         <template v-else-if="fragment === 'stack'">
-          <h2 class="text-esmerald font-light text-3xl md:text-4xl mb-8">{{ titles.stack }}</h2>
+          <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-8">{{ titles.stack }}</h2>
           <div class="overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm text-left">
-              <thead class="bg-esmerald text-lemon">
+              <thead class="bg-primary text-accent">
                 <tr>
                   <th class="px-4 py-3 font-medium">{{ language === 'en' ? 'Layer' : 'Capa' }}</th>
                   <th class="px-4 py-3 font-medium">{{ language === 'en' ? 'Technology' : 'Tecnología' }}</th>
@@ -41,7 +41,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, i) in stackRows" :key="i" class="border-t border-esmerald/10 odd:bg-white even:bg-esmerald/[0.03]">
+                <tr v-for="(row, i) in stackRows" :key="i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft/30">
                   <td class="px-4 py-3 text-esmerald/90">{{ row.layer }}</td>
                   <td class="px-4 py-3 text-esmerald/90">{{ row.technology }}</td>
                   <td class="px-4 py-3 text-esmerald/70 font-light">{{ row.rationale }}</td>
@@ -53,11 +53,11 @@
 
         <!-- Architecture -->
         <template v-else-if="fragment === 'architecture'">
-          <h2 class="text-esmerald font-light text-3xl md:text-4xl mb-6">{{ titles.architecture }}</h2>
+          <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-6">{{ titles.architecture }}</h2>
           <p v-if="arch.summary" class="text-esmerald/80 font-light leading-relaxed mb-8 whitespace-pre-wrap">{{ arch.summary }}</p>
           <div v-if="patternRows.length" class="overflow-x-auto rounded-xl border border-esmerald/10 mb-6">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-esmerald">
+              <thead class="bg-esmerald/10 text-text-brand">
                 <tr>
                   <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Component' : 'Componente' }}</th>
                   <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Pattern' : 'Patrón' }}</th>
@@ -78,12 +78,12 @@
 
         <!-- Data model -->
         <template v-else-if="fragment === 'dataModel'">
-          <h2 class="text-esmerald font-light text-3xl md:text-4xl mb-6">{{ titles.dataModel }}</h2>
+          <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-6">{{ titles.dataModel }}</h2>
           <p v-if="dm.summary" class="text-esmerald/80 font-light leading-relaxed mb-4 whitespace-pre-wrap">{{ dm.summary }}</p>
           <p v-if="dm.relationships" class="text-esmerald/70 font-light text-sm mb-8 whitespace-pre-wrap">{{ dm.relationships }}</p>
           <div v-if="entityRows.length" class="overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-esmerald">
+              <thead class="bg-esmerald/10 text-text-brand">
                 <tr>
                   <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Entity' : 'Entidad' }}</th>
                   <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Description' : 'Descripción' }}</th>
@@ -103,11 +103,11 @@
 
         <!-- Growth readiness -->
         <template v-else-if="fragment === 'growthReadiness'">
-          <h2 class="text-esmerald font-light text-3xl md:text-4xl mb-6">{{ titles.growthReadiness }}</h2>
+          <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-6">{{ titles.growthReadiness }}</h2>
           <p v-if="growthSummary" class="text-esmerald/80 font-light leading-relaxed mb-8 whitespace-pre-wrap">{{ growthSummary }}</p>
           <div v-if="growthStrategyRows.length" class="overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-esmerald">
+              <thead class="bg-esmerald/10 text-text-brand">
                 <tr>
                   <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Dimension' : 'Dimensión' }}</th>
                   <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Preparation' : 'Preparación' }}</th>
@@ -127,15 +127,15 @@
 
         <!-- Epics -->
         <template v-else-if="fragment === 'epics'">
-          <h2 class="text-esmerald font-light text-3xl md:text-4xl mb-6">{{ titles.epics }}</h2>
+          <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-6">{{ titles.epics }}</h2>
           <div class="space-y-8">
             <article
               v-for="(epic, ei) in epicsList"
               :key="'epic-card-' + ei"
               class="rounded-2xl border border-esmerald/15 bg-gradient-to-b from-white to-esmerald/[0.03] shadow-sm overflow-hidden"
             >
-              <header class="px-5 py-4 border-b border-esmerald/10 bg-esmerald/[0.04]">
-                <h3 class="text-lg md:text-xl font-medium text-esmerald leading-snug">
+              <header class="px-5 py-4 border-b border-esmerald/10 bg-primary-soft/40">
+                <h3 class="text-lg md:text-xl font-medium text-text-brand leading-snug">
                   {{ epic.title || epic.epicKey }}
                 </h3>
                 <p v-if="epic.description" class="text-sm text-esmerald/65 font-light mt-2 whitespace-pre-wrap leading-relaxed">
@@ -144,7 +144,7 @@
               </header>
               <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left">
-                  <thead class="bg-esmerald text-lemon text-xs uppercase tracking-wide">
+                  <thead class="bg-primary text-accent text-xs uppercase tracking-wide">
                     <tr>
                       <th class="px-4 py-3 font-medium">{{ language === 'en' ? 'Requirement' : 'Requerimiento' }}</th>
                       <th class="px-4 py-3 font-medium w-28">{{ language === 'en' ? 'Priority' : 'Prioridad' }}</th>
@@ -156,7 +156,7 @@
                     <tr
                       v-for="(req, ri) in epic.requirements"
                       :key="'req-row-' + ei + '-' + ri"
-                      class="border-t border-esmerald/10 odd:bg-white even:bg-esmerald/[0.02]"
+                      class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft/20"
                     >
                       <td class="px-4 py-3 text-esmerald/90 font-medium align-top">
                         {{ req.title }}
@@ -191,11 +191,11 @@
 
         <!-- API -->
         <template v-else-if="fragment === 'api'">
-          <h2 class="text-esmerald font-light text-3xl md:text-4xl mb-6">{{ titles.api }}</h2>
+          <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-6">{{ titles.api }}</h2>
           <p v-if="apiSummary" class="text-esmerald/80 font-light leading-relaxed mb-8 whitespace-pre-wrap">{{ apiSummary }}</p>
           <div v-if="apiDomainRows.length" class="overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-esmerald">
+              <thead class="bg-esmerald/10 text-text-brand">
                 <tr>
                   <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Domain' : 'Dominio' }}</th>
                   <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Summary' : 'Resumen' }}</th>
@@ -213,12 +213,12 @@
 
         <!-- Integrations -->
         <template v-else-if="fragment === 'integrations'">
-          <h2 class="text-esmerald font-light text-3xl md:text-4xl mb-8">{{ titles.integrations }}</h2>
+          <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-8">{{ titles.integrations }}</h2>
           <div v-if="includedRows.length" class="mb-8">
-            <h3 class="text-sm font-semibold text-esmerald mb-3">{{ language === 'en' ? 'Included' : 'Incluidas' }}</h3>
+            <h3 class="text-sm font-semibold text-text-brand mb-3">{{ language === 'en' ? 'Included' : 'Incluidas' }}</h3>
             <div class="overflow-x-auto rounded-xl border border-esmerald/10 text-xs md:text-sm">
               <table class="w-full text-left">
-                <thead class="bg-esmerald text-lemon">
+                <thead class="bg-primary text-accent">
                   <tr>
                     <th class="px-3 py-2">{{ language === 'en' ? 'Service' : 'Servicio' }}</th>
                     <th class="px-3 py-2">{{ language === 'en' ? 'Provider' : 'Proveedor' }}</th>
@@ -240,10 +240,10 @@
             </div>
           </div>
           <div v-if="excludedRows.length" class="mb-8">
-            <h3 class="text-sm font-semibold text-esmerald mb-3">{{ language === 'en' ? 'Not included' : 'No incluidas' }}</h3>
+            <h3 class="text-sm font-semibold text-text-brand mb-3">{{ language === 'en' ? 'Not included' : 'No incluidas' }}</h3>
             <div class="overflow-x-auto rounded-xl border border-esmerald/10 text-sm">
               <table class="w-full text-left">
-                <thead class="bg-esmerald/10 text-esmerald">
+                <thead class="bg-esmerald/10 text-text-brand">
                   <tr>
                     <th class="px-4 py-2">{{ language === 'en' ? 'Service' : 'Servicio' }}</th>
                     <th class="px-4 py-2">{{ language === 'en' ? 'Reason' : 'Motivo' }}</th>
@@ -262,7 +262,7 @@
           </div>
           <div v-if="integrationNoteLines.length" class="mt-6">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <h3 class="text-sm font-semibold text-esmerald">{{ language === 'en' ? 'Technical notes' : 'Notas técnicas' }}</h3>
+              <h3 class="text-sm font-semibold text-text-brand">{{ language === 'en' ? 'Technical notes' : 'Notas técnicas' }}</h3>
               <button
                 v-if="integrationNoteLines.length > INTEGRATION_NOTES_INLINE_MAX"
                 type="button"
@@ -274,7 +274,7 @@
             </div>
             <div class="overflow-x-auto rounded-xl border border-esmerald/10">
               <table class="w-full text-sm">
-                <thead class="bg-esmerald/10 text-esmerald">
+                <thead class="bg-esmerald/10 text-text-brand">
                   <tr>
                     <th class="px-3 py-2 w-12 text-left font-medium">#</th>
                     <th class="px-3 py-2 text-left font-medium">{{ language === 'en' ? 'Note' : 'Nota' }}</th>
@@ -297,11 +297,11 @@
 
         <!-- Environments -->
         <template v-else-if="fragment === 'environments'">
-          <h2 class="text-esmerald font-light text-3xl md:text-4xl mb-6">{{ titles.environments }}</h2>
+          <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-6">{{ titles.environments }}</h2>
           <p v-if="environmentsNote" class="text-esmerald/80 font-light mb-8 whitespace-pre-wrap">{{ environmentsNote }}</p>
           <div v-if="environmentRows.length" class="overflow-x-auto rounded-xl border border-esmerald/10 text-sm">
             <table class="w-full text-left">
-              <thead class="bg-esmerald/10 text-esmerald">
+              <thead class="bg-esmerald/10 text-text-brand">
                 <tr>
                   <th class="px-3 py-2">{{ language === 'en' ? 'Name' : 'Nombre' }}</th>
                   <th class="px-3 py-2">{{ language === 'en' ? 'Purpose' : 'Propósito' }}</th>
@@ -325,10 +325,10 @@
 
         <!-- Security -->
         <template v-else-if="fragment === 'security'">
-          <h2 class="text-esmerald font-light text-3xl md:text-4xl mb-8">{{ titles.security }}</h2>
+          <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-8">{{ titles.security }}</h2>
           <div class="overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald text-lemon">
+              <thead class="bg-primary text-accent">
                 <tr>
                   <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Aspect' : 'Aspecto' }}</th>
                   <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Implementation' : 'Implementación' }}</th>
@@ -346,10 +346,10 @@
 
         <!-- Performance -->
         <template v-else-if="fragment === 'performance'">
-          <h2 class="text-esmerald font-light text-3xl md:text-4xl mb-8">{{ titles.performance }}</h2>
+          <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-8">{{ titles.performance }}</h2>
           <div v-if="metricRows.length" class="mb-8 overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-esmerald">
+              <thead class="bg-esmerald/10 text-text-brand">
                 <tr>
                   <th class="px-4 py-2 text-left">{{ language === 'en' ? 'Metric' : 'Métrica' }}</th>
                   <th class="px-4 py-2 text-left">{{ language === 'en' ? 'Target' : 'Objetivo' }}</th>
@@ -367,7 +367,7 @@
           </div>
           <div v-if="practiceLines.length" class="overflow-x-auto rounded-xl border border-esmerald/10 mt-6">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-esmerald">
+              <thead class="bg-esmerald/10 text-text-brand">
                 <tr>
                   <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Practice' : 'Práctica' }}</th>
                   <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Description' : 'Descripción' }}</th>
@@ -385,16 +385,16 @@
 
         <!-- Backups -->
         <template v-else-if="fragment === 'backups'">
-          <h2 class="text-esmerald font-light text-3xl md:text-4xl mb-6">{{ titles.backups }}</h2>
+          <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-6">{{ titles.backups }}</h2>
           <p class="text-esmerald/80 font-light leading-relaxed whitespace-pre-wrap">{{ backupsNote }}</p>
         </template>
 
         <!-- Quality -->
         <template v-else-if="fragment === 'quality'">
-          <h2 class="text-esmerald font-light text-3xl md:text-4xl mb-8">{{ titles.quality }}</h2>
+          <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-8">{{ titles.quality }}</h2>
           <div v-if="qualityDimRows.length" class="mb-8 overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-esmerald">
+              <thead class="bg-esmerald/10 text-text-brand">
                 <tr>
                   <th class="px-4 py-2 text-left">{{ language === 'en' ? 'Dimension' : 'Dimensión' }}</th>
                   <th class="px-4 py-2 text-left">{{ language === 'en' ? 'Evaluates' : 'Evalúa' }}</th>
@@ -412,7 +412,7 @@
           </div>
           <div v-if="qualityTestRows.length" class="mb-8 overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald text-lemon">
+              <thead class="bg-primary text-accent">
                 <tr>
                   <th class="px-3 py-2 text-left">{{ language === 'en' ? 'Type' : 'Tipo' }}</th>
                   <th class="px-3 py-2 text-left">{{ language === 'en' ? 'Validates' : 'Valida' }}</th>
@@ -435,10 +435,10 @@
 
         <!-- Decisions -->
         <template v-else-if="fragment === 'decisions'">
-          <h2 class="text-esmerald font-light text-3xl md:text-4xl mb-8">{{ titles.decisions }}</h2>
+          <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-8">{{ titles.decisions }}</h2>
           <div class="overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-esmerald">
+              <thead class="bg-esmerald/10 text-text-brand">
                 <tr>
                   <th class="px-4 py-2 text-left">{{ language === 'en' ? 'Decision' : 'Decisión' }}</th>
                   <th class="px-4 py-2 text-left">{{ language === 'en' ? 'Alternative' : 'Alternativa' }}</th>
@@ -468,15 +468,15 @@
         @click.self="closeRequirementModal"
       >
         <div
-          class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[min(88vh,720px)] overflow-hidden flex flex-col border border-esmerald/10"
+          class="bg-surface rounded-2xl shadow-2xl max-w-2xl w-full max-h-[min(88vh,720px)] overflow-hidden flex flex-col border border-esmerald/10"
           @click.stop
         >
-          <div class="flex items-start justify-between gap-3 px-5 py-4 border-b border-esmerald/10 bg-esmerald/[0.04]">
+          <div class="flex items-start justify-between gap-3 px-5 py-4 border-b border-esmerald/10 bg-primary-soft/40">
             <div class="min-w-0">
               <p class="text-[10px] uppercase tracking-wider text-esmerald/50 font-medium mb-1">
                 {{ requirementModal.epicTitle }}
               </p>
-              <h3 class="text-lg font-medium text-esmerald leading-snug">{{ requirementModal.req.title }}</h3>
+              <h3 class="text-lg font-medium text-text-brand leading-snug">{{ requirementModal.req.title }}</h3>
             </div>
             <button
               type="button"
@@ -538,11 +538,11 @@
         @click.self="integrationNotesModalOpen = false"
       >
         <div
-          class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[min(88vh,640px)] overflow-hidden flex flex-col border border-esmerald/10"
+          class="bg-surface rounded-2xl shadow-2xl max-w-2xl w-full max-h-[min(88vh,640px)] overflow-hidden flex flex-col border border-esmerald/10"
           @click.stop
         >
           <div class="flex items-center justify-between px-5 py-3 border-b border-esmerald/10">
-            <h3 class="text-sm font-semibold text-esmerald">{{ language === 'en' ? 'All technical notes' : 'Todas las notas técnicas' }}</h3>
+            <h3 class="text-sm font-semibold text-text-brand">{{ language === 'en' ? 'All technical notes' : 'Todas las notas técnicas' }}</h3>
             <button
               type="button"
               class="w-9 h-9 rounded-full border border-esmerald/20 text-esmerald/70 hover:bg-esmerald/10"
@@ -554,7 +554,7 @@
           </div>
           <div class="overflow-y-auto p-4">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-esmerald">
+              <thead class="bg-esmerald/10 text-text-brand">
                 <tr>
                   <th class="px-3 py-2 w-12 text-left font-medium">#</th>
                   <th class="px-3 py-2 text-left font-medium">{{ language === 'en' ? 'Note' : 'Nota' }}</th>

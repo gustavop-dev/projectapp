@@ -2,14 +2,14 @@
   <div>
     <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-6">
       <div>
-        <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Valores por Defecto</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        <h1 class="text-2xl font-light text-text-default">Valores por Defecto</h1>
+        <p class="text-sm text-text-muted mt-1">
           Configura los valores iniciales que se aplicarán a las nuevas propuestas o diagnósticos.
         </p>
       </div>
       <NuxtLink
         :to="backLink.to"
-        class="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+        class="inline-flex items-center gap-2 px-4 py-2 text-sm text-text-muted hover:text-text-default transition-colors"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -20,16 +20,16 @@
 
     <!-- Mode switch: Proposal / Diagnostic -->
     <div class="mb-6 flex items-center gap-3 flex-wrap" data-testid="defaults-mode-switch">
-      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Modo:</span>
-      <div class="inline-flex rounded-lg p-0.5 bg-gray-100 dark:bg-gray-700/60">
+      <span class="text-xs font-medium text-text-muted uppercase tracking-wider">Modo:</span>
+      <div class="inline-flex rounded-lg p-0.5 bg-surface-raised">
         <button
           v-for="opt in modeOptions"
           :key="opt.value"
           type="button"
           :class="['px-3 py-1.5 text-xs font-medium rounded-md transition-all',
             mode === opt.value
-              ? 'bg-white dark:bg-gray-600 text-emerald-600 dark:text-emerald-400 shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']"
+              ? 'bg-surface text-text-brand shadow-sm'
+              : 'text-text-muted hover:text-text-default']"
           :data-testid="`defaults-mode-${opt.value}`"
           @click="setMode(opt.value)"
         >

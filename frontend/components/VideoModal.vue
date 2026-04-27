@@ -10,7 +10,7 @@
           <!-- Close button -->
           <button
             @click="closeModal"
-            class="absolute -top-12 right-0 text-white hover:text-lemon transition-colors z-10"
+            class="absolute -top-12 right-0 text-white hover:text-accent transition-colors z-10"
             aria-label="Close video"
           >
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -2,26 +2,26 @@
   <div id="platform-changes">
     <!-- Loading -->
     <div v-if="crStore.isLoading && !crStore.changeRequests.length" class="py-20 text-center">
-      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-esmerald/20 border-t-esmerald dark:border-white/20 dark:border-t-lemon" />
+      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
     </div>
 
     <template v-else>
       <!-- Header -->
       <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" data-enter>
         <div>
-          <NuxtLink :to="localePath('/platform/changes')" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-esmerald dark:hover:text-white">
+          <NuxtLink :to="localePath('/platform/changes')" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
             Solicitudes
           </NuxtLink>
-          <h1 class="text-xl font-bold text-esmerald dark:text-white sm:text-2xl">Solicitudes de cambio</h1>
+          <h1 class="text-xl font-bold text-text-default sm:text-2xl">Solicitudes de cambio</h1>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
           <label
             v-if="authStore.isAdmin"
-            class="flex cursor-pointer items-center gap-2 rounded-full border border-esmerald/10 px-3 py-1.5 text-xs font-medium text-green-light dark:border-white/10"
+            class="flex cursor-pointer items-center gap-2 rounded-full border border-border-default px-3 py-1.5 text-xs font-medium text-green-light"
           >
-            <input v-model="includeArchived" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+            <input v-model="includeArchived" type="checkbox" class="rounded border-border-default" />
             Mostrar archivados
           </label>
           <!-- Stats pills -->
@@ -37,7 +37,7 @@
           <!-- Create button -->
           <button
             type="button"
-            class="flex items-center gap-1.5 rounded-xl bg-lemon px-4 py-2 text-sm font-semibold text-esmerald-dark transition hover:brightness-105"
+            class="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-text-default transition hover:brightness-105"
             @click="openCreateModal"
           >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
@@ -54,8 +54,8 @@
           type="button"
           class="shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition"
           :class="activeFilter === tab.value
-            ? 'bg-esmerald text-white dark:bg-lemon dark:text-esmerald-dark'
-            : 'text-green-light hover:bg-esmerald-light/50 dark:hover:bg-white/[0.06]'"
+            ? 'bg-primary text-white dark:bg-accent dark:text-text-default'
+            : 'text-green-light hover:bg-surface-muted/50 dark:hover:bg-white/10'"
           @click="activeFilter = tab.value"
         >
           {{ tab.label }}
@@ -68,7 +68,7 @@
         <div
           v-for="cr in filteredRequests"
           :key="cr.id"
-          class="group cursor-pointer rounded-2xl border border-esmerald/[0.06] bg-white p-5 transition hover:border-esmerald/15 hover:shadow-md dark:border-white/[0.06] dark:bg-esmerald dark:hover:border-white/12"
+          class="group cursor-pointer rounded-2xl border border-border-default bg-surface p-5 transition hover:border-border-default hover:shadow-md dark:hover:border-white/12"
           @click="openDetailModal(cr)"
         >
           <div class="flex items-start justify-between gap-3">
@@ -80,20 +80,20 @@
                 <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="priorityBadgeClass(cr.suggested_priority)">
                   {{ priorityLabel(cr.suggested_priority) }}
                 </span>
-                <span v-if="cr.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:text-gray-400">
+                <span v-if="cr.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">
                   Archivado
                 </span>
                 <span v-if="cr.is_urgent" class="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-red-600 dark:text-red-400">
                   Urgente
                 </span>
-                <span v-if="cr.linked_requirement_id" class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                <span v-if="cr.linked_requirement_id" class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-text-brand dark:text-emerald-400">
                   Convertida
                 </span>
               </div>
-              <h3 class="text-sm font-semibold text-esmerald dark:text-white">{{ cr.title }}</h3>
+              <h3 class="text-sm font-semibold text-text-default">{{ cr.title }}</h3>
               <p v-if="cr.description" class="mt-1 line-clamp-2 text-xs leading-relaxed text-green-light">{{ cr.description }}</p>
             </div>
-            <svg class="h-4 w-4 shrink-0 text-green-light/30 transition group-hover:text-esmerald dark:group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            <svg class="h-4 w-4 shrink-0 text-green-light/30 transition group-hover:text-text-default dark:group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
           </div>
 
           <div class="mt-3 flex items-center gap-4 text-[10px] text-green-light/60">
@@ -114,7 +114,7 @@
 
       <!-- Empty state -->
       <div v-else class="py-16 text-center" data-enter>
-        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-esmerald-light/50 dark:bg-white/[0.04]">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-muted/50 dark:bg-white/5">
           <svg class="h-8 w-8 text-green-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
         </div>
         <p class="text-sm text-green-light">
@@ -122,7 +122,7 @@
         </p>
         <button
           type="button"
-          class="mt-4 rounded-xl bg-lemon px-5 py-2.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105"
+          class="mt-4 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105"
           @click="openCreateModal"
         >
           Crear primera solicitud
@@ -139,26 +139,26 @@
           @click.self="isCreateOpen = false"
         >
           <Transition name="modal-content" appear>
-            <div v-if="isCreateOpen" class="w-full max-w-md rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-2xl dark:border-white/[0.06] dark:bg-esmerald sm:p-8">
-              <h2 class="mb-5 text-lg font-bold text-esmerald dark:text-white">Nueva solicitud de cambio</h2>
+            <div v-if="isCreateOpen" class="w-full max-w-md rounded-3xl border border-border-default bg-surface p-6 shadow-2xl sm:p-8">
+              <h2 class="mb-5 text-lg font-bold text-text-default">Nueva solicitud de cambio</h2>
 
               <form class="space-y-4" @submit.prevent="handleCreate">
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Título <span class="text-red-400">*</span></label>
-                  <input v-model="createForm.title" type="text" required placeholder="¿Qué cambio necesitas?" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                  <input v-model="createForm.title" type="text" required placeholder="¿Qué cambio necesitas?" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                 </div>
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Descripción</label>
-                  <textarea v-model="createForm.description" rows="3" placeholder="Describe el cambio con el mayor detalle posible..." class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                  <textarea v-model="createForm.description" rows="3" placeholder="Describe el cambio con el mayor detalle posible..." class="w-full resize-none rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                   <div>
                     <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Módulo / Pantalla</label>
-                    <input v-model="createForm.module_or_screen" type="text" placeholder="Ej: Catálogo" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                    <input v-model="createForm.module_or_screen" type="text" placeholder="Ej: Catálogo" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                   </div>
                   <div>
                     <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Prioridad sugerida</label>
-                    <select v-model="createForm.suggested_priority" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40">
+                    <select v-model="createForm.suggested_priority" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40">
                       <option value="low">Baja</option>
                       <option value="medium">Media</option>
                       <option value="high">Alta</option>
@@ -167,7 +167,7 @@
                   </div>
                 </div>
                 <label class="flex items-center gap-2 text-xs text-green-light">
-                  <input v-model="createForm.is_urgent" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+                  <input v-model="createForm.is_urgent" type="checkbox" class="rounded border-border-default" />
                   Marcar como urgente
                 </label>
 
@@ -175,7 +175,7 @@
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Pantallazo (opcional)</label>
                   <div
-                    class="relative flex min-h-[80px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-esmerald/15 bg-esmerald-light/20 transition hover:border-esmerald/30 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-white/20"
+                    class="relative flex min-h-[80px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border-default bg-surface-muted/20 transition hover:border-border-default dark:hover:border-white/20"
                     @click="$refs.screenshotInput.click()"
                     @dragover.prevent
                     @drop.prevent="handleScreenshotDrop"
@@ -195,8 +195,8 @@
                 </div>
 
                 <div class="flex justify-end gap-3 pt-2">
-                  <button type="button" class="rounded-xl border border-esmerald/10 px-5 py-2.5 text-sm text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white" @click="isCreateOpen = false">Cancelar</button>
-                  <button type="submit" :disabled="!createForm.title.trim() || crStore.isUpdating" class="rounded-xl bg-lemon px-6 py-2.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50">
+                  <button type="button" class="rounded-xl border border-border-default px-5 py-2.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="isCreateOpen = false">Cancelar</button>
+                  <button type="submit" :disabled="!createForm.title.trim() || crStore.isUpdating" class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50">
                     {{ crStore.isUpdating ? 'Creando...' : 'Crear solicitud' }}
                   </button>
                 </div>
@@ -216,64 +216,64 @@
           @click.self="detailCR = null"
         >
           <Transition name="modal-content" appear>
-            <div v-if="detailCR" class="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-2xl dark:border-white/[0.06] dark:bg-esmerald sm:p-8">
+            <div v-if="detailCR" class="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-border-default bg-surface p-6 shadow-2xl sm:p-8">
               <!-- Header -->
               <div class="mb-5 flex items-start justify-between gap-4">
                 <div class="flex-1">
                   <div class="mb-2 flex flex-wrap items-center gap-2">
                     <span class="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase" :class="statusBadgeClass(detailCR.status)">{{ statusLabel(detailCR.status) }}</span>
                     <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="priorityBadgeClass(detailCR.suggested_priority)">{{ priorityLabel(detailCR.suggested_priority) }}</span>
-                    <span v-if="detailCR.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:text-gray-400">Archivado</span>
+                    <span v-if="detailCR.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivado</span>
                     <span v-if="detailCR.is_urgent" class="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-red-600 dark:text-red-400">Urgente</span>
                   </div>
                   <p v-if="detailCR.is_archived && detailCR.archived_at" class="mb-1 text-[10px] text-green-light/60">
                     Archivado el {{ formatDate(detailCR.archived_at) }}
                   </p>
-                  <h2 class="text-lg font-bold text-esmerald dark:text-white">{{ detailCR.title }}</h2>
+                  <h2 class="text-lg font-bold text-text-default">{{ detailCR.title }}</h2>
                 </div>
-                <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white" @click="detailCR = null">
+                <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="detailCR = null">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
 
               <!-- Description -->
-              <div v-if="detailCR.description" class="mb-5 rounded-xl border border-esmerald/[0.04] bg-esmerald-light/20 p-4 text-sm leading-relaxed text-green-light dark:border-white/[0.04] dark:bg-white/[0.02]">
+              <div v-if="detailCR.description" class="mb-5 rounded-xl border border-border-muted bg-surface-muted/20 p-4 text-sm leading-relaxed text-green-light">
                 {{ detailCR.description }}
               </div>
 
               <!-- Screenshot -->
               <div v-if="detailCR.screenshot_url" class="mb-5">
-                <a :href="detailCR.screenshot_url" target="_blank" class="block overflow-hidden rounded-xl border border-esmerald/[0.06] transition hover:border-esmerald/20 dark:border-white/[0.06] dark:hover:border-white/15">
+                <a :href="detailCR.screenshot_url" target="_blank" class="block overflow-hidden rounded-xl border border-border-default transition hover:border-border-default dark:hover:border-white/15">
                   <img :src="detailCR.screenshot_url" alt="Pantallazo" class="w-full object-contain" style="max-height: 300px" />
                 </a>
               </div>
 
               <!-- Meta -->
               <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <div class="rounded-xl border border-esmerald/[0.04] p-3 dark:border-white/[0.04]">
+                <div class="rounded-xl border border-border-muted p-3">
                   <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Módulo</p>
-                  <p class="mt-1 text-xs font-semibold text-esmerald dark:text-white">{{ detailCR.module_or_screen || '—' }}</p>
+                  <p class="mt-1 text-xs font-semibold text-text-default">{{ detailCR.module_or_screen || '—' }}</p>
                 </div>
-                <div class="rounded-xl border border-esmerald/[0.04] p-3 dark:border-white/[0.04]">
+                <div class="rounded-xl border border-border-muted p-3">
                   <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Solicitado por</p>
-                  <p class="mt-1 text-xs font-semibold text-esmerald dark:text-white">{{ detailCR.created_by_name }}</p>
+                  <p class="mt-1 text-xs font-semibold text-text-default">{{ detailCR.created_by_name }}</p>
                 </div>
-                <div class="rounded-xl border border-esmerald/[0.04] p-3 dark:border-white/[0.04]">
+                <div class="rounded-xl border border-border-muted p-3">
                   <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Fecha</p>
-                  <p class="mt-1 text-xs font-semibold text-esmerald dark:text-white">{{ formatDate(detailCR.created_at) }}</p>
+                  <p class="mt-1 text-xs font-semibold text-text-default">{{ formatDate(detailCR.created_at) }}</p>
                 </div>
               </div>
 
               <!-- Admin response -->
-              <div v-if="detailCR.admin_response" class="mb-5 rounded-xl border-l-2 border-l-esmerald/30 bg-esmerald-light/20 p-4 dark:border-l-lemon/40 dark:bg-white/[0.02]">
+              <div v-if="detailCR.admin_response" class="mb-5 rounded-xl border-l-2 border-l-esmerald/30 bg-surface-muted/20 p-4 dark:border-l-lemon/40">
                 <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-esmerald/60 dark:text-lemon/60">Respuesta del equipo</p>
                 <p class="text-sm leading-relaxed text-green-light">{{ detailCR.admin_response }}</p>
                 <div v-if="detailCR.estimated_time || detailCR.estimated_cost" class="mt-3 flex flex-wrap gap-3">
-                  <span v-if="detailCR.estimated_time" class="flex items-center gap-1 rounded-full bg-esmerald/[0.06] px-2.5 py-1 text-[10px] font-semibold text-esmerald dark:bg-white/[0.06] dark:text-white">
+                  <span v-if="detailCR.estimated_time" class="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-text-default dark:bg-white/10 dark:text-white">
                     <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="1.5" /><path d="M12 6v6l4 2" stroke-width="1.5" /></svg>
                     {{ detailCR.estimated_time }}
                   </span>
-                  <span v-if="detailCR.estimated_cost !== null && detailCR.estimated_cost !== undefined" class="flex items-center gap-1 rounded-full bg-esmerald/[0.06] px-2.5 py-1 text-[10px] font-semibold text-esmerald dark:bg-white/[0.06] dark:text-white">
+                  <span v-if="detailCR.estimated_cost !== null && detailCR.estimated_cost !== undefined" class="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-text-default dark:bg-white/10 dark:text-white">
                     ${{ Number(detailCR.estimated_cost).toLocaleString('es-CO') }}
                   </span>
                 </div>
@@ -282,21 +282,21 @@
               <!-- Linked requirement -->
               <div v-if="detailCR.linked_requirement_id" class="mb-5 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
                 <svg class="h-4 w-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                <span class="text-xs font-medium text-emerald-600 dark:text-emerald-400">Convertida en requerimiento #{{ detailCR.linked_requirement_id }}</span>
+                <span class="text-xs font-medium text-text-brand dark:text-emerald-400">Convertida en requerimiento #{{ detailCR.linked_requirement_id }}</span>
               </div>
 
               <!-- Admin actions -->
               <div v-if="authStore.isAdmin" class="mb-5 space-y-3">
-                <div v-if="detailCR.is_archived" class="rounded-xl border border-esmerald/[0.06] px-4 py-3 text-xs text-green-light/70 dark:border-white/[0.06]">
+                <div v-if="detailCR.is_archived" class="rounded-xl border border-border-default px-4 py-3 text-xs text-green-light/70">
                   Esta solicitud está archivada.
                 </div>
                 <template v-else>
-                  <div v-if="showEvaluateForm" class="rounded-xl border border-esmerald/[0.06] p-4 dark:border-white/[0.06]">
+                  <div v-if="showEvaluateForm" class="rounded-xl border border-border-default p-4">
                     <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-green-light/60">Evaluar solicitud</p>
                     <div class="space-y-3">
                       <div>
                         <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Estado</label>
-                        <select v-model="evalForm.status" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40">
+                        <select v-model="evalForm.status" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-2.5 text-sm text-text-default outline-none focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40">
                           <option value="pending">Pendiente</option>
                           <option value="evaluating">En evaluación</option>
                           <option value="approved">Aprobada</option>
@@ -307,21 +307,21 @@
                       </div>
                       <div>
                         <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Respuesta</label>
-                        <textarea v-model="evalForm.admin_response" rows="2" placeholder="Respuesta para el cliente..." class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                        <textarea v-model="evalForm.admin_response" rows="2" placeholder="Respuesta para el cliente..." class="w-full resize-none rounded-xl border border-border-default bg-surface-muted/40 px-4 py-2.5 text-sm text-text-default outline-none placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                       </div>
                       <div class="grid grid-cols-2 gap-3">
                         <div>
                           <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Tiempo estimado</label>
-                          <input v-model="evalForm.estimated_time" type="text" placeholder="Ej: 2 semanas" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                          <input v-model="evalForm.estimated_time" type="text" placeholder="Ej: 2 semanas" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-2.5 text-sm text-text-default outline-none placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                         </div>
                         <div>
                           <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Costo estimado</label>
-                          <input v-model.number="evalForm.estimated_cost" type="number" min="0" step="1000" placeholder="0" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                          <input v-model.number="evalForm.estimated_cost" type="number" min="0" step="1000" placeholder="0" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-2.5 text-sm text-text-default outline-none placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                         </div>
                       </div>
                       <div class="flex justify-end gap-2">
-                        <button type="button" class="rounded-lg px-3 py-1.5 text-xs text-green-light hover:text-esmerald dark:hover:text-white" @click="showEvaluateForm = false">Cancelar</button>
-                        <button type="button" :disabled="crStore.isUpdating" class="rounded-lg bg-esmerald px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-esmerald/90 disabled:opacity-50 dark:bg-lemon dark:text-esmerald-dark" @click="handleEvaluate">
+                        <button type="button" class="rounded-lg px-3 py-1.5 text-xs text-green-light hover:text-text-default dark:hover:text-white" @click="showEvaluateForm = false">Cancelar</button>
+                        <button type="button" :disabled="crStore.isUpdating" class="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-esmerald/90 disabled:opacity-50 dark:bg-accent dark:text-text-default" @click="handleEvaluate">
                           {{ crStore.isUpdating ? 'Guardando...' : 'Guardar evaluación' }}
                         </button>
                       </div>
@@ -331,7 +331,7 @@
                   <div v-else class="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      class="rounded-xl border border-esmerald/10 px-4 py-2 text-xs font-medium text-esmerald transition hover:bg-esmerald-light dark:border-white/10 dark:text-white dark:hover:bg-white/[0.06]"
+                      class="rounded-xl border border-border-default px-4 py-2 text-xs font-medium text-text-default transition hover:bg-surface-muted dark:text-white dark:hover:bg-white/10"
                       @click="openEvaluateForm"
                     >
                       Evaluar
@@ -340,7 +340,7 @@
                       v-if="detailCR.status === 'approved' && !detailCR.linked_requirement_id"
                       type="button"
                       :disabled="crStore.isUpdating"
-                      class="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-50"
+                      class="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-primary disabled:opacity-50"
                       @click="handleConvert"
                     >
                       Convertir en requerimiento
@@ -367,11 +367,11 @@
                   <div
                     v-for="comment in detailCR.comments"
                     :key="comment.id"
-                    class="rounded-xl border border-esmerald/[0.04] p-3 dark:border-white/[0.04]"
+                    class="rounded-xl border border-border-muted p-3"
                     :class="comment.is_internal ? 'border-l-2 border-l-amber-400' : ''"
                   >
                     <div class="mb-1 flex items-center justify-between">
-                      <span class="text-xs font-medium text-esmerald dark:text-white">{{ comment.user_name }}</span>
+                      <span class="text-xs font-medium text-text-default">{{ comment.user_name }}</span>
                       <span class="text-[10px] text-green-light/40">{{ formatDate(comment.created_at) }}</span>
                     </div>
                     <p class="text-sm leading-relaxed text-green-light">{{ comment.content }}</p>
@@ -385,18 +385,18 @@
                     v-model="newComment"
                     type="text"
                     placeholder="Escribe un comentario..."
-                    class="flex-1 rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+                    class="flex-1 rounded-xl border border-border-default bg-surface-muted/40 px-4 py-2.5 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
                   />
                   <button
                     type="submit"
                     :disabled="!newComment.trim()"
-                    class="rounded-xl bg-esmerald px-4 py-2.5 text-sm font-medium text-white transition hover:bg-esmerald/90 disabled:opacity-40 dark:bg-lemon dark:text-esmerald-dark"
+                    class="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-esmerald/90 disabled:opacity-40 dark:bg-accent dark:text-text-default"
                   >
                     Enviar
                   </button>
                 </form>
                 <label v-if="authStore.isAdmin" class="mt-2 flex items-center gap-2 text-xs text-green-light/60">
-                  <input v-model="commentInternal" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+                  <input v-model="commentInternal" type="checkbox" class="rounded border-border-default" />
                   Comentario interno (solo admins)
                 </label>
               </div>
@@ -474,10 +474,10 @@ function statusBadgeClass(s) {
   const map = {
     pending: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     evaluating: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-    approved: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+    approved: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
     rejected: 'bg-red-500/15 text-red-600 dark:text-red-400',
     needs_clarification: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
-    out_of_scope: 'bg-gray-500/15 text-gray-500',
+    out_of_scope: 'bg-gray-500/15 text-text-muted',
   }
   return map[s] || map.pending
 }
@@ -499,7 +499,7 @@ function priorityBadgeClass(p) {
     critical: 'bg-red-500/15 text-red-600 dark:text-red-400',
     high: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     medium: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-    low: 'bg-gray-500/15 text-gray-500',
+    low: 'bg-gray-500/15 text-text-muted',
   }
   return map[p] || map.medium
 }

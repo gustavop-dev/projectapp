@@ -2,26 +2,26 @@
   <aside
     :class="[
       'fixed inset-y-0 left-0 z-30 flex flex-col border-r transition-all duration-300 ease-in-out',
-      'border-esmerald/[0.06] bg-white dark:border-white/[0.06] dark:bg-esmerald-dark',
+      'border-border-default/[0.06] bg-surface dark:border-white/[0.06] dark:bg-primary-strong',
       isCollapsed ? 'w-[64px]' : 'w-[240px]',
     ]"
   >
     <div
       :class="[
-        'flex h-16 shrink-0 items-center border-b border-esmerald/[0.06] dark:border-white/[0.06]',
+        'flex h-16 shrink-0 items-center border-b border-border-default/[0.06] dark:border-white/[0.06]',
         isCollapsed ? 'justify-center px-2' : 'gap-3 px-5',
       ]"
     >
       <NuxtLink
         :to="localePath('/panel')"
-        class="text-xl font-bold tracking-tight text-esmerald dark:text-white"
+        class="text-xl font-bold tracking-tight text-primary dark:text-white"
         :class="isCollapsed ? 'flex justify-center' : ''"
       >
         <span v-if="!isCollapsed">
-          Project<span class="text-esmerald dark:text-lemon">App.</span>
+          Project<span class="text-primary dark:text-accent">App.</span>
         </span>
         <span v-else class="text-base">
-          P<span class="text-esmerald dark:text-lemon">A</span>
+          P<span class="text-primary dark:text-accent">A</span>
         </span>
       </NuxtLink>
     </div>
@@ -48,7 +48,7 @@
               v-if="item.divider"
               aria-hidden="true"
               :class="[
-                'my-2 h-px bg-esmerald/[0.08] dark:bg-white/[0.08]',
+                'my-2 h-px bg-border-muted',
                 isCollapsed ? 'mx-2' : 'mx-3',
               ]"
             />
@@ -64,7 +64,7 @@
       </div>
     </nav>
 
-    <div class="shrink-0 border-t border-esmerald/[0.06] p-3 dark:border-white/[0.06]">
+    <div class="shrink-0 border-t border-border-default/[0.06] p-3 dark:border-white/[0.06]">
       <!-- Identity chip -->
       <div
         :class="[
@@ -73,7 +73,7 @@
         ]"
         :title="isCollapsed ? 'Internal admin' : undefined"
       >
-        <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-esmerald-light text-esmerald dark:bg-white/10 dark:text-gray-300">
+        <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary dark:bg-surface-raised dark:text-text-subtle">
           <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
@@ -87,8 +87,8 @@
         :disabled="isBridging"
         :class="[
           'mb-2 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm transition',
-          'text-green-light hover:bg-esmerald-light hover:text-esmerald',
-          'dark:hover:bg-white/[0.06] dark:hover:text-white',
+          'text-green-light hover:bg-primary-soft hover:text-primary',
+          'dark:hover:bg-surface-raised dark:hover:text-white',
           isCollapsed ? 'justify-center' : '',
         ]"
         :title="isCollapsed ? 'Plataforma' : undefined"
@@ -103,7 +103,8 @@
         v-if="!isCollapsed"
         type="button"
         class="mb-1.5 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-green-light transition
-               hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
+               hover:bg-primary-soft hover:text-primary dark:hover:bg-surface-raised dark:hover:text-white"
+        :aria-label="themeToggleLabel(isDark)"
         @click="$emit('toggle-theme')"
       >
         <svg v-if="isDark" class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,6 +129,7 @@
           type="button"
           :class="sidebarActionClass"
           title="Light / dark mode"
+          :aria-label="themeToggleLabel(isDark)"
           @click="$emit('toggle-theme')"
         >
           <svg v-if="isDark" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,6 +168,7 @@ import { computed, inject } from 'vue'
 import { getPanelNavSections } from '~/config/panelNav'
 import { isPanelNavItemActive } from '~/utils/panelNavActive'
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge'
+import { themeToggleLabel } from '~/composables/useDarkMode'
 import SidebarIcon from '~/components/platform/SidebarIcon.vue'
 import SidebarItem from '~/components/platform/SidebarItem.vue'
 
@@ -191,7 +194,7 @@ function isItemActive(item) {
 
 const sidebarActionClass = computed(() => [
   'flex h-8 w-8 items-center justify-center rounded-lg text-green-light transition',
-  'hover:bg-esmerald-light hover:text-esmerald',
-  'dark:hover:bg-white/[0.06] dark:hover:text-white',
+  'hover:bg-primary-soft hover:text-primary',
+  'dark:hover:bg-surface-raised dark:hover:text-white',
 ])
 </script>

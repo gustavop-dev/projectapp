@@ -8,7 +8,7 @@
   <Transition name="fade">
     <div
       v-if="remainingMinutes > 0 && progress > 5 && progress < 95"
-      class="fixed top-4 right-4 z-40 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm shadow-sm border border-gray-200/60 text-xs text-gray-500 pointer-events-none"
+      class="fixed top-4 right-4 z-40 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm shadow-sm border border-border-default/60 text-xs text-text-muted pointer-events-none"
     >
       ~{{ remainingMinutes }} min {{ lang === 'en' ? 'remaining' : 'restantes' }}
     </div>

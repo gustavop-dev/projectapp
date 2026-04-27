@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-bone flex items-center justify-center">
     <main class="w-full py-20 px-6 lg:px-32">
       <div class="max-w-3xl mx-auto text-center">
-        <h1 ref="titleRef" class="text-4xl lg:text-6xl font-bold text-esmerald mb-6 opacity-0">
+        <h1 ref="titleRef" class="text-4xl lg:text-6xl font-bold text-text-brand mb-6 opacity-0">
           {{ messages?.title || '¡Gracias por contactarnos!' }} <span ref="emojiRef">✨</span>
         </h1>
         
@@ -13,7 +13,7 @@
         <div ref="buttonRef" class="opacity-0">
           <a
             :href="portfolioLink"
-            class="inline-block px-12 py-5 text-xl lg:text-2xl font-medium bg-esmerald text-bone rounded-full hover:bg-esmerald-dark transition-colors duration-200"
+            class="inline-block px-12 py-5 text-xl lg:text-2xl font-medium bg-primary text-bone rounded-full hover:bg-primary-strong transition-colors duration-200"
           >
             {{ messages?.button || 'Ver nuestro portafolio' }}
           </a>

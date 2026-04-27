@@ -69,7 +69,7 @@
                     :key="i"
                     class="flex items-center gap-3 text-white text-sm sm:text-base font-medium"
                   >
-                    <span class="w-1.5 h-1.5 bg-white rounded-full flex-shrink-0" />
+                    <span class="w-1.5 h-1.5 bg-surface rounded-full flex-shrink-0" />
                     {{ item }}
                   </li>
                 </ul>
@@ -77,7 +77,7 @@
                   :href="messages?.hero?.cta_whatsapp_url || 'https://wa.me/573238122373'"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-slate-900 rounded-full text-sm font-semibold hover:bg-white/90 transition-all hover:scale-105"
+                  class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface text-slate-900 rounded-full text-sm font-semibold hover:bg-white/90 transition-all hover:scale-105"
                 >
                   {{ messages?.whatWeBuild?.web?.cta || 'Cotizar proyecto web' }}
                 </a>
@@ -94,14 +94,14 @@
                     :key="i"
                     class="flex items-center gap-3 text-white text-sm sm:text-base font-medium"
                   >
-                    <span class="w-1.5 h-1.5 bg-white rounded-full flex-shrink-0" />
+                    <span class="w-1.5 h-1.5 bg-surface rounded-full flex-shrink-0" />
                     {{ item }}
                   </li>
                 </ul>
                 <div class="flex flex-wrap gap-3">
                   <NuxtLink
                     :to="localePath('/landing-apps')"
-                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-slate-900 rounded-full text-sm font-semibold hover:bg-white/90 transition-all hover:scale-105"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface text-slate-900 rounded-full text-sm font-semibold hover:bg-white/90 transition-all hover:scale-105"
                   >
                     {{ messages?.whatWeBuild?.apps?.cta || 'Desarrollo de Apps' }}
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
@@ -128,7 +128,7 @@
                     :key="i"
                     class="flex items-center gap-3 text-white text-sm sm:text-base font-medium"
                   >
-                    <span class="w-1.5 h-1.5 bg-white rounded-full flex-shrink-0" />
+                    <span class="w-1.5 h-1.5 bg-surface rounded-full flex-shrink-0" />
                     {{ item }}
                   </li>
                 </ul>
@@ -136,7 +136,7 @@
                   :href="messages?.hero?.cta_whatsapp_url || 'https://wa.me/573238122373'"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-slate-900 rounded-full text-sm font-semibold hover:bg-white/90 transition-all hover:scale-105"
+                  class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface text-slate-900 rounded-full text-sm font-semibold hover:bg-white/90 transition-all hover:scale-105"
                 >
                   {{ messages?.whatWeBuild?.software?.cta || 'Cotizar software' }}
                 </a>

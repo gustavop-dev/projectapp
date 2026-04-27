@@ -4,7 +4,7 @@
       <div
         v-if="visible"
         data-testid="diagnostic-onboarding-backdrop"
-        class="onb-backdrop fixed inset-0 z-[9998] bg-white/60 backdrop-blur-[2px]"
+        class="onb-backdrop fixed inset-0 z-[9998] bg-surface/60 backdrop-blur-[2px]"
       />
     </Transition>
 
@@ -34,20 +34,20 @@
         :style="tooltipStyle"
       >
         <div
-          class="tooltip-arrow absolute w-3 h-3 bg-white rotate-45 border border-gray-100"
+          class="tooltip-arrow absolute w-3 h-3 bg-surface rotate-45 border border-border-muted"
           :style="arrowComputedStyle"
         />
 
-        <div class="relative bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 w-[272px] sm:w-[296px]">
+        <div class="relative bg-surface rounded-2xl shadow-2xl border border-border-muted p-5 w-[272px] sm:w-[296px]">
           <div class="flex items-center gap-1.5 mb-3">
             <div
               v-for="i in totalSteps"
               :key="i"
               class="h-1.5 rounded-full transition-all duration-300"
               :class="i - 1 === currentStep
-                ? 'w-5 bg-esmerald'
+                ? 'w-5 bg-primary'
                 : i - 1 < currentStep
-                  ? 'w-1.5 bg-esmerald/40'
+                  ? 'w-1.5 bg-primary/40'
                   : 'w-1.5 bg-gray-200'"
             />
             <span data-testid="diagnostic-onboarding-step-progress" class="ml-auto text-[10px] text-gray-400 font-medium tabular-nums">
@@ -55,12 +55,12 @@
             </span>
           </div>
 
-          <h4 class="text-sm font-bold text-gray-900 mb-1">{{ currentStepData.title }}</h4>
-          <p class="text-xs text-gray-500 leading-relaxed mb-4">{{ currentStepData.description }}</p>
+          <h4 class="text-sm font-bold text-text-default mb-1">{{ currentStepData.title }}</h4>
+          <p class="text-xs text-text-muted leading-relaxed mb-4">{{ currentStepData.description }}</p>
 
           <div class="flex items-center justify-between">
             <button
-              class="text-xs text-gray-400 hover:text-gray-600 transition-colors pointer-events-auto"
+              class="text-xs text-gray-400 hover:text-text-muted transition-colors pointer-events-auto"
               @click="dismiss"
             >
               {{ btnLabels.skip }}
@@ -68,15 +68,15 @@
             <div class="flex items-center gap-2">
               <button
                 v-if="currentStep > 0"
-                class="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 transition-colors pointer-events-auto"
+                class="px-3 py-1.5 text-xs text-text-muted hover:text-text-default transition-colors pointer-events-auto"
                 @click="prev"
               >
                 {{ btnLabels.back }}
               </button>
               <button
                 :data-testid="isLastStep ? 'diagnostic-onboarding-done-btn' : 'diagnostic-onboarding-next-btn'"
-                class="px-4 py-1.5 text-xs font-medium text-white bg-esmerald rounded-lg
-                       hover:bg-esmerald/90 transition-colors shadow-sm pointer-events-auto"
+                class="px-4 py-1.5 text-xs font-medium text-white bg-primary rounded-lg
+                       hover:bg-primary/90 transition-colors shadow-sm pointer-events-auto"
                 @click="next"
               >
                 {{ isLastStep ? btnLabels.done : btnLabels.next }}

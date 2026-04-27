@@ -26,7 +26,7 @@
       </div>
 
       <div class="rounded-3xl border border-white/[0.1] bg-white/95 p-8 shadow-2xl backdrop-blur-2xl" data-enter>
-        <h2 class="text-xl font-medium text-esmerald">Inicia sesión</h2>
+        <h2 class="text-xl font-medium text-text-default">Inicia sesión</h2>
         <p class="mt-2 text-sm leading-6 text-green-light">
           Ingresa con tu email y contraseña para acceder al portal.
         </p>
@@ -43,7 +43,7 @@
               v-model="form.email"
               type="email"
               autocomplete="email"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10"
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/60 focus:border-border-default focus:ring-1 focus:ring-esmerald/10"
               placeholder="cliente@empresa.com"
             >
           </div>
@@ -55,7 +55,7 @@
               v-model="form.password"
               type="password"
               autocomplete="current-password"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10"
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/60 focus:border-border-default focus:ring-1 focus:ring-esmerald/10"
               placeholder="••••••••"
             >
           </div>
@@ -67,7 +67,7 @@
 
           <button
             type="submit"
-            class="w-full rounded-full bg-esmerald px-4 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50"
+            class="w-full rounded-full bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="!canSubmit || authStore.isLoading"
           >
             {{ authStore.isLoading ? 'Ingresando...' : 'Iniciar sesión' }}

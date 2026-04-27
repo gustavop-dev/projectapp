@@ -1,6 +1,6 @@
 <template>
   <div v-if="tags.length" class="flex flex-wrap items-center gap-2">
-    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 mr-1">Etiquetas:</span>
+    <span class="text-xs font-medium text-text-muted mr-1">Etiquetas:</span>
     <button
       v-for="tag in tags"
       :key="tag.id"
@@ -15,24 +15,24 @@
     <button
       v-if="activeIds.length"
       type="button"
-      class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 underline ml-1"
+      class="text-xs text-text-muted hover:text-text-default underline ml-1"
       @click="$emit('clear')"
     >
       Limpiar
     </button>
     <button
       type="button"
-      class="ml-auto text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
+      class="ml-auto text-xs font-medium text-text-brand hover:text-text-brand dark:text-emerald-400"
       @click="$emit('manage')"
     >
       Gestionar etiquetas
     </button>
   </div>
-  <div v-else class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+  <div v-else class="flex items-center justify-between text-xs text-text-muted">
     <span>Aún no has creado etiquetas.</span>
     <button
       type="button"
-      class="font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
+      class="font-medium text-text-brand hover:text-text-brand dark:text-emerald-400"
       @click="$emit('manage')"
     >
       Crear la primera →

@@ -5,7 +5,7 @@
       <!-- Title -->
       <h2
         ref="titleRef"
-        class="block font-light text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl text-esmerald mb-12 lg:mb-16 opacity-0"
+        class="block font-light text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl text-text-brand mb-12 lg:mb-16 opacity-0"
       >
         {{ messages?.painPoints?.title }}
       </h2>
@@ -19,13 +19,13 @@
             v-for="(card, index) in messages?.painPoints?.cards"
             :key="index"
             ref="cardRefs"
-            class="group bg-white rounded-2xl p-6 lg:p-8 hover:shadow-lg transition-all duration-300 opacity-0 flex gap-5 items-start"
+            class="group bg-surface rounded-2xl p-6 lg:p-8 hover:shadow-lg transition-all duration-300 opacity-0 flex gap-5 items-start"
           >
-            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-esmerald flex items-center justify-center">
-              <span class="text-lemon font-bold text-sm">{{ String(index + 1).padStart(2, '0') }}</span>
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+              <span class="text-accent font-bold text-sm">{{ String(index + 1).padStart(2, '0') }}</span>
             </div>
             <div class="flex-1 min-w-0">
-              <h3 class="text-base lg:text-lg font-bold text-esmerald mb-2 leading-snug group-hover:text-esmerald/80 transition-colors">
+              <h3 class="text-base lg:text-lg font-bold text-text-brand mb-2 leading-snug group-hover:text-text-brand/80 transition-colors">
                 {{ card.title }}
               </h3>
               <p class="text-sm lg:text-base text-green-light leading-relaxed">
@@ -46,12 +46,12 @@
               class="pain-cards-swiper"
             >
               <swiper-slide v-for="(card, index) in messages?.painPoints?.cards" :key="index">
-                <div class="bg-white rounded-2xl p-6 flex gap-4 items-start min-h-[160px]">
-                  <div class="flex-shrink-0 w-10 h-10 rounded-full bg-esmerald flex items-center justify-center">
-                    <span class="text-lemon font-bold text-sm">{{ String(index + 1).padStart(2, '0') }}</span>
+                <div class="bg-surface rounded-2xl p-6 flex gap-4 items-start min-h-[160px]">
+                  <div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+                    <span class="text-accent font-bold text-sm">{{ String(index + 1).padStart(2, '0') }}</span>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <h3 class="text-base font-bold text-esmerald mb-2 leading-snug">{{ card.title }}</h3>
+                    <h3 class="text-base font-bold text-text-brand mb-2 leading-snug">{{ card.title }}</h3>
                     <p class="text-sm text-green-light leading-relaxed">{{ card.description }}</p>
                   </div>
                 </div>

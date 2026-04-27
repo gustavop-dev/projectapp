@@ -1,9 +1,9 @@
 <template>
-  <div class="mt-6 bg-white border-2 border-esmerald/20 rounded-2xl p-5 sm:p-6 text-center shadow-sm">
+  <div class="mt-6 bg-surface border-2 border-esmerald/20 rounded-2xl p-5 sm:p-6 text-center shadow-sm">
     <div class="mb-3">
       <span class="text-2xl">🔍</span>
     </div>
-    <h4 class="text-esmerald font-bold text-sm sm:text-base mb-2">
+    <h4 class="text-text-brand font-bold text-sm sm:text-base mb-2">
       {{ t.title }}
     </h4>
     <p class="text-esmerald/60 font-light text-xs sm:text-sm leading-relaxed max-w-md mx-auto mb-4">
@@ -11,7 +11,7 @@
     </p>
     <button
       type="button"
-      class="switch-to-detailed-btn inline-flex items-center gap-2 px-5 py-2.5 bg-esmerald text-lemon rounded-xl
+      class="switch-to-detailed-btn inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-accent rounded-xl
              font-bold text-xs sm:text-sm hover:bg-esmerald/90 transition-all shadow-md"
       @click="$emit('switchToDetailed')"
     >

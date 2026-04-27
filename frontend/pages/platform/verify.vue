@@ -26,14 +26,14 @@
       </div>
 
       <div class="rounded-3xl border border-white/[0.1] bg-white/95 p-8 shadow-2xl backdrop-blur-2xl" data-enter>
-        <h2 class="text-xl font-medium text-esmerald">Confirma tu identidad</h2>
+        <h2 class="text-xl font-medium text-text-default">Confirma tu identidad</h2>
         <p class="mt-2 text-sm leading-6 text-green-light">
           Enviamos un código de 6 dígitos a
-          <span class="font-medium text-esmerald">{{ authStore.pendingEmail || 'tu correo' }}</span>.
+          <span class="font-medium text-text-default">{{ authStore.pendingEmail || 'tu correo' }}</span>.
           Ingresa el código y define tu contraseña definitiva.
         </p>
 
-        <div v-if="feedbackMessage" class="mt-6 rounded-2xl border px-4 py-3 text-sm" :class="feedbackVariant === 'success' ? 'border-emerald-500/20 bg-emerald-50 text-emerald-600' : 'border-red-500/20 bg-red-50 text-red-600'">
+        <div v-if="feedbackMessage" class="mt-6 rounded-2xl border px-4 py-3 text-sm" :class="feedbackVariant === 'success' ? 'border-emerald-500/20 bg-primary-soft text-text-brand' : 'border-red-500/20 bg-red-50 text-red-600'">
           {{ feedbackMessage }}
         </div>
 
@@ -49,7 +49,7 @@
                 type="text"
                 inputmode="numeric"
                 maxlength="1"
-                class="h-12 rounded-xl border border-esmerald/10 bg-esmerald-light/40 text-center text-lg font-semibold text-esmerald outline-none transition focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10"
+                class="h-12 rounded-xl border border-border-default bg-surface-muted/40 text-center text-lg font-semibold text-text-default outline-none transition focus:border-border-default focus:ring-1 focus:ring-esmerald/10"
                 @input="handleDigitInput(index, $event)"
                 @keydown="handleKeydown(index, $event)"
               >
@@ -63,7 +63,7 @@
               v-model="form.newPassword"
               type="password"
               autocomplete="new-password"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10"
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/60 focus:border-border-default focus:ring-1 focus:ring-esmerald/10"
               placeholder="Mínimo 8 caracteres"
             >
           </div>
@@ -75,14 +75,14 @@
               v-model="form.confirmPassword"
               type="password"
               autocomplete="new-password"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10"
+              class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/60 focus:border-border-default focus:ring-1 focus:ring-esmerald/10"
               placeholder="Repite tu contraseña"
             >
           </div>
 
           <button
             type="submit"
-            class="w-full rounded-full bg-esmerald px-4 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50"
+            class="w-full rounded-full bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="authStore.isVerifying"
           >
             {{ authStore.isVerifying ? 'Validando...' : 'Completar verificación' }}
@@ -91,7 +91,7 @@
 
         <button
           type="button"
-          class="mt-5 text-sm font-medium text-green-light transition hover:text-esmerald disabled:cursor-not-allowed disabled:opacity-50"
+          class="mt-5 text-sm font-medium text-green-light transition hover:text-text-default disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="authStore.isVerifying"
           @click="handleResendCode"
         >

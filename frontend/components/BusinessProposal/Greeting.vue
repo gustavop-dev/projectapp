@@ -1,8 +1,8 @@
 <template>
-  <section ref="sectionRef" class="greeting-section min-h-screen flex items-center relative overflow-hidden bg-white">
+  <section ref="sectionRef" class="greeting-section min-h-screen flex items-center relative overflow-hidden bg-surface">
     <div class="container mx-auto px-6 md:px-12 lg:px-24 relative z-10">
       <div class="greeting-content max-w-7xl">
-        <h1 data-animate="fade-up" class="main-title font-light text-esmerald leading-tight mb-8">
+        <h1 data-animate="fade-up" class="main-title font-light text-text-brand leading-tight mb-8">
           {{ proposalTitle }}, {{ clientName }}
         </h1>
         

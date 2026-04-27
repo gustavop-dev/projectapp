@@ -1,50 +1,50 @@
 <template>
   <section>
     <SectionHeader :index="content.index" :title="content.title" fallback="Radiografía" />
-    <p v-if="content.intro" class="text-esmerald/80 dark:text-esmerald-light/80 leading-relaxed">{{ content.intro }}</p>
+    <p v-if="content.intro" class="text-text-brand/80 dark:text-text-brand/80 leading-relaxed">{{ content.intro }}</p>
 
     <div v-if="content.includes?.length" class="mt-6">
-      <h3 class="text-lg font-semibold text-esmerald dark:text-esmerald-light mb-3">{{ content.includesTitle || '¿Qué incluye esta radiografía?' }}</h3>
+      <h3 class="text-lg font-semibold text-text-brand dark:text-text-brand mb-3">{{ content.includesTitle || '¿Qué incluye esta radiografía?' }}</h3>
       <ul class="space-y-2.5">
         <li v-for="(i, idx) in content.includes" :key="idx" class="flex gap-3">
-          <span class="mt-1.5 flex-none w-1.5 h-1.5 rounded-full bg-esmerald dark:bg-lemon" />
+          <span class="mt-1.5 flex-none w-1.5 h-1.5 rounded-full bg-primary dark:bg-accent-soft" />
           <div>
-            <strong class="text-esmerald dark:text-esmerald-light">{{ i.title }}:</strong>
-            <span class="text-esmerald/75 dark:text-esmerald-light/75">{{ ' ' + (i.description || '') }}</span>
+            <strong class="text-text-brand dark:text-text-brand">{{ i.title }}:</strong>
+            <span class="text-text-brand/75 dark:text-text-brand/75">{{ ' ' + (i.description || '') }}</span>
           </div>
         </li>
       </ul>
     </div>
 
     <div v-if="content.classificationRows?.length" class="mt-8">
-      <h3 class="text-lg font-semibold text-esmerald dark:text-esmerald-light mb-2">{{ content.classificationTitle || 'Clasificación por tamaño' }}</h3>
-      <p v-if="content.classificationIntro" class="text-esmerald/75 dark:text-esmerald-light/75 mb-3">{{ content.classificationIntro }}</p>
+      <h3 class="text-lg font-semibold text-text-brand dark:text-text-brand mb-2">{{ content.classificationTitle || 'Clasificación por tamaño' }}</h3>
+      <p v-if="content.classificationIntro" class="text-text-brand/75 dark:text-text-brand/75 mb-3">{{ content.classificationIntro }}</p>
       <div class="overflow-x-auto">
-        <table class="min-w-full text-sm border border-esmerald/10 dark:border-esmerald-light/15 rounded-xl overflow-hidden">
-          <thead class="bg-esmerald/5 dark:bg-esmerald-light/10">
+        <table class="min-w-full text-sm border border-input-border/10 dark:border-input-border/15 rounded-xl overflow-hidden">
+          <thead class="bg-primary/5 dark:bg-primary-soft/10">
             <tr>
-              <th class="px-3 py-2 text-left font-semibold text-esmerald dark:text-esmerald-light">Dimensión</th>
-              <th class="px-3 py-2 text-left font-semibold text-esmerald dark:text-esmerald-light">Pequeña</th>
-              <th class="px-3 py-2 text-left font-semibold text-esmerald dark:text-esmerald-light">Mediana</th>
-              <th class="px-3 py-2 text-left font-semibold text-esmerald dark:text-esmerald-light">Grande</th>
+              <th class="px-3 py-2 text-left font-semibold text-text-brand dark:text-text-brand">Dimensión</th>
+              <th class="px-3 py-2 text-left font-semibold text-text-brand dark:text-text-brand">Pequeña</th>
+              <th class="px-3 py-2 text-left font-semibold text-text-brand dark:text-text-brand">Mediana</th>
+              <th class="px-3 py-2 text-left font-semibold text-text-brand dark:text-text-brand">Grande</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(row, idx) in content.classificationRows" :key="idx" class="border-t border-esmerald/10 dark:border-esmerald-light/15">
-              <td class="px-3 py-2 text-esmerald dark:text-esmerald-light">{{ row.dimension }}</td>
-              <td class="px-3 py-2 text-esmerald/75 dark:text-esmerald-light/75">{{ row.small }}</td>
-              <td class="px-3 py-2 text-esmerald/75 dark:text-esmerald-light/75">{{ row.medium }}</td>
-              <td class="px-3 py-2 text-esmerald/75 dark:text-esmerald-light/75">{{ row.large }}</td>
+            <tr v-for="(row, idx) in content.classificationRows" :key="idx" class="border-t border-input-border/10 dark:border-input-border/15">
+              <td class="px-3 py-2 text-text-brand dark:text-text-brand">{{ row.dimension }}</td>
+              <td class="px-3 py-2 text-text-brand/75 dark:text-text-brand/75">{{ row.small }}</td>
+              <td class="px-3 py-2 text-text-brand/75 dark:text-text-brand/75">{{ row.medium }}</td>
+              <td class="px-3 py-2 text-text-brand/75 dark:text-text-brand/75">{{ row.large }}</td>
             </tr>
           </tbody>
         </table>
       </div>
-      <p v-if="content.classificationNote" class="text-xs text-esmerald/55 dark:text-esmerald-light/55 mt-2 italic">{{ content.classificationNote }}</p>
+      <p v-if="content.classificationNote" class="text-xs text-text-brand/55 dark:text-text-brand/55 mt-2 italic">{{ content.classificationNote }}</p>
     </div>
 
-    <div v-if="renderContext && hasStack" class="mt-8 bg-esmerald/5 dark:bg-esmerald-light/5 border border-esmerald/10 dark:border-esmerald-light/15 rounded-xl p-4 text-sm">
-      <h3 class="text-sm font-semibold text-esmerald dark:text-esmerald-light mb-2">Stack detectado</h3>
-      <ul class="space-y-1 text-esmerald/80 dark:text-esmerald-light/80">
+    <div v-if="renderContext && hasStack" class="mt-8 bg-primary/5 dark:bg-primary-soft/5 border border-input-border/10 dark:border-input-border/15 rounded-xl p-4 text-sm">
+      <h3 class="text-sm font-semibold text-text-brand dark:text-text-brand mb-2">Stack detectado</h3>
+      <ul class="space-y-1 text-text-brand/80 dark:text-text-brand/80">
         <li v-if="renderContext.stack_backend_name">
           <strong>Backend:</strong> {{ renderContext.stack_backend_name }}
           <span v-if="renderContext.stack_backend_version"> ({{ renderContext.stack_backend_version }})</span>

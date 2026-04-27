@@ -2,12 +2,12 @@
   <div class="flex flex-col min-h-full">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-      <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Documentos</h1>
+      <h1 class="text-2xl font-light text-text-default">Documentos</h1>
       <NuxtLink
         :to="createLink"
-        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
-               font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm
-               dark:bg-emerald-700 dark:hover:bg-emerald-600"
+        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl
+               font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm
+               dark:bg-primary-strong dark:hover:bg-primary"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -25,12 +25,12 @@
         v-model="searchQuery"
         type="text"
         placeholder="Buscar por título o cliente..."
-        class="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none shadow-sm transition-colors"
+        class="w-full pl-10 pr-10 py-2.5 bg-surface border border-border-default rounded-xl text-sm text-text-default placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none shadow-sm transition-colors"
       />
       <button
         v-if="searchQuery"
         type="button"
-        class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full text-gray-400 hover:text-text-muted hover:bg-surface-raised transition-colors"
         @click="searchQuery = ''"
       >
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,7 +53,7 @@
 
       <section class="min-w-0 flex flex-col">
         <!-- Tag filter chips -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-3 mb-4 dark:bg-gray-800 dark:border-gray-700" data-testid="doc-tag-filters">
+        <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-3 mb-4  " data-testid="doc-tag-filters">
           <TagFilterChips
             :tags="tagStore.tags"
             :active-ids="documentStore.activeTagIds"
@@ -64,12 +64,12 @@
         </div>
 
         <!-- Loading -->
-        <div v-if="documentStore.isLoading" class="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">
+        <div v-if="documentStore.isLoading" class="text-center py-12 text-text-subtle text-sm">
           Cargando...
         </div>
 
         <div v-else-if="filteredDocuments.length === 0" class="text-center py-16 dark:text-gray-400">
-          <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100  flex items-center justify-center">
             <svg v-if="searchQuery" class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -79,22 +79,22 @@
             </svg>
           </div>
           <template v-if="searchQuery">
-            <p class="text-gray-500 dark:text-gray-400 text-sm">
+            <p class="text-text-muted text-sm">
               No se encontraron documentos para "<span class="font-medium">{{ searchQuery }}</span>".
             </p>
             <button
               type="button"
-              class="mt-3 text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+              class="mt-3 text-sm text-text-brand hover:text-text-brand  dark:hover:text-emerald-300"
               @click="searchQuery = ''"
             >
               Limpiar búsqueda
             </button>
           </template>
           <template v-else>
-            <p class="text-gray-500 dark:text-gray-400 text-sm">No hay documentos todavia.</p>
+            <p class="text-text-muted text-sm">No hay documentos todavia.</p>
             <NuxtLink
               :to="localePath('/panel/documents/create')"
-              class="inline-flex items-center gap-1 mt-3 text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+              class="inline-flex items-center gap-1 mt-3 text-sm text-text-brand hover:text-text-brand  dark:hover:text-emerald-300"
             >
               Crear el primero →
             </NuxtLink>
@@ -102,15 +102,15 @@
         </div>
 
         <!-- Desktop table -->
-        <div v-if="!documentStore.isLoading && filteredDocuments.length > 0" class="hidden sm:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto dark:bg-gray-800 dark:border-gray-700">
+        <div v-if="!documentStore.isLoading && filteredDocuments.length > 0" class="hidden sm:block bg-surface rounded-xl shadow-sm border border-border-muted overflow-x-auto  ">
           <table class="w-full">
             <thead>
-              <tr class="border-b border-gray-100 dark:border-gray-700 text-left">
-                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Titulo</th>
-                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Etiquetas</th>
-                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
-                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Creado</th>
-                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
+              <tr class="border-b border-border-muted text-left">
+                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Titulo</th>
+                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Etiquetas</th>
+                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
+                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Creado</th>
+                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
@@ -126,10 +126,10 @@
               >
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ doc.title }}</span>
+                    <span class="text-sm font-medium text-text-default truncate">{{ doc.title }}</span>
                     <span
                       v-if="doc.folder_name"
-                      class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 flex-shrink-0"
+                      class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-surface-raised text-text-muted   flex-shrink-0"
                       :title="`Carpeta: ${doc.folder_name}`"
                     >
                       📁 {{ doc.folder_name }}
@@ -148,7 +148,7 @@
                       <span class="w-1.5 h-1.5 rounded-full" :class="tagDotClass(tag.color)"></span>
                       {{ tag.name }}
                     </span>
-                    <span v-if="!doc.tag_details || doc.tag_details.length === 0" class="text-xs text-gray-400 dark:text-gray-500">—</span>
+                    <span v-if="!doc.tag_details || doc.tag_details.length === 0" class="text-xs text-text-subtle">—</span>
                   </div>
                 </td>
                 <td class="px-6 py-4">
@@ -159,14 +159,14 @@
                     {{ statusLabel(doc.status) }}
                   </span>
                 </td>
-                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                <td class="px-6 py-4 text-sm text-text-muted">
                   {{ formatDate(doc.created_at) }}
                 </td>
                 <td class="px-6 py-4" @click.stop>
                   <div class="flex items-center gap-1">
                     <NuxtLink
                       :to="localePath(`/panel/documents/${doc.id}/edit`)"
-                      class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+                      class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-text-brand dark:hover:text-emerald-400"
                       title="Editar"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,12 +225,12 @@
           <div
             v-for="doc in filteredDocuments"
             :key="`mobile-${doc.id}`"
-            class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 dark:bg-gray-800 dark:border-gray-700"
+            class="bg-surface rounded-xl shadow-sm border border-border-muted p-4  "
             @click="navigateTo(localePath(`/panel/documents/${doc.id}/edit`))"
           >
             <div class="flex items-start justify-between mb-2">
               <div class="flex-1 min-w-0">
-                <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ doc.title }}</h3>
+                <h3 class="text-sm font-medium text-text-default truncate">{{ doc.title }}</h3>
                 <p v-if="doc.client_name" class="text-xs text-gray-400 mt-0.5">{{ doc.client_name }}</p>
               </div>
               <span
@@ -303,10 +303,10 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="deleteConfirm = null"
         >
-          <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center dark:bg-gray-800">
+          <div class="bg-surface rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center ">
             <div class="text-4xl mb-3">🗑️</div>
-            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Eliminar documento</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            <h3 class="text-lg font-bold text-text-default mb-2">Eliminar documento</h3>
+            <p class="text-sm text-text-muted mb-6">
               Se eliminara permanentemente "{{ deleteConfirm.title }}". Esta accion no se puede deshacer.
             </p>
             <div class="flex gap-3 justify-center">
@@ -318,7 +318,7 @@
                 {{ documentStore.isUpdating ? 'Eliminando...' : 'Eliminar' }}
               </button>
               <button
-                class="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors   dark:hover:bg-gray-600"
                 @click="deleteConfirm = null"
               >
                 Cancelar
@@ -441,8 +441,8 @@ async function handleDropOnFolder(folderId) {
 
 function statusBadgeClass(status) {
   const map = {
-    draft: 'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-200',
-    published: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+    draft: 'bg-surface-raised text-text-default ',
+    published: 'bg-primary-soft text-text-brand dark:bg-emerald-900/40 ',
     archived: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
   };
   return map[status] || map.draft;

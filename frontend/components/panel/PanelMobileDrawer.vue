@@ -12,16 +12,16 @@
         v-if="isOpen"
         :class="[
           'fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r md:hidden',
-          'border-esmerald/[0.06] bg-white dark:border-white/[0.06] dark:bg-esmerald-dark',
+          'border-border-muted bg-surface',
         ]"
       >
-        <div class="flex h-16 shrink-0 items-center justify-between border-b border-esmerald/[0.06] px-5 dark:border-white/[0.06]">
-          <span class="text-xl font-bold tracking-tight text-esmerald dark:text-white">
-            Project<span class="text-esmerald dark:text-lemon">App.</span>
+        <div class="flex h-16 shrink-0 items-center justify-between border-b border-border-muted px-5">
+          <span class="text-xl font-bold tracking-tight text-text-default">
+            Project<span class="text-text-brand">App.</span>
           </span>
           <button
             type="button"
-            class="flex h-9 w-9 items-center justify-center rounded-full text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
+            class="flex h-9 w-9 items-center justify-center rounded-full text-text-muted transition hover:bg-surface-raised hover:text-text-default"
             @click="$emit('close')"
           >
             <span class="sr-only">Close menu</span>
@@ -54,9 +54,9 @@
           </div>
         </nav>
 
-        <div class="shrink-0 border-t border-esmerald/[0.06] p-4 dark:border-white/[0.06]">
+        <div class="shrink-0 border-t border-border-muted p-4">
           <div class="mb-3 flex items-center gap-2">
-            <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-esmerald-light text-esmerald dark:bg-white/10 dark:text-gray-300">
+            <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-text-brand">
               <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
@@ -67,7 +67,7 @@
           <button
             type="button"
             :disabled="isBridging"
-            class="flex h-9 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
+            class="flex h-9 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium text-text-muted transition hover:bg-surface-raised hover:text-text-default"
             @click="goToPlatform('/platform/dashboard')"
           >
             <SidebarIcon name="external" class="h-4 w-4 shrink-0" />
@@ -76,7 +76,7 @@
 
           <button
             type="button"
-            class="mt-2 flex h-9 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
+            class="mt-2 flex h-9 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium text-text-muted transition hover:bg-surface-raised hover:text-text-default"
             @click="$emit('close'); $emit('toggle-theme')"
           >
             <svg v-if="isDark" class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

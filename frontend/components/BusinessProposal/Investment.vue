@@ -1,36 +1,36 @@
 <template>
-  <section ref="sectionRef" class="investment py-16 md:py-24 bg-white">
+  <section ref="sectionRef" class="investment py-16 md:py-24 bg-surface">
     <div class="container mx-auto px-6 md:px-12 lg:px-24 max-w-5xl">
       <div class="section-header mb-12">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
-          <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
+          <span class="text-text-muted font-light tracking-[0.25em] text-xs md:text-sm">
             {{ index }}
           </span>
-          <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
+          <h2 class="text-text-brand font-light leading-tight text-4xl md:text-6xl">
             {{ title }}
           </h2>
         </div>
       </div>
 
       <div data-animate="fade-up" class="investment-intro mb-12">
-        <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl">
+        <p class="text-text-brand/80 font-light leading-relaxed text-lg md:text-xl">
           {{ introText }}
         </p>
       </div>
 
       <!-- F5: Value proposition — why this investment is worth it -->
-      <div v-if="valueReasons && valueReasons.length" data-animate="fade-up" class="value-proposition mb-12 bg-esmerald p-5 sm:p-8 md:p-12 rounded-2xl">
-        <h3 class="text-2xl font-bold text-lemon mb-6">{{ t.whyWorthIt }}</h3>
+      <div v-if="valueReasons && valueReasons.length" data-animate="fade-up" class="value-proposition mb-12 bg-primary p-5 sm:p-8 md:p-12 rounded-2xl">
+        <h3 class="text-2xl font-bold text-accent mb-6">{{ t.whyWorthIt }}</h3>
         <div class="grid md:grid-cols-2 gap-6">
           <div v-for="(reason, index) in normalizedReasons" :key="index"
                class="value-reason flex items-start">
-            <div class="flex-shrink-0 w-10 h-10 bg-lemon rounded-lg flex items-center justify-center mr-4">
-              <svg class="w-6 h-6 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex-shrink-0 w-10 h-10 bg-accent rounded-lg flex items-center justify-center mr-4">
+              <svg class="w-6 h-6 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
               </svg>
             </div>
             <div>
-              <p class="text-sm text-esmerald-light leading-relaxed">{{ reason }}</p>
+              <p class="text-sm text-accent leading-relaxed">{{ reason }}</p>
             </div>
           </div>
         </div>
@@ -40,7 +40,7 @@
             :href="whatsappLink"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center gap-2 px-6 py-3 bg-lemon text-esmerald rounded-xl font-bold text-sm hover:bg-lemon/90 transition-colors shadow-lg"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-accent text-text-brand rounded-xl font-bold text-sm hover:opacity-90 transition-colors shadow-lg"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
             {{ t.whatsappCta }}
@@ -49,44 +49,44 @@
       </div>
 
       <!-- F5: Pricing card — payment plan as hero, total secondary -->
-      <div data-animate="fade-up" class="pricing-card bg-esmerald p-5 sm:p-8 md:p-12 rounded-3xl text-white mb-12 shadow-2xl">
+      <div data-animate="fade-up" class="pricing-card bg-primary p-5 sm:p-8 md:p-12 rounded-3xl text-accent mb-12 shadow-2xl">
         <!-- Payment plan as hero (if available) -->
         <div v-if="paymentOptions && paymentOptions.length" class="mb-8">
           <div class="text-center mb-6">
-            <div class="text-sm font-semibold uppercase tracking-wider text-green-light mb-1">{{ t.paymentOptions }}</div>
-            <div class="text-2xl sm:text-3xl font-bold text-lemon">{{ computedPaymentOptions.length }} {{ t.convenientPayments }}</div>
+            <div class="text-sm font-semibold uppercase tracking-wider text-accent mb-1">{{ t.paymentOptions }}</div>
+            <div class="text-2xl sm:text-3xl font-bold text-accent">{{ computedPaymentOptions.length }} {{ t.convenientPayments }}</div>
           </div>
           <div class="max-w-lg mx-auto space-y-3">
             <div v-for="(option, idx) in computedPaymentOptions" :key="idx"
-                 class="payment-option-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 p-3 sm:p-4 bg-white/10 rounded-xl">
-              <span class="text-sm text-white/80">{{ option.label }}</span>
-              <span class="text-lg font-bold text-lemon">{{ option.description }}</span>
+                 class="payment-option-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 p-3 sm:p-4 bg-surface/10 rounded-xl">
+              <span class="text-sm text-accent/80">{{ option.label }}</span>
+              <span class="text-lg font-bold text-accent">{{ option.description }}</span>
             </div>
           </div>
           <!-- Total as secondary line -->
-          <div class="text-center mt-6 pt-5 border-t border-white/15">
-            <span class="text-sm text-green-light/70">{{ t.totalInvestment }}:</span>
-            <span class="text-xl font-bold text-lemon ml-2">{{ formatCurrency(displayTotal) }}</span>
-            <span class="text-sm text-green-light/70 ml-1">{{ currency }}</span>
-            <p v-if="isBadgeVisible" class="text-xs text-green-light/50 mt-1">{{ t.customized }}</p>
+          <div class="text-center mt-6 pt-5 border-t border-border-default/15">
+            <span class="text-sm text-accent/70">{{ t.totalInvestment }}:</span>
+            <span class="text-xl font-bold text-accent ml-2">{{ formatCurrency(displayTotal) }}</span>
+            <span class="text-sm text-accent/70 ml-1">{{ currency }}</span>
+            <p v-if="isBadgeVisible" class="text-xs text-accent/50 mt-1">{{ t.customized }}</p>
           </div>
         </div>
 
         <!-- Fallback: total as hero when no payment options -->
         <div v-else class="text-center mb-8">
-          <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-green-light">{{ t.totalInvestment }}</div>
-          <div class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-lemon">{{ formatCurrency(displayTotal) }}</div>
-          <div class="text-green-light">{{ currency }}</div>
-          <p v-if="isBadgeVisible" class="text-xs text-green-light/70 mt-2">{{ t.customized }}</p>
+          <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-accent">{{ t.totalInvestment }}</div>
+          <div class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-accent">{{ formatCurrency(displayTotal) }}</div>
+          <div class="text-accent">{{ currency }}</div>
+          <p v-if="isBadgeVisible" class="text-xs text-accent/70 mt-2">{{ t.customized }}</p>
         </div>
 
         <!-- What's included grid -->
         <div class="grid md:grid-cols-3 gap-6">
           <div v-for="(item, index) in whatsIncluded" :key="index"
-               class="text-center p-4 bg-white/10 backdrop-blur-sm rounded-xl">
+               class="text-center p-4 bg-surface/10 backdrop-blur-sm rounded-xl">
             <div class="text-3xl mb-2">{{ item.icon }}</div>
-            <div class="font-bold text-esmerald-light mb-1">{{ item.title }}</div>
-            <div class="text-sm text-esmerald-light/70">{{ item.description }}</div>
+            <div class="font-bold text-accent mb-1">{{ item.title }}</div>
+            <div class="text-sm text-accent/70">{{ item.description }}</div>
           </div>
         </div>
         <!-- Customize investment + Contact CTA buttons -->
@@ -94,7 +94,7 @@
           <button
             v-if="modules && modules.length && props.viewMode !== 'executive'"
             ref="customizeBtnRef"
-            class="customize-investment-btn px-6 py-3 bg-lemon text-esmerald rounded-xl font-bold text-sm hover:bg-lemon/90 transition-all shadow-lg relative overflow-visible"
+            class="customize-investment-btn px-6 py-3 bg-accent text-text-brand rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-lg relative overflow-visible"
             :class="{ 'btn-pulse': btnPulse }"
             @click="calculatorOpen = true"
           >
@@ -105,7 +105,7 @@
             :href="whatsappLink"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center gap-2 px-6 py-3 bg-white/15 text-white rounded-xl font-medium text-sm hover:bg-white/25 transition-colors border border-white/20"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-surface/15 text-text-default rounded-xl font-medium text-sm hover:bg-surface/25 transition-colors border border-border-default/20"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
             {{ t.contactCta }}
@@ -120,18 +120,18 @@
       </div>
 
       <!-- Discount banner -->
-      <div v-if="hasActiveDiscount" data-animate="fade-up" class="discount-banner mb-12 relative overflow-hidden bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-5 sm:p-8">
-        <div class="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl">
+      <div v-if="hasActiveDiscount" data-animate="fade-up" class="discount-banner mb-12 relative overflow-hidden bg-warning-soft border-2 border-warning-strong rounded-2xl p-5 sm:p-8">
+        <div class="absolute top-0 right-0 bg-warning-strong text-text-default text-xs font-bold px-4 py-1.5 rounded-bl-xl">
           🔥 {{ discountPercent }}% OFF
         </div>
         <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
           <div class="text-center sm:text-left">
-            <p class="text-sm font-semibold text-amber-800 uppercase tracking-wider mb-1">{{ t.specialPriceLabel }}</p>
+            <p class="text-sm font-semibold text-warning-strong uppercase tracking-wider mb-1">{{ t.specialPriceLabel }}</p>
             <div class="flex items-baseline gap-3">
-              <span class="text-3xl sm:text-4xl font-bold text-amber-700">{{ formatCurrency(discountedInvestment) }}</span>
-              <span class="text-lg text-gray-400 line-through">{{ totalInvestment }}</span>
+              <span class="text-3xl sm:text-4xl font-bold text-warning-strong">{{ formatCurrency(discountedInvestment) }}</span>
+              <span class="text-lg text-text-subtle line-through">{{ totalInvestment }}</span>
             </div>
-            <p class="text-xs text-amber-600 mt-2">
+            <p class="text-xs text-warning-strong mt-2">
               {{ currency }} · {{ t.validFor }}
               <template v-if="daysRemaining !== null">{{ daysRemaining }} {{ daysRemaining !== 1 ? t.days : t.day }}</template>
               <template v-else>{{ t.limitedTime }}</template>
@@ -141,22 +141,22 @@
       </div>
 
       <!-- Hosting plan -->
-      <div v-if="hostingPlan.title" data-animate="fade-up" class="hosting-plan mt-12 mb-16 bg-white p-5 sm:p-8 md:p-10 rounded-2xl border-2 border-esmerald/10">
+      <div v-if="hostingPlan.title" data-animate="fade-up" class="hosting-plan mt-12 mb-16 bg-surface p-5 sm:p-8 md:p-10 rounded-2xl border-2 border-primary/10">
         <div class="flex items-center mb-4">
-          <div class="w-12 h-12 bg-esmerald-light/60 rounded-xl flex items-center justify-center mr-4">
+          <div class="w-12 h-12 bg-primary-soft rounded-xl flex items-center justify-center mr-4">
             <span class="text-2xl">☁️</span>
           </div>
-          <h3 class="text-2xl font-bold text-esmerald">{{ hostingPlan.title }}</h3>
+          <h3 class="text-2xl font-bold text-text-brand">{{ hostingPlan.title }}</h3>
         </div>
-        <p v-if="hostingPlan.description" class="text-esmerald/70 font-light leading-relaxed mb-6 pl-0 sm:pl-16">{{ hostingPlan.description }}</p>
+        <p v-if="hostingPlan.description" class="text-text-brand/70 font-light leading-relaxed mb-6 pl-0 sm:pl-16">{{ hostingPlan.description }}</p>
 
         <div class="mb-6 pl-0 sm:pl-16">
           <div class="grid sm:grid-cols-3 gap-4">
             <div v-for="(card, cIdx) in t.coverageCards" :key="cIdx"
-                 class="bg-esmerald/5 border border-esmerald/10 rounded-xl p-5 text-center">
+                 class="bg-primary/5 border border-primary/10 rounded-xl p-5 text-center">
               <div class="text-3xl mb-3">{{ card.icon }}</div>
-              <div class="font-bold text-esmerald text-sm mb-1">{{ card.title }}</div>
-              <p class="text-xs text-esmerald/60 leading-relaxed">{{ card.description }}</p>
+              <div class="font-bold text-text-brand text-sm mb-1">{{ card.title }}</div>
+              <p class="text-xs text-text-brand/60 leading-relaxed">{{ card.description }}</p>
             </div>
           </div>
         </div>
@@ -168,29 +168,29 @@
               :key="tIdx"
               class="billing-tier-card relative rounded-2xl p-5 sm:p-4 md:p-6 border-2 transition-all flex flex-col"
               :class="tIdx === 0
-                ? 'bg-gradient-to-b from-emerald-50 to-white border-emerald-400 ring-2 ring-emerald-400/40 shadow-lg sm:scale-[1.03] z-10'
-                : 'bg-white border-esmerald/10 hover:border-esmerald/25 hover:shadow-md'"
+                ? 'bg-gradient-to-b from-primary-soft to-surface border-primary ring-2 ring-focus-ring/40 shadow-lg sm:scale-[1.03] z-10'
+                : 'bg-surface border-primary/10 hover:border-primary/25 hover:shadow-md'"
             >
               <!-- Badge -->
               <span
                 v-if="tier.badge"
-                class="absolute -top-3 left-1/2 -translate-x-1/2 sm:left-4 sm:translate-x-0 bg-lemon text-esmerald text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap shadow-sm"
+                class="absolute -top-3 left-1/2 -translate-x-1/2 sm:left-4 sm:translate-x-0 bg-accent text-text-brand text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap shadow-sm"
               >
                 {{ tier.badge }}
               </span>
 
               <!-- Label -->
               <div class="text-xs uppercase tracking-widest font-semibold mb-3 mt-1"
-                   :class="tIdx === 0 ? 'text-emerald-600' : 'text-esmerald/50'">
+                   :class="tIdx === 0 ? 'text-text-brand' : 'text-text-brand/50'">
                 {{ tier.label }}
               </div>
 
               <!-- Monthly price -->
               <div class="flex items-baseline gap-1.5 mb-1">
-                <span class="text-3xl sm:text-2xl md:text-3xl font-bold text-esmerald leading-none">{{ tier.monthlyPrice }}</span>
-                <span class="text-sm text-esmerald/50 font-medium">{{ currency }}</span>
+                <span class="text-3xl sm:text-2xl md:text-3xl font-bold text-text-brand leading-none">{{ tier.monthlyPrice }}</span>
+                <span class="text-sm text-text-brand/50 font-medium">{{ currency }}</span>
               </div>
-              <div class="text-xs text-esmerald/45 font-medium mb-4">{{ t.perMonth }}</div>
+              <div class="text-xs text-text-brand/45 font-medium mb-4">{{ t.perMonth }}</div>
 
               <!-- Spacer to push bottom content down -->
               <div class="flex-1"></div>
@@ -198,7 +198,7 @@
               <!-- Discount badge -->
               <div v-if="tier.discountPercent > 0"
                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold mb-2 w-fit"
-                   :class="tIdx === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'">
+                   :class="tIdx === 0 ? 'bg-primary-soft text-primary-strong' : 'bg-surface-muted text-text-muted'">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
@@ -208,12 +208,12 @@
               <!-- Savings -->
               <div v-if="tier.savings"
                    class="text-[11px] font-semibold mb-2"
-                   :class="tIdx === 0 ? 'text-emerald-600' : 'text-emerald-500'">
+                   :class="tIdx === 0 ? 'text-text-brand' : 'text-primary'">
                 {{ t.youSave }} {{ tier.savings }} {{ currency }}
               </div>
 
               <!-- Billing frequency -->
-              <div class="text-[11px] text-esmerald/40 leading-snug">
+              <div class="text-[11px] text-text-brand/40 leading-snug">
                 {{ t.billedEvery }} {{ tier.months }} {{ tier.months === 1 ? t.month : t.months }}
               </div>
             </div>
@@ -223,7 +223,7 @@
         <!-- Collapsible tech specs -->
         <div v-if="filteredSpecs.length" class="mt-6 pl-0 sm:pl-16">
           <button
-            class="flex items-center gap-2 text-sm font-medium text-esmerald/60 hover:text-esmerald transition-colors mb-4"
+            class="flex items-center gap-2 text-sm font-medium text-text-brand/60 hover:text-text-brand transition-colors mb-4"
             @click="specsOpen = !specsOpen"
           >
             <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-90': specsOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -236,15 +236,15 @@
               <div
                 v-for="(spec, idx) in filteredSpecs"
                 :key="idx"
-                class="bg-esmerald/5 p-5 rounded-xl border border-esmerald/10"
+                class="bg-primary/5 p-5 rounded-xl border border-primary/10"
               >
                 <div class="flex items-start">
-                  <div class="w-9 h-9 rounded-lg bg-esmerald-light/60 border border-esmerald/10 flex items-center justify-center mr-3 flex-shrink-0">
+                  <div class="w-9 h-9 rounded-lg bg-primary-soft border border-primary/10 flex items-center justify-center mr-3 flex-shrink-0">
                     <span class="text-lg">{{ spec.icon }}</span>
                   </div>
                   <div>
-                    <div class="font-bold text-esmerald">{{ spec.label }}</div>
-                    <div class="text-sm text-esmerald/70">{{ spec.value }}</div>
+                    <div class="font-bold text-text-brand">{{ spec.label }}</div>
+                    <div class="text-sm text-text-brand/70">{{ spec.value }}</div>
                   </div>
                 </div>
               </div>

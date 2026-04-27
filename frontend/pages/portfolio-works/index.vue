@@ -4,11 +4,11 @@
     <section itemscope itemtype="https://schema.org/WPHeader">
       <div class="p-3 h-svh">
         <div class="w-full h-full grid rounded-xl overflow-hidden lg:grid-cols-2">
-          <div class="absolute z-10 bottom-0 flex items-center bg-transparent px-16 py-24 order-2 xl:bg-lemon xl:top-0 xl:relative xl:z-0">
+          <div class="absolute z-10 bottom-0 flex items-center bg-transparent px-16 py-24 order-2 xl:bg-accent xl:top-0 xl:relative xl:z-0">
             <h1 itemprop="headline">
-              <span class="text-4xl font-light text-esmerald lg:text-6xl">{{ messages.header_title }}</span>
+              <span class="text-4xl font-light text-text-brand lg:text-6xl">{{ messages.header_title }}</span>
               <span class="sr-only"> - Project App. Portfolio</span><br />
-              <span class="text-md font-medium text-esmerald" itemprop="description">{{ messages.header_subtitle }}</span>
+              <span class="text-md font-medium text-text-brand" itemprop="description">{{ messages.header_subtitle }}</span>
               <span class="sr-only">by Project App.</span>
             </h1>
           </div>
@@ -24,15 +24,15 @@
     <!-- Transforming Ideas section -->
     <section class="px-3" itemscope itemtype="https://schema.org/CreativeWorkSeries">
       <div class="mt-32 max-w-7xl mx-auto sm:px-6 lg:mt-52 lg:px-8">
-        <h1 class="text-5xl font-light text-esmerald" itemprop="name">
+        <h1 class="text-5xl font-light text-text-brand" itemprop="name">
           {{ messages.section_title }}
           <span class="sr-only">by Project App.</span>
         </h1>
-        <h2 class="text-4xl font-light text-esmerald mt-20" itemprop="alternativeHeadline">
+        <h2 class="text-4xl font-light text-text-brand mt-20" itemprop="alternativeHeadline">
           {{ messages.section_subtitle }}
           <span class="sr-only">Project App. portfolio</span>
         </h2>
-        <p class="text-2md font-light text-esmerald mt-6" itemprop="description">
+        <p class="text-2md font-light text-text-brand mt-6" itemprop="description">
           *{{ messages.dynamic_web_notice }}
           <span class="sr-only">Project App. specializes in web solutions</span>
         </p>
@@ -61,7 +61,7 @@
             @click="navigateTo(localePath(`/portfolio-works/${work.slug}`))"
           >
             <!-- Card image with hover overlay -->
-            <div class="relative border border-gray-200 rounded-lg overflow-hidden">
+            <div class="relative border border-border-default rounded-lg overflow-hidden">
               <img
                 v-if="work.cover_image"
                 :src="work.cover_image"
@@ -80,10 +80,10 @@
               </div>
 
               <!-- Hover overlay with share + open-in-new-tab -->
-              <div class="absolute inset-0 bg-esmerald-dark/0 group-hover:bg-esmerald-dark/40 transition-all duration-300 flex items-start justify-end p-3 opacity-0 group-hover:opacity-100">
+              <div class="absolute inset-0 bg-primary-strong/0 group-hover:bg-primary-strong/40 transition-all duration-300 flex items-start justify-end p-3 opacity-0 group-hover:opacity-100">
                 <div class="flex items-center gap-2">
                   <button
-                    class="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-esmerald hover:bg-white hover:scale-110 transition-all shadow-lg"
+                    class="w-9 h-9 rounded-full bg-surface/90 backdrop-blur-sm flex items-center justify-center text-text-brand hover:bg-surface hover:scale-110 transition-all shadow-lg"
                     :title="isEnglish ? 'Share' : 'Compartir'"
                     @click.stop="handleShare(work)"
                   >
@@ -95,7 +95,7 @@
                     :href="work.project_url"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-esmerald hover:bg-white hover:scale-110 transition-all shadow-lg"
+                    class="w-9 h-9 rounded-full bg-surface/90 backdrop-blur-sm flex items-center justify-center text-text-brand hover:bg-surface hover:scale-110 transition-all shadow-lg"
                     :title="isEnglish ? 'Open live site' : 'Abrir sitio en vivo'"
                     @click.stop
                   >
@@ -107,7 +107,7 @@
               </div>
             </div>
 
-            <h3 class="mt-2 sm:mt-4 font-regular text-esmerald text-sm sm:text-md group-hover:text-green-light transition-colors leading-tight" itemprop="name">
+            <h3 class="mt-2 sm:mt-4 font-regular text-text-brand text-sm sm:text-md group-hover:text-green-light transition-colors leading-tight" itemprop="name">
               {{ work.title }}
               <span class="sr-only">- Project App. portfolio showcase</span>
             </h3>

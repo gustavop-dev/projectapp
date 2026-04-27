@@ -2,7 +2,7 @@
   <section class="mt-12 px-3 lg:px-32 lg:mt-16">
     <!-- Section Header -->
     <div class="mb-16 text-right">
-      <h2 class="block font-light text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl text-esmerald mb-8">
+      <h2 class="block font-light text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl text-text-brand mb-8">
         {{ messages?.bentoGrid?.title1 || 'Design and code' }}<br>
         {{ messages?.bentoGrid?.title2 || 'made Simple' }}
       </h2>
@@ -15,7 +15,7 @@
     <div class="bento-grid grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto">
       
       <!-- Card 1: Portfolio - Large Left Card -->
-      <div class="bento-card portfolio-card bg-white rounded-3xl p-8 lg:p-12 shadow-sm hover:shadow-lg transition-shadow">
+      <div class="bento-card portfolio-card bg-surface rounded-3xl p-8 lg:p-12 shadow-sm hover:shadow-lg transition-shadow">
         <div class="card-image-container mb-6">
           <!-- Portfolio Carousel -->
           <swiper
@@ -45,10 +45,10 @@
           </swiper>
         </div>
         
-        <h3 class="text-xl sm:text-2xl lg:text-3xl font-light text-gray-700 mb-3">
+        <h3 class="text-xl sm:text-2xl lg:text-3xl font-light text-text-default mb-3">
           {{ messages?.bentoGrid?.portfolio?.title || 'Portfolio' }}
         </h3>
-        <p class="text-gray-500 mb-6">
+        <p class="text-text-muted mb-6">
           {{ messages?.bentoGrid?.portfolio?.description || 'Our team of experts is here to turn your vision into reality' }}
         </p>
         
@@ -56,13 +56,13 @@
         <div class="flex flex-col sm:flex-row gap-3">
           <button 
             @click="goToContact"
-            class="cta-button-primary px-6 py-3 bg-lemon text-black rounded-full font-semibold text-sm sm:text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg"
+            class="cta-button-primary px-6 py-3 bg-accent text-black rounded-full font-semibold text-sm sm:text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg"
           >
             {{ messages?.bentoGrid?.portfolio?.ctaPrimary || 'Get in Touch' }}
           </button>
           <button 
             @click="goToPortfolio"
-            class="cta-button-secondary px-6 py-3 bg-white text-slate-900 rounded-full font-medium text-sm sm:text-base hover:bg-slate-50 transition-all shadow-sm"
+            class="cta-button-secondary px-6 py-3 bg-surface text-slate-900 rounded-full font-medium text-sm sm:text-base hover:bg-slate-50 transition-all shadow-sm"
           >
             {{ messages?.bentoGrid?.portfolio?.ctaSecondary || 'Go to Portfolio' }}
           </button>
@@ -79,7 +79,7 @@
               :href="messages?.bentoGrid?.recentWork?.taptag?.url || 'https://taptag.com.co/'"
               target="_blank"
               rel="noopener noreferrer"
-              class="project-item project-card bg-esmerald-light cursor-pointer"
+              class="project-item project-card bg-primary-soft cursor-pointer"
             >
               <div class="project-icon mb-2">
                 <img :src="taptag_icon" alt="TapTag" class="w-8 h-8 object-contain" />
@@ -98,7 +98,7 @@
               :href="messages?.bentoGrid?.recentWork?.andre?.url || 'https://www.andrearchitecture.com/'"
               target="_blank"
               rel="noopener noreferrer"
-              class="project-item project-card bg-esmerald-light cursor-pointer"
+              class="project-item project-card bg-primary-soft cursor-pointer"
             >
               <div class="project-icon mb-2">
                 <img :src="andre_icon" alt="Andre Architecture" class="w-8 h-8 object-contain" />
@@ -123,7 +123,7 @@
           <!-- Tooltip always visible with 45deg rotation from top-right corner of the card -->
           <div
             @click="openVideoModal"
-            class="asterisk-tooltip absolute bg-esmerald text-white px-4 py-2 rounded-lg whitespace-nowrap cursor-pointer hover:bg-esmerald/90 transition-colors hidden lg:block"
+            class="asterisk-tooltip absolute bg-primary text-white px-4 py-2 rounded-lg whitespace-nowrap cursor-pointer hover:bg-esmerald/90 transition-colors hidden lg:block"
             style="
               top: 20px;
               right: -40px;
@@ -136,16 +136,16 @@
             {{ messages?.bentoGrid?.apps?.tooltip || 'Click here to see our presentation ;)'}}
           </div>
           
-          <div class="bento-card apps-card bg-white rounded-3xl p-8 shadow-sm hover:shadow-lg transition-shadow">
+          <div class="bento-card apps-card bg-surface rounded-3xl p-8 shadow-sm hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between">
             <div>
-              <h3 class="text-2xl sm:text-3xl font-light text-gray-600 mb-2">
+              <h3 class="text-2xl sm:text-3xl font-light text-text-muted mb-2">
                 {{ messages?.bentoGrid?.apps?.title || 'UI/UX, websites,' }}<br>
                 {{ messages?.bentoGrid?.apps?.subtitle || 'platforms & more' }}
               </h3>
               <div class="flex gap-3 mt-4">
                 <button 
-                  class="cta-button px-6 py-3 bg-lemon text-black rounded-full font-semibold text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg"
+                  class="cta-button px-6 py-3 bg-accent text-black rounded-full font-semibold text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg"
                   data-cal-link="projectapp/discovery-call-projectapp"
                   data-cal-namespace="discovery-call-projectapp"
                   data-cal-config='{"layout":"week_view","theme":"dark"}'
@@ -154,7 +154,7 @@
                 </button>
                 <button 
                   @click="openVideoModal"
-                  class="cta-button px-6 py-3 bg-white text-slate-900 rounded-full font-medium text-base hover:bg-slate-50 transition-all shadow-sm"
+                  class="cta-button px-6 py-3 bg-surface text-slate-900 rounded-full font-medium text-base hover:bg-slate-50 transition-all shadow-sm"
                 >
                   {{ messages?.bentoGrid?.apps?.watchVideo || 'Watch Video' }}
                 </button>

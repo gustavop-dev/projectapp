@@ -2,13 +2,13 @@
   <div class="section-editor" data-testid="section-editor">
     <!-- Section title -->
     <label class="block mb-5">
-      <span class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-1">Título de la sección</span>
+      <span class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-1">Título de la sección</span>
       <input
         v-model="sectionTitle"
         type="text"
-        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-               focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
-               dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
+        class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm
+               focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none
+               dark:border-white/[0.08]"
       />
     </label>
 
@@ -26,21 +26,21 @@
           type="button"
           class="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors"
           :class="!pasteMode
-            ? 'bg-emerald-600 text-white border-emerald-600'
-            : 'bg-white dark:bg-esmerald-dark text-gray-600 dark:text-green-light/60 border-gray-200 dark:border-white/[0.08] hover:border-gray-300 dark:hover:border-white/[0.12]'"
+            ? 'bg-primary text-on-primary border-primary'
+            : 'bg-surface text-text-muted/60 border-border-default dark:border-white/[0.08] hover:border-gray-300 dark:hover:border-white/[0.12]'"
           @click="onTogglePasteMode(false)"
         >Formulario</button>
         <button
           type="button"
           class="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors"
           :class="pasteMode
-            ? 'bg-emerald-600 text-white border-emerald-600'
-            : 'bg-white dark:bg-esmerald-dark text-gray-600 dark:text-green-light/60 border-gray-200 dark:border-white/[0.08] hover:border-gray-300 dark:hover:border-white/[0.12]'"
+            ? 'bg-primary text-on-primary border-primary'
+            : 'bg-surface text-text-muted/60 border-border-default dark:border-white/[0.08] hover:border-gray-300 dark:hover:border-white/[0.12]'"
           @click="onTogglePasteMode(true)"
         >Pegar contenido</button>
         <button
           type="button"
-          class="text-xs font-medium px-2 py-1.5 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-esmerald-dark text-gray-500 dark:text-green-light/60 hover:bg-gray-50 dark:hover:bg-white/[0.04] hover:text-emerald-600 transition-colors"
+          class="text-xs font-medium px-2 py-1.5 rounded-lg border border-border-default dark:border-white/[0.08] bg-surface text-text-muted hover:bg-surface-raised hover:text-text-brand transition-colors"
           title="Previsualizar"
           @click="showPreview = true"
         >
@@ -52,7 +52,7 @@
       </div>
 
       <div v-if="pasteMode" class="space-y-3">
-        <p class="text-[11px] text-gray-500 dark:text-green-light/60">
+        <p class="text-[11px] text-text-muted">
           El contenido de este campo se mostrará directamente en la propuesta del cliente.
           Puedes usar formato Markdown (negritas, listas, etc.).
         </p>
@@ -61,9 +61,9 @@
           rows="18"
           data-testid="paste-textarea"
           placeholder="Escribe o pega aquí el contenido de esta sección..."
-          class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm font-mono
-                 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y
-                 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
+          class="w-full px-4 py-3 border border-border-default rounded-xl text-sm font-mono
+                 focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y
+                 dark:border-white/[0.08]"
         />
       </div>
     </div>
@@ -116,16 +116,16 @@
         <FieldTextarea v-model="form.intro" label="Introducción" :rows="4" :isSingle="true" />
         <!-- Steps: repeatable -->
         <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Pasos</label>
-          <div v-for="(step, idx) in form.steps" :key="idx" class="mb-4 bg-gray-50 dark:bg-white/[0.03] rounded-xl p-4 border border-gray-100 dark:border-white/[0.06]">
+          <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Pasos</label>
+          <div v-for="(step, idx) in form.steps" :key="idx" class="mb-4 bg-surface-raised rounded-xl p-4 border border-border-muted">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs text-gray-400 dark:text-green-light/60">Paso {{ idx + 1 }}</span>
+              <span class="text-xs text-text-subtle">Paso {{ idx + 1 }}</span>
               <button type="button" class="text-xs text-red-500 hover:text-red-700" @click="form.steps.splice(idx, 1)">Eliminar</button>
             </div>
             <FieldInput v-model="step.title" label="Título del paso" class="mb-2" />
             <FieldTextarea v-model="step.bullets" label="Bullets" help="Un bullet por línea" :rows="3" />
           </div>
-          <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium" @click="form.steps.push({ title: '', bullets: '' })">
+          <button type="button" class="text-xs text-text-brand hover:text-text-brand font-medium" @click="form.steps.push({ title: '', bullets: '' })">
             + Agregar paso
           </button>
         </div>
@@ -167,14 +167,14 @@
         <FieldTextarea v-model="form.intro" label="Texto introductorio" :rows="2" :isSingle="true" />
         <FieldInput v-model="form.currentLabel" label="Etiqueta de etapa actual" placeholder="Actual" />
         <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Etapas</label>
+          <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Etapas</label>
           <draggable v-model="form.stages" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
             <template #item="{ element: stage, index: idx }">
-              <div class="mb-4 bg-gray-50 dark:bg-white/[0.03] rounded-xl p-4 border border-gray-100 dark:border-white/[0.06]">
+              <div class="mb-4 bg-surface-raised rounded-xl p-4 border border-border-muted">
                 <div class="flex items-center justify-between mb-2">
                   <div class="flex items-center gap-2">
-                    <span class="drag-handle cursor-grab text-gray-300 dark:text-white/30 hover:text-gray-500 dark:hover:text-white/50">⠿</span>
-                    <span class="text-xs text-gray-400 dark:text-green-light/60">Etapa {{ idx + 1 }}</span>
+                    <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
+                    <span class="text-xs text-text-subtle">Etapa {{ idx + 1 }}</span>
                   </div>
                   <button type="button" class="text-xs text-red-500 hover:text-red-700" @click="form.stages.splice(idx, 1)">Eliminar</button>
                 </div>
@@ -184,13 +184,13 @@
                 </div>
                 <FieldTextarea v-model="stage.description" label="Descripción" :rows="2" :isSingle="true" />
                 <label class="flex items-center gap-2 mt-2 text-xs">
-                  <input type="checkbox" v-model="stage.current" class="rounded border-gray-300 dark:border-white/[0.08] text-emerald-600" />
-                  <span class="text-gray-600 dark:text-green-light/60">Etapa actual</span>
+                  <input type="checkbox" v-model="stage.current" class="rounded border-gray-300 dark:border-white/[0.08] text-text-brand" />
+                  <span class="text-text-muted/60">Etapa actual</span>
                 </label>
               </div>
             </template>
           </draggable>
-          <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium" @click="form.stages.push({ icon: '', title: '', description: '', current: false })">
+          <button type="button" class="text-xs text-text-brand hover:text-text-brand font-medium" @click="form.stages.push({ icon: '', title: '', description: '', current: false })">
             + Agregar etapa
           </button>
         </div>
@@ -215,14 +215,14 @@
         <FieldTextarea v-model="form.introText" label="Texto introductorio" :rows="3" :isSingle="true" />
         <FieldInput v-model="form.totalDuration" label="Duración total" placeholder="Aproximadamente 1 mes" />
         <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Fases</label>
+          <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Fases</label>
           <draggable v-model="form.phases" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
             <template #item="{ element: phase, index: idx }">
-              <div class="mb-4 bg-gray-50 dark:bg-white/[0.03] rounded-xl p-4 border border-gray-100 dark:border-white/[0.06]">
+              <div class="mb-4 bg-surface-raised rounded-xl p-4 border border-border-muted">
                 <div class="flex items-center justify-between mb-2">
                   <div class="flex items-center gap-2">
-                    <span class="drag-handle cursor-grab text-gray-300 dark:text-white/30 hover:text-gray-500 dark:hover:text-white/50">⠿</span>
-                    <span class="text-xs text-gray-400 dark:text-green-light/60">Fase {{ idx + 1 }}</span>
+                    <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
+                    <span class="text-xs text-text-subtle">Fase {{ idx + 1 }}</span>
                   </div>
                   <button type="button" class="text-xs text-red-500 hover:text-red-700" @click="form.phases.splice(idx, 1)">Eliminar</button>
                 </div>
@@ -236,7 +236,7 @@
               </div>
             </template>
           </draggable>
-          <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium" @click="form.phases.push({ title: '', duration: '', description: '', tasks: '', milestone: '' })">
+          <button type="button" class="text-xs text-text-brand hover:text-text-brand font-medium" @click="form.phases.push({ title: '', duration: '', description: '', tasks: '', milestone: '' })">
             + Agregar fase
           </button>
         </div>
@@ -254,14 +254,14 @@
           <span class="text-xs text-blue-600 ml-2">(se edita en la pestaña "General")</span>
         </div>
         <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Qué incluye</label>
+          <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Qué incluye</label>
           <draggable v-model="form.whatsIncluded" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
             <template #item="{ element: item, index: idx }">
-              <div class="mb-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl p-3 border border-gray-100 dark:border-white/[0.06]">
+              <div class="mb-3 bg-surface-raised rounded-xl p-3 border border-border-muted">
                 <div class="flex items-center justify-between mb-1">
                   <div class="flex items-center gap-2">
-                    <span class="drag-handle cursor-grab text-gray-300 dark:text-white/30 hover:text-gray-500 dark:hover:text-white/50">⠿</span>
-                    <span class="text-xs text-gray-400 dark:text-green-light/60">Item {{ idx + 1 }}</span>
+                    <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
+                    <span class="text-xs text-text-subtle">Item {{ idx + 1 }}</span>
                   </div>
                   <button type="button" class="text-xs text-red-500" @click="form.whatsIncluded.splice(idx, 1)">Eliminar</button>
                 </div>
@@ -273,17 +273,17 @@
               </div>
             </template>
           </draggable>
-          <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.whatsIncluded.push({ icon: '', title: '', description: '' })">+ Agregar item</button>
+          <button type="button" class="text-xs text-text-brand font-medium" @click="form.whatsIncluded.push({ icon: '', title: '', description: '' })">+ Agregar item</button>
         </div>
         <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Opciones de pago</label>
+          <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Opciones de pago</label>
           <draggable v-model="form.paymentOptions" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
             <template #item="{ element: opt, index: idx }">
-              <div class="mb-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl p-3 border border-gray-100 dark:border-white/[0.06]">
+              <div class="mb-3 bg-surface-raised rounded-xl p-3 border border-border-muted">
                 <div class="flex items-center justify-between mb-1">
                   <div class="flex items-center gap-2">
-                    <span class="drag-handle cursor-grab text-gray-300 dark:text-white/30 hover:text-gray-500 dark:hover:text-white/50">⠿</span>
-                    <span class="text-xs text-gray-400 dark:text-green-light/60">Opción {{ idx + 1 }}</span>
+                    <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
+                    <span class="text-xs text-text-subtle">Opción {{ idx + 1 }}</span>
                   </div>
                   <button type="button" class="text-xs text-red-500" @click="form.paymentOptions.splice(idx, 1)">Eliminar</button>
                 </div>
@@ -294,17 +294,17 @@
               </div>
             </template>
           </draggable>
-          <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.paymentOptions.push({ label: '', description: '' })">+ Agregar opción</button>
+          <button type="button" class="text-xs text-text-brand font-medium" @click="form.paymentOptions.push({ label: '', description: '' })">+ Agregar opción</button>
         </div>
         <FieldTextarea v-model="form.paymentMethods" label="Métodos de pago" help="Uno por línea" :rows="3" />
         <FieldTextarea v-model="form.valueReasons" label="Razones de valor" help="Una por línea" :rows="3" />
 
         <!-- Hosting Plan -->
-        <div class="mt-4 border border-gray-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
-          <div class="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-white/[0.03] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+        <div class="mt-4 border border-border-default dark:border-white/[0.08] rounded-xl overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-3 bg-surface-raised cursor-pointer hover:bg-surface-raised transition-colors"
                @click="hostingCollapsed = !hostingCollapsed">
-            <h4 class="text-sm font-semibold text-gray-700 dark:text-white/70 flex items-center gap-2">
-              <svg class="w-4 h-4 text-gray-400 dark:text-green-light/60 transition-transform" :class="{ 'rotate-180': !hostingCollapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <h4 class="text-sm font-semibold text-text-default flex items-center gap-2">
+              <svg class="w-4 h-4 text-text-subtle transition-transform" :class="{ 'rotate-180': !hostingCollapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
               ☁️ Plan de Hosting
@@ -314,14 +314,14 @@
             <FieldInput v-model="form.hostingPlan.title" label="Título" placeholder="Hosting, Mantenimiento y Soporte" />
             <FieldTextarea v-model="form.hostingPlan.description" label="Descripción" :rows="2" :isSingle="true" />
             <div>
-              <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Especificaciones</label>
+              <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Especificaciones</label>
               <draggable v-model="form.hostingPlan.specs" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
                 <template #item="{ element: spec, index: idx }">
-                  <div class="mb-2 bg-gray-50 dark:bg-white/[0.03] rounded-lg p-3 border border-gray-100 dark:border-white/[0.06]">
+                  <div class="mb-2 bg-surface-raised rounded-lg p-3 border border-border-muted">
                     <div class="flex items-center justify-between mb-1">
                       <div class="flex items-center gap-2">
-                        <span class="drag-handle cursor-grab text-gray-300 dark:text-white/30 hover:text-gray-500 dark:hover:text-white/50">⠿</span>
-                        <span class="text-[10px] text-gray-400 dark:text-green-light/60">{{ idx + 1 }}</span>
+                        <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
+                        <span class="text-[10px] text-text-subtle">{{ idx + 1 }}</span>
                       </div>
                       <button type="button" class="text-[10px] text-red-500" @click="form.hostingPlan.specs.splice(idx, 1)">Eliminar</button>
                     </div>
@@ -333,7 +333,7 @@
                   </div>
                 </template>
               </draggable>
-              <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.hostingPlan.specs.push({ icon: '', label: '', value: '' })">+ Agregar especificación</button>
+              <button type="button" class="text-xs text-text-brand font-medium" @click="form.hostingPlan.specs.push({ icon: '', label: '', value: '' })">+ Agregar especificación</button>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FieldInput v-model.number="form.hostingPlan.hostingPercent" label="% de inversión total" type="number" placeholder="30" />
@@ -344,17 +344,17 @@
             </div>
             <!-- Billing Tiers -->
             <div>
-              <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Frecuencias de pago del hosting</label>
+              <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Frecuencias de pago del hosting</label>
               <div class="space-y-3">
                 <div v-for="(tier, tIdx) in form.hostingPlan.billingTiers" :key="tIdx"
-                     class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 border border-gray-100 dark:border-gray-600">
+                     class="bg-surface-raised rounded-xl p-3 border border-border-muted">
                   <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     <FieldInput v-model="tier.label" label="Etiqueta" :placeholder="tier.frequency === 'semiannual' ? 'Semestral' : tier.frequency === 'quarterly' ? 'Trimestral' : 'Mensual'" />
                     <FieldInput v-model.number="tier.months" label="Meses" type="number" :placeholder="String(tier.months)" />
                     <FieldInput v-model.number="tier.discountPercent" label="% Descuento" type="number" placeholder="0" />
                     <FieldInput v-model="tier.badge" label="Badge" placeholder="Mejor precio" />
                     <div class="flex items-end pb-1">
-                      <span v-if="form.hostingPlan.hostingPercent > 0 && proposalData?.total_investment" class="text-xs text-emerald-600 font-medium">
+                      <span v-if="form.hostingPlan.hostingPercent > 0 && proposalData?.total_investment" class="text-xs text-text-brand font-medium">
                         ${{ Math.round(Math.round(Number(proposalData.total_investment) * form.hostingPlan.hostingPercent / 100 / 12) * (100 - (tier.discountPercent || 0)) / 100).toLocaleString() }} /mes
                       </span>
                     </div>
@@ -383,14 +383,14 @@
         </div>
         <FieldInput v-model="form.signature" label="URL de la firma (imagen)" />
         <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Badges de compromiso</label>
+          <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Badges de compromiso</label>
           <draggable v-model="form.commitmentBadges" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
             <template #item="{ element: badge, index: idx }">
-              <div class="mb-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl p-3 border border-gray-100 dark:border-white/[0.06]">
+              <div class="mb-3 bg-surface-raised rounded-xl p-3 border border-border-muted">
                 <div class="flex items-center justify-between mb-1">
                   <div class="flex items-center gap-2">
-                    <span class="drag-handle cursor-grab text-gray-300 dark:text-white/30 hover:text-gray-500 dark:hover:text-white/50">⠿</span>
-                    <span class="text-xs text-gray-400 dark:text-green-light/60">Badge {{ idx + 1 }}</span>
+                    <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
+                    <span class="text-xs text-text-subtle">Badge {{ idx + 1 }}</span>
                   </div>
                   <button type="button" class="text-xs text-red-500" @click="form.commitmentBadges.splice(idx, 1)">Eliminar</button>
                 </div>
@@ -402,7 +402,7 @@
               </div>
             </template>
           </draggable>
-          <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.commitmentBadges.push({ icon: '', title: '', description: '' })">+ Agregar badge</button>
+          <button type="button" class="text-xs text-text-brand font-medium" @click="form.commitmentBadges.push({ icon: '', title: '', description: '' })">+ Agregar badge</button>
         </div>
         <FieldTextarea v-model="form.validityMessage" label="Mensaje de vigencia" :rows="2" :isSingle="true" />
         <FieldTextarea v-model="form.thankYouMessage" label="Mensaje de agradecimiento" :rows="2" :isSingle="true" />
@@ -416,11 +416,11 @@
         </div>
         <FieldTextarea v-model="form.subtitle" label="Subtítulo" :rows="2" :isSingle="true" />
         <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">KPIs personalizados</label>
-          <p class="text-[10px] text-gray-400 dark:text-green-light/60 mb-2">Métricas clave que aparecerán como tarjetas destacadas al inicio del resumen. Incluye fuentes verificables.</p>
-          <div v-for="(kpi, idx) in (form.kpis || [])" :key="'kpi-' + idx" class="mb-2 bg-emerald-50/50 rounded-xl p-3 border border-emerald-100">
+          <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">KPIs personalizados</label>
+          <p class="text-[10px] text-text-subtle mb-2">Métricas clave que aparecerán como tarjetas destacadas al inicio del resumen. Incluye fuentes verificables.</p>
+          <div v-for="(kpi, idx) in (form.kpis || [])" :key="'kpi-' + idx" class="mb-2 bg-primary-soft/50 rounded-xl p-3 border border-emerald-100">
             <div class="flex items-center justify-between mb-1">
-              <span class="text-xs text-emerald-600 font-medium">KPI {{ idx + 1 }}</span>
+              <span class="text-xs text-text-brand font-medium">KPI {{ idx + 1 }}</span>
               <button type="button" class="text-xs text-red-500" @click="form.kpis.splice(idx, 1)">Eliminar</button>
             </div>
             <div class="grid grid-cols-[120px_1fr] gap-2 mb-1">
@@ -429,17 +429,17 @@
             </div>
             <FieldInput v-model="kpi.source" label="Fuente" placeholder="HubSpot 2024" />
           </div>
-          <button type="button" class="text-xs text-emerald-600 font-medium" @click="if (!form.kpis) form.kpis = []; form.kpis.push({ value: '', label: '', source: '' })">+ Agregar KPI</button>
+          <button type="button" class="text-xs text-text-brand font-medium" @click="if (!form.kpis) form.kpis = []; form.kpis.push({ value: '', label: '', source: '' })">+ Agregar KPI</button>
         </div>
         <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Tarjetas de resumen</label>
+          <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Tarjetas de resumen</label>
           <draggable v-model="form.cards" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
             <template #item="{ element: card, index: idx }">
-              <div class="mb-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl p-3 border border-gray-100 dark:border-white/[0.06]">
+              <div class="mb-3 bg-surface-raised rounded-xl p-3 border border-border-muted">
                 <div class="flex items-center justify-between mb-1">
                   <div class="flex items-center gap-2">
-                    <span class="drag-handle cursor-grab text-gray-300 dark:text-white/30 hover:text-gray-500 dark:hover:text-white/50">⠿</span>
-                    <span class="text-xs text-gray-400 dark:text-green-light/60">Tarjeta {{ idx + 1 }}</span>
+                    <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
+                    <span class="text-xs text-text-subtle">Tarjeta {{ idx + 1 }}</span>
                   </div>
                   <button type="button" class="text-xs text-red-500" @click="form.cards.splice(idx, 1)">Eliminar</button>
                 </div>
@@ -449,8 +449,8 @@
                 </div>
                 <FieldInput v-model="card.description" label="Descripción" />
                 <div class="mt-1">
-                  <label class="block text-[10px] text-gray-400 dark:text-green-light/60 mb-0.5">Fuente del valor</label>
-                  <select v-model="card.source" class="w-full px-2 py-1.5 border border-gray-200 dark:border-white/[0.08] rounded-lg text-xs bg-white dark:bg-esmerald-dark dark:text-white focus:ring-1 focus:ring-emerald-500 outline-none">
+                  <label class="block text-[10px] text-text-subtle mb-0.5">Fuente del valor</label>
+                  <select v-model="card.source" class="w-full px-2 py-1.5 border border-border-default dark:border-white/[0.08] rounded-lg text-xs bg-surface dark:text-white focus:ring-1 focus:ring-focus-ring/30 outline-none">
                     <option value="static">Estático (solo texto)</option>
                     <option value="total_investment">Inversión total (auto)</option>
                     <option value="timeline_duration">Duración del cronograma (auto)</option>
@@ -461,7 +461,7 @@
               </div>
             </template>
           </draggable>
-          <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.cards.push({ icon: '', title: '', description: '', source: 'static' })">+ Agregar tarjeta</button>
+          <button type="button" class="text-xs text-text-brand font-medium" @click="form.cards.push({ icon: '', title: '', description: '', source: 'static' })">+ Agregar tarjeta</button>
         </div>
       </template>
 
@@ -473,14 +473,14 @@
         </div>
         <FieldTextarea v-model="form.introMessage" label="Mensaje de introducción" :rows="3" :isSingle="true" />
         <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Pasos</label>
+          <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Pasos</label>
           <draggable v-model="form.steps" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
             <template #item="{ element: step, index: idx }">
-              <div class="mb-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl p-3 border border-gray-100 dark:border-white/[0.06]">
+              <div class="mb-3 bg-surface-raised rounded-xl p-3 border border-border-muted">
                 <div class="flex items-center justify-between mb-1">
                   <div class="flex items-center gap-2">
-                    <span class="drag-handle cursor-grab text-gray-300 dark:text-white/30 hover:text-gray-500 dark:hover:text-white/50">⠿</span>
-                    <span class="text-xs text-gray-400 dark:text-green-light/60">Paso {{ idx + 1 }}</span>
+                    <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
+                    <span class="text-xs text-text-subtle">Paso {{ idx + 1 }}</span>
                   </div>
                   <button type="button" class="text-xs text-red-500" @click="form.steps.splice(idx, 1)">Eliminar</button>
                 </div>
@@ -489,30 +489,30 @@
               </div>
             </template>
           </draggable>
-          <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.steps.push({ title: '', description: '' })">+ Agregar paso</button>
+          <button type="button" class="text-xs text-text-brand font-medium" @click="form.steps.push({ title: '', description: '' })">+ Agregar paso</button>
         </div>
         <FieldTextarea v-model="form.ctaMessage" label="Mensaje CTA" :rows="2" :isSingle="true" />
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="bg-gray-50 dark:bg-white/[0.03] rounded-xl p-3 border border-gray-100 dark:border-white/[0.06]">
-            <p class="text-xs text-gray-400 dark:text-green-light/60 mb-2">CTA Primario</p>
+          <div class="bg-surface-raised rounded-xl p-3 border border-border-muted">
+            <p class="text-xs text-text-subtle mb-2">CTA Primario</p>
             <FieldInput v-model="form.primaryCTA.text" label="Texto" class="mb-1" />
             <FieldInput v-model="form.primaryCTA.link" label="Link" />
           </div>
-          <div class="bg-gray-50 dark:bg-white/[0.03] rounded-xl p-3 border border-gray-100 dark:border-white/[0.06]">
-            <p class="text-xs text-gray-400 dark:text-green-light/60 mb-2">CTA Secundario</p>
+          <div class="bg-surface-raised rounded-xl p-3 border border-border-muted">
+            <p class="text-xs text-text-subtle mb-2">CTA Secundario</p>
             <FieldInput v-model="form.secondaryCTA.text" label="Texto" class="mb-1" />
             <FieldInput v-model="form.secondaryCTA.link" label="Link" />
           </div>
         </div>
         <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Métodos de contacto</label>
+          <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Métodos de contacto</label>
           <draggable v-model="form.contactMethods" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
             <template #item="{ element: method, index: idx }">
-              <div class="mb-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl p-3 border border-gray-100 dark:border-white/[0.06]">
+              <div class="mb-3 bg-surface-raised rounded-xl p-3 border border-border-muted">
                 <div class="flex items-center justify-between mb-1">
                   <div class="flex items-center gap-2">
-                    <span class="drag-handle cursor-grab text-gray-300 dark:text-white/30 hover:text-gray-500 dark:hover:text-white/50">⠿</span>
-                    <span class="text-xs text-gray-400 dark:text-green-light/60">Método {{ idx + 1 }}</span>
+                    <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
+                    <span class="text-xs text-text-subtle">Método {{ idx + 1 }}</span>
                   </div>
                   <button type="button" class="text-xs text-red-500" @click="form.contactMethods.splice(idx, 1)">Eliminar</button>
                 </div>
@@ -525,7 +525,7 @@
               </div>
             </template>
           </draggable>
-          <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.contactMethods.push({ icon: '', title: '', value: '', link: '' })">+ Agregar método</button>
+          <button type="button" class="text-xs text-text-brand font-medium" @click="form.contactMethods.push({ icon: '', title: '', value: '', link: '' })">+ Agregar método</button>
         </div>
         <FieldTextarea v-model="form.validityMessage" label="Mensaje de vigencia" :rows="2" :isSingle="true" />
         <FieldTextarea v-model="form.thankYouMessage" label="Mensaje de agradecimiento" :rows="2" :isSingle="true" />
@@ -539,14 +539,14 @@
         </div>
         <FieldTextarea v-model="form.intro" label="Introducción" :rows="3" :isSingle="true" />
         <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Pasos del proceso</label>
+          <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Pasos del proceso</label>
           <draggable v-model="form.steps" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
             <template #item="{ element: step, index: idx }">
-              <div class="mb-3 bg-gray-50 dark:bg-white/[0.03] rounded-xl p-3 border border-gray-100 dark:border-white/[0.06]">
+              <div class="mb-3 bg-surface-raised rounded-xl p-3 border border-border-muted">
                 <div class="flex items-center justify-between mb-1">
                   <div class="flex items-center gap-2">
-                    <span class="drag-handle cursor-grab text-gray-300 dark:text-white/30 hover:text-gray-500 dark:hover:text-white/50">⠿</span>
-                    <span class="text-xs text-gray-400 dark:text-green-light/60">Paso {{ idx + 1 }}</span>
+                    <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
+                    <span class="text-xs text-text-subtle">Paso {{ idx + 1 }}</span>
                   </div>
                   <button type="button" class="text-xs text-red-500" @click="form.steps.splice(idx, 1)">Eliminar</button>
                 </div>
@@ -559,7 +559,7 @@
               </div>
             </template>
           </draggable>
-          <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.steps.push({ icon: '', title: '', description: '', clientAction: '' })">+ Agregar paso</button>
+          <button type="button" class="text-xs text-text-brand font-medium" @click="form.steps.push({ icon: '', title: '', description: '', clientAction: '' })">+ Agregar paso</button>
         </div>
       </template>
 
@@ -572,22 +572,22 @@
         <FieldTextarea v-model="form.intro" label="Intro (por qué se incluyen sin costo)" :rows="3" :isSingle="true" />
 
         <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Módulos a destacar</label>
-          <p class="text-[11px] text-gray-500 dark:text-green-light/60 mb-3">
+          <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Módulos a destacar</label>
+          <p class="text-[11px] text-text-muted mb-3">
             Selecciona qué módulos base aparecerán en esta sección de "incluido sin costo". Los datos completos
             (icono, título, items) viven en la sección Requerimientos funcionales.
           </p>
           <div class="space-y-3">
             <div v-for="id in valueAddedAvailableIds" :key="id"
-                 class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-3 bg-gray-50 dark:bg-white/[0.03]">
+                 class="border border-border-default dark:border-white/[0.08] rounded-xl p-3 bg-surface-raised">
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   :checked="form.module_ids.includes(id)"
-                  class="rounded border-gray-300 dark:border-white/[0.08] text-emerald-600 focus:ring-emerald-500"
+                  class="rounded border-gray-300 dark:border-white/[0.08] text-text-brand focus:ring-focus-ring/30"
                   @change="toggleValueAddedId(id, $event.target.checked)"
                 />
-                <span class="text-sm font-medium text-gray-700 dark:text-white/80">
+                <span class="text-sm font-medium text-text-default">
                   {{ valueAddedModuleLabel(id) }}
                 </span>
               </label>
@@ -612,25 +612,25 @@
     <!-- Functional requirements groups: always visible regardless of paste mode -->
     <template v-if="sectionType === 'functional_requirements'">
       <!-- Groups: collapsible -->
-      <div v-for="(group, gIdx) in form.groups" :key="group.id || gIdx" :data-testid="`requirement-group-${group.id || gIdx}`" class="mt-4 border border-gray-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
+      <div v-for="(group, gIdx) in form.groups" :key="group.id || gIdx" :data-testid="`requirement-group-${group.id || gIdx}`" class="mt-4 border border-border-default dark:border-white/[0.08] rounded-xl overflow-hidden">
         <!-- Collapse header -->
-        <div class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-3 bg-gray-50 dark:bg-white/[0.03] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+        <div class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-3 bg-surface-raised cursor-pointer hover:bg-surface-raised transition-colors"
              @click="group._collapsed = !group._collapsed">
-          <h4 class="text-sm font-semibold text-gray-700 dark:text-white/70 flex items-center gap-2">
-            <svg class="w-4 h-4 text-gray-400 dark:text-green-light/60 transition-transform" :class="{ 'rotate-180': !group._collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <h4 class="text-sm font-semibold text-text-default flex items-center gap-2">
+            <svg class="w-4 h-4 text-text-subtle transition-transform" :class="{ 'rotate-180': !group._collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
             <span>{{ group.icon }}</span> {{ group.title }}
-            <span class="text-[10px] text-gray-400 dark:text-green-light/60 font-normal">({{ (group.items || []).length }} elementos)</span>
+            <span class="text-[10px] text-text-subtle font-normal">({{ (group.items || []).length }} elementos)</span>
           </h4>
           <div class="flex flex-wrap items-center gap-2" @click.stop>
             <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-              :class="!group._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-esmerald-dark text-gray-500 dark:text-green-light/60 border-gray-200 dark:border-white/[0.08]'"
+              :class="!group._pasteMode ? 'bg-primary text-on-primary border-primary' : 'bg-surface text-text-muted border-border-default'"
               @click="onToggleGroupPaste(group, false)">Formulario</button>
             <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-              :class="group._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-esmerald-dark text-gray-500 dark:text-green-light/60 border-gray-200 dark:border-white/[0.08]'"
+              :class="group._pasteMode ? 'bg-primary text-on-primary border-primary' : 'bg-surface text-text-muted border-border-default'"
               @click="onToggleGroupPaste(group, true)">Pegar contenido</button>
-            <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-esmerald-dark text-gray-500 dark:text-green-light/60 hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
+            <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border border-border-default dark:border-white/[0.08] bg-surface text-text-muted hover:bg-surface-raised transition-colors"
               @click="openSubPreview(group, gIdx)">
               <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -638,17 +638,17 @@
               </svg>
             </button>
             <label class="flex items-center gap-1 cursor-pointer" title="Si está marcado, este módulo aparecerá preseleccionado en la calculadora del cliente">
-              <input type="checkbox" v-model="group.selected" class="rounded border-gray-300 dark:border-white/[0.08] text-emerald-600 focus:ring-emerald-500" />
-              <span class="text-[10px] text-gray-500 dark:text-green-light/60 font-medium">Seleccionado</span>
+              <input type="checkbox" v-model="group.selected" class="rounded border-gray-300 dark:border-white/[0.08] text-text-brand focus:ring-focus-ring/30" />
+              <span class="text-[10px] text-text-muted font-medium">Seleccionado</span>
             </label>
             <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-              :class="group.is_calculator_module ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-gray-50 dark:bg-white/[0.03] text-gray-400 dark:text-green-light/60 border-gray-200 dark:border-white/[0.08]'"
+              :class="group.is_calculator_module ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-surface-raised text-text-subtle border-border-default dark:border-white/[0.08]'"
               :title="group.is_calculator_module ? 'Este módulo aparece en la calculadora de inversión del cliente' : 'Este módulo NO aparece en la calculadora de inversión'"
               @click="group.is_calculator_module = !group.is_calculator_module">
               {{ group.is_calculator_module ? '🧮 En calc.' : '🧮 No calc.' }}
             </button>
             <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-              :class="group.is_visible !== false ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-red-50 text-red-500 border-red-200'"
+              :class="group.is_visible !== false ? 'bg-primary-soft text-text-brand border-emerald-300' : 'bg-red-50 text-red-500 border-red-200'"
               :title="group.is_visible !== false ? 'Este módulo se muestra en la propuesta del cliente' : 'Este módulo está oculto en la propuesta del cliente'"
               @click="group.is_visible = group.is_visible === false ? true : false">
               {{ group.is_visible !== false ? '👁 Visible' : '🚫 Oculto' }}
@@ -662,9 +662,9 @@
         <div v-show="!group._collapsed" class="p-4">
           <!-- Paste mode for this group -->
           <div v-if="group._pasteMode" class="space-y-3">
-            <p class="text-[11px] text-gray-500 dark:text-green-light/60">Contenido Markdown para esta sub-sección.</p>
+            <p class="text-[11px] text-text-muted">Contenido Markdown para esta sub-sección.</p>
             <textarea v-model="group._pasteText" rows="10" data-testid="group-paste-textarea" placeholder="Escribe o pega aquí el contenido de este grupo..."
-              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm font-mono focus:ring-1 focus:ring-emerald-500 outline-none resize-y dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" />
+              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm font-mono focus:ring-1 focus:ring-focus-ring/30 outline-none resize-y" />
           </div>
 
           <!-- Form mode for this group -->
@@ -673,21 +673,21 @@
               <EmojiIconField v-model="group.icon" label="Icono" placeholder="🖥️" />
               <FieldInput v-model="group.title" label="Título del grupo" />
               <div class="flex flex-col gap-1" title="Porcentaje de la inversión total que representa este módulo. Se usa para calcular el precio en la calculadora">
-                <label class="text-[10px] text-gray-500 dark:text-green-light/60 font-medium uppercase">% del precio</label>
+                <label class="text-[10px] text-text-muted font-medium uppercase">% del precio</label>
                 <input type="number" v-model.number="group.price_percent" min="0" max="100" step="1" placeholder="0"
-                  class="w-20 px-2 py-1 border border-gray-200 dark:border-white/[0.08] rounded text-sm focus:ring-1 focus:ring-emerald-500 outline-none dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" />
+                  class="w-20 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm focus:ring-1 focus:ring-focus-ring/30 outline-none" />
               </div>
             </div>
             <FieldTextarea v-model="group.description" label="Descripción" :rows="2" :isSingle="true" />
             <div>
-              <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Elementos</label>
+              <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Elementos</label>
               <draggable v-model="group.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
                 <template #item="{ element: item, index: iIdx }">
-                  <div class="mb-2 bg-gray-50 dark:bg-white/[0.03] rounded-lg p-3 border border-gray-100 dark:border-white/[0.06]">
+                  <div class="mb-2 bg-surface-raised rounded-lg p-3 border border-border-muted">
                     <div class="flex items-center justify-between mb-1">
                       <div class="flex items-center gap-2">
-                        <span class="drag-handle cursor-grab text-gray-300 dark:text-white/30 hover:text-gray-500 dark:hover:text-white/50">⠿</span>
-                        <span class="text-[10px] text-gray-400 dark:text-green-light/60">{{ iIdx + 1 }}</span>
+                        <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
+                        <span class="text-[10px] text-text-subtle">{{ iIdx + 1 }}</span>
                       </div>
                       <button type="button" class="text-[10px] text-red-500" @click="group.items.splice(iIdx, 1)">Eliminar</button>
                     </div>
@@ -699,7 +699,7 @@
                   </div>
                 </template>
               </draggable>
-              <button type="button" class="text-xs text-emerald-600 font-medium" @click="group.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
+              <button type="button" class="text-xs text-text-brand font-medium" @click="group.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
             </div>
           </div>
         </div>
@@ -707,24 +707,24 @@
 
       <!-- Additional Modules: collapsible -->
       <div class="mt-6">
-        <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Módulos Adicionales</label>
-        <div v-for="(mod, mIdx) in form.additionalModules" :key="mIdx" class="mb-4 border border-gray-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
-          <div class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-3 bg-gray-50 dark:bg-white/[0.03] cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+        <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Módulos Adicionales</label>
+        <div v-for="(mod, mIdx) in form.additionalModules" :key="mIdx" class="mb-4 border border-border-default dark:border-white/[0.08] rounded-xl overflow-hidden">
+          <div class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-3 bg-surface-raised cursor-pointer hover:bg-surface-raised transition-colors"
                @click="mod._collapsed = !mod._collapsed">
-            <h4 class="text-sm font-semibold text-gray-700 dark:text-white/70 flex items-center gap-2">
-              <svg class="w-4 h-4 text-gray-400 dark:text-green-light/60 transition-transform" :class="{ 'rotate-180': !mod._collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <h4 class="text-sm font-semibold text-text-default flex items-center gap-2">
+              <svg class="w-4 h-4 text-text-subtle transition-transform" :class="{ 'rotate-180': !mod._collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
               <span>{{ mod.icon || '🧩' }}</span> {{ mod.title || 'Módulo adicional' }}
             </h4>
             <div class="flex flex-wrap items-center gap-2" @click.stop>
               <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-                :class="!mod._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-esmerald-dark text-gray-500 dark:text-green-light/60 border-gray-200 dark:border-white/[0.08]'"
+                :class="!mod._pasteMode ? 'bg-primary text-on-primary border-primary' : 'bg-surface text-text-muted border-border-default'"
                 @click="onToggleGroupPaste(mod, false)">Formulario</button>
               <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-                :class="mod._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-esmerald-dark text-gray-500 dark:text-green-light/60 border-gray-200 dark:border-white/[0.08]'"
+                :class="mod._pasteMode ? 'bg-primary text-on-primary border-primary' : 'bg-surface text-text-muted border-border-default'"
                 @click="onToggleGroupPaste(mod, true)">Pegar contenido</button>
-              <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-esmerald-dark text-gray-500 dark:text-green-light/60 hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
+              <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border border-border-default dark:border-white/[0.08] bg-surface text-text-muted hover:bg-surface-raised transition-colors"
                 @click="openSubPreview(mod, mIdx, true)">
                 <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -732,17 +732,17 @@
                 </svg>
               </button>
               <label class="flex items-center gap-1 cursor-pointer" title="Si está marcado, este módulo aparecerá preseleccionado en la calculadora del cliente">
-                <input type="checkbox" v-model="mod.selected" class="rounded border-gray-300 dark:border-white/[0.08] text-emerald-600 focus:ring-emerald-500" />
-                <span class="text-[10px] text-gray-500 dark:text-green-light/60 font-medium">Seleccionado</span>
+                <input type="checkbox" v-model="mod.selected" class="rounded border-gray-300 dark:border-white/[0.08] text-text-brand focus:ring-focus-ring/30" />
+                <span class="text-[10px] text-text-muted font-medium">Seleccionado</span>
               </label>
               <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-                :class="mod.is_calculator_module ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-gray-50 dark:bg-white/[0.03] text-gray-400 dark:text-green-light/60 border-gray-200 dark:border-white/[0.08]'"
+                :class="mod.is_calculator_module ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-surface-raised text-text-subtle border-border-default dark:border-white/[0.08]'"
                 :title="mod.is_calculator_module ? 'Este módulo aparece en la calculadora de inversión del cliente' : 'Este módulo NO aparece en la calculadora de inversión'"
                 @click="mod.is_calculator_module = !mod.is_calculator_module">
                 {{ mod.is_calculator_module ? '🧮 En calc.' : '🧮 No calc.' }}
               </button>
               <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-                :class="mod.is_visible !== false ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-red-50 text-red-500 border-red-200'"
+                :class="mod.is_visible !== false ? 'bg-primary-soft text-text-brand border-emerald-300' : 'bg-red-50 text-red-500 border-red-200'"
                 :title="mod.is_visible !== false ? 'Este módulo se muestra en la propuesta del cliente' : 'Este módulo está oculto en la propuesta del cliente'"
                 @click="mod.is_visible = mod.is_visible === false ? true : false">
                 {{ mod.is_visible !== false ? '👁 Visible' : '🚫 Oculto' }}
@@ -752,30 +752,30 @@
           </div>
           <div v-show="!mod._collapsed" class="p-4">
             <div v-if="mod._pasteMode" class="space-y-3">
-              <p class="text-[11px] text-gray-500 dark:text-green-light/60">Contenido Markdown para este módulo.</p>
+              <p class="text-[11px] text-text-muted">Contenido Markdown para este módulo.</p>
               <textarea v-model="mod._pasteText" rows="8" placeholder="Escribe o pega aquí el contenido de este módulo..."
-                class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm font-mono focus:ring-1 focus:ring-emerald-500 outline-none resize-y dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" />
+                class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm font-mono focus:ring-1 focus:ring-focus-ring/30 outline-none resize-y" />
             </div>
             <div v-else class="space-y-3">
               <div class="grid grid-cols-[100px_1fr_auto] gap-3 items-end">
                 <EmojiIconField v-model="mod.icon" label="Icono" placeholder="🧩" />
                 <FieldInput v-model="mod.title" label="Título del módulo" />
                 <div class="flex flex-col gap-1" title="Porcentaje de la inversión total que representa este módulo. Se usa para calcular el precio en la calculadora">
-                  <label class="text-[10px] text-gray-500 dark:text-green-light/60 font-medium uppercase">% del precio</label>
+                  <label class="text-[10px] text-text-muted font-medium uppercase">% del precio</label>
                   <input type="number" v-model.number="mod.price_percent" min="0" max="100" step="1" placeholder="0"
-                    class="w-20 px-2 py-1 border border-gray-200 dark:border-white/[0.08] rounded text-sm focus:ring-1 focus:ring-emerald-500 outline-none dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" />
+                    class="w-20 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm focus:ring-1 focus:ring-focus-ring/30 outline-none" />
                 </div>
               </div>
               <FieldTextarea v-model="mod.description" label="Descripción" :rows="2" :isSingle="true" />
               <div>
-                <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Elementos</label>
+                <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Elementos</label>
                 <draggable v-model="mod.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
                   <template #item="{ element: item, index: iIdx }">
-                    <div class="mb-2 bg-gray-50 dark:bg-white/[0.03] rounded-lg p-3 border border-gray-100 dark:border-white/[0.06]">
+                    <div class="mb-2 bg-surface-raised rounded-lg p-3 border border-border-muted">
                       <div class="flex items-center justify-between mb-1">
                         <div class="flex items-center gap-2">
-                          <span class="drag-handle cursor-grab text-gray-300 dark:text-white/30 hover:text-gray-500 dark:hover:text-white/50">⠿</span>
-                          <span class="text-[10px] text-gray-400 dark:text-green-light/60">{{ iIdx + 1 }}</span>
+                          <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
+                          <span class="text-[10px] text-text-subtle">{{ iIdx + 1 }}</span>
                         </div>
                         <button type="button" class="text-[10px] text-red-500" @click="mod.items.splice(iIdx, 1)">Eliminar</button>
                       </div>
@@ -787,12 +787,12 @@
                     </div>
                   </template>
                 </draggable>
-                <button type="button" class="text-xs text-emerald-600 font-medium" @click="mod.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
+                <button type="button" class="text-xs text-text-brand font-medium" @click="mod.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
               </div>
             </div>
           </div>
         </div>
-        <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+        <button type="button" class="text-xs text-text-brand hover:text-text-brand font-medium"
           @click="form.additionalModules.push({ id: `module_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, icon: '🧩', title: '', description: '', is_visible: true, selected: false, is_calculator_module: false, default_selected: false, price_percent: null, is_invite: false, invite_note: '', items: [], _pasteMode: false, _pasteText: '', _collapsed: false })">
           + Agregar módulo adicional
         </button>
@@ -800,15 +800,15 @@
     </template>
 
     <!-- Raw JSON toggle -->
-    <div v-if="sectionType !== 'technical_document'" class="mt-6 border-t border-gray-100 dark:border-white/[0.06] pt-4">
-      <button type="button" class="text-xs text-gray-400 dark:text-green-light/60 hover:text-gray-600 dark:hover:text-white/70" @click="showRawJson = !showRawJson">
+    <div v-if="sectionType !== 'technical_document'" class="mt-6 border-t border-border-muted pt-4">
+      <button type="button" class="text-xs text-text-subtle hover:text-text-muted" @click="showRawJson = !showRawJson">
         {{ showRawJson ? 'Ocultar' : 'Mostrar' }} JSON crudo
       </button>
       <div v-if="showRawJson" class="mt-2">
         <textarea
           v-model="rawJsonText"
           rows="10"
-          class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-mono bg-gray-50 dark:bg-white/[0.03] dark:text-white resize-y outline-none"
+          class="w-full px-4 py-3 border border-border-default dark:border-white/[0.08] rounded-xl text-xs font-mono bg-surface-raised dark:text-white resize-y outline-none"
           readonly
         />
       </div>
@@ -819,16 +819,16 @@
       <button
         type="button"
         :disabled="isSaving"
-        class="px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium
-               hover:bg-emerald-700 transition-colors disabled:opacity-50"
+        class="px-5 py-2 bg-primary text-on-primary rounded-xl text-sm font-medium
+               hover:bg-primary-strong transition-colors disabled:opacity-50"
         @click="handleSave"
       >
         {{ isSaving ? 'Guardando...' : 'Guardar Sección' }}
       </button>
       <button
         type="button"
-        class="px-5 py-2 border border-gray-300 dark:border-white/[0.08] text-gray-700 dark:text-white/70 rounded-xl text-sm font-medium
-               hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
+        class="px-5 py-2 border border-gray-300 dark:border-white/[0.08] text-text-default rounded-xl text-sm font-medium
+               hover:bg-surface-raised transition-colors"
         @click="showPreview = true"
       >
         <span class="flex items-center gap-1.5">
@@ -885,11 +885,11 @@ const FieldInput = {
   emits: ['update:modelValue'],
   setup(props, { emit }) {
     return () => h('label', { class: 'block' }, [
-      props.label ? h('span', { class: 'block text-xs text-gray-500 dark:text-green-light/60 mb-0.5' }, props.label) : null,
+      props.label ? h('span', { class: 'block text-xs text-text-muted mb-0.5' }, props.label) : null,
       h('input', {
         value: props.modelValue,
         placeholder: props.placeholder,
-        class: 'w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40',
+        class: 'w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm focus:ring-1 focus:ring-focus-ring/30 focus:border-focus-ring outline-none',
         onInput: (e) => emit('update:modelValue', e.target.value),
       }),
     ]);
@@ -901,14 +901,14 @@ const FieldTextarea = {
   emits: ['update:modelValue'],
   setup(props, { emit }) {
     return () => h('label', { class: 'block' }, [
-      props.label ? h('span', { class: 'block text-xs text-gray-500 dark:text-green-light/60 mb-0.5' }, props.label) : null,
+      props.label ? h('span', { class: 'block text-xs text-text-muted mb-0.5' }, props.label) : null,
       h('textarea', {
         value: props.modelValue,
         rows: props.rows,
-        class: 'w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40',
+        class: 'w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm focus:ring-1 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y',
         onInput: (e) => emit('update:modelValue', e.target.value),
       }),
-      props.help ? h('p', { class: 'text-[10px] text-gray-400 dark:text-green-light/60 mt-0.5' }, props.help) : null,
+      props.help ? h('p', { class: 'text-[10px] text-text-subtle mt-0.5' }, props.help) : null,
     ]);
   },
 };

@@ -1,7 +1,7 @@
 <template>
   <div id="platform-dashboard" class="space-y-8">
     <section data-enter>
-      <h1 class="font-light text-3xl text-esmerald dark:text-white sm:text-4xl">
+      <h1 class="font-light text-3xl text-text-default sm:text-4xl">
         {{ welcomeTitle }}
       </h1>
       <p class="mt-3 max-w-2xl text-sm leading-7 text-green-light">
@@ -10,41 +10,41 @@
     </section>
 
     <section v-if="authStore.isAdmin" class="flex justify-end" data-enter>
-      <label class="flex cursor-pointer items-center gap-2 rounded-full border border-esmerald/10 px-3 py-1.5 text-xs font-medium text-green-light dark:border-white/10">
-        <input v-model="includeArchived" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+      <label class="flex cursor-pointer items-center gap-2 rounded-full border border-border-default px-3 py-1.5 text-xs font-medium text-green-light">
+        <input v-model="includeArchived" type="checkbox" class="rounded border-border-default" />
         Mostrar archivados en listas agregadas
       </label>
     </section>
 
     <section v-if="authStore.isAdmin" class="grid gap-4 sm:grid-cols-2 md:grid-cols-4" data-enter>
-      <article class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
+      <article class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
         <p class="text-xs font-medium uppercase tracking-[0.18em] text-green-light">Clientes activos</p>
-        <p class="mt-4 text-4xl font-bold text-esmerald dark:text-lemon">{{ activeClientsCount }}</p>
+        <p class="mt-4 text-4xl font-bold text-text-brand">{{ activeClientsCount }}</p>
       </article>
 
-      <article class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
+      <article class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
         <p class="text-xs font-medium uppercase tracking-[0.18em] text-green-light">Proyectos activos</p>
-        <p class="mt-4 text-4xl font-bold text-esmerald dark:text-white">{{ adminActiveProjectsCount }}</p>
+        <p class="mt-4 text-4xl font-bold text-text-default">{{ adminActiveProjectsCount }}</p>
       </article>
 
-      <article class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
+      <article class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
         <p class="text-xs font-medium uppercase tracking-[0.18em] text-green-light">Bugs abiertos</p>
-        <p class="mt-4 text-4xl font-bold" :class="adminOpenBugsCount > 0 ? 'text-red-500' : 'text-esmerald dark:text-white'">{{ adminOpenBugsCount }}</p>
+        <p class="mt-4 text-4xl font-bold" :class="adminOpenBugsCount > 0 ? 'text-red-500' : 'text-text-default'">{{ adminOpenBugsCount }}</p>
       </article>
 
-      <article class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
+      <article class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
         <p class="text-xs font-medium uppercase tracking-[0.18em] text-green-light">Cambios pendientes</p>
-        <p class="mt-4 text-4xl font-bold" :class="adminPendingChangesCount > 0 ? 'text-amber-500' : 'text-esmerald dark:text-white'">{{ adminPendingChangesCount }}</p>
+        <p class="mt-4 text-4xl font-bold" :class="adminPendingChangesCount > 0 ? 'text-amber-500' : 'text-text-default'">{{ adminPendingChangesCount }}</p>
       </article>
     </section>
 
     <section v-if="authStore.isAdmin" class="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]" data-enter>
-      <article class="rounded-3xl border border-esmerald/[0.06] bg-white shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
-        <div class="flex flex-col gap-3 border-b border-esmerald/[0.06] px-6 py-5 dark:border-white/[0.06] sm:flex-row sm:items-center sm:justify-between">
-          <h2 class="text-base font-medium text-esmerald dark:text-white">Clientes recientes</h2>
+      <article class="rounded-3xl border border-border-default bg-surface shadow-sm">
+        <div class="flex flex-col gap-3 border-b border-border-default px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <h2 class="text-base font-medium text-text-default">Clientes recientes</h2>
           <NuxtLink
             :to="localePath('/platform/clients')"
-            class="rounded-full border border-esmerald/10 px-4 py-2 text-sm text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+            class="rounded-full border border-border-default px-4 py-2 text-sm text-green-light transition hover:text-text-default dark:hover:text-white"
           >
             Ver todos
           </NuxtLink>
@@ -61,16 +61,16 @@
         <div v-else class="overflow-x-auto">
           <table class="min-w-full text-left text-sm">
             <thead>
-              <tr class="border-b border-esmerald/[0.06] text-xs uppercase tracking-[0.16em] text-green-light/60 dark:border-white/[0.06]">
+              <tr class="border-b border-border-default text-xs uppercase tracking-[0.16em] text-green-light/60">
                 <th class="px-6 py-3 font-medium">Cliente</th>
                 <th class="px-6 py-3 font-medium">Empresa</th>
                 <th class="px-6 py-3 font-medium">Estado</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="client in recentClients" :key="client.user_id" class="border-b border-esmerald/[0.04] last:border-b-0 dark:border-white/[0.03]">
+              <tr v-for="client in recentClients" :key="client.user_id" class="border-b border-border-muted last:border-b-0">
                 <td class="px-6 py-4">
-                  <NuxtLink :to="localePath(`/platform/clients/${client.user_id}`)" class="font-medium text-esmerald transition hover:text-esmerald/70 dark:text-white dark:hover:text-lemon">
+                  <NuxtLink :to="localePath(`/platform/clients/${client.user_id}`)" class="font-medium text-text-default transition hover:text-esmerald/70 dark:text-white dark:hover:text-accent">
                     {{ client.first_name }} {{ client.last_name }}
                   </NuxtLink>
                   <p class="mt-0.5 text-xs text-green-light/60">{{ client.email }}</p>
@@ -88,26 +88,26 @@
       </article>
 
       <!-- Activity & Payments summary -->
-      <article class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
-        <h2 class="text-base font-medium text-esmerald dark:text-white">Resumen</h2>
+      <article class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
+        <h2 class="text-base font-medium text-text-default">Resumen</h2>
 
         <!-- Stats -->
         <div class="mt-4 grid grid-cols-2 gap-3">
-          <div class="rounded-xl border border-esmerald/[0.06] p-3 dark:border-white/[0.06]">
+          <div class="rounded-xl border border-border-default p-3">
             <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Bugs abiertos</p>
-            <p class="mt-1 text-lg font-bold" :class="adminOpenBugsCount > 0 ? 'text-red-500' : 'text-esmerald dark:text-white'">{{ adminOpenBugsCount }}</p>
+            <p class="mt-1 text-lg font-bold" :class="adminOpenBugsCount > 0 ? 'text-red-500' : 'text-text-default'">{{ adminOpenBugsCount }}</p>
           </div>
-          <div class="rounded-xl border border-esmerald/[0.06] p-3 dark:border-white/[0.06]">
+          <div class="rounded-xl border border-border-default p-3">
             <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Cambios pendientes</p>
-            <p class="mt-1 text-lg font-bold" :class="adminPendingChangesCount > 0 ? 'text-amber-500' : 'text-esmerald dark:text-white'">{{ adminPendingChangesCount }}</p>
+            <p class="mt-1 text-lg font-bold" :class="adminPendingChangesCount > 0 ? 'text-amber-500' : 'text-text-default'">{{ adminPendingChangesCount }}</p>
           </div>
-          <div class="rounded-xl border border-esmerald/[0.06] p-3 dark:border-white/[0.06]">
+          <div class="rounded-xl border border-border-default p-3">
             <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Entregables</p>
-            <p class="mt-1 text-lg font-bold text-esmerald dark:text-white">{{ adminDeliverablesCount }}</p>
+            <p class="mt-1 text-lg font-bold text-text-default">{{ adminDeliverablesCount }}</p>
           </div>
-          <div class="rounded-xl border border-esmerald/[0.06] p-3 dark:border-white/[0.06]">
+          <div class="rounded-xl border border-border-default p-3">
             <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Proyectos activos</p>
-            <p class="mt-1 text-lg font-bold text-esmerald dark:text-lemon">{{ adminActiveProjectsCount }}</p>
+            <p class="mt-1 text-lg font-bold text-text-brand">{{ adminActiveProjectsCount }}</p>
           </div>
         </div>
 
@@ -115,13 +115,13 @@
         <div class="mt-5">
           <p class="mb-2 text-[10px] font-semibold uppercase tracking-widest text-green-light/60">Pagos proximos</p>
           <div v-if="adminSubscriptions.length" class="space-y-2">
-            <div v-for="sub in adminSubscriptions" :key="sub.id" class="flex items-center justify-between rounded-xl border border-esmerald/[0.06] p-3 dark:border-white/[0.06]">
+            <div v-for="sub in adminSubscriptions" :key="sub.id" class="flex items-center justify-between rounded-xl border border-border-default p-3">
               <div class="min-w-0 flex-1">
-                <p class="truncate text-xs font-medium text-esmerald dark:text-white">{{ sub.project_name }}</p>
+                <p class="truncate text-xs font-medium text-text-default">{{ sub.project_name }}</p>
                 <p class="text-[10px] text-green-light">{{ formatDate(sub.next_billing_date) }}</p>
               </div>
               <div class="flex items-center gap-2">
-                <p class="text-xs font-bold text-esmerald dark:text-lemon">${{ formatMoney(sub.billing_amount) }}</p>
+                <p class="text-xs font-bold text-text-brand">${{ formatMoney(sub.billing_amount) }}</p>
                 <span v-if="sub.pending_payments > 0" class="h-2 w-2 shrink-0 rounded-full bg-amber-500" title="Pago pendiente" />
               </div>
             </div>
@@ -134,29 +134,29 @@
     <section v-else class="space-y-6" data-enter>
       <!-- Client: Project status cards -->
       <div class="grid gap-4 sm:grid-cols-3">
-        <article class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
+        <article class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-green-light">Proyectos activos</p>
-          <p class="mt-4 text-4xl font-bold text-esmerald dark:text-lemon">{{ clientActiveProjects.length }}</p>
+          <p class="mt-4 text-4xl font-bold text-text-brand">{{ clientActiveProjects.length }}</p>
         </article>
-        <article class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
+        <article class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-green-light">Bugs abiertos</p>
-          <p class="mt-4 text-4xl font-bold" :class="clientOpenBugsCount > 0 ? 'text-red-500' : 'text-esmerald dark:text-white'">{{ clientOpenBugsCount }}</p>
+          <p class="mt-4 text-4xl font-bold" :class="clientOpenBugsCount > 0 ? 'text-red-500' : 'text-text-default'">{{ clientOpenBugsCount }}</p>
         </article>
-        <article class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
+        <article class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
           <p class="text-xs font-medium uppercase tracking-[0.18em] text-green-light">Cambios en curso</p>
-          <p class="mt-4 text-4xl font-bold" :class="clientPendingChangesCount > 0 ? 'text-amber-500' : 'text-esmerald dark:text-white'">{{ clientPendingChangesCount }}</p>
+          <p class="mt-4 text-4xl font-bold" :class="clientPendingChangesCount > 0 ? 'text-amber-500' : 'text-text-default'">{{ clientPendingChangesCount }}</p>
         </article>
       </div>
 
       <!-- Client: Projects overview + Hosting -->
       <div class="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
         <!-- Projects list -->
-        <article class="rounded-3xl border border-esmerald/[0.06] bg-white shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
-          <div class="flex flex-col gap-3 border-b border-esmerald/[0.06] px-6 py-5 dark:border-white/[0.06] sm:flex-row sm:items-center sm:justify-between">
-            <h2 class="text-base font-medium text-esmerald dark:text-white">Mis proyectos</h2>
+        <article class="rounded-3xl border border-border-default bg-surface shadow-sm">
+          <div class="flex flex-col gap-3 border-b border-border-default px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <h2 class="text-base font-medium text-text-default">Mis proyectos</h2>
             <NuxtLink
               :to="localePath('/platform/projects')"
-              class="rounded-full border border-esmerald/10 px-4 py-2 text-sm text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+              class="rounded-full border border-border-default px-4 py-2 text-sm text-green-light transition hover:text-text-default dark:hover:text-white"
             >
               Ver todos
             </NuxtLink>
@@ -174,7 +174,7 @@
             <div v-for="project in clientProjects" :key="project.id" class="flex items-center gap-4 px-6 py-4">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
-                  <NuxtLink :to="localePath(`/platform/projects/${project.id}`)" class="truncate text-sm font-medium text-esmerald transition hover:text-esmerald/70 dark:text-white dark:hover:text-lemon">
+                  <NuxtLink :to="localePath(`/platform/projects/${project.id}`)" class="truncate text-sm font-medium text-text-default transition hover:text-esmerald/70 dark:text-white dark:hover:text-accent">
                     {{ project.name }}
                   </NuxtLink>
                   <span class="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="projectStatusClass(project.status)">
@@ -182,15 +182,15 @@
                   </span>
                 </div>
                 <div class="mt-2 flex items-center gap-3">
-                  <div class="h-1.5 flex-1 rounded-full bg-esmerald/[0.06] dark:bg-white/[0.06]">
-                    <div class="h-full rounded-full bg-esmerald transition-all dark:bg-lemon" :style="{ width: `${project.progress || 0}%` }" />
+                  <div class="h-1.5 flex-1 rounded-full bg-primary/10 dark:bg-white/10">
+                    <div class="h-full rounded-full bg-primary transition-all dark:bg-accent" :style="{ width: `${project.progress || 0}%` }" />
                   </div>
                   <span class="shrink-0 text-xs font-medium text-green-light">{{ project.progress || 0 }}%</span>
                 </div>
               </div>
               <NuxtLink
                 :to="localePath(`/platform/projects/${project.id}/board`)"
-                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
+                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white"
                 title="Ver tablero"
               >
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -206,13 +206,13 @@
         <!-- Hosting & quick info -->
         <div class="space-y-4">
           <!-- Hosting remaining time -->
-          <article class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
-            <h2 class="text-base font-medium text-esmerald dark:text-white">Hosting</h2>
+          <article class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
+            <h2 class="text-base font-medium text-text-default">Hosting</h2>
             <div v-if="clientSubscriptions.length" class="mt-4 space-y-4">
-              <div v-for="sub in clientSubscriptions" :key="sub.id" class="rounded-xl border border-esmerald/[0.06] p-4 dark:border-white/[0.06]">
+              <div v-for="sub in clientSubscriptions" :key="sub.id" class="rounded-xl border border-border-default p-4">
                 <div class="flex items-center justify-between">
-                  <p class="text-sm font-medium text-esmerald dark:text-white">{{ sub.project_name }}</p>
-                  <span class="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="sub.status === 'active' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'">
+                  <p class="text-sm font-medium text-text-default">{{ sub.project_name }}</p>
+                  <span class="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="sub.status === 'active' ? 'bg-emerald-500/15 text-text-brand dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'">
                     {{ sub.status_display }}
                   </span>
                 </div>
@@ -221,47 +221,47 @@
                   {{ hostingDaysLeft(sub) }} dias restantes del periodo actual
                 </p>
                 <div class="mt-3 flex items-center justify-between">
-                  <p class="text-lg font-bold text-esmerald dark:text-lemon">${{ formatMoney(sub.billing_amount) }} <span class="text-[10px] font-normal text-green-light">COP</span></p>
+                  <p class="text-lg font-bold text-text-brand">${{ formatMoney(sub.billing_amount) }} <span class="text-[10px] font-normal text-green-light">COP</span></p>
                   <NuxtLink
                     v-if="hostingDaysLeft(sub) !== null && hostingDaysLeft(sub) <= 30"
                     :to="localePath(`/platform/projects/${sub.project_id}/payments`)"
-                    class="rounded-lg bg-lemon px-3 py-1.5 text-xs font-semibold text-esmerald-dark transition hover:brightness-105"
+                    class="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-text-default transition hover:brightness-105"
                   >
                     Renovar
                   </NuxtLink>
                   <NuxtLink
                     v-else
                     :to="localePath(`/platform/projects/${sub.project_id}/payments`)"
-                    class="text-xs font-medium text-esmerald transition hover:text-esmerald/70 dark:text-lemon dark:hover:text-lemon/80"
+                    class="text-xs font-medium text-text-default transition hover:text-esmerald/70 dark:text-accent dark:hover:text-lemon/80"
                   >
                     Ver pagos
                   </NuxtLink>
                 </div>
               </div>
             </div>
-            <div v-else class="mt-4 rounded-xl border border-dashed border-esmerald/10 p-4 text-center dark:border-white/10">
+            <div v-else class="mt-4 rounded-xl border border-dashed border-border-default p-4 text-center">
               <p class="text-xs text-green-light">Sin suscripciones activas</p>
             </div>
           </article>
 
           <!-- Quick links -->
-          <article class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
-            <h2 class="text-base font-medium text-esmerald dark:text-white">Acceso rapido</h2>
+          <article class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
+            <h2 class="text-base font-medium text-text-default">Acceso rapido</h2>
             <div class="mt-4 grid gap-2 sm:grid-cols-2">
-              <NuxtLink :to="localePath('/platform/changes')" class="rounded-xl border border-esmerald/[0.06] p-3 transition hover:border-esmerald/15 hover:shadow-sm dark:border-white/[0.06] dark:hover:border-white/12">
-                <p class="text-sm font-medium text-esmerald dark:text-white">Solicitudes</p>
+              <NuxtLink :to="localePath('/platform/changes')" class="rounded-xl border border-border-default p-3 transition hover:border-border-default hover:shadow-sm dark:hover:border-white/12">
+                <p class="text-sm font-medium text-text-default">Solicitudes</p>
                 <p class="mt-0.5 text-[10px] text-green-light">Cambios y requerimientos</p>
               </NuxtLink>
-              <NuxtLink :to="localePath('/platform/bugs')" class="rounded-xl border border-esmerald/[0.06] p-3 transition hover:border-esmerald/15 hover:shadow-sm dark:border-white/[0.06] dark:hover:border-white/12">
-                <p class="text-sm font-medium text-esmerald dark:text-white">Bugs</p>
+              <NuxtLink :to="localePath('/platform/bugs')" class="rounded-xl border border-border-default p-3 transition hover:border-border-default hover:shadow-sm dark:hover:border-white/12">
+                <p class="text-sm font-medium text-text-default">Bugs</p>
                 <p class="mt-0.5 text-[10px] text-green-light">Reportar y seguir errores</p>
               </NuxtLink>
-              <NuxtLink :to="localePath('/platform/deliverables')" class="rounded-xl border border-esmerald/[0.06] p-3 transition hover:border-esmerald/15 hover:shadow-sm dark:border-white/[0.06] dark:hover:border-white/12">
-                <p class="text-sm font-medium text-esmerald dark:text-white">Entregables</p>
+              <NuxtLink :to="localePath('/platform/deliverables')" class="rounded-xl border border-border-default p-3 transition hover:border-border-default hover:shadow-sm dark:hover:border-white/12">
+                <p class="text-sm font-medium text-text-default">Entregables</p>
                 <p class="mt-0.5 text-[10px] text-green-light">Archivos y versiones</p>
               </NuxtLink>
-              <NuxtLink :to="localePath('/platform/payments')" class="rounded-xl border border-esmerald/[0.06] p-3 transition hover:border-esmerald/15 hover:shadow-sm dark:border-white/[0.06] dark:hover:border-white/12">
-                <p class="text-sm font-medium text-esmerald dark:text-white">Pagos</p>
+              <NuxtLink :to="localePath('/platform/payments')" class="rounded-xl border border-border-default p-3 transition hover:border-border-default hover:shadow-sm dark:hover:border-white/12">
+                <p class="text-sm font-medium text-text-default">Pagos</p>
                 <p class="mt-0.5 text-[10px] text-green-light">Suscripciones y facturas</p>
               </NuxtLink>
             </div>
@@ -270,12 +270,12 @@
       </div>
 
       <!-- Recent deliverables -->
-      <article v-if="clientRecentDeliverables.length" class="rounded-3xl border border-esmerald/[0.06] bg-white shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none" data-enter>
-        <div class="flex flex-col gap-3 border-b border-esmerald/[0.06] px-6 py-5 dark:border-white/[0.06] sm:flex-row sm:items-center sm:justify-between">
-          <h2 class="text-base font-medium text-esmerald dark:text-white">Ultimos entregables</h2>
+      <article v-if="clientRecentDeliverables.length" class="rounded-3xl border border-border-default bg-surface shadow-sm" data-enter>
+        <div class="flex flex-col gap-3 border-b border-border-default px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <h2 class="text-base font-medium text-text-default">Ultimos entregables</h2>
           <NuxtLink
             :to="localePath('/platform/deliverables')"
-            class="rounded-full border border-esmerald/10 px-4 py-2 text-sm text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+            class="rounded-full border border-border-default px-4 py-2 text-sm text-green-light transition hover:text-text-default dark:hover:text-white"
           >
             Ver todos
           </NuxtLink>
@@ -289,7 +289,7 @@
               </svg>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="truncate text-sm font-medium text-esmerald dark:text-white">{{ del.title }}</p>
+              <p class="truncate text-sm font-medium text-text-default">{{ del.title }}</p>
               <p class="mt-0.5 text-xs text-green-light">{{ del.project_name }} · {{ formatDate(del.created_at) }}</p>
             </div>
             <span class="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="deliverableCategoryClass(del.category)">
@@ -380,7 +380,7 @@ function statusLabel(client) {
 
 function statusClass(client) {
   if (!client.is_active) return 'bg-white/10 text-green-light/60'
-  if (!client.is_onboarded) return 'bg-amber-100 text-amber-700 dark:bg-lemon/10 dark:text-lemon'
+  if (!client.is_onboarded) return 'bg-amber-100 text-amber-700 dark:bg-lemon/10 dark:text-accent'
   return 'bg-emerald-500/15 text-emerald-400'
 }
 
@@ -396,7 +396,7 @@ function projectStatusLabel(status) {
 
 function projectStatusClass(status) {
   const map = {
-    active: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+    active: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
     paused: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     completed: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     archived: 'bg-white/10 text-green-light/60',
@@ -422,10 +422,10 @@ function deliverableCategoryClass(cat) {
     designs: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
     documents: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     credentials: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-    apks: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-    other: 'bg-gray-500/15 text-gray-600 dark:text-gray-400',
+    apks: 'bg-emerald-500/15 text-text-brand dark:text-emerald-400',
+    other: 'bg-gray-500/15 text-text-muted dark:text-text-subtle',
   }
-  return map[cat] || 'bg-gray-500/15 text-gray-600 dark:text-gray-400'
+  return map[cat] || 'bg-gray-500/15 text-text-muted dark:text-text-subtle'
 }
 
 async function loadAggregatedLists() {
