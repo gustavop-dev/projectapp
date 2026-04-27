@@ -37,7 +37,7 @@
                 <button v-for="t in DIAGNOSTIC_TEMPLATES" :key="t.slug" type="button"
                   :disabled="templateBusy[t.slug]"
                   @click="copyTemplate(t.slug)"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft dark:bg-emerald-900/20 text-text-brand dark:text-emerald-400 rounded-lg text-[11px] font-medium hover:bg-primary-soft dark:hover:bg-emerald-900/30 disabled:opacity-50 transition-colors">
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-[11px] font-medium hover:bg-primary-soft disabled:opacity-50 transition-colors">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />

@@ -45,7 +45,7 @@
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="px-3 py-1.5 text-xs font-medium text-text-brand dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:bg-primary-soft dark:hover:bg-primary-soft transition-colors"
+            class="px-3 py-1.5 text-xs font-medium text-text-brand border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:bg-primary-soft transition-colors"
             @click="goToToday"
           >
             Hoy
@@ -109,7 +109,7 @@
     <!-- Legend -->
     <div class="flex items-center gap-6 text-xs text-text-muted">
       <div class="flex items-center gap-1.5">
-        <span class="w-3 h-3 rounded bg-primary-soft dark:bg-primary-soft border border-emerald-200 dark:border-emerald-500/30 inline-block" />
+        <span class="w-3 h-3 rounded bg-primary-soft border border-emerald-200 dark:border-emerald-500/30 inline-block" />
         Publicado
       </div>
       <div class="flex items-center gap-1.5">
@@ -211,7 +211,7 @@ function nextWeek() { weekOffset.value++; }
 function goToToday() { weekOffset.value = 0; }
 
 function postCardClass(post) {
-  if (post.calendar_status === 'published') return 'bg-primary-soft dark:bg-primary-soft text-emerald-800 dark:text-emerald-300 hover:bg-primary-soft dark:hover:bg-primary-soft border border-emerald-200 dark:border-emerald-500/20';
+  if (post.calendar_status === 'published') return 'bg-primary-soft text-emerald-800 dark:text-emerald-300 hover:bg-primary-soft border border-emerald-200 dark:border-emerald-500/20';
   if (post.calendar_status === 'scheduled') return 'bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/20';
   return 'bg-surface-raised text-text-muted hover:bg-surface-raised border border-border-default';
 }

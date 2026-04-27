@@ -20,7 +20,7 @@
         <span
           class="px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide"
           :class="section.is_enabled
-            ? 'bg-primary-soft text-text-brand dark:bg-emerald-500/20 dark:text-emerald-300'
+            ? 'bg-primary-soft text-text-brand dark:bg-emerald-500/20'
             : 'bg-surface-raised text-text-muted'"
         >
           {{ section.is_enabled ? 'Activa' : 'Oculta' }}

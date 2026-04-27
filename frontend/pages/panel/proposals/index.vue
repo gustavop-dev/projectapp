@@ -589,7 +589,7 @@
           v-if="statusToast"
           class="fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium pointer-events-none"
           :class="statusToast.type === 'success'
-            ? 'bg-primary-soft text-text-brand border border-emerald-200 dark:bg-primary/10  dark:border-emerald-500/20'
+            ? 'bg-primary-soft text-text-brand border border-emerald-200  dark:border-emerald-500/20'
             : 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/20'"
         >
           <svg v-if="statusToast.type === 'success'" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -925,7 +925,7 @@ const proposalActions = computed(() => {
     icon: copiedId.value === p.id ? '✅' : '🔗',
     label: copiedId.value === p.id ? '¡Enlace copiado!' : 'Copiar enlace',
     info: 'Copia el enlace público de la propuesta al portapapeles para compartir manualmente.',
-    bgClass: copiedId.value === p.id ? 'bg-primary-soft text-text-brand dark:bg-primary/10 ' : 'bg-surface-raised',
+    bgClass: copiedId.value === p.id ? 'bg-primary-soft text-text-brand ' : 'bg-surface-raised',
     textClass: copiedId.value === p.id ? 'text-text-brand' : 'text-text-default',
     onClick: () => { handleCopyLink(p); },
   });
@@ -967,7 +967,7 @@ const proposalActions = computed(() => {
     info: p.is_active
       ? 'Desactiva la propuesta. El cliente no podrá acceder al enlace.'
       : 'Reactiva la propuesta para que el cliente pueda verla nuevamente.',
-    bgClass: p.is_active ? 'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400' : 'bg-primary-soft text-text-brand dark:bg-primary/10 ',
+    bgClass: p.is_active ? 'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400' : 'bg-primary-soft text-text-brand ',
     textClass: p.is_active ? 'text-yellow-700 dark:text-yellow-300' : 'text-text-brand',
     onClick: () => { actionsModalProposal.value = null; handleToggleActive(p.id, p.is_active); },
   });
@@ -1268,7 +1268,7 @@ function statusClass(status) {
     draft: 'bg-surface-raised text-text-muted',
     sent: 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300',
     viewed: 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300',
-    accepted: 'bg-primary-soft text-text-brand dark:bg-primary/10 ',
+    accepted: 'bg-primary-soft text-text-brand ',
     finished: 'bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300',
     rejected: 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300',
     negotiating: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',

@@ -2175,7 +2175,7 @@ function statusClass(status) {
     draft: 'bg-surface-raised text-text-muted',
     sent: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300',
     viewed: 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300',
-    accepted: 'bg-primary-soft dark:bg-primary/10 text-text-brand dark:text-emerald-400',
+    accepted: 'bg-primary-soft text-text-brand',
     rejected: 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300',
     expired: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
   };

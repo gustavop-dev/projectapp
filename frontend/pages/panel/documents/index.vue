@@ -84,7 +84,7 @@
             </p>
             <button
               type="button"
-              class="mt-3 text-sm text-text-brand hover:text-text-brand  dark:hover:text-emerald-300"
+              class="mt-3 text-sm text-text-brand hover:text-text-brand "
               @click="searchQuery = ''"
             >
               Limpiar búsqueda
@@ -94,7 +94,7 @@
             <p class="text-text-muted text-sm">No hay documentos todavia.</p>
             <NuxtLink
               :to="localePath('/panel/documents/create')"
-              class="inline-flex items-center gap-1 mt-3 text-sm text-text-brand hover:text-text-brand  dark:hover:text-emerald-300"
+              class="inline-flex items-center gap-1 mt-3 text-sm text-text-brand hover:text-text-brand "
             >
               Crear el primero →
             </NuxtLink>
@@ -166,7 +166,7 @@
                   <div class="flex items-center gap-1">
                     <NuxtLink
                       :to="localePath(`/panel/documents/${doc.id}/edit`)"
-                      class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-text-brand dark:hover:text-emerald-400"
+                      class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-text-brand"
                       title="Editar"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -442,7 +442,7 @@ async function handleDropOnFolder(folderId) {
 function statusBadgeClass(status) {
   const map = {
     draft: 'bg-surface-raised text-text-default ',
-    published: 'bg-primary-soft text-text-brand dark:bg-emerald-900/40 ',
+    published: 'bg-primary-soft text-text-brand ',
     archived: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
   };
   return map[status] || map.draft;

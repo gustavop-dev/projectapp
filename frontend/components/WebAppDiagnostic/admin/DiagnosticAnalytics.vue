@@ -391,7 +391,7 @@
             <span class="text-base flex-shrink-0">{{ insight.icon }}</span>
             <div>
               <p class="text-xs font-semibold text-emerald-800 dark:text-emerald-300">{{ insight.label }}</p>
-              <p class="text-xs text-text-brand dark:text-emerald-200 mt-0.5">{{ insight.text }}</p>
+              <p class="text-xs text-text-brand mt-0.5">{{ insight.text }}</p>
             </div>
           </div>
         </div>

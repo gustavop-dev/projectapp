@@ -18,7 +18,7 @@
       <!-- List with check icons -->
       <ul v-if="section.list && section.list.length" class="space-y-4 mb-6">
         <li v-for="(item, i) in section.list" :key="i" class="flex items-start gap-3">
-          <svg class="w-6 h-6 flex-shrink-0 mt-1 text-text-brand dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-6 h-6 flex-shrink-0 mt-1 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
           <span class="text-lg text-green-light dark:text-green-light/80 leading-relaxed font-regular">{{ item }}</span>

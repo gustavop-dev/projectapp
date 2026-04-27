@@ -15,7 +15,7 @@
 
           <form class="overflow-y-auto flex-1 px-6 py-5 space-y-6" @submit.prevent="handleSave">
             <section>
-              <h3 class="text-xs font-semibold uppercase tracking-wide text-text-brand dark:text-emerald-400 mb-3">
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-text-brand mb-3">
                 Cliente
               </h3>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -39,7 +39,7 @@
             </section>
 
             <section>
-              <h3 class="text-xs font-semibold uppercase tracking-wide text-text-brand dark:text-emerald-400 mb-3">
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-text-brand mb-3">
                 Consultor (Project App)
               </h3>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -59,7 +59,7 @@
             </section>
 
             <section>
-              <h3 class="text-xs font-semibold uppercase tracking-wide text-text-brand dark:text-emerald-400 mb-3">
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-text-brand mb-3">
                 Datos del acuerdo
               </h3>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">

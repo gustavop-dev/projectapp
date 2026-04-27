@@ -84,7 +84,7 @@
             </template>
           </draggable>
           <button type="button" @click="addSection"
-            class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-brand  bg-primary-soft rounded-lg hover:bg-primary-soft dark:hover:bg-emerald-900/50 transition-colors">
+            class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-brand  bg-primary-soft rounded-lg hover:bg-primary-soft transition-colors">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
@@ -236,7 +236,7 @@
                 <span class="text-xs font-medium text-text-default truncate">{{ entry.subject }}</span>
                 <span class="px-1.5 py-0.5 rounded text-[10px] font-medium"
                   :class="{
-                    'bg-primary-soft text-text-brand dark:bg-emerald-900/40 ': entry.status === 'sent' || entry.status === 'delivered',
+                    'bg-primary-soft text-text-brand ': entry.status === 'sent' || entry.status === 'delivered',
                     'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400': entry.status === 'failed' || entry.status === 'bounced',
                   }">
                   {{ statusLabel(entry.status) }}

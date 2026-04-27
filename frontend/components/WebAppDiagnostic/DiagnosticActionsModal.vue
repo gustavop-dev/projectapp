@@ -41,7 +41,7 @@
                   <span class="text-sm font-medium text-text-default dark:text-white">{{ action.label }}</span>
                   <span
                     v-if="action.key === suggestedKey"
-                    class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-primary-soft text-text-brand dark:bg-emerald-500/10 dark:text-emerald-300"
+                    class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-primary-soft text-text-brand dark:bg-emerald-500/10"
                   >
                     Sugerido
                   </span>

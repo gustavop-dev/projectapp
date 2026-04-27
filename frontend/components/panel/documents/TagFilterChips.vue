@@ -22,7 +22,7 @@
     </button>
     <button
       type="button"
-      class="ml-auto text-xs font-medium text-text-brand hover:text-text-brand dark:text-emerald-400"
+      class="ml-auto text-xs font-medium text-text-brand hover:text-text-brand"
       @click="$emit('manage')"
     >
       Gestionar etiquetas
@@ -32,7 +32,7 @@
     <span>Aún no has creado etiquetas.</span>
     <button
       type="button"
-      class="font-medium text-text-brand hover:text-text-brand dark:text-emerald-400"
+      class="font-medium text-text-brand hover:text-text-brand"
       @click="$emit('manage')"
     >
       Crear la primera →

@@ -51,7 +51,7 @@
       <span
         v-for="chip in activeChips"
         :key="chip.key"
-        class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-primary-soft px-2.5 py-1 text-xs font-medium text-text-brand dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+        class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-primary-soft px-2.5 py-1 text-xs font-medium text-text-brand dark:border-emerald-700"
       >
         {{ chip.label }}
         <button

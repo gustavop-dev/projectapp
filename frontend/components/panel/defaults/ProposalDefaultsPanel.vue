@@ -371,7 +371,7 @@
                   <div class="text-sm font-medium text-text-default truncate">{{ tpl.name }}</div>
                   <div class="text-xs text-gray-400 truncate">{{ tpl.description }}</div>
                   <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <span v-if="tpl.is_customized" class="text-[10px] text-text-brand font-medium bg-primary-soft dark:text-emerald-400 px-1.5 py-0.5 rounded-full">Personalizado</span>
+                    <span v-if="tpl.is_customized" class="text-[10px] text-text-brand font-medium bg-primary-soft px-1.5 py-0.5 rounded-full">Personalizado</span>
                     <span v-if="!tpl.is_active" class="text-[10px] text-red-600 font-medium bg-red-50 dark:bg-red-900/20 dark:text-red-400 px-1.5 py-0.5 rounded-full">Desactivado</span>
                     <span class="text-[10px] text-gray-400">{{ tpl.editable_fields_count }} campos</span>
                   </div>

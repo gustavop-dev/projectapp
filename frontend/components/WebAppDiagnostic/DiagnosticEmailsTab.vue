@@ -16,13 +16,13 @@
         <button type="button"
           class="pb-2 text-sm transition-colors border-b-2"
           :class="activeSubTab === 'edit'
-            ? 'border-emerald-600 text-text-brand dark:text-emerald-400 font-semibold'
+            ? 'border-emerald-600 text-text-brand font-semibold'
             : 'border-transparent text-text-muted dark:text-gray-400 hover:text-text-default dark:hover:text-white/70'"
           @click="activeSubTab = 'edit'">Editar</button>
         <button type="button"
           class="pb-2 text-sm transition-colors border-b-2"
           :class="activeSubTab === 'preview'
-            ? 'border-emerald-600 text-text-brand dark:text-emerald-400 font-semibold'
+            ? 'border-emerald-600 text-text-brand font-semibold'
             : 'border-transparent text-text-muted dark:text-gray-400 hover:text-text-default dark:hover:text-white/70'"
           @click="activeSubTab = 'preview'">Vista previa</button>
       </div>
@@ -71,7 +71,7 @@
             </template>
           </draggable>
           <button type="button" @click="addSection"
-            class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-brand dark:text-emerald-400 bg-primary-soft dark:bg-emerald-900/20 rounded-lg hover:bg-primary-soft dark:hover:bg-emerald-900/30 transition-colors">
+            class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-brand bg-primary-soft rounded-lg hover:bg-primary-soft transition-colors">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
@@ -90,7 +90,7 @@
           <div class="flex flex-col items-start gap-3">
             <div class="flex flex-wrap items-center gap-2">
               <button type="button" @click="showAttachFromDocsModal = true"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft dark:bg-emerald-900/20 text-text-brand dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-primary-soft dark:hover:bg-emerald-900/30 transition-colors">
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -108,14 +108,14 @@
             </div>
             <input ref="fileInput" type="file" multiple
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-              class="text-xs dark:text-white/70 file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-primary-soft dark:file:bg-emerald-900/20 file:text-text-brand dark:file:text-emerald-400 file:rounded-lg hover:file:bg-primary-soft dark:hover:file:bg-emerald-900/30"
+              class="text-xs dark:text-white/70 file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-primary-soft file:text-text-brand file:rounded-lg hover:file:bg-primary-soft"
               @change="handleFilesChange" />
           </div>
           <div v-if="docRefs.length || attachments.length" class="mt-2 space-y-1">
             <div v-for="(ref, idx) in docRefs" :key="`ref-${ref.key}`"
-              class="flex items-center justify-between py-1.5 px-3 bg-primary-soft dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 rounded-lg">
+              class="flex items-center justify-between py-1.5 px-3 bg-primary-soft border border-emerald-100 dark:border-emerald-900/30 rounded-lg">
               <span class="flex items-center gap-2 min-w-0">
-                <span class="px-1.5 py-0.5 bg-primary-soft dark:bg-emerald-900/30 text-text-brand dark:text-emerald-300 rounded text-[10px] font-medium">Documento</span>
+                <span class="px-1.5 py-0.5 bg-primary-soft text-text-brand rounded text-[10px] font-medium">Documento</span>
                 <span class="text-xs text-text-default dark:text-white/70 truncate">{{ ref.label }}</span>
               </span>
               <button type="button" @click="removeDocRef(idx)"
@@ -238,7 +238,7 @@
                 <span class="text-xs font-medium text-text-default dark:text-white truncate">{{ entry.subject }}</span>
                 <span class="px-1.5 py-0.5 rounded text-[10px] font-medium"
                   :class="{
-                    'bg-primary-soft text-text-brand dark:bg-emerald-900/30 dark:text-emerald-400': entry.status === 'sent' || entry.status === 'delivered',
+                    'bg-primary-soft text-text-brand': entry.status === 'sent' || entry.status === 'delivered',
                     'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400': entry.status === 'failed' || entry.status === 'bounced',
                   }">{{ statusLabel(entry.status) }}</span>
               </div>

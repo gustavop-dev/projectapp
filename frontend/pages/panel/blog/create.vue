@@ -185,7 +185,7 @@
 
         <div v-if="jsonError" class="mt-2 text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-500/10 px-4 py-2 rounded-lg">{{ jsonError }}</div>
 
-        <div v-if="jsonParsed && !jsonError" class="mt-3 bg-primary-soft dark:bg-primary/10 border border-emerald-200 dark:border-emerald-500/20 rounded-lg px-4 py-3">
+        <div v-if="jsonParsed && !jsonError" class="mt-3 bg-primary-soft border border-emerald-200 dark:border-emerald-500/20 rounded-lg px-4 py-3">
           <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
             <span><span class="text-text-muted">Título:</span> <span class="font-medium text-text-default">{{ jsonParsed.title_es }}</span></span>
             <span><span class="text-text-muted">Categoría:</span> <span class="font-medium text-text-default">{{ jsonParsed.category || '—' }}</span></span>

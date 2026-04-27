@@ -145,18 +145,22 @@
   --color-surface-raised: rgba(255, 255, 255, 0.04);
   --color-border: rgba(255, 255, 255, 0.08);
   --color-border-muted: rgba(255, 255, 255, 0.06);
+  --color-primary-soft: rgba(6, 78, 59, 0.20);   /* emerald-900/20 — brand-tinted soft bg */
 
   /* Surfaces RGB triplets — dark
      NOTE: surface-raised, border, border-muted are intrinsically rgba()
      with a baked alpha. The triplet falls back to the underlying RGB
      channels (white = 255 255 255) so opacity modifiers technically work
      but compose on top of an already-translucent intent. Avoid using
-     `bg-surface-raised/N` etc. in dark — see file header note. */
+     `bg-surface-raised/N` etc. in dark — see file header note.
+     primary-soft follows the same alpha-baked pattern as *-soft status
+     tokens: triplet exposes the hue; avoid `bg-primary-soft/N` in dark. */
   --color-surface-rgb: 0 41 33;            /* #002921 */
   --color-surface-muted-rgb: 0 23 19;      /* #001713 */
   --color-surface-raised-rgb: 255 255 255; /* alpha baked in non-rgb var */
   --color-border-rgb: 255 255 255;         /* alpha baked in non-rgb var */
   --color-border-muted-rgb: 255 255 255;   /* alpha baked in non-rgb var */
+  --color-primary-soft-rgb: 6 78 59;       /* emerald-900 hue, alpha baked */
 
   /* Text — dark */
   --color-text: #F9FAFB;

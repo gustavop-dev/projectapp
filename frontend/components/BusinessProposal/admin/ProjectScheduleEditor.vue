@@ -24,7 +24,7 @@
         </div>
         <span
           v-if="row.completed_at"
-          class="px-2 py-0.5 bg-primary-soft text-text-brand dark:text-emerald-400 rounded text-[11px] font-medium"
+          class="px-2 py-0.5 bg-primary-soft text-text-brand rounded text-[11px] font-medium"
           :data-testid="`stage-status-${row.stage_key}`"
         >
           🟢 Completada

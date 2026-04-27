@@ -769,14 +769,14 @@ function statusClass(s) {
     draft: 'bg-surface-raised text-text-muted',
     sent: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300',
     viewed: 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300',
-    accepted: 'bg-primary-soft text-text-brand dark:text-emerald-400',
-    finished: 'bg-primary-soft text-text-brand dark:text-emerald-400',
+    accepted: 'bg-primary-soft text-text-brand',
+    finished: 'bg-primary-soft text-text-brand',
     rejected: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300',
     expired: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
     negotiating: 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300',
     active: 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300',
     paused: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
-    completed: 'bg-primary-soft text-text-brand dark:text-emerald-400',
+    completed: 'bg-primary-soft text-text-brand',
     archived: 'bg-surface-raised text-text-muted',
   };
   return map[s] || 'bg-surface-raised text-text-muted';

@@ -261,7 +261,7 @@
         <div>
           <div class="flex items-center justify-between mb-2">
             <label class="block text-sm font-medium text-text-default">Fuentes</label>
-            <button type="button" class="text-xs text-text-brand hover:text-text-brand dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors" @click="addSource">+ Agregar fuente</button>
+            <button type="button" class="text-xs text-text-brand hover:text-text-brand transition-colors" @click="addSource">+ Agregar fuente</button>
           </div>
           <div v-for="(source, idx) in form.sources" :key="idx" class="flex gap-2 mb-2">
             <input v-model="source.name" type="text" class="flex-1 px-3 py-2 rounded-lg border border-input-border bg-input-bg text-input-text placeholder-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="Nombre de la fuente" />
@@ -337,7 +337,7 @@
         </div>
         <div class="p-6">
           <div v-if="previewCategory" class="mb-4">
-            <span class="px-3 py-1.5 rounded-full text-xs bg-primary-soft text-text-brand dark:text-emerald-400 font-medium capitalize">{{ previewCategory }}</span>
+            <span class="px-3 py-1.5 rounded-full text-xs bg-primary-soft text-text-brand font-medium capitalize">{{ previewCategory }}</span>
           </div>
           <h1 class="text-2xl font-light text-text-default mb-3 leading-tight">{{ previewTitle }}</h1>
           <p class="text-sm text-text-muted mb-4 leading-relaxed">{{ previewExcerpt }}</p>
@@ -378,7 +378,7 @@
             </div>
             <div class="p-6">
               <div v-if="previewCategory" class="mb-4">
-                <span class="px-3 py-1.5 rounded-full text-xs bg-primary-soft text-text-brand dark:text-emerald-400 font-medium capitalize">{{ previewCategory }}</span>
+                <span class="px-3 py-1.5 rounded-full text-xs bg-primary-soft text-text-brand font-medium capitalize">{{ previewCategory }}</span>
               </div>
               <h1 class="text-2xl font-light text-text-default mb-3 leading-tight">{{ previewTitle }}</h1>
               <p class="text-sm text-text-muted mb-4 leading-relaxed">{{ previewExcerpt }}</p>

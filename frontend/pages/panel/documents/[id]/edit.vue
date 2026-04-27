@@ -52,7 +52,7 @@
       <p class="text-text-muted text-sm">No se pudo cargar el documento.</p>
       <NuxtLink
         :to="localePath('/panel/documents')"
-        class="inline-flex items-center gap-1 mt-3 text-sm text-text-brand hover:text-text-brand dark:text-emerald-400"
+        class="inline-flex items-center gap-1 mt-3 text-sm text-text-brand hover:text-text-brand"
       >
         ← Volver a la lista
       </NuxtLink>
@@ -236,7 +236,7 @@
           {{ errorMsg }}
         </div>
 
-        <div v-if="saveSuccess" class="mt-4 text-sm text-text-brand bg-primary-soft px-4 py-3 rounded-xl dark:bg-emerald-900/20 dark:text-emerald-400">
+        <div v-if="saveSuccess" class="mt-4 text-sm text-text-brand bg-primary-soft px-4 py-3 rounded-xl">
           Documento guardado correctamente.
         </div>
 

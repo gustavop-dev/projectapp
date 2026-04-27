@@ -4,7 +4,7 @@
       <h3 class="text-xs font-semibold text-text-muted uppercase tracking-wider">Carpetas</h3>
       <button
         type="button"
-        class="text-xs font-medium text-text-brand hover:text-text-brand dark:text-emerald-400"
+        class="text-xs font-medium text-text-brand hover:text-text-brand"
         @click="$emit('manage')"
       >
         Gestionar
@@ -95,7 +95,7 @@
       <button
         type="button"
         class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
-               text-text-brand bg-primary-soft hover:bg-primary-soft dark:text-emerald-400 dark:hover:bg-emerald-900/50"
+               text-text-brand bg-primary-soft hover:bg-primary-soft"
         @click="$emit('manage')"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,7 +129,7 @@ watch(() => props.folders, (v) => {
   localFolders.value = [...v];
 }, { immediate: true });
 
-const ACTIVE_CLASS = 'bg-primary-soft text-text-brand font-medium dark:bg-emerald-900/30 dark:text-emerald-300';
+const ACTIVE_CLASS = 'bg-primary-soft text-text-brand font-medium';
 const INACTIVE_CLASS = 'text-text-default hover:bg-gray-50 dark:text-text-subtle dark:hover:bg-gray-700/50';
 
 function entryClass(id) {

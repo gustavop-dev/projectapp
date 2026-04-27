@@ -27,7 +27,7 @@
                 <EyeIcon class="w-4 h-4" />
               </button>
               <a :href="contractPdfUrl" target="_blank"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-primary-soft dark:hover:bg-emerald-900/30 transition-colors">
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
@@ -43,7 +43,7 @@
               </button>
             </template>
             <button v-else type="button" :disabled="contractActionsDisabled" @click="$emit('generateContract')"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-primary-soft dark:hover:bg-emerald-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               Generar contrato
             </button>
           </div>
@@ -62,7 +62,7 @@
               <EyeIcon class="w-4 h-4" />
             </button>
             <a :href="commercialPdfUrl" target="_blank"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-primary-soft dark:hover:bg-emerald-900/30 transition-colors">
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
@@ -84,7 +84,7 @@
               <EyeIcon class="w-4 h-4" />
             </button>
             <a :href="technicalPdfUrl" target="_blank"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-primary-soft dark:hover:bg-emerald-900/30 transition-colors">
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
@@ -159,7 +159,7 @@
           <div>
             <label class="block text-xs text-text-subtle dark:text-text-subtle mb-1">Archivo</label>
             <input ref="fileInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-              class="text-xs dark:text-white/70 file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-primary-soft dark:file:bg-emerald-900/20 file:text-text-brand dark:file:text-emerald-400 file:rounded-lg hover:file:bg-primary-soft dark:hover:file:bg-emerald-900/30" />
+              class="text-xs dark:text-white/70 file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-primary-soft file:text-text-brand file:rounded-lg hover:file:bg-primary-soft" />
           </div>
           <button type="button" :disabled="isUploading" @click="handleUpload"
             class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong transition-colors disabled:opacity-50">

@@ -688,7 +688,7 @@
                 </button>
                 <div v-if="expandedCalcEvents[idx]" class="mt-2 ml-2 space-y-2 text-xs">
                   <div v-if="calcDetail(event).selected_names?.length">
-                    <span class="font-semibold text-text-brand dark:text-emerald-400">Seleccionados:</span>
+                    <span class="font-semibold text-text-brand">Seleccionados:</span>
                     <ul class="ml-3 mt-1 list-disc text-text-muted space-y-0.5">
                       <li v-for="name in calcDetail(event).selected_names" :key="name">{{ name }}</li>
                     </ul>
