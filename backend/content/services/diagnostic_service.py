@@ -68,6 +68,15 @@ def build_render_context(diagnostic: WebAppDiagnostic) -> dict:
     """
     radiography = diagnostic.radiography or {}
     payment = diagnostic.payment_terms or {}
+    initial_pct = payment.get('initial_pct')
+    final_pct = payment.get('final_pct')
+    if initial_pct is None or final_pct is None:
+        cfg = get_default_config(diagnostic.language)
+        if cfg is not None:
+            if initial_pct is None:
+                initial_pct = cfg.payment_initial_pct
+            if final_pct is None:
+                final_pct = cfg.payment_final_pct
     stack = radiography.get('stack', {}) or {}
     backend_stack = stack.get('backend', {}) or {}
     frontend_stack = stack.get('frontend', {}) or {}
@@ -96,8 +105,8 @@ def build_render_context(diagnostic: WebAppDiagnostic) -> dict:
         'client_name': diagnostic.client_name or build_client_display_name(diagnostic.client),
         'investment_amount': format_cop_email(diagnostic.investment_amount),
         'currency': diagnostic.currency or '',
-        'payment_initial_pct': payment.get('initial_pct', ''),
-        'payment_final_pct': payment.get('final_pct', ''),
+        'payment_initial_pct': initial_pct if initial_pct is not None else '',
+        'payment_final_pct': final_pct if final_pct is not None else '',
         'duration_label': diagnostic.duration_label or '',
         'size_category_label': size_label,
 

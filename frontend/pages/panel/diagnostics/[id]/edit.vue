@@ -746,8 +746,8 @@ const form = reactive({
   language: 'es',
   investment_amount: '',
   currency: 'COP',
-  payment_initial_pct: 40,
-  payment_final_pct: 60,
+  payment_initial_pct: null,
+  payment_final_pct: null,
   duration_label: '',
 });
 
@@ -761,6 +761,12 @@ function onClientSelected(client) {
   form.client_email = client.is_email_placeholder ? '' : (client.email || '');
   form.client_phone = client.phone || form.client_phone;
   form.client_company = client.company || form.client_company;
+}
+
+function pctOrNull(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
 function syncFormGeneral() {
@@ -778,8 +784,8 @@ function syncFormGeneral() {
   form.language = c.language || 'es';
   form.investment_amount = c.investment_amount ?? '';
   form.currency = c.currency || 'COP';
-  form.payment_initial_pct = pt.initial_pct ?? 40;
-  form.payment_final_pct = pt.final_pct ?? 60;
+  form.payment_initial_pct = pt.initial_pct ?? null;
+  form.payment_final_pct = pt.final_pct ?? null;
   form.duration_label = c.duration_label || '';
 }
 
@@ -790,8 +796,8 @@ async function handleUpdate() {
     investment_amount: form.investment_amount === '' ? null : form.investment_amount,
     currency: form.currency,
     payment_terms: {
-      initial_pct: Number(form.payment_initial_pct) || 0,
-      final_pct: Number(form.payment_final_pct) || 0,
+      initial_pct: pctOrNull(form.payment_initial_pct),
+      final_pct: pctOrNull(form.payment_final_pct),
     },
     duration_label: form.duration_label,
     client_name: form.client_name,

@@ -84,6 +84,45 @@ class TestBuildRenderContext:
         assert ctx['payment_initial_pct'] == ''
         assert ctx['payment_final_pct'] == ''
 
+    def test_empty_payment_terms_falls_back_to_default_config(self, diag):
+        from content.models import DiagnosticDefaultConfig
+        DiagnosticDefaultConfig.objects.create(
+            language='es', payment_initial_pct=70, payment_final_pct=30,
+        )
+        diag.payment_terms = {}
+        diag.save(update_fields=['payment_terms'])
+
+        ctx = diagnostic_service.build_render_context(diag)
+
+        assert ctx['payment_initial_pct'] == 70
+        assert ctx['payment_final_pct'] == 30
+
+    def test_partial_payment_terms_only_fills_missing_keys_from_config(self, diag):
+        from content.models import DiagnosticDefaultConfig
+        DiagnosticDefaultConfig.objects.create(
+            language='es', payment_initial_pct=70, payment_final_pct=30,
+        )
+        diag.payment_terms = {'initial_pct': 55}
+        diag.save(update_fields=['payment_terms'])
+
+        ctx = diagnostic_service.build_render_context(diag)
+
+        assert ctx['payment_initial_pct'] == 55
+        assert ctx['payment_final_pct'] == 30
+
+    def test_null_payment_terms_values_fall_back_to_config(self, diag):
+        from content.models import DiagnosticDefaultConfig
+        DiagnosticDefaultConfig.objects.create(
+            language='es', payment_initial_pct=80, payment_final_pct=20,
+        )
+        diag.payment_terms = {'initial_pct': None, 'final_pct': None}
+        diag.save(update_fields=['payment_terms'])
+
+        ctx = diagnostic_service.build_render_context(diag)
+
+        assert ctx['payment_initial_pct'] == 80
+        assert ctx['payment_final_pct'] == 20
+
 
 # ---------------------------------------------------------------------------
 # seed_sections — idempotency (calling twice does not duplicate)
