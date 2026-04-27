@@ -8,6 +8,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
+from content.models import WebAppDiagnostic
+from content.services.diagnostic_service import build_render_context
+
 
 TEMPLATES_DIR = (
     Path(__file__).resolve().parent.parent / 'templates' / 'diagnostics'
@@ -54,6 +57,12 @@ def list_diagnostic_templates(request):
     return Response(items)
 
 
+def _apply_render_context(markdown: str, ctx: dict) -> str:
+    for key, value in ctx.items():
+        markdown = markdown.replace('{{' + key + '}}', str(value))
+    return markdown
+
+
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def get_diagnostic_template(request, slug):
@@ -72,6 +81,16 @@ def get_diagnostic_template(request, slug):
             {'error': 'template_file_missing'},
             status=http_status.HTTP_404_NOT_FOUND,
         )
+    diagnostic_id = request.query_params.get('diagnostic_id')
+    if diagnostic_id:
+        try:
+            diagnostic = WebAppDiagnostic.objects.get(pk=diagnostic_id)
+        except (WebAppDiagnostic.DoesNotExist, ValueError):
+            return Response(
+                {'error': 'diagnostic_not_found'},
+                status=http_status.HTTP_404_NOT_FOUND,
+            )
+        content = _apply_render_context(content, build_render_context(diagnostic))
     return Response({
         'slug': slug,
         'title': meta['title'],

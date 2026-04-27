@@ -28,6 +28,10 @@ def scheduled_backup():
     Storage: configured via BACKUP_STORAGE_PATH env var.
     Retention: 4 weeks (~1 month).
     """
+    if not getattr(settings, 'BACKUPS_ENABLED', True):
+        logger.info("scheduled_backup skipped: BACKUPS_ENABLED=False")
+        return
+
     from django.core.management import call_command
 
     timestamp = datetime.now().strftime('%Y-%m-%d_%H%M%S')
@@ -80,6 +84,9 @@ def weekly_slow_queries_report():
     Only runs when Silk is enabled.
     """
     if not getattr(settings, 'ENABLE_SILK', False):
+        return
+    if not getattr(settings, 'ENABLE_SLOW_QUERIES_REPORT', True):
+        logger.info("weekly_slow_queries_report skipped: ENABLE_SLOW_QUERIES_REPORT=False")
         return
 
     from django.db.models import Count

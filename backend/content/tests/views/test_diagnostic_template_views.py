@@ -47,3 +47,64 @@ class TestGetDiagnosticTemplate:
         )
         response = admin_client.get(url)
         assert response.status_code == 404
+
+    def test_without_diagnostic_id_keeps_placeholders_intact(self, admin_client):
+        url = reverse(
+            'get-diagnostic-template',
+            kwargs={'slug': 'diagnostico-aplicacion'},
+        )
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        markdown = response.json()['content_markdown']
+        assert '{{investment_amount}}' in markdown
+        assert '{{payment_initial_pct}}' in markdown
+        assert '{{payment_final_pct}}' in markdown
+        assert '{{currency}}' in markdown
+        assert '{{duration_label}}' in markdown
+
+    def test_with_diagnostic_id_substitutes_placeholders(
+        self, admin_client, diagnostic,
+    ):
+        diagnostic.investment_amount = 5000000
+        diagnostic.currency = 'COP'
+        diagnostic.duration_label = '1 semana'
+        diagnostic.payment_terms = {'initial_pct': 60, 'final_pct': 40}
+        diagnostic.save(update_fields=[
+            'investment_amount', 'currency', 'duration_label', 'payment_terms',
+        ])
+
+        url = reverse(
+            'get-diagnostic-template',
+            kwargs={'slug': 'diagnostico-aplicacion'},
+        )
+        response = admin_client.get(url, {'diagnostic_id': diagnostic.id})
+        assert response.status_code == 200
+        markdown = response.json()['content_markdown']
+        assert '{{investment_amount}}' not in markdown
+        assert '{{payment_initial_pct}}' not in markdown
+        assert '{{payment_final_pct}}' not in markdown
+        assert '{{currency}}' not in markdown
+        assert '{{duration_label}}' not in markdown
+        assert '60% al inicio' in markdown
+        assert '40% al final' in markdown
+        assert 'COP' in markdown
+        assert '1 semana' in markdown
+
+    def test_with_unknown_diagnostic_id_returns_404(self, admin_client):
+        url = reverse(
+            'get-diagnostic-template',
+            kwargs={'slug': 'diagnostico-aplicacion'},
+        )
+        response = admin_client.get(url, {'diagnostic_id': 999999})
+        assert response.status_code == 404
+
+    def test_anexo_no_longer_contains_fuente_section(self, admin_client):
+        url = reverse(
+            'get-diagnostic-template',
+            kwargs={'slug': 'anexo'},
+        )
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        markdown = response.json()['content_markdown']
+        assert 'Fuente de la medición preliminar' not in markdown
+        assert 'levantamiento técnico medido' not in markdown

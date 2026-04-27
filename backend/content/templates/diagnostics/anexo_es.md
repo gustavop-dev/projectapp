@@ -14,7 +14,6 @@
 - [6. Implicaciones sobre el cronograma del diagnóstico](#6-implicaciones-sobre-el-cronograma-del-diagnóstico)
 - [7. Criterios usados para estimar el esfuerzo](#7-criterios-usados-para-estimar-el-esfuerzo)
 - [8. Conclusión](#8-conclusión)
-- [Fuente de la medición preliminar](#fuente-de-la-medición-preliminar)
 
 ---
 
@@ -172,9 +171,3 @@ Estos criterios permiten construir una base objetiva para definir el precio y el
 Este anexo es un **documento de dimensionamiento previo** que justifica el precio y el cronograma del diagnóstico. Complementa a la propuesta comercial (alcance, costo y entregables) y a la propuesta técnica (metodología y criterios por categoría).
 
 El análisis preliminar permite concluir que la aplicación requiere un diagnóstico formal con un alcance bien estructurado y una dedicación proporcional a su complejidad real. Este anexo cumple la función de justificar por qué el servicio debe valorarse y calendarizarse con criterios técnicos. No debe determinarse únicamente con base en una impresión general del sistema o en el número aparente de pantallas o tablas.
-
----
-
-## Fuente de la medición preliminar
-
-La información utilizada para construir este anexo proviene del levantamiento técnico medido directamente en el código y del inventario detallado de endpoints del backend.

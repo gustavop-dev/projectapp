@@ -280,7 +280,11 @@ async function ensureTemplateContent(slug) {
   if (templateCache[slug]) return templateCache[slug];
   templateBusy[slug] = true;
   try {
-    const res = await get_request(`diagnostic-templates/${slug}/`);
+    const diagnosticId = props.diagnostic?.id;
+    const url = diagnosticId
+      ? `diagnostic-templates/${slug}/?diagnostic_id=${diagnosticId}`
+      : `diagnostic-templates/${slug}/`;
+    const res = await get_request(url);
     templateCache[slug] = res.data?.content_markdown || '';
     return templateCache[slug];
   } finally {
