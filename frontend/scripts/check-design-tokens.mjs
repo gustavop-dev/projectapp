@@ -49,6 +49,11 @@ const FORBIDDEN = [
   { pattern: /\bbg-emerald-(?:50|100|600|700)\b/, suggest: 'bg-primary / bg-primary-soft / bg-success-soft' },
   { pattern: /\btext-emerald-(?:600|700)\b(?!\s+dark:text-emerald-)/, suggest: 'text-text-brand (already handles dark)' },
   { pattern: /\bring-emerald-500\b/, suggest: 'ring-focus-ring/30' },
+  // Mixed semantic+literal anti-pattern: semantic token already handles dark mode,
+  // the dark: literal override is redundant and will diverge from the token as it evolves.
+  { pattern: /\btext-text-brand\b[^"'\n]*\bdark:text-emerald-[234]\d{2}\b/, suggest: 'remove dark:text-emerald-* — text-text-brand already flips to emerald-300 in dark' },
+  { pattern: /\bbg-primary-soft\b(?!\/)[^"'\n]*\bdark:bg-emerald-900\/\d+/, suggest: 'remove dark:bg-emerald-900/* — bg-primary-soft has a dark override via CSS variable' },
+  { pattern: /\bhover:bg-primary-soft\b(?!\/)[^"'\n]*\bdark:hover:bg-emerald-900\/\d+/, suggest: 'remove dark:hover:bg-emerald-900/* — hover:bg-primary-soft works in dark via CSS variable' },
 ];
 
 // ----------------------------------------------------------------------------
