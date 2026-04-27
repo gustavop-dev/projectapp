@@ -25,10 +25,10 @@
 
     <div
       v-if="hasInvestmentCard"
-      class="my-6 relative overflow-hidden bg-esmerald dark:bg-esmerald-dark text-bone rounded-2xl p-6 shadow-lg ring-1 ring-transparent dark:ring-esmerald-light/15"
+      class="my-6 relative overflow-hidden bg-white dark:bg-esmerald-light/5 text-esmerald dark:text-esmerald-light rounded-2xl p-6 shadow-sm border border-esmerald/10 dark:border-esmerald-light/15"
       data-testid="cost-investment-card"
     >
-      <div class="absolute inset-0 bg-gradient-to-br from-esmerald/0 via-lemon/5 to-lemon/20 pointer-events-none" />
+      <div class="absolute inset-0 bg-gradient-to-br from-lemon/0 via-lemon/5 to-lemon/10 pointer-events-none" />
 
       <div class="relative space-y-6">
         <header
@@ -36,15 +36,15 @@
           class="flex flex-wrap items-end justify-between gap-3"
         >
           <div>
-            <div class="text-xs font-medium text-bone/80 uppercase tracking-[0.2em]">Inversión</div>
-            <div v-if="investmentFormatted" class="mt-1 text-4xl font-semibold text-lemon tabular-nums leading-none">
+            <div class="text-xs font-medium text-esmerald/60 dark:text-esmerald-light/60 uppercase tracking-[0.2em]">Inversión</div>
+            <div v-if="investmentFormatted" class="mt-1 text-4xl font-semibold text-esmerald dark:text-esmerald-light tabular-nums leading-none">
               {{ investmentFormatted }}
-              <span class="text-2xl text-bone/80 ml-1">{{ currencyCode }}</span>
+              <span class="text-2xl text-esmerald/60 dark:text-esmerald-light/60 ml-1">{{ currencyCode }}</span>
             </div>
           </div>
           <div
             v-if="durationLabel"
-            class="inline-flex items-center gap-1.5 text-xs text-bone/80 bg-bone/10 ring-1 ring-bone/15 rounded-full px-3 py-1"
+            class="inline-flex items-center gap-1.5 text-xs text-esmerald/70 dark:text-esmerald-light/70 bg-esmerald/5 dark:bg-esmerald-light/10 ring-1 ring-esmerald/10 dark:ring-esmerald-light/15 rounded-full px-3 py-1"
           >
             <span class="size-1.5 rounded-full bg-lemon" aria-hidden="true" />
             <span>{{ durationLabel }}</span>
@@ -53,7 +53,7 @@
 
         <div
           v-if="paymentSegments.length === 2"
-          class="flex flex-col sm:flex-row w-full overflow-hidden rounded-xl ring-1 ring-bone/15"
+          class="flex flex-col sm:flex-row w-full overflow-hidden rounded-xl ring-1 ring-esmerald/10 dark:ring-esmerald-light/15"
           role="presentation"
           data-testid="cost-segmented-bar"
         >
@@ -61,12 +61,12 @@
             v-for="seg in paymentSegments"
             :key="seg.key"
             :style="{ flexGrow: seg.pct }"
-            :class="['flex flex-col gap-2 px-5 py-5 min-w-0', seg.barClass]"
+            :class="['flex flex-col gap-2 px-5 py-5 min-w-0 text-esmerald', seg.barClass]"
             :data-testid="`cost-bar-${seg.key}`"
           >
             <div class="flex items-baseline justify-between gap-3">
               <span class="text-3xl font-semibold tabular-nums leading-none">{{ seg.pct }}%</span>
-              <span class="text-[11px] font-semibold uppercase tracking-[0.18em] opacity-80">{{ seg.label }}</span>
+              <span class="text-[11px] font-semibold uppercase tracking-[0.18em] opacity-75">{{ seg.label }}</span>
             </div>
             <div
               v-if="seg.amountFormatted"
@@ -83,7 +83,7 @@
 
         <ul
           v-if="!paymentSegments.length && fallbackPaymentItems.length"
-          class="space-y-2 text-bone/80"
+          class="space-y-2 text-esmerald/80 dark:text-esmerald-light/80"
           data-testid="cost-fallback-list"
         >
           <li
@@ -92,8 +92,8 @@
             class="flex gap-3 items-baseline"
           >
             <span class="mt-2 shrink-0 size-1.5 rounded-full bg-lemon" aria-hidden="true" />
-            <span class="font-semibold text-bone">{{ item.label }}</span>
-            <span class="text-bone/70">{{ item.detail }}</span>
+            <span class="font-semibold text-esmerald dark:text-esmerald-light">{{ item.label }}</span>
+            <span class="text-esmerald/70 dark:text-esmerald-light/70">{{ item.detail }}</span>
           </li>
         </ul>
       </div>
@@ -119,14 +119,14 @@ const SIDES = [
     pctKey: 'payment_initial_pct',
     termKey: 'initial_pct',
     defaultLabel: 'al inicio',
-    barClass: 'bg-lemon text-esmerald',
+    barClass: 'bg-lemon/80',
   },
   {
     key: 'final',
     pctKey: 'payment_final_pct',
     termKey: 'final_pct',
     defaultLabel: 'al final',
-    barClass: 'bg-lemon/25 text-bone',
+    barClass: 'bg-lemon/15',
   },
 ];
 
