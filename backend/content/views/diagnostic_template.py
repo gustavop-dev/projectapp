@@ -90,7 +90,14 @@ def get_diagnostic_template(request, slug):
                 {'error': 'diagnostic_not_found'},
                 status=http_status.HTTP_404_NOT_FOUND,
             )
-        content = _apply_render_context(content, build_render_context(diagnostic))
+        _PENDING = (
+            '*[pendiente de definir — configura este valor en el tab General del diagnóstico]*'
+        )
+        ctx = build_render_context(diagnostic)
+        for key in ('investment_amount', 'duration_label'):
+            if not ctx.get(key):
+                ctx[key] = _PENDING
+        content = _apply_render_context(content, ctx)
     return Response({
         'slug': slug,
         'title': meta['title'],

@@ -108,3 +108,34 @@ class TestGetDiagnosticTemplate:
         markdown = response.json()['content_markdown']
         assert 'Fuente de la medición preliminar' not in markdown
         assert 'levantamiento técnico medido' not in markdown
+
+    def test_investment_amount_has_dollar_sign(self, admin_client, diagnostic):
+        diagnostic.investment_amount = 5000000
+        diagnostic.currency = 'COP'
+        diagnostic.duration_label = '1 semana'
+        diagnostic.save(update_fields=['investment_amount', 'currency', 'duration_label'])
+
+        url = reverse('get-diagnostic-template', kwargs={'slug': 'diagnostico-aplicacion'})
+        markdown = admin_client.get(url, {'diagnostic_id': diagnostic.id}).json()['content_markdown']
+        assert '$' in markdown
+        assert '{{investment_amount}}' not in markdown
+
+    def test_missing_investment_amount_shows_pending_text(self, admin_client, diagnostic):
+        diagnostic.investment_amount = None
+        diagnostic.duration_label = '1 semana'
+        diagnostic.save(update_fields=['investment_amount', 'duration_label'])
+
+        url = reverse('get-diagnostic-template', kwargs={'slug': 'diagnostico-aplicacion'})
+        markdown = admin_client.get(url, {'diagnostic_id': diagnostic.id}).json()['content_markdown']
+        assert 'pendiente de definir' in markdown
+        assert '{{investment_amount}}' not in markdown
+
+    def test_missing_duration_label_shows_pending_text(self, admin_client, diagnostic):
+        diagnostic.investment_amount = 5000000
+        diagnostic.duration_label = ''
+        diagnostic.save(update_fields=['investment_amount', 'duration_label'])
+
+        url = reverse('get-diagnostic-template', kwargs={'slug': 'diagnostico-aplicacion'})
+        markdown = admin_client.get(url, {'diagnostic_id': diagnostic.id}).json()['content_markdown']
+        assert 'pendiente de definir' in markdown
+        assert '{{duration_label}}' not in markdown

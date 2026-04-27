@@ -250,7 +250,7 @@ Las recomendaciones se agrupan por prioridad en horizontes de acción para facil
 
 ### Costo y Formas de Pago
 
-La inversión de referencia para este diagnóstico es de **{{investment_amount}} {{currency}}**.
+La inversión de referencia para este diagnóstico es de **${{investment_amount}} {{currency}}**.
 
 La forma de pago propuesta es la siguiente:
 
