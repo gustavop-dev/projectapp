@@ -12,7 +12,7 @@
         </div>
 
         <div data-animate="fade-up" class="requirements-intro mb-12">
-          <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl max-w-3xl">
+          <p class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl max-w-3xl">
             {{ data.intro }}
           </p>
         </div>
@@ -40,7 +40,7 @@
                 {{ group.items.length }}
               </span>
             </div>
-            <p class="text-sm text-esmerald/70 font-light leading-relaxed mb-3">{{ group.description }}</p>
+            <p class="text-sm text-text-default/70 font-light leading-relaxed mb-3">{{ group.description }}</p>
             <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-light group-hover:text-text-brand transition-colors">
               {{ t.viewDetail }}
               <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

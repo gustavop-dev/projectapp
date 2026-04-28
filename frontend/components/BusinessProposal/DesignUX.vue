@@ -16,7 +16,7 @@
             <p
               v-for="(paragraph, idx) in content.paragraphs?.slice(0, 2)"
               :key="idx"
-              class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl"
+              class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl"
               v-html="linkify(paragraph)"
             />
 
@@ -24,7 +24,7 @@
               <h3 class="text-text-brand font-light text-base md:text-lg tracking-wide mb-3">
                 {{ content.objectiveTitle }}
               </h3>
-              <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl" v-html="linkify(content.objective)" />
+              <p class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl" v-html="linkify(content.objective)" />
             </div>
           </div>
 

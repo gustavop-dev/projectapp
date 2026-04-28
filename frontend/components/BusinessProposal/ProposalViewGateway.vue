@@ -29,14 +29,14 @@
               <span class="text-2xl">⚡</span>
             </div>
             <div>
-              <h3 class="text-accent font-bold text-lg sm:text-xl leading-tight">{{ t.executiveTitle }}</h3>
-              <span class="text-primary text-xs font-medium uppercase tracking-wider">{{ t.executiveTime }}</span>
+              <h3 class="text-white font-bold text-lg sm:text-xl leading-tight">{{ t.executiveTitle }}</h3>
+              <span class="text-white/80 text-xs font-medium uppercase tracking-wider">{{ t.executiveTime }}</span>
             </div>
           </div>
-          <p class="text-primary font-light text-sm sm:text-base leading-relaxed mb-6">
+          <p class="text-white/90 font-light text-sm sm:text-base leading-relaxed mb-6">
             {{ t.executiveSub }}
           </p>
-          <div class="flex items-center gap-2 text-accent font-medium text-sm group-hover:gap-3 transition-all">
+          <div class="flex items-center gap-2 text-white font-medium text-sm group-hover:gap-3 transition-all">
             <span>{{ t.executiveCta }}</span>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -61,7 +61,7 @@
               <span class="text-green-light text-xs font-medium uppercase tracking-wider">{{ t.detailedTime }}</span>
             </div>
           </div>
-          <p class="text-esmerald/70 font-light text-sm sm:text-base leading-relaxed mb-6">
+          <p class="text-text-default/70 font-light text-sm sm:text-base leading-relaxed mb-6">
             {{ t.detailedSub }}
           </p>
           <div class="flex items-center gap-2 text-text-brand font-medium text-sm group-hover:gap-3 transition-all">
@@ -91,7 +91,7 @@
               <span class="text-teal-600/70 text-xs font-medium uppercase tracking-wider">{{ t.technicalTime }}</span>
             </div>
           </div>
-          <p class="text-esmerald/70 font-light text-sm sm:text-base leading-relaxed mb-6">
+          <p class="text-text-default/70 font-light text-sm sm:text-base leading-relaxed mb-6">
             {{ t.technicalSub }}
           </p>
           <div class="flex items-center gap-2 text-teal-700 font-medium text-sm group-hover:gap-3 transition-all">

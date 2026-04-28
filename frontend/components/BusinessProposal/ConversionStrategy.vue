@@ -13,7 +13,7 @@
 
         <div class="grid lg:grid-cols-12 gap-10 items-start">
           <div class="lg:col-span-8 space-y-8">
-            <p data-animate="fade-up" class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl" v-html="linkify(content.intro)" />
+            <p data-animate="fade-up" class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl" v-html="linkify(content.intro)" />
 
             <div data-animate="fade-up-stagger" class="grid md:grid-cols-2 gap-6">
               <div
@@ -33,7 +33,7 @@
                 <ul class="space-y-3">
                   <li v-for="(item, j) in step.bullets" :key="j" class="flex gap-3">
                     <span class="mt-3 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0"></span>
-                    <p class="text-esmerald/80 font-light leading-relaxed" v-html="linkify(item)" />
+                    <p class="text-text-default/80 font-light leading-relaxed" v-html="linkify(item)" />
                   </li>
                 </ul>
               </div>
@@ -42,10 +42,10 @@
 
           <aside v-if="content.result" data-animate="fade-up" class="lg:col-span-4">
             <div class="rounded-3xl bg-primary p-6 md:p-8">
-              <h3 class="text-accent font-light text-base md:text-lg tracking-wide mb-4">
+              <h3 class="text-white font-light text-base md:text-lg tracking-wide mb-4">
                 {{ content.resultTitle }}
               </h3>
-              <p class="text-on-primary font-light leading-relaxed text-lg" v-html="linkify(content.result)" />
+              <p class="text-white font-light leading-relaxed text-lg" v-html="linkify(content.result)" />
             </div>
           </aside>
         </div>

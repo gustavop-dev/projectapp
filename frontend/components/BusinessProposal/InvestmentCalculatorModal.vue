@@ -1,9 +1,13 @@
 <template>
   <Teleport to="body">
     <Transition name="modal-fade">
-      <div v-if="visible" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="$emit('close')" />
-        <div class="relative bg-surface rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div
+        v-if="visible"
+        class="calc-modal-root fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6"
+        :data-theme="isDark ? 'dark' : 'light'"
+      >
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="$emit('close')" />
+        <div class="calc-modal-panel relative bg-surface rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-border-default">
           <!-- Header -->
           <div class="flex items-center justify-between px-6 py-5 border-b border-border-default bg-primary">
             <div>
@@ -73,7 +77,7 @@
                         <span class="font-medium" :class="mod.selected ? 'text-text-brand' : 'text-text-muted'">
                           {{ mod.name }}
                         </span>
-                        <span v-if="mod._locked" class="ml-2 text-[10px] text-esmerald/50 font-medium uppercase">{{ t.required }}</span>
+                        <span v-if="mod._locked" class="ml-2 text-[10px] text-text-subtle font-medium uppercase">{{ t.required }}</span>
                         <p v-if="!mod.selected && !mod._locked && !mod.is_invite" class="text-[11px] text-warning-strong leading-snug mt-0.5">
                           ⚠ {{ impactMessage(mod) }}
                         </p>
@@ -108,7 +112,7 @@
                   <div v-if="mod._source === 'calculator_module' && (mod.description || mod.detailItems?.length)" class="px-4 pb-3 -mt-1">
                     <button
                       type="button"
-                      class="text-[11px] font-semibold text-esmerald/70 hover:text-text-brand transition-colors flex items-center gap-1"
+                      class="text-[11px] font-semibold text-text-muted hover:text-text-brand transition-colors flex items-center gap-1"
                       @click.stop="toggleDetail(mod.id)"
                     >
                       {{ expandedModules.has(mod.id) ? t.hideDetail : t.viewDetail }}
@@ -186,6 +190,9 @@
 import { ref, computed, watch } from 'vue';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import { create_request } from '~/stores/services/request_http';
+import { useProposalDarkMode } from '~/composables/useProposalDarkMode';
+
+const { isDark } = useProposalDarkMode();
 
 function isPreviewMode() {
   return typeof window !== 'undefined'

@@ -45,19 +45,19 @@
       </div>
 
       <!-- Payment options breakdown — visible before accept -->
-      <div v-if="canRespond && !submitted && closingPaymentOptions.length" data-animate="fade-up" class="w-full max-w-md bg-primary rounded-2xl p-5 text-left">
-        <p class="text-xs font-semibold text-accent uppercase tracking-wider mb-1">{{ t.paymentPlanTitle }}</p>
-        <p class="text-lg font-bold text-accent mb-3">{{ closingPaymentOptions.length }} {{ t.flexiblePayments }}</p>
+      <div v-if="canRespond && !submitted && closingPaymentOptions.length" data-animate="fade-up" class="w-full max-w-lg bg-primary rounded-2xl p-5 text-left">
+        <p class="text-xs font-semibold text-white uppercase tracking-wider mb-1">{{ t.paymentPlanTitle }}</p>
+        <p class="text-lg font-bold text-white mb-3">{{ closingPaymentOptions.length }} {{ t.flexiblePayments }}</p>
         <div class="space-y-2">
           <div v-for="(opt, i) in closingPaymentOptions" :key="i" class="flex items-center justify-between gap-3 bg-surface/10 rounded-xl px-4 py-3">
-            <span class="text-sm text-accent/80">{{ opt.label }}</span>
-            <span class="text-sm font-bold text-accent whitespace-nowrap">{{ opt.description }}</span>
+            <span class="text-sm text-white/80">{{ opt.label }}</span>
+            <span class="text-sm font-bold text-white whitespace-nowrap">{{ opt.description }}</span>
           </div>
         </div>
         <div v-if="effectiveTotal" class="text-center mt-4 pt-3 border-t border-border-default/15">
-          <span class="text-xs text-accent/70">{{ t.scopeInvestment }}:</span>
-          <span class="text-lg font-bold text-accent ml-2">{{ formatCurrency(effectiveTotal) }}</span>
-          <span class="text-xs text-accent/70 ml-1">{{ proposal.currency }}</span>
+          <span class="text-xs text-white/70">{{ t.scopeInvestment }}:</span>
+          <span class="text-lg font-bold text-white ml-2">{{ formatCurrency(effectiveTotal) }}</span>
+          <span class="text-xs text-white/70 ml-1">{{ proposal.currency }}</span>
         </div>
       </div>
 
@@ -430,7 +430,7 @@ const i18nStrings = {
     negotiatingSuccess: '¡Solicitud recibida!',
     negotiatingSub: 'Nuestro equipo revisará tus notas y te contactará pronto para conversar opciones.',
     talkBtn: 'Prefiero hablar antes de decidir',
-    commentBtn: 'Tengo comentarios por escrito',
+    commentBtn: 'Tengo comentarios',
     commentTitle: 'Tus comentarios nos ayudan',
     commentText: 'Sin compromiso — cuéntanos qué dudas tienes o qué ajustes necesitarías para avanzar.',
     commentPlaceholder2: 'Ej: El precio está un poco fuera de mi presupuesto, ¿podemos explorar opciones?',
@@ -509,7 +509,7 @@ const i18nStrings = {
     negotiatingSuccess: 'Request received!',
     negotiatingSub: 'Our team will review your notes and contact you soon to discuss options.',
     talkBtn: 'I prefer to talk before deciding',
-    commentBtn: 'I have written comments',
+    commentBtn: 'I have comments',
     commentTitle: 'Your feedback helps us',
     commentText: 'No commitment — tell us what questions you have or what adjustments you would need to move forward.',
     commentPlaceholder2: 'E.g.: The price is a bit over my budget, can we explore options?',

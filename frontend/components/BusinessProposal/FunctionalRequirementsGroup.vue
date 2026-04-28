@@ -19,7 +19,7 @@
 
         <!-- Description -->
         <div data-animate="fade-up" class="mb-10">
-          <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl max-w-3xl">
+          <p class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl max-w-3xl">
             {{ group.description }}
           </p>
         </div>
@@ -35,7 +35,7 @@
               </div>
               <div>
                 <h4 class="font-bold text-text-brand mb-1">{{ item.name }}</h4>
-                <p class="text-sm text-esmerald/70 font-light">{{ item.description }}</p>
+                <p class="text-sm text-text-default/70 font-light">{{ item.description }}</p>
               </div>
             </div>
           </div>

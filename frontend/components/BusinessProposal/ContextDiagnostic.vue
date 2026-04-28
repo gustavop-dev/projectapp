@@ -16,7 +16,7 @@
             <p
               v-for="(paragraph, idx) in content.paragraphs?.slice(0, 2)"
               :key="idx"
-              class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl"
+              class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl"
               v-html="linkify(paragraph)"
             />
 
@@ -24,19 +24,19 @@
               <h3 class="text-text-brand font-light text-base md:text-lg tracking-wide mb-3">
                 {{ content.opportunityTitle }}
               </h3>
-              <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl" v-html="linkify(content.opportunity)" />
+              <p class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl" v-html="linkify(content.opportunity)" />
             </div>
           </div>
 
           <aside v-if="content.issues?.length" data-animate="fade-up" class="lg:col-span-2">
             <div class="rounded-3xl bg-primary p-6 md:p-8">
-              <h3 class="text-accent font-light text-base md:text-lg tracking-wide mb-5">
+              <h3 class="text-white font-light text-base md:text-lg tracking-wide mb-5">
                 {{ content.issuesTitle }}
               </h3>
               <ul class="space-y-4">
                 <li v-for="(item, idx) in content.issues" :key="idx" class="flex gap-3">
-                  <span class="mt-3 h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0"></span>
-                  <p class="text-on-primary font-light leading-relaxed" v-html="linkify(item)" />
+                  <span class="mt-3 h-1.5 w-1.5 rounded-full bg-surface flex-shrink-0"></span>
+                  <p class="text-white font-light leading-relaxed" v-html="linkify(item)" />
                 </li>
               </ul>
             </div>

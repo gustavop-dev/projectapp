@@ -10,7 +10,7 @@
         </h2>
       </div>
 
-      <p data-animate="fade-up" class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl mb-12">
+      <p data-animate="fade-up" class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl mb-12">
         {{ intro }}
       </p>
 
@@ -35,7 +35,7 @@
           <h3 class="text-sm font-semibold mb-1.5" :class="idx <= activeStep ? 'text-text-brand' : 'text-text-muted'">
             {{ step.title }}
           </h3>
-          <p class="text-xs font-light leading-relaxed px-2" :class="idx <= activeStep ? 'text-esmerald/70' : 'text-text-subtle'">
+          <p class="text-xs font-light leading-relaxed px-2" :class="idx <= activeStep ? 'text-text-default/70' : 'text-text-subtle'">
             {{ step.description }}
           </p>
           <div v-if="step.clientAction" class="mt-2 text-[10px] text-text-brand bg-primary-soft rounded-lg px-2 py-1 inline-block">
@@ -64,7 +64,7 @@
                 <h3 class="text-sm font-semibold" :class="idx <= activeStep ? 'text-text-brand' : 'text-text-muted'">
                   {{ step.title }}
                 </h3>
-                <p class="text-xs font-light leading-relaxed mt-1" :class="idx <= activeStep ? 'text-esmerald/70' : 'text-text-subtle'">
+                <p class="text-xs font-light leading-relaxed mt-1" :class="idx <= activeStep ? 'text-text-default/70' : 'text-text-subtle'">
                   {{ step.description }}
                 </p>
                 <div v-if="step.clientAction" class="mt-1.5 text-[10px] text-text-brand bg-primary-soft rounded-lg px-2 py-0.5 inline-block">

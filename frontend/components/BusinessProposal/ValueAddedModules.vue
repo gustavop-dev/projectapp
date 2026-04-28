@@ -23,7 +23,7 @@
             <span>✨</span>
             <span>{{ noCostLabel }}</span>
           </span>
-          <p v-if="content.intro" class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl max-w-3xl">
+          <p v-if="content.intro" class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl max-w-3xl">
             {{ content.intro }}
           </p>
         </div>
@@ -52,10 +52,10 @@
                     {{ freeBadge }}
                   </span>
                 </div>
-                <p class="text-sm text-esmerald/75 font-light leading-relaxed mb-3">
+                <p class="text-sm text-text-default/75 font-light leading-relaxed mb-3">
                   {{ card.justification }}
                 </p>
-                <p v-if="card.description" class="text-xs text-esmerald/60 italic leading-relaxed mb-3">
+                <p v-if="card.description" class="text-xs text-text-default/60 italic leading-relaxed mb-3">
                   {{ card.description }}
                 </p>
                 <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-light group-hover:text-text-brand transition-colors">

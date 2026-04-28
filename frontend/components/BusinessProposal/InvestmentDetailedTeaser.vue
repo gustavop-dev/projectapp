@@ -6,7 +6,7 @@
     <h4 class="text-text-brand font-bold text-sm sm:text-base mb-2">
       {{ t.title }}
     </h4>
-    <p class="text-esmerald/60 font-light text-xs sm:text-sm leading-relaxed max-w-md mx-auto mb-4">
+    <p class="text-text-default/60 font-light text-xs sm:text-sm leading-relaxed max-w-md mx-auto mb-4">
       {{ t.description }}
     </p>
     <button

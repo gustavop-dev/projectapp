@@ -8,7 +8,7 @@
             <h2 class="text-text-brand font-light text-3xl md:text-5xl leading-tight mb-6">
               {{ titles.intro }}
             </h2>
-            <p v-if="purposeText" class="text-esmerald/80 font-light text-lg md:text-xl leading-relaxed whitespace-pre-wrap">
+            <p v-if="purposeText" class="text-text-default/80 font-light text-lg md:text-xl leading-relaxed whitespace-pre-wrap">
               {{ purposeText }}
             </p>
           </div>
@@ -17,13 +17,13 @@
               {{ language === 'en' ? 'In this document' : 'En este documento' }}
             </h3>
             <ul class="space-y-2">
-              <li v-for="(label, i) in anchorLabels" :key="i" class="text-esmerald/90 font-light text-sm md:text-base flex gap-2">
-                <span class="text-esmerald/40 font-mono text-xs mt-0.5">{{ i + 1 }}.</span>
+              <li v-for="(label, i) in anchorLabels" :key="i" class="text-text-default/90 font-light text-sm md:text-base flex gap-2">
+                <span class="text-text-default/40 font-mono text-xs mt-0.5">{{ i + 1 }}.</span>
                 <span>{{ label }}</span>
               </li>
             </ul>
           </div>
-          <p class="mt-10 text-center text-xs text-esmerald/50 font-light">
+          <p class="mt-10 text-center text-xs text-text-default/50 font-light">
             {{ supportLine }}
           </p>
         </template>
@@ -33,7 +33,7 @@
           <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-8">{{ titles.stack }}</h2>
           <div class="overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm text-left">
-              <thead class="bg-primary text-accent">
+              <thead class="bg-primary text-white">
                 <tr>
                   <th class="px-4 py-3 font-medium">{{ language === 'en' ? 'Layer' : 'Capa' }}</th>
                   <th class="px-4 py-3 font-medium">{{ language === 'en' ? 'Technology' : 'Tecnología' }}</th>
@@ -42,9 +42,9 @@
               </thead>
               <tbody>
                 <tr v-for="(row, i) in stackRows" :key="i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
-                  <td class="px-4 py-3 text-esmerald/90">{{ row.layer }}</td>
-                  <td class="px-4 py-3 text-esmerald/90">{{ row.technology }}</td>
-                  <td class="px-4 py-3 text-esmerald/70 font-light">{{ row.rationale }}</td>
+                  <td class="px-4 py-3 text-text-default/90">{{ row.layer }}</td>
+                  <td class="px-4 py-3 text-text-default/90">{{ row.technology }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light">{{ row.rationale }}</td>
                 </tr>
               </tbody>
             </table>
@@ -54,47 +54,47 @@
         <!-- Architecture -->
         <template v-else-if="fragment === 'architecture'">
           <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-6">{{ titles.architecture }}</h2>
-          <p v-if="arch.summary" class="text-esmerald/80 font-light leading-relaxed mb-8 whitespace-pre-wrap">{{ arch.summary }}</p>
+          <p v-if="arch.summary" class="text-text-default/80 font-light leading-relaxed mb-8 whitespace-pre-wrap">{{ arch.summary }}</p>
           <div v-if="patternRows.length" class="overflow-x-auto rounded-xl border border-esmerald/10 mb-6">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-text-brand">
+              <thead class="bg-primary text-white">
                 <tr>
-                  <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Component' : 'Componente' }}</th>
-                  <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Pattern' : 'Patrón' }}</th>
-                  <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Description' : 'Descripción' }}</th>
+                  <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Component' : 'Componente' }}</th>
+                  <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Pattern' : 'Patrón' }}</th>
+                  <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Description' : 'Descripción' }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, i) in patternRows" :key="i" class="border-t border-esmerald/10">
-                  <td class="px-4 py-2 text-esmerald/90">{{ row.component }}</td>
-                  <td class="px-4 py-2 text-esmerald/90">{{ row.pattern }}</td>
-                  <td class="px-4 py-2 text-esmerald/70 font-light">{{ row.description }}</td>
+                <tr v-for="(row, i) in patternRows" :key="i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
+                  <td class="px-4 py-3 text-text-default/90">{{ row.component }}</td>
+                  <td class="px-4 py-3 text-text-default/90">{{ row.pattern }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light">{{ row.description }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <p v-if="arch.diagramNote" class="text-sm text-esmerald/60 font-light whitespace-pre-wrap">{{ arch.diagramNote }}</p>
+          <p v-if="arch.diagramNote" class="text-sm text-text-default/60 font-light whitespace-pre-wrap">{{ arch.diagramNote }}</p>
         </template>
 
         <!-- Data model -->
         <template v-else-if="fragment === 'dataModel'">
           <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-6">{{ titles.dataModel }}</h2>
-          <p v-if="dm.summary" class="text-esmerald/80 font-light leading-relaxed mb-4 whitespace-pre-wrap">{{ dm.summary }}</p>
-          <p v-if="dm.relationships" class="text-esmerald/70 font-light text-sm mb-8 whitespace-pre-wrap">{{ dm.relationships }}</p>
+          <p v-if="dm.summary" class="text-text-default/80 font-light leading-relaxed mb-4 whitespace-pre-wrap">{{ dm.summary }}</p>
+          <p v-if="dm.relationships" class="text-text-default/70 font-light text-sm mb-8 whitespace-pre-wrap">{{ dm.relationships }}</p>
           <div v-if="entityRows.length" class="overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-text-brand">
+              <thead class="bg-primary text-white">
                 <tr>
-                  <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Entity' : 'Entidad' }}</th>
-                  <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Description' : 'Descripción' }}</th>
-                  <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Key fields' : 'Campos clave' }}</th>
+                  <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Entity' : 'Entidad' }}</th>
+                  <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Description' : 'Descripción' }}</th>
+                  <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Key fields' : 'Campos clave' }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, i) in entityRows" :key="i" class="border-t border-esmerald/10">
-                  <td class="px-4 py-2 text-esmerald/90">{{ row.name }}</td>
-                  <td class="px-4 py-2 text-esmerald/70 font-light">{{ row.description }}</td>
-                  <td class="px-4 py-2 text-esmerald/70 font-light">{{ row.keyFields }}</td>
+                <tr v-for="(row, i) in entityRows" :key="i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
+                  <td class="px-4 py-3 text-text-default/90">{{ row.name }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light">{{ row.description }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light">{{ row.keyFields }}</td>
                 </tr>
               </tbody>
             </table>
@@ -104,21 +104,21 @@
         <!-- Growth readiness -->
         <template v-else-if="fragment === 'growthReadiness'">
           <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-6">{{ titles.growthReadiness }}</h2>
-          <p v-if="growthSummary" class="text-esmerald/80 font-light leading-relaxed mb-8 whitespace-pre-wrap">{{ growthSummary }}</p>
+          <p v-if="growthSummary" class="text-text-default/80 font-light leading-relaxed mb-8 whitespace-pre-wrap">{{ growthSummary }}</p>
           <div v-if="growthStrategyRows.length" class="overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-text-brand">
+              <thead class="bg-primary text-white">
                 <tr>
-                  <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Dimension' : 'Dimensión' }}</th>
-                  <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Preparation' : 'Preparación' }}</th>
-                  <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Evolution' : 'Evolución' }}</th>
+                  <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Dimension' : 'Dimensión' }}</th>
+                  <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Preparation' : 'Preparación' }}</th>
+                  <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Evolution' : 'Evolución' }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, i) in growthStrategyRows" :key="'gr-' + i" class="border-t border-esmerald/10">
-                  <td class="px-4 py-2 text-esmerald/90 align-top">{{ row.dimension }}</td>
-                  <td class="px-4 py-2 text-esmerald/70 font-light align-top whitespace-pre-wrap">{{ row.preparation }}</td>
-                  <td class="px-4 py-2 text-esmerald/70 font-light align-top whitespace-pre-wrap">{{ row.evolution }}</td>
+                <tr v-for="(row, i) in growthStrategyRows" :key="'gr-' + i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
+                  <td class="px-4 py-3 text-text-default/90 align-top">{{ row.dimension }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light align-top whitespace-pre-wrap">{{ row.preparation }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light align-top whitespace-pre-wrap">{{ row.evolution }}</td>
                 </tr>
               </tbody>
             </table>
@@ -138,13 +138,13 @@
                 <h3 class="text-lg md:text-xl font-medium text-text-brand leading-snug">
                   {{ epic.title || epic.epicKey }}
                 </h3>
-                <p v-if="epic.description" class="text-sm text-esmerald/65 font-light mt-2 whitespace-pre-wrap leading-relaxed">
+                <p v-if="epic.description" class="text-sm text-text-default/65 font-light mt-2 whitespace-pre-wrap leading-relaxed">
                   {{ epic.description }}
                 </p>
               </header>
               <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left">
-                  <thead class="bg-primary text-accent text-xs uppercase tracking-wide">
+                  <thead class="bg-primary text-white text-xs uppercase tracking-wide">
                     <tr>
                       <th class="px-4 py-3 font-medium">{{ language === 'en' ? 'Requirement' : 'Requerimiento' }}</th>
                       <th class="px-4 py-3 font-medium w-28">{{ language === 'en' ? 'Priority' : 'Prioridad' }}</th>
@@ -158,18 +158,18 @@
                       :key="'req-row-' + ei + '-' + ri"
                       class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft"
                     >
-                      <td class="px-4 py-3 text-esmerald/90 font-medium align-top">
+                      <td class="px-4 py-3 text-text-default/90 font-medium align-top">
                         {{ req.title }}
-                        <code v-if="req.flowKey" class="block mt-1 text-[10px] text-esmerald/45 font-mono">{{ req.flowKey }}</code>
+                        <code v-if="req.flowKey" class="block mt-1 text-[10px] text-text-default/45 font-mono">{{ req.flowKey }}</code>
                       </td>
                       <td class="px-4 py-3 align-top">
                         <span
                           v-if="req.priority"
-                          class="inline-block text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-esmerald/12 text-esmerald/85"
+                          class="inline-block text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-esmerald/12 text-text-default/85"
                         >{{ priorityLabel(req.priority) }}</span>
-                        <span v-else class="text-esmerald/35">—</span>
+                        <span v-else class="text-text-default/35">—</span>
                       </td>
-                      <td class="px-4 py-3 text-esmerald/65 font-light align-top text-xs leading-relaxed">
+                      <td class="px-4 py-3 text-text-default/65 font-light align-top text-xs leading-relaxed">
                         {{ snippetText(req.description) }}
                       </td>
                       <td class="px-4 py-3 align-top text-right">
@@ -192,19 +192,19 @@
         <!-- API -->
         <template v-else-if="fragment === 'api'">
           <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-6">{{ titles.api }}</h2>
-          <p v-if="apiSummary" class="text-esmerald/80 font-light leading-relaxed mb-8 whitespace-pre-wrap">{{ apiSummary }}</p>
+          <p v-if="apiSummary" class="text-text-default/80 font-light leading-relaxed mb-8 whitespace-pre-wrap">{{ apiSummary }}</p>
           <div v-if="apiDomainRows.length" class="overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-text-brand">
+              <thead class="bg-primary text-white">
                 <tr>
-                  <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Domain' : 'Dominio' }}</th>
-                  <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Summary' : 'Resumen' }}</th>
+                  <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Domain' : 'Dominio' }}</th>
+                  <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Summary' : 'Resumen' }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, i) in apiDomainRows" :key="i" class="border-t border-esmerald/10">
-                  <td class="px-4 py-2 text-esmerald/90">{{ row.domain }}</td>
-                  <td class="px-4 py-2 text-esmerald/70 font-light whitespace-pre-wrap">{{ row.summary }}</td>
+                <tr v-for="(row, i) in apiDomainRows" :key="i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
+                  <td class="px-4 py-3 text-text-default/90">{{ row.domain }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light whitespace-pre-wrap">{{ row.summary }}</td>
                 </tr>
               </tbody>
             </table>
@@ -218,22 +218,22 @@
             <h3 class="text-sm font-semibold text-text-brand mb-3">{{ language === 'en' ? 'Included' : 'Incluidas' }}</h3>
             <div class="overflow-x-auto rounded-xl border border-esmerald/10 text-xs md:text-sm">
               <table class="w-full text-left">
-                <thead class="bg-primary text-accent">
+                <thead class="bg-primary text-white">
                   <tr>
-                    <th class="px-3 py-2">{{ language === 'en' ? 'Service' : 'Servicio' }}</th>
-                    <th class="px-3 py-2">{{ language === 'en' ? 'Provider' : 'Proveedor' }}</th>
-                    <th class="px-3 py-2">{{ language === 'en' ? 'Connection' : 'Conexión' }}</th>
-                    <th class="px-3 py-2">{{ language === 'en' ? 'Data' : 'Datos' }}</th>
-                    <th class="px-3 py-2">{{ language === 'en' ? 'Account' : 'Cuenta' }}</th>
+                    <th class="px-4 py-3">{{ language === 'en' ? 'Service' : 'Servicio' }}</th>
+                    <th class="px-4 py-3">{{ language === 'en' ? 'Provider' : 'Proveedor' }}</th>
+                    <th class="px-4 py-3">{{ language === 'en' ? 'Connection' : 'Conexión' }}</th>
+                    <th class="px-4 py-3">{{ language === 'en' ? 'Data' : 'Datos' }}</th>
+                    <th class="px-4 py-3">{{ language === 'en' ? 'Account' : 'Cuenta' }}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(row, i) in includedRows" :key="i" class="border-t border-esmerald/10">
-                    <td class="px-3 py-2 text-esmerald/90">{{ row.service }}</td>
-                    <td class="px-3 py-2 text-esmerald/80">{{ row.provider }}</td>
-                    <td class="px-3 py-2 text-esmerald/70 font-light">{{ row.connection }}</td>
-                    <td class="px-3 py-2 text-esmerald/70 font-light">{{ row.dataExchange }}</td>
-                    <td class="px-3 py-2 text-esmerald/70 font-light">{{ row.accountOwner }}</td>
+                  <tr v-for="(row, i) in includedRows" :key="i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
+                    <td class="px-4 py-3 text-text-default/90">{{ row.service }}</td>
+                    <td class="px-4 py-3 text-text-default/80">{{ row.provider }}</td>
+                    <td class="px-4 py-3 text-text-default/70 font-light">{{ row.connection }}</td>
+                    <td class="px-4 py-3 text-text-default/70 font-light">{{ row.dataExchange }}</td>
+                    <td class="px-4 py-3 text-text-default/70 font-light">{{ row.accountOwner }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -243,18 +243,18 @@
             <h3 class="text-sm font-semibold text-text-brand mb-3">{{ language === 'en' ? 'Not included' : 'No incluidas' }}</h3>
             <div class="overflow-x-auto rounded-xl border border-esmerald/10 text-sm">
               <table class="w-full text-left">
-                <thead class="bg-esmerald/10 text-text-brand">
+                <thead class="bg-primary text-white">
                   <tr>
-                    <th class="px-4 py-2">{{ language === 'en' ? 'Service' : 'Servicio' }}</th>
-                    <th class="px-4 py-2">{{ language === 'en' ? 'Reason' : 'Motivo' }}</th>
-                    <th class="px-4 py-2">{{ language === 'en' ? 'Future' : 'Futuro' }}</th>
+                    <th class="px-4 py-3">{{ language === 'en' ? 'Service' : 'Servicio' }}</th>
+                    <th class="px-4 py-3">{{ language === 'en' ? 'Reason' : 'Motivo' }}</th>
+                    <th class="px-4 py-3">{{ language === 'en' ? 'Future' : 'Futuro' }}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(row, i) in excludedRows" :key="i" class="border-t border-esmerald/10">
-                    <td class="px-4 py-2 text-esmerald/90">{{ row.service }}</td>
-                    <td class="px-4 py-2 text-esmerald/70 font-light">{{ row.reason }}</td>
-                    <td class="px-4 py-2 text-esmerald/70 font-light">{{ row.availability }}</td>
+                  <tr v-for="(row, i) in excludedRows" :key="i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
+                    <td class="px-4 py-3 text-text-default/90">{{ row.service }}</td>
+                    <td class="px-4 py-3 text-text-default/70 font-light">{{ row.reason }}</td>
+                    <td class="px-4 py-3 text-text-default/70 font-light">{{ row.availability }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -274,20 +274,20 @@
             </div>
             <div class="overflow-x-auto rounded-xl border border-esmerald/10">
               <table class="w-full text-sm">
-                <thead class="bg-esmerald/10 text-text-brand">
+                <thead class="bg-primary text-white">
                   <tr>
-                    <th class="px-3 py-2 w-12 text-left font-medium">#</th>
-                    <th class="px-3 py-2 text-left font-medium">{{ language === 'en' ? 'Note' : 'Nota' }}</th>
+                    <th class="px-4 py-3 w-12 text-left font-medium">#</th>
+                    <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Note' : 'Nota' }}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr
                     v-for="(line, i) in integrationNotesVisible"
                     :key="'note-' + i"
-                    class="border-t border-esmerald/10"
+                    class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft"
                   >
-                    <td class="px-3 py-2 text-esmerald/50 font-mono text-xs align-top">{{ i + 1 }}</td>
-                    <td class="px-3 py-2 text-esmerald/80 font-light align-top">{{ line }}</td>
+                    <td class="px-4 py-3 text-text-default/50 font-mono text-xs align-top">{{ i + 1 }}</td>
+                    <td class="px-4 py-3 text-text-default/80 font-light align-top">{{ line }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -298,25 +298,25 @@
         <!-- Environments -->
         <template v-else-if="fragment === 'environments'">
           <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-6">{{ titles.environments }}</h2>
-          <p v-if="environmentsNote" class="text-esmerald/80 font-light mb-8 whitespace-pre-wrap">{{ environmentsNote }}</p>
+          <p v-if="environmentsNote" class="text-text-default/80 font-light mb-8 whitespace-pre-wrap">{{ environmentsNote }}</p>
           <div v-if="environmentRows.length" class="overflow-x-auto rounded-xl border border-esmerald/10 text-sm">
             <table class="w-full text-left">
-              <thead class="bg-esmerald/10 text-text-brand">
+              <thead class="bg-primary text-white">
                 <tr>
-                  <th class="px-3 py-2">{{ language === 'en' ? 'Name' : 'Nombre' }}</th>
-                  <th class="px-3 py-2">{{ language === 'en' ? 'Purpose' : 'Propósito' }}</th>
-                  <th class="px-3 py-2">URL</th>
-                  <th class="px-3 py-2">DB</th>
-                  <th class="px-3 py-2">{{ language === 'en' ? 'Access' : 'Acceso' }}</th>
+                  <th class="px-4 py-3">{{ language === 'en' ? 'Name' : 'Nombre' }}</th>
+                  <th class="px-4 py-3">{{ language === 'en' ? 'Purpose' : 'Propósito' }}</th>
+                  <th class="px-4 py-3">URL</th>
+                  <th class="px-4 py-3">DB</th>
+                  <th class="px-4 py-3">{{ language === 'en' ? 'Access' : 'Acceso' }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, i) in environmentRows" :key="i" class="border-t border-esmerald/10">
-                  <td class="px-3 py-2 text-esmerald/90">{{ row.name }}</td>
-                  <td class="px-3 py-2 text-esmerald/70 font-light">{{ row.purpose }}</td>
-                  <td class="px-3 py-2 text-esmerald/70 font-light break-all">{{ row.url }}</td>
-                  <td class="px-3 py-2 text-esmerald/70 font-light">{{ row.database }}</td>
-                  <td class="px-3 py-2 text-esmerald/70 font-light">{{ row.whoAccesses }}</td>
+                <tr v-for="(row, i) in environmentRows" :key="i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
+                  <td class="px-4 py-3 text-text-default/90">{{ row.name }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light">{{ row.purpose }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light break-all">{{ row.url }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light">{{ row.database }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light">{{ row.whoAccesses }}</td>
                 </tr>
               </tbody>
             </table>
@@ -328,16 +328,16 @@
           <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-8">{{ titles.security }}</h2>
           <div class="overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-primary text-accent">
+              <thead class="bg-primary text-white">
                 <tr>
                   <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Aspect' : 'Aspecto' }}</th>
                   <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Implementation' : 'Implementación' }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, i) in securityRows" :key="i" class="border-t border-esmerald/10">
-                  <td class="px-4 py-3 text-esmerald/90">{{ row.aspect }}</td>
-                  <td class="px-4 py-3 text-esmerald/70 font-light whitespace-pre-wrap">{{ row.implementation }}</td>
+                <tr v-for="(row, i) in securityRows" :key="i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
+                  <td class="px-4 py-3 text-text-default/90">{{ row.aspect }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light whitespace-pre-wrap">{{ row.implementation }}</td>
                 </tr>
               </tbody>
             </table>
@@ -349,34 +349,34 @@
           <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-8">{{ titles.performance }}</h2>
           <div v-if="metricRows.length" class="mb-8 overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-text-brand">
+              <thead class="bg-primary text-white">
                 <tr>
-                  <th class="px-4 py-2 text-left">{{ language === 'en' ? 'Metric' : 'Métrica' }}</th>
-                  <th class="px-4 py-2 text-left">{{ language === 'en' ? 'Target' : 'Objetivo' }}</th>
-                  <th class="px-4 py-2 text-left">{{ language === 'en' ? 'How measured' : 'Medición' }}</th>
+                  <th class="px-4 py-3 text-left">{{ language === 'en' ? 'Metric' : 'Métrica' }}</th>
+                  <th class="px-4 py-3 text-left">{{ language === 'en' ? 'Target' : 'Objetivo' }}</th>
+                  <th class="px-4 py-3 text-left">{{ language === 'en' ? 'How measured' : 'Medición' }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, i) in metricRows" :key="i" class="border-t border-esmerald/10">
-                  <td class="px-4 py-2 text-esmerald/90">{{ row.metric }}</td>
-                  <td class="px-4 py-2 text-esmerald/80">{{ row.target }}</td>
-                  <td class="px-4 py-2 text-esmerald/70 font-light">{{ row.howMeasured }}</td>
+                <tr v-for="(row, i) in metricRows" :key="i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
+                  <td class="px-4 py-3 text-text-default/90">{{ row.metric }}</td>
+                  <td class="px-4 py-3 text-text-default/80">{{ row.target }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light">{{ row.howMeasured }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
           <div v-if="practiceLines.length" class="overflow-x-auto rounded-xl border border-esmerald/10 mt-6">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-text-brand">
+              <thead class="bg-primary text-white">
                 <tr>
-                  <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Practice' : 'Práctica' }}</th>
-                  <th class="px-4 py-2 text-left font-medium">{{ language === 'en' ? 'Description' : 'Descripción' }}</th>
+                  <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Practice' : 'Práctica' }}</th>
+                  <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Description' : 'Descripción' }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, i) in practiceLines" :key="'pr-' + i" class="border-t border-esmerald/10">
-                  <td class="px-4 py-2 text-esmerald/90 font-medium align-top whitespace-nowrap">{{ row.strategy }}</td>
-                  <td class="px-4 py-2 text-esmerald/75 font-light align-top">{{ row.description }}</td>
+                <tr v-for="(row, i) in practiceLines" :key="'pr-' + i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
+                  <td class="px-4 py-3 text-text-default/90 font-medium align-top whitespace-nowrap">{{ row.strategy }}</td>
+                  <td class="px-4 py-3 text-text-default/75 font-light align-top">{{ row.description }}</td>
                 </tr>
               </tbody>
             </table>
@@ -386,7 +386,7 @@
         <!-- Backups -->
         <template v-else-if="fragment === 'backups'">
           <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-6">{{ titles.backups }}</h2>
-          <p class="text-esmerald/80 font-light leading-relaxed whitespace-pre-wrap">{{ backupsNote }}</p>
+          <p class="text-text-default/80 font-light leading-relaxed whitespace-pre-wrap">{{ backupsNote }}</p>
         </template>
 
         <!-- Quality -->
@@ -394,43 +394,43 @@
           <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-8">{{ titles.quality }}</h2>
           <div v-if="qualityDimRows.length" class="mb-8 overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-text-brand">
+              <thead class="bg-primary text-white">
                 <tr>
-                  <th class="px-4 py-2 text-left">{{ language === 'en' ? 'Dimension' : 'Dimensión' }}</th>
-                  <th class="px-4 py-2 text-left">{{ language === 'en' ? 'Evaluates' : 'Evalúa' }}</th>
-                  <th class="px-4 py-2 text-left">{{ language === 'en' ? 'Standard' : 'Estándar' }}</th>
+                  <th class="px-4 py-3 text-left">{{ language === 'en' ? 'Dimension' : 'Dimensión' }}</th>
+                  <th class="px-4 py-3 text-left">{{ language === 'en' ? 'Evaluates' : 'Evalúa' }}</th>
+                  <th class="px-4 py-3 text-left">{{ language === 'en' ? 'Standard' : 'Estándar' }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, i) in qualityDimRows" :key="i" class="border-t border-esmerald/10">
-                  <td class="px-4 py-2 text-esmerald/90">{{ row.dimension }}</td>
-                  <td class="px-4 py-2 text-esmerald/70 font-light">{{ row.evaluates }}</td>
-                  <td class="px-4 py-2 text-esmerald/70 font-light">{{ row.standard }}</td>
+                <tr v-for="(row, i) in qualityDimRows" :key="i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
+                  <td class="px-4 py-3 text-text-default/90">{{ row.dimension }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light">{{ row.evaluates }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light">{{ row.standard }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
           <div v-if="qualityTestRows.length" class="mb-8 overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-primary text-accent">
+              <thead class="bg-primary text-white">
                 <tr>
-                  <th class="px-3 py-2 text-left">{{ language === 'en' ? 'Type' : 'Tipo' }}</th>
-                  <th class="px-3 py-2 text-left">{{ language === 'en' ? 'Validates' : 'Valida' }}</th>
-                  <th class="px-3 py-2 text-left">{{ language === 'en' ? 'Tool' : 'Herramienta' }}</th>
-                  <th class="px-3 py-2 text-left">{{ language === 'en' ? 'When' : 'Cuándo' }}</th>
+                  <th class="px-4 py-3 text-left">{{ language === 'en' ? 'Type' : 'Tipo' }}</th>
+                  <th class="px-4 py-3 text-left">{{ language === 'en' ? 'Validates' : 'Valida' }}</th>
+                  <th class="px-4 py-3 text-left">{{ language === 'en' ? 'Tool' : 'Herramienta' }}</th>
+                  <th class="px-4 py-3 text-left">{{ language === 'en' ? 'When' : 'Cuándo' }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, i) in qualityTestRows" :key="i" class="border-t border-esmerald/10">
-                  <td class="px-3 py-2 text-esmerald/90">{{ row.type }}</td>
-                  <td class="px-3 py-2 text-esmerald/70 font-light">{{ row.validates }}</td>
-                  <td class="px-3 py-2 text-esmerald/70 font-light">{{ row.tool }}</td>
-                  <td class="px-3 py-2 text-esmerald/70 font-light">{{ row.whenRun }}</td>
+                <tr v-for="(row, i) in qualityTestRows" :key="i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
+                  <td class="px-4 py-3 text-text-default/90">{{ row.type }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light">{{ row.validates }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light">{{ row.tool }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light">{{ row.whenRun }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <p v-if="criticalFlowsNote" class="text-sm text-esmerald/75 font-light whitespace-pre-wrap">{{ criticalFlowsNote }}</p>
+          <p v-if="criticalFlowsNote" class="text-sm text-text-default/75 font-light whitespace-pre-wrap">{{ criticalFlowsNote }}</p>
         </template>
 
         <!-- Decisions -->
@@ -438,18 +438,18 @@
           <h2 class="text-text-brand font-light text-3xl md:text-4xl mb-8">{{ titles.decisions }}</h2>
           <div class="overflow-x-auto rounded-xl border border-esmerald/10">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-text-brand">
+              <thead class="bg-primary text-white">
                 <tr>
-                  <th class="px-4 py-2 text-left">{{ language === 'en' ? 'Decision' : 'Decisión' }}</th>
-                  <th class="px-4 py-2 text-left">{{ language === 'en' ? 'Alternative' : 'Alternativa' }}</th>
-                  <th class="px-4 py-2 text-left">{{ language === 'en' ? 'Reason' : 'Razón' }}</th>
+                  <th class="px-4 py-3 text-left">{{ language === 'en' ? 'Decision' : 'Decisión' }}</th>
+                  <th class="px-4 py-3 text-left">{{ language === 'en' ? 'Alternative' : 'Alternativa' }}</th>
+                  <th class="px-4 py-3 text-left">{{ language === 'en' ? 'Reason' : 'Razón' }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, i) in decisionRows" :key="i" class="border-t border-esmerald/10">
-                  <td class="px-4 py-2 text-esmerald/90 whitespace-pre-wrap">{{ row.decision }}</td>
-                  <td class="px-4 py-2 text-esmerald/70 font-light whitespace-pre-wrap">{{ row.alternative }}</td>
-                  <td class="px-4 py-2 text-esmerald/70 font-light whitespace-pre-wrap">{{ row.reason }}</td>
+                <tr v-for="(row, i) in decisionRows" :key="i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
+                  <td class="px-4 py-3 text-text-default/90 whitespace-pre-wrap">{{ row.decision }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light whitespace-pre-wrap">{{ row.alternative }}</td>
+                  <td class="px-4 py-3 text-text-default/70 font-light whitespace-pre-wrap">{{ row.reason }}</td>
                 </tr>
               </tbody>
             </table>
@@ -473,14 +473,14 @@
         >
           <div class="flex items-start justify-between gap-3 px-5 py-4 border-b border-esmerald/10 bg-primary-soft">
             <div class="min-w-0">
-              <p class="text-[10px] uppercase tracking-wider text-esmerald/50 font-medium mb-1">
+              <p class="text-[10px] uppercase tracking-wider text-text-default/50 font-medium mb-1">
                 {{ requirementModal.epicTitle }}
               </p>
               <h3 class="text-lg font-medium text-text-brand leading-snug">{{ requirementModal.req.title }}</h3>
             </div>
             <button
               type="button"
-              class="shrink-0 w-9 h-9 rounded-full border border-esmerald/20 text-esmerald/70 hover:bg-esmerald/10 text-lg leading-none"
+              class="shrink-0 w-9 h-9 rounded-full border border-esmerald/20 text-text-default/70 hover:bg-esmerald/10 text-lg leading-none"
               aria-label="Close"
               @click="closeRequirementModal"
             >
@@ -491,36 +491,36 @@
             <table class="w-full text-sm border-collapse">
               <tbody>
                 <tr v-if="requirementModal.req.flowKey" class="border-b border-esmerald/10">
-                  <th class="text-left py-2 pr-4 text-xs font-semibold text-esmerald/60 align-top w-36">flowKey</th>
-                  <td class="py-2 text-esmerald/90 font-mono text-xs">{{ requirementModal.req.flowKey }}</td>
+                  <th class="text-left py-2 pr-4 text-xs font-semibold text-text-default/60 align-top w-36">flowKey</th>
+                  <td class="py-2 text-text-default/90 font-mono text-xs">{{ requirementModal.req.flowKey }}</td>
                 </tr>
                 <tr v-if="requirementModal.req.priority" class="border-b border-esmerald/10">
-                  <th class="text-left py-2 pr-4 text-xs font-semibold text-esmerald/60 align-top">
+                  <th class="text-left py-2 pr-4 text-xs font-semibold text-text-default/60 align-top">
                     {{ language === 'en' ? 'Priority' : 'Prioridad' }}
                   </th>
                   <td class="py-2">
-                    <span class="text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-esmerald/12 text-esmerald/85">
+                    <span class="text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-esmerald/12 text-text-default/85">
                       {{ priorityLabel(requirementModal.req.priority) }}
                     </span>
                   </td>
                 </tr>
                 <tr v-if="requirementModal.req.description" class="border-b border-esmerald/10">
-                  <th class="text-left py-2 pr-4 text-xs font-semibold text-esmerald/60 align-top">
+                  <th class="text-left py-2 pr-4 text-xs font-semibold text-text-default/60 align-top">
                     {{ language === 'en' ? 'Description' : 'Descripción' }}
                   </th>
-                  <td class="py-2 text-esmerald/80 font-light whitespace-pre-wrap leading-relaxed">{{ requirementModal.req.description }}</td>
+                  <td class="py-2 text-text-default/80 font-light whitespace-pre-wrap leading-relaxed">{{ requirementModal.req.description }}</td>
                 </tr>
                 <tr v-if="requirementModal.req.configuration" class="border-b border-esmerald/10">
-                  <th class="text-left py-2 pr-4 text-xs font-semibold text-esmerald/60 align-top">
+                  <th class="text-left py-2 pr-4 text-xs font-semibold text-text-default/60 align-top">
                     {{ language === 'en' ? 'Configuration' : 'Configuración' }}
                   </th>
-                  <td class="py-2 text-esmerald/75 font-light text-xs whitespace-pre-wrap leading-relaxed">{{ requirementModal.req.configuration }}</td>
+                  <td class="py-2 text-text-default/75 font-light text-xs whitespace-pre-wrap leading-relaxed">{{ requirementModal.req.configuration }}</td>
                 </tr>
                 <tr v-if="requirementModal.req.usageFlow">
-                  <th class="text-left py-2 pr-4 text-xs font-semibold text-esmerald/60 align-top">
+                  <th class="text-left py-2 pr-4 text-xs font-semibold text-text-default/60 align-top">
                     {{ language === 'en' ? 'Usage flow' : 'Flujo de uso' }}
                   </th>
-                  <td class="py-2 text-esmerald/75 font-light text-xs whitespace-pre-wrap leading-relaxed">{{ requirementModal.req.usageFlow }}</td>
+                  <td class="py-2 text-text-default/75 font-light text-xs whitespace-pre-wrap leading-relaxed">{{ requirementModal.req.usageFlow }}</td>
                 </tr>
               </tbody>
             </table>
@@ -545,7 +545,7 @@
             <h3 class="text-sm font-semibold text-text-brand">{{ language === 'en' ? 'All technical notes' : 'Todas las notas técnicas' }}</h3>
             <button
               type="button"
-              class="w-9 h-9 rounded-full border border-esmerald/20 text-esmerald/70 hover:bg-esmerald/10"
+              class="w-9 h-9 rounded-full border border-esmerald/20 text-text-default/70 hover:bg-esmerald/10"
               aria-label="Close"
               @click="integrationNotesModalOpen = false"
             >
@@ -554,16 +554,16 @@
           </div>
           <div class="overflow-y-auto p-4">
             <table class="w-full text-sm">
-              <thead class="bg-esmerald/10 text-text-brand">
+              <thead class="bg-primary text-white">
                 <tr>
-                  <th class="px-3 py-2 w-12 text-left font-medium">#</th>
-                  <th class="px-3 py-2 text-left font-medium">{{ language === 'en' ? 'Note' : 'Nota' }}</th>
+                  <th class="px-4 py-3 w-12 text-left font-medium">#</th>
+                  <th class="px-4 py-3 text-left font-medium">{{ language === 'en' ? 'Note' : 'Nota' }}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(line, i) in integrationNoteLines" :key="'mod-note-' + i" class="border-t border-esmerald/10">
-                  <td class="px-3 py-2 text-esmerald/50 font-mono text-xs align-top">{{ i + 1 }}</td>
-                  <td class="px-3 py-2 text-esmerald/80 font-light align-top">{{ line }}</td>
+                <tr v-for="(line, i) in integrationNoteLines" :key="'mod-note-' + i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
+                  <td class="px-4 py-3 text-text-default/50 font-mono text-xs align-top">{{ i + 1 }}</td>
+                  <td class="px-4 py-3 text-text-default/80 font-light align-top">{{ line }}</td>
                 </tr>
               </tbody>
             </table>

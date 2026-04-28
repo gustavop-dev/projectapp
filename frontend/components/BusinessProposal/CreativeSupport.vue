@@ -16,12 +16,12 @@
             <p
               v-for="(paragraph, idx) in content.paragraphs?.slice(0, 2)"
               :key="idx"
-              class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl"
+              class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl"
               v-html="linkify(paragraph)"
             />
 
             <div v-if="content.closing" class="pt-2">
-              <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl" v-html="linkify(content.closing)" />
+              <p class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl" v-html="linkify(content.closing)" />
             </div>
           </div>
 

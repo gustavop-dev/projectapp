@@ -13,7 +13,7 @@
       </div>
 
       <div class="timeline-intro mb-12">
-        <p data-animate="fade-up" class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl mb-6">
+        <p data-animate="fade-up" class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl mb-6">
           {{ introText }}
         </p>
         <div data-animate="fade-up" class="duration-summary bg-primary-soft p-6 rounded-xl inline-block">
@@ -60,7 +60,7 @@
                   </div>
                 </div>
                 
-                <p class="text-esmerald/70 font-light leading-relaxed mb-6">{{ phase.description }}</p>
+                <p class="text-text-default/70 font-light leading-relaxed mb-6">{{ phase.description }}</p>
                 
                 <div class="tasks-list space-y-3">
                   <div v-for="(task, idx) in phase.tasks" :key="idx"
@@ -68,7 +68,7 @@
                     <svg class="w-5 h-5 text-text-brand mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                     </svg>
-                    <span class="text-sm text-esmerald/80">{{ task }}</span>
+                    <span class="text-sm text-text-default/80">{{ task }}</span>
                   </div>
                 </div>
 

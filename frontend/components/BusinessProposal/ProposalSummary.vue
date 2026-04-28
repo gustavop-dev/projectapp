@@ -10,7 +10,7 @@
             {{ content.title }}
           </h2>
         </div>
-        <p v-if="content.subtitle" data-animate="fade-up" class="text-esmerald/70 font-light text-lg md:text-xl leading-relaxed">
+        <p v-if="content.subtitle" data-animate="fade-up" class="text-text-default/70 font-light text-lg md:text-xl leading-relaxed">
           {{ content.subtitle }}
         </p>
       </div>
@@ -24,7 +24,7 @@
           <div class="text-3xl mb-3">{{ card.icon }}</div>
           <h3 class="font-bold text-text-brand text-base mb-1">{{ card.title }}</h3>
           <p v-if="card.value" class="text-lg font-bold text-text-brand mb-2">{{ card.value }}</p>
-          <p class="text-sm text-esmerald/60 leading-relaxed">{{ card.description }}</p>
+          <p class="text-sm text-text-default/60 leading-relaxed">{{ card.description }}</p>
         </div>
       </div>
     </div>

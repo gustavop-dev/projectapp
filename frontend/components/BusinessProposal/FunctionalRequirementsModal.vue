@@ -24,7 +24,7 @@
 
           <!-- Body -->
           <div class="overflow-y-auto px-6 py-6 flex-1">
-            <p v-if="group.description" class="modal-description text-esmerald/80 font-light leading-relaxed text-base mb-8">
+            <p v-if="group.description" class="modal-description text-text-default/80 font-light leading-relaxed text-base mb-8">
               {{ group.description }}
             </p>
 
@@ -37,7 +37,7 @@
                   </div>
                   <div>
                     <h4 class="req-title font-bold text-text-brand mb-1">{{ item.name }}</h4>
-                    <p class="req-description text-sm text-esmerald/70 font-light">{{ item.description }}</p>
+                    <p class="req-description text-sm text-text-default/70 font-light">{{ item.description }}</p>
                   </div>
                 </div>
               </div>

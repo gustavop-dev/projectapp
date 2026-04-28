@@ -13,7 +13,7 @@
       </div>
 
       <div data-animate="fade-up" class="intro-message mb-12 text-center">
-        <p class="text-xl sm:text-2xl text-esmerald/80 leading-relaxed font-light">
+        <p class="text-xl sm:text-2xl text-text-default/80 leading-relaxed font-light">
           {{ introMessage }}
         </p>
       </div>
@@ -26,7 +26,7 @@
               {{ index + 1 }}
             </div>
             <h3 class="text-xl font-bold text-text-brand mb-3">{{ step.title }}</h3>
-            <p class="text-esmerald/70 font-light leading-relaxed">{{ step.description }}</p>
+            <p class="text-text-default/70 font-light leading-relaxed">{{ step.description }}</p>
           </div>
         </div>
       </div>

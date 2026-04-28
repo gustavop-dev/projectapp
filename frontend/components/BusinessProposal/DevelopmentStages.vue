@@ -10,7 +10,7 @@
         </h2>
       </div>
 
-      <p data-animate="fade-up" class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl mb-12">
+      <p data-animate="fade-up" class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl mb-12">
         {{ intro }}
       </p>
 
@@ -36,18 +36,18 @@
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                   <span class="text-xl md:text-2xl">{{ stage.icon }}</span>
-                  <h3 class="font-medium text-base sm:text-lg md:text-xl leading-snug" :class="stage.current ? 'text-primary' : 'text-text-brand'">
+                  <h3 class="font-medium text-base sm:text-lg md:text-xl leading-snug" :class="stage.current ? 'text-white' : 'text-text-brand'">
                     {{ stage.title }}
                   </h3>
-                  <span v-if="stage.current" class="text-[10px] uppercase tracking-wider text-text-brand bg-accent px-2 py-0.5 rounded-full font-medium">
+                  <span v-if="stage.current" class="text-[10px] uppercase tracking-wider text-primary bg-surface px-2 py-0.5 rounded-full font-medium">
                     {{ currentLabel }}
                   </span>
                 </div>
-                <p class="font-light leading-relaxed text-sm md:text-base" :class="stage.current ? 'text-primary' : 'text-esmerald/70'">
+                <p class="font-light leading-relaxed text-sm md:text-base" :class="stage.current ? 'text-white/90' : 'text-text-default/70'">
                   {{ stage.description }}
                 </p>
               </div>
-              <div class="flex-shrink-0 font-light tracking-[0.25em] text-xs pt-1" :class="stage.current ? 'text-accent' : 'text-green-light'">
+              <div class="flex-shrink-0 font-light tracking-[0.25em] text-xs pt-1" :class="stage.current ? 'text-white' : 'text-green-light'">
                 {{ String(idx + 1).padStart(2, '0') }}
               </div>
             </div>

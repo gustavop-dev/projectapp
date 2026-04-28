@@ -287,13 +287,13 @@
           <RawContentSection
             v-if="isPastePanel(currentPanel)"
             :title="getPastePanelTitle(currentPanel)"
-            :index="getPastePanelIndex(currentPanel)"
+            :index="paddedDisplayIndex"
             :rawText="getPastePanelRawText(currentPanel)"
           />
           <component
             v-else
             :is="sectionComponentMap[currentPanel.section_type]"
-            v-bind="getSectionProps(currentPanel)"
+            v-bind="getSectionProps(currentPanel, currentIndex)"
             v-on="getSectionListeners(currentPanel)"
           />
         </div>
@@ -562,6 +562,7 @@ const welcomeBack = ref(null);
 
 // Current panel and neighbors
 const currentPanel = computed(() => displayPanels.value[currentIndex.value] || displayPanels.value[0]);
+const paddedDisplayIndex = computed(() => String(currentIndex.value + 1).padStart(2, '0'));
 
 // Track visited panels whenever currentIndex changes
 watch(currentPanel, (panel) => {
@@ -814,8 +815,10 @@ onMounted(async () => {
 });
 
 // --- Section props transformer ---
-function getSectionProps(section) {
+function getSectionProps(section, displayIndex) {
   const content = section.content_json || {};
+  const idx = typeof displayIndex === 'number' ? displayIndex : (displayIndex?.value ?? 0);
+  const paddedIndex = String(idx + 1).padStart(2, '0');
 
   if (section.section_type === 'proposal_closing') {
     const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
@@ -854,7 +857,7 @@ function getSectionProps(section) {
 
   if (section.section_type === 'value_added_modules') {
     return {
-      section,
+      section: { ...section, content_json: { ...content, index: paddedIndex } },
       proposal: proposal.value || { sections: enabledSections.value },
       proposalUuid: proposal.value?.uuid || '',
     };
@@ -864,7 +867,7 @@ function getSectionProps(section) {
     'executive_summary', 'context_diagnostic', 'conversion_strategy',
     'design_ux', 'creative_support',
   ].includes(section.section_type)) {
-    return { content };
+    return { content: { ...content, index: paddedIndex } };
   }
 
   if (section.section_type === 'functional_requirements') {
@@ -909,6 +912,7 @@ function getSectionProps(section) {
         ...content,
         groups,
         additionalModules: content.additionalModules || [],
+        index: paddedIndex,
       },
       language: proposal.value?.language || 'es',
       selectedCalculatorModules: allSelectedIds,
@@ -952,6 +956,7 @@ function getSectionProps(section) {
     };
     return {
       ...content,
+      index: paddedIndex,
       hostingPlan,
       totalInvestment: formattedTotal,
       currency: proposalCurrency,
@@ -985,7 +990,7 @@ function getSectionProps(section) {
       : investContent.totalInvestment || '';
     const rawPaymentOptions = investContent.paymentOptions || [];
     return {
-      content,
+      content: { ...content, index: paddedIndex },
       proposal: proposal.value,
       timelineDuration,
       language: proposal.value?.language || 'es',
@@ -1021,6 +1026,7 @@ function getSectionProps(section) {
         ];
     return {
       ...content,
+      index: paddedIndex,
       language: lang,
       kickoffPlan: content.kickoffPlan || defaultKickoff,
       nextSteps: nsContent.steps || [],
@@ -1032,9 +1038,9 @@ function getSectionProps(section) {
     };
   }
 
-  // For development_stages, timeline, etc.
+  // For development_stages, timeline, process_methodology, etc.
   // Spread content_json as individual props
-  return content;
+  return { ...content, index: paddedIndex };
 }
 
 function getSectionListeners(section) {
@@ -1636,4 +1642,87 @@ onBeforeUnmount(() => {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 12px rgba(16, 185, 129, 0.12) !important;
   border-color: rgba(16, 185, 129, 0.30) !important;
 }
+
+/* ── Legacy esmerald background/border tokens — brighten in dark ── */
+/* Soft cards (bg-esmerald/5, /10, /12, /15, /20) */
+[data-theme="dark"] :deep([class*="bg-esmerald/5"]),
+[data-theme="dark"] :deep([class*="bg-esmerald/10"]),
+[data-theme="dark"] :deep([class*="bg-esmerald/12"]),
+[data-theme="dark"] :deep([class*="bg-esmerald/15"]) {
+  background-color: rgba(16, 185, 129, 0.10) !important;
+}
+[data-theme="dark"] :deep([class*="bg-esmerald/20"]) {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+}
+[data-theme="dark"] :deep([class*="bg-esmerald/40"]) {
+  background-color: rgba(16, 185, 129, 0.40) !important;
+}
+[data-theme="dark"] :deep([class*="bg-esmerald/70"]) {
+  background-color: rgba(16, 185, 129, 0.65) !important;
+}
+
+/* Borders (border-esmerald/5, /10, /15, /20, /30, /40) */
+[data-theme="dark"] :deep([class*="border-esmerald/5"]),
+[data-theme="dark"] :deep([class*="border-esmerald/10"]),
+[data-theme="dark"] :deep([class*="border-esmerald/15"]) {
+  border-color: rgba(16, 185, 129, 0.20) !important;
+}
+[data-theme="dark"] :deep([class*="border-esmerald/20"]),
+[data-theme="dark"] :deep([class*="border-esmerald/30"]),
+[data-theme="dark"] :deep([class*="border-esmerald/40"]) {
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+/* Hover states */
+[data-theme="dark"] :deep([class*="hover\:border-esmerald/20"]:hover),
+[data-theme="dark"] :deep([class*="hover\:border-esmerald/30"]:hover) {
+  border-color: rgba(16, 185, 129, 0.55) !important;
+}
+[data-theme="dark"] :deep([class*="hover\:bg-esmerald/10"]:hover) {
+  background-color: rgba(16, 185, 129, 0.18) !important;
+}
+[data-theme="dark"] :deep([class*="hover\:bg-esmerald/90"]:hover) {
+  background-color: rgba(16, 185, 129, 0.85) !important;
+}
+
+/* Hover on requirement cards that switch to bg-primary-soft */
+[data-theme="dark"] :deep(.requirement-card:hover),
+[data-theme="dark"] :deep(.task-item:hover) {
+  background-color: rgba(16, 185, 129, 0.18) !important;
+}
+
+/* ── Teal accents (technical view CTAs and gateway technical card) ── */
+[data-theme="dark"] :deep(.text-teal-700) {
+  color: #5eead4 !important;
+}
+[data-theme="dark"] :deep(.hover\:text-teal-900:hover) {
+  color: #99f6e4 !important;
+}
+[data-theme="dark"] :deep(.text-teal-600\/70) {
+  color: rgba(94, 234, 212, 0.75) !important;
+}
+[data-theme="dark"] :deep(.border-teal-500\/25) {
+  border-color: rgba(20, 184, 166, 0.45) !important;
+}
+[data-theme="dark"] :deep(.hover\:border-teal-600:hover) {
+  border-color: rgba(20, 184, 166, 0.70) !important;
+}
+[data-theme="dark"] :deep(.bg-teal-500\/10) {
+  background-color: rgba(20, 184, 166, 0.18) !important;
+}
+[data-theme="dark"] :deep(.decoration-teal-600\/40) {
+  text-decoration-color: rgba(94, 234, 212, 0.55) !important;
+}
+
+/* ── Investment value-reasons & pricing card polish in dark ── */
+/* The yellow check-icon square inside the green pill needs darker icon for legibility */
+[data-theme="dark"] :deep(.value-proposition .text-text-brand) {
+  color: #002921 !important;
+}
+/* Pricing card stays green; bump shadow already handled. Inner translucent rows: */
+[data-theme="dark"] :deep(.pricing-card .bg-surface\/10) {
+  background-color: rgba(255, 255, 255, 0.10) !important;
+}
+
+/* ── FunctionalRequirementsModal (teleported, can't reach via :deep) — handled inline via .dark-modal class ── */
 </style>
