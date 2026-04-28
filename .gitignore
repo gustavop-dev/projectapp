@@ -95,3 +95,11 @@ temp/
 *,cover
 .playwright-mcp/
 .playwright-auth/
+
+# Claude Code runtime artifacts (screenshots, audit reports, lock files)
+audit-*.png
+audit-*.md
+AUDIT-*.md
+panel-authenticated.png
+styleguide-*.png
+.claude/scheduled_tasks.lock

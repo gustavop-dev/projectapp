@@ -22,7 +22,7 @@
           <div v-for="group in allGroups" :key="group.id || group.title"
                class="overview-card group p-6 rounded-2xl border-2 cursor-pointer transition-all"
                :class="isGroupDeselected(group)
-                 ? 'bg-gray-50 border-border-default opacity-50'
+                 ? 'bg-surface-muted border-border-default opacity-50'
                  : 'bg-esmerald/5 border-esmerald/10 hover:border-esmerald/30'"
                @click="openModal(group)">
             <div class="flex items-center gap-3 mb-3">
@@ -33,7 +33,7 @@
               <span v-if="groupPrice(group) && group.is_calculator_module" class="ml-auto text-[11px] font-bold text-text-brand bg-primary-soft border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
                 💰 {{ group.is_calculator_module ? '+' : '' }}{{ formatPrice(groupPrice(group)) }}
               </span>
-              <span v-if="isGroupDeselected(group)" class="ml-auto text-[10px] font-medium text-gray-400 bg-gray-100 border border-border-default px-2 py-0.5 rounded-full whitespace-nowrap">
+              <span v-if="isGroupDeselected(group)" class="ml-auto text-[10px] font-medium text-text-subtle bg-surface-raised border border-border-default px-2 py-0.5 rounded-full whitespace-nowrap">
                 No incluido
               </span>
               <span v-else-if="group.items?.length" class="ml-auto badge-count text-xs font-bold text-white bg-esmerald/70 px-2.5 py-1 rounded-full group-hover:bg-primary group-hover:scale-110 transition-all" style="color: white">

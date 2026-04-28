@@ -75,10 +75,9 @@ jobs:
         working-directory: frontend
         run: node scripts/check-design-tokens.mjs --scope=panel --strict
 
-      - name: Public scope progress (warn-only)
+      - name: Strict gate on full public scope
         working-directory: frontend
-        if: always()
-        run: node scripts/check-design-tokens.mjs --scope=public --quiet || true
+        run: node scripts/check-design-tokens.mjs --scope=public --strict
 
   # ───────────────────────────────────────────
   # Backend — pytest (Django + SQLite)

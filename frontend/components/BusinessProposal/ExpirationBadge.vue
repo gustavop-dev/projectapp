@@ -50,7 +50,7 @@ const badgeClasses = computed(() => {
     case 'notice':
       return 'bg-yellow-50/90 border-yellow-200 text-yellow-700';
     default:
-      return 'bg-primary-soft/90 border-emerald-200 text-text-brand';
+      return 'bg-primary-soft border-emerald-200 text-text-brand';
   }
 });
 

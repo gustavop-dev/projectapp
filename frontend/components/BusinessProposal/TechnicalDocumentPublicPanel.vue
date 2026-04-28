@@ -41,7 +41,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(row, i) in stackRows" :key="i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft/30">
+                <tr v-for="(row, i) in stackRows" :key="i" class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft">
                   <td class="px-4 py-3 text-esmerald/90">{{ row.layer }}</td>
                   <td class="px-4 py-3 text-esmerald/90">{{ row.technology }}</td>
                   <td class="px-4 py-3 text-esmerald/70 font-light">{{ row.rationale }}</td>
@@ -134,7 +134,7 @@
               :key="'epic-card-' + ei"
               class="rounded-2xl border border-esmerald/15 bg-gradient-to-b from-white to-esmerald/[0.03] shadow-sm overflow-hidden"
             >
-              <header class="px-5 py-4 border-b border-esmerald/10 bg-primary-soft/40">
+              <header class="px-5 py-4 border-b border-esmerald/10 bg-primary-soft">
                 <h3 class="text-lg md:text-xl font-medium text-text-brand leading-snug">
                   {{ epic.title || epic.epicKey }}
                 </h3>
@@ -156,7 +156,7 @@
                     <tr
                       v-for="(req, ri) in epic.requirements"
                       :key="'req-row-' + ei + '-' + ri"
-                      class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft/20"
+                      class="border-t border-esmerald/10 odd:bg-surface even:bg-primary-soft"
                     >
                       <td class="px-4 py-3 text-esmerald/90 font-medium align-top">
                         {{ req.title }}
@@ -471,7 +471,7 @@
           class="bg-surface rounded-2xl shadow-2xl max-w-2xl w-full max-h-[min(88vh,720px)] overflow-hidden flex flex-col border border-esmerald/10"
           @click.stop
         >
-          <div class="flex items-start justify-between gap-3 px-5 py-4 border-b border-esmerald/10 bg-primary-soft/40">
+          <div class="flex items-start justify-between gap-3 px-5 py-4 border-b border-esmerald/10 bg-primary-soft">
             <div class="min-w-0">
               <p class="text-[10px] uppercase tracking-wider text-esmerald/50 font-medium mb-1">
                 {{ requirementModal.epicTitle }}

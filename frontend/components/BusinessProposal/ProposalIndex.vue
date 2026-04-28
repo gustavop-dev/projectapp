@@ -62,7 +62,7 @@
             class="w-full text-left px-2.5 py-2 sm:py-1.5 rounded-xl text-sm transition-all duration-200 flex items-center gap-2"
             :class="idx === currentIndex
               ? 'bg-primary/5 text-text-brand font-medium'
-              : 'text-text-muted hover:text-text-default hover:bg-gray-50'"
+              : 'text-text-muted hover:text-text-default hover:bg-surface-muted'"
             @click="$emit('navigate', idx); isOpen = false"
           >
             <span
@@ -104,7 +104,7 @@
         <button
           data-testid="back-to-gateway-btn"
           class="w-full flex items-center gap-2 px-3 py-2.5 border border-border-default text-text-muted rounded-xl text-sm font-medium
-                 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                 hover:bg-surface-muted hover:border-gray-300 transition-colors"
           @click="$emit('backToGateway'); isOpen = false"
         >
           <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

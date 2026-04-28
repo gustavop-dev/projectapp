@@ -57,7 +57,7 @@
                   ? 'w-1.5 bg-esmerald/40'
                   : 'w-1.5 bg-gray-200'"
             />
-            <span data-testid="onboarding-step-progress" class="ml-auto text-[10px] text-gray-400 font-medium tabular-nums">
+            <span data-testid="onboarding-step-progress" class="ml-auto text-[10px] text-text-subtle font-medium tabular-nums">
               {{ currentStep + 1 }}/{{ totalSteps }}
             </span>
           </div>
@@ -69,7 +69,7 @@
           <!-- Actions -->
           <div class="flex items-center justify-between">
             <button
-              class="text-xs text-gray-400 hover:text-text-muted transition-colors pointer-events-auto"
+              class="text-xs text-text-subtle hover:text-text-muted transition-colors pointer-events-auto"
               @click="dismiss"
             >
               {{ btnLabels.skip }}

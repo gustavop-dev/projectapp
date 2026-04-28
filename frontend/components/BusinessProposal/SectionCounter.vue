@@ -8,8 +8,8 @@
     <span class="text-text-brand font-medium text-sm tabular-nums">
       {{ current }}
     </span>
-    <span class="text-gray-300 mx-1 text-sm">/</span>
-    <span class="text-gray-400 text-sm tabular-nums">{{ total }}</span>
+    <span class="text-text-subtle mx-1 text-sm">/</span>
+    <span class="text-text-subtle text-sm tabular-nums">{{ total }}</span>
   </div>
 </template>
 

@@ -21,7 +21,7 @@
       <template v-else-if="store.current">
         <article
           v-if="sections.length"
-          class="diagnostic-card bg-surface rounded-3xl shadow-[0_6px_30px_-12px_rgba(0,41,33,0.25)] dark:shadow-[0_6px_30px_-12px_rgba(0,0,0,0.5)] border border-input-border/10 dark:border-input-border/15 p-6 md:p-12 mb-6 text-text-default"
+          class="diagnostic-card bg-surface rounded-3xl shadow-[0_6px_30px_-12px_rgba(0,41,33,0.25)] dark:shadow-[0_6px_30px_-12px_rgba(0,0,0,0.5)] border border-input-border dark:border-input-border p-6 md:p-12 mb-6 text-text-default"
         >
           <component
             :is="componentFor(activeSection.section_type)"
@@ -33,7 +33,7 @@
 
         <div
           v-else
-          class="diagnostic-card bg-surface rounded-3xl shadow-sm border border-input-border/10 dark:border-input-border/15 p-6 text-center"
+          class="diagnostic-card bg-surface rounded-3xl shadow-sm border border-input-border dark:border-input-border p-6 text-center"
         >
           <p class="text-text-default font-medium">{{ emptyStateCopy.title }}</p>
           <p class="text-sm text-text-brand/60 dark:text-text-brand/60 mt-2">{{ emptyStateCopy.hint }}</p>
@@ -42,13 +42,13 @@
         <!-- Prev / next -->
         <div v-if="sections.length > 1" class="section-nav flex justify-between items-center mb-8">
           <button
-            class="px-4 py-2 text-sm rounded-lg border border-input-border/20 dark:border-input-border/20 text-text-brand/80 dark:text-text-brand/80 hover:bg-primary/5 dark:hover:bg-primary-soft/10 disabled:opacity-30"
+            class="px-4 py-2 text-sm rounded-lg border border-input-border dark:border-input-border text-text-brand/80 dark:text-text-brand/80 hover:bg-primary/5 dark:hover:bg-primary-soft disabled:opacity-30"
             :disabled="activeIndex === 0"
             @click="selectSection(activeIndex - 1)"
           >← Anterior</button>
           <span class="section-counter text-xs text-text-brand/60 dark:text-text-brand/60">Sección {{ activeIndex + 1 }} de {{ sections.length }}</span>
           <button
-            class="px-4 py-2 text-sm rounded-lg border border-input-border/20 dark:border-input-border/20 text-text-brand/80 dark:text-text-brand/80 hover:bg-primary/5 dark:hover:bg-primary-soft/10 disabled:opacity-30"
+            class="px-4 py-2 text-sm rounded-lg border border-input-border dark:border-input-border text-text-brand/80 dark:text-text-brand/80 hover:bg-primary/5 dark:hover:bg-primary-soft disabled:opacity-30"
             :disabled="activeIndex === sections.length - 1"
             @click="selectSection(activeIndex + 1)"
           >Siguiente →</button>
@@ -56,7 +56,7 @@
 
         <footer
           v-if="canRespond"
-          class="diagnostic-card diagnostic-cta mt-8 bg-surface rounded-3xl border border-input-border/10 dark:border-input-border/15 p-6 text-center shadow-sm"
+          class="diagnostic-card diagnostic-cta mt-8 bg-surface rounded-3xl border border-input-border dark:border-input-border p-6 text-center shadow-sm"
         >
           <p class="text-text-default mb-4">¿Quieres avanzar con el diagnóstico?</p>
           <div class="flex justify-center gap-3 flex-wrap">
@@ -76,7 +76,7 @@
 
         <footer
           v-else-if="store.current.status === DIAGNOSTIC_STATUS.ACCEPTED"
-          class="diagnostic-card mt-8 bg-primary/5 dark:bg-primary-soft/5 border border-input-border/15 dark:border-input-border/15 rounded-3xl p-6 text-center text-text-brand dark:text-text-brand"
+          class="diagnostic-card mt-8 bg-primary/5 dark:bg-primary-soft border border-input-border dark:border-input-border rounded-3xl p-6 text-center text-text-brand dark:text-text-brand"
         >
           ¡Gracias! Confirmamos tu aceptación. Te contactaremos para coordinar el inicio.
         </footer>
@@ -101,7 +101,7 @@
           data-testid="diagnostic-restart-tutorial"
           class="restart-tutorial-btn fixed bottom-[76px] left-6 z-[9990] w-11 h-11 rounded-full
                  bg-surface shadow-lg
-                 border border-input-border/15 dark:border-input-border/25
+                 border border-input-border dark:border-input-border
                  text-text-default
                  flex items-center justify-center
                  hover:bg-primary/5 dark:hover:bg-primary/80
@@ -126,10 +126,10 @@
           data-testid="diagnostic-theme-toggle"
           class="theme-toggle fixed bottom-6 left-6 z-[9990] w-11 h-11 rounded-full
                  bg-surface/90 dark:bg-primary/90 backdrop-blur-sm shadow-lg
-                 border border-input-border/15 dark:border-input-border/20
+                 border border-input-border dark:border-input-border
                  text-text-default
                  flex items-center justify-center
-                 hover:bg-primary/5 dark:hover:bg-primary-soft/10
+                 hover:bg-primary/5 dark:hover:bg-primary-soft
                  focus:outline-none focus-visible:ring-2 focus-visible:ring-lemon focus-visible:ring-offset-2
                  transition-colors"
           :aria-label="isDark ? 'Activar modo claro' : 'Activar modo oscuro'"

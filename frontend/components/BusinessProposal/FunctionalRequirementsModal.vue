@@ -7,13 +7,13 @@
           <!-- Header -->
           <div class="modal-header flex items-center justify-between px-6 py-5 border-b border-border-muted">
             <div class="flex items-center gap-3">
-              <div class="modal-icon-badge w-10 h-10 rounded-xl flex items-center justify-center bg-primary-soft/60">
+              <div class="modal-icon-badge w-10 h-10 rounded-xl flex items-center justify-center bg-primary-soft">
                 <span class="text-xl">{{ group.icon || '🧩' }}</span>
               </div>
               <h3 class="modal-title text-xl font-medium text-text-brand">{{ group.title }}</h3>
             </div>
             <button
-              class="modal-close w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-text-default hover:bg-gray-100 transition-colors"
+              class="modal-close w-8 h-8 rounded-lg flex items-center justify-center text-text-subtle hover:text-text-default hover:bg-surface-raised transition-colors"
               @click="$emit('close')"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,7 +32,7 @@
               <div v-for="(item, idx) in group.items" :key="idx"
                    class="requirement-card bg-esmerald/5 p-5 rounded-xl border border-esmerald/10">
                 <div class="flex items-start">
-                  <div class="req-icon-badge w-9 h-9 rounded-lg bg-primary-soft/60 border border-esmerald/10 flex items-center justify-center mr-3 flex-shrink-0">
+                  <div class="req-icon-badge w-9 h-9 rounded-lg bg-primary-soft border border-esmerald/10 flex items-center justify-center mr-3 flex-shrink-0">
                     <span class="text-lg">{{ item.icon || '✅' }}</span>
                   </div>
                   <div>

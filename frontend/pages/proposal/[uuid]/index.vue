@@ -12,7 +12,7 @@
     <!-- Error state -->
     <div v-else-if="loadError === 'not_found'" class="min-h-screen flex items-center justify-center">
       <div class="text-center">
-        <h1 class="text-4xl font-light text-gray-400 mb-4">404</h1>
+        <h1 class="text-4xl font-light text-text-subtle mb-4">404</h1>
         <p class="text-text-muted">{{ browserLang === 'es' ? 'Esta propuesta no fue encontrada.' : 'This proposal was not found.' }}</p>
       </div>
     </div>
@@ -103,7 +103,7 @@
         <button
           v-if="viewMode && viewMode !== 'technical'"
           class="restart-tutorial-btn fixed bottom-[68px] left-6 z-[9990] w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110"
-          :class="proposalDarkMode ? 'bg-gray-700 text-emerald-300 hover:bg-gray-600' : 'bg-surface text-text-brand border border-border-default hover:bg-gray-50'"
+          :class="proposalDarkMode ? 'bg-gray-700 text-emerald-300 hover:bg-gray-600' : 'bg-surface text-text-brand border border-border-default hover:bg-surface-muted'"
           :title="pLang === 'es' ? 'Reiniciar tutorial' : 'Restart tutorial'"
           @click="onboardingRef?.forceStart()"
         >
@@ -116,7 +116,7 @@
         <button
           v-if="viewMode && viewMode !== 'technical'"
           class="dark-mode-toggle fixed bottom-6 left-6 z-[9990] w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-lg transition-all hover:scale-110"
-          :class="proposalDarkMode ? 'bg-gray-700 text-yellow-300 hover:bg-gray-600' : 'bg-surface text-text-muted border border-border-default hover:bg-gray-50'"
+          :class="proposalDarkMode ? 'bg-gray-700 text-yellow-300 hover:bg-gray-600' : 'bg-surface text-text-muted border border-border-default hover:bg-surface-muted'"
           :title="pLang === 'es' ? 'Cambiar tema' : 'Toggle theme'"
           @click="toggleProposalDarkMode"
         >
@@ -206,7 +206,7 @@
           <div v-if="welcomeBack" class="fixed bottom-6 right-6 z-[10000] max-w-xs w-full">
             <div class="bg-surface rounded-2xl shadow-2xl border border-border-muted p-5 relative">
               <button
-                class="absolute top-3 right-3 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-text-muted hover:bg-gray-200 transition-colors text-xs"
+                class="absolute top-3 right-3 w-6 h-6 rounded-full bg-surface-raised flex items-center justify-center text-text-subtle hover:text-text-muted hover:bg-gray-200 transition-colors text-xs"
                 @click="welcomeBack = null"
               >✕</button>
               <div class="flex items-center gap-3 mb-3">
@@ -218,7 +218,7 @@
                 </h3>
               </div>
               <p class="text-xs text-primary/70 font-light leading-relaxed mb-4">
-                <span v-if="welcomeBack.lastVisitTimestamp" class="block text-[10px] text-gray-400 mb-1">
+                <span v-if="welcomeBack.lastVisitTimestamp" class="block text-[10px] text-text-subtle mb-1">
                   {{ formatRelativeTime(welcomeBack.lastVisitTimestamp, pLang) }}
                 </span>
                 {{ pLang === 'es' ? 'La última vez llegaste hasta' : 'Last time you reached' }} <strong>{{ welcomeBack.sectionTitle }}</strong>.
@@ -231,7 +231,7 @@
                 {{ pLang === 'es' ? 'Continuar donde lo dejé' : 'Continue where I left off' }}
               </button>
               <button
-                class="w-full mt-2 px-4 py-2 text-xs text-gray-400 hover:text-text-muted transition-colors"
+                class="w-full mt-2 px-4 py-2 text-xs text-text-subtle hover:text-text-muted transition-colors"
                 @click="navigateTo(0); welcomeBack = null"
               >
                 {{ pLang === 'es' ? 'Ver desde el inicio' : 'Start from the beginning' }}
@@ -1372,7 +1372,7 @@ onBeforeUnmount(() => {
   box-shadow: none !important;
 }
 
-[data-theme="dark"] :deep(.bg-gray-50) {
+[data-theme="dark"] :deep(.bg-surface-muted) {
   background-color: #112e29 !important;
 }
 
@@ -1554,10 +1554,10 @@ onBeforeUnmount(() => {
 [data-theme="dark"] :deep(.bg-gray-200) {
   background-color: rgba(230, 239, 239, 0.18) !important;
 }
-[data-theme="dark"] :deep(.bg-gray-100) {
+[data-theme="dark"] :deep(.bg-surface-raised) {
   background-color: rgba(230, 239, 239, 0.12) !important;
 }
-[data-theme="dark"] :deep(.hover\:bg-gray-50:hover) {
+[data-theme="dark"] :deep(.hover\:bg-surface-muted:hover) {
   background-color: rgba(230, 239, 239, 0.08) !important;
 }
 

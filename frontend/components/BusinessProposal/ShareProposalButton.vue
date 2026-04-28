@@ -5,7 +5,7 @@
       data-testid="share-proposal-btn"
       class="share-btn fixed bottom-[8.5rem] right-4 z-40 w-12 h-12 bg-surface border border-border-default
              rounded-full shadow-lg flex items-center justify-center
-             hover:bg-gray-50 transition-colors group"
+             hover:bg-surface-muted transition-colors group"
       :title="t.shareTitle"
       @click="showModal = true"
     >
@@ -35,11 +35,11 @@
                 </div>
                 <div>
                   <h3 class="text-lg font-bold text-text-default">{{ t.shareTitle }}</h3>
-                  <p class="text-xs text-gray-400">{{ t.shareSubtitle }}</p>
+                  <p class="text-xs text-text-subtle">{{ t.shareSubtitle }}</p>
                 </div>
               </div>
               <button
-                class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-text-muted hover:bg-gray-200 transition-colors"
+                class="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-text-subtle hover:text-text-muted hover:bg-gray-200 transition-colors"
                 @click="closeModal"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -49,9 +49,9 @@
             </div>
 
             <!-- Link display + copy -->
-            <div class="bg-gray-50 border border-border-default rounded-xl p-3 sm:p-4 flex items-center gap-3 mb-4">
+            <div class="bg-surface-muted border border-border-default rounded-xl p-3 sm:p-4 flex items-center gap-3 mb-4">
               <div class="flex-1 min-w-0">
-                <p class="text-[11px] text-gray-400 mb-0.5 font-medium uppercase tracking-wider">{{ t.linkLabel }}</p>
+                <p class="text-[11px] text-text-subtle mb-0.5 font-medium uppercase tracking-wider">{{ t.linkLabel }}</p>
                 <p class="text-sm text-text-default truncate">{{ currentUrl }}</p>
               </div>
               <button
@@ -89,7 +89,7 @@
             </button>
 
             <!-- Fallback: if no native share, show a helpful note -->
-            <p v-else class="text-center text-xs text-gray-400 mt-2">
+            <p v-else class="text-center text-xs text-text-subtle mt-2">
               {{ t.copyHint }}
             </p>
           </div>

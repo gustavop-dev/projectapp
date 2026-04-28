@@ -12,7 +12,7 @@
         {{ clientName ? `${clientName}, esta` : 'Esta' }} propuesta ha expirado
       </h1>
 
-      <p v-if="formattedExpiredAt" class="text-gray-400 text-sm mb-2">
+      <p v-if="formattedExpiredAt" class="text-text-subtle text-sm mb-2">
         Expiró el {{ formattedExpiredAt }}
       </p>
 
@@ -27,7 +27,7 @@
         </template>
       </p>
 
-      <p class="text-gray-400 text-sm mb-10">
+      <p class="text-text-subtle text-sm mb-10">
         Escríbenos y en menos de 24 horas tendrás una nueva propuesta lista.
       </p>
 
@@ -69,7 +69,7 @@
           href="mailto:team@projectapp.co"
           class="inline-flex items-center justify-center gap-2 px-6 py-3
                  bg-surface text-text-default rounded-xl font-medium border border-border-default
-                 hover:bg-gray-50 transition-colors"
+                 hover:bg-surface-muted transition-colors"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -81,7 +81,7 @@
 
       <!-- Magic link re-access -->
       <div class="mt-10 pt-8 border-t border-border-muted max-w-sm mx-auto">
-        <p class="text-gray-400 text-sm mb-3">¿Perdiste el enlace? Ingresa tu email para recibirlo.</p>
+        <p class="text-text-subtle text-sm mb-3">¿Perdiste el enlace? Ingresa tu email para recibirlo.</p>
         <form class="flex gap-2" @submit.prevent="handleMagicLink">
           <input
             v-model="magicEmail"
@@ -105,7 +105,7 @@
         </p>
       </div>
 
-      <p class="mt-8 text-xs text-gray-400">
+      <p class="mt-8 text-xs text-text-subtle">
         Project App. — projectapp.co
       </p>
     </div>
