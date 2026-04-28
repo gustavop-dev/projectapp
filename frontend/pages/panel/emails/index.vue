@@ -67,12 +67,12 @@
           <draggable v-model="sections" item-key="id" handle=".drag-handle" ghost-class="opacity-30"
             class="space-y-3">
             <template #item="{ element: section, index: idx }">
-              <div class="bg-gray-50  rounded-lg p-3 border border-border-muted ">
+              <div class="bg-surface-muted  rounded-lg p-3 border border-border-muted ">
                 <div class="flex items-center gap-2 mb-2">
-                  <span class="drag-handle cursor-grab text-gray-400 hover:text-text-muted select-none text-sm">⠿</span>
-                  <span class="text-[10px] text-gray-400 uppercase tracking-wide">Sección {{ idx + 1 }}</span>
+                  <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted select-none text-sm">⠿</span>
+                  <span class="text-[10px] text-text-subtle uppercase tracking-wide">Sección {{ idx + 1 }}</span>
                   <button v-if="sections.length > 1" type="button" @click="removeSection(idx)"
-                    class="ml-auto text-gray-400 hover:text-red-500 transition-colors p-0.5">
+                    class="ml-auto text-text-subtle hover:text-red-500 transition-colors p-0.5">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
@@ -108,10 +108,10 @@
             @change="handleFilesChange" />
           <div v-if="attachments.length" class="mt-2 space-y-1">
             <div v-for="(file, idx) in attachments" :key="idx"
-              class="flex items-center justify-between py-1.5 px-3 bg-gray-50  rounded-lg">
+              class="flex items-center justify-between py-1.5 px-3 bg-surface-muted  rounded-lg">
               <span class="text-xs text-text-default truncate">{{ file.name }}</span>
               <button type="button" @click="removeAttachment(idx)"
-                class="text-gray-400 hover:text-red-500 transition-colors p-0.5">
+                class="text-text-subtle hover:text-red-500 transition-colors p-0.5">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -142,7 +142,7 @@
       <!-- ── Preview sub-tab ── -->
       <div v-else>
         <!-- Subject badge -->
-        <div class="flex items-center gap-2 bg-gray-50  rounded-lg px-3 py-2 mb-4 text-xs text-text-muted">
+        <div class="flex items-center gap-2 bg-surface-muted  rounded-lg px-3 py-2 mb-4 text-xs text-text-muted">
           <span class="font-medium text-text-default">Asunto:</span>
           <span>{{ subject || '(sin asunto)' }}</span>
         </div>
@@ -219,9 +219,9 @@
         <h3 class="text-sm font-semibold text-text-default">Historial de correos enviados</h3>
       </div>
 
-      <div v-if="emailStore.isLoadingHistory" class="text-xs text-gray-400 py-4 text-center">Cargando historial...</div>
+      <div v-if="emailStore.isLoadingHistory" class="text-xs text-text-subtle py-4 text-center">Cargando historial...</div>
 
-      <div v-else-if="!emailStore.history.length" class="text-xs text-gray-400 py-4 text-center">
+      <div v-else-if="!emailStore.history.length" class="text-xs text-text-subtle py-4 text-center">
         No se han enviado correos aún.
       </div>
 
@@ -230,7 +230,7 @@
           class="border border-border-muted  rounded-lg overflow-hidden">
           <!-- Summary row -->
           <button type="button" @click="toggleExpand(entry.id)"
-            class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-muted dark:hover:bg-gray-700 transition-colors">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
                 <span class="text-xs font-medium text-text-default truncate">{{ entry.subject }}</span>
@@ -244,34 +244,34 @@
               </div>
               <div class="flex items-center gap-2 mt-0.5">
                 <span class="text-[11px] text-text-muted">{{ entry.recipient }}</span>
-                <span class="text-[10px] text-gray-400">{{ formatDate(entry.sent_at) }}</span>
+                <span class="text-[10px] text-text-subtle">{{ formatDate(entry.sent_at) }}</span>
               </div>
             </div>
-            <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': expandedIds[entry.id] }"
+            <svg class="w-4 h-4 text-text-subtle transition-transform" :class="{ 'rotate-180': expandedIds[entry.id] }"
               fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
 
           <!-- Expanded detail -->
-          <div v-if="expandedIds[entry.id]" class="border-t border-border-muted  px-4 py-3 bg-gray-50  space-y-3">
+          <div v-if="expandedIds[entry.id]" class="border-t border-border-muted  px-4 py-3 bg-surface-muted  space-y-3">
             <div v-if="entry.metadata?.greeting">
-              <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Saludo</p>
+              <p class="text-[10px] text-text-subtle uppercase tracking-wide mb-0.5">Saludo</p>
               <p class="text-xs text-text-default">{{ entry.metadata.greeting }}</p>
             </div>
             <div v-if="entry.metadata?.sections?.length">
-              <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Secciones</p>
+              <p class="text-[10px] text-text-subtle uppercase tracking-wide mb-1">Secciones</p>
               <div v-for="(section, idx) in entry.metadata.sections" :key="idx"
                 class="bg-surface rounded-lg px-3 py-2 mb-1.5 border border-border-muted ">
                 <p class="text-xs text-text-default whitespace-pre-wrap">{{ section }}</p>
               </div>
             </div>
             <div v-if="entry.metadata?.footer">
-              <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Pie de correo</p>
+              <p class="text-[10px] text-text-subtle uppercase tracking-wide mb-0.5">Pie de correo</p>
               <p class="text-xs text-text-default">{{ entry.metadata.footer }}</p>
             </div>
             <div v-if="entry.metadata?.attachment_names?.length">
-              <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">Adjuntos</p>
+              <p class="text-[10px] text-text-subtle uppercase tracking-wide mb-0.5">Adjuntos</p>
               <div class="flex flex-wrap gap-1">
                 <span v-for="(name, idx) in entry.metadata.attachment_names" :key="idx"
                   class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border-default rounded text-[11px] text-text-muted">
@@ -285,7 +285,7 @@
         <!-- Load more -->
         <div v-if="emailStore.historyPagination.has_next" class="pt-3 text-center">
           <button type="button" :disabled="emailStore.isLoadingHistory" @click="loadMore"
-            class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-text-muted bg-gray-50  rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors disabled:opacity-50">
+            class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-text-muted bg-surface-muted  rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors disabled:opacity-50">
             {{ emailStore.isLoadingHistory ? 'Cargando...' : 'Cargar más' }}
           </button>
         </div>

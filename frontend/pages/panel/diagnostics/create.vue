@@ -47,7 +47,7 @@
         <input
           v-model="title"
           type="text"
-          class="w-full px-3 py-2 border border-border-default rounded-xl text-sm outline-none
+          class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-xl text-sm outline-none
                  focus:ring-1 focus:ring-focus-ring/30 focus:border-emerald-500
                  dark:placeholder-gray-500"
           placeholder="Se generará automáticamente si lo dejas vacío"

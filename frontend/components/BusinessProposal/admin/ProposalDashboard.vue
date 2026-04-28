@@ -215,7 +215,7 @@
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <div v-for="(val, key) in data.avg_value_by_status" :key="key" class="text-center p-3 rounded-lg bg-surface-raised">
-                <p class="text-xs text-gray-400 uppercase capitalize">{{ key }}</p>
+                <p class="text-xs text-text-subtle uppercase capitalize">{{ key }}</p>
                 <p class="text-sm font-medium text-text-default mt-1">${{ formatNumber(val) }}</p>
               </div>
             </div>

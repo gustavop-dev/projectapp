@@ -26,11 +26,11 @@
         <legend class="text-sm font-medium text-text-default px-2">Español</legend>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Título (ES)</label>
-          <input v-model="form.title_es" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="Título del proyecto en español" />
+          <input v-model="form.title_es" type="text" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="Título del proyecto en español" />
         </div>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Tagline (ES)</label>
-          <input v-model="form.excerpt_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="Tagline corto en español" />
+          <input v-model="form.excerpt_es" type="text" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="Tagline corto en español" />
         </div>
       </fieldset>
 
@@ -39,11 +39,11 @@
         <legend class="text-sm font-medium text-text-default px-2">English</legend>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Title (EN)</label>
-          <input v-model="form.title_en" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="Project title in English" />
+          <input v-model="form.title_en" type="text" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="Project title in English" />
         </div>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Tagline (EN)</label>
-          <input v-model="form.excerpt_en" type="text" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="Short tagline in English" />
+          <input v-model="form.excerpt_en" type="text" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="Short tagline in English" />
         </div>
       </fieldset>
 
@@ -51,18 +51,18 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">URL del proyecto</label>
-          <input v-model="form.project_url" type="url" required class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="https://example.com" />
+          <input v-model="form.project_url" type="url" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="https://example.com" />
         </div>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Imagen de portada (URL)</label>
-          <input v-model="form.cover_image_url" type="url" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="https://... (opcional)" />
+          <input v-model="form.cover_image_url" type="url" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="https://... (opcional)" />
         </div>
       </div>
 
       <!-- Order -->
       <div class="max-w-[200px]">
         <label class="block text-sm font-medium text-text-default mb-1">Orden</label>
-        <input v-model.number="form.order" type="number" min="0" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
+        <input v-model.number="form.order" type="number" min="0" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
       </div>
 
       <!-- Publishing -->
@@ -108,14 +108,14 @@
       <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4 sm:p-6">
         <h3 class="text-sm font-medium text-text-default mb-3">Pegar o subir JSON</h3>
         <div class="flex items-center gap-3 mb-3">
-          <label class="inline-flex items-center gap-2 px-4 py-2 border border-border-default rounded-lg text-sm text-text-default hover:bg-gray-50 cursor-pointer transition-colors">
+          <label class="inline-flex items-center gap-2 px-4 py-2 border border-border-default rounded-lg text-sm text-text-default hover:bg-surface-muted cursor-pointer transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
             Subir archivo .json
             <input type="file" accept=".json" class="hidden" @change="handleFileUpload" />
           </label>
           <span v-if="uploadedFileName" class="text-xs text-text-muted">{{ uploadedFileName }}</span>
         </div>
-        <textarea v-model="jsonRaw" rows="14" placeholder='{ "title_es": "...", "title_en": "...", "project_url": "...", "content_json_es": { "problem": {...}, "solution": {...}, "results": {...} } }' class="w-full px-4 py-3 border border-border-default rounded-xl text-xs font-mono leading-relaxed focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y" @input="parseJson" />
+        <textarea v-model="jsonRaw" rows="14" placeholder='{ "title_es": "...", "title_en": "...", "project_url": "...", "content_json_es": { "problem": {...}, "solution": {...}, "results": {...} } }' class="bg-input-bg w-full px-4 py-3 border border-border-default rounded-xl text-xs font-mono leading-relaxed focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y" @input="parseJson" />
         <div v-if="jsonError" class="mt-2 text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">{{ jsonError }}</div>
         <div v-if="jsonParsed && !jsonError" class="mt-3 bg-primary-soft border border-emerald-200 rounded-lg px-4 py-3">
           <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">

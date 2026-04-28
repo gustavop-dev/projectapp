@@ -89,13 +89,13 @@
           </label>
           <div class="mt-2 flex flex-wrap items-stretch gap-2">
             <div class="flex-1 min-w-[260px] flex items-stretch rounded-lg border border-border-default dark:border-white/[0.08] bg-surface-raised focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-focus-ring/30">
-              <span class="px-3 flex items-center text-xs text-gray-400 border-r border-border-default dark:border-white/[0.08] select-none">/proposal/</span>
+              <span class="px-3 flex items-center text-xs text-text-subtle border-r border-border-default dark:border-white/[0.08] select-none">/proposal/</span>
               <input
                 id="proposal-slug-input"
                 v-model="slugDraft"
                 type="text"
                 data-testid="proposal-slug-input"
-                class="flex-1 bg-transparent px-3 py-2 text-sm text-text-default placeholder:text-gray-400 focus:outline-none font-mono"
+                class="flex-1 bg-transparent px-3 py-2 text-sm text-text-default placeholder:text-text-subtle focus:outline-none font-mono"
                 placeholder="maria-lopez"
                 maxlength="120"
                 @keydown.enter.prevent="saveSlug"
@@ -119,30 +119,30 @@
             </button>
           </div>
           <p v-if="slugError" class="text-xs text-rose-500 mt-2">{{ slugError }}</p>
-          <p v-else class="text-xs text-gray-400 mt-2">
+          <p v-else class="text-xs text-text-subtle mt-2">
             Solo minúsculas, números y guiones. El cliente verá esta URL en el enlace.
           </p>
         </div>
 
         <div
-          class="mb-4 rounded-xl border border-emerald-200/70 dark:border-emerald-500/20 bg-primary-soft/60 dark:bg-primary/[0.06] px-4 py-3 sm:px-5 sm:py-4 text-sm"
+          class="mb-4 rounded-xl border border-emerald-200/70 dark:border-emerald-500/20 bg-primary-soft dark:bg-primary/[0.06] px-4 py-3 sm:px-5 sm:py-4 text-sm"
           aria-label="Identificación y estado de la propuesta"
         >
-          <span class="inline-flex items-center gap-1 mb-3 px-2 py-0.5 rounded-full bg-primary-soft/80 dark:bg-primary/15 text-[10px] font-medium uppercase tracking-wider text-text-brand">
+          <span class="inline-flex items-center gap-1 mb-3 px-2 py-0.5 rounded-full bg-primary-soft dark:bg-primary/15 text-[10px] font-medium uppercase tracking-wider text-text-brand">
             Identificación
           </span>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <span class="text-gray-400 text-xs">UUID</span>
+              <span class="text-text-subtle text-xs">UUID</span>
               <p class="text-text-muted font-mono text-xs mt-0.5">{{ proposal.uuid }}</p>
             </div>
             <div>
               <div class="flex items-center gap-1">
-                <span class="text-gray-400 text-xs">URL pública</span>
+                <span class="text-text-subtle text-xs">URL pública</span>
                 <button type="button"
                   :title="copied ? 'Copiado!' : 'Copiar URL'"
                   @click="copyUrl"
-                  class="text-gray-400 hover:text-text-brand transition-colors">
+                  class="text-text-subtle hover:text-text-brand transition-colors">
                   <DocumentDuplicateIcon v-if="!copied" class="w-3.5 h-3.5" />
                   <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
                 </button>
@@ -154,11 +154,11 @@
               </p>
               <div v-for="link in proposalModeLinks" :key="link.mode" class="mt-2">
                 <div class="flex items-center gap-1">
-                  <span class="text-gray-400 text-xs">{{ link.labelUrl }}</span>
+                  <span class="text-text-subtle text-xs">{{ link.labelUrl }}</span>
                   <button type="button"
                     :title="copiedMode === link.mode ? 'Copiado!' : 'Copiar URL'"
                     @click="copyModeUrl(link.mode)"
-                    class="text-gray-400 hover:text-text-brand transition-colors">
+                    class="text-text-subtle hover:text-text-brand transition-colors">
                     <DocumentDuplicateIcon v-if="copiedMode !== link.mode" class="w-3.5 h-3.5" />
                     <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
                   </button>
@@ -171,23 +171,23 @@
               </div>
             </div>
             <div>
-              <span class="text-gray-400 text-xs">Vistas</span>
+              <span class="text-text-subtle text-xs">Vistas</span>
               <p class="text-text-muted mt-0.5">{{ proposal.view_count }}</p>
             </div>
             <div>
-              <span class="text-gray-400 text-xs">Enviada</span>
+              <span class="text-text-subtle text-xs">Enviada</span>
               <p class="text-text-muted mt-0.5">
                 {{ proposal.sent_at ? new Date(proposal.sent_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : '—' }}
               </p>
             </div>
             <div v-if="proposal.platform_onboarding_completed_at">
-              <span class="text-gray-400 text-xs">Plataforma lanzada</span>
+              <span class="text-text-subtle text-xs">Plataforma lanzada</span>
               <p class="text-text-muted mt-0.5 text-xs">
                 {{ new Date(proposal.platform_onboarding_completed_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
               </p>
             </div>
             <div v-if="!hasDocumentsTab">
-              <span class="text-gray-400 text-xs">PDFs</span>
+              <span class="text-text-subtle text-xs">PDFs</span>
               <div class="flex items-center gap-3 mt-0.5 flex-wrap">
                 <a :href="'/api/proposals/' + proposal.uuid + '/pdf/'"
                    target="_blank"
@@ -197,7 +197,7 @@
                   </svg>
                   Propuesta comercial
                 </a>
-                <span class="text-gray-300 text-xs">|</span>
+                <span class="text-text-subtle text-xs">|</span>
                 <a :href="'/api/proposals/' + proposal.uuid + '/pdf/?doc=technical'"
                    target="_blank"
                    class="inline-flex items-center gap-1.5 text-text-brand hover:text-text-brand text-xs font-medium transition-colors">
@@ -212,7 +212,7 @@
               <div class="flex items-start gap-6 flex-wrap">
                 <div>
                   <div class="flex items-center gap-1">
-                    <span class="text-gray-400 text-xs">Estado activo</span>
+                    <span class="text-text-subtle text-xs">Estado activo</span>
                     <BaseTooltip position="right">
                       <template #trigger>
                         <QuestionMarkCircleIcon class="w-3 h-3 text-text-subtle hover:text-text-muted transition-colors" />
@@ -234,7 +234,7 @@
                 </div>
                 <div>
                   <div class="flex items-center gap-1">
-                    <span class="text-gray-400 text-xs">Automatizaciones</span>
+                    <span class="text-text-subtle text-xs">Automatizaciones</span>
                     <BaseTooltip position="right">
                       <template #trigger>
                         <QuestionMarkCircleIcon class="w-3 h-3 text-text-subtle hover:text-text-muted transition-colors" />
@@ -255,7 +255,7 @@
                       {{ form.automations_paused ? '⏸ Pausadas' : 'Activas' }}
                     </span>
                   </div>
-                  <p class="text-[10px] text-gray-400 mt-1">Pausar emails automáticos (recordatorio, urgencia, inactividad).</p>
+                  <p class="text-[10px] text-text-subtle mt-1">Pausar emails automáticos (recordatorio, urgencia, inactividad).</p>
                 </div>
               </div>
             </div>
@@ -384,7 +384,7 @@
                 <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">sin descuento</div>
               </div>
             </div>
-            <p class="text-xs text-gray-400 mt-1">Sincronizado automáticamente con el Plan de Hosting que ve el cliente en "Tu inversión y cómo pagar".</p>
+            <p class="text-xs text-text-subtle mt-1">Sincronizado automáticamente con el Plan de Hosting que ve el cliente en "Tu inversión y cómo pagar".</p>
           </div>
           <div data-testid="general-finance-discounts-card" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -433,7 +433,7 @@
                 @select="onClientSelected"
                 @create-new="onCreateInlineClient"
               />
-              <p class="text-xs text-gray-400 mt-1">
+              <p class="text-xs text-text-subtle mt-1">
                 Busca un cliente existente o escribe uno nuevo. Si no eliges email, se generará uno temporal y las automatizaciones quedarán pausadas.
               </p>
             </div>
@@ -591,7 +591,7 @@
               v-model="form.language"
               :options="[{ value: 'es', label: 'Español' }, { value: 'en', label: 'English' }]"
             />
-            <p class="text-xs text-gray-400 mt-1">Solo afecta los títulos por defecto al crear. Cambiar aquí no regenera las secciones existentes.</p>
+            <p class="text-xs text-text-subtle mt-1">Solo afecta los títulos por defecto al crear. Cambiar aquí no regenera las secciones existentes.</p>
           </div>
           <div>
             <div class="flex items-center gap-1.5 mb-1">
@@ -623,12 +623,12 @@
             <div>
               <label class="block text-sm font-medium text-text-default mb-1">Recordatorio (días después de enviar)</label>
               <BaseInput v-model.number="form.reminder_days" type="number" min="1" max="30" />
-              <p class="text-xs text-gray-400 mt-1">Se enviará un email recordatorio al cliente X días después de enviar la propuesta.</p>
+              <p class="text-xs text-text-subtle mt-1">Se enviará un email recordatorio al cliente X días después de enviar la propuesta.</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-text-default mb-1">Urgencia (días después de enviar)</label>
               <BaseInput v-model.number="form.urgency_reminder_days" type="number" min="1" max="30" />
-              <p class="text-xs text-gray-400 mt-1">Se enviará un email de urgencia X días después de enviar (incluye descuento si % > 0).</p>
+              <p class="text-xs text-text-subtle mt-1">Se enviará un email de urgencia X días después de enviar (incluye descuento si % > 0).</p>
             </div>
           </div>
           <div>
@@ -648,7 +648,7 @@
               min="0"
               max="100"
             />
-            <p class="text-xs text-gray-400 mt-1">0 = sin descuento en email de urgencia.</p>
+            <p class="text-xs text-text-subtle mt-1">0 = sin descuento en email de urgencia.</p>
           </div>
 
           </div>
@@ -784,7 +784,7 @@
 
           <template #technical>
           <p class="text-sm text-text-muted mb-6">
-            Prompt para generar solo la clave <code class="text-xs bg-gray-100 px-1 rounded">technicalDocument</code> del JSON (arquitectura, módulos del producto, requerimientos, integraciones, etc.). Sin narrativa comercial ni precios.
+            Prompt para generar solo la clave <code class="text-xs bg-surface-raised px-1 rounded">technicalDocument</code> del JSON (arquitectura, módulos del producto, requerimientos, integraciones, etc.). Sin narrativa comercial ni precios.
           </p>
           <div class="flex flex-wrap items-center gap-2 mb-4">
             <template v-if="!technicalPromptIsEditing">
@@ -847,7 +847,7 @@
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
               <h3 class="text-sm font-medium text-text-default">JSON de la propuesta</h3>
-              <p class="text-xs text-gray-400 dark:text-green-light/40 mt-0.5">Representación JSON completa — se actualiza al guardar cambios en otras pestañas.</p>
+              <p class="text-xs text-text-subtle dark:text-green-light/40 mt-0.5">Representación JSON completa — se actualiza al guardar cambios en otras pestañas.</p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <BaseButton variant="secondary" size="sm" :disabled="jsonExportLoading" @click="refreshExportJson">
@@ -867,7 +867,7 @@
             </div>
           </div>
 
-          <div v-if="jsonExportLoading" class="text-center py-8 text-gray-400 text-sm">
+          <div v-if="jsonExportLoading" class="text-center py-8 text-text-subtle text-sm">
             Cargando JSON...
           </div>
           <template v-else>
@@ -889,7 +889,7 @@
         <!-- Import JSON -->
         <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4 sm:p-6">
           <h3 class="text-sm font-medium text-text-default mb-1">Importar JSON</h3>
-          <p class="text-xs text-gray-400 mb-4">Pega o sube un JSON para reemplazar el contenido de la propuesta (metadata + secciones).</p>
+          <p class="text-xs text-text-subtle mb-4">Pega o sube un JSON para reemplazar el contenido de la propuesta (metadata + secciones).</p>
 
           <div class="flex items-center gap-3 mb-3">
             <label
@@ -910,7 +910,7 @@
             data-testid="proposal-import-json-textarea"
             :rows="JSON_TEXTAREA_ROWS"
             placeholder='Pega aquí el JSON completo de la propuesta...'
-            class="w-full px-4 py-3 border border-border-default dark:border-white/[0.08]  rounded-xl text-xs font-mono leading-relaxed
+            class="bg-input-bg w-full px-4 py-3 border border-border-default dark:border-white/[0.08]  rounded-xl text-xs font-mono leading-relaxed
                    focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none resize-y"
             @input="parseImportJson"
           />
@@ -954,7 +954,7 @@
               </svg>
               {{ proposalStore.isUpdating ? 'Aplicando...' : 'Aplicar JSON' }}
             </button>
-            <p class="text-xs text-gray-400 dark:text-green-light/40">Esto reemplazará la metadata y todas las secciones de la propuesta.</p>
+            <p class="text-xs text-text-subtle dark:text-green-light/40">Esto reemplazará la metadata y todas las secciones de la propuesta.</p>
           </div>
 
         </div>
@@ -1007,7 +1007,7 @@
               {{ tt.activityHistory }}
             </BaseTooltip>
           </div>
-          <div v-if="!changeLogs.length" class="text-center py-8 text-sm text-gray-400 dark:text-green-light/40">Sin actividad registrada.</div>
+          <div v-if="!changeLogs.length" class="text-center py-8 text-sm text-text-subtle dark:text-green-light/40">Sin actividad registrada.</div>
           <div v-else class="relative pl-6 space-y-0">
             <div class="absolute left-[9px] top-2 bottom-2 w-px bg-surface-raised" />
             <div v-for="log in changeLogs" :key="log.id" class="relative pb-5 last:pb-0">
@@ -1017,7 +1017,7 @@
               <div class="ml-2">
                 <div class="flex items-baseline gap-2">
                   <span class="text-xs font-semibold" :class="activityLabelClass(log.change_type)">{{ activityLabel(log.change_type) }}</span>
-                  <span class="text-[10px] text-gray-400 dark:text-green-light/40">{{ formatLogDate(log.created_at) }}</span>
+                  <span class="text-[10px] text-text-subtle dark:text-green-light/40">{{ formatLogDate(log.created_at) }}</span>
                 </div>
                 <!-- eslint-disable-next-line vue/no-v-html -->
                 <p class="text-sm text-text-muted/60 mt-0.5" v-html="formatActivityDescription(log)"></p>
@@ -1099,14 +1099,14 @@
               {{ sectionCompleteness }}%
             </span>
           </div>
-          <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div class="w-full h-2 bg-surface-raised rounded-full overflow-hidden">
             <div
               class="h-full rounded-full transition-all duration-500"
               :class="sectionCompleteness >= 80 ? 'bg-primary' : sectionCompleteness >= 50 ? 'bg-amber-500' : 'bg-red-400'"
               :style="{ width: sectionCompleteness + '%' }"
             />
           </div>
-          <p class="text-[11px] text-gray-400 mt-1.5">
+          <p class="text-[11px] text-text-subtle mt-1.5">
             {{ sectionsWithContent }}/{{ enabledSectionsCount }} secciones comerciales habilitadas tienen contenido (sin contar «Det. técnico» — pestaña dedicada).
           </p>
         </div>
@@ -1124,9 +1124,9 @@
               @click="toggleSection(section.id)"
             >
               <div class="flex items-center gap-4">
-                <span class="text-xs text-gray-400 font-mono w-6">{{ section.order + 1 }}</span>
+                <span class="text-xs text-text-subtle font-mono w-6">{{ section.order + 1 }}</span>
                 <span class="text-sm font-medium text-text-default">{{ section.title }}</span>
-                <span class="text-xs text-gray-400">({{ section.section_type }})</span>
+                <span class="text-xs text-text-subtle">({{ section.section_type }})</span>
               </div>
               <div class="flex items-center gap-3">
                 <label class="flex items-center gap-2 text-xs" @click.stop>
@@ -1139,7 +1139,7 @@
                   <span class="text-text-muted">Visible</span>
                 </label>
                 <svg
-                  class="w-4 h-4 text-gray-400 transition-transform"
+                  class="w-4 h-4 text-text-subtle transition-transform"
                   :class="{ 'rotate-180': expandedSections.has(section.id) }"
                   fill="none" stroke="currentColor" viewBox="0 0 24 24"
                 >

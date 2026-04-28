@@ -60,30 +60,30 @@ export default {
         // so Tailwind opacity modifiers work on every semantic token:
         //   bg-primary/40, text-text-brand/60, ring-focus-ring/30, etc.
         //
-        // CAVEAT — alpha-baked dark tokens: surface-raised, border-default,
-        // border-muted, input-border, and the *-soft status variants are
-        // intrinsically `rgba(...)` in dark mode (see theme.css). Their
-        // RGB triplets fall back to the underlying solid hue, so opacity
-        // modifiers will replace (not compose with) the intended baked
-        // alpha and the result probably won't match design intent in dark.
-        // Use those tokens without a modifier in new code; reserve the
-        // `/N` syntax for the "solid" tokens.
+        // Solid tokens use the RGB triplet bridge so Tailwind opacity
+        // modifiers compose correctly (`bg-primary/40`, `text-text-brand/60`).
+        //
+        // Alpha-baked tokens (surface-raised, border-default, border-muted,
+        // input-border, primary-soft, *-soft status variants) are
+        // intrinsically `rgba()` in dark mode — see theme.css. They route
+        // through `var(--color-X)` directly to preserve the baked alpha;
+        // the `/N` modifier syntax is intentionally NOT supported on these.
         'primary': 'rgb(var(--color-primary-rgb) / <alpha-value>)',
         'primary-strong': 'rgb(var(--color-primary-strong-rgb) / <alpha-value>)',
-        'primary-soft': 'rgb(var(--color-primary-soft-rgb) / <alpha-value>)',
+        'primary-soft': 'var(--color-primary-soft)',
         'accent': 'rgb(var(--color-accent-rgb) / <alpha-value>)',
         'accent-soft': 'rgb(var(--color-accent-soft-rgb) / <alpha-value>)',
         'surface': 'rgb(var(--color-surface-rgb) / <alpha-value>)',
         'surface-muted': 'rgb(var(--color-surface-muted-rgb) / <alpha-value>)',
-        'surface-raised': 'rgb(var(--color-surface-raised-rgb) / <alpha-value>)',
-        'border-default': 'rgb(var(--color-border-rgb) / <alpha-value>)',
-        'border-muted': 'rgb(var(--color-border-muted-rgb) / <alpha-value>)',
+        'surface-raised': 'var(--color-surface-raised)',
+        'border-default': 'var(--color-border)',
+        'border-muted': 'var(--color-border-muted)',
         'text-default': 'rgb(var(--color-text-rgb) / <alpha-value>)',
         'text-muted': 'rgb(var(--color-text-muted-rgb) / <alpha-value>)',
         'text-subtle': 'rgb(var(--color-text-subtle-rgb) / <alpha-value>)',
         'text-brand': 'rgb(var(--color-text-brand-rgb) / <alpha-value>)',
         'input-bg': 'rgb(var(--color-input-bg-rgb) / <alpha-value>)',
-        'input-border': 'rgb(var(--color-input-border-rgb) / <alpha-value>)',
+        'input-border': 'var(--color-input-border)',
         'input-text': 'rgb(var(--color-input-text-rgb) / <alpha-value>)',
         'input-placeholder': 'rgb(var(--color-input-placeholder-rgb) / <alpha-value>)',
         'focus-ring': 'rgb(var(--color-focus-ring-rgb) / <alpha-value>)',
@@ -92,11 +92,11 @@ export default {
         // contrast against the brand or status surface.
         'on-primary': 'rgb(var(--color-on-primary-rgb) / <alpha-value>)',
         'on-danger': 'rgb(var(--color-on-danger-rgb) / <alpha-value>)',
-        'success-soft': 'rgb(var(--color-success-soft-rgb) / <alpha-value>)',
+        'success-soft': 'var(--color-success-soft)',
         'success-strong': 'rgb(var(--color-success-strong-rgb) / <alpha-value>)',
-        'warning-soft': 'rgb(var(--color-warning-soft-rgb) / <alpha-value>)',
+        'warning-soft': 'var(--color-warning-soft)',
         'warning-strong': 'rgb(var(--color-warning-strong-rgb) / <alpha-value>)',
-        'danger-soft': 'rgb(var(--color-danger-soft-rgb) / <alpha-value>)',
+        'danger-soft': 'var(--color-danger-soft)',
         'danger-strong': 'rgb(var(--color-danger-strong-rgb) / <alpha-value>)',
       },
       animation: {

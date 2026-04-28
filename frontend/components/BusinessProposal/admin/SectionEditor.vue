@@ -6,7 +6,7 @@
       <input
         v-model="sectionTitle"
         type="text"
-        class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm
+        class="bg-input-bg w-full px-4 py-2.5 border border-border-default rounded-xl text-sm
                focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none
                dark:border-white/[0.08]"
       />
@@ -61,7 +61,7 @@
           rows="18"
           data-testid="paste-textarea"
           placeholder="Escribe o pega aquí el contenido de esta sección..."
-          class="w-full px-4 py-3 border border-border-default rounded-xl text-sm font-mono
+          class="bg-input-bg w-full px-4 py-3 border border-border-default rounded-xl text-sm font-mono
                  focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y
                  dark:border-white/[0.08]"
         />
@@ -418,7 +418,7 @@
         <div>
           <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">KPIs personalizados</label>
           <p class="text-[10px] text-text-subtle mb-2">Métricas clave que aparecerán como tarjetas destacadas al inicio del resumen. Incluye fuentes verificables.</p>
-          <div v-for="(kpi, idx) in (form.kpis || [])" :key="'kpi-' + idx" class="mb-2 bg-primary-soft/50 rounded-xl p-3 border border-emerald-100">
+          <div v-for="(kpi, idx) in (form.kpis || [])" :key="'kpi-' + idx" class="mb-2 bg-primary-soft rounded-xl p-3 border border-emerald-100">
             <div class="flex items-center justify-between mb-1">
               <span class="text-xs text-text-brand font-medium">KPI {{ idx + 1 }}</span>
               <button type="button" class="text-xs text-red-500" @click="form.kpis.splice(idx, 1)">Eliminar</button>

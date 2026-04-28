@@ -20,7 +20,7 @@
             <!-- Header -->
             <div class="flex items-center justify-between px-6 py-4 border-b border-border-muted">
               <h2 class="text-lg font-bold text-text-default">Manual de Métricas</h2>
-              <button class="p-1.5 rounded-lg hover:bg-gray-100 text-text-subtle" @click="isOpen = false">
+              <button class="p-1.5 rounded-lg hover:bg-surface-raised text-text-subtle" @click="isOpen = false">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -33,7 +33,7 @@
                 v-model="search"
                 type="text"
                 placeholder="Buscar métrica..."
-                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
+                class="bg-input-bg w-full px-4 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
               />
               <p v-if="search" class="text-[10px] text-text-subtle mt-1">{{ filteredMetrics.length }} resultado{{ filteredMetrics.length !== 1 ? 's' : '' }}</p>
             </div>

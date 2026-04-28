@@ -60,7 +60,7 @@
           <span class="text-lg">🧟</span>
           <h3 class="text-sm font-semibold text-gray-200">Propuestas zombie ({{ zombieAlerts.length }})</h3>
         </div>
-        <span class="text-xs text-gray-400">{{ zombieExpanded ? '▲' : '▼' }}</span>
+        <span class="text-xs text-text-subtle">{{ zombieExpanded ? '▲' : '▼' }}</span>
       </div>
       <div v-if="zombieExpanded" class="space-y-2">
         <div
@@ -73,7 +73,7 @@
             <span class="text-sm">{{ alert.alert_type === 'zombie_draft' ? '📝💀' : alert.alert_type === 'zombie_sent_stale' ? '📤💀' : '💀' }}</span>
             <div>
               <span class="text-sm font-medium text-gray-200">{{ alert.client_name }}</span>
-              <span class="text-xs text-gray-400 ml-2">{{ alert.title }}</span>
+              <span class="text-xs text-text-subtle ml-2">{{ alert.title }}</span>
             </div>
           </div>
           <span class="text-xs text-text-subtle font-medium">{{ alert.message }}</span>
@@ -218,8 +218,7 @@
           v-model="searchQuery"
           type="text"
           placeholder="Buscar por título o cliente..."
-          class="w-full pl-10 pr-4 py-2 border border-border-default rounded-xl text-sm focus:ring-1 focus:ring-focus-ring/30 focus:border-focus-ring outline-none
-                    dark:placeholder-gray-500"
+          class="w-full pl-10 pr-4 py-2 bg-input-bg text-text-default placeholder:text-text-subtle border border-input-border rounded-xl text-sm focus:ring-1 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
         />
       </div>
       <div class="flex items-center gap-2 flex-wrap">
@@ -242,7 +241,7 @@
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="proposals.length === 0" class="text-center py-16 dark:text-gray-400">
+    <div v-else-if="proposals.length === 0" class="text-center py-16 dark:text-text-subtle">
       <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-raised flex items-center justify-center">
         <svg class="w-8 h-8 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -318,7 +317,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
-          <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="[p.is_active ? 'hover:bg-gray-50 dark:hover:bg-gray-700/50' : 'bg-gray-50 /30 opacity-60', selectedIds.has(p.id) ? 'bg-primary-soft/50 dark:bg-emerald-900/20' : '']" @click="navigateToProposal(p.id, $event)">
+          <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="[p.is_active ? 'hover:bg-surface-muted' : 'bg-surface-muted opacity-60', selectedIds.has(p.id) ? 'bg-primary-soft' : '']" @click="navigateToProposal(p.id, $event)">
             <td class="px-3 py-4" @click.stop>
               <input type="checkbox" class="rounded border-gray-300 text-text-brand focus:ring-focus-ring/30" :checked="selectedIds.has(p.id)" @change="toggleSelect(p.id)" />
             </td>
@@ -334,7 +333,7 @@
                   <select
                     :value="p.status"
                     :disabled="updatingStatusId === p.id"
-                    class="text-xs px-2.5 py-1 rounded-full font-medium border-0 cursor-pointer outline-none focus:ring-2 focus:ring-focus-ring/30 pr-6 disabled:opacity-60 disabled:cursor-not-allowed"
+                    class="bg-input-bg text-xs px-2.5 py-1 rounded-full font-medium border border-input-border cursor-pointer outline-none focus:ring-2 focus:ring-focus-ring/30 pr-6 disabled:opacity-60 disabled:cursor-not-allowed"
                     :class="statusClass(p.status)"
                     @change="handleInlineStatusChange(p, $event.target.value, $event)"
                     @click.stop
@@ -368,9 +367,9 @@
               </template>
               <template v-else-if="p.created_at">
                 {{ timeAgo(p.created_at) }}
-                <span class="text-[10px] text-gray-300 dark:text-green-light/60 ml-1">(creada)</span>
+                <span class="text-[10px] text-text-subtle dark:text-green-light/60 ml-1">(creada)</span>
               </template>
-              <span v-else class="text-gray-300 dark:text-green-light/60">—</span>
+              <span v-else class="text-text-subtle dark:text-green-light/60">—</span>
             </td>
             <td class="px-6 py-4 text-sm text-text-muted tabular-nums">{{ p.view_count }}</td>
             <td class="px-6 py-4 text-center">
@@ -382,15 +381,15 @@
                 </template>
                 <div class="space-y-1.5 text-xs">
                   <div class="flex justify-between gap-3">
-                    <span class="text-gray-400">Vistas</span>
+                    <span class="text-text-subtle">Vistas</span>
                     <span class="font-medium">{{ p.engagement_summary.views }}</span>
                   </div>
                   <div v-if="p.engagement_summary.last_activity" class="flex justify-between gap-3">
-                    <span class="text-gray-400">Última visita</span>
+                    <span class="text-text-subtle">Última visita</span>
                     <span class="font-medium">{{ p.engagement_summary.last_activity }}</span>
                   </div>
                   <div class="flex justify-between gap-3">
-                    <span class="text-gray-400">Inversión</span>
+                    <span class="text-text-subtle">Inversión</span>
                     <span class="font-medium">{{ formatInvestmentTime(p.engagement_summary.investment_time_sec) }}</span>
                   </div>
                   <div v-if="p.engagement_summary.technical_viewed" class="flex justify-between gap-3">
@@ -398,11 +397,11 @@
                     <span class="font-medium text-teal-300">{{ formatInvestmentTime(p.engagement_summary.technical_time_sec) }}</span>
                   </div>
                   <div v-if="p.engagement_summary.unique_devices > 1" class="flex justify-between gap-3">
-                    <span class="text-gray-400">Dispositivos</span>
+                    <span class="text-text-subtle">Dispositivos</span>
                     <span class="font-medium">{{ p.engagement_summary.unique_devices }}</span>
                   </div>
                   <div v-if="p.engagement_summary.skipped_sections && p.engagement_summary.skipped_sections.length" class="pt-1 border-t border-gray-700">
-                    <span class="text-gray-400">No revisó:</span>
+                    <span class="text-text-subtle">No revisó:</span>
                     <span class="text-amber-400 ml-1">{{ p.engagement_summary.skipped_sections.map(s => sectionLabel(s)).join(', ') }}</span>
                   </div>
                 </div>
@@ -410,7 +409,7 @@
               <span v-else-if="p.heat_score > 0" class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white" :class="heatScoreColor(p.heat_score)">
                 {{ p.heat_score }}
               </span>
-              <span v-else class="text-gray-300 dark:text-green-light/60 text-xs">—</span>
+              <span v-else class="text-text-subtle dark:text-green-light/60 text-xs">—</span>
             </td>
             <td class="px-6 py-4">
               <div class="flex items-center gap-2">
@@ -542,7 +541,7 @@
               </div>
               <div>
                 <label class="block text-xs text-text-muted mb-1">Descripción</label>
-                <input v-model="quickLogMessage" type="text" placeholder="Ej: Llamada de seguimiento, cliente interesado..." class="w-full px-3 py-2 border border-border-default rounded-lg text-sm outline-none focus:ring-1 focus:ring-focus-ring/30 dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40" @keyup.enter="confirmQuickLog" />
+                <input v-model="quickLogMessage" type="text" placeholder="Ej: Llamada de seguimiento, cliente interesado..." class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-lg text-sm outline-none focus:ring-1 focus:ring-focus-ring/30 dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40" @keyup.enter="confirmQuickLog" />
               </div>
             </div>
             <div class="flex gap-3 mt-5">

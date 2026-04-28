@@ -18,7 +18,7 @@
 
     <!-- Search bar -->
     <div class="relative mb-5">
-      <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-subtle pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
       </svg>
       <input
@@ -30,7 +30,7 @@
       <button
         v-if="searchQuery"
         type="button"
-        class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full text-gray-400 hover:text-text-muted hover:bg-surface-raised transition-colors"
+        class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full text-text-subtle hover:text-text-muted hover:bg-surface-raised transition-colors"
         @click="searchQuery = ''"
       >
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,12 +68,12 @@
           Cargando...
         </div>
 
-        <div v-else-if="filteredDocuments.length === 0" class="text-center py-16 dark:text-gray-400">
-          <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100  flex items-center justify-center">
-            <svg v-if="searchQuery" class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div v-else-if="filteredDocuments.length === 0" class="text-center py-16 dark:text-text-subtle">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-raised  flex items-center justify-center">
+            <svg v-if="searchQuery" class="w-8 h-8 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <svg v-else class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg v-else class="w-8 h-8 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
@@ -117,7 +117,7 @@
               <tr
                 v-for="doc in filteredDocuments"
                 :key="doc.id"
-                class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-grab active:cursor-grabbing select-none"
+                class="hover:bg-surface-muted dark:hover:bg-gray-700/50 transition-colors cursor-grab active:cursor-grabbing select-none"
                 :class="{ 'opacity-50': draggingDoc?.id === doc.id }"
                 draggable="true"
                 @click="navigateTo(localePath(`/panel/documents/${doc.id}/edit`))"
@@ -135,7 +135,7 @@
                       📁 {{ doc.folder_name }}
                     </span>
                   </div>
-                  <div v-if="doc.client_name" class="text-xs text-gray-400 mt-0.5">{{ doc.client_name }}</div>
+                  <div v-if="doc.client_name" class="text-xs text-text-subtle mt-0.5">{{ doc.client_name }}</div>
                 </td>
                 <td class="px-6 py-4">
                   <div class="flex flex-wrap gap-1">
@@ -166,7 +166,7 @@
                   <div class="flex items-center gap-1">
                     <NuxtLink
                       :to="localePath(`/panel/documents/${doc.id}/edit`)"
-                      class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-text-brand"
+                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-text-brand"
                       title="Editar"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -175,7 +175,7 @@
                     </NuxtLink>
                     <button
                       type="button"
-                      class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-violet-600 dark:hover:text-violet-400"
+                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-violet-600 dark:hover:text-violet-400"
                       title="Mover a carpeta"
                       @click="handleMoveDoc(doc)"
                     >
@@ -185,7 +185,7 @@
                     </button>
                     <button
                       type="button"
-                      class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-blue-600 dark:hover:text-blue-400"
                       title="Descargar PDF"
                       @click="handleDownloadPdf(doc)"
                     >
@@ -195,7 +195,7 @@
                     </button>
                     <button
                       type="button"
-                      class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-purple-600 dark:hover:text-purple-400"
+                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-purple-600 dark:hover:text-purple-400"
                       title="Duplicar"
                       @click="handleDuplicate(doc.id)"
                     >
@@ -205,7 +205,7 @@
                     </button>
                     <button
                       type="button"
-                      class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                      class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-text-subtle hover:text-red-600 dark:hover:text-red-400"
                       title="Eliminar"
                       @click="handleDelete(doc)"
                     >
@@ -231,7 +231,7 @@
             <div class="flex items-start justify-between mb-2">
               <div class="flex-1 min-w-0">
                 <h3 class="text-sm font-medium text-text-default truncate">{{ doc.title }}</h3>
-                <p v-if="doc.client_name" class="text-xs text-gray-400 mt-0.5">{{ doc.client_name }}</p>
+                <p v-if="doc.client_name" class="text-xs text-text-subtle mt-0.5">{{ doc.client_name }}</p>
               </div>
               <span
                 class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ml-2 flex-shrink-0"
@@ -241,11 +241,11 @@
               </span>
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-xs text-gray-400">{{ formatDate(doc.created_at) }}</span>
+              <span class="text-xs text-text-subtle">{{ formatDate(doc.created_at) }}</span>
               <div class="flex items-center gap-1" @click.stop>
                 <button
                   type="button"
-                  class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-violet-600"
+                  class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-violet-600"
                   title="Mover a carpeta"
                   @click="handleMoveDoc(doc)"
                 >
@@ -255,7 +255,7 @@
                 </button>
                 <button
                   type="button"
-                  class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-blue-600"
+                  class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-blue-600"
                   title="Descargar PDF"
                   @click="handleDownloadPdf(doc)"
                 >
@@ -265,7 +265,7 @@
                 </button>
                 <button
                   type="button"
-                  class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-purple-600"
+                  class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-purple-600"
                   title="Duplicar"
                   @click="handleDuplicate(doc.id)"
                 >
@@ -275,7 +275,7 @@
                 </button>
                 <button
                   type="button"
-                  class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-gray-400 hover:text-red-600"
+                  class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-text-subtle hover:text-red-600"
                   title="Eliminar"
                   @click="handleDelete(doc)"
                 >

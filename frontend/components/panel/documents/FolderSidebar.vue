@@ -130,7 +130,7 @@ watch(() => props.folders, (v) => {
 }, { immediate: true });
 
 const ACTIVE_CLASS = 'bg-primary-soft text-text-brand font-medium';
-const INACTIVE_CLASS = 'text-text-default hover:bg-gray-50 dark:text-text-subtle dark:hover:bg-gray-700/50';
+const INACTIVE_CLASS = 'text-text-default hover:bg-surface-muted dark:text-text-subtle dark:hover:bg-gray-700/50';
 
 function entryClass(id) {
   return props.activeId === id ? ACTIVE_CLASS : INACTIVE_CLASS;

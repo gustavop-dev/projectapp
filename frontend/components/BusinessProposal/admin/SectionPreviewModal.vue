@@ -43,7 +43,7 @@
             :is="resolvedComponent"
             v-bind="resolvedProps"
           />
-          <div v-else class="flex items-center justify-center h-full text-gray-400 text-sm">
+          <div v-else class="flex items-center justify-center h-full text-text-subtle text-sm">
             No hay vista previa disponible para este tipo de sección.
           </div>
         </div>

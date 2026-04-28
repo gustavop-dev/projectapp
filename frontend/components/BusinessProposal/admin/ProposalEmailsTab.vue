@@ -23,7 +23,7 @@
           <span
             title="Registra el envío como actividad de la propuesta y actualiza la fecha de seguimiento del vendedor."
             class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border text-[9px] font-bold cursor-help leading-none"
-            :class="activeMode === 'proposal' ? 'border-white/50 text-white/80' : 'border-gray-400 text-gray-400 dark:border-green-light/40 dark:text-green-light/40'"
+            :class="activeMode === 'proposal' ? 'border-white/50 text-white/80' : 'border-gray-400 text-text-subtle dark:border-green-light/40 dark:text-green-light/40'"
           >?</span>
         </button>
         <button type="button"
@@ -36,7 +36,7 @@
           <span
             title="Envío de marca genérico. No registra actividad ni afecta el seguimiento de la propuesta."
             class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border text-[9px] font-bold cursor-help leading-none"
-            :class="activeMode === 'branded' ? 'border-white/50 text-white/80' : 'border-gray-400 text-gray-400 dark:border-green-light/40 dark:text-green-light/40'"
+            :class="activeMode === 'branded' ? 'border-white/50 text-white/80' : 'border-gray-400 text-text-subtle dark:border-green-light/40 dark:text-green-light/40'"
           >?</span>
         </button>
       </div>
@@ -67,21 +67,21 @@
         <div>
           <label class="block text-xs text-text-muted mb-1">Para</label>
           <input v-model="recipient" type="email" placeholder="correo@ejemplo.com"
-            class="w-full px-3 py-2 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring" />
+            class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring" />
         </div>
 
         <!-- Subject -->
         <div>
           <label class="block text-xs text-text-muted mb-1">Asunto</label>
           <input v-model="subject" type="text" placeholder="Asunto del correo"
-            class="w-full px-3 py-2 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring" />
+            class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring" />
         </div>
 
         <!-- Greeting -->
         <div>
           <label class="block text-xs text-text-muted mb-1">Saludo</label>
           <input v-model="greeting" type="text" placeholder="Hola Carlos"
-            class="w-full px-3 py-2 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring" />
+            class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring" />
         </div>
 
         <!-- Sections (draggable) -->
@@ -92,17 +92,17 @@
             <template #item="{ element: section, index: idx }">
               <div class="bg-surface-raised rounded-lg p-3 border border-border-muted">
                 <div class="flex items-center gap-2 mb-2">
-                  <span class="drag-handle cursor-grab text-gray-400 dark:text-green-light/40 hover:text-text-muted select-none text-sm">⠿</span>
-                  <span class="text-[10px] text-gray-400 dark:text-green-light/40 uppercase tracking-wide">Sección {{ idx + 1 }}</span>
+                  <span class="drag-handle cursor-grab text-text-subtle dark:text-green-light/40 hover:text-text-muted select-none text-sm">⠿</span>
+                  <span class="text-[10px] text-text-subtle dark:text-green-light/40 uppercase tracking-wide">Sección {{ idx + 1 }}</span>
                   <button v-if="sections.length > 1" type="button" @click="removeSection(idx)"
-                    class="ml-auto text-gray-400 hover:text-red-500 transition-colors p-0.5">
+                    class="ml-auto text-text-subtle hover:text-red-500 transition-colors p-0.5">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                   </button>
                 </div>
                 <textarea v-model="section.text" rows="3" placeholder="Escribe el contenido de esta sección..."
-                  class="w-full px-3 py-2 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring resize-y" />
+                  class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring resize-y" />
               </div>
             </template>
           </draggable>
@@ -119,7 +119,7 @@
         <div>
           <label class="block text-xs text-text-muted mb-1">Pie de correo</label>
           <textarea v-model="footer" rows="2" placeholder="Texto de cierre..."
-            class="w-full px-3 py-2 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring resize-y" />
+            class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring resize-y" />
         </div>
 
         <!-- Attachments -->
@@ -157,7 +157,7 @@
                 <span class="text-xs text-text-default truncate">{{ ref.label }}</span>
               </span>
               <button type="button" @click="removeDocRef(idx)"
-                class="text-gray-400 hover:text-red-500 transition-colors p-0.5">
+                class="text-text-subtle hover:text-red-500 transition-colors p-0.5">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -167,7 +167,7 @@
               class="flex items-center justify-between py-1.5 px-3 bg-surface-raised rounded-lg">
               <span class="text-xs text-text-default truncate">{{ file.name }}</span>
               <button type="button" @click="removeAttachment(idx)"
-                class="text-gray-400 hover:text-red-500 transition-colors p-0.5">
+                class="text-text-subtle hover:text-red-500 transition-colors p-0.5">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -277,9 +277,9 @@
         <h3 class="text-sm font-semibold text-text-default">Historial de correos enviados</h3>
       </div>
 
-      <div v-if="loadingHistory" class="text-xs text-gray-400 dark:text-green-light/40 py-4 text-center">Cargando historial...</div>
+      <div v-if="loadingHistory" class="text-xs text-text-subtle dark:text-green-light/40 py-4 text-center">Cargando historial...</div>
 
-      <div v-else-if="!history.length" class="text-xs text-gray-400 dark:text-green-light/40 py-4 text-center">
+      <div v-else-if="!history.length" class="text-xs text-text-subtle dark:text-green-light/40 py-4 text-center">
         No se han enviado correos desde esta propuesta.
       </div>
 
@@ -302,10 +302,10 @@
               </div>
               <div class="flex items-center gap-2 mt-0.5">
                 <span class="text-[11px] text-text-muted">{{ entry.recipient }}</span>
-                <span class="text-[10px] text-gray-400 dark:text-green-light/40">{{ formatDate(entry.sent_at) }}</span>
+                <span class="text-[10px] text-text-subtle dark:text-green-light/40">{{ formatDate(entry.sent_at) }}</span>
               </div>
             </div>
-            <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': expandedIds[entry.id] }"
+            <svg class="w-4 h-4 text-text-subtle transition-transform" :class="{ 'rotate-180': expandedIds[entry.id] }"
               fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
@@ -314,22 +314,22 @@
           <!-- Expanded detail -->
           <div v-if="expandedIds[entry.id]" class="border-t border-border-muted px-4 py-3 bg-surface-raised space-y-3">
             <div v-if="entry.metadata?.greeting">
-              <p class="text-[10px] text-gray-400 dark:text-green-light/40 uppercase tracking-wide mb-0.5">Saludo</p>
+              <p class="text-[10px] text-text-subtle dark:text-green-light/40 uppercase tracking-wide mb-0.5">Saludo</p>
               <p class="text-xs text-text-default">{{ entry.metadata.greeting }}</p>
             </div>
             <div v-if="entry.metadata?.sections?.length">
-              <p class="text-[10px] text-gray-400 dark:text-green-light/40 uppercase tracking-wide mb-1">Secciones</p>
+              <p class="text-[10px] text-text-subtle dark:text-green-light/40 uppercase tracking-wide mb-1">Secciones</p>
               <div v-for="(section, idx) in entry.metadata.sections" :key="idx"
                 class="bg-surface rounded-lg px-3 py-2 mb-1.5 border border-border-muted">
                 <p class="text-xs text-text-default whitespace-pre-wrap">{{ section }}</p>
               </div>
             </div>
             <div v-if="entry.metadata?.footer">
-              <p class="text-[10px] text-gray-400 dark:text-green-light/40 uppercase tracking-wide mb-0.5">Pie de correo</p>
+              <p class="text-[10px] text-text-subtle dark:text-green-light/40 uppercase tracking-wide mb-0.5">Pie de correo</p>
               <p class="text-xs text-text-default">{{ entry.metadata.footer }}</p>
             </div>
             <div v-if="entry.metadata?.attachment_names?.length">
-              <p class="text-[10px] text-gray-400 dark:text-green-light/40 uppercase tracking-wide mb-0.5">Adjuntos</p>
+              <p class="text-[10px] text-text-subtle dark:text-green-light/40 uppercase tracking-wide mb-0.5">Adjuntos</p>
               <div class="flex flex-wrap gap-1">
                 <span v-for="(name, idx) in entry.metadata.attachment_names" :key="idx"
                   class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border-default dark:border-white/[0.08] rounded text-[11px] text-text-muted/60">

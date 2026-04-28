@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+  <div class="min-h-screen flex items-center justify-center bg-surface-muted px-4">
     <div class="text-center">
       <h1 class="text-2xl font-light text-text-default mb-4">ProjectApp Admin</h1>
       <p class="text-text-muted text-sm mb-6">

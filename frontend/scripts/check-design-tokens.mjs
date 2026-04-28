@@ -6,9 +6,18 @@
  * Why: with the design-system migration, new code must prefer tokens so dark
  * mode and tenant theming "just work" without component-level changes.
  *
+ * Three checks run together:
+ *   1. FORBIDDEN — legacy literals (`bg-white`, `bg-esmerald-dark`, etc.).
+ *   2. INVALID_TOKEN_REFERENCES — `bg-X` where X isn't in tailwind.config.js
+ *      or the Tailwind defaults (catches typos like `bg-primary-soft0`).
+ *   3. UNSTYLED_FORM_CONTROLS — native <input>/<select>/<textarea> in panel
+ *      templates without a semantic background token. Bare inputs render
+ *      white in dark mode. Panel-only; skips elements with `:class=` since
+ *      dynamic bindings can't be statically traced.
+ *
  * Behavior:
  *   - Scans pages/, components/, layouts/ (excluding allowlist).
- *   - Reports forbidden literals grouped by file with line numbers.
+ *   - Reports offenses grouped by file with line numbers.
  *   - Exits with code 0 if no offenses or under the threshold.
  *   - Exits 1 only when --strict is passed (intended for CI on touched files).
  *
@@ -42,7 +51,7 @@ const FORBIDDEN = [
   { pattern: /\btext-lemon\b(?!\/[0-9])/, suggest: 'text-accent (or use a contextual token)' },
   { pattern: /\bdark:bg-gray-[5-9]00\b/, suggest: 'remove dark: variant — bg-surface auto-flips' },
   { pattern: /\bdark:bg-esmerald(?:-dark|-light)?\b/, suggest: 'remove dark: variant — bg-surface auto-flips' },
-  { pattern: /\btext-gray-[5-9]00\b/, suggest: 'text-text-default / text-text-muted / text-text-subtle' },
+  { pattern: /\btext-gray-[3-9]00\b/, suggest: 'text-text-default / text-text-muted / text-text-subtle' },
   { pattern: /\bdark:text-gray-[1-3]00\b/, suggest: 'remove dark: variant — text-text-* auto-flips' },
   { pattern: /\bborder-gray-[12]00\b/, suggest: 'border-border-default / border-border-muted / border-input-border' },
   { pattern: /\bdark:border-gray-[5-9]00\b/, suggest: 'remove dark: variant — border-border-* auto-flips' },
@@ -55,6 +64,40 @@ const FORBIDDEN = [
   { pattern: /\bbg-primary-soft\b(?!\/)[^"'\n]*\bdark:bg-emerald-900\/\d+/, suggest: 'remove dark:bg-emerald-900/* — bg-primary-soft has a dark override via CSS variable' },
   { pattern: /\bhover:bg-primary-soft\b(?!\/)[^"'\n]*\bdark:hover:bg-emerald-900\/\d+/, suggest: 'remove dark:hover:bg-emerald-900/* — hover:bg-primary-soft works in dark via CSS variable' },
 ];
+
+// Forbidden patterns that are tolerated only in specific files. Keeps the
+// rule strict everywhere except documented exceptions (e.g. `bg-gray-50` is
+// the panel page-wash, paired with `dark:bg-primary-strong` in the layout).
+const FORBIDDEN_CONDITIONAL = [
+  {
+    pattern: /\bbg-gray-50\b(?!\/[0-9])/,
+    suggest: 'bg-surface-muted (page wash, auto-flips to primary-strong in dark)',
+    allowedIn: new Set(['layouts/admin.vue']),
+  },
+  {
+    pattern: /\bbg-gray-100\b(?!\/[0-9])/,
+    suggest: 'bg-surface-raised (raised surface, auto-flips in dark)',
+    allowedIn: new Set([]),
+  },
+];
+
+// Tokens whose dark-mode value is intrinsically rgba() with a baked alpha
+// (see frontend/assets/styles/theme.css around lines 144-209). Using them
+// with a `/N` opacity modifier composes on top of an already-translucent
+// intent and produces an unpredictable color in dark mode. Use the bare
+// class. The triplet *-rgb fallback is white channels, so /N "works" but
+// not as the author expects.
+const ALPHA_BAKED_TOKENS = [
+  'surface-raised',
+  'border', 'border-muted',
+  'primary-soft',
+  'input-border', 'input-placeholder',
+  'success-soft', 'warning-soft', 'danger-soft',
+];
+
+const ALPHA_BAKED_PATTERN = new RegExp(
+  String.raw`(?<![\w-])(?:bg|text|border|ring|fill|stroke|placeholder|caret|accent|from|to|via|divide|outline)-(${ALPHA_BAKED_TOKENS.join('|')})\/\d+\b`,
+);
 
 // ----------------------------------------------------------------------------
 // Invalid-token detection: catches references to color tokens that don't exist
@@ -270,6 +313,104 @@ const ALLOWLIST = new Set([
   'pages/panel/styleguide.vue',
 ]);
 
+// ----------------------------------------------------------------------------
+// Form-control background check (panel only): every native <input>, <select>,
+// <textarea> in panel templates must declare a semantic background token.
+// The other rules catch *forbidden* classes; this one catches their *absence*
+// — a bare control inherits the user-agent default (white) which renders
+// blinding-bright in dark mode.
+// ----------------------------------------------------------------------------
+
+// Native form types that legitimately have no background (checkbox/radio show
+// only the indicator; file/submit/button/image/reset/range/color are buttons or
+// have user-agent-provided visuals; hidden has no UI).
+const FORM_CONTROL_TYPES_WITHOUT_BG = new Set([
+  'checkbox', 'radio', 'file', 'submit', 'button', 'image', 'reset',
+  'range', 'color', 'hidden',
+]);
+
+// Background tokens that satisfy the requirement. Includes dynamic-class
+// matches: if the attribute string contains any of these substrings (whether
+// in a static `class="..."`, a `:class="{ 'bg-X': cond }"`, or a `v-bind`),
+// we accept it.
+const ALLOWED_BG_PATTERNS = [
+  /\bbg-input-bg\b/,
+  /\bbg-input-text\b/,
+  /\bbg-input-placeholder\b/,
+  /\bbg-surface(?:-muted|-raised)?\b/,
+  /\bbg-primary(?:-strong|-soft)?\b/,
+  /\bbg-accent(?:-soft)?\b/,
+  /\bbg-(?:success|warning|danger)-(?:soft|strong)\b/,
+  /\bbg-on-(?:primary|danger)\b/,
+  /\bbg-transparent\b/,
+];
+
+const FORM_CONTROL_TAG_RE = /<(input|select|textarea)\b([^>]*)>/gi;
+// Extract `type="..."`/`type='...'` value from the attribute blob.
+const TYPE_ATTR_RE = /\btype\s*=\s*['"]([^'"]+)['"]/i;
+
+function findFormControlsMissingBg(content) {
+  const found = [];
+  const lineStarts = [0];
+  for (let i = 0; i < content.length; i++) {
+    if (content[i] === '\n') lineStarts.push(i + 1);
+  }
+  const offsetToLine = (offset) => {
+    // Binary search lineStarts for the largest start <= offset.
+    let lo = 0, hi = lineStarts.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >>> 1;
+      if (lineStarts[mid] <= offset) lo = mid; else hi = mid - 1;
+    }
+    return lo + 1; // 1-indexed
+  };
+
+  // Skip <script> and <style> blocks — input/select/textarea inside them are
+  // strings/comments, not real DOM.
+  const skipRanges = [];
+  const sectionRe = /<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi;
+  let sm;
+  while ((sm = sectionRe.exec(content)) !== null) {
+    skipRanges.push([sm.index, sm.index + sm[0].length]);
+  }
+  const inSkip = (idx) => skipRanges.some(([s, e]) => idx >= s && idx < e);
+
+  let m;
+  FORM_CONTROL_TAG_RE.lastIndex = 0;
+  while ((m = FORM_CONTROL_TAG_RE.exec(content)) !== null) {
+    if (inSkip(m.index)) continue;
+    const tag = m[1].toLowerCase();
+    const attrs = m[2];
+
+    // Native HTML elements only. Vue components are PascalCase (handled by the
+    // tag regex which only matches lowercase), but be explicit.
+    if (tag !== 'input' && tag !== 'select' && tag !== 'textarea') continue;
+
+    // For <input>, skip control types that don't render a fillable surface.
+    if (tag === 'input') {
+      const typeMatch = attrs.match(TYPE_ATTR_RE);
+      const inputType = typeMatch ? typeMatch[1].toLowerCase() : 'text';
+      if (FORM_CONTROL_TYPES_WITHOUT_BG.has(inputType)) continue;
+    }
+
+    // Accept if any allowed bg token appears anywhere in the attribute blob
+    // (works for static `class="..."` and for `:class="{ 'bg-X': cond }"`).
+    if (ALLOWED_BG_PATTERNS.some((re) => re.test(attrs))) continue;
+
+    // Vue dynamic class binding: the bg token may live in a function or
+    // computed property that the static scanner can't follow. Skip rather
+    // than false-positive.
+    if (/(?::|v-bind:)class\s*=/.test(attrs)) continue;
+
+    found.push({
+      line: offsetToLine(m.index),
+      tag,
+      snippet: m[0].replace(/\s+/g, ' ').slice(0, 120),
+    });
+  }
+  return found;
+}
+
 // Reads CLI flags.
 const args = process.argv.slice(2);
 const strict = args.includes('--strict');
@@ -344,8 +485,14 @@ function styleBlockLines(content) {
   return inside;
 }
 
+// Panel-scope predicate (used to gate the form-control rule, regardless of the
+// current --scope flag — the rule is panel-only because public/platform pages
+// are mid-migration and the rule would create false positives there).
+const isPanelFile = SCOPES.panel;
+
 const offenses = [];
 const invalidTokenOffenses = [];
+const formControlOffenses = [];
 for (const file of targetFiles()) {
   const rel = path.relative(FRONTEND_ROOT, file);
   if (isAllowed(rel)) continue;
@@ -368,12 +515,36 @@ for (const file of targetFiles()) {
         break; // one offense per line is enough
       }
     }
+    for (const { pattern, suggest, allowedIn } of FORBIDDEN_CONDITIONAL) {
+      if (allowedIn.has(rel)) continue;
+      const m = line.match(pattern);
+      if (m) {
+        offenses.push({ file: rel, line: lineNo, match: m[0], suggest });
+        break;
+      }
+    }
+    if (!styleLines.has(lineNo)) {
+      const m = line.match(ALPHA_BAKED_PATTERN);
+      if (m) {
+        offenses.push({
+          file: rel,
+          line: lineNo,
+          match: m[0],
+          suggest: `drop the /N modifier — ${m[1]} is alpha-baked in dark (see theme.css)`,
+        });
+      }
+    }
+  }
+  if (file.endsWith('.vue') && isPanelFile(rel)) {
+    for (const fc of findFormControlsMissingBg(content)) {
+      formControlOffenses.push({ file: rel, line: fc.line, tag: fc.tag, snippet: fc.snippet });
+    }
   }
 }
 
-const totalOffenses = offenses.length + invalidTokenOffenses.length;
+const totalOffenses = offenses.length + invalidTokenOffenses.length + formControlOffenses.length;
 if (totalOffenses === 0) {
-  console.log(`✓ design-tokens: no forbidden literals or invalid tokens found (scope=${scope})`);
+  console.log(`✓ design-tokens: no forbidden literals, invalid tokens, or unstyled form controls found (scope=${scope})`);
   process.exit(0);
 }
 
@@ -387,9 +558,15 @@ const groupedInvalid = invalidTokenOffenses.reduce((acc, o) => {
   return acc;
 }, {});
 
+const groupedFormControls = formControlOffenses.reduce((acc, o) => {
+  (acc[o.file] = acc[o.file] || []).push(o);
+  return acc;
+}, {});
+
 const forbiddenSummary = `${offenses.length} forbidden literal${offenses.length === 1 ? '' : 's'} across ${Object.keys(grouped).length} file${Object.keys(grouped).length === 1 ? '' : 's'}`;
 const invalidSummary = `${invalidTokenOffenses.length} invalid token reference${invalidTokenOffenses.length === 1 ? '' : 's'} across ${Object.keys(groupedInvalid).length} file${Object.keys(groupedInvalid).length === 1 ? '' : 's'}`;
-const summary = `design-tokens: ${forbiddenSummary}, ${invalidSummary} (scope=${scope})`;
+const formControlSummary = `${formControlOffenses.length} form control${formControlOffenses.length === 1 ? '' : 's'} without semantic bg across ${Object.keys(groupedFormControls).length} file${Object.keys(groupedFormControls).length === 1 ? '' : 's'}`;
+const summary = `design-tokens: ${forbiddenSummary}, ${invalidSummary}, ${formControlSummary} (scope=${scope})`;
 
 if (quiet) {
   console.log(summary);
@@ -411,6 +588,17 @@ if (quiet) {
       console.log(`  ${file}`);
       for (const o of list) {
         console.log(`    L${o.line}  ${o.match}  (unknown token: ${o.token})`);
+      }
+    }
+  }
+  if (formControlOffenses.length) {
+    if (offenses.length || invalidTokenOffenses.length) console.log('');
+    console.log(`UNSTYLED_FORM_CONTROLS — native <input>/<select>/<textarea> in panel without a semantic background:`);
+    console.log(`  Add bg-input-bg (preferred) or bg-surface / bg-transparent / use a Base* component.`);
+    for (const [file, list] of Object.entries(groupedFormControls)) {
+      console.log(`  ${file}`);
+      for (const o of list) {
+        console.log(`    L${o.line}  <${o.tag}>  ${o.snippet}`);
       }
     }
   }

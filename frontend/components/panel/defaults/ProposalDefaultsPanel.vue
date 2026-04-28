@@ -78,12 +78,12 @@
             <BaseInput v-model.number="generalForm.expiration_days" type="number" min="1" max="365" class="w-32" />
             <span class="text-sm text-text-muted">días</span>
           </div>
-          <p class="text-xs text-gray-400 mt-1">3 semanas = 21 días.</p>
+          <p class="text-xs text-text-subtle mt-1">3 semanas = 21 días.</p>
         </div>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Descuento por defecto (%)</label>
           <BaseInput v-model.number="generalForm.discount_percent" type="number" min="0" max="100" />
-          <p class="text-xs text-gray-400 mt-1">0 = sin descuento en email de urgencia.</p>
+          <p class="text-xs text-text-subtle mt-1">0 = sin descuento en email de urgencia.</p>
         </div>
         <div>
           <label class="flex items-center gap-2 text-sm font-medium text-text-default mb-1">
@@ -114,7 +114,7 @@
             class="font-mono"
             placeholder="{client_name}"
           />
-          <p class="text-xs text-gray-400 mt-1">
+          <p class="text-xs text-text-subtle mt-1">
             Texto libre permitido. Se aplica al crear una propuesta si el vendedor no escribe una URL manualmente.
           </p>
           <p class="text-xs text-text-muted mt-1">
@@ -156,13 +156,13 @@
             {{ opt.label }}
           </button>
         </div>
-        <span v-if="configUpdatedAt" class="text-[11px] text-gray-400 ml-4">
+        <span v-if="configUpdatedAt" class="text-[11px] text-text-subtle ml-4">
           Última actualización: {{ formatDate(configUpdatedAt) }}
         </span>
       </div>
 
       <!-- Loading -->
-      <div v-if="isLoading" class="text-center py-12 text-gray-400 text-sm">
+      <div v-if="isLoading" class="text-center py-12 text-text-subtle text-sm">
         Cargando configuración...
       </div>
 
@@ -174,13 +174,13 @@
           class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden"
         >
           <div
-            class="px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            class="px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-surface-muted dark:hover:bg-gray-700/50 transition-colors"
             @click="toggleSection(idx)"
           >
             <div class="flex items-center gap-4">
-              <span class="text-xs text-gray-400 font-mono w-6">{{ section.order + 1 }}</span>
+              <span class="text-xs text-text-subtle font-mono w-6">{{ section.order + 1 }}</span>
               <span class="text-sm font-medium text-text-default">{{ section.title }}</span>
-              <span class="text-xs text-gray-400">({{ section.section_type }})</span>
+              <span class="text-xs text-text-subtle">({{ section.section_type }})</span>
             </div>
             <div class="flex items-center gap-3">
               <span
@@ -199,7 +199,7 @@
                 </svg>
               </button>
               <svg
-                class="w-4 h-4 text-gray-400 transition-transform"
+                class="w-4 h-4 text-text-subtle transition-transform"
                 :class="{ 'rotate-180': expandedSections.has(idx) }"
                 fill="none" stroke="currentColor" viewBox="0 0 24 24"
               >
@@ -350,7 +350,7 @@
             </button>
           </div>
 
-          <div v-if="emailIsLoading" class="text-center py-12 text-gray-400 text-sm">
+          <div v-if="emailIsLoading" class="text-center py-12 text-text-subtle text-sm">
             Cargando plantillas...
           </div>
 
@@ -369,11 +369,11 @@
                 <span class="text-lg flex-shrink-0">{{ emailCategoryIcon(tpl.category) }}</span>
                 <div class="min-w-0 flex-1">
                   <div class="text-sm font-medium text-text-default truncate">{{ tpl.name }}</div>
-                  <div class="text-xs text-gray-400 truncate">{{ tpl.description }}</div>
+                  <div class="text-xs text-text-subtle truncate">{{ tpl.description }}</div>
                   <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
                     <span v-if="tpl.is_customized" class="text-[10px] text-text-brand font-medium bg-primary-soft px-1.5 py-0.5 rounded-full">Personalizado</span>
                     <span v-if="!tpl.is_active" class="text-[10px] text-red-600 font-medium bg-red-50 dark:bg-red-900/20 dark:text-red-400 px-1.5 py-0.5 rounded-full">Desactivado</span>
-                    <span class="text-[10px] text-gray-400">{{ tpl.editable_fields_count }} campos</span>
+                    <span class="text-[10px] text-text-subtle">{{ tpl.editable_fields_count }} campos</span>
                   </div>
                 </div>
               </div>
@@ -390,11 +390,11 @@
             v-if="!emailSelectedTemplate"
             class="bg-surface rounded-xl shadow-sm border border-dashed border-border-default px-6 py-16 text-center"
           >
-            <p class="text-sm text-gray-400">Selecciona una plantilla a la izquierda para editar sus campos.</p>
+            <p class="text-sm text-text-subtle">Selecciona una plantilla a la izquierda para editar sus campos.</p>
           </div>
           <div
             v-else-if="emailIsLoadingDetail && !emailTemplateDetail"
-            class="bg-surface rounded-xl shadow-sm border border-border-muted px-6 py-12 text-center text-gray-400 text-sm"
+            class="bg-surface rounded-xl shadow-sm border border-border-muted px-6 py-12 text-center text-text-subtle text-sm"
           >
             Cargando campos editables...
           </div>
@@ -407,7 +407,7 @@
                 <span class="text-2xl flex-shrink-0">{{ emailCategoryIcon(emailTemplateDetail.category) }}</span>
                 <div class="min-w-0">
                   <h3 class="text-base font-medium text-text-default truncate">{{ emailTemplateDetail.name }}</h3>
-                  <p class="text-xs text-gray-400 mt-0.5">{{ emailTemplateDetail.description }}</p>
+                  <p class="text-xs text-text-subtle mt-0.5">{{ emailTemplateDetail.description }}</p>
                 </div>
               </div>
               <button
@@ -423,7 +423,7 @@
             <div class="flex items-center justify-between">
               <div>
                 <span class="text-sm font-medium text-text-default">Estado del email</span>
-                <p class="text-xs text-gray-400 mt-0.5">Desactiva para dejar de enviar este correo.</p>
+                <p class="text-xs text-text-subtle mt-0.5">Desactiva para dejar de enviar este correo.</p>
               </div>
               <BaseToggle
                 v-model="emailEditIsActive"
@@ -441,7 +441,7 @@
                 <button
                   v-if="emailEditFields[field.key] && emailEditFields[field.key] !== field.default_value"
                   type="button"
-                  class="text-[10px] text-gray-400 hover:text-red-500 transition-colors"
+                  class="text-[10px] text-text-subtle hover:text-red-500 transition-colors"
                   @click="emailEditFields[field.key] = field.default_value || ''"
                 >restaurar campo</button>
               </div>
@@ -735,7 +735,7 @@
         </template>
       </div>
 
-      <div v-if="defaultsJsonLoading" class="text-center py-8 text-gray-400 text-sm">
+      <div v-if="defaultsJsonLoading" class="text-center py-8 text-text-subtle text-sm">
         Cargando JSON...
       </div>
 

@@ -174,7 +174,7 @@
           <tr
             v-for="d in paginatedDiagnostics"
             :key="d.id"
-            class="transition-colors cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
+            class="transition-colors cursor-pointer hover:bg-surface-muted dark:hover:bg-gray-700/50"
             :data-testid="`diagnostic-row-${d.id}`"
             @click="navigateToDiagnostic(d.id, $event)"
           >
@@ -253,7 +253,7 @@
                 </h3>
                 <p class="text-xs text-text-muted mt-0.5">
                   {{ actionsModalDiagnostic.client?.name || '—' }}
-                  <span v-if="actionsModalDiagnostic.created_at" class="ml-1 text-gray-400">
+                  <span v-if="actionsModalDiagnostic.created_at" class="ml-1 text-text-subtle">
                     · {{ formatDate(actionsModalDiagnostic.created_at) }}
                   </span>
                 </p>

@@ -335,7 +335,7 @@
               :style="{ width: sectionCompleteness + '%' }"
             />
           </div>
-          <p class="text-[11px] text-gray-400 mt-1.5">
+          <p class="text-[11px] text-text-subtle mt-1.5">
             {{ sectionsWithContent }}/{{ enabledSectionsCount }} secciones habilitadas tienen contenido.
           </p>
         </div>
@@ -367,14 +367,14 @@
         <!-- Summary metrics -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4">
-            <p class="text-xs font-medium text-gray-400 dark:text-green-light/40 uppercase tracking-wide">Secciones</p>
+            <p class="text-xs font-medium text-text-subtle dark:text-green-light/40 uppercase tracking-wide">Secciones</p>
             <p class="mt-1.5 text-2xl font-light text-text-default tabular-nums">{{ jsonSummary.total }}</p>
             <p class="text-xs text-text-muted mt-0.5">
               {{ jsonSummary.enabled }} habilitadas · {{ jsonSummary.enabledPct }}%
             </p>
           </div>
           <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4">
-            <p class="text-xs font-medium text-gray-400 dark:text-green-light/40 uppercase tracking-wide">Progreso</p>
+            <p class="text-xs font-medium text-text-subtle dark:text-green-light/40 uppercase tracking-wide">Progreso</p>
             <p class="mt-1.5 text-2xl font-light text-text-default tabular-nums">{{ jsonSummary.progressPct }}%</p>
             <div class="mt-2 h-1.5 rounded-full bg-surface-raised overflow-hidden">
               <div
@@ -387,18 +387,18 @@
             </p>
           </div>
           <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4">
-            <p class="text-xs font-medium text-gray-400 dark:text-green-light/40 uppercase tracking-wide">Tamaño JSON</p>
+            <p class="text-xs font-medium text-text-subtle dark:text-green-light/40 uppercase tracking-wide">Tamaño JSON</p>
             <p class="mt-1.5 text-2xl font-light text-text-default tabular-nums">{{ jsonSummary.sizeLabel }}</p>
             <p class="text-xs text-text-muted mt-0.5">Metadata + secciones</p>
           </div>
           <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4">
-            <p class="text-xs font-medium text-gray-400 dark:text-green-light/40 uppercase tracking-wide">Última actualización</p>
+            <p class="text-xs font-medium text-text-subtle dark:text-green-light/40 uppercase tracking-wide">Última actualización</p>
             <p
               class="mt-1.5 text-sm font-medium text-text-default"
               :title="jsonSummary.updatedAt || ''"
             >
               <span v-if="jsonSummary.updatedAt">{{ formatDate(jsonSummary.updatedAt) }}</span>
-              <span v-else class="text-gray-400 dark:text-green-light/40">—</span>
+              <span v-else class="text-text-subtle dark:text-green-light/40">—</span>
             </p>
             <p class="text-xs text-text-muted mt-0.5">Al guardar cambios</p>
           </div>
@@ -411,7 +411,7 @@
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
               <h3 class="text-sm font-medium text-text-default">JSON del diagnóstico</h3>
-              <p class="text-xs text-gray-400 dark:text-green-light/40 mt-0.5">Representación JSON completa — se actualiza al guardar cambios en otras pestañas.</p>
+              <p class="text-xs text-text-subtle dark:text-green-light/40 mt-0.5">Representación JSON completa — se actualiza al guardar cambios en otras pestañas.</p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <button
@@ -446,8 +446,8 @@
             :value="exportJsonString"
             readonly
             rows="18"
-            class="w-full px-4 py-3 border border-border-default dark:border-white/[0.08] rounded-xl text-xs font-mono leading-relaxed
-                   bg-gray-50  text-text-default outline-none resize-y cursor-text select-all"
+            class="bg-input-bg w-full px-4 py-3 border border-border-default rounded-xl text-xs font-mono leading-relaxed
+                   text-text-default outline-none resize-y cursor-text select-all"
           />
         </div>
 
@@ -457,7 +457,7 @@
         <!-- Import JSON -->
         <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4 sm:p-6">
           <h3 class="text-sm font-medium text-text-default mb-1">Importar JSON</h3>
-          <p class="text-xs text-gray-400 mb-4">Pega o sube un JSON para reemplazar el contenido del diagnóstico (metadata + secciones).</p>
+          <p class="text-xs text-text-subtle mb-4">Pega o sube un JSON para reemplazar el contenido del diagnóstico (metadata + secciones).</p>
 
           <div class="flex items-center gap-3 mb-3">
             <label
@@ -477,7 +477,7 @@
             v-model="jsonImportRaw"
             rows="10"
             placeholder="Pega aquí el JSON completo del diagnóstico..."
-            class="w-full px-4 py-3 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-xs font-mono leading-relaxed
+            class="bg-input-bg w-full px-4 py-3 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-xs font-mono leading-relaxed
                    focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
             @input="parseImportJson"
           />
@@ -508,7 +508,7 @@
               </svg>
               {{ store.isUpdating ? 'Aplicando...' : 'Aplicar JSON' }}
             </button>
-            <p class="text-xs text-gray-400 dark:text-green-light/40">Esto reemplazará la metadata y todas las secciones del diagnóstico.</p>
+            <p class="text-xs text-text-subtle dark:text-green-light/40">Esto reemplazará la metadata y todas las secciones del diagnóstico.</p>
           </div>
 
           <div v-if="jsonImportMsg" class="mt-3 text-sm px-4 py-3 rounded-xl" :class="jsonImportMsg.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'">

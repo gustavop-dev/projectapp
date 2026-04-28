@@ -18,11 +18,11 @@
               v-model="newName"
               type="text"
               placeholder="Nombre"
-              class="flex-1 px-3 py-2 border border-border-default rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 outline-none"
+              class="bg-input-bg flex-1 px-3 py-2 border border-border-default rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 outline-none"
             />
             <select
               v-model="newColor"
-              class="px-3 py-2 border border-border-default rounded-lg text-sm"
+              class="bg-input-bg px-3 py-2 border border-border-default rounded-lg text-sm"
             >
               <option v-for="c in COLORS" :key="c.value" :value="c.value">{{ c.label }}</option>
             </select>
@@ -48,7 +48,7 @@
                   v-if="editingId === tag.id"
                   v-model="editingName"
                   type="text"
-                  class="flex-1 px-2 py-1 border border-border-default rounded text-sm"
+                  class="bg-input-bg flex-1 px-2 py-1 border border-border-default rounded text-sm"
                   @keyup.enter="commitRename(tag)"
                 />
                 <span v-else class="flex-1 text-sm text-text-default truncate">{{ tag.name }}</span>
@@ -56,7 +56,7 @@
                 <select
                   v-if="editingId === tag.id"
                   v-model="editingColor"
-                  class="text-xs px-2 py-1 border border-border-default rounded"
+                  class="bg-input-bg text-xs px-2 py-1 border border-border-default rounded"
                 >
                   <option v-for="c in COLORS" :key="c.value" :value="c.value">{{ c.label }}</option>
                 </select>

@@ -73,7 +73,7 @@
           v-for="day in weekDays"
           :key="day.date"
           class="min-h-[160px] p-3"
-          :class="{ 'bg-primary-soft/40 dark:bg-primary-soft': day.isToday }"
+          :class="{ 'bg-primary-soft dark:bg-primary-soft': day.isToday }"
         >
           <!-- Day header -->
           <div class="mb-2">

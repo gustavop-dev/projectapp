@@ -8,7 +8,7 @@
 
     <div
       v-if="moduleLinkOptions.length"
-      class="rounded-xl border border-dashed border-emerald-200 bg-primary-soft/40 p-4 space-y-2"
+      class="rounded-xl border border-dashed border-emerald-200 bg-primary-soft p-4 space-y-2"
     >
       <p class="text-xs font-medium text-text-default">Plantilla genérica por módulo comercial</p>
       <p class="text-[11px] text-text-muted">

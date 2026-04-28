@@ -32,7 +32,7 @@
           </label>
           <span class="text-xs text-text-subtle">o usa una URL externa abajo</span>
         </div>
-        <input v-model="form.cover_image_url" type="url" class="w-full mt-3 px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="URL externa de imagen (opcional)" />
+        <input v-model="form.cover_image_url" type="url" class="bg-input-bg w-full mt-3 px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="URL externa de imagen (opcional)" />
       </div>
 
       <!-- Español -->
@@ -40,15 +40,15 @@
         <legend class="text-sm font-medium text-text-default px-2">Español</legend>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Título (ES)</label>
-          <input v-model="form.title_es" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
+          <input v-model="form.title_es" type="text" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
         </div>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Tagline (ES)</label>
-          <input v-model="form.excerpt_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
+          <input v-model="form.excerpt_es" type="text" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
         </div>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Contenido JSON (ES)</label>
-          <textarea v-model="contentJsonEsRaw" rows="12" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-xs font-mono focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all resize-y" placeholder='{ "problem": {...}, "solution": {...}, "results": {...} }' />
+          <textarea v-model="contentJsonEsRaw" rows="12" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-xs font-mono focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all resize-y" placeholder='{ "problem": {...}, "solution": {...}, "results": {...} }' />
         </div>
       </fieldset>
 
@@ -57,15 +57,15 @@
         <legend class="text-sm font-medium text-text-default px-2">English</legend>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Title (EN)</label>
-          <input v-model="form.title_en" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
+          <input v-model="form.title_en" type="text" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
         </div>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Tagline (EN)</label>
-          <input v-model="form.excerpt_en" type="text" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
+          <input v-model="form.excerpt_en" type="text" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
         </div>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Content JSON (EN)</label>
-          <textarea v-model="contentJsonEnRaw" rows="12" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-xs font-mono focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all resize-y" placeholder='{ "problem": {...}, "solution": {...}, "results": {...} }' />
+          <textarea v-model="contentJsonEnRaw" rows="12" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-xs font-mono focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all resize-y" placeholder='{ "problem": {...}, "solution": {...}, "results": {...} }' />
         </div>
       </fieldset>
 
@@ -73,15 +73,15 @@
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">URL del proyecto</label>
-          <input v-model="form.project_url" type="url" required class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
+          <input v-model="form.project_url" type="url" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
         </div>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Slug</label>
-          <input v-model="form.slug" type="text" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
+          <input v-model="form.slug" type="text" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
         </div>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Orden</label>
-          <input v-model.number="form.order" type="number" min="0" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
+          <input v-model.number="form.order" type="number" min="0" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
         </div>
       </div>
 
@@ -91,27 +91,27 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-medium text-text-muted/60 mb-1">Meta título (ES)</label>
-            <input v-model="form.meta_title_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
+            <input v-model="form.meta_title_es" type="text" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
           </div>
           <div>
             <label class="block text-xs font-medium text-text-muted/60 mb-1">Meta title (EN)</label>
-            <input v-model="form.meta_title_en" type="text" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
+            <input v-model="form.meta_title_en" type="text" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
           </div>
           <div>
             <label class="block text-xs font-medium text-text-muted/60 mb-1">Meta descripción (ES)</label>
-            <textarea v-model="form.meta_description_es" rows="2" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all resize-y" />
+            <textarea v-model="form.meta_description_es" rows="2" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all resize-y" />
           </div>
           <div>
             <label class="block text-xs font-medium text-text-muted/60 mb-1">Meta description (EN)</label>
-            <textarea v-model="form.meta_description_en" rows="2" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all resize-y" />
+            <textarea v-model="form.meta_description_en" rows="2" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all resize-y" />
           </div>
           <div>
             <label class="block text-xs font-medium text-text-muted/60 mb-1">Keywords (ES)</label>
-            <input v-model="form.meta_keywords_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="keyword1, keyword2" />
+            <input v-model="form.meta_keywords_es" type="text" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="keyword1, keyword2" />
           </div>
           <div>
             <label class="block text-xs font-medium text-text-muted/60 mb-1">Keywords (EN)</label>
-            <input v-model="form.meta_keywords_en" type="text" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="keyword1, keyword2" />
+            <input v-model="form.meta_keywords_en" type="text" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="keyword1, keyword2" />
           </div>
         </div>
       </fieldset>

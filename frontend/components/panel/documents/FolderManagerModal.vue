@@ -23,7 +23,7 @@
             </div>
             <button
               type="button"
-              class="w-8 h-8 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              class="w-8 h-8 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised dark:hover:bg-gray-700 transition-colors"
               @click="close"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -61,7 +61,7 @@
               <span class="text-[11px] font-semibold text-text-subtle uppercase tracking-wider">
                 {{ localFolders.length }} carpeta{{ localFolders.length !== 1 ? 's' : '' }}
               </span>
-              <div class="flex-1 h-px bg-gray-100"></div>
+              <div class="flex-1 h-px bg-surface-raised"></div>
               <span class="text-[10px] text-text-subtle flex items-center gap-1">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
@@ -74,7 +74,7 @@
           <!-- Folder list -->
           <div class="flex-1 overflow-y-auto px-6 pb-2">
             <div v-if="!localFolders.length" class="flex flex-col items-center justify-center py-12 text-center">
-              <div class="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
+              <div class="w-14 h-14 rounded-2xl bg-surface-raised flex items-center justify-center mb-3">
                 <svg class="w-7 h-7 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
                 </svg>
@@ -97,7 +97,7 @@
               <template #item="{ element: folder }">
                 <div
                   :key="folder.id"
-                  class="group flex items-center gap-3 px-3 py-3 rounded-xl border border-border-muted hover:border-border-default dark:hover:border-gray-600 bg-surface hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
+                  class="group flex items-center gap-3 px-3 py-3 rounded-xl border border-border-muted hover:border-border-default dark:hover:border-gray-600 bg-surface hover:bg-surface-muted dark:hover:bg-gray-700/50 transition-all"
                 >
                   <div
                     class="drag-handle flex-shrink-0 w-5 h-5 flex items-center justify-center text-text-subtle dark:text-text-muted hover:text-text-subtle dark:hover:text-text-muted cursor-grab active:cursor-grabbing transition-colors"
@@ -128,7 +128,7 @@
 
                   <span
                     v-if="editingId !== folder.id"
-                    class="flex-shrink-0 inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1.5 rounded-full bg-gray-100/80 text-xs font-medium text-text-muted dark:text-text-subtle"
+                    class="flex-shrink-0 inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1.5 rounded-full bg-surface-raised text-xs font-medium text-text-muted dark:text-text-subtle"
                   >
                     {{ folder.document_count }}
                   </span>
@@ -230,7 +230,7 @@
           <div class="px-6 py-4 border-t border-border-muted flex justify-end flex-shrink-0">
             <button
               type="button"
-              class="px-5 py-2 text-sm font-medium text-text-muted hover:text-text-default dark:text-text-subtle dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+              class="px-5 py-2 text-sm font-medium text-text-muted hover:text-text-default dark:text-text-subtle dark:hover:text-gray-100 hover:bg-surface-raised dark:hover:bg-gray-700 rounded-xl transition-colors"
               @click="close"
             >
               Cerrar
