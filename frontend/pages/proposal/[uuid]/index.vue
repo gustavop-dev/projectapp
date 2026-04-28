@@ -114,7 +114,7 @@
 
         <!-- Dark mode toggle -->
         <button
-          v-if="viewMode && viewMode !== 'technical'"
+          v-if="viewMode"
           class="dark-mode-toggle fixed bottom-6 left-6 z-[9990] w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-lg transition-all hover:scale-110"
           :class="proposalDarkMode ? 'bg-gray-700 text-yellow-300 hover:bg-gray-600' : 'bg-surface text-text-muted border border-border-default hover:bg-surface-muted'"
           :title="pLang === 'es' ? 'Cambiar tema' : 'Toggle theme'"

@@ -42,7 +42,7 @@
 
           <aside v-if="content.result" data-animate="fade-up" class="lg:col-span-4">
             <div class="rounded-3xl bg-primary p-6 md:p-8">
-              <h3 class="text-white font-light text-base md:text-lg tracking-wide mb-4">
+              <h3 class="text-accent font-light text-base md:text-lg tracking-wide mb-4">
                 {{ content.resultTitle }}
               </h3>
               <p class="text-white font-light leading-relaxed text-lg" v-html="linkify(content.result)" />

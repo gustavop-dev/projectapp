@@ -70,10 +70,12 @@
 
       <!-- Next Steps (merged from next_steps section) -->
       <template v-if="nextSteps && nextSteps.length">
-        <div data-animate="fade-up" class="mt-16 mb-8 text-center" v-if="nextStepsIntro">
-          <p class="text-xl sm:text-2xl text-text-default leading-relaxed font-light">
-            {{ nextStepsIntro }}
-          </p>
+        <div data-animate="fade-up" class="mt-16 mb-8 flex justify-center" v-if="nextStepsIntro">
+          <div class="next-steps-intro-badge bg-primary-soft border border-border-default rounded-2xl px-6 py-5 sm:px-8 sm:py-6 max-w-3xl shadow-sm">
+            <p class="text-base sm:text-lg text-text-default leading-relaxed font-light text-center">
+              {{ nextStepsIntro }}
+            </p>
+          </div>
         </div>
 
         <div data-animate="fade-up-stagger" class="grid md:grid-cols-3 gap-4 sm:gap-8 mb-12">

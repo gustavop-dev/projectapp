@@ -40,7 +40,7 @@
             :href="whatsappLink"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center gap-2 px-6 py-3 bg-accent text-white rounded-xl font-bold text-sm hover:opacity-90 transition-colors shadow-lg"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-primary-strong text-accent rounded-xl font-bold text-sm hover:bg-primary transition-colors shadow-lg ring-1 ring-accent/40"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
             {{ t.whatsappCta }}
@@ -105,7 +105,7 @@
             :href="whatsappLink"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center gap-2 px-6 py-3 bg-surface/15 text-text-default rounded-xl font-medium text-sm hover:bg-surface/25 transition-colors border border-border-default/20"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-surface/15 text-white rounded-xl font-medium text-sm hover:bg-surface/25 transition-colors border border-border-default/20"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
             {{ t.contactCta }}
