@@ -45,7 +45,7 @@
               <h3 class="text-accent font-light text-base md:text-lg tracking-wide mb-4">
                 {{ content.resultTitle }}
               </h3>
-              <p class="text-text-brand font-light leading-relaxed text-lg" v-html="linkify(content.result)" />
+              <p class="text-on-primary font-light leading-relaxed text-lg" v-html="linkify(content.result)" />
             </div>
           </aside>
         </div>

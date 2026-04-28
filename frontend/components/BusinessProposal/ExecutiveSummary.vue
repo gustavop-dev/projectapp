@@ -29,7 +29,7 @@
               <ul class="space-y-4">
                 <li v-for="(item, idx) in content.highlights" :key="idx" class="flex gap-3">
                   <span class="mt-3 h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0"></span>
-                  <p class="text-text-brand font-light leading-relaxed" v-html="linkify(item)" />
+                  <p class="text-on-primary font-light leading-relaxed" v-html="linkify(item)" />
                 </li>
               </ul>
             </div>

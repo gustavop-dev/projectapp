@@ -30,7 +30,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm text-accent leading-relaxed">{{ reason }}</p>
+              <p class="text-sm text-on-primary leading-relaxed">{{ reason }}</p>
             </div>
           </div>
         </div>
@@ -49,35 +49,35 @@
       </div>
 
       <!-- F5: Pricing card — payment plan as hero, total secondary -->
-      <div data-animate="fade-up" class="pricing-card bg-primary p-5 sm:p-8 md:p-12 rounded-3xl text-accent mb-12 shadow-2xl">
+      <div data-animate="fade-up" class="pricing-card bg-primary p-5 sm:p-8 md:p-12 rounded-3xl text-on-primary mb-12 shadow-2xl">
         <!-- Payment plan as hero (if available) -->
         <div v-if="paymentOptions && paymentOptions.length" class="mb-8">
           <div class="text-center mb-6">
-            <div class="text-sm font-semibold uppercase tracking-wider text-accent mb-1">{{ t.paymentOptions }}</div>
-            <div class="text-2xl sm:text-3xl font-bold text-accent">{{ computedPaymentOptions.length }} {{ t.convenientPayments }}</div>
+            <div class="text-sm font-semibold uppercase tracking-wider text-on-primary mb-1">{{ t.paymentOptions }}</div>
+            <div class="text-2xl sm:text-3xl font-bold text-on-primary">{{ computedPaymentOptions.length }} {{ t.convenientPayments }}</div>
           </div>
           <div class="max-w-lg mx-auto space-y-3">
             <div v-for="(option, idx) in computedPaymentOptions" :key="idx"
                  class="payment-option-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 p-3 sm:p-4 bg-surface/10 rounded-xl">
-              <span class="text-sm text-accent/80">{{ option.label }}</span>
-              <span class="text-lg font-bold text-accent">{{ option.description }}</span>
+              <span class="text-sm text-on-primary/80">{{ option.label }}</span>
+              <span class="text-lg font-bold text-on-primary">{{ option.description }}</span>
             </div>
           </div>
           <!-- Total as secondary line -->
           <div class="text-center mt-6 pt-5 border-t border-border-default/15">
-            <span class="text-sm text-accent/70">{{ t.totalInvestment }}:</span>
-            <span class="text-xl font-bold text-accent ml-2">{{ formatCurrency(displayTotal) }}</span>
-            <span class="text-sm text-accent/70 ml-1">{{ currency }}</span>
-            <p v-if="isBadgeVisible" class="text-xs text-accent/50 mt-1">{{ t.customized }}</p>
+            <span class="text-sm text-on-primary/70">{{ t.totalInvestment }}:</span>
+            <span class="text-xl font-bold text-on-primary ml-2">{{ formatCurrency(displayTotal) }}</span>
+            <span class="text-sm text-on-primary/70 ml-1">{{ currency }}</span>
+            <p v-if="isBadgeVisible" class="text-xs text-on-primary/50 mt-1">{{ t.customized }}</p>
           </div>
         </div>
 
         <!-- Fallback: total as hero when no payment options -->
         <div v-else class="text-center mb-8">
-          <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-accent">{{ t.totalInvestment }}</div>
-          <div class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-accent">{{ formatCurrency(displayTotal) }}</div>
-          <div class="text-accent">{{ currency }}</div>
-          <p v-if="isBadgeVisible" class="text-xs text-accent/70 mt-2">{{ t.customized }}</p>
+          <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-on-primary">{{ t.totalInvestment }}</div>
+          <div class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-on-primary">{{ formatCurrency(displayTotal) }}</div>
+          <div class="text-on-primary">{{ currency }}</div>
+          <p v-if="isBadgeVisible" class="text-xs text-on-primary/70 mt-2">{{ t.customized }}</p>
         </div>
 
         <!-- What's included grid -->
@@ -85,8 +85,8 @@
           <div v-for="(item, index) in whatsIncluded" :key="index"
                class="text-center p-4 bg-surface/10 backdrop-blur-sm rounded-xl">
             <div class="text-3xl mb-2">{{ item.icon }}</div>
-            <div class="font-bold text-accent mb-1">{{ item.title }}</div>
-            <div class="text-sm text-accent/70">{{ item.description }}</div>
+            <div class="font-bold text-on-primary mb-1">{{ item.title }}</div>
+            <div class="text-sm text-on-primary/70">{{ item.description }}</div>
           </div>
         </div>
         <!-- Customize investment + Contact CTA buttons -->

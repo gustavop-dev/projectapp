@@ -92,7 +92,7 @@
         <button
           v-if="viewMode === 'executive'"
           data-testid="switch-to-detailed-btn"
-          class="sidebar-switch-detailed-btn w-full flex items-center gap-2 px-3 py-2.5 bg-primary text-accent rounded-xl text-sm font-medium
+          class="sidebar-switch-detailed-btn w-full flex items-center gap-2 px-3 py-2.5 bg-primary text-on-primary rounded-xl text-sm font-medium
                  hover:bg-primary/90 transition-colors shadow-sm"
           @click="$emit('switchToDetailed'); isOpen = false"
         >
