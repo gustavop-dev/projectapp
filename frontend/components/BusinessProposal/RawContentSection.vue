@@ -3,7 +3,7 @@
     <div class="w-full px-6 md:px-12 lg:px-24">
       <div class="max-w-4xl mx-auto">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
-          <span v-if="index" data-testid="raw-content-index" class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
+          <span v-if="index" data-testid="raw-content-index" class="text-text-muted font-light tracking-[0.25em] text-xs md:text-sm">
             {{ index }}
           </span>
           <h2 class="text-text-brand font-light leading-tight text-4xl md:text-6xl">

@@ -18,7 +18,7 @@
       <!-- Sliding lemon pill indicator -->
       <div
         ref="lemonPill"
-        class="absolute top-0 left-0 h-full rounded-full bg-accent-soft pointer-events-none will-change-transform"
+        class="absolute top-0 left-0 h-full rounded-full bg-accent-mid pointer-events-none will-change-transform"
         style="width: 0; opacity: 0;"
       />
 

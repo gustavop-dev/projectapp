@@ -1,11 +1,11 @@
 <template>
   <div>
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
       <h1 class="text-2xl font-light text-text-default">Calendario de Blog</h1>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
         <NuxtLink
           :to="localePath('/panel/blog')"
-          class="inline-flex items-center gap-2 px-4 py-2.5 border border-border-default text-text-default rounded-xl
+          class="inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 px-4 py-2.5 border border-border-default text-text-default rounded-xl
                  font-medium text-sm hover:bg-surface-raised transition-colors"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,7 +15,7 @@
         </NuxtLink>
         <NuxtLink
           :to="localePath('/panel/blog/create')"
-          class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl
+          class="inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl
                  font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -27,22 +27,22 @@
     </div>
 
     <!-- Week navigation -->
-    <div class="bg-surface rounded-xl shadow-sm border border-border-muted mb-6">
-      <div class="flex items-center justify-between px-6 py-4 border-b border-border-muted">
+    <div class="bg-surface rounded-xl shadow-sm border border-border-muted mb-6 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-3 sm:px-6 py-3 sm:py-4 border-b border-border-muted">
         <button
           type="button"
-          class="p-2 rounded-lg hover:bg-surface-raised transition-colors text-text-muted"
+          class="p-2 rounded-lg hover:bg-surface-raised transition-colors text-text-muted shrink-0"
           @click="prevWeek"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <div class="text-center">
-          <h2 class="text-sm font-semibold text-text-default">{{ weekRangeLabel }}</h2>
-          <p class="text-xs text-text-subtle mt-0.5">Semana {{ weekNumber }}</p>
+        <div class="text-center min-w-0 flex-1">
+          <h2 class="text-xs sm:text-sm font-semibold text-text-default truncate">{{ weekRangeLabel }}</h2>
+          <p class="text-[10px] sm:text-xs text-text-subtle mt-0.5">Semana {{ weekNumber }}</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 shrink-0">
           <button
             type="button"
             class="px-3 py-1.5 text-xs font-medium text-text-brand border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:bg-primary-soft transition-colors"
@@ -67,12 +67,12 @@
         <div class="w-6 h-6 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
       </div>
 
-      <!-- Week grid -->
-      <div v-else class="grid grid-cols-7 divide-x divide-gray-100 dark:divide-white/[0.04]">
+      <!-- Week grid (md+) -->
+      <div v-else class="hidden md:grid grid-cols-7 divide-x divide-gray-100 dark:divide-white/[0.04]">
         <div
           v-for="day in weekDays"
           :key="day.date"
-          class="min-h-[160px] p-3"
+          class="min-h-[160px] p-3 min-w-0"
           :class="{ 'bg-primary-soft dark:bg-primary-soft': day.isToday }"
         >
           <!-- Day header -->
@@ -92,11 +92,11 @@
               v-for="post in day.posts"
               :key="post.id"
               :to="localePath(`/panel/blog/${post.id}/edit`)"
-              class="block px-2 py-1.5 rounded-lg text-xs transition-colors cursor-pointer"
+              class="block px-2 py-1.5 rounded-lg text-xs transition-colors cursor-pointer min-w-0"
               :class="postCardClass(post)"
             >
               <p class="font-medium truncate leading-tight">{{ post.title_es }}</p>
-              <p v-if="post.category" class="text-[10px] opacity-70 mt-0.5">{{ post.category }}</p>
+              <p v-if="post.category" class="text-[10px] opacity-70 mt-0.5 truncate">{{ post.category }}</p>
             </NuxtLink>
           </div>
 
@@ -104,10 +104,46 @@
           <p v-if="day.posts.length === 0" class="text-[10px] text-text-subtle dark:text-white/20 mt-3">Sin posts</p>
         </div>
       </div>
+
+      <!-- Mobile day list (vertical) -->
+      <div v-if="!isLoading" class="md:hidden divide-y divide-border-muted">
+        <div
+          v-for="day in weekDays"
+          :key="`m-${day.date}`"
+          class="px-4 py-3"
+          :class="{ 'bg-primary-soft dark:bg-primary-soft': day.isToday }"
+        >
+          <div class="flex items-baseline justify-between gap-2 mb-2">
+            <div class="flex items-baseline gap-2 min-w-0">
+              <p class="text-[10px] uppercase tracking-wider text-text-subtle font-medium shrink-0">{{ day.dayName }}</p>
+              <p
+                class="text-base font-semibold"
+                :class="day.isToday ? 'text-text-brand' : 'text-text-default dark:text-white'"
+              >
+                {{ day.dayNumber }}
+              </p>
+            </div>
+            <span v-if="day.posts.length > 0" class="text-[10px] text-text-subtle shrink-0">{{ day.posts.length }} {{ day.posts.length === 1 ? 'post' : 'posts' }}</span>
+          </div>
+          <div v-if="day.posts.length > 0" class="space-y-1.5">
+            <NuxtLink
+              v-for="post in day.posts"
+              :key="`m-post-${post.id}`"
+              :to="localePath(`/panel/blog/${post.id}/edit`)"
+              class="block px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer min-w-0"
+              :class="postCardClass(post)"
+            >
+              <p class="font-medium leading-tight break-words">{{ post.title_es }}</p>
+              <p v-if="post.category" class="text-xs opacity-70 mt-0.5 break-words">{{ post.category }}</p>
+            </NuxtLink>
+          </div>
+          <p v-else class="text-xs text-text-subtle dark:text-white/30">Sin posts</p>
+        </div>
+      </div>
     </div>
 
     <!-- Legend -->
-    <div class="flex items-center gap-6 text-xs text-text-muted">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-6 text-xs text-text-muted">
       <div class="flex items-center gap-1.5">
         <span class="w-3 h-3 rounded bg-primary-soft border border-emerald-200 dark:border-emerald-500/30 inline-block" />
         Publicado

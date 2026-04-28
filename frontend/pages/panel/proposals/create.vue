@@ -8,31 +8,33 @@
     </div>
 
     <!-- Tab toggle -->
-    <div class="flex gap-1 mb-6 bg-surface-raised rounded-xl p-1 max-w-md">
+    <div class="flex gap-1 mb-6 bg-surface-raised rounded-xl p-1 w-full max-w-md">
       <button
         type="button"
         :class="[
-          'flex-1 px-4 py-2 text-sm rounded-lg transition-all',
+          'flex-1 min-w-0 px-2 sm:px-4 py-2 text-xs sm:text-sm rounded-lg transition-all whitespace-nowrap truncate',
           mode === 'json' ? 'bg-surface shadow-sm font-medium text-text-default' : 'text-text-muted hover:text-text-default'
         ]"
         @click="mode = 'json'"
       >
-        Importar JSON
+        <span class="sm:hidden">JSON</span>
+        <span class="hidden sm:inline">Importar JSON</span>
       </button>
       <button
         type="button"
         :class="[
-          'flex-1 px-4 py-2 text-sm rounded-lg transition-all',
+          'flex-1 min-w-0 px-2 sm:px-4 py-2 text-xs sm:text-sm rounded-lg transition-all whitespace-nowrap truncate',
           mode === 'prompt' ? 'bg-surface shadow-sm font-medium text-text-default' : 'text-text-muted hover:text-text-default'
         ]"
         @click="mode = 'prompt'"
       >
-        Prompt IA
+        <span class="sm:hidden">Prompt</span>
+        <span class="hidden sm:inline">Prompt IA</span>
       </button>
       <button
         type="button"
         :class="[
-          'flex-1 px-4 py-2 text-sm rounded-lg transition-all',
+          'flex-1 min-w-0 px-2 sm:px-4 py-2 text-xs sm:text-sm rounded-lg transition-all whitespace-nowrap truncate',
           mode === 'manual' ? 'bg-surface shadow-sm font-medium text-text-default' : 'text-text-muted hover:text-text-default'
         ]"
         @click="mode = 'manual'"
@@ -367,11 +369,11 @@
         </div>
 
         <!-- Submit -->
-        <div class="flex flex-wrap items-center gap-4 pt-2">
+        <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4 pt-2">
           <button
             type="submit"
             :disabled="proposalStore.isUpdating"
-            class="px-5 sm:px-6 py-2.5 bg-primary text-on-primary rounded-xl font-medium text-sm
+            class="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-primary text-on-primary rounded-xl font-medium text-sm
                    hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50"
           >
             {{ proposalStore.isUpdating ? 'Creando...' : 'Crear Propuesta' }}
@@ -380,13 +382,13 @@
             v-if="canSendDirectly"
             type="button"
             :disabled="proposalStore.isUpdating"
-            class="px-5 sm:px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm
+            class="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm
                    hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
             @click="handleCreateAndSend"
           >
             {{ proposalStore.isUpdating ? 'Creando...' : 'Crear y Enviar' }}
           </button>
-          <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-text-muted hover:text-text-default">
+          <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-text-muted hover:text-text-default text-center sm:text-left">
             Cancelar
           </NuxtLink>
         </div>
@@ -671,16 +673,16 @@
           </div>
 
           <!-- Submit -->
-          <div class="flex flex-wrap items-center gap-4 pt-2">
+          <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4 pt-2">
             <button
               type="submit"
               :disabled="proposalStore.isUpdating"
-              class="px-5 sm:px-6 py-2.5 bg-primary text-on-primary rounded-xl font-medium text-sm
+              class="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-primary text-on-primary rounded-xl font-medium text-sm
                      hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50"
             >
               {{ proposalStore.isUpdating ? 'Creando...' : 'Crear desde JSON' }}
             </button>
-            <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-text-muted hover:text-text-default">
+            <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-text-muted hover:text-text-default text-center sm:text-left">
               Cancelar
             </NuxtLink>
           </div>

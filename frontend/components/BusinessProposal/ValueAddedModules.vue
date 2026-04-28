@@ -4,7 +4,7 @@
       <div class="max-w-5xl mx-auto">
         <!-- Header -->
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-8">
-          <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
+          <span class="text-text-muted font-light tracking-[0.25em] text-xs md:text-sm">
             {{ content.index || '' }}
           </span>
           <div class="flex items-center gap-3">

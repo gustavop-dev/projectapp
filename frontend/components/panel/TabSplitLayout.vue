@@ -1,10 +1,10 @@
 <template>
   <div class="w-full mx-auto max-w-screen-2xl">
     <div :class="['grid grid-cols-1 min-w-0 gap-6', splitClass]">
-      <div class="min-w-0">
+      <div :class="['min-w-0', mainOrderClass]">
         <slot name="main" />
       </div>
-      <div class="min-w-0">
+      <div :class="['min-w-0', asideOrderClass]">
         <slot name="aside" />
       </div>
     </div>
@@ -21,7 +21,18 @@ const props = defineProps({
     default: '1:1',
     validator: oneOf(['1:1', '3:2', '2:3', '5:4']),
   },
+  asideFirstMobile: {
+    type: Boolean,
+    default: false,
+  },
 });
+
+const mainOrderClass = computed(() =>
+  props.asideFirstMobile ? 'order-2 xl:order-none' : ''
+);
+const asideOrderClass = computed(() =>
+  props.asideFirstMobile ? 'order-1 xl:order-none' : ''
+);
 
 const SPLIT_CLASSES = {
   '1:1': 'xl:grid-cols-2',

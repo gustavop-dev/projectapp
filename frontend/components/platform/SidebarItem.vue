@@ -35,7 +35,7 @@
     <span v-if="!isCollapsed" class="truncate">{{ item.label }}</span>
     <span
       v-if="!isCollapsed"
-      class="ml-auto text-[9px] font-medium uppercase tracking-wider text-green-light/40"
+      class="ml-auto text-[9px] font-medium uppercase tracking-wider text-green-light/40 dark:text-text-subtle/70"
     >
       pronto
     </span>
@@ -58,6 +58,6 @@ const itemClasses = computed(() => [
   props.isCollapsed ? 'justify-center' : '',
   props.isActive && !props.disabled
     ? 'bg-primary text-white dark:bg-accent-soft dark:text-text-brand'
-    : 'text-green-light hover:bg-primary-soft hover:text-text-brand dark:hover:bg-surface/[0.06] dark:hover:text-white',
+    : 'text-green-light dark:text-text-muted hover:bg-primary-soft hover:text-text-brand dark:hover:bg-surface/[0.06] dark:hover:text-white',
 ])
 </script>

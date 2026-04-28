@@ -39,18 +39,27 @@
           >
             <p
               class="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest"
-              :class="section.muted ? 'text-green-light/40' : 'text-green-light/60'"
+              :class="section.muted ? 'text-green-light/40 dark:text-text-subtle/60' : 'text-green-light/60 dark:text-text-subtle/80'"
             >
               {{ section.label }}
             </p>
-            <SidebarItem
-              v-for="item in section.items"
-              :key="item.href + item.label"
-              :item="item"
-              :is-collapsed="false"
-              :is-active="isItemActive(item)"
-              :disabled="item.disabled"
-            />
+            <template
+              v-for="(item, idx) in section.items"
+              :key="item.divider ? `div-${section.id}-${idx}` : item.href + item.label"
+            >
+              <div
+                v-if="item.divider"
+                aria-hidden="true"
+                class="my-2 mx-3 h-px bg-border-muted"
+              />
+              <SidebarItem
+                v-else
+                :item="item"
+                :is-collapsed="false"
+                :is-active="isItemActive(item)"
+                :disabled="item.disabled"
+              />
+            </template>
           </div>
         </nav>
 
@@ -61,13 +70,13 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
-            <p class="truncate text-xs text-green-light">Internal admin</p>
+            <p class="truncate text-xs text-green-light dark:text-text-muted">Internal admin</p>
           </div>
 
           <button
             type="button"
             :disabled="isBridging"
-            class="flex h-9 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium text-text-muted transition hover:bg-surface-raised hover:text-text-default"
+            class="flex h-9 w-full items-center justify-start gap-3 rounded-lg px-3 text-sm font-medium text-text-muted transition hover:bg-surface-raised hover:text-text-default"
             @click="goToPlatform('/platform/dashboard')"
           >
             <SidebarIcon name="external" class="h-4 w-4 shrink-0" />
@@ -76,7 +85,7 @@
 
           <button
             type="button"
-            class="mt-2 flex h-9 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium text-text-muted transition hover:bg-surface-raised hover:text-text-default"
+            class="mt-2 flex h-9 w-full items-center justify-start gap-3 rounded-lg px-3 text-sm font-medium text-text-muted transition hover:bg-surface-raised hover:text-text-default"
             @click="$emit('close'); $emit('toggle-theme')"
           >
             <svg v-if="isDark" class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

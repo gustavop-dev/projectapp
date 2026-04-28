@@ -6,7 +6,7 @@
           {{ proposalTitle }}, {{ clientName }}
         </h1>
         
-        <p data-animate="fade-up" class="subtitle font-light text-green-light italic">
+        <p data-animate="fade-up" class="subtitle font-light text-text-muted italic">
           "{{ inspirationalQuote }}"
         </p>
       </div>

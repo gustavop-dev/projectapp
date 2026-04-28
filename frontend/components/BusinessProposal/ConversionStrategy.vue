@@ -3,7 +3,7 @@
     <div class="w-full px-6 md:px-12 lg:px-24 py-10 md:py-14">
       <div class="max-w-7xl mx-auto">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
-          <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
+          <span class="text-text-muted font-light tracking-[0.25em] text-xs md:text-sm">
             {{ content.index }}
           </span>
           <h2 class="text-text-brand font-light leading-tight text-4xl md:text-6xl">
@@ -25,7 +25,7 @@
                   <h3 class="text-text-brand font-light text-lg md:text-xl leading-snug">
                     {{ step.title }}
                   </h3>
-                  <span class="text-green-light font-light tracking-[0.25em] text-xs">
+                  <span class="text-text-muted font-light tracking-[0.25em] text-xs">
                     {{ idx + 1 }}
                   </span>
                 </div>

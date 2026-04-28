@@ -19,22 +19,51 @@
     </div>
 
     <!-- Mode switch: Proposal / Diagnostic -->
-    <div class="mb-6 flex items-center gap-3 flex-wrap" data-testid="defaults-mode-switch">
-      <span class="text-xs font-medium text-text-muted uppercase tracking-wider">Modo:</span>
-      <div class="inline-flex rounded-lg p-0.5 bg-surface-raised">
+    <div class="mb-6" data-testid="defaults-mode-switch">
+      <!-- Mobile: toggle switch with labels -->
+      <div class="sm:hidden flex items-center gap-3">
         <button
-          v-for="opt in modeOptions"
-          :key="opt.value"
           type="button"
-          :class="['px-3 py-1.5 text-xs font-medium rounded-md transition-all',
-            mode === opt.value
-              ? 'bg-surface text-text-brand shadow-sm'
-              : 'text-text-muted hover:text-text-default']"
-          :data-testid="`defaults-mode-${opt.value}`"
-          @click="setMode(opt.value)"
+          class="text-sm font-medium transition-colors"
+          :class="mode === 'proposal' ? 'text-text-brand' : 'text-text-muted'"
+          data-testid="defaults-mode-proposal"
+          @click="setMode('proposal')"
         >
-          {{ opt.label }}
+          Propuesta
         </button>
+        <BaseToggle
+          :model-value="mode === 'diagnostic'"
+          aria-label="Modo: Propuesta o Diagnóstico"
+          @update:model-value="setMode($event ? 'diagnostic' : 'proposal')"
+        />
+        <button
+          type="button"
+          class="text-sm font-medium transition-colors"
+          :class="mode === 'diagnostic' ? 'text-text-brand' : 'text-text-muted'"
+          data-testid="defaults-mode-diagnostic"
+          @click="setMode('diagnostic')"
+        >
+          Diagnóstico
+        </button>
+      </div>
+      <!-- Desktop: segmented pill buttons -->
+      <div class="hidden sm:flex items-center gap-3 flex-wrap">
+        <span class="text-xs font-medium text-text-muted uppercase tracking-wider">Modo:</span>
+        <div class="inline-flex rounded-lg p-0.5 bg-surface-raised">
+          <button
+            v-for="opt in modeOptions"
+            :key="opt.value"
+            type="button"
+            :class="['px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+              mode === opt.value
+                ? 'bg-surface text-text-brand shadow-sm'
+                : 'text-text-muted hover:text-text-default']"
+            :data-testid="`defaults-mode-${opt.value}`"
+            @click="setMode(opt.value)"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -45,6 +74,7 @@
 
 <script setup>
 import { computed, defineAsyncComponent } from 'vue';
+import BaseToggle from '~/components/base/BaseToggle.vue';
 
 const ProposalDefaultsPanel = defineAsyncComponent(
   () => import('~/components/panel/defaults/ProposalDefaultsPanel.vue'),

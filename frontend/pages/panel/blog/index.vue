@@ -10,14 +10,15 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
       <h1 class="text-2xl font-light text-text-default">Blog Posts</h1>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
         <BaseButton
           as="NuxtLink"
           variant="secondary"
           size="md"
           :to="localePath('/panel/blog/calendar')"
+          class="flex-1 sm:flex-initial justify-center"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -29,6 +30,7 @@
           variant="primary"
           size="md"
           :to="localePath('/panel/blog/create')"
+          class="flex-1 sm:flex-initial justify-center"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -157,34 +159,18 @@
       </div>
 
       <!-- Pagination controls -->
-      <div v-if="blogStore.adminPagination.totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-border-muted bg-surface rounded-b-xl">
-        <span class="text-xs text-text-subtle">{{ blogStore.adminPagination.count }} posts · Página {{ blogStore.adminPagination.page }} de {{ blogStore.adminPagination.totalPages }}</span>
-        <div class="flex gap-1">
-          <button
-            :disabled="blogStore.adminPagination.page <= 1"
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-border-default text-text-muted hover:bg-surface-raised disabled:opacity-40"
-            @click="goToPage(blogStore.adminPagination.page - 1)"
-          >
-            ← Anterior
-          </button>
-          <button
-            v-for="page in visiblePages"
-            :key="page"
-            class="w-8 h-8 rounded-lg text-xs font-medium transition-colors"
-            :class="blogStore.adminPagination.page === page ? 'bg-primary text-white' : 'text-text-muted hover:bg-surface-raised'"
-            @click="goToPage(page)"
-          >
-            {{ page }}
-          </button>
-          <button
-            :disabled="blogStore.adminPagination.page >= blogStore.adminPagination.totalPages"
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-border-default text-text-muted hover:bg-surface-raised disabled:opacity-40"
-            @click="goToPage(blogStore.adminPagination.page + 1)"
-          >
-            Siguiente →
-          </button>
-        </div>
-      </div>
+      <BasePagination
+        v-if="blogStore.adminPagination.totalPages > 1"
+        :current-page="blogStore.adminPagination.page"
+        :total-pages="blogStore.adminPagination.totalPages"
+        :total-items="blogStore.adminPagination.count"
+        :range-from="blogRangeFrom"
+        :range-to="blogRangeTo"
+        class="px-4 sm:px-6"
+        @prev="goToPage(blogStore.adminPagination.page - 1)"
+        @next="goToPage(blogStore.adminPagination.page + 1)"
+        @go="goToPage"
+      />
     </div>
   </div>
 </template>
@@ -193,6 +179,7 @@
 import { computed, onMounted } from 'vue';
 import { useBlogStore } from '~/stores/blog';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import BasePagination from '~/components/base/BasePagination.vue';
 
 const localePath = useLocalePath();
 
@@ -201,6 +188,16 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const blogStore = useBlogStore();
 const posts = computed(() => blogStore.posts);
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
+
+const blogRangeFrom = computed(() => {
+  const p = blogStore.adminPagination;
+  if (!p.count) return 0;
+  return (p.page - 1) * (p.pageSize || 20) + 1;
+});
+const blogRangeTo = computed(() => {
+  const p = blogStore.adminPagination;
+  return Math.min(p.page * (p.pageSize || 20), p.count || 0);
+});
 
 const visiblePages = computed(() => {
   const total = blogStore.adminPagination.totalPages;

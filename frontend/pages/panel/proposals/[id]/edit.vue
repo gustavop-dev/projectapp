@@ -80,7 +80,7 @@
 
       <!-- Tab: General -->
       <div v-show="activeTab === 'general'">
-        <TabSplitLayout ratio="1:1">
+        <TabSplitLayout ratio="1:1" :aside-first-mobile="true">
           <template #aside>
         <!-- Editable slug (URL personalizada) -->
         <div class="bg-surface border border-border-muted rounded-xl p-4 sm:p-5 mb-4">
@@ -655,38 +655,41 @@
 
           <!-- Sticky action bar -->
           <div class="sticky bottom-0 rounded-b-xl bg-surface/95 backdrop-blur-sm border-t border-border-muted px-4 sm:px-5 py-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
-            <div class="flex flex-wrap items-center gap-2 sm:gap-3 pr-14 sm:pr-0">
-              <BaseButton
-                type="submit"
-                variant="primary"
-                size="md"
-                :loading="proposalStore.isUpdating"
-                :disabled="proposalStore.isUpdating"
-                data-testid="proposal-edit-submit"
-              >
-                {{ proposalStore.isUpdating ? 'Guardando...' : 'Guardar Cambios' }}
-              </BaseButton>
+            <div class="flex flex-col-reverse sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3">
+              <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                <BaseButton
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  :loading="proposalStore.isUpdating"
+                  :disabled="proposalStore.isUpdating"
+                  data-testid="proposal-edit-submit"
+                  class="flex-1 sm:flex-none"
+                >
+                  {{ proposalStore.isUpdating ? 'Guardando...' : 'Guardar Cambios' }}
+                </BaseButton>
 
-              <BaseButton
-                variant="secondary"
-                size="md"
-                data-testid="proposal-actions-menu"
-                aria-label="Acciones de la propuesta"
-                title="Más acciones"
-                class="!w-10 !h-10 !p-0"
-                @click="showActionsModal = true"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                  <path fill-rule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.818a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .845-.143Z" clip-rule="evenodd" />
-                </svg>
-              </BaseButton>
+                <BaseButton
+                  variant="secondary"
+                  size="md"
+                  data-testid="proposal-actions-menu"
+                  aria-label="Acciones de la propuesta"
+                  title="Más acciones"
+                  class="!w-10 !h-10 !p-0 flex-shrink-0"
+                  @click="showActionsModal = true"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                    <path fill-rule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.818a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .845-.143Z" clip-rule="evenodd" />
+                  </svg>
+                </BaseButton>
+              </div>
 
               <button
                 v-if="nextAction"
                 type="button"
                 :disabled="nextAction.disabled"
                 :data-testid="'proposal-next-action-' + nextAction.key"
-                :class="['px-4 sm:px-5 py-2 rounded-xl font-medium text-sm transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 ml-auto', nextAction.colorClass]"
+                :class="['px-4 sm:px-5 py-2 rounded-xl font-medium text-sm transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 w-full sm:w-auto sm:ml-auto', nextAction.colorClass]"
                 @click="handleNextAction"
               >
                 {{ nextAction.label }}

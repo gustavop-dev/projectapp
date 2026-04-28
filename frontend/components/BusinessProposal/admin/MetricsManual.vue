@@ -2,7 +2,7 @@
   <div>
     <!-- Floating trigger button -->
     <button
-      class="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-primary text-white shadow-lg
+      class="fixed bottom-[76px] right-4 sm:bottom-6 sm:right-6 z-40 w-12 h-12 rounded-full bg-primary text-white shadow-lg
              hover:bg-primary-strong transition-all flex items-center justify-center text-lg font-bold
              hover:scale-105"
       @click="isOpen = true"

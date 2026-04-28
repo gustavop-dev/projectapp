@@ -82,21 +82,27 @@
     </div>
 
     <!-- Alerts panel -->
-    <div v-if="activeAlerts.length || showAlertForm" class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 dark:bg-amber-900/20 dark:border-amber-700">
-      <div class="flex items-center justify-between mb-3">
-        <div class="flex items-center gap-2 cursor-pointer" @click="attentionExpanded = !attentionExpanded">
-          <span class="text-lg">⚠️</span>
-          <h3 class="text-sm font-semibold text-amber-800 dark:text-amber-300">Propuestas que necesitan atención ({{ groupedActiveAlerts.length }})</h3>
-          <span class="text-xs text-amber-700 dark:text-amber-400">{{ attentionExpanded ? '▲' : '▼' }}</span>
+    <div v-if="activeAlerts.length || showAlertForm" class="mb-6 bg-warning-soft border border-warning-soft rounded-xl overflow-hidden dark:border-warning-strong/30">
+      <div class="flex items-center justify-between gap-3 px-4 py-3 border-l-4 border-l-warning-strong">
+        <div class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0" @click="attentionExpanded = !attentionExpanded">
+          <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-warning-strong/15 text-base" aria-hidden="true">⚠️</span>
+          <h3 class="text-sm font-semibold text-warning-strong dark:text-warning-soft truncate">
+            Propuestas que necesitan atención
+            <span class="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-warning-strong text-warning-soft text-[11px] font-bold">{{ groupedActiveAlerts.length }}</span>
+          </h3>
+          <svg class="h-3.5 w-3.5 shrink-0 text-warning-strong/70 dark:text-warning-soft transition-transform" :class="{ 'rotate-180': !attentionExpanded }" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
         <button
           type="button"
-          class="text-xs text-amber-700 dark:text-amber-400 font-medium hover:text-amber-900 dark:hover:text-amber-300 transition-colors"
+          class="shrink-0 text-xs font-medium text-warning-strong/90 dark:text-warning-soft hover:text-warning-strong dark:hover:text-warning-soft px-2.5 py-1 rounded-lg hover:bg-warning-strong/10 transition-colors"
           @click.stop="toggleAlertForm"
         >
           {{ showAlertForm ? 'Cancelar' : '+ Crear recordatorio' }}
         </button>
       </div>
+      <div class="px-4 pb-4 pt-1">
 
       <!-- Create alert form -->
       <div v-if="showAlertForm" class="mb-4 bg-surface rounded-lg border border-warning-soft p-4 space-y-3">
@@ -144,34 +150,36 @@
         <div v-for="group in groupedActiveAlerts" :key="group.key">
           <!-- Group header row -->
           <div
-            class="flex items-center justify-between bg-surface rounded-lg px-4 py-2.5 border cursor-pointer transition-colors "
+            class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-surface rounded-lg px-3 sm:px-4 py-2.5 border cursor-pointer transition-colors hover:bg-surface-raised"
             :class="alertBorderClass(group.priority)"
             @click="openAlertGroup(group, $event)"
           >
-            <div class="flex items-center gap-3 min-w-0">
-              <span v-if="group.isMulti" class="text-[10px] text-text-subtle w-3 shrink-0">
+            <div class="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
+              <span v-if="group.isMulti" class="text-[10px] text-text-subtle w-3 shrink-0 mt-1 sm:mt-0">
                 {{ expandedAlertGroups.has(group.key) ? '▼' : '▶' }}
               </span>
-              <span class="text-sm">{{ group.icon }}</span>
-              <div class="min-w-0">
-                <span class="text-sm font-medium text-text-default">{{ group.client_name }}</span>
-                <span class="text-xs text-text-subtle ml-2">{{ group.subtitle }}</span>
-                <span v-if="group.priority === 'critical'" class="ml-2 px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">urgente</span>
-                <span v-if="group.alerts.length > 1" class="ml-2 px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                  {{ group.alerts.length }} alertas
-                </span>
+              <span class="text-base shrink-0 mt-0.5 sm:mt-0">{{ group.icon }}</span>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span class="text-sm font-medium text-text-default truncate">{{ group.client_name }}</span>
+                  <span v-if="group.priority === 'critical'" class="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-danger-soft text-danger-strong">urgente</span>
+                  <span v-if="group.alerts.length > 1" class="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-warning-soft text-warning-strong">
+                    {{ group.alerts.length }} alertas
+                  </span>
+                </div>
+                <span class="text-xs text-text-subtle block sm:inline mt-0.5 sm:mt-0">{{ group.subtitle }}</span>
               </div>
             </div>
-            <div class="flex items-center gap-3">
-              <div class="text-right">
-                <span class="text-xs font-medium block" :class="group.priority === 'critical' ? 'text-red-600 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'">{{ group.message }}</span>
+            <div class="flex items-start sm:items-center justify-between sm:justify-end gap-3 pl-9 sm:pl-0 shrink-0">
+              <div class="text-left sm:text-right">
+                <span class="text-xs font-medium block" :class="group.priority === 'critical' ? 'text-danger-strong' : 'text-warning-strong'">{{ group.message }}</span>
                 <span v-if="group.refDate" class="text-[10px] text-text-subtle">
                   {{ formatAlertDate(group.refDate) }}
                 </span>
               </div>
               <button
                 type="button"
-                class="text-xs text-text-subtle hover:text-red-500 transition-colors"
+                class="text-xs text-text-subtle hover:text-danger-strong transition-colors p-1 -m-1"
                 title="Descartar"
                 @click.stop="handleDismissAlertGroup(group)"
               >✕</button>
@@ -194,6 +202,7 @@
             />
           </Transition>
         </div>
+      </div>
       </div>
     </div>
 
@@ -602,10 +611,10 @@
       </Transition>
     </Teleport>
 
-    <!-- Floating refresh button (above MetricsManual ? button) -->
+    <!-- Floating refresh button (corner on mobile, above MetricsManual ? on desktop) -->
     <button
       type="button"
-      class="fixed bottom-[76px] right-6 z-50 w-12 h-12 rounded-full bg-primary hover:bg-primary-strong text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 disabled:opacity-50 flex items-center justify-center dark:bg-primary-strong dark:hover:bg-primary"
+      class="fixed bottom-4 right-4 sm:bottom-[76px] sm:right-6 z-50 w-12 h-12 rounded-full bg-primary hover:bg-primary-strong text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 disabled:opacity-50 flex items-center justify-center dark:bg-primary-strong dark:hover:bg-primary"
       :disabled="isRefreshing"
       :title="isRefreshing ? 'Actualizando...' : 'Actualizar datos'"
       @click="refreshData"
@@ -1093,8 +1102,8 @@ function resolveAlertDate(alert) {
 }
 
 function alertBorderClass(priority) {
-  if (priority === 'critical') return 'border-red-300 hover:border-red-400 dark:border-red-700 dark:hover:border-red-500';
-  if (priority === 'high') return 'border-amber-200 hover:border-amber-300 dark:border-amber-700 dark:hover:border-amber-500';
+  if (priority === 'critical') return 'border-danger-soft hover:border-danger-strong/40 dark:border-danger-strong/30 dark:hover:border-danger-strong/60';
+  if (priority === 'high') return 'border-warning-soft hover:border-warning-strong/40 dark:border-warning-strong/30 dark:hover:border-warning-strong/60';
   return 'border-border-default hover:border-gray-300  dark:hover:border-gray-500';
 }
 

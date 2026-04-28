@@ -72,6 +72,7 @@ export default {
         'primary-strong': 'rgb(var(--color-primary-strong-rgb) / <alpha-value>)',
         'primary-soft': 'var(--color-primary-soft)',
         'accent': 'rgb(var(--color-accent-rgb) / <alpha-value>)',
+        'accent-mid': 'rgb(var(--color-accent-mid-rgb) / <alpha-value>)',
         'accent-soft': 'rgb(var(--color-accent-soft-rgb) / <alpha-value>)',
         'surface': 'rgb(var(--color-surface-rgb) / <alpha-value>)',
         'surface-muted': 'rgb(var(--color-surface-muted-rgb) / <alpha-value>)',

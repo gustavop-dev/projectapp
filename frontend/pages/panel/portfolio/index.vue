@@ -37,7 +37,7 @@
 
       <!-- Mobile cards -->
       <div v-else class="sm:hidden space-y-3">
-        <div v-for="work in works" :key="work.id" class="bg-surface rounded-xl shadow-sm border border-border-muted p-4">
+        <div v-for="work in pagedWorks" :key="work.id" class="bg-surface rounded-xl shadow-sm border border-border-muted p-4">
           <div class="flex items-start justify-between gap-3 mb-2">
             <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="text-sm font-medium text-text-default hover:text-text-brand transition-colors leading-tight">
               {{ work.title_es }}
@@ -69,7 +69,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-border-muted">
-              <tr v-for="work in works" :key="work.id" class="hover:bg-surface-raised transition-colors">
+              <tr v-for="work in pagedWorks" :key="work.id" class="hover:bg-surface-raised transition-colors">
                 <td class="px-6 py-4">
                   <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="text-sm font-medium text-text-default hover:text-text-brand transition-colors">
                     {{ work.title_es }}
@@ -95,6 +95,19 @@
           </table>
         </div>
       </div>
+
+      <BasePagination
+        v-if="works.length > 0"
+        :current-page="worksPage"
+        :total-pages="worksTotalPages"
+        :total-items="worksTotalItems"
+        :range-from="worksRangeFrom"
+        :range-to="worksRangeTo"
+        class="mt-4"
+        @prev="worksPrev"
+        @next="worksNext"
+        @go="worksGoTo"
+      />
     </div>
   </div>
 </template>
@@ -103,6 +116,8 @@
 import { computed, onMounted } from 'vue';
 import { usePortfolioWorksStore } from '~/stores/portfolio_works';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import BasePagination from '~/components/base/BasePagination.vue';
+import { usePagination } from '~/composables/usePagination';
 
 const localePath = useLocalePath();
 
@@ -111,6 +126,18 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const portfolioStore = usePortfolioWorksStore();
 const works = computed(() => portfolioStore.works);
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
+
+const {
+  currentPage: worksPage,
+  totalPages: worksTotalPages,
+  totalItems: worksTotalItems,
+  rangeFrom: worksRangeFrom,
+  rangeTo: worksRangeTo,
+  paginatedItems: pagedWorks,
+  goTo: worksGoTo,
+  next: worksNext,
+  prev: worksPrev,
+} = usePagination(works, { pageSize: 10 });
 
 onMounted(() => { portfolioStore.fetchAdminWorks(); });
 

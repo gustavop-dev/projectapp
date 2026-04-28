@@ -115,7 +115,7 @@
             </thead>
             <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
               <tr
-                v-for="doc in filteredDocuments"
+                v-for="doc in pagedDocuments"
                 :key="doc.id"
                 class="hover:bg-surface-muted dark:hover:bg-gray-700/50 transition-colors cursor-grab active:cursor-grabbing select-none"
                 :class="{ 'opacity-50': draggingDoc?.id === doc.id }"
@@ -223,7 +223,7 @@
         <!-- Mobile cards -->
         <div v-if="!documentStore.isLoading && filteredDocuments.length > 0" class="sm:hidden space-y-3">
           <div
-            v-for="doc in filteredDocuments"
+            v-for="doc in pagedDocuments"
             :key="`mobile-${doc.id}`"
             class="bg-surface rounded-xl shadow-sm border border-border-muted p-4  "
             @click="navigateTo(localePath(`/panel/documents/${doc.id}/edit`))"
@@ -288,6 +288,20 @@
           </div>
         </div>
 
+        <!-- Pagination -->
+        <BasePagination
+          v-if="!documentStore.isLoading && filteredDocuments.length > 0"
+          :current-page="docPage"
+          :total-pages="docTotalPages"
+          :total-items="docTotalItems"
+          :range-from="docRangeFrom"
+          :range-to="docRangeTo"
+          class="mt-4"
+          @prev="docPrev"
+          @next="docNext"
+          @go="docGoTo"
+        />
+
       </section>
     </div>
 
@@ -332,13 +346,15 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import FolderSidebar from '~/components/panel/documents/FolderSidebar.vue';
 import TagFilterChips from '~/components/panel/documents/TagFilterChips.vue';
 import FolderManagerModal from '~/components/panel/documents/FolderManagerModal.vue';
 import TagManagerModal from '~/components/panel/documents/TagManagerModal.vue';
 import MoveFolderModal from '~/components/panel/documents/MoveFolderModal.vue';
 import { tagBadgeClass, tagDotClass } from '~/utils/documentTagColors.js';
+import BasePagination from '~/components/base/BasePagination.vue';
+import { usePagination } from '~/composables/usePagination';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -355,6 +371,23 @@ const filteredDocuments = computed(() => {
     (d) => d.title?.toLowerCase().includes(q) || d.client_name?.toLowerCase().includes(q),
   );
 });
+
+const {
+  currentPage: docPage,
+  totalPages: docTotalPages,
+  totalItems: docTotalItems,
+  rangeFrom: docRangeFrom,
+  rangeTo: docRangeTo,
+  paginatedItems: pagedDocuments,
+  goTo: docGoTo,
+  next: docNext,
+  prev: docPrev,
+  reset: docResetPage,
+} = usePagination(filteredDocuments, { pageSize: 10 });
+
+watch(searchQuery, () => docResetPage());
+watch(() => documentStore.activeFolderId, () => docResetPage());
+watch(() => documentStore.activeTagIds, () => docResetPage(), { deep: true });
 
 const deleteConfirm = ref(null);
 const showFolderManager = ref(false);

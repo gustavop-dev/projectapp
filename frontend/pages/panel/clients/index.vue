@@ -90,17 +90,17 @@
     <!-- Client list -->
     <div v-else class="space-y-3">
       <div
-        v-for="client in filteredClients"
+        v-for="client in pagedClients"
         :key="client.id"
         :data-testid="`client-row-${client.id}`"
         class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden"
       >
         <!-- Client row header -->
         <div
-          class="px-5 py-4 flex flex-wrap items-center justify-between gap-3 cursor-pointer hover:bg-surface-raised transition-colors"
+          class="px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 cursor-pointer hover:bg-surface-raised transition-colors"
           @click="toggleClient(client)"
         >
-          <div class="flex items-center gap-4 flex-1 min-w-0">
+          <div class="flex items-center gap-4 flex-1 min-w-0 w-full sm:w-auto">
             <!-- Avatar -->
             <div
               class="w-10 h-10 rounded-full bg-primary-soft flex items-center justify-center flex-shrink-0"
@@ -132,7 +132,7 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-3 flex-shrink-0">
+          <div class="flex items-center justify-end gap-3 flex-shrink-0 w-full sm:w-auto">
             <!-- Stats pills -->
             <span
               class="text-xs px-2.5 py-1 rounded-full bg-surface-raised text-text-muted font-medium"
@@ -334,6 +334,20 @@
       </div>
     </div>
 
+    <!-- Pagination -->
+    <BasePagination
+      v-if="!clientsStore.isLoading && filteredClients.length > 0"
+      :current-page="clientsPage"
+      :total-pages="clientsTotalPages"
+      :total-items="clientsTotalItems"
+      :range-from="clientsRangeFrom"
+      :range-to="clientsRangeTo"
+      class="mt-4"
+      @prev="clientsPrev"
+      @next="clientsNext"
+      @go="clientsGoTo"
+    />
+
     <!-- New client modal -->
     <div
       v-if="showCreateModal"
@@ -498,15 +512,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { PlusIcon, TrashIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
 import SidebarIcon from '~/components/platform/SidebarIcon.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
+import BasePagination from '~/components/base/BasePagination.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useClientFilters } from '~/composables/useClientFilters';
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge';
+import { usePagination } from '~/composables/usePagination';
 import { useProposalClientsStore } from '~/stores/proposalClients';
 
 const localePath = useLocalePath();
@@ -534,6 +550,21 @@ const {
 } = useClientFilters();
 
 const filteredClients = computed(() => applyFilters(clientsStore.clients));
+
+const {
+  currentPage: clientsPage,
+  totalPages: clientsTotalPages,
+  totalItems: clientsTotalItems,
+  rangeFrom: clientsRangeFrom,
+  rangeTo: clientsRangeTo,
+  paginatedItems: pagedClients,
+  goTo: clientsGoTo,
+  next: clientsNext,
+  prev: clientsPrev,
+  reset: clientsResetPage,
+} = usePagination(filteredClients, { pageSize: 10 });
+
+watch(filteredClients, () => clientsResetPage(), { deep: false });
 
 const tabs = [
   { id: 'all', label: 'Todos' },

@@ -35,7 +35,7 @@
         <p
           v-if="!isCollapsed"
           class="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest"
-          :class="section.muted ? 'text-green-light/40' : 'text-green-light/60'"
+          :class="section.muted ? 'text-green-light/40 dark:text-text-subtle/60' : 'text-green-light/60 dark:text-text-subtle/80'"
         >
           {{ section.label }}
         </p>
@@ -78,7 +78,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
         </div>
-        <span v-if="!isCollapsed" class="truncate text-xs text-green-light">Internal admin</span>
+        <span v-if="!isCollapsed" class="truncate text-xs text-green-light dark:text-text-muted">Internal admin</span>
       </div>
 
       <!-- Plataforma link -->
@@ -87,7 +87,7 @@
         :disabled="isBridging"
         :class="[
           'mb-2 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm transition',
-          'text-green-light hover:bg-primary-soft hover:text-primary',
+          'text-green-light dark:text-text-muted hover:bg-primary-soft hover:text-primary',
           'dark:hover:bg-surface-raised dark:hover:text-white',
           isCollapsed ? 'justify-center' : '',
         ]"
@@ -102,7 +102,7 @@
       <button
         v-if="!isCollapsed"
         type="button"
-        class="mb-1.5 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-green-light transition
+        class="mb-1.5 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-green-light dark:text-text-muted transition
                hover:bg-primary-soft hover:text-primary dark:hover:bg-surface-raised dark:hover:text-white"
         :aria-label="themeToggleLabel(isDark)"
         @click="$emit('toggle-theme')"
@@ -193,7 +193,7 @@ function isItemActive(item) {
 }
 
 const sidebarActionClass = computed(() => [
-  'flex h-8 w-8 items-center justify-center rounded-lg text-green-light transition',
+  'flex h-8 w-8 items-center justify-center rounded-lg text-green-light dark:text-text-muted transition',
   'hover:bg-primary-soft hover:text-primary',
   'dark:hover:bg-surface-raised dark:hover:text-white',
 ])
