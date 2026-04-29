@@ -30,6 +30,11 @@
 - Do not change old migrations; add new migrations when schema changes are required.
 - Keep security basics intact: validated serializer inputs, ORM-first queries, escaped rendering, CSRF/session boundaries, and no secrets in code.
 
+## Commit & PR Authorship
+- Do NOT add `Co-Authored-By: Claude ...` trailers to commit messages. The repository owner is the sole author.
+- Do NOT include "Generated with Claude Code", "🤖 Generated with..." footers, or any similar attribution line in commit messages or PR bodies.
+- Write commit messages and PR descriptions in the project's normal voice (FIX/FEAT/REFACTOR prefixes, plain summary + test plan), with no AI-tooling attribution.
+
 ## Commands
 - Backend tests: `source .venv/bin/activate && cd backend && pytest path/to/test_file.py -v`
 - Backend dev server: `source .venv/bin/activate && cd backend && python manage.py runserver`
