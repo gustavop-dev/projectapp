@@ -85,13 +85,13 @@
   --color-text: #111827;             /* gray-900 */
   --color-text-muted: #6B7280;       /* gray-500 */
   --color-text-subtle: #9CA3AF;      /* gray-400 */
-  --color-text-brand: #047857;       /* emerald-700 — for legends, brand-tinted headings */
+  --color-text-brand: #002921;       /* esmerald — brand */
 
   /* Text RGB triplets — light */
   --color-text-rgb: 17 24 39;        /* #111827 */
   --color-text-muted-rgb: 107 114 128; /* #6B7280 */
   --color-text-subtle-rgb: 156 163 175; /* #9CA3AF */
-  --color-text-brand-rgb: 4 120 87;  /* #047857 */
+  --color-text-brand-rgb: 0 41 33;   /* #002921 */
 
   /* Form controls — light */
   --color-input-bg: #FFFFFF;
