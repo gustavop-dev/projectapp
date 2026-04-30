@@ -41,6 +41,7 @@ backend/coverage*.json
 venv/
 env/
 .venv/
+backend/.venv-audit/
 
 # Operational logs
 backend/logs/
