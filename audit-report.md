@@ -122,12 +122,71 @@ Patch+minor bumps within current majors (and respecting current pin constraints)
 
 ## Updates Applied
 
-(filled in subsequent commits)
+### Frontend (commit `deps(frontend): apply patch+minor updates`)
+- `npm audit fix` resolved all 8 reported vulnerabilities (2 high / 6 moderate -> 0).
+- `npx npm-check-updates -u --target minor` then `npm install`.
+- `package.json` bumps:
+  - @babel/preset-env 7.29.0 -> 7.29.2
+  - @headlessui/vue 1.7.22 -> 1.7.23
+  - @heroicons/vue 2.1.3 -> 2.2.0
+  - @nuxtjs/i18n 9.1.0 -> 9.5.6
+  - @nuxtjs/tailwindcss 6.12.0 -> 6.14.0
+  - @pinia/nuxt 0.5.5 -> 0.9.0  (rolled back from 0.11.3, see Rollbacks)
+  - @splinetool/runtime 1.9.37 -> 1.12.90
+  - @vue/test-utils 2.4.6 -> 2.4.10
+  - @vueuse/core 10.0.0 -> 10.11.1
+  - axios 1.7.2 -> 1.15.2
+  - dompurify 3.3.2 -> 3.4.1
+  - gsap 3.13.0 -> 3.15.0
+  - lottie-web 5.12.2 -> 5.13.0
+  - marked 17.0.4 -> 17.0.6
+  - nuxt 3.14.0 -> 3.21.4
+  - pinia 2.1.7 -> 2.3.1
+  - sweetalert2 11.11.1 -> 11.26.24
+  - swiper 12.0.3 -> 12.1.4
+  - video.js 8.12.0 -> 8.23.8
+  - vue 3.4.21 -> 3.5.33
+  - vue-router 4.3.0 -> 4.6.4
+  - vue3-marquee 4.2.0 -> 4.2.2
+- Final `npm audit`: **0 vulnerabilities**.
+- Remaining outdated (all major bumps, intentionally skipped): @nuxtjs/i18n (10.x), @pinia/nuxt (0.11.x — pulls pinia 3), @vueuse/core (14.x), babel-jest (30.x), jest (30.x), jsdom (29.x), marked (18.x), nuxt (4.x), pinia (3.x), vue-router (5.x).
+
+### Backend (commit `deps(backend): apply patch+minor updates`)
+- `requirements.txt` bumps (within current major / pin constraints):
+  - asgiref 3.8.1 -> 3.11.1
+  - Django 5.0.6 -> 5.2.13  (stays in major 5; resolves 27 CVEs)
+  - django-cors-headers 4.3.1 -> 4.9.0
+  - djangorestframework 3.15.1 -> 3.17.1  (resolves CVE-2024-21520)
+  - pillow 10.3.0 -> 10.4.0  (latest in major 10; remaining CVEs only fixed in 12.x)
+  - requests 2.31.0 -> 2.33.1  (resolves 3 CVEs)
+  - six 1.16.0 -> 1.17.0
+  - sqlparse 0.5.0 -> 0.5.5  (resolves GHSA-27jp-wm6q-gp25)
+  - tzdata 2024.1 -> 2026.2
+  - pytest-django 4.8.0 -> 4.12.0
+  - coverage 7.6.1 -> 7.13.5
+  - freezegun 1.4.0 -> 1.5.5
+- `pip-audit` after updates: **28 vulnerabilities remaining in 4 packages** (down from 60 in 8). All require major bumps blocked by repo pin constraints / policy:
+  - pillow 10.4.0: 2 CVEs — fixes only in 12.x.
+  - pytest 8.3.2: 1 CVE — fix in 9.x (major bump skipped).
+  - cryptography 43.0.3: 3 CVEs — fixes in 44.0.1+, but pin is `cryptography>=42.0,<44.0`; staying within the documented range.
+  - pypdf 4.3.1: 22 CVEs — fixes in 6.x, but pin is `pypdf>=4.0,<5.0`; staying within the documented range.
 
 ## Rollbacks
-
-(none yet)
+- **Frontend `@pinia/nuxt`**: `npm-check-updates --target minor` proposed `^0.11.3` but that release peer-depends on `pinia@^3` (a major bump for pinia, which we're skipping). `npm install` failed with `ERESOLVE`. Rolled back to `^0.9.0`, the latest 0.x release that still supports `pinia@^2.3`. `npm install` succeeded with 0 vulnerabilities.
+- No backend rollbacks; `pip install -r requirements.txt` succeeded on the first attempt.
 
 ## Verification Results
 
-(filled in subsequent commits)
+### Frontend
+- `npm audit`: 0 vulnerabilities.
+- `npm run build` (Nuxt build): success. Total bundle size 12.7 MB (2.77 MB gzip).
+- `npm run test` / `npm run lint`: not executed (CLAUDE.md prohibits running full suites; no lint script defined in package.json; jest harness exists but blanket runs are forbidden by repo rules).
+
+### Backend
+- `python manage.py check`: `System check identified no issues (0 silenced).`
+- `pytest --collect-only`: 3621 tests collected, no collection errors (Django 5.2.13 + DRF 3.17.1 imports fine).
+- Targeted slices (per CLAUDE.md "never run the full backend suite"):
+  - `pytest tests/test_markdown_parser.py`: 39 passed.
+  - `pytest accounts/tests/test_serializers.py`: 84 passed.
+- Only deprecation warning observed: `RemovedInDjango60Warning` for `forms.URLField.assume_scheme` default. Non-blocking; surfaces because Django 5.2 announces the future 6.0 default. No code changes required for this audit.
+
