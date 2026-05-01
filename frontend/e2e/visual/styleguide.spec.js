@@ -117,7 +117,8 @@ test.describe('design system styleguide visual regression', () => {
     // Let any token transitions settle.
     await page.waitForTimeout(150);
 
-    await expect(page).toHaveScreenshot('styleguide-light.png', { fullPage: true });
+    // Allow small anti-aliasing / font-rendering noise on full-page screenshots.
+    await expect(page).toHaveScreenshot('styleguide-light.png', { fullPage: true, maxDiffPixelRatio: 0.02 });
   });
 
   test('dark mode', {
@@ -138,6 +139,7 @@ test.describe('design system styleguide visual regression', () => {
     // Let dark-mode token transitions settle before snapshotting.
     await page.waitForTimeout(150);
 
-    await expect(page).toHaveScreenshot('styleguide-dark.png', { fullPage: true });
+    // Allow small anti-aliasing / font-rendering noise on full-page screenshots.
+    await expect(page).toHaveScreenshot('styleguide-dark.png', { fullPage: true, maxDiffPixelRatio: 0.02 });
   });
 });

@@ -173,11 +173,11 @@ test.describe('Diagnostic Public — Dark Mode Toggle', () => {
     const toggle = page.getByTestId('diagnostic-theme-toggle');
     await expect(toggle).toBeVisible({ timeout: 10000 });
 
-    const wrapper = page.locator('[data-diagnostic-wrapper]');
-    await expect(wrapper).not.toHaveAttribute('data-theme', 'dark');
+    const wrapper = page.locator('.diagnostic-public');
+    await expect(wrapper).not.toHaveClass(/(^|\s)dark(\s|$)/);
 
     await toggle.click();
-    await expect(wrapper).toHaveAttribute('data-theme', 'dark');
+    await expect(wrapper).toHaveClass(/(^|\s)dark(\s|$)/);
   });
 
   test('dark mode preference persists in localStorage after toggle', {
@@ -188,20 +188,20 @@ test.describe('Diagnostic Public — Dark Mode Toggle', () => {
 
     await page.getByTestId('diagnostic-theme-toggle').click();
 
-    const stored = await page.evaluate(() => localStorage.getItem('diagnostic-dark-mode'));
-    expect(stored).toBe('true');
+    const stored = await page.evaluate(() => localStorage.getItem('diagnostic_theme'));
+    expect(stored).toBe('dark');
   });
 
   test('page loads in dark mode when localStorage is pre-set', {
     tag: [...DIAGNOSTIC_PUBLIC_DARK_MODE, '@role:guest'],
   }, async ({ page }) => {
     await page.addInitScript(() => {
-      localStorage.setItem('diagnostic-dark-mode', 'true');
+      localStorage.setItem('diagnostic_theme', 'dark');
     });
     await setupMock(page);
     await loadDiagnosticPage(page);
 
-    const wrapper = page.locator('[data-diagnostic-wrapper]');
-    await expect(wrapper).toHaveAttribute('data-theme', 'dark', { timeout: 10000 });
+    const wrapper = page.locator('.diagnostic-public');
+    await expect(wrapper).toHaveClass(/(^|\s)dark(\s|$)/, { timeout: 10000 });
   });
 });

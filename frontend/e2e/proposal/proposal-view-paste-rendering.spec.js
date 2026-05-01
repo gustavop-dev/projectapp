@@ -235,10 +235,11 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
     // Navigate to executive_summary paste panel (index 1)
     await navigateToPanel(page, 1);
 
-    // The section index "1" should be visible
+    // The section index for panel 1 (executive_summary) is rendered as
+    // String(currentIndex + 1).padStart(2, '0') = "02" by paddedDisplayIndex.
     const rawContentIndex = page.getByTestId('raw-content-index');
     await expect(rawContentIndex).toBeVisible();
-    await expect(rawContentIndex).toContainText('1');
+    await expect(rawContentIndex).toContainText('02');
   });
 
   test('second paste-mode section also renders as RawContentSection', {

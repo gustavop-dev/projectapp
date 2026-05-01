@@ -122,8 +122,8 @@ test.describe('Proposal Structured Negotiation Modal', () => {
     await expect(negotiateModal).not.toBeVisible({ timeout: 3000 });
 
     // Open comment modal separately and verify structure
-    await page.getByRole('button', { name: /Tengo comentarios por escrito/i }).click();
-    const commentModal = page.locator('.fixed.inset-0').filter({ hasText: /comentarios por escrito/i });
+    await page.getByRole('button', { name: /Tengo comentarios/i }).click();
+    const commentModal = page.locator('.fixed.inset-0').filter({ hasText: /Tengo comentarios/i });
     await expect(commentModal).toBeVisible({ timeout: 3000 });
     await expect(commentModal.locator('textarea')).toBeVisible();
     await expect(commentModal.getByRole('button', { name: /Cancelar/i })).toBeVisible();
