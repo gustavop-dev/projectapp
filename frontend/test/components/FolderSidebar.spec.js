@@ -141,7 +141,7 @@ describe('FolderSidebar', () => {
       const wrapper = mountSidebar({ activeId: 'all' });
       const todosBtn = wrapper.findAll('button').find(b => b.text().includes('Todos'));
 
-      expect(todosBtn.classes()).toContain('bg-emerald-50');
+      expect(todosBtn.classes()).toContain('bg-primary-soft');
     });
 
     it('applies active class to a folder entry matching activeId', () => {

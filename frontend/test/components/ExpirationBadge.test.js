@@ -58,13 +58,13 @@ describe('ExpirationBadge', () => {
     expect(badge.classes()).toContain('bg-yellow-50/90');
   });
 
-  it('renders the pill badge with emerald classes when urgencyLevel is safe', () => {
+  it('renders the pill badge with primary-soft classes when urgencyLevel is safe', () => {
     setTimer({ urgencyLevel: 'safe' });
     const wrapper = mountBadge();
 
     const badge = wrapper.find('.expiration-badge.rounded-full');
     expect(badge.exists()).toBe(true);
-    expect(badge.classes()).toContain('bg-emerald-50/90');
+    expect(badge.classes()).toContain('bg-primary-soft');
   });
 
   it('renders nothing when isExpired is true', () => {

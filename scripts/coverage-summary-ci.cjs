@@ -96,9 +96,10 @@ function parseBackend() {
 // ── 2. Frontend-unit coverage (Jest coverage-summary.json) ──
 
 function parseFrontendUnit() {
-  const data = readJson(path.join(ARTIFACTS_DIR, 'frontend-unit', 'coverage-summary.json'));
+  const dir = path.join(ARTIFACTS_DIR, 'frontend-unit');
+  const data = readJson(path.join(dir, 'coverage-summary.json'));
   if (!data || !data.total) {
-    return { available: false };
+    return { available: false, brokenJob: fs.existsSync(dir) };
   }
   const t = data.total;
 
@@ -135,9 +136,10 @@ function parseFrontendUnit() {
 // ── 3. Frontend-E2E flow coverage ──
 
 function parseFrontendE2E() {
-  const data = readJson(path.join(ARTIFACTS_DIR, 'frontend-e2e', 'flow-coverage.json'));
+  const dir = path.join(ARTIFACTS_DIR, 'frontend-e2e');
+  const data = readJson(path.join(dir, 'flow-coverage.json'));
   if (!data || !data.summary) {
-    return { available: false };
+    return { available: false, brokenJob: fs.existsSync(dir) };
   }
   const s = data.summary;
   const coveredPct = s.total > 0 ? ((s.covered / s.total) * 100) : 0;
@@ -312,15 +314,19 @@ function buildMarkdown(backend, frontUnit, frontE2E, backendTests, frontTests, e
   if (frontUnit.available) {
     const pct = frontUnit.statements.pct;
     lines.push(`| **Frontend Unit** (Jest) | ${badge(pct)} | \`${progressBar(pct)}\` | ${frontUnit.statements.covered}/${frontUnit.statements.total} stmts, ${frontUnit.branches.pct.toFixed(1)}% branches, ${frontUnit.functions.pct.toFixed(1)}% funcs |`);
+  } else if (frontUnit.brokenJob) {
+    lines.push('| **Frontend Unit** (Jest) | ❌ broken | `' + progressBar(null) + '` | _artifact uploaded without coverage-summary.json — see `frontend-unit-tests` job logs_ |');
   } else {
-    lines.push('| **Frontend Unit** (Jest) | ⬜ N/A | `' + progressBar(null) + '` | _artifact not available_ |');
+    lines.push('| **Frontend Unit** (Jest) | ⬜ N/A | `' + progressBar(null) + '` | _artifact not uploaded — see `frontend-unit-tests` job logs_ |');
   }
 
   if (frontE2E.available) {
     const pct = frontE2E.coveredPct;
     lines.push(`| **Frontend E2E** (Playwright) | ${badge(pct)} | \`${progressBar(pct)}\` | ${frontE2E.covered}/${frontE2E.totalFlows} flows covered, ${frontE2E.failing} failing, ${frontE2E.missing} missing |`);
+  } else if (frontE2E.brokenJob) {
+    lines.push('| **Frontend E2E** (Playwright) | ❌ broken | `' + progressBar(null) + '` | _artifact uploaded without flow-coverage.json — see `e2e-merge` job logs_ |');
   } else {
-    lines.push('| **Frontend E2E** (Playwright) | ⬜ N/A | `' + progressBar(null) + '` | _artifact not available_ |');
+    lines.push('| **Frontend E2E** (Playwright) | ⬜ N/A | `' + progressBar(null) + '` | _artifact not uploaded — see `frontend-e2e-tests` / `e2e-merge` job logs_ |');
   }
 
   lines.push('');

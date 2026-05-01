@@ -35,7 +35,7 @@ describe('DefaultsShell — mode computed', () => {
     const wrapper = mountShell({});
     await flushPromises();
 
-    expect(wrapper.find('[data-testid="defaults-mode-proposal"]').classes()).toContain('text-emerald-600');
+    expect(wrapper.find('[data-testid="defaults-mode-proposal"]').classes()).toContain('text-text-brand');
     expect(wrapper.find('[data-testid="proposal-panel"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="diagnostic-panel"]').exists()).toBe(false);
   });
@@ -44,7 +44,7 @@ describe('DefaultsShell — mode computed', () => {
     const wrapper = mountShell({ mode: 'diagnostic' });
     await flushPromises();
 
-    expect(wrapper.find('[data-testid="defaults-mode-diagnostic"]').classes()).toContain('text-emerald-600');
+    expect(wrapper.find('[data-testid="defaults-mode-diagnostic"]').classes()).toContain('text-text-brand');
     expect(wrapper.find('[data-testid="diagnostic-panel"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="proposal-panel"]').exists()).toBe(false);
   });

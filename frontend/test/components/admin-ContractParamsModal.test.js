@@ -26,6 +26,27 @@ function mountContractParamsModal(props = {}) {
       stubs: {
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
+        BaseModal: {
+          props: ['modelValue', 'size'],
+          template: '<div v-if="modelValue"><slot /></div>',
+        },
+        BaseSegmented: {
+          props: ['modelValue', 'options', 'fullWidth'],
+          emits: ['update:modelValue'],
+          template: '<div><button v-for="o in options" :key="o.value" type="button" @click="$emit(\'update:modelValue\', o.value)">{{ o.label }}</button></div>',
+        },
+        BaseButton: {
+          props: ['variant', 'size', 'loading', 'disabled', 'type'],
+          template: '<button :type="type || \'button\'" @click="$emit(\'click\', $event)"><slot /></button>',
+        },
+        BaseInput: {
+          props: ['modelValue', 'type', 'size', 'placeholder'],
+          template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+        },
+        BaseSelect: {
+          props: ['modelValue', 'options', 'size'],
+          template: '<select :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option></select>',
+        },
       },
     },
   });

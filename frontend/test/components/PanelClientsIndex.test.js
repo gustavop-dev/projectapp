@@ -49,6 +49,16 @@ function mountPage() {
         NuxtLink: {
           template: '<a><slot /></a>',
         },
+        BaseInput: {
+          props: ['modelValue'],
+          emits: ['update:modelValue'],
+          inheritAttrs: false,
+          template: '<input v-bind="$attrs" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+        },
+        BaseButton: {
+          inheritAttrs: false,
+          template: '<button v-bind="$attrs"><slot /></button>',
+        },
       },
     },
   });

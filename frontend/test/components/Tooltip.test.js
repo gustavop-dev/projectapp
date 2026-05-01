@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import Tooltip from '../../components/ui/Tooltip.vue';
+import Tooltip from '../../components/base/BaseTooltip.vue';
 
 let outsideHandler = null;
 
