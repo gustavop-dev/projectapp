@@ -253,7 +253,7 @@ test.describe('Proposal Calculator Modules (PWA, AI, Reports)', () => {
 
     // Modal footer total — scope to the border-t footer area containing "Total inversión"
     // Reports & Alerts is default_selected:true at 20% = +$2.000.000, so initial = $12.000.000
-    const modalFooter = page.locator('div.border-t.border-gray-100.bg-gray-50');
+    const modalFooter = page.locator('div.border-t.border-border-default.bg-surface-muted');
     const footerTotal = modalFooter.locator('span.font-bold').filter({ hasText: /\$/ });
     await expect(footerTotal).toContainText('12.000.000');
 
@@ -285,7 +285,7 @@ test.describe('Proposal Calculator Modules (PWA, AI, Reports)', () => {
     await openCalculatorModal(page);
 
     // Collect all group headings (h4 elements) in DOM order
-    const headings = page.locator('h4.text-xs.font-semibold.text-gray-400');
+    const headings = page.locator('h4.text-xs.font-semibold.text-text-subtle');
     const count = await headings.count();
     const labels = [];
     for (let i = 0; i < count; i++) {

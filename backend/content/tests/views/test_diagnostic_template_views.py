@@ -62,6 +62,7 @@ class TestGetDiagnosticTemplate:
         assert '{{currency}}' in markdown
         assert '{{duration_label}}' in markdown
 
+    # quality: disable too_many_assertions (10 assertions verify one contract: 5 placeholder-removal checks + 4 value-injection checks + status)
     def test_with_diagnostic_id_substitutes_placeholders(
         self, admin_client, diagnostic,
     ):

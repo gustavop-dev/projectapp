@@ -168,7 +168,7 @@ test.describe('Calculator selection persists across section navigation', () => {
     await setupMock(page);
     await goToInvestmentSection(page);
 
-    const totalLocator = page.locator('section.investment span.text-lemon').filter({ hasText: /\$/ }).first();
+    const totalLocator = page.locator('section.investment span.text-on-primary').filter({ hasText: /\$/ }).first();
     const initialTotal = (await totalLocator.innerText()).trim();
 
     await openModal(page);

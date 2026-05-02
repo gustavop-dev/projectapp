@@ -87,7 +87,7 @@ test.describe('Admin Proposal Contract Generate', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Documentos' })).toBeVisible();
   });
 
   test('Documents tab is visible for sent proposals; contract generator only renders once negotiating', {
@@ -99,7 +99,7 @@ test.describe('Admin Proposal Contract Generate', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Documentos' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Generar contrato/i })).toHaveCount(0);
   });
 
@@ -112,7 +112,7 @@ test.describe('Admin Proposal Contract Generate', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Documentos' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Generar contrato/i })).toHaveCount(0);
   });
 
@@ -149,7 +149,7 @@ test.describe('Admin Proposal Contract Generate', () => {
     // Modal header
     await expect(page.getByText('Generar contrato de desarrollo')).toBeVisible();
     // Default mode tab selected
-    await expect(page.getByRole('button', { name: /Contrato por defecto/i })).toBeVisible();
+    await expect(page.getByRole('tab', { name: /Contrato por defecto/i })).toBeVisible();
     // Contractor section
     await expect(page.getByText('EL CONTRATISTA')).toBeVisible();
     // Client section
@@ -166,10 +166,10 @@ test.describe('Admin Proposal Contract Generate', () => {
     await page.getByRole('button', { name: /Generar contrato/i }).click();
 
     // Toggle to custom mode
-    await page.getByRole('button', { name: /Contrato personalizado/i }).click();
+    await page.getByRole('tab', { name: /Contrato personalizado/i }).click();
     await expect(page.getByPlaceholder(/Pega o escribe tu contrato/i)).toBeVisible();
-    // Preview toggle
-    await expect(page.getByRole('button', { name: /Vista previa/i })).toBeVisible();
+    // Preview toggle (scope to modal — "Vista previa" also exists as PDF preview labels in documents list).
+    await expect(page.getByRole('dialog').getByRole('button', { name: /Vista previa/i })).toBeVisible();
   });
 
   test('submit button calls save-and-negotiate API', {
@@ -211,7 +211,7 @@ test.describe('Admin Proposal Contract Generate', () => {
 
     // Toggle to custom mode and type Markdown (simpler than filling all default fields)
     await page.getByRole('button', { name: /Generar contrato/i }).click();
-    await page.getByRole('button', { name: /Contrato personalizado/i }).click();
+    await page.getByRole('tab', { name: /Contrato personalizado/i }).click();
     await page.getByPlaceholder(/Pega o escribe tu contrato/i).fill('# Mi contrato\n\nContenido del contrato.');
 
     // Fill contract date

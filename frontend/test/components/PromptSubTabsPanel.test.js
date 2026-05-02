@@ -42,7 +42,7 @@ describe('PromptSubTabsPanel', () => {
     const track = wrapper.findAll('div')[1];
 
     expect(wrapper.text()).toContain('Propuesta comercial');
-    expect(track.classes().join(' ')).toContain('bg-gray-100');
-    expect(wrapper.findAll('button')[1].classes().join(' ')).toContain('dark:bg-gray-800');
+    expect(track.classes().join(' ')).toContain('bg-surface-raised');
+    expect(wrapper.findAll('button')[1].classes().join(' ')).toContain('bg-surface');
   });
 });

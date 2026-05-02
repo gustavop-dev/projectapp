@@ -85,7 +85,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
     await mockApi(page, baseHandler(buildDiagnostic({ status: 'draft' })));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await expect(page.getByRole('button', { name: 'General' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('tab', { name: 'General' })).toBeVisible({ timeout: 15000 });
 
     // The Correos tab itself may not be visible for draft; either way the markdown button must not appear
     await expect(page.getByRole('button', { name: /Crear documento desde markdown/i })).not.toBeVisible();
@@ -97,7 +97,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
     await mockApi(page, baseHandler(buildDiagnostic({ status: 'negotiating' })));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
 
     await expect(
       page.getByRole('button', { name: /Crear documento desde markdown/i }),
@@ -110,7 +110,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
     await mockApi(page, baseHandler(buildDiagnostic({ status: 'negotiating' })));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Crear documento desde markdown/i }).click();
 
     await expect(page.getByRole('heading', { name: /Adjuntar documento PDF/i })).toBeVisible({ timeout: 10000 });
@@ -122,7 +122,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
     await mockApi(page, baseHandler(buildDiagnostic({ status: 'negotiating' })));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Crear documento desde markdown/i }).click();
 
     await expect(page.locator('input[type="text"]').first()).toBeVisible({ timeout: 10000 });
@@ -140,7 +140,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
     await mockApi(page, baseHandler(buildDiagnostic({ status: 'negotiating' })));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Crear documento desde markdown/i }).click();
 
     await expect(
@@ -154,7 +154,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
     await mockApi(page, baseHandler(buildDiagnostic({ status: 'negotiating' })));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Crear documento desde markdown/i }).click();
 
     await expect(page.getByRole('heading', { name: /Adjuntar documento PDF/i })).toBeVisible({ timeout: 10000 });
@@ -170,7 +170,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
     await mockApi(page, baseHandler(buildDiagnostic({ status: 'negotiating' })));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Crear documento desde markdown/i }).click();
 
     await expect(page.getByRole('heading', { name: /Adjuntar documento PDF/i })).toBeVisible({ timeout: 10000 });
@@ -199,7 +199,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
 
     await page.context().grantPermissions(['clipboard-write', 'clipboard-read']);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Crear documento desde markdown/i }).click();
 
     await expect(page.getByRole('heading', { name: /Adjuntar documento PDF/i })).toBeVisible({ timeout: 10000 });

@@ -87,14 +87,19 @@ test.describe('Admin Unified Defaults Shell', () => {
     await mockApi(page, async (info) => buildHandler(info));
     await page.goto('/panel/defaults', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByRole('heading', { name: 'Valores por Defecto' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Valores por Defecto' })).toBeVisible({ timeout: 25_000 });
 
-    const proposalBtn = page.getByTestId('defaults-mode-proposal');
+    // Mode toggle renders twice with the same testId — once in the mobile
+    // section (sm:hidden) and once in the desktop segmented pills (hidden sm:flex).
+    // Filter by `:visible` so the assertion targets whichever is shown for the
+    // current viewport instead of `.first()` (which always picks the mobile one,
+    // hidden in the desktop CI viewport).
+    const proposalBtn = page.locator('[data-testid="defaults-mode-proposal"]:visible');
     await expect(proposalBtn).toBeVisible();
-    await expect(proposalBtn).toHaveClass(/text-emerald-600/);
+    await expect(proposalBtn).toHaveClass(/text-text-brand/);
 
-    const diagnosticBtn = page.getByTestId('defaults-mode-diagnostic');
-    await expect(diagnosticBtn).not.toHaveClass(/text-emerald-600/);
+    const diagnosticBtn = page.locator('[data-testid="defaults-mode-diagnostic"]:visible');
+    await expect(diagnosticBtn).not.toHaveClass(/text-text-brand/);
   });
 
   test('clicking Diagnóstico switch updates URL to ?mode=diagnostic', {
@@ -103,10 +108,11 @@ test.describe('Admin Unified Defaults Shell', () => {
     await mockApi(page, async (info) => buildHandler(info));
     await page.goto('/panel/defaults', { waitUntil: 'domcontentloaded' });
 
-    await page.getByTestId('defaults-mode-diagnostic').click();
+    await expect(page.getByRole('heading', { name: 'Valores por Defecto' })).toBeVisible({ timeout: 25_000 });
+    await page.locator('[data-testid="defaults-mode-diagnostic"]:visible').click();
 
     await expect(page).toHaveURL(/mode=diagnostic/);
-    await expect(page.getByTestId('defaults-mode-diagnostic')).toHaveClass(/text-emerald-600/);
+    await expect(page.locator('[data-testid="defaults-mode-diagnostic"]:visible')).toHaveClass(/text-text-brand/);
   });
 
   test('direct navigation to ?mode=diagnostic activates diagnostic mode', {
@@ -115,8 +121,9 @@ test.describe('Admin Unified Defaults Shell', () => {
     await mockApi(page, async (info) => buildHandler(info));
     await page.goto('/panel/defaults?mode=diagnostic', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByTestId('defaults-mode-diagnostic')).toHaveClass(/text-emerald-600/);
-    await expect(page.getByTestId('defaults-mode-proposal')).not.toHaveClass(/text-emerald-600/);
+    await expect(page.getByRole('heading', { name: 'Valores por Defecto' })).toBeVisible({ timeout: 25_000 });
+    await expect(page.locator('[data-testid="defaults-mode-diagnostic"]:visible')).toHaveClass(/text-text-brand/);
+    await expect(page.locator('[data-testid="defaults-mode-proposal"]:visible')).not.toHaveClass(/text-text-brand/);
   });
 
   test('back link shows "Volver a Propuestas" in proposal mode', {

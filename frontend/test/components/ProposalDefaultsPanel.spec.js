@@ -99,6 +99,36 @@ const defaultDataResponse = {
   },
 };
 
+const BaseInputStub = {
+  props: ['modelValue', 'type', 'placeholder', 'disabled'],
+  emits: ['update:modelValue'],
+  template: '<input :type="type || \'text\'" :value="modelValue" :placeholder="placeholder" :disabled="disabled" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+};
+
+const BaseSelectStub = {
+  props: ['modelValue', 'options', 'disabled'],
+  emits: ['update:modelValue'],
+  template: '<select :value="modelValue" :disabled="disabled" @change="$emit(\'update:modelValue\', $event.target.value)"><option v-for="opt in (options || [])" :key="opt.value ?? opt" :value="opt.value ?? opt">{{ opt.label ?? String(opt) }}</option></select>',
+};
+
+const BaseTextareaStub = {
+  props: ['modelValue', 'rows', 'placeholder', 'disabled'],
+  emits: ['update:modelValue'],
+  template: '<textarea :value="modelValue" :rows="rows" :placeholder="placeholder" :disabled="disabled" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+};
+
+const BaseButtonStub = {
+  props: ['type', 'disabled', 'loading', 'as', 'to', 'variant', 'size'],
+  emits: ['click'],
+  template: '<button :type="type || \'button\'" :disabled="disabled || loading" @click="$emit(\'click\', $event)"><slot /></button>',
+};
+
+const BaseTabsStub = {
+  props: ['modelValue', 'tabs'],
+  emits: ['update:modelValue'],
+  template: '<div><button v-for="t in tabs" :key="t.id" type="button" @click="$emit(\'update:modelValue\', t.id)">{{ t.label }}</button></div>',
+};
+
 function mountPanel(tabOverride = 'general') {
   global.useRoute = () => ({ query: { tab: tabOverride } });
   return mount(ProposalDefaultsPanel, {
@@ -115,6 +145,15 @@ function mountPanel(tabOverride = 'general') {
         NuxtLink: { template: '<a><slot /></a>' },
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
+        BaseInput: BaseInputStub,
+        BaseSelect: BaseSelectStub,
+        BaseTextarea: BaseTextareaStub,
+        BaseButton: BaseButtonStub,
+        BaseTabs: BaseTabsStub,
+        BaseTooltip: { template: '<div><slot /></div>' },
+        BaseFormField: { template: '<div><slot /></div>' },
+        BaseBadge: { template: '<span><slot /></span>' },
+        BaseToggle: { template: '<input type="checkbox" />' },
       },
     },
   });

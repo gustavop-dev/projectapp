@@ -42,8 +42,8 @@
                 Editar parámetros
               </button>
             </template>
-            <button v-else type="button" :disabled="contractActionsDisabled" @click="$emit('generateContract')"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            <button v-else-if="!contractActionsDisabled" type="button" @click="$emit('generateContract')"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors">
               Generar contrato
             </button>
           </div>
@@ -190,7 +190,7 @@
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { EyeIcon } from '@heroicons/vue/24/outline';
 import { usePanelToast } from '~/composables/usePanelToast';
-import { CONTRACT_LOCKED_STATUSES } from '~/utils/proposalStatus';
+import { CONTRACT_LOCKED_STATUSES } from '~/stores/proposals_constants';
 import { isPdfUrl, isImageUrl, canPreviewFile } from '~/utils/filePreview';
 import MarkdownPreviewModal from '~/components/panel/documents/MarkdownPreviewModal.vue';
 

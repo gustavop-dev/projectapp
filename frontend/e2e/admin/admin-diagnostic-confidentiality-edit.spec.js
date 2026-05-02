@@ -109,7 +109,7 @@ test.describe('Admin Diagnostic — Edit NDA Params', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Documentos' }).click();
+    await page.getByRole('tab', { name: 'Documentos' }).click();
     await expect(page.getByRole('button', { name: /Editar parámetros/i })).toBeVisible({ timeout: 10_000 });
 
     await page.getByRole('button', { name: /Editar parámetros/i }).click();
@@ -136,7 +136,7 @@ test.describe('Admin Diagnostic — Edit NDA Params', () => {
       },
     });
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Documentos' }).click();
+    await page.getByRole('tab', { name: 'Documentos' }).click();
     await expect(page.getByRole('button', { name: /Editar parámetros/i })).toBeVisible({ timeout: 10_000 });
 
     await page.getByRole('button', { name: /Editar parámetros/i }).click();
@@ -167,7 +167,7 @@ test.describe('Admin Diagnostic — Edit NDA Params', () => {
       }),
     });
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Documentos' }).click();
+    await page.getByRole('tab', { name: 'Documentos' }).click();
     await expect(page.getByRole('button', { name: /Editar parámetros/i })).toBeVisible({ timeout: 10_000 });
 
     await page.getByRole('button', { name: /Editar parámetros/i }).click();

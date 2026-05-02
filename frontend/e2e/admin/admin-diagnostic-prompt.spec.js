@@ -75,7 +75,7 @@ test.describe('Admin Diagnostic — Prompt editor tab', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Prompt' }).click();
+    await page.getByRole('tab', { name: 'Prompt' }).click();
 
     // Commercial sub-tab active by default.
     await expect(page.getByRole('button', { name: /Propuesta comercial/i })).toBeVisible({ timeout: 10_000 });
@@ -95,7 +95,7 @@ test.describe('Admin Diagnostic — Prompt editor tab', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Prompt' }).click();
+    await page.getByRole('tab', { name: 'Prompt' }).click();
     await expect(page.getByRole('button', { name: /Editar/i }).first()).toBeVisible({ timeout: 10_000 });
 
     await page.getByRole('button', { name: /Editar/i }).first().click();
@@ -110,7 +110,7 @@ test.describe('Admin Diagnostic — Prompt editor tab', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Prompt' }).click();
+    await page.getByRole('tab', { name: 'Prompt' }).click();
     await expect(page.getByRole('button', { name: /Editar/i }).first()).toBeVisible({ timeout: 10_000 });
 
     await page.getByRole('button', { name: /Editar/i }).first().click();
@@ -136,7 +136,7 @@ test.describe('Admin Diagnostic — Prompt editor tab', () => {
 
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Prompt' }).click();
+    await page.getByRole('tab', { name: 'Prompt' }).click();
 
     await expect(page.getByRole('button', { name: /Restaurar original/i })).toBeVisible({ timeout: 10_000 });
 
@@ -152,7 +152,7 @@ test.describe('Admin Diagnostic — Prompt editor tab', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Prompt' }).click();
+    await page.getByRole('tab', { name: 'Prompt' }).click();
     await expect(page.getByRole('button', { name: /Detalle técnico/i })).toBeVisible({ timeout: 10_000 });
 
     await page.getByRole('button', { name: /Detalle técnico/i }).click();

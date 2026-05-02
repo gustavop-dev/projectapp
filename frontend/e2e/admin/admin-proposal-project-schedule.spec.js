@@ -214,7 +214,7 @@ test.describe('Admin Proposal Project Schedule (Cronograma)', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
     await page.waitForLoadState('domcontentloaded');
 
-    // Tab button should not exist
-    await expect(page.getByRole('button', { name: 'Cronograma' })).toHaveCount(0);
+    // Tab should not exist
+    await expect(page.getByRole('tab', { name: 'Cronograma' })).toHaveCount(0);
   });
 });

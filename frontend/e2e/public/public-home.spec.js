@@ -14,6 +14,7 @@ test.describe('Home Page', () => {
     await page.goto('/');
 
     // Hero section renders
+    // quality: disable fragile_locator (public page has multiple h1 elements; first targets the hero heading)
     await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15000 });
 
     // quality: allow-fragile-selector (page has no testid sections, first section confirms meaningful content)
@@ -25,6 +26,7 @@ test.describe('Home Page', () => {
   }, async ({ page }) => {
     await page.goto('/es-co');
     await expect(page).toHaveURL(/\/es-co/);
+    // quality: disable fragile_locator (public page has multiple h1 elements; first targets the hero heading)
     await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15000 });
   });
 
@@ -33,6 +35,7 @@ test.describe('Home Page', () => {
   }, async ({ page }) => {
     await page.goto('/en-us');
     await expect(page).toHaveURL(/\/en-us/);
+    // quality: disable fragile_locator (public page has multiple h1 elements; first targets the hero heading)
     await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15000 });
   });
 });

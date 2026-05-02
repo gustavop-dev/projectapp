@@ -36,15 +36,15 @@ describe('MarqueeStrips', () => {
     expect(wrapper.text()).toContain("Let's build something remarkable together!");
   });
 
-  it('renders the top ribbon with esmerald background class', () => {
+  it('renders the top ribbon with primary background class', () => {
     const wrapper = mountMarquee();
 
-    expect(wrapper.find('.ribbon.bg-esmerald').exists()).toBe(true);
+    expect(wrapper.find('.ribbon.bg-primary').exists()).toBe(true);
   });
 
-  it('renders the bottom ribbon with lemon background class', () => {
+  it('renders the bottom ribbon with accent background class', () => {
     const wrapper = mountMarquee();
 
-    expect(wrapper.find('.ribbon.bg-lemon').exists()).toBe(true);
+    expect(wrapper.find('.ribbon.bg-accent').exists()).toBe(true);
   });
 });

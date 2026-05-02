@@ -14,16 +14,16 @@ describe('FilterToggleButton', () => {
     expect(wrapper.text()).toContain('Filtros');
   });
 
-  it('applies emerald-600 class to the button when open is true', () => {
+  it('applies primary background class to the button when open is true', () => {
     const wrapper = mountButton({ open: true });
 
-    expect(wrapper.get('button').classes()).toContain('bg-emerald-600');
+    expect(wrapper.get('button').classes()).toContain('bg-primary');
   });
 
-  it('applies bg-white class to the button when open is false', () => {
+  it('applies surface background class to the button when open is false', () => {
     const wrapper = mountButton({ open: false });
 
-    expect(wrapper.get('button').classes()).toContain('bg-white');
+    expect(wrapper.get('button').classes()).toContain('bg-surface');
   });
 
   it('shows the count badge when count is greater than zero', () => {

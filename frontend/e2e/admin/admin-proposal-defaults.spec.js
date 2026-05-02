@@ -79,7 +79,9 @@ test.describe('Admin Proposal Defaults Config', () => {
     await expect(page.getByRole('button', { name: 'English' })).toBeVisible();
 
     // Sections render
+    // quality: disable fragile_locator (section items have no testids; first match targets the section list row heading)
     await expect(page.getByText('👋 Saludo').first()).toBeVisible({ timeout: 5000 });
+    // quality: disable fragile_locator (section items have no testids; first match targets the section list row heading)
     await expect(page.getByText('📋 Resumen Ejecutivo').first()).toBeVisible({ timeout: 5000 });
   });
 
@@ -90,6 +92,7 @@ test.describe('Admin Proposal Defaults Config', () => {
     await page.goto('/panel/proposals/defaults?tab=sections');
 
     // Click on greeting section header to expand
+    // quality: disable fragile_locator (section items have no testids; first match targets the section list row heading)
     await page.getByText('👋 Saludo').first().click({ timeout: 5000 });
 
     // SectionEditor should render with title input

@@ -160,7 +160,7 @@ describe('Navbar', () => {
     const contactNavLink = desktopNav.findAll('a').find((a) => a.text().includes('Contact'));
     expect(contactNavLink).toBeTruthy();
     // Contact link should have opacity class, not font-medium (not active)
-    expect(contactNavLink.classes().join(' ')).toContain('text-esmerald/60');
+    expect(contactNavLink.classes().join(' ')).toContain('text-text-brand/60');
   });
 
   // ── openMenu / closeMenu ───────────────────────────────────────────────────
@@ -287,7 +287,7 @@ describe('Navbar', () => {
   it('clicking the backdrop closes the mobile menu without error', async () => {
     const wrapper = mountNavbar();
     await wrapper.find('button[aria-label="Open menu"]').trigger('click');
-    const backdrop = wrapper.find('.absolute.inset-0.bg-white\\/40');
+    const backdrop = wrapper.find('.absolute.inset-0.bg-surface\\/40');
     expect(backdrop.exists()).toBe(true);
     await expect(backdrop.trigger('click')).resolves.not.toThrow();
   });

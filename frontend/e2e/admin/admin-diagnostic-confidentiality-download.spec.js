@@ -85,7 +85,7 @@ test.describe('Admin Diagnostic — NDA Download Links', () => {
   }, async ({ page }) => {
     await setupMock(page, buildDiagnostic({ withNda: true }));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Documentos' }).click();
+    await page.getByRole('tab', { name: 'Documentos' }).click();
 
     await expect(page.getByText('Acuerdo de confidencialidad').first()).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('link', { name: /Descargar/i })).toBeVisible();
@@ -104,7 +104,7 @@ test.describe('Admin Diagnostic — NDA Download Links', () => {
   }, async ({ page }) => {
     await setupMock(page, buildDiagnostic({ withNda: false }));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Documentos' }).click();
+    await page.getByRole('tab', { name: 'Documentos' }).click();
 
     await expect(page.getByText('Acuerdo de confidencialidad').first()).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('No generado')).toBeVisible();

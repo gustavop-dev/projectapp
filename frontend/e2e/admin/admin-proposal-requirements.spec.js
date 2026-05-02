@@ -131,7 +131,7 @@ async function openRequirementsEditor(page, capturedUpdates) {
   await mockApi(page, buildMockHandler(capturedUpdates));
   await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-  await page.getByRole('button', { name: 'Secciones' }).click();
+  await page.getByRole('tab', { name: 'Secciones' }).click();
 
   // Expand the functional_requirements section
   await page.getByTestId('section-header-functional_requirements').click();

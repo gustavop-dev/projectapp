@@ -52,7 +52,7 @@ test.describe('Admin Proposal Dashboard Auto-Refresh', () => {
     await page.getByRole('button', { name: /Mostrar Dashboard KPI/ }).click();
 
     await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText('12')).toBeVisible();
+    await expect(page.getByText('12', { exact: true })).toBeVisible();
     await expect(page.getByText('Tasa conversión')).toBeVisible();
     await expect(page.getByText('42%')).toBeVisible();
   });

@@ -8,3 +8,8 @@ export const PROPOSAL_STATUS = Object.freeze({
   EXPIRED: 'expired',
   FINISHED: 'finished',
 });
+
+export const CONTRACT_LOCKED_STATUSES = Object.freeze([
+  PROPOSAL_STATUS.SENT,
+  PROPOSAL_STATUS.VIEWED,
+]);

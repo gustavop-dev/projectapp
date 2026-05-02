@@ -676,6 +676,7 @@ class TestExchangeCodeForToken:
         with override_settings(**LINKEDIN_SETTINGS):
             with pytest.raises(ValueError, match='token exchange failed'):
                 linkedin_service.exchange_code_for_token('bad-code')
+        # quality: allow-call-contract (request boundary: verifies the POST to the OAuth endpoint was attempted; observable effect is the pytest.raises above)
         mock_post.assert_called_once()
 
 

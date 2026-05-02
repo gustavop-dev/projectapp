@@ -2842,6 +2842,7 @@ class TestNotifyProposalStageDeadlines:
             import content.tasks as tasks_module
             tasks_module.notify_proposal_stage_deadlines.call_local()
 
+        # quality: allow-call-contract (tracker boundary: verifies the task delegates to ProposalStageTracker.process with the correct proposal)
         mock_process.assert_called_once_with(proposal)
 
     def test_skips_paused_proposals(self):
@@ -2870,6 +2871,7 @@ class TestNotifyProposalStageDeadlines:
             import content.tasks as tasks_module
             tasks_module.notify_proposal_stage_deadlines.call_local()
 
+        # quality: allow-call-contract (skip boundary: assert_not_called verifies the tracker is not invoked for paused proposals)
         mock_process.assert_not_called()
 
 
@@ -3002,6 +3004,7 @@ class TestCheckEngagementFollowupsLastEventNone:
         import content.tasks as tasks_module
         tasks_module.check_engagement_followups.call_local()
 
+        # quality: allow-call-contract (skip boundary: assert_not_called verifies no email is sent when there are no view events)
         mock_send.assert_not_called()
 
 

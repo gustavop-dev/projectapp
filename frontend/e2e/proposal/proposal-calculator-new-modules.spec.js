@@ -217,7 +217,7 @@ test.describe('New Default Calculator Modules', () => {
     await setupMock(page);
     await openCalculatorModal(page);
 
-    const modalFooter = page.locator('div.border-t.border-gray-100.bg-gray-50');
+    const modalFooter = page.locator('div.border-t.border-border-default.bg-surface-muted');
     const footerTotal = modalFooter.locator('span.font-bold').filter({ hasText: /\$/ });
     await expect(footerTotal).toContainText('10.000.000');
 

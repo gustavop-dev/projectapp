@@ -46,9 +46,9 @@ test.describe('Admin Blog Calendar', () => {
     await expect(page.getByRole('heading', { name: 'Calendario de Blog' })).toBeVisible();
     await expect(page.getByText('Semana')).toBeVisible();
 
-    // 7 day name headers should be visible
-    await expect(page.getByText('Lun')).toBeVisible();
-    await expect(page.getByText('Dom')).toBeVisible();
+    // Day-name headers render twice (desktop grid + mobile compact view); use .first().
+    await expect(page.getByText('Lun').first()).toBeVisible();
+    await expect(page.getByText('Dom').first()).toBeVisible();
   });
 
   test('displays color-coded post cards for published, scheduled, and draft', {
@@ -64,9 +64,9 @@ test.describe('Admin Blog Calendar', () => {
 
     await page.goto('/panel/blog/calendar');
 
-    await expect(page.getByText('Post Publicado')).toBeVisible();
-    await expect(page.getByText('Post Programado')).toBeVisible();
-    await expect(page.getByText('Post Borrador')).toBeVisible();
+    await expect(page.getByText('Post Publicado').first()).toBeVisible();
+    await expect(page.getByText('Post Programado').first()).toBeVisible();
+    await expect(page.getByText('Post Borrador').first()).toBeVisible();
 
     // Legend is visible (use exact match to avoid matching post card titles)
     await expect(page.getByText('Publicado', { exact: true })).toBeVisible();

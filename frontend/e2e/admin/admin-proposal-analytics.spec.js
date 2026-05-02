@@ -93,7 +93,7 @@ test.describe('Admin Proposal Analytics', () => {
     await setupMock(page);
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Analytics' }).click();
+    await page.getByRole('tab', { name: 'Analytics' }).click();
     await expect(page.getByRole('button', { name: 'Exportar CSV' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('Dispositivos')).toBeVisible();
   });
@@ -104,7 +104,7 @@ test.describe('Admin Proposal Analytics', () => {
     await setupMock(page);
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Analytics' }).click();
+    await page.getByRole('tab', { name: 'Analytics' }).click();
     await expect(page.getByRole('button', { name: 'Exportar CSV' })).toBeVisible({ timeout: 15000 });
   });
 
@@ -114,7 +114,7 @@ test.describe('Admin Proposal Analytics', () => {
     await setupMock(page);
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Analytics' }).click();
+    await page.getByRole('tab', { name: 'Analytics' }).click();
     await expect(page.getByRole('button', { name: 'Exportar CSV' })).toBeVisible({ timeout: 15000 });
   });
 
@@ -130,7 +130,7 @@ test.describe('Admin Proposal Analytics', () => {
     });
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Analytics' }).click();
+    await page.getByRole('tab', { name: 'Analytics' }).click();
     await expect(page.getByText('Engagement Score')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('75', { exact: true })).toBeVisible();
     await expect(page.getByText(/Alto engagement/)).toBeVisible();
@@ -148,7 +148,7 @@ test.describe('Admin Proposal Analytics', () => {
     });
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Analytics' }).click();
+    await page.getByRole('tab', { name: 'Analytics' }).click();
     await expect(page.getByText('Engagement Score')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(/Bajo engagement/)).toBeVisible();
   });

@@ -75,8 +75,8 @@ describe('DiagnosticIndex', () => {
   it('highlights the current section button', () => {
     const wrapper = mountIndex({ currentIndex: 1 });
     const buttons = wrapper.findAll('[data-testid="diagnostic-index-panel"] li button');
-    expect(buttons[1].classes()).toContain('bg-esmerald/5');
-    expect(buttons[0].classes()).not.toContain('bg-esmerald/5');
+    expect(buttons[1].classes()).toContain('bg-primary/5');
+    expect(buttons[0].classes()).not.toContain('bg-primary/5');
   });
 
   it('shows a checkmark badge for a visited section that is not current', () => {

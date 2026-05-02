@@ -78,7 +78,7 @@ test.describe('Admin Proposal Email — Branded', () => {
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    const correosTab = page.getByRole('button', { name: /Correos/i });
+    const correosTab = page.getByRole('tab', { name: /Correos/i });
     await expect(correosTab).toBeVisible({ timeout: 15000 });
   });
 
@@ -91,7 +91,7 @@ test.describe('Admin Proposal Email — Branded', () => {
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    const correosTab = page.getByRole('button', { name: /Correos/i });
+    const correosTab = page.getByRole('tab', { name: /Correos/i });
     await expect(correosTab).toBeVisible({ timeout: 15000 });
     await correosTab.click();
 
@@ -118,7 +118,7 @@ test.describe('Admin Proposal Email — Proposal Mode', () => {
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    const correosTab = page.getByRole('button', { name: /Correos/i });
+    const correosTab = page.getByRole('tab', { name: /Correos/i });
     await expect(correosTab).toBeVisible({ timeout: 15000 });
   });
 
@@ -134,7 +134,7 @@ test.describe('Admin Proposal Email — Proposal Mode', () => {
     // Wait for the page to load by checking another element is visible
     await expect(page.locator('main')).toBeVisible({ timeout: 15000 });
 
-    const correosTab = page.getByRole('button', { name: /Correos/i });
+    const correosTab = page.getByRole('tab', { name: /Correos/i });
     await expect(correosTab).toHaveCount(0);
   });
 });

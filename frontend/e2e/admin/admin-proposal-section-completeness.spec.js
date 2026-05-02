@@ -61,7 +61,7 @@ test.describe('Admin Proposal Section Completeness', () => {
     await page.waitForResponse(resp => resp.url().includes('/detail/') && resp.status() === 200);
 
     // Navigate to sections tab
-    const sectionsTab = page.getByRole('button', { name: /Secciones/i });
+    const sectionsTab = page.getByRole('tab', { name: /Secciones/i });
     if (await sectionsTab.isVisible().catch(() => false)) {
       await sectionsTab.click();
 
@@ -86,7 +86,7 @@ test.describe('Admin Proposal Section Completeness', () => {
     await page.goto('/panel/proposals/1/edit');
     await page.waitForResponse(resp => resp.url().includes('/detail/') && resp.status() === 200);
 
-    const sectionsTab = page.getByRole('button', { name: /Secciones/i });
+    const sectionsTab = page.getByRole('tab', { name: /Secciones/i });
     if (await sectionsTab.isVisible().catch(() => false)) {
       await sectionsTab.click();
 

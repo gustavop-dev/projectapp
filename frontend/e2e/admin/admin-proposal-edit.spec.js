@@ -167,8 +167,8 @@ test.describe('Admin Proposal Edit', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`, { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByText('Propuesta E2E')).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByRole('button', { name: 'General' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Secciones' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'General' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Secciones' })).toBeVisible();
   });
 
   test('shows client name field pre-filled in General tab', {
@@ -292,7 +292,7 @@ test.describe('Admin Proposal Edit', () => {
 
     await page.goto('/panel/proposals/1/edit');
 
-    await page.getByRole('button', { name: 'JSON' }).click();
+    await page.getByRole('tab', { name: 'JSON' }).click();
     await expect(page.getByTestId('proposal-json-stats')).toContainText('Secciones:');
     await expect(page.getByTestId('proposal-json-stats')).toContainText('Progreso:');
     await expect(page.getByTestId('proposal-json-stats')).toContainText('Tamaño del JSON:');
@@ -300,7 +300,7 @@ test.describe('Admin Proposal Edit', () => {
     await expect(page.getByTestId('proposal-export-json-textarea')).toHaveAttribute('rows', '18');
     await expect(page.getByTestId('proposal-import-json-textarea')).toHaveAttribute('rows', '18');
 
-    await page.getByRole('button', { name: 'Det. técnico' }).click();
+    await page.getByRole('tab', { name: 'Det. técnico' }).click();
     await expect(page.getByTestId('technical-purpose-textarea')).toBeVisible();
     await expect(page.getByTestId('technical-epic-description-textarea').first()).toBeVisible();
     await expect(page.getByTestId('technical-req-description-textarea').first()).toBeVisible();

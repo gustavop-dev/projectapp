@@ -69,7 +69,7 @@ test.describe('Proposal Comment from Closing Panel', () => {
     await openClosingPanel(page);
 
     // Open comment modal directly from closing panel
-    await page.getByRole('button', { name: /Tengo comentarios por escrito|I have written comments/i }).click();
+    await page.getByRole('button', { name: /Tengo comentarios|I have comments/i }).click();
     await expect(page.locator('textarea')).toBeVisible();
   });
 
@@ -86,7 +86,7 @@ test.describe('Proposal Comment from Closing Panel', () => {
     await openClosingPanel(page);
 
     // Open comment modal directly from closing panel
-    await page.getByRole('button', { name: /Tengo comentarios por escrito|I have written comments/i }).click();
+    await page.getByRole('button', { name: /Tengo comentarios|I have comments/i }).click();
 
     const sendBtn = page.getByRole('button', { name: /Enviar mensaje|Send message/i });
     await expect(sendBtn).toBeDisabled();
@@ -111,7 +111,7 @@ test.describe('Proposal Comment from Closing Panel', () => {
     await openClosingPanel(page);
 
     // Open comment modal directly from closing panel
-    await page.getByRole('button', { name: /Tengo comentarios por escrito|I have written comments/i }).click();
+    await page.getByRole('button', { name: /Tengo comentarios|I have comments/i }).click();
 
     await page.locator('textarea').fill('Me gustaría saber más sobre los tiempos de entrega.');
 

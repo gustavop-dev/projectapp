@@ -63,7 +63,7 @@ test.describe('Admin Proposal Activity Log', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
     // Switch to activity tab
-    const activityTab = page.getByRole('button', { name: /Actividad/i });
+    const activityTab = page.getByRole('tab', { name: /Actividad/i });
     await expect(activityTab).toBeVisible({ timeout: 15000 });
     await activityTab.click();
 
@@ -89,7 +89,7 @@ test.describe('Admin Proposal Activity Log', () => {
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    const activityTab = page.getByRole('button', { name: /Actividad/i });
+    const activityTab = page.getByRole('tab', { name: /Actividad/i });
     await expect(activityTab).toBeVisible({ timeout: 15000 });
     await activityTab.click();
     await expect(page.getByText('Registrar actividad')).toBeVisible({ timeout: 5000 });
@@ -120,7 +120,7 @@ test.describe('Admin Proposal Activity Log', () => {
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    const activityTab = page.getByRole('button', { name: /Actividad/i });
+    const activityTab = page.getByRole('tab', { name: /Actividad/i });
     await expect(activityTab).toBeVisible({ timeout: 15000 });
     await activityTab.click();
     await expect(page.getByText('Registrar actividad')).toBeVisible({ timeout: 5000 });

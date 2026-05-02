@@ -105,10 +105,13 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
     });
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Secciones' }).click();
+    await page.getByRole('tab', { name: 'Secciones' }).click();
 
+    // quality: disable fragile_locator (section titles have no testids; first match targets the section list item heading)
     await expect(page.getByText('Propósito', { exact: true }).first()).toBeVisible({ timeout: 15000 });
+    // quality: disable fragile_locator (section titles have no testids; first match targets the section list item heading)
     await expect(page.getByText('Categorías Evaluadas').first()).toBeVisible();
+    // quality: disable fragile_locator (section titles have no testids; first match targets the section list item heading)
     await expect(page.getByText('Alcance y Consideraciones').first()).toBeVisible();
   });
 
@@ -137,7 +140,7 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
     });
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Actividad' }).click();
+    await page.getByRole('tab', { name: 'Actividad' }).click();
 
     const input = page.getByPlaceholder(/descripción de la actividad/i);
     await expect(input).toBeVisible({ timeout: 15000 });
@@ -184,10 +187,13 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
     });
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Analytics' }).click();
+    await page.getByRole('tab', { name: 'Analytics' }).click();
 
+    // quality: disable fragile_locator (DiagnosticAnalytics has no testids; first match targets the KPI label)
     await expect(page.getByText('Vistas').first()).toBeVisible({ timeout: 15000 });
+    // quality: disable fragile_locator (DiagnosticAnalytics has no testids; first match targets the view-count KPI value)
     await expect(page.getByText('7', { exact: true }).first()).toBeVisible();
+    // quality: disable fragile_locator (DiagnosticAnalytics has no testids; first match targets the section name in the sections table)
     await expect(page.getByText(/Propósito/).first()).toBeVisible();
   });
 });
