@@ -70,14 +70,14 @@ test.describe('Admin Diagnostic — Edit page', () => {
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await expect(page.getByRole('button', { name: 'General', exact: true })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('button', { name: 'Secciones' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Prompt Diagnostic' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'JSON' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Actividad' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Analytics' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Correos' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'General', exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('tab', { name: 'Secciones' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Prompt Diagnostic' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'JSON' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Actividad' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Analytics' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Correos' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Documentos' })).toBeVisible();
   });
 
   test('General tab shows client name and language', {
@@ -93,7 +93,7 @@ test.describe('Admin Diagnostic — Edit page', () => {
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'General', exact: true }).click();
+    await page.getByRole('tab', { name: 'General', exact: true }).click();
 
     await expect(page.getByText('AcmeCorp').first()).toBeVisible({ timeout: 10000 });
     // Language is a <select> — assert its selected value matches 'es'.

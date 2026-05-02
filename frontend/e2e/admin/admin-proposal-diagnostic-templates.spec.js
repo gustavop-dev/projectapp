@@ -88,8 +88,8 @@ test.describe('Admin Proposal — Documentos tab', () => {
     await mockApi(page, baseHandler(makeProposal({ status: 'draft' })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.getByRole('button', { name: 'General' })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('button', { name: 'Documentos' })).not.toBeVisible();
+    await expect(page.getByRole('tab', { name: 'General' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('tab', { name: 'Documentos' })).not.toBeVisible();
   });
 
   test('Documentos tab is visible for sent proposals', {
@@ -98,7 +98,7 @@ test.describe('Admin Proposal — Documentos tab', () => {
     await mockApi(page, baseHandler(makeProposal({ status: 'sent' })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('tab', { name: 'Documentos' })).toBeVisible({ timeout: 15000 });
   });
 
   test('documents tab renders unified list with contract, commercial and technical entries', {
@@ -107,7 +107,7 @@ test.describe('Admin Proposal — Documentos tab', () => {
     await mockApi(page, baseHandler(makeProposal({ status: 'negotiating' })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Documentos' }).click();
+    await page.getByRole('tab', { name: 'Documentos' }).click();
 
     const docsList = page.getByRole('list').first();
     await expect(docsList.getByText('Contrato de desarrollo')).toBeVisible({ timeout: 10000 });
@@ -121,7 +121,7 @@ test.describe('Admin Proposal — Documentos tab', () => {
     await mockApi(page, baseHandler(makeProposal({ status: 'negotiating', proposal_documents: [] })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Documentos' }).click();
+    await page.getByRole('tab', { name: 'Documentos' }).click();
 
     await expect(page.getByText('Generar contrato')).toBeVisible({ timeout: 10000 });
   });
@@ -132,7 +132,7 @@ test.describe('Admin Proposal — Documentos tab', () => {
     await mockApi(page, baseHandler(makeProposal({ status: 'negotiating' })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Documentos' }).click();
+    await page.getByRole('tab', { name: 'Documentos' }).click();
 
     await expect(page.getByRole('heading', { name: 'Documentos adjuntos' })).toBeVisible({ timeout: 10000 });
     await expect(page.getByPlaceholder(/Ej: Anexo técnico/i)).toBeVisible();
@@ -144,7 +144,7 @@ test.describe('Admin Proposal — Documentos tab', () => {
     await mockApi(page, baseHandler(makeProposal({ status: 'negotiating' })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Documentos' }).click();
+    await page.getByRole('tab', { name: 'Documentos' }).click();
     await expect(page.getByText('Contrato de desarrollo')).toBeVisible({ timeout: 10000 });
 
     await expect(page.getByText('Enviar documentos al cliente')).not.toBeVisible();
@@ -160,7 +160,7 @@ test.describe('Admin Proposal — Documentos tab', () => {
     await mockApi(page, baseHandler(proposal));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Documentos' }).click();
+    await page.getByRole('tab', { name: 'Documentos' }).click();
 
     await expect(page.getByText('Otrosí No. 1')).toBeVisible({ timeout: 10000 });
   });

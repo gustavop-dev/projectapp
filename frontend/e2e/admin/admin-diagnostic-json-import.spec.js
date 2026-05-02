@@ -79,7 +79,7 @@ test.describe('Admin Diagnostic — JSON tab (import)', () => {
     });
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'JSON' }).click();
+    await page.getByRole('tab', { name: 'JSON' }).click();
 
     const textarea = page.getByPlaceholder(/Pega aquí el JSON completo/i);
     await textarea.fill(JSON.stringify(importPayload));
@@ -101,7 +101,7 @@ test.describe('Admin Diagnostic — JSON tab (import)', () => {
     });
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'JSON' }).click();
+    await page.getByRole('tab', { name: 'JSON' }).click();
 
     const textarea = page.getByPlaceholder(/Pega aquí el JSON completo/i);
     await textarea.fill('{ not valid json');
@@ -145,7 +145,7 @@ test.describe('Admin Diagnostic — JSON tab (import)', () => {
     });
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'JSON' }).click();
+    await page.getByRole('tab', { name: 'JSON' }).click();
 
     const textarea = page.getByPlaceholder(/Pega aquí el JSON completo/i);
     await textarea.fill(JSON.stringify(importPayload));
@@ -183,7 +183,7 @@ test.describe('Admin Diagnostic — JSON tab (import)', () => {
     });
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'JSON' }).click();
+    await page.getByRole('tab', { name: 'JSON' }).click();
 
     await page.getByPlaceholder(/Pega aquí el JSON completo/i).fill(JSON.stringify(importPayload));
     await page.getByRole('button', { name: /Aplicar JSON/i }).click();

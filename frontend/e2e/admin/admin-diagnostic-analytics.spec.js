@@ -105,7 +105,7 @@ test.describe('Admin Diagnostic Analytics', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Analytics' }).click();
+    await page.getByRole('tab', { name: 'Analytics' }).click();
 
     await expect(page.getByRole('button', { name: 'Exportar CSV' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('Vistas').first()).toBeVisible();
@@ -118,7 +118,7 @@ test.describe('Admin Diagnostic Analytics', () => {
   }, async ({ page }) => {
     await setupMock(page, { engagement_score: 75 });
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Analytics' }).click();
+    await page.getByRole('tab', { name: 'Analytics' }).click();
 
     await expect(page.getByText('Engagement Score')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('75', { exact: true })).toBeVisible();
@@ -130,7 +130,7 @@ test.describe('Admin Diagnostic Analytics', () => {
   }, async ({ page }) => {
     await setupMock(page, { engagement_score: 18 });
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Analytics' }).click();
+    await page.getByRole('tab', { name: 'Analytics' }).click();
 
     await expect(page.getByText('Engagement Score')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(/Bajo engagement/)).toBeVisible();
@@ -141,7 +141,7 @@ test.describe('Admin Diagnostic Analytics', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Analytics' }).click();
+    await page.getByRole('tab', { name: 'Analytics' }).click();
 
     // Funnel section renders with section names from the funnel array
     await expect(page.getByText('Propósito').first()).toBeVisible({ timeout: 15000 });
@@ -153,7 +153,7 @@ test.describe('Admin Diagnostic Analytics', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Analytics' }).click();
+    await page.getByRole('tab', { name: 'Analytics' }).click();
 
     await expect(page.getByText('Dispositivos')).toBeVisible({ timeout: 15000 });
   });

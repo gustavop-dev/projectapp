@@ -96,7 +96,7 @@ test.describe('Admin Diagnostic — Correos tab', () => {
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await expect(page.getByRole('button', { name: 'Correos' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('tab', { name: 'Correos' })).toBeVisible({ timeout: 15000 });
   });
 
   test('email composer renders recipient, subject, and sections fields', {
@@ -105,7 +105,7 @@ test.describe('Admin Diagnostic — Correos tab', () => {
     await mockApi(page, baseHandler(buildDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
 
     await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('input[placeholder*="Asunto"]')).toBeVisible();
@@ -119,7 +119,7 @@ test.describe('Admin Diagnostic — Correos tab', () => {
     await mockApi(page, baseHandler(buildDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
 
     const recipientInput = page.locator('input[type="email"]');
     await expect(recipientInput).toHaveValue('client@example.com', { timeout: 10000 });
@@ -131,7 +131,7 @@ test.describe('Admin Diagnostic — Correos tab', () => {
     await mockApi(page, baseHandler(buildDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
 
     await expect(page.getByText('Historial de correos')).toBeVisible({ timeout: 10000 });
   });
@@ -142,7 +142,7 @@ test.describe('Admin Diagnostic — Correos tab', () => {
     await mockApi(page, baseHandler(buildDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
 
     await expect(page.getByRole('button', { name: /Enviar correo/i })).toBeDisabled({ timeout: 10000 });
   });
@@ -162,7 +162,7 @@ test.describe('Admin Diagnostic — Correos tab', () => {
     });
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
 
     await page.locator('textarea').first().fill('Este es el cuerpo del correo de seguimiento.');
     await page.getByRole('button', { name: /Enviar correo/i }).click();
@@ -189,7 +189,7 @@ test.describe('Admin Diagnostic — Documentos tab', () => {
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('tab', { name: 'Documentos' })).toBeVisible({ timeout: 15000 });
   });
 
   test('documents tab renders Documentos list and uploader', {
@@ -198,7 +198,7 @@ test.describe('Admin Diagnostic — Documentos tab', () => {
     await mockApi(page, baseHandler(buildDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Documentos' }).click();
+    await page.getByRole('tab', { name: 'Documentos' }).click();
 
     await expect(page.getByRole('heading', { name: 'Documentos', exact: true })).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole('heading', { name: 'Documentos adjuntos' })).toBeVisible();

@@ -131,7 +131,7 @@ async function openSectionEditor(page, capturedUpdates, sectionType) {
   await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
   await page.waitForLoadState('domcontentloaded');
 
-  await page.getByRole('button', { name: 'Secciones' }).click();
+  await page.getByRole('tab', { name: 'Secciones' }).click();
 
   await page.getByTestId(`section-header-${sectionType}`).click();
   await page.getByTestId('section-editor').waitFor({ state: 'visible' });
@@ -361,7 +361,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
     await page.waitForLoadState('domcontentloaded');
-    await page.getByRole('button', { name: 'Secciones' }).click();
+    await page.getByRole('tab', { name: 'Secciones' }).click();
 
     // Expand executive_summary section
     await page.getByTestId('section-header-executive_summary').click();
@@ -447,7 +447,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
     await page.waitForLoadState('domcontentloaded');
-    await page.getByRole('button', { name: 'Secciones' }).click();
+    await page.getByRole('tab', { name: 'Secciones' }).click();
     await page.getByText('🎨 Diseño UX').click();
     await page.getByTestId('section-editor').waitFor({ state: 'visible' });
 

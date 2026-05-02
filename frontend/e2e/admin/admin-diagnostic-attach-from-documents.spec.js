@@ -111,7 +111,7 @@ test.describe('Admin Diagnostic — Adjuntar desde Documentos', () => {
     await mockApi(page, baseHandler(makeDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
 
     await expect(page.getByRole('button', { name: /Adjuntar desde Documentos/i }))
       .toBeVisible({ timeout: 15000 });
@@ -123,7 +123,7 @@ test.describe('Admin Diagnostic — Adjuntar desde Documentos', () => {
     await mockApi(page, baseHandler(makeDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Adjuntar desde Documentos/i }).click();
 
     await expect(page.getByText('Adjuntar desde Documentos').first()).toBeVisible({ timeout: 5000 });
@@ -136,7 +136,7 @@ test.describe('Admin Diagnostic — Adjuntar desde Documentos', () => {
     await mockApi(page, baseHandler(makeDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Adjuntar desde Documentos/i }).click();
 
     await expect(page.getByText('Diagnóstico de Aplicación')).toBeVisible({ timeout: 5000 });
@@ -150,7 +150,7 @@ test.describe('Admin Diagnostic — Adjuntar desde Documentos', () => {
     await mockApi(page, baseHandler(diagnostic));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Adjuntar desde Documentos/i }).click();
 
     await expect(page.getByText('Acuerdo de confidencialidad (PDF)')).toBeVisible({ timeout: 5000 });
@@ -164,7 +164,7 @@ test.describe('Admin Diagnostic — Adjuntar desde Documentos', () => {
     await mockApi(page, baseHandler(diagnostic));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Adjuntar desde Documentos/i }).click();
 
     await expect(page.getByText('Informe técnico adjunto')).toBeVisible({ timeout: 5000 });
@@ -176,7 +176,7 @@ test.describe('Admin Diagnostic — Adjuntar desde Documentos', () => {
     await mockApi(page, baseHandler(makeDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Adjuntar desde Documentos/i }).click();
 
     const firstCheckbox = page.locator('.fixed.inset-0 input[type="checkbox"]').first();
@@ -209,7 +209,7 @@ test.describe('Admin Diagnostic — Adjuntar desde Documentos', () => {
     });
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
 
     // Fill section text before opening modal to avoid reactivity race on close
     await page.locator('textarea').first().fill('Contenido del correo de prueba.');

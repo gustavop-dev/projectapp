@@ -128,7 +128,7 @@ async function openSectionEditor(page, capturedUpdates, sectionType) {
   await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
   // Switch to Secciones tab
-  await page.getByRole('button', { name: 'Secciones' }).click();
+  await page.getByRole('tab', { name: 'Secciones' }).click();
 
   // Find section header and expand it
   await page.getByTestId(`section-header-${sectionType}`).click();
@@ -151,7 +151,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
     // Switch to sections tab
-    await page.getByRole('button', { name: 'Secciones' }).click();
+    await page.getByRole('tab', { name: 'Secciones' }).click();
 
     // Verify all section titles are visible
     await expect(page.getByText('Greeting', { exact: true })).toBeVisible();
@@ -325,7 +325,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     });
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.getByRole('button', { name: 'Secciones' }).click();
+    await page.getByRole('tab', { name: 'Secciones' }).click();
 
     await page.getByTestId('section-header-investment').click();
     await page.getByTestId('section-editor').waitFor({ state: 'visible' });

@@ -137,10 +137,11 @@ test.describe('Admin Proposal Manual Alerts', () => {
     await gotoProposalPanel(page);
 
     // Dismiss the specific manual alert under test.
+    // Alert cards use semantic `bg-surface` (was `bg-white` pre-design-system migration).
     const dismissBtn = page
       .getByText('Llamar para seguimiento')
       .first()
-      .locator('xpath=ancestor::div[contains(@class,"bg-white")][1]')
+      .locator('xpath=ancestor::div[contains(@class,"bg-surface")][1]')
       .locator('button[title="Descartar"]')
       .first();
     await expect(dismissBtn).toBeVisible();

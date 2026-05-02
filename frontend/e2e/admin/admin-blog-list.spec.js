@@ -54,9 +54,11 @@ test.describe('Admin Blog List', () => {
     });
     await page.goto('/panel/blog');
 
-    await expect(page.getByText('20 posts')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Anterior/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Siguiente/ })).toBeVisible();
+    const pagination = page.getByRole('navigation', { name: 'Paginación' });
+    await expect(pagination).toBeVisible();
+    await expect(pagination.getByText(/de\s*20/)).toBeVisible();
+    await expect(pagination.getByRole('button', { name: /Página anterior/i })).toBeVisible();
+    await expect(pagination.getByRole('button', { name: /Página siguiente/i })).toBeVisible();
   });
 
   test('calendar link navigates to calendar page', {

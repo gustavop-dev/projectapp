@@ -81,7 +81,7 @@ const modalRoot = (page) => page.locator('div.z-\\[9999\\]').filter({
 
 async function openNdaModal(page) {
   await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-  await page.getByRole('button', { name: 'Documentos' }).click();
+  await page.getByRole('tab', { name: 'Documentos' }).click();
   // Tab section header (h3).
   await expect(page.getByText('Acuerdo de confidencialidad').first()).toBeVisible({ timeout: 10000 });
   await page.getByRole('button', { name: 'Generar acuerdo' }).click();

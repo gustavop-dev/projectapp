@@ -105,7 +105,7 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
     });
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Secciones' }).click();
+    await page.getByRole('tab', { name: 'Secciones' }).click();
 
     await expect(page.getByText('Propósito', { exact: true }).first()).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('Categorías Evaluadas').first()).toBeVisible();
@@ -137,7 +137,7 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
     });
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Actividad' }).click();
+    await page.getByRole('tab', { name: 'Actividad' }).click();
 
     const input = page.getByPlaceholder(/descripción de la actividad/i);
     await expect(input).toBeVisible({ timeout: 15000 });
@@ -184,7 +184,7 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
     });
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Analytics' }).click();
+    await page.getByRole('tab', { name: 'Analytics' }).click();
 
     await expect(page.getByText('Vistas').first()).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('7', { exact: true }).first()).toBeVisible();

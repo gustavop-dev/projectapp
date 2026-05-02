@@ -111,7 +111,7 @@ test.describe('Admin Proposal — Adjuntar desde Documentos', () => {
     await mockApi(page, baseHandler(makeProposal()));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
 
     await expect(page.getByRole('button', { name: /Adjuntar desde Documentos/i }))
       .toBeVisible({ timeout: 15000 });
@@ -123,7 +123,7 @@ test.describe('Admin Proposal — Adjuntar desde Documentos', () => {
     await mockApi(page, baseHandler(makeProposal()));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Adjuntar desde Documentos/i }).click();
 
     await expect(page.getByText('Adjuntar desde Documentos').first()).toBeVisible({ timeout: 5000 });
@@ -136,7 +136,7 @@ test.describe('Admin Proposal — Adjuntar desde Documentos', () => {
     await mockApi(page, baseHandler(makeProposal()));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Adjuntar desde Documentos/i }).click();
 
     await expect(page.getByText('Propuesta comercial (PDF)')).toBeVisible({ timeout: 5000 });
@@ -150,7 +150,7 @@ test.describe('Admin Proposal — Adjuntar desde Documentos', () => {
     await mockApi(page, baseHandler(proposal));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Adjuntar desde Documentos/i }).click();
 
     await expect(page.getByText('Contrato de desarrollo (PDF)')).toBeVisible({ timeout: 5000 });
@@ -163,7 +163,7 @@ test.describe('Admin Proposal — Adjuntar desde Documentos', () => {
     await mockApi(page, baseHandler(makeProposal()));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Adjuntar desde Documentos/i }).click();
 
     // Scope to the modal overlay to avoid matching hidden form checkboxes
@@ -198,7 +198,7 @@ test.describe('Admin Proposal — Adjuntar desde Documentos', () => {
     });
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('tab', { name: 'Correos' }).click();
 
     // Fill required fields — subject is not auto-filled from defaults in proposal mode
     await page.getByPlaceholder('Asunto del correo').fill('Asunto de prueba');

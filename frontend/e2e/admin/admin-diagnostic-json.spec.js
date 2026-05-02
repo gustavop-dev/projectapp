@@ -81,7 +81,7 @@ test.describe('Admin Diagnostic — JSON export tab', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'JSON' }).click();
+    await page.getByRole('tab', { name: 'JSON' }).click();
 
     // Section heading visible.
     await expect(page.getByText('JSON del diagnóstico')).toBeVisible({ timeout: 10_000 });
@@ -97,7 +97,7 @@ test.describe('Admin Diagnostic — JSON export tab', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'JSON' }).click();
+    await page.getByRole('tab', { name: 'JSON' }).click();
 
     await expect(page.getByText('JSON del diagnóstico')).toBeVisible({ timeout: 10_000 });
 
@@ -119,7 +119,7 @@ test.describe('Admin Diagnostic — JSON export tab', () => {
     });
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'JSON' }).click();
+    await page.getByRole('tab', { name: 'JSON' }).click();
     await expect(page.getByText('JSON del diagnóstico')).toBeVisible({ timeout: 10_000 });
 
     await page.getByRole('button', { name: /Actualizar/i }).click();
