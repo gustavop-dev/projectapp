@@ -14,13 +14,18 @@
  * @param {{ is_published?: boolean, published_at?: string | null }} data
  * @param {Date} [now=new Date()]  Injectable for tests.
  */
+function _toLocalISO(date) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function resolveBlogPublishMode(data, now = new Date()) {
   if (data?.is_published) {
     return { mode: 'now', scheduledIso: null, overdue: false };
   }
   if (data?.published_at) {
     const at = new Date(data.published_at);
-    const iso = at.toISOString().slice(0, 16);
+    const iso = _toLocalISO(at);
     if (at > now) {
       return { mode: 'schedule', scheduledIso: iso, overdue: false };
     }

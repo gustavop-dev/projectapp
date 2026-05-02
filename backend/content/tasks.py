@@ -492,25 +492,27 @@ def publish_single_scheduled_blog(post_id):
     from content.models import BlogPost
     from content.views.blog import auto_publish_blog_to_linkedin
 
+    now = timezone.now()
+    logger.info('[Sched-ETA] fired for post_id=%s now=%s', post_id, now)
+
     post = BlogPost.objects.filter(pk=post_id).first()
     if not post:
-        logger.warning('publish_single_scheduled_blog: post %s no existe', post_id)
+        logger.warning('[Sched-ETA] post %s no existe', post_id)
         return
+    logger.info(
+        '[Sched-ETA] post %s slug=%s is_published=%s published_at=%s',
+        post_id, post.slug, post.is_published, post.published_at,
+    )
     if post.is_published:
-        logger.info(
-            'publish_single_scheduled_blog: post %s ya está publicado, skip', post_id
-        )
+        logger.info('[Sched-ETA] post %s ya publicado, skip', post_id)
         return
     if not post.published_at:
-        logger.info(
-            'publish_single_scheduled_blog: post %s sin published_at, skip', post_id
-        )
+        logger.info('[Sched-ETA] post %s sin published_at, skip', post_id)
         return
-    if post.published_at > timezone.now():
+    if post.published_at > now:
         logger.info(
-            'publish_single_scheduled_blog: post %s aún no es hora '
-            '(published_at=%s), skip',
-            post_id, post.published_at,
+            '[Sched-ETA] post %s aún no es hora: published_at=%s > now=%s — skip',
+            post_id, post.published_at, now,
         )
         return
 
@@ -519,15 +521,14 @@ def publish_single_scheduled_blog(post_id):
             is_published=True
         )
         if not updated:
+            logger.info('[Sched-ETA] post %s ya fue publicado por otro proceso', post_id)
             return
         post.refresh_from_db()
+        logger.info('[Sched-ETA] post %s marcado is_published=True, lanzando LinkedIn', post_id)
         auto_publish_blog_to_linkedin(post)
-        logger.info(
-            'publish_single_scheduled_blog: post %s publicado (slug=%s)',
-            post.id, post.slug,
-        )
+        logger.info('[Sched-ETA] post %s publicado ok (slug=%s)', post.id, post.slug)
     except Exception:
-        logger.exception('publish_single_scheduled_blog failed for post %s', post_id)
+        logger.exception('[Sched-ETA] error publicando post %s', post_id)
 
 
 @periodic_task(crontab(minute='*'))
@@ -555,9 +556,12 @@ def publish_scheduled_blog_posts():
     if not candidates:
         return
 
-    logger.info(
-        'publish_scheduled_blog_posts: %d candidate(s) pending', len(candidates)
-    )
+    logger.info('[Sched-Sweep] %d post(s) listos para publicar', len(candidates))
+    for post in candidates:
+        logger.info(
+            '[Sched-Sweep] procesando post %s slug=%s published_at=%s',
+            post.id, post.slug, post.published_at,
+        )
 
     count = 0
     for post in candidates:
@@ -566,15 +570,17 @@ def publish_scheduled_blog_posts():
                 pk=post.id, is_published=False
             ).update(is_published=True)
             if not updated:
+                logger.info('[Sched-Sweep] post %s ya publicado por otro proceso', post.id)
                 continue
             post.refresh_from_db()
+            logger.info('[Sched-Sweep] post %s marcado is_published=True, lanzando LinkedIn', post.id)
             auto_publish_blog_to_linkedin(post)
             count += 1
         except Exception:
-            logger.exception('Failed to publish scheduled blog post %s', post.id)
+            logger.exception('[Sched-Sweep] error publicando post %s', post.id)
 
     if count > 0:
-        logger.info('Published %d scheduled blog post(s).', count)
+        logger.info('[Sched-Sweep] publicados %d post(s)', count)
 
 
 def _suggest_action_for_proposal(proposal, now):

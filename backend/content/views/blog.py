@@ -40,13 +40,23 @@ def auto_publish_blog_to_linkedin(post):
 
     Runs silently — logs errors but never raises.
     """
+    logger.info(
+        '[LinkedIn] auto_publish_blog_to_linkedin called — slug=%s is_published=%s '
+        'linkedin_post_id=%s linkedin_summary_es=%s linkedin_summary_en=%s',
+        post.slug, post.is_published, bool(post.linkedin_post_id),
+        bool(post.linkedin_summary_es), bool(post.linkedin_summary_en),
+    )
+
     if not post.is_published:
+        logger.info('[LinkedIn] skip: post "%s" is not published yet', post.slug)
         return
     if post.linkedin_post_id:
+        logger.info('[LinkedIn] skip: post "%s" already has linkedin_post_id=%s', post.slug, post.linkedin_post_id)
         return
 
     summary = post.linkedin_summary_es or post.linkedin_summary_en
     if not summary:
+        logger.info('[LinkedIn] skip: post "%s" has no linkedin_summary (es or en) — fill it to enable auto-post', post.slug)
         return
 
     lang = 'es' if post.linkedin_summary_es else 'en'
@@ -60,6 +70,7 @@ def auto_publish_blog_to_linkedin(post):
         cover_image_url = f'{BASE_URL}{post.cover_image.url}'
 
     blog_url = f'{BLOG_PUBLIC_BASE}/{post.slug}'
+    logger.info('[LinkedIn] attempting post to LinkedIn: slug=%s lang=%s url=%s', post.slug, lang, blog_url)
 
     try:
         from content.services.linkedin_service import publish_blog_to_linkedin
@@ -74,7 +85,7 @@ def auto_publish_blog_to_linkedin(post):
             )
         except ValueError as exc:
             logger.error(
-                'LinkedIn no conectado / sin credenciales para blog "%s": %s',
+                '[LinkedIn] not connected / no credentials for blog "%s": %s',
                 post.slug, exc,
             )
             return
@@ -83,11 +94,11 @@ def auto_publish_blog_to_linkedin(post):
             post.linkedin_post_id = result['post_id']
             post.linkedin_published_at = tz.now()
             post.save(update_fields=['linkedin_post_id', 'linkedin_published_at'])
-            logger.info('Auto-published blog "%s" to LinkedIn: %s', post.slug, result['post_id'])
+            logger.info('[LinkedIn] auto-published blog "%s": post_id=%s', post.slug, result['post_id'])
         else:
-            logger.warning('LinkedIn auto-publish failed for "%s": %s', post.slug, result['message'])
+            logger.warning('[LinkedIn] publish failed for "%s": %s', post.slug, result['message'])
     except Exception:
-        logger.exception('LinkedIn auto-publish error for blog "%s"', post.slug)
+        logger.exception('[LinkedIn] unexpected error for blog "%s"', post.slug)
 
 
 def _enqueue_scheduled_publish_if_future(post):
@@ -313,6 +324,10 @@ def create_blog_post(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     post = serializer.save()
+    logger.info(
+        '[Blog] post created: id=%s slug=%s is_published=%s published_at=%s',
+        post.id, post.slug, post.is_published, post.published_at,
+    )
     auto_publish_blog_to_linkedin(post)
     _enqueue_scheduled_publish_if_future(post)
     detail = BlogPostAdminDetailSerializer(post)
@@ -346,8 +361,13 @@ def update_blog_post(request, post_id):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     serializer.save()
+    logger.info(
+        '[Blog] post updated: id=%s slug=%s was_published=%s is_published=%s published_at=%s',
+        post.id, post.slug, was_published, post.is_published, post.published_at,
+    )
     # Auto-publish to LinkedIn when post transitions to published
     if post.is_published and not was_published:
+        logger.info('[Blog] publish transition detected for post %s — triggering LinkedIn', post.id)
         auto_publish_blog_to_linkedin(post)
     _enqueue_scheduled_publish_if_future(post)
     detail = BlogPostAdminDetailSerializer(post)

@@ -370,6 +370,14 @@ LOGGING = {
             'backupCount': 3,
             'formatter': 'verbose',
         },
+        'blog_publish_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'blog_publish.log',
+            'maxBytes': 5 * 1024 * 1024,
+            'backupCount': 3,
+            'formatter': 'verbose',
+        },
     },
     'loggers': {
         'django': {
@@ -379,6 +387,21 @@ LOGGING = {
         },
         'backups': {
             'handlers': ['backup_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'content.views.blog': {
+            'handlers': ['blog_publish_file', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'content.services.linkedin_service': {
+            'handlers': ['blog_publish_file', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'content.tasks': {
+            'handlers': ['blog_publish_file', 'console'],
             'level': 'INFO',
             'propagate': False,
         },
