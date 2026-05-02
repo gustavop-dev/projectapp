@@ -90,6 +90,8 @@ def test_single_is_noop_when_already_published():
     )
     with patch('content.views.blog.auto_publish_blog_to_linkedin') as mock_auto:
         _run_single(post.id)
+    post.refresh_from_db()
+    assert post.is_published is True
     mock_auto.assert_not_called()
 
 
@@ -112,6 +114,8 @@ def test_periodic_skips_post_already_published_between_query_and_update():
     with patch('content.views.blog.auto_publish_blog_to_linkedin') as mock_auto:
         BlogPost.objects.filter(pk=post.id).update(is_published=True)
         _run_periodic()
+    post.refresh_from_db()
+    assert post.is_published is True
     mock_auto.assert_not_called()
 
 

@@ -82,6 +82,7 @@ class TestSendProposalReminderSkipsWithAutomationsEnabled:
 
         tasks_module.send_proposal_reminder.call_local(proposal.id)
 
+        # quality: allow-call-contract (skip boundary: assert_not_called verifies no reminder email is sent when one was already recorded)
         mock_send.assert_not_called()
 
 
@@ -133,6 +134,7 @@ class TestSendUrgencyReminderSkipsWithAutomationsEnabled:
 
         tasks_module.send_urgency_reminder.call_local(proposal.id)
 
+        # quality: allow-call-contract (skip boundary: assert_not_called verifies no urgency email is sent when one was already recorded)
         mock_send.assert_not_called()
 
 
@@ -244,6 +246,7 @@ class TestCheckEngagementFollowupsInvestmentLog:
 
         tasks_module.check_engagement_followups.call_local()
 
+        # quality: allow-call-contract (email boundary: assert_called_once verifies the investment interest followup email is sent after section view data qualifies)
         mock_send.assert_called_once()
 
 
@@ -395,6 +398,7 @@ class TestNotifyProposalStageDeadlinesException:
 
         tasks_module.notify_proposal_stage_deadlines.call_local()
 
+        # quality: allow-call-contract (tracker boundary: assert_called_once verifies the task attempts to process the proposal despite the exception)
         mock_process.assert_called_once_with(proposal)
 
 
@@ -467,6 +471,7 @@ class TestTaskNotificationExceptionPaths:
 
         tasks_module.check_task_deadline_notifications.call_local()
 
+        # quality: allow-call-contract (exception boundary: assert_called_once verifies the per-task function was invoked before the exception was swallowed)
         mock_check.assert_called_once()
 
     @patch('content.tasks._send_task_alert_email', side_effect=RuntimeError('alert fail'))
@@ -488,4 +493,5 @@ class TestTaskNotificationExceptionPaths:
 
         tasks_module.check_task_alert_notifications.call_local()
 
+        # quality: allow-call-contract (exception boundary: assert_called_once verifies the alert email function was invoked before the exception was swallowed)
         mock_alert.assert_called_once()

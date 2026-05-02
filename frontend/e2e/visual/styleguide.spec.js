@@ -114,7 +114,7 @@ test.describe('design system styleguide visual regression', () => {
     }
     await expect(html).not.toHaveClass(/(^|\s)dark(\s|$)/);
 
-    // Let any token transitions settle.
+    // quality: disable wait_for_timeout (CSS token transitions need 150ms to settle before pixel-accurate screenshot)
     await page.waitForTimeout(150);
 
     // Allow small anti-aliasing / font-rendering noise on full-page screenshots.
@@ -136,7 +136,7 @@ test.describe('design system styleguide visual regression', () => {
     const html = page.locator('html');
     await expect(html).toHaveClass(/(^|\s)dark(\s|$)/);
 
-    // Let dark-mode token transitions settle before snapshotting.
+    // quality: disable wait_for_timeout (CSS token transitions need 150ms to settle before pixel-accurate screenshot)
     await page.waitForTimeout(150);
 
     // Allow small anti-aliasing / font-rendering noise on full-page screenshots.
