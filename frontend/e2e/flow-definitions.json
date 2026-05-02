@@ -166,6 +166,16 @@
       "description": "View the admin dashboard with overview of proposals and blog posts.",
       "expectedSpecs": 1
     },
+    "admin-styleguide": {
+      "name": "Admin Styleguide",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Visual regression tests for the design system styleguide page (light and dark mode snapshots).",
+      "expectedSpecs": 1
+    },
     "admin-proposal-list": {
       "name": "Admin Proposal List",
       "module": "admin",
