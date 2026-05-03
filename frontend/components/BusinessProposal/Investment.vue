@@ -66,7 +66,7 @@
           <!-- Total as secondary line -->
           <div class="text-center mt-6 pt-5 border-t border-border-default/15">
             <span class="text-sm text-on-primary/70">{{ t.totalInvestment }}:</span>
-            <span class="text-xl font-bold text-on-primary ml-2">{{ formatCurrency(displayTotal) }}</span>
+            <span class="text-xl font-bold text-on-primary ml-2 tabular-nums">{{ formatCurrency(displayTotal) }}</span>
             <span class="text-sm text-on-primary/70 ml-1">{{ currency }}</span>
             <p v-if="isBadgeVisible" class="text-xs text-on-primary/50 mt-1">{{ t.customized }}</p>
           </div>
@@ -75,7 +75,7 @@
         <!-- Fallback: total as hero when no payment options -->
         <div v-else class="text-center mb-8">
           <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-on-primary">{{ t.totalInvestment }}</div>
-          <div class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-on-primary">{{ formatCurrency(displayTotal) }}</div>
+          <div class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-on-primary tabular-nums">{{ formatCurrency(displayTotal) }}</div>
           <div class="text-on-primary">{{ currency }}</div>
           <p v-if="isBadgeVisible" class="text-xs text-on-primary/70 mt-2">{{ t.customized }}</p>
         </div>
@@ -120,22 +120,41 @@
       </div>
 
       <!-- Discount banner -->
-      <div v-if="hasActiveDiscount" data-animate="fade-up" class="discount-banner mb-12 relative overflow-hidden bg-warning-soft border-2 border-warning-strong rounded-2xl p-5 sm:p-8">
-        <div class="absolute top-0 right-0 bg-warning-strong text-text-default text-xs font-bold px-4 py-1.5 rounded-bl-xl">
+      <div v-if="hasActiveDiscount" data-animate="fade-up" class="discount-banner mb-12 relative overflow-hidden bg-primary-strong rounded-2xl p-6 sm:p-8 shadow-2xl ring-1 ring-accent/40">
+        <!-- Corner chip -->
+        <div class="absolute top-3 right-3 inline-flex items-center gap-1 bg-accent text-primary rounded-full px-3 py-1 text-[11px] font-bold tracking-wide shadow-sm">
           🔥 {{ discountPercent }}% OFF
         </div>
-        <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
-          <div class="text-center sm:text-left">
-            <p class="text-sm font-semibold text-warning-strong uppercase tracking-wider mb-1">{{ t.specialPriceLabel }}</p>
-            <div class="flex items-baseline gap-3">
-              <span class="text-3xl sm:text-4xl font-bold text-warning-strong">{{ formatCurrency(discountedInvestment) }}</span>
-              <span class="text-lg text-text-subtle line-through">{{ totalInvestment }}</span>
-            </div>
-            <p class="text-xs text-warning-strong mt-2">
-              {{ currency }} · {{ t.validFor }}
-              <template v-if="daysRemaining !== null">{{ daysRemaining }} {{ daysRemaining !== 1 ? t.days : t.day }}</template>
-              <template v-else>{{ t.limitedTime }}</template>
+
+        <div class="flex flex-col sm:flex-row sm:items-end gap-5 sm:gap-8 pr-2 sm:pr-28">
+          <div class="text-center sm:text-left flex-1">
+            <p class="text-[11px] uppercase tracking-[0.18em] font-semibold text-accent/80 mb-2">
+              {{ t.specialPriceLabel }}
             </p>
+            <div class="flex items-baseline justify-center sm:justify-start gap-3 flex-wrap">
+              <span class="text-3xl sm:text-4xl font-bold text-accent leading-none tabular-nums">
+                {{ formatCurrency(discountedInvestment) }}
+              </span>
+              <span class="text-base text-on-primary/50 line-through tabular-nums">
+                {{ totalInvestment }}
+              </span>
+              <span class="text-xs text-on-primary/70 font-medium">{{ currency }}</span>
+            </div>
+          </div>
+          <!-- Countdown chip -->
+          <div
+            class="countdown-pill inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface/10 border border-accent/30 text-[11px] font-semibold text-accent self-center sm:self-end whitespace-nowrap"
+            :class="{ 'countdown-pulse': urgencyLevel === 'high' }"
+            role="status"
+            aria-live="polite"
+          >
+            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>
+              <template v-if="daysRemaining !== null">{{ t.validFor }} {{ daysRemaining }} {{ daysRemaining !== 1 ? t.days : t.day }}</template>
+              <template v-else>{{ t.limitedTime }}</template>
+            </span>
           </div>
         </div>
       </div>
@@ -348,7 +367,7 @@ const props = defineProps({
         { icon: '📍', label: 'Centros de datos', value: 'EE.UU., Brasil, Francia, Lituania e India' },
         { icon: '🧬', label: 'Compatibilidad', value: 'Linux (Ubuntu)' }
       ],
-      hostingPercent: 30,
+      hostingPercent: 40,
       monthlyLabel: 'por mes',
       annualLabel: 'Hosting anual — Año 1',
       renewalNote: '',
@@ -666,6 +685,14 @@ const normalizedReasons = computed(() => {
 
 .btn-pulse {
   animation: glowRays 4s ease-in-out;
+}
+
+@keyframes countdownPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.countdown-pulse {
+  animation: countdownPulse 2s ease-in-out infinite;
 }
 
 @keyframes glowRays {

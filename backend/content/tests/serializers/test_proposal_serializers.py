@@ -203,7 +203,7 @@ class TestProposalDetailSerializerComputedFields:
             proposal, context={'is_admin': True}
         )
         assert 'hosting_percent' in serializer.data
-        assert serializer.data['hosting_percent'] == 30
+        assert serializer.data['hosting_percent'] == 40
 
     def test_project_stages_is_hidden_for_non_admin_context(self, proposal):
         ProposalProjectStage.objects.create(
@@ -305,9 +305,9 @@ class TestProposalCreateUpdateSerializerHostingPercent:
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data['hosting_percent'] == 25
 
-    def test_hosting_percent_defaults_to_30(self, proposal):
-        """Model default hosting_percent is 30 and serializer omits it when not supplied."""
-        assert proposal.hosting_percent == 30
+    def test_hosting_percent_defaults_to_40(self, proposal):
+        """Model default hosting_percent is 40 and serializer omits it when not supplied."""
+        assert proposal.hosting_percent == 40
         assert isinstance(proposal.hosting_percent, int)
         serializer = ProposalCreateUpdateSerializer(
             data={
@@ -320,7 +320,7 @@ class TestProposalCreateUpdateSerializerHostingPercent:
         )
         assert serializer.is_valid(), serializer.errors
         assert 'hosting_percent' not in serializer.validated_data or \
-            serializer.validated_data['hosting_percent'] == 30
+            serializer.validated_data['hosting_percent'] == 40
 
 
 class TestProposalCreateUpdateSerializerClientResolution:

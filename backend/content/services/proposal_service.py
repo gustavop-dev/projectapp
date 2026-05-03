@@ -64,7 +64,7 @@ DEFAULT_SECTIONS = [
                 'Ausencia de presencia digital profesional',
                 'Dificultad para captar clientes en línea',
             ],
-            'opportunityTitle': 'Oportunidad',
+            'opportunityTitle': '<strong>Oportunidad</strong>',
             'opportunity': (
                 'Crear una plataforma digital que genere confianza y convierta visitantes en clientes.'
             ),
@@ -154,7 +154,7 @@ DEFAULT_SECTIONS = [
                     {'icon': '📍', 'label': 'Centros de datos', 'value': 'EE.UU., Brasil, Francia, Lituania e India'},
                     {'icon': '🧬', 'label': 'Compatibilidad', 'value': 'Linux (Ubuntu)'},
                 ],
-                'hostingPercent': 30,
+                'hostingPercent': 40,
                 'billingTiers': [
                     {
                         'frequency': 'semiannual',
@@ -280,7 +280,7 @@ DEFAULT_SECTIONS = [
                 'Integración con redes sociales',
                 'Espacio para agendar citas o consultas',
             ],
-            'objectiveTitle': 'Objetivo',
+            'objectiveTitle': '<strong>Objetivo</strong>',
             'objective': (
                 'Inspirar confianza desde el primer momento, reflejando autenticidad '
                 'y la profundidad del mensaje.'
@@ -1172,7 +1172,7 @@ DEFAULT_SECTIONS_EN = [
                 'Lack of professional digital presence',
                 'Difficulty capturing clients online',
             ],
-            'opportunityTitle': 'Opportunity',
+            'opportunityTitle': '<strong>Opportunity</strong>',
             'opportunity': (
                 'Create a digital platform that builds trust and converts visitors into clients.'
             ),
@@ -1252,7 +1252,7 @@ DEFAULT_SECTIONS_EN = [
                     {'icon': '📍', 'label': 'Data centers', 'value': 'US, Brazil, France, Lithuania & India'},
                     {'icon': '🧬', 'label': 'Compatibility', 'value': 'Linux (Ubuntu)'},
                 ],
-                'hostingPercent': 30,
+                'hostingPercent': 40,
                 'monthlyLabel': 'per month',
                 'annualLabel': 'annual payment',
                 'billingTiers': [
@@ -1363,7 +1363,7 @@ DEFAULT_SECTIONS_EN = [
                 'Social media integration',
                 'Space for booking appointments or consultations',
             ],
-            'objectiveTitle': 'Visual Objective',
+            'objectiveTitle': 'Visual <strong>Objective</strong>',
             'objective': (
                 'Inspire trust from the first moment, reflecting authenticity '
                 'and depth of message.'
@@ -2221,7 +2221,7 @@ def normalize_hosting_plan(proposal, hosting_plan_json):
 
     model_percent = getattr(proposal, 'hosting_percent', None)
     base['hostingPercent'] = (
-        model_percent if model_percent else base.get('hostingPercent', 30)
+        model_percent if model_percent else base.get('hostingPercent', 40)
     )
 
     discount_overrides = {

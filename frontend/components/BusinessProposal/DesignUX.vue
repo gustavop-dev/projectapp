@@ -21,9 +21,7 @@
             />
 
             <div v-if="content.objective" class="pt-2">
-              <h3 class="text-text-brand font-light text-base md:text-lg tracking-wide mb-3">
-                {{ content.objectiveTitle }}
-              </h3>
+              <h3 class="text-text-brand font-light text-base md:text-lg tracking-wide mb-3" v-html="linkify(content.objectiveTitle)" />
               <p class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl" v-html="linkify(content.objective)" />
             </div>
           </div>
@@ -73,7 +71,7 @@ const props = defineProps({
         '🎥 Integración con canal de YouTube y redes sociales.',
         '💬 Espacio para agendar asesorías o sesiones terapéuticas en línea.'
       ],
-      objectiveTitle: 'Objetivo',
+      objectiveTitle: '<strong>Objetivo</strong>',
       objective: 'Inspirar una sensación de calma y confianza desde el primer momento, reflejando autenticidad y la profundidad del mensaje.'
     })
   }

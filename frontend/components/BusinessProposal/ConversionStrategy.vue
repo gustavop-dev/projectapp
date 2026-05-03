@@ -17,7 +17,7 @@
 
             <div data-animate="fade-up-stagger" class="grid md:grid-cols-2 gap-6">
               <div
-                v-for="(step, idx) in content.steps?.slice(0, 3)"
+                v-for="(step, idx) in content.steps?.slice(0, 4)"
                 :key="idx"
                 class="rounded-3xl border border-esmerald/20 bg-esmerald/5 p-6 md:p-7"
               >

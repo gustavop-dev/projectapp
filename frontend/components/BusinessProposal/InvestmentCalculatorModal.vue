@@ -28,20 +28,29 @@
           <!-- Body -->
           <div class="overflow-y-auto px-6 py-6 flex-1">
             <!-- Informational badge -->
-            <div class="mb-5 bg-warning-soft border-l-4 border-warning-strong rounded-xl px-5 py-4 shadow-sm">
-              <p class="text-sm text-warning-strong leading-relaxed font-medium">
-                💡 {{ t.optionalItemsBadge }}
-              </p>
-              <button
-                type="button"
-                class="mt-1.5 text-[11px] text-text-brand font-semibold hover:opacity-80 transition-colors flex items-center gap-1"
-                @click="$emit('navigateToRequirements')"
+            <div class="mb-5 flex items-start gap-3 bg-primary-soft border-l-4 border-primary rounded-2xl px-5 py-4 shadow-sm">
+              <div
+                class="w-9 h-9 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-base flex-shrink-0"
+                aria-hidden="true"
               >
-                📋 {{ t.viewRequirements }}
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
+                💡
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-[13px] sm:text-sm text-text-brand leading-relaxed font-medium">
+                  {{ t.optionalItemsBadge }}
+                </p>
+                <button
+                  type="button"
+                  class="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/25 text-[12px] font-semibold text-text-brand hover:bg-primary/20 transition-colors"
+                  @click="$emit('navigateToRequirements')"
+                >
+                  <span aria-hidden="true">📋</span>
+                  {{ t.viewRequirements }}
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <template v-for="(group, gKey) in groupedModules" :key="gKey">
@@ -78,7 +87,7 @@
                           {{ mod.name }}
                         </span>
                         <span v-if="mod._locked" class="ml-2 text-[10px] text-text-subtle font-medium uppercase">{{ t.required }}</span>
-                        <p v-if="!mod.selected && !mod._locked && !mod.is_invite" class="text-[11px] text-warning-strong leading-snug mt-0.5">
+                        <p v-if="!mod.selected && !mod._locked && !mod.is_invite" class="text-[11px] text-danger-strong leading-snug mt-0.5">
                           ⚠ {{ impactMessage(mod) }}
                         </p>
                       </div>
@@ -145,10 +154,20 @@
           <!-- Footer with total -->
           <div class="px-6 py-5 border-t border-border-default bg-surface-muted">
             <!-- Discount badge -->
-            <div v-if="hasActiveDiscount" class="mb-3 flex items-center gap-2 bg-warning-soft border border-warning-strong rounded-xl px-4 py-2.5">
-              <span class="text-xs font-bold text-warning-strong">🔥 {{ props.discountPercent }}% OFF</span>
-              <span class="text-xs text-warning-strong">{{ t.discountApplied }}</span>
-            </div>
+            <Transition appear name="discount-chip">
+              <div
+                v-if="hasActiveDiscount"
+                class="discount-chip mb-3 flex w-fit items-center gap-2 bg-primary-soft border border-primary/30 rounded-full pl-1.5 pr-3 py-1.5"
+                role="status"
+                aria-live="polite"
+              >
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary text-accent text-[11px] font-bold leading-none">
+                  <span aria-hidden="true">🔥</span>
+                  {{ props.discountPercent }}% OFF
+                </span>
+                <span class="text-[12px] font-semibold text-text-brand">{{ t.discountApplied }}</span>
+              </div>
+            </Transition>
             <div class="flex items-center justify-between mb-4">
               <div>
                 <span class="text-sm text-text-subtle">{{ t.selectedModules }}</span>
@@ -156,7 +175,7 @@
               </div>
               <div class="text-right">
                 <span class="text-sm text-text-subtle block">{{ t.estimatedTotal }}</span>
-                <span class="text-2xl font-bold text-text-brand transition-transform" :class="{ 'total-pulse': totalPulsing }">{{ formatPrice(animatedTotal) }}</span>
+                <span class="text-2xl font-bold text-text-brand transition-transform tabular-nums" :class="{ 'total-pulse': totalPulsing }">{{ formatPrice(animatedTotal) }}</span>
                 <span class="text-xs text-text-subtle ml-1">{{ currency }}</span>
               </div>
             </div>
@@ -591,4 +610,13 @@ watch(() => props.visible, (val) => {
 .micro-feedback-leave-active { transition: all 0.3s ease; }
 .micro-feedback-enter-from { opacity: 0; transform: translateX(-4px); }
 .micro-feedback-leave-to { opacity: 0; transform: translateX(4px); }
+
+@keyframes discountChipIn {
+  0%   { opacity: 0; transform: scale(0.85); }
+  60%  { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.discount-chip-enter-active {
+  animation: discountChipIn 0.5s ease-out;
+}
 </style>

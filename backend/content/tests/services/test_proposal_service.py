@@ -441,7 +441,7 @@ class TestGetDefaultSections:
         sections = ProposalService.get_default_sections('es')
         inv = next(s for s in sections if s['section_type'] == 'investment')
         hp = inv['content_json']['hostingPlan']
-        assert hp['hostingPercent'] == 30
+        assert hp['hostingPercent'] == 40
         assert 'monthlyPrice' not in hp
         assert 'annualPrice' not in hp
 
@@ -450,7 +450,7 @@ class TestGetDefaultSections:
         sections = ProposalService.get_default_sections('en')
         inv = next(s for s in sections if s['section_type'] == 'investment')
         hp = inv['content_json']['hostingPlan']
-        assert hp['hostingPercent'] == 30
+        assert hp['hostingPercent'] == 40
         assert 'monthlyPrice' not in hp
         assert 'annualPrice' not in hp
 
@@ -852,10 +852,10 @@ class TestNormalizeHostingPlan:
         result = normalize_hosting_plan(p, {'hostingPercent': 25})
         assert result['hostingPercent'] == 25
 
-    def test_missing_model_percent_defaults_to_30_when_json_also_empty(self):
+    def test_missing_model_percent_defaults_to_40_when_json_also_empty(self):
         p = self._proposal(hosting_percent=0)
         result = normalize_hosting_plan(p, {})
-        assert result['hostingPercent'] == 30
+        assert result['hostingPercent'] == 40
 
     def test_empty_billing_tiers_returns_empty_list(self):
         result = normalize_hosting_plan(self._proposal(), {})

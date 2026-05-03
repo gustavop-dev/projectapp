@@ -136,7 +136,7 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 | \`paymentMethods\` | array de strings | **Exactamente 2 items.** Dejar: "Transferencia bancaria" y "Nequi / Daviplata". |
 | \`modules\` | array | **Dejar vacío \`[]\`.** Los módulos se gestionan en \`functionalRequirements\`. |
 | \`valueReasons\` | array de strings | **Mínimo 3, máximo 4 items.** Frases cortas que justifiquen la inversión. |
-| \`hostingPlan\` | objeto | **NO modificar la estructura interna**, solo adaptar \`description\` al proyecto si es necesario. Los \`specs\` (6 objetos), \`hostingPercent\` (30), \`renewalNote\` y \`coverageNote\` se mantienen igual. |
+| \`hostingPlan\` | objeto | **NO modificar la estructura interna**, solo adaptar \`description\` al proyecto si es necesario. Los \`specs\` (6 objetos), \`hostingPercent\` (40), \`renewalNote\` y \`coverageNote\` se mantienen igual. |
 
 #### \`timeline\` 
 | Campo | Tipo | Restricción |

@@ -1384,19 +1384,27 @@ const investmentSection = computed(() =>
   allSections.value.find(s => s.section_type === 'investment') || null
 );
 
-// Backend-computed personalized total. Exposed in the serializer so admin,
-// client, PDF and onboarding agree on the same number. Falls back to the
-// base investment when absent (e.g. during create flow before first fetch).
+// Multiplier derived from the loaded proposal: effective / base. The backend
+// computes effective_total_investment as base + Σ(base * pct_module/100), so
+// the ratio is constant for a given module selection. Reusing it here keeps
+// the % logic in a single place (backend) while letting the live form base
+// drive the displayed effective total.
+const effectiveTotalsMultiplier = computed(() => {
+  const base = Number(proposal.value?.total_investment || 0);
+  const effective = Number(proposal.value?.effective_total_investment || 0);
+  if (base <= 0 || effective <= 0) return 1;
+  return effective / base;
+});
+
 const effectiveTotalInvestment = computed(() => {
-  const effective = Number(proposal.value?.effective_total_investment);
-  if (Number.isFinite(effective) && effective > 0) return effective;
-  return Number(proposal.value?.total_investment || 0);
+  const liveBase = Number(form.total_investment) || 0;
+  return Math.round(liveBase * effectiveTotalsMultiplier.value);
 });
 
 const hasCustomizedEffectiveTotal = computed(() => {
-  const base = Number(proposal.value?.total_investment || 0);
+  const liveBase = Number(form.total_investment) || 0;
   const effective = effectiveTotalInvestment.value;
-  return base > 0 && effective > 0 && Math.round(effective) !== Math.round(base);
+  return liveBase > 0 && effective > 0 && Math.round(effective) !== Math.round(liveBase);
 });
 
 const technicalModuleLinkOptions = computed(() =>
@@ -1735,7 +1743,7 @@ const form = reactive({
   language: 'es',
   total_investment: 0,
   currency: 'COP',
-  hosting_percent: 30,
+  hosting_percent: 40,
   hosting_discount_semiannual: 20,
   hosting_discount_quarterly: 10,
   expires_at: '',
@@ -1833,7 +1841,7 @@ function replaceOrPrefixPercent(label, percent, index) {
 }
 
 function buildPaymentDescription(percent) {
-  const total = Number(form.total_investment) || 0;
+  const total = Number(effectiveTotalInvestment.value) || 0;
   const amount = Math.round(total * normalizePercent(percent) / 100);
   return `$${amount.toLocaleString('es-CO')} ${form.currency || 'COP'}`;
 }
@@ -1908,7 +1916,7 @@ function hydrateFormFromProposal() {
     language: proposal.value.language || 'es',
     total_investment: Number(proposal.value.total_investment),
     currency: proposal.value.currency,
-    hosting_percent: proposal.value.hosting_percent ?? 30,
+    hosting_percent: proposal.value.hosting_percent ?? 40,
     hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
     hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
     expires_at: proposal.value.expires_at
@@ -2436,7 +2444,7 @@ function handleApplyImportJson() {
             language: proposal.value.language || 'es',
             total_investment: Number(proposal.value.total_investment),
             currency: proposal.value.currency,
-            hosting_percent: proposal.value.hosting_percent ?? 30,
+            hosting_percent: proposal.value.hosting_percent ?? 40,
             hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
             hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
             expires_at: proposal.value.expires_at ? proposal.value.expires_at.slice(0, 16) : '',

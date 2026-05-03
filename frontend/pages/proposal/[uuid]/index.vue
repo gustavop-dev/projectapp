@@ -948,7 +948,7 @@ function getSectionProps(section, displayIndex) {
     };
     const hostingPlan = {
       ...baseHostingPlan,
-      hostingPercent: proposal.value?.hosting_percent ?? baseHostingPlan.hostingPercent ?? 30,
+      hostingPercent: proposal.value?.hosting_percent ?? baseHostingPlan.hostingPercent ?? 40,
       billingTiers: (baseHostingPlan.billingTiers || []).map((tier) => {
         const override = discountByFrequency[tier?.frequency];
         return override != null ? { ...tier, discountPercent: override } : tier;

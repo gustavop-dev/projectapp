@@ -99,7 +99,7 @@ export function buildFormFromJson(json, type, proposalData) {
         hostingPlan: {
           title: hp.title || '', description: hp.description || '',
           specs: (hp.specs || []).map(s => ({ icon: s.icon || '', label: s.label || '', value: s.value || '' })),
-          hostingPercent: hp.hostingPercent ?? 30,
+          hostingPercent: hp.hostingPercent ?? 40,
           billingTiers: (hp.billingTiers || defaultTiers).map(t => ({
             frequency: t.frequency || '', months: t.months ?? 1,
             discountPercent: t.discountPercent ?? 0, label: t.label || '', badge: t.badge || '',
@@ -201,7 +201,7 @@ export function formToJson(formData, type) {
         hostingPlan: {
           title: hp.title, description: hp.description,
           specs: (hp.specs || []).map(s => ({ icon: s.icon, label: s.label, value: s.value })),
-          hostingPercent: hp.hostingPercent ?? 30,
+          hostingPercent: hp.hostingPercent ?? 40,
           billingTiers: (hp.billingTiers || []).map(t => ({
             frequency: t.frequency, months: t.months, discountPercent: t.discountPercent,
             label: t.label, badge: t.badge || '',

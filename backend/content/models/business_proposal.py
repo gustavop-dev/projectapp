@@ -72,7 +72,7 @@ class BusinessProposal(models.Model):
         max_length=3, choices=Currency.choices, default=Currency.COP
     )
     hosting_percent = models.PositiveIntegerField(
-        default=30,
+        default=40,
         help_text='Percentage of total investment charged for annual hosting.',
     )
     hosting_discount_semiannual = models.PositiveIntegerField(

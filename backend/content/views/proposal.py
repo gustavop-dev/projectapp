@@ -4530,7 +4530,7 @@ def proposal_defaults(request):
             'sections_json': hardcoded,
             'default_currency': ProposalDefaultConfig.Currency.COP,
             'default_total_investment': '0.00',
-            'hosting_percent': 30,
+            'hosting_percent': 40,
             'hosting_discount_semiannual': 20,
             'hosting_discount_quarterly': 10,
             'expiration_days': ProposalService.DEFAULT_EXPIRATION_DAYS,

@@ -21,9 +21,7 @@
             />
 
             <div v-if="content.opportunity" class="pt-2">
-              <h3 class="text-text-brand font-light text-base md:text-lg tracking-wide mb-3">
-                {{ content.opportunityTitle }}
-              </h3>
+              <h3 class="text-text-brand font-light text-base md:text-lg tracking-wide mb-3" v-html="linkify(content.opportunityTitle)" />
               <p class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl" v-html="linkify(content.opportunity)" />
             </div>
           </div>
