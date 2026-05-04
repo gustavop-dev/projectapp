@@ -44,4 +44,71 @@ describe('ProposalSummary', () => {
 
     expect(wrapper.text()).toContain('2');
   });
+
+  describe('total_investment card description sync', () => {
+    const investmentCardContent = (description) => ({
+      cards: [
+        {
+          icon: '💰',
+          title: 'Inversión',
+          source: 'total_investment',
+          description,
+        },
+      ],
+    });
+
+    it('rewrites a stale amount in the description with the live customizedTotal', () => {
+      const wrapper = mountSummary({
+        content: investmentCardContent('Monto total del proyecto: $4.900.000 COP.'),
+        proposal: { total_investment: 3200000, currency: 'COP' },
+        customizedTotal: 4320000,
+        isCustomized: false,
+      });
+
+      const card = wrapper.find('.summary-card');
+      expect(card.text()).toContain('$4.320.000 COP');
+      expect(card.text()).not.toContain('$4.900.000');
+    });
+
+    it('falls back to proposal.total_investment when customizedTotal is null', () => {
+      const wrapper = mountSummary({
+        content: investmentCardContent('Monto total del proyecto: $4.900.000 COP.'),
+        proposal: { total_investment: 3200000, currency: 'COP' },
+        customizedTotal: null,
+        isCustomized: false,
+      });
+
+      const card = wrapper.find('.summary-card');
+      expect(card.text()).toContain('$3.200.000 COP');
+      expect(card.text()).not.toContain('$4.900.000');
+    });
+
+    it('uses the customized copy and skips the regex when isCustomized is true', () => {
+      const wrapper = mountSummary({
+        content: investmentCardContent('Monto total del proyecto: $4.900.000 COP.'),
+        proposal: { total_investment: 3200000, currency: 'COP' },
+        customizedTotal: 4320000,
+        isCustomized: true,
+        language: 'es',
+      });
+
+      const card = wrapper.find('.summary-card');
+      expect(card.text()).toContain('$4.320.000 COP');
+      expect(card.text()).not.toContain('$4.900.000');
+      expect(card.text()).not.toContain('Monto total del proyecto');
+    });
+
+    it('preserves narrative text when there is no monetary amount in the description', () => {
+      const wrapper = mountSummary({
+        content: investmentCardContent('Inversión total acordada para el proyecto.'),
+        proposal: { total_investment: 3200000, currency: 'COP' },
+        customizedTotal: 4320000,
+        isCustomized: false,
+      });
+
+      const card = wrapper.find('.summary-card');
+      expect(card.text()).toContain('Inversión total acordada para el proyecto.');
+      expect(card.text()).toContain('$4.320.000 COP');
+    });
+  });
 });

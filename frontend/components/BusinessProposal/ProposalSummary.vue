@@ -120,11 +120,21 @@ const resolvedCards = computed(() => {
     let description = card.description;
     if (card.source === 'total_investment') {
       const effectiveCustom = props.customizedTotal;
+      const currency = props.proposal?.currency || 'COP';
       if (effectiveCustom !== null && effectiveCustom !== undefined) {
-        value = `${formatCurrency(effectiveCustom)} ${props.proposal?.currency || 'COP'}`;
-        if (props.isCustomized) description = t.value.customized;
+        value = `${formatCurrency(effectiveCustom)} ${currency}`;
       } else if (props.proposal?.total_investment) {
-        value = `${formatCurrency(props.proposal.total_investment)} ${props.proposal.currency || 'COP'}`;
+        value = `${formatCurrency(props.proposal.total_investment)} ${currency}`;
+      }
+      if (props.isCustomized) {
+        description = t.value.customized;
+      } else if (description && value) {
+        // Re-template any hard-typed amount in the description so the price
+        // inside the narrative stays in sync with the live total.
+        description = description.replace(
+          /\$[\d.,]+(\s*(?:COP|USD|EUR|MXN|ARS|CLP))?/i,
+          value,
+        );
       }
     } else if (card.source === 'timeline_duration' && props.timelineDuration) {
       value = props.timelineDuration;
