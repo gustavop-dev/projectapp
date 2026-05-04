@@ -93,6 +93,34 @@ class TestCalculateEffectiveTotalInvestment:
         )
         assert result == Decimal('2520000.00')
 
+    def test_explicit_selected_false_overrides_default_selected(self):
+        """``default_selected=True`` is only an initial admin hint. If the
+        admin later sets ``selected=False``, that explicit choice wins —
+        mirrors the frontend nullish-coalescing rule and prevents the
+        client-facing total from including modules the FR section does
+        not list as selected (case of prop 86 with corporate_branding)."""
+        fr_content = {
+            'additionalModules': [
+                {
+                    'id': 'branding',
+                    'title': 'Branding',
+                    'is_visible': True,
+                    'is_calculator_module': True,
+                    'default_selected': True,
+                    'selected': False,
+                    'price_percent': 35,
+                },
+            ],
+            'groups': [],
+        }
+        result = _calculate_effective_total_investment(
+            base_total=Decimal('6000000'),
+            selected_modules=[],
+            fr_content_json=fr_content,
+            has_confirmed=False,
+        )
+        assert result == Decimal('6000000.00')
+
 
 class TestEffectiveTotalForProposal:
     """Integration-lite: exercises the single-proposal wrapper that reads

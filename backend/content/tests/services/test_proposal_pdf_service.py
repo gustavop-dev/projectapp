@@ -2321,16 +2321,16 @@ class TestRenderInvestmentEndToEndAdminDefaults:
             total_investment=Decimal('6000000'), currency='COP',
             status='sent',
         )
+        # ``selected`` omitted → admin default kicks in (nullish-coalescing).
+        branding_grp = _calculator_module_group(
+            id='branding', default_selected=True, price_percent=35,
+        )
+        branding_grp.pop('selected', None)
         ProposalSection.objects.create(
             proposal=proposal,
             section_type='functional_requirements',
             title='FR', order=1, is_enabled=True,
-            content_json=_fr_section_content_json(additionalModules=[
-                _calculator_module_group(
-                    id='branding', default_selected=True, selected=False,
-                    price_percent=35,
-                ),
-            ]),
+            content_json=_fr_section_content_json(additionalModules=[branding_grp]),
         )
         ProposalSection.objects.create(
             proposal=proposal,
@@ -2877,12 +2877,27 @@ class TestDefaultSelectedModulesFromContent:
 
         assert 'module-pwa' not in result
 
-    def test_includes_calc_module_when_default_selected_true_only(self):
-        """A calc module with default_selected=True but selected=False must
-        still appear in the PDF default scope so the rendered total matches
-        the backend ``effective_total_investment`` (admin_default_calculator_
-        group_ids includes it). Previously the PDF skipped it, causing the
-        invoice to undercount admin-pre-selected modules."""
+    def test_includes_calc_module_when_default_selected_true_and_selected_omitted(self):
+        """``selected`` omitted → ``default_selected`` decides. Mirrors the
+        frontend's nullish-coalescing rule ``selected ?? default_selected``
+        so PDF, ``effective_total_investment`` and the public client view
+        agree on the admin-pre-included modules."""
+        grp = _calculator_module_group(
+            id='branding', default_selected=True,
+        )
+        grp.pop('selected', None)  # leave it unset (None)
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[grp]),
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'module-branding' in result
+
+    def test_explicit_selected_false_overrides_default_selected(self):
+        """When the admin explicitly sets ``selected=False`` it overrides any
+        ``default_selected=True`` value. The PDF must NOT include the module —
+        otherwise it would diverge from the public FR view."""
         proposal = self._make_proposal(
             fr_content=_fr_section_content_json(additionalModules=[
                 _calculator_module_group(
@@ -2893,7 +2908,7 @@ class TestDefaultSelectedModulesFromContent:
 
         result = default_selected_modules_from_content(proposal)
 
-        assert 'module-branding' in result
+        assert 'module-branding' not in result
 
     def test_excludes_group_when_is_visible_false(self):
         proposal = self._make_proposal(
