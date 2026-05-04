@@ -28,9 +28,9 @@
           <!-- Body -->
           <div class="overflow-y-auto px-6 py-6 flex-1">
             <!-- Informational badge -->
-            <div class="mb-5 flex items-start gap-3 bg-primary-soft border-l-4 border-primary rounded-2xl px-5 py-4 shadow-sm">
+            <div class="mb-5 flex items-start gap-3 bg-surface border border-border-default border-l-4 border-l-primary rounded-2xl px-5 py-4 shadow-sm">
               <div
-                class="w-9 h-9 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-base flex-shrink-0"
+                class="w-9 h-9 rounded-full bg-primary border border-primary text-accent flex items-center justify-center text-base flex-shrink-0"
                 aria-hidden="true"
               >
                 💡
@@ -41,7 +41,7 @@
                 </p>
                 <button
                   type="button"
-                  class="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/25 text-[12px] font-semibold text-text-brand hover:bg-primary/20 transition-colors"
+                  class="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary border border-primary text-accent text-[12px] font-semibold hover:bg-primary-strong transition-colors"
                   @click="$emit('navigateToRequirements')"
                 >
                   <span aria-hidden="true">📋</span>
@@ -61,12 +61,12 @@
                 <div
                   v-for="mod in group.items"
                   :key="mod.id"
-                  class="rounded-xl border transition-all"
+                  class="rounded-xl transition-all"
                   :class="[
                     mod.selected
-                      ? 'bg-primary-soft border-border-default'
-                      : 'bg-surface-muted border-border-default',
-                    mod._locked ? 'opacity-80' : 'cursor-pointer hover:border-border-muted'
+                      ? 'bg-surface border-2 border-primary'
+                      : 'bg-surface border border-border-default',
+                    mod._locked ? 'opacity-80' : 'cursor-pointer hover:border-primary'
                   ]"
                   @click="toggleModule(mod)"
                 >
@@ -103,7 +103,7 @@
                       <span
                         v-if="priceFeedback[mod.id]"
                         class="ml-2 text-xs font-bold flex-shrink-0 whitespace-nowrap"
-                        :class="priceFeedback[mod.id].startsWith('+') ? 'text-success-strong' : 'text-danger-strong'"
+                        :class="priceFeedback[mod.id].startsWith('+') ? 'text-text-brand' : 'text-danger-strong'"
                       >
                         {{ priceFeedback[mod.id] }}
                       </span>
@@ -111,7 +111,7 @@
                   </div>
                   <!-- Invite creative note -->
                   <div v-if="mod.is_invite" class="px-4 pb-4 -mt-1">
-                    <div class="bg-primary-soft border border-border-default rounded-lg px-3 py-2.5">
+                    <div class="bg-surface border border-border-muted rounded-lg px-3 py-2.5">
                       <p class="text-[11px] text-text-brand leading-relaxed">
                         {{ mod.invite_note || t.inviteNote }}
                       </p>
@@ -130,7 +130,7 @@
                       </svg>
                     </button>
                     <Transition name="detail-slide">
-                      <div v-if="expandedModules.has(mod.id)" class="mt-2 bg-surface-muted border border-border-default rounded-lg px-3 py-2.5 space-y-2">
+                      <div v-if="expandedModules.has(mod.id)" class="mt-2 bg-surface border border-border-muted rounded-lg px-3 py-2.5 space-y-2">
                         <p v-if="mod.description" class="text-[11px] text-text-muted leading-relaxed">
                           {{ mod.description }}
                         </p>
@@ -152,20 +152,20 @@
           </div>
 
           <!-- Footer with total -->
-          <div class="px-6 py-5 border-t border-border-default bg-surface-muted">
+          <div class="px-6 py-5 border-t border-border-default bg-surface">
             <!-- Discount badge -->
             <Transition appear name="discount-chip">
               <div
                 v-if="hasActiveDiscount"
-                class="discount-chip mb-3 flex w-fit items-center gap-2 bg-primary-soft border border-primary/30 rounded-full pl-1.5 pr-3 py-1.5"
+                class="discount-chip mb-3 flex w-fit items-center gap-2 bg-primary-strong border border-primary rounded-full pl-1.5 pr-3 py-1.5"
                 role="status"
                 aria-live="polite"
               >
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary text-accent text-[11px] font-bold leading-none">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent text-primary-strong text-[11px] font-bold leading-none">
                   <span aria-hidden="true">🔥</span>
                   {{ props.discountPercent }}% OFF
                 </span>
-                <span class="text-[12px] font-semibold text-text-brand">{{ t.discountApplied }}</span>
+                <span class="text-[12px] font-semibold text-accent">{{ t.discountApplied }}</span>
               </div>
             </Transition>
             <div class="flex items-center justify-between mb-4">
@@ -180,7 +180,7 @@
               </div>
             </div>
             <!-- Dynamic timeline -->
-            <div v-if="baseWeeks > 0" class="flex items-center justify-between mb-4 px-3 py-2.5 rounded-xl" :class="timelineChanged ? 'bg-primary-soft border border-border-default' : 'bg-surface-raised'">
+            <div v-if="baseWeeks > 0" class="flex items-center justify-between mb-4 px-3 py-2.5 rounded-xl" :class="timelineChanged ? 'bg-surface border border-primary' : 'bg-surface-raised'">
               <div class="flex items-center gap-2">
                 <span class="text-sm">⏱</span>
                 <span class="text-sm text-text-muted">{{ t.estimatedDuration }}</span>
