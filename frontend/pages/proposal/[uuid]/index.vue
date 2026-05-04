@@ -732,18 +732,23 @@ const confirmedModuleCount = computed(() =>
   hasConfirmedModuleSelection.value ? selectedCalculatorModuleIds.value.size : null,
 );
 
-// Helper: recompute payment option amounts using ratio logic (same as Investment.vue computedPaymentOptions)
+// Mirror of Investment.vue computedPaymentOptions: derive each amount from
+// the label percentage × the current displayed total. baseTotalStr is kept
+// in the signature for callsite compatibility but no longer used.
 function recomputePaymentOptions(paymentOptions, baseTotalStr, customTotal) {
   if (customTotal == null || !paymentOptions?.length) return paymentOptions;
-  const baseNum = parseInt(String(baseTotalStr || '').replace(/[^\d]/g, ''), 10) || 0;
-  if (baseNum <= 0) return paymentOptions;
-  const ratio = customTotal / baseNum;
+  const target = Number(customTotal) || 0;
+  if (target <= 0) return paymentOptions;
   return paymentOptions.map(opt => {
-    const descNum = parseInt(String(opt.description || '').replace(/[^\d]/g, ''), 10) || 0;
-    if (descNum <= 0) return opt;
-    const newAmount = Math.round(descNum * ratio);
+    const pctMatch = String(opt.label || '').match(/(\d+)\s*%/);
+    if (!pctMatch) return opt;
+    const pct = Number(pctMatch[1]) / 100;
+    const newAmount = Math.round(target * pct);
     const formatted = newAmount.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-    const newDesc = opt.description.replace(/[\$]?[\d.,]+/, formatted);
+    const desc = opt.description || '';
+    const newDesc = desc
+      ? desc.replace(/[\$]?[\d.,]+/, formatted)
+      : `$${formatted}`;
     return { ...opt, description: newDesc.startsWith('$') ? newDesc : '$' + newDesc };
   });
 }

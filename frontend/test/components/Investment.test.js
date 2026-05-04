@@ -125,4 +125,75 @@ describe('Investment', () => {
       expect(wrapper.text()).toContain('25%');
     });
   });
+
+  // Bug fix: "Tres pagos flexibles" amounts must derive from the LABEL percent
+  // applied to the currently displayed total — not from the stored description
+  // amount × ratio (which double-scaled when the backend rebuilds descriptions
+  // at effective×pct and the frontend then multiplies by effective/base).
+  describe('payment options — split derived from label percent × displayed total', () => {
+    const splitOptions = [
+      { label: '40% al firmar el contrato ✍️', description: '$2.160.000 COP' },
+      { label: '30% al aprobar el diseño final ✅', description: '$1.620.000 COP' },
+      { label: '30% al desplegar el sitio web 🚀', description: '$1.620.000 COP' },
+    ];
+
+    it('renders amounts as effectiveTotal × labelPercent (sums to effectiveTotal)', () => {
+      const wrapper = mountInvestment({
+        totalInvestment: '$5.400.000',
+        effectiveTotal: 9_720_000, // 5.400.000 × 1.8 (e.g. AI module 80%)
+        paymentOptions: splitOptions,
+      });
+      const text = wrapper.text();
+      // 9.720.000 × 0.4 = 3.888.000
+      expect(text).toContain('$3.888.000');
+      // 9.720.000 × 0.3 = 2.916.000
+      expect(text).toContain('$2.916.000');
+      // 3.888.000 + 2.916.000 + 2.916.000 === 9.720.000 (effective)
+    });
+
+    it('does not double-scale when stored descriptions are already effective-derived (Bug 87)', () => {
+      // This is the production state for proposal 87 after a backend
+      // _resync_investment_from_modules: descriptions saved at effective×pct.
+      const storedAtEffective = [
+        { label: '40% al firmar', description: '$3.888.000 COP' }, // already effective×0.4
+        { label: '30% diseño',     description: '$2.916.000 COP' },
+        { label: '30% final',      description: '$2.916.000 COP' },
+      ];
+      const wrapper = mountInvestment({
+        totalInvestment: '$5.400.000',
+        effectiveTotal: 9_720_000,
+        paymentOptions: storedAtEffective,
+      });
+      const text = wrapper.text();
+      // Same correct outputs as the base-derived case — no dependency on stored amount.
+      expect(text).toContain('$3.888.000');
+      expect(text).toContain('$2.916.000');
+      // Old buggy behavior would have scaled $3.888.000 by 1.8 → $6.998.400.
+      expect(text).not.toContain('$6.998.400');
+    });
+
+    it('falls back to base when no effectiveTotal prop is provided', () => {
+      const wrapper = mountInvestment({
+        totalInvestment: '$5.400.000',
+        paymentOptions: splitOptions,
+      });
+      const text = wrapper.text();
+      // 5.400.000 × 0.4 = 2.160.000
+      expect(text).toContain('$2.160.000');
+      // 5.400.000 × 0.3 = 1.620.000
+      expect(text).toContain('$1.620.000');
+    });
+
+    it('leaves descriptions untouched when label has no parseable percent', () => {
+      const wrapper = mountInvestment({
+        totalInvestment: '$5.400.000',
+        effectiveTotal: 9_720_000,
+        paymentOptions: [
+          { label: 'Cuota inicial fija', description: '$100.000 COP' },
+        ],
+      });
+      // Free-form payment option should keep its original amount.
+      expect(wrapper.text()).toContain('$100.000');
+    });
+  });
 });

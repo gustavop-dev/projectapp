@@ -246,10 +246,12 @@ function computeWeeksReduction(localModules) {
 
 /**
  * Mirrors weeksAddition computed from InvestmentCalculatorModal.vue.
- * Selecting calculator modules (non-invite) adds ~1 week each.
+ * Selecting calculator modules adds ~1 week each. Invite-only modules
+ * without a concrete price are scheduling placeholders and do not move
+ * the timeline; invite modules WITH a price are real scope and count.
  */
 function computeWeeksAddition(localModules) {
-  const selected = localModules.filter(m => m.selected && m._source === 'calculator_module' && !m.is_invite);
+  const selected = localModules.filter(m => m.selected && m._source === 'calculator_module' && (!m.is_invite || m.price));
   let addition = 0;
   for (const mod of selected) {
     if (mod.groupId?.startsWith('integration_') || mod._source === 'calculator_module') {
@@ -373,5 +375,185 @@ describe('computeDynamicWeeks', () => {
       id: `m${i}`, _source: 'investment', selected: false, _locked: false,
     }));
     expect(computeDynamicWeeks(3, manyDeselected)).toBe(1);
+  });
+});
+
+
+// ── Delta-based dynamicTotal anchored on effectiveTotal (Bug 86 fix) ────────
+
+/**
+ * Mirrors the new dynamicTotal computed in InvestmentCalculatorModal.vue:
+ * starts from `effectiveTotal` (the same number the public view shows) and
+ * moves only by the price of modules toggled away from the open-time
+ * selection. Guarantees the modal's headline equals the public view's
+ * "Inversión total" the moment the modal opens — no recomputation drift.
+ */
+function computeDynamicTotalDelta({ effectiveTotal, baseTotal, localModules, initialSelectedSet }) {
+  const baseline = Number(effectiveTotal) || Number(baseTotal) || 0;
+  let delta = 0;
+  for (const m of localModules) {
+    const price = Number(m.price) || 0;
+    if (price <= 0) continue;
+    const wasInitiallySelected = initialSelectedSet.has(m.id);
+    if (m.selected && !wasInitiallySelected) delta += price;
+    else if (!m.selected && wasInitiallySelected) delta -= price;
+  }
+  return Math.max(0, baseline + delta);
+}
+
+describe('dynamicTotal — delta-based, anchored on effectiveTotal', () => {
+  const BASE = 5_400_000;
+  const EFFECTIVE = 9_720_000;       // base × 1.8 (e.g. AI module 80%)
+  const AI_PRICE = 4_320_000;        // base × 0.8
+  const PWA_PRICE = 1_000_000;
+
+  const aiSelected = (selected) => ({
+    id: 'module-ai', price: AI_PRICE, _source: 'calculator_module', is_invite: true, selected,
+  });
+  const pwa = (selected) => ({
+    id: 'module-pwa', price: PWA_PRICE, _source: 'calculator_module', is_invite: false, selected,
+  });
+
+  it('on open, total equals effectiveTotal (modal matches public view)', () => {
+    const total = computeDynamicTotalDelta({
+      effectiveTotal: EFFECTIVE,
+      baseTotal: BASE,
+      localModules: [aiSelected(true)],
+      initialSelectedSet: new Set(['module-ai']),
+    });
+    expect(total).toBe(EFFECTIVE);
+  });
+
+  it('toggling an initially-selected module off subtracts its price', () => {
+    const total = computeDynamicTotalDelta({
+      effectiveTotal: EFFECTIVE,
+      baseTotal: BASE,
+      localModules: [aiSelected(false)],
+      initialSelectedSet: new Set(['module-ai']),
+    });
+    expect(total).toBe(EFFECTIVE - AI_PRICE); // 5.400.000
+  });
+
+  it('toggling an initially-deselected module on adds its price', () => {
+    const total = computeDynamicTotalDelta({
+      effectiveTotal: EFFECTIVE,
+      baseTotal: BASE,
+      localModules: [aiSelected(true), pwa(true)],
+      initialSelectedSet: new Set(['module-ai']), // pwa not initially selected
+    });
+    expect(total).toBe(EFFECTIVE + PWA_PRICE);
+  });
+
+  it('toggling off then on returns to effectiveTotal exactly (no drift)', () => {
+    const initial = new Set(['module-ai']);
+    const off = computeDynamicTotalDelta({
+      effectiveTotal: EFFECTIVE, baseTotal: BASE,
+      localModules: [aiSelected(false)], initialSelectedSet: initial,
+    });
+    const back = computeDynamicTotalDelta({
+      effectiveTotal: EFFECTIVE, baseTotal: BASE,
+      localModules: [aiSelected(true)], initialSelectedSet: initial,
+    });
+    expect(off).toBe(EFFECTIVE - AI_PRICE);
+    expect(back).toBe(EFFECTIVE);
+  });
+
+  it('falls back to baseTotal when effectiveTotal is 0 / missing', () => {
+    const total = computeDynamicTotalDelta({
+      effectiveTotal: 0,
+      baseTotal: BASE,
+      localModules: [pwa(true)],
+      initialSelectedSet: new Set(['module-pwa']),
+    });
+    expect(total).toBe(BASE);
+  });
+
+  it('an invite module with a real price contributes to the delta like any priced module', () => {
+    // Initially deselected, now selected — delta must include its price even
+    // though is_invite is true.
+    const total = computeDynamicTotalDelta({
+      effectiveTotal: BASE,
+      baseTotal: BASE,
+      localModules: [aiSelected(true)],
+      initialSelectedSet: new Set(),
+    });
+    expect(total).toBe(BASE + AI_PRICE);
+  });
+
+  it('never returns a negative total', () => {
+    const total = computeDynamicTotalDelta({
+      effectiveTotal: 1_000_000,
+      baseTotal: BASE,
+      localModules: [{
+        id: 'big', price: 100_000_000, _source: 'calculator_module', selected: false,
+      }],
+      initialSelectedSet: new Set(['big']),
+    });
+    expect(total).toBeGreaterThanOrEqual(0);
+  });
+});
+
+
+// ── Module badge rule: price > 0 wins over is_invite (Bug 86 secondary fix) ─
+
+/**
+ * Mirrors the v-if / v-else-if / v-else chain rendering the per-module badge
+ * (price label, "Agendar llamada", or "Incluido") in the modal template.
+ */
+function moduleBadge(mod, t = { scheduleCall: 'Agendar llamada', included: 'Incluido' }) {
+  if (mod.price) {
+    const sign = mod._source === 'calculator_module' && mod.selected ? '+' : '';
+    return { kind: 'price', text: `${sign}$${Number(mod.price).toLocaleString('es-CO')}` };
+  }
+  if (mod.is_invite) return { kind: 'invite', text: t.scheduleCall };
+  return { kind: 'included', text: t.included };
+}
+
+describe('module badge rule — price wins over is_invite', () => {
+  it('shows the price (not "Agendar llamada") when an invite module has a real price', () => {
+    const result = moduleBadge({
+      price: 4_320_000, is_invite: true, _source: 'calculator_module', selected: true,
+    });
+    expect(result.kind).toBe('price');
+    expect(result.text).toContain('4.320.000');
+    expect(result.text.startsWith('+')).toBe(true);
+  });
+
+  it('shows "Agendar llamada" only when an invite module has no price', () => {
+    expect(moduleBadge({ price: 0, is_invite: true }).kind).toBe('invite');
+    expect(moduleBadge({ is_invite: true }).kind).toBe('invite');
+  });
+
+  it('shows the price for a regular non-invite priced calculator module (without "+" when not selected)', () => {
+    const result = moduleBadge({
+      price: 1_000_000, is_invite: false, _source: 'calculator_module', selected: false,
+    });
+    expect(result.kind).toBe('price');
+    expect(result.text.startsWith('+')).toBe(false);
+  });
+
+  it('shows "Incluido" for a free non-invite module', () => {
+    expect(moduleBadge({ price: 0, is_invite: false }).kind).toBe('included');
+  });
+});
+
+
+// ── computeWeeksAddition: invite-with-price now counts toward weeks ─────────
+
+describe('computeWeeksAddition — invite + price now counts as scope', () => {
+  it('counts an invite calculator module that carries a real price', () => {
+    const mods = [{
+      id: 'ai', _source: 'calculator_module', groupId: 'ai_module',
+      is_invite: true, price: 4_320_000, selected: true,
+    }];
+    expect(computeWeeksAddition(mods)).toBe(1);
+  });
+
+  it('still excludes invite-only modules with no price (placeholder cards)', () => {
+    const mods = [{
+      id: 'invite-only', _source: 'calculator_module', groupId: 'misc',
+      is_invite: true, selected: true, // no price field
+    }];
+    expect(computeWeeksAddition(mods)).toBe(0);
   });
 });

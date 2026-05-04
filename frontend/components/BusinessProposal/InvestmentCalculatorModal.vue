@@ -87,16 +87,19 @@
                           {{ mod.name }}
                         </span>
                         <span v-if="mod._locked" class="ml-2 text-[10px] text-text-subtle font-medium uppercase">{{ t.required }}</span>
-                        <p v-if="!mod.selected && !mod._locked && !mod.is_invite" class="text-[11px] text-danger-strong leading-snug mt-0.5">
+                        <p v-if="!mod.selected && !mod._locked && (!mod.is_invite || mod.price)" class="text-[11px] text-danger-strong leading-snug mt-0.5">
                           ⚠ {{ impactMessage(mod) }}
                         </p>
                       </div>
                     </div>
-                    <span v-if="mod.is_invite" class="text-[11px] font-semibold text-text-brand flex-shrink-0">
+                    <span v-if="mod.price" class="font-bold text-sm flex-shrink-0" :class="mod.selected ? 'text-text-brand' : 'text-text-subtle'">
+                      {{ (mod._source === 'calculator_module' && mod.selected ? '+' : '') + formatPrice(mod.price) }}
+                    </span>
+                    <span v-else-if="mod.is_invite" class="text-[11px] font-semibold text-text-brand flex-shrink-0">
                       {{ t.scheduleCall }}
                     </span>
                     <span v-else class="font-bold text-sm flex-shrink-0" :class="mod.selected ? 'text-text-brand' : 'text-text-subtle'">
-                      {{ mod.price ? (mod._source === 'calculator_module' && mod.selected ? '+' : '') + formatPrice(mod.price) : t.included }}
+                      {{ t.included }}
                     </span>
                     <!-- Micro-feedback badge -->
                     <Transition name="micro-feedback">
@@ -109,8 +112,8 @@
                       </span>
                     </Transition>
                   </div>
-                  <!-- Invite creative note -->
-                  <div v-if="mod.is_invite" class="px-4 pb-4 -mt-1">
+                  <!-- Invite creative note (only when no concrete price is assigned) -->
+                  <div v-if="mod.is_invite && !mod.price" class="px-4 pb-4 -mt-1">
                     <div class="bg-surface border border-border-muted rounded-lg px-3 py-2.5">
                       <p class="text-[11px] text-text-brand leading-relaxed">
                         {{ mod.invite_note || t.inviteNote }}
@@ -225,6 +228,7 @@ const props = defineProps({
   proposalUuid: { type: String, default: '' },
   language: { type: String, default: 'es' },
   totalInvestment: { type: String, default: '' },
+  effectiveTotal: { type: Number, default: 0 },
   baseWeeks: { type: Number, default: 0 },
   sentAt: { type: String, default: '' },
   discountPercent: { type: Number, default: 0 },
@@ -330,6 +334,11 @@ const t = computed(() => i18n[props.language] || i18n.es);
 
 const localModules = ref([]);
 const initialGroupOrder = ref([]);
+// Snapshot of which module ids were selected when the modal opened. Used as
+// the reference point for the delta-based total: the modal's headline number
+// must equal `effectiveTotal` on open (matching the public view) and only
+// move by the price of modules the user actively toggles in this session.
+const initialSelectedSet = ref(new Set());
 
 watch(() => props.visible, (val) => {
   if (val) {
@@ -348,6 +357,10 @@ watch(() => props.visible, (val) => {
         _locked: locked,
       };
     });
+
+    initialSelectedSet.value = new Set(
+      localModules.value.filter(m => m.selected).map(m => m.id),
+    );
 
     // Capture initial group order once so user interactions don't cause reordering
     const groups = {};
@@ -429,14 +442,21 @@ const groupedModules = computed(() => {
 
 const baseTotalInvestment = computed(() => parseInvestment(props.totalInvestment));
 
+// Anchor on the same effective total the public view shows, then move by
+// deltas relative to the open-time selection. Keeps modal and public view
+// in sync regardless of how each side enumerates modules (calculator-source
+// vs investment-source) — the backend's effective number wins.
 const dynamicTotal = computed(() => {
-  const deselectedSum = localModules.value
-    .filter(m => !m.selected && m._source !== 'calculator_module')
-    .reduce((sum, m) => sum + (m.price || 0), 0);
-  const addedSum = localModules.value
-    .filter(m => m.selected && m._source === 'calculator_module' && m.price)
-    .reduce((sum, m) => sum + (m.price || 0), 0);
-  return baseTotalInvestment.value - deselectedSum + addedSum;
+  const baseline = Number(props.effectiveTotal) || baseTotalInvestment.value || 0;
+  let delta = 0;
+  for (const m of localModules.value) {
+    const price = Number(m.price) || 0;
+    if (price <= 0) continue;
+    const wasInitiallySelected = initialSelectedSet.value.has(m.id);
+    if (m.selected && !wasInitiallySelected) delta += price;
+    else if (!m.selected && wasInitiallySelected) delta -= price;
+  }
+  return Math.max(0, baseline + delta);
 });
 
 const { animated: animatedTotal } = useAnimatedNumber(dynamicTotal, 500);
@@ -464,7 +484,10 @@ const weeksReduction = computed(() => {
 });
 
 const weeksAddition = computed(() => {
-  const selected = localModules.value.filter(m => m.selected && m._source === 'calculator_module' && !m.is_invite);
+  // Invite-only modules without a concrete price are scheduling placeholders
+  // and shouldn't shift the week count; invite modules that DO have a price
+  // are real scope and behave like any priced calculator module.
+  const selected = localModules.value.filter(m => m.selected && m._source === 'calculator_module' && (!m.is_invite || m.price));
   let addition = 0;
   for (const mod of selected) {
     if (mod.groupId?.startsWith('integration_') || mod._source === 'calculator_module') {

@@ -281,6 +281,7 @@
       :proposalUuid="proposalUuid"
       :language="language"
       :totalInvestment="totalInvestment"
+      :effectiveTotal="effectiveNumber"
       :baseWeeks="baseWeeks"
       :sentAt="sentAt"
       :discountPercent="discountPercent"
@@ -483,22 +484,24 @@ function onSelectionUpdate({ total }) {
   emit('updateCustomTotal', total);
 }
 
+// Each payment option's amount is derived from its label percentage applied
+// to the currently displayed total (base, effective, or client-customized).
+// Source of truth is the label ("40% al firmar..."), not the stored
+// description — that avoids double-scaling against backend-rebuilt amounts.
 const computedPaymentOptions = computed(() => {
   if (!props.paymentOptions?.length) return props.paymentOptions;
-  const baseNum = baseNumber.value;
-  if (baseNum <= 0) return props.paymentOptions;
   const target = displayNumber.value;
-  if (!target || target === baseNum) return props.paymentOptions;
-  const ratio = target / baseNum;
+  if (!target) return props.paymentOptions;
 
   return props.paymentOptions.map(opt => {
-    const descNum = parseInvestment(opt.description);
-    if (descNum <= 0) return opt;
-    const newAmount = Math.round(descNum * ratio);
-    const newDesc = opt.description.replace(
-      /[\$]?[\d.,]+/,
-      formatCurrency(newAmount).replace('$', '')
-    );
+    const pctMatch = String(opt.label || '').match(/(\d+)\s*%/);
+    if (!pctMatch) return opt;
+    const pct = Number(pctMatch[1]) / 100;
+    const newAmount = Math.round(target * pct);
+    const desc = opt.description || '';
+    const newDesc = desc
+      ? desc.replace(/[\$]?[\d.,]+/, formatCurrency(newAmount).replace('$', ''))
+      : formatCurrency(newAmount);
     return {
       ...opt,
       description: newDesc.startsWith('$') ? newDesc : '$' + newDesc,
