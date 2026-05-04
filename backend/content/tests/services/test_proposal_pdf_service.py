@@ -2321,16 +2321,16 @@ class TestRenderInvestmentEndToEndAdminDefaults:
             total_investment=Decimal('6000000'), currency='COP',
             status='sent',
         )
-        # ``selected`` omitted → admin default kicks in (nullish-coalescing).
-        branding_grp = _calculator_module_group(
-            id='branding', default_selected=True, price_percent=35,
-        )
-        branding_grp.pop('selected', None)
         ProposalSection.objects.create(
             proposal=proposal,
             section_type='functional_requirements',
             title='FR', order=1, is_enabled=True,
-            content_json=_fr_section_content_json(additionalModules=[branding_grp]),
+            content_json=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(
+                    id='branding', default_selected=True, selected=False,
+                    price_percent=35,
+                ),
+            ]),
         )
         ProposalSection.objects.create(
             proposal=proposal,
@@ -2361,6 +2361,66 @@ class TestRenderInvestmentEndToEndAdminDefaults:
         assert '$8.100.000' in text
         assert '$3.240.000' in text
         assert '$4.860.000' in text
+
+    def test_explicit_selected_false_hides_from_fr_but_keeps_in_total(self, db):
+        """Admin pre-includes a module via ``default_selected=True`` but
+        explicitly flipped ``selected=False``. The totals (cuotas, hosting)
+        must keep counting it (``effective_total_investment`` stays $14.1M-
+        like), and the FR section of the PDF must NOT list it — same
+        contract the public client view enforces (prop 86 scenario)."""
+        from content.services.proposal_pdf_service import (
+            ProposalPdfService, default_selected_modules_from_content,
+        )
+
+        proposal = BusinessProposal.objects.create(
+            title='HiddenButCounts', client_name='Test',
+            client_email='t@t.com', language='es',
+            total_investment=Decimal('6000000'), currency='COP',
+            status='sent',
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='FR', order=1, is_enabled=True,
+            content_json=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(
+                    id='branding',
+                    title='Identidad Visual',
+                    default_selected=True, selected=False,
+                    price_percent=35,
+                ),
+            ]),
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='investment',
+            title='Inv', order=2, is_enabled=True,
+            content_json=_investment_content_json(
+                totalInvestment='$6.000.000',
+                paymentOptions=[
+                    {'label': '40% al firmar', 'description': '$2.400.000 COP'},
+                    {'label': '60% al desplegar', 'description': '$3.600.000 COP'},
+                ],
+            ),
+        )
+
+        sel = default_selected_modules_from_content(proposal)
+        # Module counted toward totals via the canonical OR rule.
+        assert 'module-branding' in sel
+
+        pdf = ProposalPdfService.generate(proposal, selected_modules=sel)
+        from pypdf import PdfReader
+        import io as _io
+        text = '\n'.join(
+            (page.extract_text() or '')
+            for page in PdfReader(_io.BytesIO(pdf)).pages
+        )
+        # Cuotas computed against effective $8.1M (40% / 60%) — matches public view.
+        assert '$8.100.000' in text
+        assert '$3.240.000' in text
+        assert '$4.860.000' in text
+        # FR section must NOT list a module the admin explicitly deselected.
+        assert 'Identidad Visual' not in text
 
     def test_adjusted_duration_renders_when_modules_deselected(self, pdf_canvas, proposal_obj):
         """Adjusted duration text renders when base_weeks > 0 and modules are removed."""
@@ -2877,27 +2937,12 @@ class TestDefaultSelectedModulesFromContent:
 
         assert 'module-pwa' not in result
 
-    def test_includes_calc_module_when_default_selected_true_and_selected_omitted(self):
-        """``selected`` omitted → ``default_selected`` decides. Mirrors the
-        frontend's nullish-coalescing rule ``selected ?? default_selected``
-        so PDF, ``effective_total_investment`` and the public client view
-        agree on the admin-pre-included modules."""
-        grp = _calculator_module_group(
-            id='branding', default_selected=True,
-        )
-        grp.pop('selected', None)  # leave it unset (None)
-        proposal = self._make_proposal(
-            fr_content=_fr_section_content_json(additionalModules=[grp]),
-        )
-
-        result = default_selected_modules_from_content(proposal)
-
-        assert 'module-branding' in result
-
-    def test_explicit_selected_false_overrides_default_selected(self):
-        """When the admin explicitly sets ``selected=False`` it overrides any
-        ``default_selected=True`` value. The PDF must NOT include the module —
-        otherwise it would diverge from the public FR view."""
+    def test_includes_calc_module_when_default_selected_true_only(self):
+        """A calc module with ``default_selected=True`` (or ``selected=True``)
+        counts as an admin pre-inclusion: it must appear in the PDF default
+        scope so that the rendered total and ``effective_total_investment``
+        match. Whether it shows in the FR section is a separate display
+        concern handled by ``_filter_calculator_groups``."""
         proposal = self._make_proposal(
             fr_content=_fr_section_content_json(additionalModules=[
                 _calculator_module_group(
@@ -2908,7 +2953,7 @@ class TestDefaultSelectedModulesFromContent:
 
         result = default_selected_modules_from_content(proposal)
 
-        assert 'module-branding' not in result
+        assert 'module-branding' in result
 
     def test_excludes_group_when_is_visible_false(self):
         proposal = self._make_proposal(

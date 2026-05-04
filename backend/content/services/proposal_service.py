@@ -2309,14 +2309,7 @@ def admin_default_calculator_group_ids(fr_content_json):
     in the FR content JSON.
 
     A calculator module (``is_calculator_module=True``) counts as an admin
-    default when ``selected`` is truthy. When ``selected`` is omitted
-    (``None``), ``default_selected`` is the fallback. An explicit
-    ``selected=False`` overrides ``default_selected`` — this matches the
-    frontend's nullish-coalescing rule (``selected ?? default_selected``)
-    in ``frontend/pages/proposal/[uuid]/index.vue`` so the PDF, the
-    backend ``effective_total_investment`` and the public client view all
-    agree on which modules the admin pre-included.
-
+    default when it carries ``selected=True`` or ``default_selected=True``.
     Returns a set of bare ids (no ``module-`` prefix) so callers can shape
     them as needed.
 
@@ -2331,10 +2324,7 @@ def admin_default_calculator_group_ids(fr_content_json):
                 continue
             if not group.get('is_calculator_module'):
                 continue
-            sel = group.get('selected')
-            if sel is None:
-                sel = group.get('default_selected')
-            if not sel:
+            if not (group.get('selected') or group.get('default_selected')):
                 continue
             gid = str(group.get('id') or '').strip()
             if gid:

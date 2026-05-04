@@ -93,12 +93,13 @@ class TestCalculateEffectiveTotalInvestment:
         )
         assert result == Decimal('2520000.00')
 
-    def test_explicit_selected_false_overrides_default_selected(self):
-        """``default_selected=True`` is only an initial admin hint. If the
-        admin later sets ``selected=False``, that explicit choice wins —
-        mirrors the frontend nullish-coalescing rule and prevents the
-        client-facing total from including modules the FR section does
-        not list as selected (case of prop 86 with corporate_branding)."""
+    def test_default_selected_true_with_explicit_selected_false_still_counts(self):
+        """``default_selected=True`` is the admin's pre-inclusion signal: it
+        carries the price into ``effective_total_investment`` even when the
+        admin later flipped ``selected`` off. Whether the module is listed
+        in the FR display is a separate concern (handled in the PDF render
+        layer) — the totals must keep matching the headline price the
+        public Investment section shows."""
         fr_content = {
             'additionalModules': [
                 {
@@ -119,7 +120,8 @@ class TestCalculateEffectiveTotalInvestment:
             fr_content_json=fr_content,
             has_confirmed=False,
         )
-        assert result == Decimal('6000000.00')
+        # base 6M + 35% × 6M = 8.1M
+        assert result == Decimal('8100000.00')
 
 
 class TestEffectiveTotalForProposal:

@@ -100,12 +100,26 @@ def _filter_calculator_groups(groups, sel_ids):
     (``is_calculator_module=True``) are only kept when their ID appears
     in *sel_ids*.  When *sel_ids* is ``None`` (no selection provided),
     **all** calculator modules are excluded.
+
+    A calc module with an explicit ``selected=False`` is also excluded,
+    even if its ID is in *sel_ids* (the totals canonical rule includes it
+    via ``default_selected``, but the FR display follows the frontend
+    nullish-coalescing rule ``selected ?? default_selected`` so the PDF
+    list matches what the client sees in the public view).
     """
-    return [
-        g for g in groups
-        if not _safe(g, 'is_calculator_module')
-        or (sel_ids is not None and f"module-{_safe(g, 'id')}" in sel_ids)
-    ]
+    kept = []
+    for g in groups:
+        if not _safe(g, 'is_calculator_module'):
+            kept.append(g)
+            continue
+        if sel_ids is None or f"module-{_safe(g, 'id')}" not in sel_ids:
+            continue
+        # Display-only override: if the admin explicitly set selected=False,
+        # hide it from the FR section even though it counts toward effective.
+        if isinstance(g, dict) and g.get('selected') is False:
+            continue
+        kept.append(g)
+    return kept
 
 
 def default_selected_modules_from_content(proposal, has_confirmed=None):
