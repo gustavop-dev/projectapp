@@ -2199,6 +2199,169 @@ class TestInvestmentRendersAgainstEffectiveTotal:
         assert any('1.728.000' in a for a in amounts)
         assert sum('1.296.000' in a for a in amounts) == 2
 
+
+class TestInviteModuleAINote:
+    """Cover the new product rule: invite modules with a real ``price_percent``
+    no longer trigger the "we'll define this in a call" note, because the
+    calculator already shows them with a price."""
+
+    @pytest.fixture
+    def proposal_obj(self, db):
+        return BusinessProposal.objects.create(
+            title='Invite', client_name='Test',
+            client_email='t@t.com', language='es',
+            total_investment=Decimal('5000000'), currency='COP',
+            status='sent',
+        )
+
+    def _captured_strings(self, pdf_canvas):
+        """Read all text written to the canvas regardless of the helper used."""
+        # Each draw* call in ReportLab emits the literal text via showString;
+        # easier to capture by patching c.drawString / c.drawCentredString /
+        # c.drawRightString directly through monkeypatch in the test body.
+        return getattr(pdf_canvas, '_captured', [])
+
+    def _patch_canvas_capture(self, monkeypatch, c):
+        captured = []
+        for name in ('drawString', 'drawCentredString', 'drawRightString'):
+            original = getattr(c, name)
+
+            def make_wrapper(orig):
+                def wrapper(*args, **kwargs):
+                    if args:
+                        text = args[-1]
+                        if isinstance(text, str):
+                            captured.append(text)
+                    return orig(*args, **kwargs)
+                return wrapper
+
+            monkeypatch.setattr(c, name, make_wrapper(original))
+        c._captured = captured
+        return captured
+
+    def test_invite_module_with_price_percent_does_not_emit_ai_note(
+        self, pdf_canvas, proposal_obj, monkeypatch,
+    ):
+        from content.services.proposal_pdf_service import _render_investment
+
+        captured = self._patch_canvas_capture(monkeypatch, pdf_canvas)
+        ps = {
+            'num': 1, 'client': 'Test',
+            'selected_modules': ['module-ai_module'],
+            '_fr_items': [],
+            '_calc_module_items': [
+                {'id': 'module-ai_module', 'group_id': 'ai_module',
+                 'price_percent': 80, 'price': 4000000, 'is_invite': True},
+            ],
+            'base_weeks': 0,
+        }
+        data = _investment_content_json(
+            totalInvestment='$5.000.000',
+            paymentOptions=[],
+            modules=[],
+        )
+        _render_investment(pdf_canvas, data, proposal_obj, ps=ps)
+
+        joined = ' '.join(captured)
+        assert 'definir' not in joined.lower()
+        assert 'llamada personalizada' not in joined.lower()
+
+    def test_invite_module_without_price_emits_ai_note(
+        self, pdf_canvas, proposal_obj, monkeypatch,
+    ):
+        from content.services.proposal_pdf_service import _render_investment
+
+        captured = self._patch_canvas_capture(monkeypatch, pdf_canvas)
+        ps = {
+            'num': 1, 'client': 'Test',
+            'selected_modules': ['module-meta_ads'],
+            '_fr_items': [],
+            '_calc_module_items': [
+                {'id': 'module-meta_ads', 'group_id': 'meta_ads',
+                 'price_percent': 0, 'price': 0, 'is_invite': True},
+            ],
+            'base_weeks': 0,
+        }
+        data = _investment_content_json(
+            totalInvestment='$5.000.000',
+            paymentOptions=[],
+            modules=[],
+        )
+        _render_investment(pdf_canvas, data, proposal_obj, ps=ps)
+
+        joined = ' '.join(captured)
+        assert 'llamada personalizada' in joined.lower()
+
+
+class TestRenderInvestmentEndToEndAdminDefaults:
+    """Mirror the prop 86 scenario end-to-end through ProposalPdfService.generate
+    so a proposal whose admin marked a module ``default_selected=True``
+    (without flipping ``selected=True``) renders against the same effective
+    total the public client view shows."""
+
+    @pytest.fixture
+    def proposal_obj(self, db):
+        # Shared by the two legacy `test_adjusted_*` / `test_ai_scope_*`
+        # methods that live below as part of this class.
+        return BusinessProposal.objects.create(
+            title='InvSelMod', client_name='Test',
+            client_email='t@t.com', language='es',
+            total_investment=Decimal('5000000'), currency='COP',
+            status='sent',
+        )
+
+    def test_default_selected_only_module_counts_in_effective(self, db):
+        from content.services.proposal_pdf_service import (
+            ProposalPdfService, default_selected_modules_from_content,
+        )
+
+        proposal = BusinessProposal.objects.create(
+            title='AdminDefault', client_name='Test',
+            client_email='t@t.com', language='es',
+            total_investment=Decimal('6000000'), currency='COP',
+            status='sent',
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='FR', order=1, is_enabled=True,
+            content_json=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(
+                    id='branding', default_selected=True, selected=False,
+                    price_percent=35,
+                ),
+            ]),
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='investment',
+            title='Inv', order=2, is_enabled=True,
+            content_json=_investment_content_json(
+                totalInvestment='$6.000.000',
+                paymentOptions=[
+                    {'label': '40% al firmar', 'description': '$2.400.000 COP'},
+                    {'label': '60% al desplegar', 'description': '$3.600.000 COP'},
+                ],
+            ),
+        )
+
+        sel = default_selected_modules_from_content(proposal)
+        assert 'module-branding' in sel
+
+        pdf = ProposalPdfService.generate(proposal, selected_modules=sel)
+        assert pdf and len(pdf) > 1000
+
+        from pypdf import PdfReader
+        import io as _io
+        text = '\n'.join(
+            (page.extract_text() or '')
+            for page in PdfReader(_io.BytesIO(pdf)).pages
+        )
+        # Effective = base 6M + 35% × 6M = 8.1M → 40% = 3.24M, 60% = 4.86M.
+        assert '$8.100.000' in text
+        assert '$3.240.000' in text
+        assert '$4.860.000' in text
+
     def test_adjusted_duration_renders_when_modules_deselected(self, pdf_canvas, proposal_obj):
         """Adjusted duration text renders when base_weeks > 0 and modules are removed."""
         from content.services.proposal_pdf_service import _render_investment
@@ -2713,6 +2876,24 @@ class TestDefaultSelectedModulesFromContent:
         result = default_selected_modules_from_content(proposal)
 
         assert 'module-pwa' not in result
+
+    def test_includes_calc_module_when_default_selected_true_only(self):
+        """A calc module with default_selected=True but selected=False must
+        still appear in the PDF default scope so the rendered total matches
+        the backend ``effective_total_investment`` (admin_default_calculator_
+        group_ids includes it). Previously the PDF skipped it, causing the
+        invoice to undercount admin-pre-selected modules."""
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(
+                    id='branding', default_selected=True, selected=False,
+                ),
+            ]),
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'module-branding' in result
 
     def test_excludes_group_when_is_visible_false(self):
         proposal = self._make_proposal(

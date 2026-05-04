@@ -127,7 +127,10 @@ def default_selected_modules_from_content(proposal, has_confirmed=None):
     ready to be passed as ``selected_modules`` to
     :meth:`ProposalPdfService.generate`.
     """
-    from content.services.proposal_service import normalize_selected_module_ids
+    from content.services.proposal_service import (
+        admin_default_calculator_group_ids,
+        normalize_selected_module_ids,
+    )
 
     if has_confirmed is None:
         has_confirmed = proposal.has_confirmed_module_selection
@@ -154,6 +157,26 @@ def default_selected_modules_from_content(proposal, has_confirmed=None):
             if mid:
                 selected.append(mid)
 
+    # Calculator modules: align with the canonical backend rule used by
+    # ``_calculate_effective_total_investment`` — include when ``selected`` OR
+    # ``default_selected`` is truthy. Anything else (e.g. ``selected=False``
+    # while ``default_selected=True``) was previously skipped here, which
+    # made the PDF render against a smaller total than the public client view.
+    # Hidden groups (``is_visible=False``) stay out of the PDF render scope.
+    calc_default_ids = admin_default_calculator_group_ids(fr_content)
+    if calc_default_ids and fr_content:
+        hidden_ids = {
+            str(g.get('id') or '')
+            for arr_key in ('groups', 'additionalModules')
+            for g in (fr_content.get(arr_key) or [])
+            if isinstance(g, dict) and g.get('is_visible') is False
+        }
+        calc_default_ids = {
+            gid for gid in calc_default_ids if gid not in hidden_ids
+        }
+    for gid in calc_default_ids:
+        selected.append(f'module-{gid}')
+
     if fr_content:
         groups = list(fr_content.get('groups') or []) + list(fr_content.get('additionalModules') or [])
         for grp in groups:
@@ -161,18 +184,19 @@ def default_selected_modules_from_content(proposal, has_confirmed=None):
                 continue
             if grp.get('is_visible') is False:
                 continue
-            is_calc = grp.get('is_calculator_module') is True
+            if grp.get('is_calculator_module') is True:
+                continue  # already handled via admin_default_calculator_group_ids
             default_sel = grp.get('selected')
             if default_sel is None:
                 default_sel = grp.get('default_selected')
             if default_sel is None:
-                default_sel = not is_calc
+                default_sel = True  # non-calc groups default to included
             if not default_sel:
                 continue
             gid = grp.get('id')
             if not gid:
                 continue
-            selected.append(f'module-{gid}' if is_calc else f'group-{gid}')
+            selected.append(f'group-{gid}')
 
     return selected
 
@@ -1159,32 +1183,40 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 y -= 16
 
     # ── AI scope note (when AI module selected) ───────────────────
+    # Only emit for invite modules WITHOUT a defined price. When
+    # ``price_percent > 0`` the module is treated as a normal priced module
+    # (the calculator already shows the price to the client), so the
+    # "schedule a call to define scope" note would contradict it.
     if ps:
         calc_items = ps.get('_calc_module_items', [])
         sel_check = ps.get('selected_modules')
         for ci in calc_items:
-            if ci.get('is_invite') and (
-                sel_check is None or ci.get('id') in sel_check
-            ):
-                y = _check_y(c, y, ps, need=30)
-                lang = (_proposal.language or 'es') if _proposal else 'es'
-                ai_note = (
-                    'Nota: El alcance y costos del módulo de IA se definirán '
-                    'en una llamada personalizada. Este módulo no tiene costo '
-                    'adicional asignado hasta acordar el alcance.'
-                ) if lang == 'es' else (
-                    'Note: The scope and costs of the AI module will be defined '
-                    'in a personalized call. This module has no additional cost '
-                    'assigned until the scope is agreed upon.'
-                )
-                c.setFont(_font('regular'), 8)
-                c.setFillColor(GRAY_500)
-                note_lines = textwrap.wrap(ai_note, width=90)
-                for nl in note_lines:
-                    c.drawString(MARGIN_L, y, nl)
-                    y -= 11
-                y -= 4
-                break
+            if not ci.get('is_invite'):
+                continue
+            if sel_check is not None and ci.get('id') not in sel_check:
+                continue
+            _pp = ci.get('price_percent')
+            if _pp is not None and _pp > 0:
+                continue
+            y = _check_y(c, y, ps, need=30)
+            lang = (_proposal.language or 'es') if _proposal else 'es'
+            ai_note = (
+                'Nota: El alcance y costos del módulo de IA se definirán '
+                'en una llamada personalizada. Este módulo no tiene costo '
+                'adicional asignado hasta acordar el alcance.'
+            ) if lang == 'es' else (
+                'Note: The scope and costs of the AI module will be defined '
+                'in a personalized call. This module has no additional cost '
+                'assigned until the scope is agreed upon.'
+            )
+            c.setFont(_font('regular'), 8)
+            c.setFillColor(GRAY_500)
+            note_lines = textwrap.wrap(ai_note, width=90)
+            for nl in note_lines:
+                c.drawString(MARGIN_L, y, nl)
+                y -= 11
+            y -= 4
+            break
 
     # ── Interactive Modules (if present) ──────────────────────────
     modules = _safe(data, 'modules', [])
