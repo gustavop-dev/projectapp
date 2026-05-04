@@ -917,6 +917,30 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
     return y
 
 
+def _payment_pill_desc(label, desc, display_num):
+    """Build the amount pill for a single payment option.
+
+    Mirrors Investment.vue ``computedPaymentOptions``: derive the amount from
+    the percentage embedded in the label times the live display total, instead
+    of scaling whatever amount the backend last persisted in ``description``
+    (which already equals ``effective × pct`` and would double-scale).
+    """
+    if not display_num or display_num <= 0:
+        return desc
+    pct_match = re.search(r'(\d+)\s*%', str(label or ''))
+    if not pct_match:
+        return desc
+    pct = int(pct_match.group(1))
+    new_amount = round(display_num * pct / 100)
+    formatted = _format_cop(new_amount).lstrip('$')
+    desc_str = _strip_emoji(desc or '')
+    if desc_str and re.search(r'[\$]?[\d.,]+', desc_str):
+        pill = re.sub(r'[\$]?[\d.,]+', formatted, desc_str, count=1)
+    else:
+        pill = formatted
+    return pill if pill.startswith('$') else '$' + pill
+
+
 def _render_investment(c, data, _proposal, ps=None, y=None):
     """Render investment section with two-column layout.
 
@@ -940,11 +964,16 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 or _safe(data, 'currency'))
     options = _safe(data, 'paymentOptions', [])
 
-    # ── Pre-calculate adjusted total (needed for payment options too) ──
+    # ── Resolve the total the client actually sees / pays ──
+    # Mirrors Investment.vue: display total and payment amounts must both
+    # anchor on the SAME number — the effective total (base + admin pre-
+    # selected modules) by default, or the client's adjusted selection when
+    # ``selected_modules`` is provided. Otherwise the PDF shows base as the
+    # headline while the cuotas (built server-side as effective × pct) sum
+    # to a different number.
     selected_ids = ps.get('selected_modules') if ps else None
-    adjusted = None
     base_num = int(re.sub(r'[^\d]', '', str(total)) or '0') if total else 0
-    display_total = total or ''
+    adjusted = None
     if total and selected_ids is not None:
         all_mods = _safe(data, 'modules', [])
         fr_items = ps.get('_fr_items', []) if ps else []
@@ -961,7 +990,19 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             if it.get('id') in selected_ids and it.get('price')
         )
         adjusted = base_num - deselected_sum + added_sum
-        display_total = _format_cop(adjusted)
+
+    if adjusted is not None:
+        display_num = adjusted
+    else:
+        # Lazy import to avoid circular dependency with views.proposal.
+        try:
+            from content.views.proposal import _effective_total_for_proposal
+            _eff = (_effective_total_for_proposal(_proposal)
+                    if _proposal is not None else None)
+            display_num = int(_eff) if _eff else base_num
+        except Exception:
+            display_num = base_num
+    display_total = _format_cop(display_num) if display_num else (total or '')
 
     # Intro text — full width, brief
     if intro:
@@ -1009,20 +1050,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 c.setFont(_font('regular'), 8)
                 c.setFillColor(ESMERALD_80)
                 c.drawString(MARGIN_L + 8, left_y - 2, label)
-                pill_desc = desc
-                if adjusted is not None and base_num > 0 and desc:
-                    desc_num = int(re.sub(r'[^\d]', '', str(desc)) or '0')
-                    if desc_num > 0:
-                        ratio = adjusted / base_num
-                        new_amount = round(desc_num * ratio)
-                        pill_desc = re.sub(
-                            r'[\$]?[\d.,]+',
-                            _format_cop(new_amount).lstrip('$'),
-                            _strip_emoji(desc),
-                            count=1,
-                        )
-                        if not pill_desc.startswith('$'):
-                            pill_desc = '$' + pill_desc
+                pill_desc = _payment_pill_desc(label, desc, display_num)
                 if pill_desc:
                     _draw_pill(c, MARGIN_L + left_w - 80, left_y - 2, pill_desc,
                                bg_color=ESMERALD, text_color=WHITE, font_size=7)
@@ -1057,20 +1085,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 c.setFont(_font('regular'), 8)
                 c.setFillColor(ESMERALD_80)
                 c.drawString(MARGIN_L + 8, y - 2, label)
-                pill_desc = desc
-                if adjusted is not None and base_num > 0 and desc:
-                    desc_num = int(re.sub(r'[^\d]', '', str(desc)) or '0')
-                    if desc_num > 0:
-                        ratio = adjusted / base_num
-                        new_amount = round(desc_num * ratio)
-                        pill_desc = re.sub(
-                            r'[\$]?[\d.,]+',
-                            _format_cop(new_amount).lstrip('$'),
-                            _strip_emoji(desc),
-                            count=1,
-                        )
-                        if not pill_desc.startswith('$'):
-                            pill_desc = '$' + pill_desc
+                pill_desc = _payment_pill_desc(label, desc, display_num)
                 if pill_desc:
                     _draw_pill(c, MARGIN_L + CONTENT_W - 80, y - 2, pill_desc,
                                bg_color=ESMERALD, text_color=WHITE, font_size=7)
@@ -1263,7 +1278,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         # additional modules, or the client's adjusted selection). Keeps
         # parity with the public frontend (Investment.vue
         # ``hostingAnnualAmount``) and the admin preview in the General tab.
-        basis = adjusted if adjusted is not None else base_num
+        basis = display_num
         annual_hosting = round(basis * h_percent / 100) if h_percent and basis else 0
 
         if billing_tiers and annual_hosting > 0:

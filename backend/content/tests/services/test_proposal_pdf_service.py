@@ -2084,6 +2084,121 @@ class TestInvestmentSelectedModulesAdv:
         y = _render_investment(pdf_canvas, data, proposal_obj, ps=ps)
         assert isinstance(y, (int, float))
 
+
+# ── Helper unit tests ─────────────────────────────────────────
+
+class TestPaymentPillDesc:
+    """Direct unit tests for the _payment_pill_desc helper.
+
+    Mirrors the frontend Investment.vue ``computedPaymentOptions`` contract:
+    derive the amount from the percentage in the label times the live total,
+    not from whatever amount was previously stored in ``description``.
+    """
+
+    def test_uses_label_pct_against_display_num(self):
+        from content.services.proposal_pdf_service import _payment_pill_desc
+
+        # Backend stored `effective × pct` = 1.728.000; the helper must
+        # NOT scale it again — it must derive 40% of display_num.
+        pill = _payment_pill_desc(
+            label='40% al firmar el contrato',
+            desc='$1.728.000 COP',
+            display_num=4_320_000,
+        )
+        assert '$1.728.000' in pill
+        assert pill.endswith('COP')
+
+    def test_falls_back_to_label_only_amount_when_desc_has_no_money(self):
+        from content.services.proposal_pdf_service import _payment_pill_desc
+
+        pill = _payment_pill_desc(
+            label='30% al desplegar',
+            desc='al desplegar la plataforma',
+            display_num=4_320_000,
+        )
+        assert pill.startswith('$')
+        assert '1.296.000' in pill
+
+    def test_returns_desc_unchanged_when_label_has_no_percent(self):
+        from content.services.proposal_pdf_service import _payment_pill_desc
+
+        pill = _payment_pill_desc(
+            label='Pago contra entrega',
+            desc='$1.000.000 COP',
+            display_num=4_320_000,
+        )
+        assert pill == '$1.000.000 COP'
+
+    def test_returns_desc_unchanged_when_display_num_is_zero(self):
+        from content.services.proposal_pdf_service import _payment_pill_desc
+
+        pill = _payment_pill_desc(
+            label='40% al firmar',
+            desc='$0',
+            display_num=0,
+        )
+        assert pill == '$0'
+
+
+class TestInvestmentRendersAgainstEffectiveTotal:
+    """Integration: ensure _render_investment writes amounts derived from the
+    backend effective total (base + admin defaults) when no client
+    customization is present, matching the public view contract.
+    """
+
+    @pytest.fixture
+    def proposal_obj(self, db):
+        # Base 3.2M; backend ``effective_total_investment`` will equal base
+        # because no FR calculator modules are stored on this lightweight
+        # proposal — tests below stub _effective_total_for_proposal directly.
+        return BusinessProposal.objects.create(
+            title='Eff', client_name='Test',
+            client_email='t@t.com', language='es',
+            total_investment=Decimal('3200000'), currency='COP',
+            status='sent',
+        )
+
+    def test_payment_amounts_match_effective_total(
+        self, pdf_canvas, proposal_obj, monkeypatch,
+    ):
+        """When backend effective is 4.32M (base + 35% admin module), the
+        PDF must render 40/30/30 against 4.32M, not against base 3.2M nor
+        against the stored description amount."""
+        from content.services import proposal_pdf_service as svc
+        from content.views import proposal as views_proposal
+        from decimal import Decimal as _D
+
+        recorded_pills = []
+        original_pill = svc._payment_pill_desc
+
+        def recording_pill(label, desc, display_num):
+            result = original_pill(label, desc, display_num)
+            recorded_pills.append((label, display_num, result))
+            return result
+
+        monkeypatch.setattr(svc, '_payment_pill_desc', recording_pill)
+        monkeypatch.setattr(
+            views_proposal, '_effective_total_for_proposal',
+            lambda _p: _D('4320000'),
+        )
+
+        data = _investment_content_json(
+            totalInvestment='$3.200.000',
+            paymentOptions=[
+                {'label': '40% al firmar', 'description': '$1.728.000 COP'},
+                {'label': '30% al aprobar', 'description': '$1.296.000 COP'},
+                {'label': '30% al desplegar', 'description': '$1.296.000 COP'},
+            ],
+        )
+        ps = {'num': 1, 'client': 'Test'}  # no selected_modules → use effective
+        svc._render_investment(pdf_canvas, data, proposal_obj, ps=ps)
+
+        # All three pills were derived against the effective total 4.32M.
+        assert all(display == 4_320_000 for _, display, _ in recorded_pills)
+        amounts = [pill for _, _, pill in recorded_pills]
+        assert any('1.728.000' in a for a in amounts)
+        assert sum('1.296.000' in a for a in amounts) == 2
+
     def test_adjusted_duration_renders_when_modules_deselected(self, pdf_canvas, proposal_obj):
         """Adjusted duration text renders when base_weeks > 0 and modules are removed."""
         from content.services.proposal_pdf_service import _render_investment
