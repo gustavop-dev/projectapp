@@ -42,6 +42,18 @@ def update_document_folder(request, folder_id):
 @permission_classes([IsAdminUser])
 def delete_document_folder(request, folder_id):
     folder = get_object_or_404(DocumentFolder, pk=folder_id)
+    document_count = folder.documents.count()
+    if document_count:
+        return Response(
+            {
+                'detail': (
+                    f'La carpeta tiene {document_count} documento(s). '
+                    'Muévelos o elimínalos antes de borrarla.'
+                ),
+                'document_count': document_count,
+            },
+            status=status.HTTP_409_CONFLICT,
+        )
     folder.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 

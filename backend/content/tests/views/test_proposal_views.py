@@ -716,6 +716,49 @@ class TestAdminUpdateProposal:
         response = admin_client.patch(url, {}, format='json')
         assert response.status_code == 404
 
+    def test_update_succeeds_for_expired_proposal_when_expires_at_unchanged(
+        self, admin_client, expired_proposal,
+    ):
+        url = reverse('update-proposal', kwargs={'proposal_id': expired_proposal.id})
+        response = admin_client.patch(
+            url, {'title': 'Renamed While Expired'}, format='json',
+        )
+        assert response.status_code == 200
+        expired_proposal.refresh_from_db()
+        assert expired_proposal.title == 'Renamed While Expired'
+        assert expired_proposal.status == 'expired'
+
+    def test_update_reopens_status_when_expires_at_moved_to_future_no_views(
+        self, admin_client, expired_proposal,
+    ):
+        future = (timezone.now() + timedelta(days=14)).isoformat()
+        url = reverse('update-proposal', kwargs={'proposal_id': expired_proposal.id})
+        response = admin_client.patch(
+            url, {'expires_at': future}, format='json',
+        )
+        assert response.status_code == 200
+        expired_proposal.refresh_from_db()
+        assert expired_proposal.status == 'sent'
+        log = ProposalChangeLog.objects.filter(
+            proposal=expired_proposal, field_name='status',
+        ).order_by('-created_at').first()
+        assert log is not None
+        assert 'Auto-reopened from expired' in log.description
+
+    def test_update_reopens_to_viewed_when_proposal_was_visited(
+        self, admin_client, expired_proposal,
+    ):
+        expired_proposal.view_count = 3
+        expired_proposal.save(update_fields=['view_count'])
+        future = (timezone.now() + timedelta(days=14)).isoformat()
+        url = reverse('update-proposal', kwargs={'proposal_id': expired_proposal.id})
+        response = admin_client.patch(
+            url, {'expires_at': future}, format='json',
+        )
+        assert response.status_code == 200
+        expired_proposal.refresh_from_db()
+        assert expired_proposal.status == 'viewed'
+
 
 class TestAdminDeleteProposal:
     def test_deletes_proposal_returns_204(self, admin_client, proposal):
@@ -733,10 +776,27 @@ class TestAdminDeleteProposal:
 class TestAdminSendProposal:
     @patch('content.services.proposal_service.ProposalService.send_proposal')
     def test_sends_proposal_returns_200(self, mock_send, admin_client, proposal):
+        mock_send.return_value = {'ok': True, 'reason': 'sent', 'detail': ''}
         url = reverse('send-proposal', kwargs={'proposal_id': proposal.id})
         response = admin_client.post(url, format='json')
         assert response.status_code == 200
+        assert response.data['email_delivery'] == {
+            'ok': True, 'reason': 'sent', 'detail': '',
+        }
         mock_send.assert_called_once()
+
+    @patch('content.services.proposal_service.ProposalService.send_proposal')
+    def test_propagates_email_failure_on_200(self, mock_send, admin_client, proposal):
+        """Status changed but email failed: 200 + email_delivery.ok=False."""
+        mock_send.return_value = {
+            'ok': False, 'reason': 'send_failed', 'detail': 'SMTP timeout',
+        }
+        url = reverse('send-proposal', kwargs={'proposal_id': proposal.id})
+        response = admin_client.post(url, format='json')
+        assert response.status_code == 200
+        assert response.data['email_delivery']['ok'] is False
+        assert response.data['email_delivery']['reason'] == 'send_failed'
+        assert 'SMTP timeout' in response.data['email_delivery']['detail']
 
     @patch('content.services.proposal_service.ProposalService.send_proposal')
     def test_returns_400_on_service_error(self, mock_send, admin_client, proposal):
@@ -1209,6 +1269,52 @@ class TestUpdateProposalFromJSON:
         assert response.status_code == 200
         sections = {s['section_type']: s for s in response.data['sections']}
         assert sections['technical_document']['content_json']['purpose'] == 'Después'
+
+    def test_update_from_json_succeeds_for_expired_proposal_when_expires_at_unchanged(
+        self, admin_client, expired_proposal,
+    ):
+        ProposalSection.objects.create(
+            proposal=expired_proposal,
+            section_type='greeting',
+            title='Saludo',
+            order=1,
+            is_enabled=True,
+            content_json={'clientName': expired_proposal.client_name},
+        )
+        payload = self._minimal_payload()
+        payload['expires_at'] = expired_proposal.expires_at.isoformat()
+        response = admin_client.put(
+            self._url(expired_proposal.id), payload, format='json',
+        )
+        assert response.status_code == 200
+        expired_proposal.refresh_from_db()
+        assert expired_proposal.status == 'expired'
+
+    def test_update_from_json_reopens_status_when_expires_at_moved_to_future(
+        self, admin_client, expired_proposal,
+    ):
+        ProposalSection.objects.create(
+            proposal=expired_proposal,
+            section_type='greeting',
+            title='Saludo',
+            order=1,
+            is_enabled=True,
+            content_json={'clientName': expired_proposal.client_name},
+        )
+        future = timezone.now() + timedelta(days=21)
+        payload = self._minimal_payload()
+        payload['expires_at'] = future.isoformat()
+        response = admin_client.put(
+            self._url(expired_proposal.id), payload, format='json',
+        )
+        assert response.status_code == 200
+        expired_proposal.refresh_from_db()
+        assert expired_proposal.status == 'sent'
+        log = ProposalChangeLog.objects.filter(
+            proposal=expired_proposal, field_name='status',
+        ).order_by('-created_at').first()
+        assert log is not None
+        assert 'Auto-reopened from expired' in log.description
 
     def test_round_trip_export_import(self, admin_client, proposal, proposal_section):
         """Export JSON and re-import it — proposal data should remain consistent."""
@@ -1871,12 +1977,15 @@ class TestResendProposal:
 
     @patch('content.services.proposal_service.ProposalService.resend_proposal')
     def test_resends_proposal_returns_200(self, mock_resend, admin_client, sent_proposal):
+        mock_resend.return_value = {'ok': True, 'reason': 'sent', 'detail': ''}
         response = admin_client.post(self._url(sent_proposal.id))
         assert response.status_code == 200
+        assert response.data['email_delivery']['ok'] is True
         mock_resend.assert_called_once()
 
     @patch('content.services.proposal_service.ProposalService.resend_proposal')
     def test_creates_change_log_entry(self, mock_resend, admin_client, sent_proposal):
+        mock_resend.return_value = {'ok': True, 'reason': 'sent', 'detail': ''}
         admin_client.post(self._url(sent_proposal.id))
         assert ProposalChangeLog.objects.filter(
             proposal=sent_proposal, change_type='resent'
@@ -4022,6 +4131,58 @@ class TestInlineStatusChange:
         url = reverse('update-proposal-status', kwargs={'proposal_id': sent_proposal.id})
         response = admin_client.patch(url, {'status': ''}, format='json')
         assert response.status_code == 400
+
+    @patch('content.services.proposal_service.ProposalService.send_proposal')
+    def test_draft_to_sent_invokes_send_proposal_and_returns_email_delivery(
+        self, mock_send, admin_client, proposal,
+    ):
+        """Inline draft→sent must dispatch the client email via ProposalService."""
+        mock_send.return_value = {'ok': True, 'reason': 'sent', 'detail': ''}
+        url = reverse('update-proposal-status', kwargs={'proposal_id': proposal.id})
+        response = admin_client.patch(url, {'status': 'sent'}, format='json')
+        assert response.status_code == 200
+        mock_send.assert_called_once()
+        assert response.data['email_delivery']['ok'] is True
+        assert ProposalChangeLog.objects.filter(
+            proposal=proposal, change_type='sent',
+        ).exists()
+
+    @patch('content.services.proposal_service.ProposalService.send_proposal')
+    def test_draft_to_sent_propagates_email_failure(
+        self, mock_send, admin_client, proposal,
+    ):
+        """Inline draft→sent surfaces email_delivery.ok=False so the panel can warn."""
+        mock_send.return_value = {
+            'ok': False, 'reason': 'placeholder_email',
+            'detail': 'El correo del cliente está vacío o es un placeholder.',
+        }
+        url = reverse('update-proposal-status', kwargs={'proposal_id': proposal.id})
+        response = admin_client.patch(url, {'status': 'sent'}, format='json')
+        assert response.status_code == 200
+        assert response.data['email_delivery']['ok'] is False
+        assert response.data['email_delivery']['reason'] == 'placeholder_email'
+
+    @patch('content.services.proposal_service.ProposalService.send_proposal')
+    def test_draft_to_sent_returns_400_on_invalid_email(
+        self, mock_send, admin_client, proposal,
+    ):
+        """Inline draft→sent surfaces ValueError from the service as 400."""
+        mock_send.side_effect = ValueError('Client email is required to send a proposal.')
+        url = reverse('update-proposal-status', kwargs={'proposal_id': proposal.id})
+        response = admin_client.patch(url, {'status': 'sent'}, format='json')
+        assert response.status_code == 400
+        assert 'Client email' in response.data['error']
+
+    @patch('content.services.proposal_service.ProposalService.send_proposal')
+    def test_non_draft_to_sent_does_not_invoke_send_proposal(
+        self, mock_send, admin_client, sent_proposal,
+    ):
+        """Other transitions (sent → negotiating) keep the legacy save+log path."""
+        url = reverse('update-proposal-status', kwargs={'proposal_id': sent_proposal.id})
+        response = admin_client.patch(url, {'status': 'negotiating'}, format='json')
+        assert response.status_code == 200
+        mock_send.assert_not_called()
+        assert 'email_delivery' not in response.data
 
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 {
-  "version": "2.34.0",
-  "lastUpdated": "2026-04-26",
+  "version": "2.35.0",
+  "lastUpdated": "2026-05-04",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -223,7 +223,37 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Send a proposal to a client via email.",
+      "description": "Send a proposal to a client via email from the proposals list (actions modal) or from the edit page. Backend returns email_delivery: {ok, reason, detail}; when ok=false, the panel surfaces a red toast with the reason (placeholder_email, template_disabled, send_failed) instead of generic success.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-resend": {
+      "name": "Admin Proposal Resend",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Resend an already-sent proposal via 'Re-enviar' from the actions modal. Confirmation dialog → POST /proposals/:id/resend/ keeps existing expires_at, resets sent_at and reminder timers, and returns email_delivery. The panel toast surfaces success or failure with the reason.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-reopen-from-expired": {
+      "name": "Admin Proposal Reopen From Expired",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Recover an expired proposal by extending expires_at to a future date from /panel/proposals/:id/edit (General tab) or via the JSON re-import panel. The serializer no longer blocks re-saving when expires_at is unchanged, and ProposalService.reopen_if_unexpired auto-reverts status from 'expired' to 'viewed' (when view_count > 0) or 'sent', logging an 'Auto-reopened from expired…' entry in ProposalChangeLog. Covers both PATCH /proposals/:id/update/ and PUT /proposals/:id/update-from-json/ paths.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-update-from-json": {
+      "name": "Admin Proposal Update From JSON",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Re-import a complete JSON payload over an existing proposal from /panel/proposals/:id/edit. Pastes/uploads JSON → PUT /proposals/:id/update-from-json/ replaces metadata and section content_json. Different from admin-proposal-create-from-json (creation): targets an existing proposal id, supports keeping expires_at unchanged on expired proposals, and surfaces unknown-key warnings.",
       "expectedSpecs": 1
     },
     "admin-blog-list": {
@@ -894,7 +924,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Change proposal status directly from the proposals table via inline dropdown.",
+      "description": "Change proposal status directly from the proposals table via inline dropdown. The draft→sent transition is delegated to ProposalService.send_proposal so the client email is dispatched and Huey reminders are scheduled (defense-in-depth — same behavior as the dedicated 'Enviar al Cliente' button). Response includes email_delivery and the panel toast surfaces failures with the reason.",
       "expectedSpecs": 1
     },
     "admin-proposal-defaults-config": {

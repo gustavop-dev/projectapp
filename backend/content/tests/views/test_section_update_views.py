@@ -681,6 +681,95 @@ class TestUpdateSectionEdgeCases:
         assert section.title == 'Only Title Changed'
         assert section.content_json['clientName'] == 'Keep Me'
 
+    def test_response_returns_proposal_totals_and_investment_section_for_fr_save(
+        self, admin_client, prop,
+    ):
+        """Saving a functional_requirements section recomputes proposal totals
+        and returns the auto-resynced investment section so the admin General
+        tab badge can update without a refetch."""
+        prop.total_investment = 1000000
+        prop.currency = 'COP'
+        prop.save(update_fields=['total_investment', 'currency'])
+
+        fr = _create_section(prop, 'functional_requirements', order=0)
+        fr.content_json = {
+            'groups': [
+                {
+                    'id': 'views',
+                    'title': 'Vistas',
+                    'is_calculator_module': True,
+                    'price_percent': 25,
+                    'selected': True,
+                    'items': [],
+                },
+            ],
+            'additionalModules': [],
+        }
+        fr.save(update_fields=['content_json'])
+
+        inv = _create_section(prop, 'investment', order=1)
+        inv.content_json = {
+            'totalInvestment': '$1.000.000',
+            'currency': 'COP',
+            'paymentOptions': [
+                {'label': '40% al firmar', 'description': '$500.000 COP'},
+                {'label': '60% al desplegar', 'description': '$750.000 COP'},
+            ],
+        }
+        inv.save(update_fields=['content_json'])
+
+        url = reverse('update-proposal-section', kwargs={'section_id': fr.id})
+        payload = {
+            'content_json': {
+                'groups': [
+                    {
+                        'id': 'views',
+                        'title': 'Vistas',
+                        'is_calculator_module': True,
+                        'price_percent': 25,
+                        'selected': False,
+                        'items': [],
+                    },
+                ],
+                'additionalModules': [],
+            },
+        }
+
+        response = admin_client.patch(url, payload, format='json')
+
+        assert response.status_code == 200
+        body = response.json()
+        assert 'section' in body
+        assert body['section']['id'] == fr.id
+        assert body['section']['content_json']['groups'][0]['selected'] is False
+        totals = body['proposal_totals']
+        assert totals['total_investment'] == '1000000.00'
+        assert totals['effective_total_investment'] == '1000000.00'
+        assert 'investment_section' in body
+        assert body['investment_section']['id'] == inv.id
+        opts = body['investment_section']['content_json']['paymentOptions']
+        assert opts[0]['description'] == '$400.000 COP'
+        assert opts[1]['description'] == '$600.000 COP'
+
+    def test_response_returns_proposal_totals_for_non_fr_save_without_investment(
+        self, admin_client, prop,
+    ):
+        """Non-FR saves skip _resync, so investment_section is omitted; totals
+        are still included so the General tab can stay current."""
+        prop.total_investment = 500000
+        prop.save(update_fields=['total_investment'])
+        section = _create_section(prop, 'greeting')
+        url = reverse('update-proposal-section', kwargs={'section_id': section.id})
+        payload = {'content_json': {'clientName': 'María'}}
+
+        response = admin_client.patch(url, payload, format='json')
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body['section']['id'] == section.id
+        assert 'proposal_totals' in body
+        assert 'investment_section' not in body
+
     def test_canonicalizes_technical_document_linked_module_ids(self, admin_client, prop):
         fr = _create_section(prop, 'functional_requirements')
         fr.content_json = {

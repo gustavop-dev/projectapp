@@ -395,13 +395,21 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
         )
 
     def validate_expires_at(self, value):
-        """Ensure expiration date is in the future when provided."""
-        if value is not None:
-            from django.utils import timezone
-            if value < timezone.now():
-                raise serializers.ValidationError(
-                    'Expiration date must be in the future.'
-                )
+        """Ensure expiration date is in the future when actually being changed.
+
+        Allow re-saving a proposal with its existing (possibly past) ``expires_at``
+        unchanged so admins can edit other fields on an expired proposal.
+        """
+        if value is None:
+            return value
+        from django.utils import timezone
+        existing = getattr(self.instance, 'expires_at', None)
+        if existing is not None and existing == value:
+            return value
+        if value < timezone.now():
+            raise serializers.ValidationError(
+                'Expiration date must be in the future.'
+            )
         return value
 
     def validate(self, attrs):
@@ -571,12 +579,23 @@ class ProposalFromJSONSerializer(serializers.Serializer):
         return _validate_client_email_mx(value)
 
     def validate_expires_at(self, value):
-        if value is not None:
-            from django.utils import timezone
-            if value < timezone.now():
-                raise serializers.ValidationError(
-                    'Expiration date must be in the future.'
-                )
+        """Allow keeping the existing expires_at unchanged when re-importing JSON.
+
+        Bound proposal is passed via context so we can compare against the
+        currently stored value and skip the future-only check when nothing
+        is actually being changed.
+        """
+        if value is None:
+            return value
+        from django.utils import timezone
+        proposal = self.context.get('proposal')
+        existing = getattr(proposal, 'expires_at', None) if proposal else None
+        if existing is not None and existing == value:
+            return value
+        if value < timezone.now():
+            raise serializers.ValidationError(
+                'Expiration date must be in the future.'
+            )
         return value
 
     def validate_sections(self, value):

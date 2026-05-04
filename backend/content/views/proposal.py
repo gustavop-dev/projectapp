@@ -89,6 +89,16 @@ def _ne(v):
     return isinstance(v, str) and v.strip() != ''
 
 
+def _proposal_admin_response(request, proposal, delivery=None):
+    """Serialize a proposal for the admin panel, optionally with delivery info."""
+    payload = ProposalDetailSerializer(
+        proposal, context={'request': request, 'is_admin': True}
+    ).data
+    if delivery is not None:
+        payload['email_delivery'] = delivery
+    return Response(payload, status=status.HTTP_200_OK)
+
+
 def _row_has(row, keys):
     """True if *row* is a dict with at least one non-empty string among *keys*."""
     if not isinstance(row, dict):
@@ -1302,12 +1312,16 @@ def update_proposal_from_json(request, proposal_id):
     """
     proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
 
-    serializer = ProposalFromJSONSerializer(data=request.data)
+    serializer = ProposalFromJSONSerializer(
+        data=request.data, context={'proposal': proposal}
+    )
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     data = serializer.validated_data
     sections_data = data.pop('sections')
+
+    old_status = proposal.status
 
     # --- Update metadata fields ---
     metadata_fields = [
@@ -1327,6 +1341,7 @@ def update_proposal_from_json(request, proposal_id):
         proposal.expires_at = data['expires_at']
 
     from accounts.services import proposal_client_service
+    from content.services.proposal_service import ProposalService
 
     # When the JSON import includes client identity fields, route them through
     # the service so we reuse/create a UserProfile and keep the FK consistent.
@@ -1339,9 +1354,27 @@ def update_proposal_from_json(request, proposal_id):
         )
         proposal.client = client_profile
 
+    reopened_status = ProposalService.reopen_if_unexpired(
+        proposal, old_status=old_status
+    )
+
     proposal.save()
     if proposal.client_id:
         proposal_client_service.sync_snapshot(proposal)
+
+    if reopened_status:
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type='updated',
+            field_name='status',
+            old_value=old_status,
+            new_value=reopened_status,
+            actor_type='seller',
+            description=(
+                f'Auto-reopened from expired after expires_at moved to the future '
+                f'({old_status} → {reopened_status}).'
+            ),
+        )
 
     # Log field-level changes
     for field in list(metadata_fields) + ['expires_at']:
@@ -1443,10 +1476,23 @@ def update_proposal(request, proposal_id):
 
     serializer.save()
 
+    from content.services.proposal_service import ProposalService
+    reopened_status = ProposalService.reopen_if_unexpired(
+        proposal, old_status=old_values['status'],
+    )
+    if reopened_status:
+        proposal.save(update_fields=['status'])
+
     # Log field-level changes
     for field in tracked_fields:
         new_val = str(getattr(proposal, field, ''))
         if old_values[field] != new_val:
+            description = f'{field}: {old_values[field]} → {new_val}'
+            if field == 'status' and reopened_status:
+                description = (
+                    f'Auto-reopened from expired after expires_at moved to the future '
+                    f'({old_values[field]} → {new_val}).'
+                )
             ProposalChangeLog.objects.create(
                 proposal=proposal,
                 change_type='updated',
@@ -1454,7 +1500,7 @@ def update_proposal(request, proposal_id):
                 old_value=old_values[field],
                 new_value=new_val,
                 actor_type='seller',
-                description=f'{field}: {old_values[field]} → {new_val}',
+                description=description,
             )
 
     # Sync total_investment / currency into the investment section's content_json
@@ -1611,7 +1657,7 @@ def send_proposal(request, proposal_id):
 
     from content.services.proposal_service import ProposalService
     try:
-        ProposalService.send_proposal(proposal)
+        delivery = ProposalService.send_proposal(proposal)
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1622,10 +1668,7 @@ def send_proposal(request, proposal_id):
         description=f'Proposal sent to {proposal.client_email}.',
     )
 
-    detail = ProposalDetailSerializer(
-        proposal, context={'request': request, 'is_admin': True}
-    )
-    return Response(detail.data, status=status.HTTP_200_OK)
+    return _proposal_admin_response(request, proposal, delivery)
 
 
 @api_view(['POST'])
@@ -1651,7 +1694,9 @@ def update_proposal_status(request, proposal_id):
     Inline status change from the proposals table.
     Body: { "status": "expired" }
 
-    Validates allowed transitions and logs the change.
+    Validates allowed transitions and logs the change. The ``draft → sent``
+    transition is delegated to ``ProposalService.send_proposal`` so the
+    client email is dispatched and Huey reminders are scheduled.
     """
     proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
     new_status = (request.data.get('status') or '').strip()
@@ -1672,36 +1717,54 @@ def update_proposal_status(request, proposal_id):
         )
 
     old_status = proposal.status
-    proposal.status = new_status
-    proposal.save(update_fields=['status'])
+    delivery = None
 
-    ProposalChangeLog.objects.create(
-        proposal=proposal,
-        change_type='status_change',
-        field_name='status',
-        old_value=old_status,
-        new_value=new_status,
-        actor_type='seller',
-        description=f'Status changed from {old_status} to {new_status} (inline).',
-    )
-
-    if new_status == BusinessProposal.Status.FINISHED:
+    if (
+        old_status == BusinessProposal.Status.DRAFT
+        and new_status == BusinessProposal.Status.SENT
+    ):
+        from content.services.proposal_service import ProposalService
         try:
-            from content.services.proposal_email_service import (
-                ProposalEmailService,
-            )
+            delivery = ProposalService.send_proposal(proposal)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-            ProposalEmailService.send_finished_confirmation(proposal)
-        except Exception:
-            logger.exception(
-                'Failed to send finished confirmation for proposal %s',
-                proposal.id,
-            )
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type='sent',
+            actor_type='seller',
+            description=(
+                f'Proposal sent to {proposal.client_email} (inline).'
+            ),
+        )
+    else:
+        proposal.status = new_status
+        proposal.save(update_fields=['status'])
 
-    detail = ProposalDetailSerializer(
-        proposal, context={'request': request, 'is_admin': True}
-    )
-    return Response(detail.data, status=status.HTTP_200_OK)
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type='status_change',
+            field_name='status',
+            old_value=old_status,
+            new_value=new_status,
+            actor_type='seller',
+            description=f'Status changed from {old_status} to {new_status} (inline).',
+        )
+
+        if new_status == BusinessProposal.Status.FINISHED:
+            try:
+                from content.services.proposal_email_service import (
+                    ProposalEmailService,
+                )
+
+                ProposalEmailService.send_finished_confirmation(proposal)
+            except Exception:
+                logger.exception(
+                    'Failed to send finished confirmation for proposal %s',
+                    proposal.id,
+                )
+
+    return _proposal_admin_response(request, proposal, delivery)
 
 
 @api_view(['POST'])
@@ -1954,7 +2017,7 @@ def resend_proposal(request, proposal_id):
 
     from content.services.proposal_service import ProposalService
     try:
-        ProposalService.resend_proposal(proposal)
+        delivery = ProposalService.resend_proposal(proposal)
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1965,10 +2028,7 @@ def resend_proposal(request, proposal_id):
         description=f'Proposal re-sent to {proposal.client_email}.',
     )
 
-    detail = ProposalDetailSerializer(
-        proposal, context={'request': request, 'is_admin': True}
-    )
-    return Response(detail.data, status=status.HTTP_200_OK)
+    return _proposal_admin_response(request, proposal, delivery)
 
 
 @api_view(['PATCH'])
@@ -1976,6 +2036,21 @@ def resend_proposal(request, proposal_id):
 def update_proposal_section(request, section_id):
     """
     Update a section's content_json, title, order, is_enabled, etc.
+
+    Response shape (admin panel only):
+        {
+          "section": <ProposalSectionDetailSerializer>,
+          "proposal_totals": {
+              "total_investment": "...",
+              "effective_total_investment": "..."
+          },
+          "investment_section": <ProposalSectionDetailSerializer>  # only when
+              # the saved section is functional_requirements and the auto
+              # resync mutated the investment section's content_json
+        }
+
+    The proposal-level totals are recomputed here so the admin's General tab
+    badge "Cliente ve: $X" stays in sync without an extra refetch round-trip.
     """
     section = get_object_or_404(ProposalSection.objects.select_related('proposal'), pk=section_id)
     serializer = ProposalSectionUpdateSerializer(
@@ -1986,12 +2061,26 @@ def update_proposal_section(request, section_id):
 
     serializer.save()
 
+    investment_section = None
     if section.section_type == ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS:
         _resync_investment_from_modules(section.proposal, section.content_json)
+        investment_section = section.proposal.sections.filter(
+            section_type=ProposalSection.SectionType.INVESTMENT,
+        ).first()
+
+    section.proposal.refresh_from_db()
 
     from content.serializers.proposal import ProposalSectionDetailSerializer
-    detail = ProposalSectionDetailSerializer(section)
-    return Response(detail.data, status=status.HTTP_200_OK)
+    payload = {
+        'section': ProposalSectionDetailSerializer(section).data,
+        'proposal_totals': {
+            'total_investment': str(section.proposal.total_investment),
+            'effective_total_investment': str(_effective_total_for_proposal(section.proposal)),
+        },
+    }
+    if investment_section is not None:
+        payload['investment_section'] = ProposalSectionDetailSerializer(investment_section).data
+    return Response(payload, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])

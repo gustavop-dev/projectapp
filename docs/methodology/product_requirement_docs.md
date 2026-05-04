@@ -143,6 +143,9 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - PDF generation via `DocumentPdfService` + `MarkdownParser` + shared `PdfUtils` layer
 - Admin CRUD panel (`/panel/documents/`) with create, edit, list, status management
 - Bilingual support (es/en)
+- **Folders & tags**: documents organize into `DocumentFolder`s and `DocumentTag`s managed inline from the documents list page.
+  - Folder deletion is **blocked (HTTP 409)** when the folder contains documents; the admin must move or delete each document first. The DB FK keeps `on_delete=SET_NULL` only as a safety net for non-API removals.
+  - Folder/tag mutations from `FolderManagerModal`/`TagManagerModal` re-fetch both the documents list and the folder/tag stores so the sidebar count and order reflect the change without a page reload.
 
 ### 3.6 Contract System
 

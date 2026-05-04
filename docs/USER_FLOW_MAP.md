@@ -1066,17 +1066,76 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/proposals/`, `/panel/proposals/:id/edit`
-- **Description:** Send a proposal to a client via email. On edit page, a visual pre-send checklist modal replaces the native `confirm()` dialog, validating: client email, client name, investment > $0, future expiration date, at least 1 enabled section.
+- **Description:** Send a proposal to a client via email. On edit page, a visual pre-send checklist modal replaces the native `confirm()` dialog, validating: client email, client name, investment > $0, future expiration date, at least 1 enabled section. The backend returns `email_delivery: { ok, reason, detail }`; when `ok=false`, the panel shows a red toast with the reason (`placeholder_email`, `template_disabled`, `send_failed`) instead of the generic "Propuesta enviada" toast, so the admin learns the email did not actually reach the client.
 - **Steps:**
-  1. Admin views the proposal edit page.
+  1. Admin views the proposal edit page or the actions modal in the list page.
   2. Admin clicks "Enviar al Cliente".
   3. Pre-send checklist modal opens showing pass/fail status for each item (✓/✗).
   4. "Enviar al Cliente" button is disabled until all checks pass.
   5. Admin clicks "Enviar al Cliente" in modal → API call to `POST /api/proposals/:id/send/`.
-  6. Email is sent to the client with the proposal link.
-  7. Success feedback displays.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-proposal-send.spec.js`
+  6. Backend changes status to `sent`, attempts to send the email, and returns the proposal payload with `email_delivery`.
+  7. If `email_delivery.ok === true`, success toast "Propuesta enviada al cliente". If `false`, error toast surfacing `email_delivery.detail || email_delivery.reason` with a hint to verify client email and use "Re-enviar".
+- **Coverage:** 🟡 Partial — happy path covered; **email_delivery failure-feedback toast is not asserted in E2E**.
+- **E2E Spec:** `e2e/admin/admin-proposal-send.spec.js` (extend with mocked `email_delivery.ok=false` cases for `placeholder_email`, `template_disabled`, `send_failed`).
+
+### FLOW: `admin-proposal-resend`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/`
+- **Description:** Resend an already-sent proposal via the "Re-enviar" action in the proposals list actions modal. Keeps the existing `expires_at`, resets `sent_at`, `reminder_sent_at`, `urgency_email_sent_at`, re-schedules Huey reminders, and dispatches the proposal email again. The endpoint returns `email_delivery`; the panel toast surfaces success or failure with the reason — symmetric to `admin-proposal-send`.
+- **Steps:**
+  1. Admin opens the actions modal for a proposal whose status is `sent`/`viewed`.
+  2. Admin clicks "Re-enviar".
+  3. Confirmation dialog "¿Re-enviar esta propuesta? Se mantendrá la misma fecha de expiración." is shown.
+  4. On confirm → `POST /api/proposals/:id/resend/`.
+  5. Backend resets timers and re-sends the email, returning `email_delivery`.
+  6. Success toast "Propuesta re-enviada al cliente" or error toast with `email_delivery.detail || email_delivery.reason`.
+- **Coverage:** ❌ Missing — only button visibility is asserted in `admin-proposal-send.spec.js`; the end-to-end resend execution path and the toast feedback have no dedicated spec.
+- **E2E Spec (suggested):** `e2e/admin/admin-proposal-resend.spec.js`
+
+### FLOW: `admin-proposal-reopen-from-expired`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/proposals/:id/edit` (General tab — date picker, and JSON re-import panel)
+- **Description:** Recover an `expired` proposal by extending `expires_at` to a future date. The validator no longer blocks re-saving when the date is left unchanged, so admins can fix any other field on an expired proposal; when the date does move into the future, `ProposalService.reopen_if_unexpired` auto-reverts `status` from `expired` to `viewed` (when `view_count > 0`) or `sent`, and logs an "Auto-reopened from expired…" entry in `ProposalChangeLog`. Same behavior on both update paths (form PATCH and JSON re-import PUT).
+- **Steps:**
+  1. Admin opens an expired proposal at `/panel/proposals/:id/edit`. The status badge reads "Expirada".
+  2. Admin moves the `expires_at` datetime input to a future date (or pastes a JSON with a future `expires_at` in the JSON re-import panel).
+  3. Admin clicks Save.
+  4. PATCH `/api/proposals/:id/update/` (form) or PUT `/api/proposals/:id/update-from-json/` (JSON path).
+  5. Backend persists `expires_at` and `status` in a single save; `ProposalChangeLog` records the auto-reopen.
+  6. UI refreshes — the status badge no longer shows "Expirada"; the proposal returns to `sent`/`viewed`.
+- **Branches:**
+  - [Branch A — form path] PATCH `/update/`. Status reverts to `viewed` if `view_count > 0`, else `sent`.
+  - [Branch B — JSON path] PUT `/update-from-json/`. Same reopen logic; `ProposalFromJSONSerializer` reads the bound proposal via `context={'proposal': proposal}` to skip the future-only check when `expires_at` is unchanged.
+  - [Branch C — keep `expires_at` unchanged] Admin edits other fields on an expired proposal without touching the date. Save succeeds (no longer blocked by validator); `status` stays `expired`.
+- **Coverage:** ❌ Missing — backend pytest covers the behavior (`test_update_reopens_status_when_expires_at_moved_to_future_no_views`, `test_update_reopens_to_viewed_when_proposal_was_visited`, `test_update_from_json_reopens_status_when_expires_at_moved_to_future`, plus the unchanged-date variants), but no Playwright spec exercises the UI path.
+- **E2E Spec (suggested):** `e2e/admin/admin-proposal-reopen-from-expired.spec.js`
+
+### FLOW: `admin-proposal-update-from-json`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/:id/edit` (JSON re-import panel)
+- **Description:** Re-import a complete JSON payload over an existing proposal — distinct from `admin-proposal-create-from-json` which creates a new proposal. The admin pastes/uploads JSON in the edit screen; the store calls `PUT /api/proposals/:id/update-from-json/` which replaces metadata and each known section's `content_json`. Unrecognized section keys come back as a `warnings` array; sections not present in the payload are left unchanged.
+- **Steps:**
+  1. Admin opens `/panel/proposals/:id/edit` and switches to the JSON re-import panel.
+  2. Admin pastes (or uploads) a JSON payload that follows the `create-from-json` template shape.
+  3. Admin clicks "Actualizar desde JSON".
+  4. Frontend store calls `proposalStore.updateProposalFromJSON(id, payload)` → `PUT /api/proposals/:id/update-from-json/`.
+  5. Backend validates via `ProposalFromJSONSerializer` (with the bound proposal in context, so an unchanged past `expires_at` is allowed), updates metadata fields, replaces section `content_json` for matching keys, and logs each changed field.
+  6. Success toast "Propuesta actualizada desde JSON."; if the JSON contained unmapped section keys, the response includes a `warnings` array which the UI surfaces.
+- **Branches:**
+  - [Branch A — happy path] Valid JSON → 200 with refreshed proposal payload.
+  - [Branch B — unknown section keys] Payload includes unrecognized keys → 200 + `warnings` listing them.
+  - [Branch C — invalid `expires_at`] New value in the past → 400 from `validate_expires_at` (unless the value matches the proposal's stored `expires_at`).
+- **Coverage:** ❌ Missing — backend pytest covers the round-trip and warnings cases (`TestUpdateProposalFromJSON`), but no Playwright spec exercises the UI re-import path.
+- **E2E Spec (suggested):** `e2e/admin/admin-proposal-update-from-json.spec.js`
 
 ### FLOW: `admin-proposal-manual-alerts`
 
@@ -2123,7 +2182,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-client-create-standalone` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-client-delete-orphan` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-client-delete-protected` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
-| `admin-proposal-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-send.spec.js` |
+| `admin-proposal-send` | admin | admin | P1 | 🟡 Partial (failure-feedback toast not asserted) | `e2e/admin/admin-proposal-send.spec.js` |
+| `admin-proposal-resend` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-proposal-resend.spec.js` |
 | `admin-blog-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-list.spec.js` |
 | `admin-blog-calendar` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-calendar.spec.js` |
 | `admin-blog-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-create.spec.js` |
@@ -2171,7 +2231,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-summary-kpis` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-summary-kpis.spec.js` |
 | `admin-proposal-log-activity` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-log-activity.spec.js` |
 | `proposal-calculator-new-modules` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-new-modules.spec.js` |
-| `admin-proposal-inline-status-change` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-inline-status.spec.js` |
+| `admin-proposal-inline-status-change` | admin | admin | P2 | 🟡 Partial (draft→sent dispatch + email_delivery toast not asserted) | `e2e/admin/admin-proposal-inline-status.spec.js` |
 | `admin-proposal-scorecard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-scorecard.spec.js` |
 | `admin-proposal-section-completeness` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-section-completeness.spec.js` |
 | `admin-daily-pipeline-digest` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests |
@@ -3600,14 +3660,16 @@ No active browser flow is registered for client profile editing at this time.
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/proposals/`
-- **Description:** Proposal status can be updated directly from the proposals table via an inline dropdown without opening the edit page.
+- **Description:** Proposal status can be updated directly from the proposals table via an inline dropdown without opening the edit page. The `draft → sent` transition is delegated to `ProposalService.send_proposal`, so it dispatches the client email and schedules Huey reminders (matching the dedicated "Enviar al Cliente" button — defense-in-depth so the dropdown can never silently move a proposal to `sent` without notifying the client). Response includes `email_delivery`; the panel toast surfaces failures with the reason.
 - **Steps:**
   1. Admin opens the proposals list.
   2. Row-level status dropdown is visible for editable proposals.
   3. Admin selects a new status from the inline selector.
-  4. Status update endpoint is called and the row refreshes with the new value.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-proposal-inline-status.spec.js`
+  4. `PATCH /api/proposals/:id/update-status/` is called with `{status}`.
+  5. For `draft → sent`: backend delegates to `ProposalService.send_proposal` (sends email, schedules reminders) and returns `email_delivery`. For other transitions: legacy save + `ProposalChangeLog`; `email_delivery` omitted.
+  6. Row refreshes; toast shows "Estado actualizado correctamente" on success, or surfaces `email_delivery` failure when applicable.
+- **Coverage:** 🟡 Partial — generic dropdown PATCH is covered; **the `draft → sent` dispatch (delegating to `send_proposal`) and the email_delivery failure toast are not asserted in E2E**.
+- **E2E Spec:** `e2e/admin/admin-proposal-inline-status.spec.js` (extend with: assert `draft → sent` invokes `POST /send/` semantics — i.e. response carries `email_delivery` — and that a mocked `ok=false` triggers the error toast).
 
 #### FLOW: `admin-proposal-scorecard`
 
@@ -3715,7 +3777,7 @@ No active browser flow is registered for client profile editing at this time.
 | `admin-proposal-create-and-send` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-proposal-create-preview` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-discount-analysis-enhanced` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-discount-analysis.spec.js` |
-| `admin-proposal-inline-status-change` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-inline-status.spec.js` |
+| `admin-proposal-inline-status-change` | admin | admin | P2 | 🟡 Partial (draft→sent dispatch + email_delivery toast not asserted) | `e2e/admin/admin-proposal-inline-status.spec.js` |
 | `admin-proposal-scorecard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-scorecard.spec.js` |
 | `admin-proposal-section-completeness` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-section-completeness.spec.js` |
 | `admin-proposal-zombie-segment` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-zombie-segment.spec.js` |

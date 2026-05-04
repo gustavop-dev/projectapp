@@ -134,6 +134,16 @@ venv/bin/python <command>
 - `automations_paused` flag on `BusinessProposal` stops all automated emails
 - Each Huey task checks this flag early and returns if paused
 
+### Structured `email_delivery` Result, Not Silent Bool
+- `ProposalEmailService.send_proposal_to_client` returns `{ ok, reason, detail }` (built via the module-local `_delivery()` helper). Reasons: `sent`, `placeholder_email`, `template_disabled`, `send_failed`, `unexpected_error`.
+- `ProposalService.send_proposal`, `resend_proposal`, and `_send_initial_email` propagate this dict — they never swallow failures into `logger.exception` alone.
+- The admin views (`send_proposal`, `update_proposal_status`, `resend_proposal`) attach `email_delivery` to the response via the local `_proposal_admin_response()` helper in `views/proposal.py`. The status change still returns 200 (status DID change) but the body tells the truth about the email.
+- Frontend stores read `response.data.email_delivery` and the panel toast surfaces the failure reason instead of a generic success. If you add a new email side effect, follow this pattern — never return a bool that the view ignores.
+
+### Defense-in-Depth on Status Transitions That Trigger Emails
+- Multiple UI paths can trigger the same transition (`draft → sent` exists in: dedicated "Enviar al Cliente" button, actions modal, and the inline status dropdown).
+- Every endpoint that performs the transition must trigger the same side effects. `update_proposal_status` delegates `draft → sent` to `ProposalService.send_proposal` rather than re-implementing the save+email+schedule. If a future endpoint exposes the same transition, route it through the service — never duplicate the save-only path.
+
 ---
 
 ## 6. Proposal System Specifics
@@ -292,6 +302,18 @@ this.currentProposal = {
 When a component already imports the store, prefer reading directly from `proposalStore.currentProposal?.field` via a computed instead of receiving the data via prop and deep-watching it. Deep watchers are doubly bad: (a) they fire on every unrelated proposal mutation, and (b) they can clobber in-progress form edits if you re-snapshot form state on every change.
 
 If a deep watcher feels needed, ask: is the watch on the right subset (`() => proposal.project_stages`, not `() => proposal`)? Can the form state stay decoupled and only sync once on mount?
+
+### Reference-based prop watchers do not see `push`/`splice`
+
+When a child component receives a Pinia state array as a prop and watches it with `watch(() => props.list, ...)` (no `deep: true`), in-place mutations like `this.folders.push(...)` or `splice(...)` from the store action will **not** re-run the watcher — the array reference is unchanged. The store's own subscribers (and templates iterating directly) re-render because Pinia's reactivity tracks indices, but a derived `localList` synced via the watcher will go stale.
+
+After a CRUD modal emits `@changed`, parent pages that pass store arrays into children **must** also call `store.fetchX()`. The fetch replaces the array reference (`this.folders = response.data`), which triggers ref-based watchers everywhere downstream.
+
+**Established sites**:
+- `frontend/pages/panel/documents/index.vue:handleFoldersChanged` and `handleMoved` — both refresh `documentStore.fetchDocuments()` AND `folderStore.fetchFolders()` in parallel.
+- `frontend/components/panel/documents/FolderSidebar.vue` — uses `watch(() => props.folders, ...)` to populate a draggable mirror; depends on the parent calling `fetchFolders()` to see new entries.
+
+This supersedes the earlier rule "stores self-maintain state after CRUD, parents need only refresh the document list" — that was true for templates reading `store.folders` directly, but not for ref-based watchers.
 
 ---
 

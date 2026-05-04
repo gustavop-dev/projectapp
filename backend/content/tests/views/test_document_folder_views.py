@@ -82,18 +82,27 @@ class TestUpdateDocumentFolder:
 
 
 class TestDeleteDocumentFolder:
-    def test_deletes_folder_and_keeps_documents_with_null_folder(
-        self, admin_client, folder,
-    ):
+    def test_deletes_empty_folder(self, admin_client, folder):
+        url = reverse('delete-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.delete(url)
+
+        assert response.status_code == 204
+        assert not DocumentFolder.objects.filter(pk=folder.id).exists()
+
+    def test_blocks_deletion_when_folder_has_documents(self, admin_client, folder):
         doc = Document.objects.create(title='Inside', folder=folder)
 
         url = reverse('delete-document-folder', kwargs={'folder_id': folder.id})
         response = admin_client.delete(url)
 
-        assert response.status_code == 204
+        assert response.status_code == 409
+        body = response.json()
+        assert body['document_count'] == 1
+        assert 'detail' in body
+
+        assert DocumentFolder.objects.filter(pk=folder.id).exists()
         doc.refresh_from_db()
-        assert doc.folder_id is None
-        assert Document.objects.filter(pk=doc.pk).exists()
+        assert doc.folder_id == folder.id
 
     def test_returns_404_for_nonexistent(self, admin_client):
         url = reverse('delete-document-folder', kwargs={'folder_id': 99999})

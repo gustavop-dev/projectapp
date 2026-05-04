@@ -35,6 +35,7 @@ const DraggableStub = {
 };
 
 const baseFolder = { id: 1, name: 'Design', document_count: 3 };
+const emptyFolder = { id: 9, name: 'Empty', document_count: 0 };
 
 function mountModal(props = {}) {
   return mount(FolderManagerModal, {
@@ -182,8 +183,8 @@ describe('FolderManagerModal', () => {
   // ── Delete flow ───────────────────────────────────────────────────────────
 
   describe('delete flow', () => {
-    it('shows delete confirmation when the delete button is clicked', async () => {
-      mockFolderStore.folders = [baseFolder];
+    it('shows delete confirmation for an empty folder', async () => {
+      mockFolderStore.folders = [emptyFolder];
       const wrapper = mountModal();
       await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
 
@@ -191,22 +192,42 @@ describe('FolderManagerModal', () => {
     });
 
     it('calls deleteFolder when Confirmar eliminación is clicked', async () => {
-      mockFolderStore.folders = [baseFolder];
+      mockFolderStore.folders = [emptyFolder];
       const wrapper = mountModal();
       await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
       await wrapper.findAll('button').find((btn) => btn.text().includes('Confirmar eliminación')).trigger('click');
       await flushPromises();
 
-      expect(mockFolderStore.deleteFolder).toHaveBeenCalledWith(1);
+      expect(mockFolderStore.deleteFolder).toHaveBeenCalledWith(emptyFolder.id);
     });
 
     it('hides the delete confirmation when Cancelar is clicked', async () => {
-      mockFolderStore.folders = [baseFolder];
+      mockFolderStore.folders = [emptyFolder];
       const wrapper = mountModal();
       await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
       await wrapper.findAll('button').find((btn) => btn.text() === 'Cancelar').trigger('click');
 
       expect(wrapper.text()).not.toContain('Confirmar eliminación');
+    });
+
+    it('blocks deletion and shows a warning when the folder has documents', async () => {
+      mockFolderStore.folders = [baseFolder];
+      const wrapper = mountModal();
+      await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
+
+      expect(wrapper.text()).toContain('No se puede eliminar');
+      expect(wrapper.text()).toContain('3 documento(s)');
+      expect(wrapper.text()).not.toContain('Confirmar eliminación');
+    });
+
+    it('dismisses the warning when Entendido is clicked without calling deleteFolder', async () => {
+      mockFolderStore.folders = [baseFolder];
+      const wrapper = mountModal();
+      await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
+      await wrapper.findAll('button').find((btn) => btn.text() === 'Entendido').trigger('click');
+
+      expect(wrapper.text()).not.toContain('No se puede eliminar');
+      expect(mockFolderStore.deleteFolder).not.toHaveBeenCalled();
     });
   });
 

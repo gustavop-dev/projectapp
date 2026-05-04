@@ -18,6 +18,10 @@ def _is_unsendable_client_email(email):
     return email.endswith(UserProfile.PLACEHOLDER_EMAIL_DOMAIN)
 
 
+def _delivery(ok, reason, detail=''):
+    return {'ok': ok, 'reason': reason, 'detail': detail}
+
+
 class ProposalEmailService:
     """
     Service for sending proposal-related emails to clients.
@@ -170,18 +174,26 @@ class ProposalEmailService:
             proposal: BusinessProposal instance with client_email set.
 
         Returns:
-            bool: True if the email was sent successfully.
+            dict: {'ok': bool, 'reason': str, 'detail': str}
+                  reason is one of: 'sent', 'placeholder_email',
+                  'template_disabled', 'send_failed'.
         """
         if _is_unsendable_client_email(proposal.client_email):
             logger.warning(
                 'Cannot send proposal email for %s: missing or placeholder client_email',
                 proposal.uuid,
             )
-            return False
+            return _delivery(
+                False, 'placeholder_email',
+                'El correo del cliente está vacío o es un placeholder.',
+            )
 
         if not cls._is_template_active('proposal_sent_client'):
             logger.info('Skipping proposal_sent_client: template disabled')
-            return False
+            return _delivery(
+                False, 'template_disabled',
+                'La plantilla proposal_sent_client está desactivada.',
+            )
 
         context = {
             'client_name': proposal.client_name,
@@ -226,7 +238,7 @@ class ProposalEmailService:
                 'Sent proposal email for %s to %s',
                 proposal.uuid, proposal.client_email,
             )
-            return True
+            return _delivery(True, 'sent')
 
         except Exception as exc:
             cls._log_email(
@@ -238,7 +250,7 @@ class ProposalEmailService:
                 'Failed to send proposal email for %s',
                 proposal.uuid,
             )
-            return False
+            return _delivery(False, 'send_failed', str(exc)[:500])
 
     @classmethod
     def send_reminder(cls, proposal):

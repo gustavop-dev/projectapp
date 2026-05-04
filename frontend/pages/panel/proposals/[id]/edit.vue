@@ -841,6 +841,15 @@
         </PromptSubTabsPanel>
       </div>
 
+      <!-- Tab: Desarrollo (checklist Markdown) -->
+      <div v-show="activeTab === 'development'">
+        <DevChecklistTab
+          :proposal="proposal"
+          :refreshing="isRefreshing"
+          @refresh="refreshData"
+        />
+      </div>
+
       <!-- Tab: JSON -->
       <div v-show="activeTab === 'json'">
         <TabSplitLayout>
@@ -1446,6 +1455,7 @@ const hasProposalDocuments = computed(() =>
 const hasScheduleTab = computed(() =>
   ['accepted', 'finished'].includes(proposal.value?.status),
 );
+const hasDevTab = computed(() => proposal.value?.status === 'accepted');
 
 const tabs = computed(() => {
   const base = [
@@ -1459,6 +1469,9 @@ const tabs = computed(() => {
   }
   if (hasScheduleTab.value) {
     base.push({ id: 'schedule', label: 'Cronograma' });
+  }
+  if (hasDevTab.value) {
+    base.push({ id: 'development', label: 'Desarrollo' });
   }
   base.push(
     { id: 'sections', label: 'Secciones' },

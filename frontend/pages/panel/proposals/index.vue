@@ -1041,7 +1041,15 @@ async function handleInlineStatusChange(proposal, newStatus, event) {
   try {
     const result = await proposalStore.updateProposalStatus(proposal.id, newStatus);
     if (result.success) {
-      showStatusToast('Estado actualizado correctamente', 'success');
+      const ed = result.email_delivery;
+      if (ed && ed.ok === false) {
+        showStatusToast(
+          `Estado actualizado, pero el correo al cliente falló: ${ed.detail || ed.reason}. Revisa el correo del cliente y usa "Reenviar".`,
+          'error',
+        );
+      } else {
+        showStatusToast('Estado actualizado correctamente', 'success');
+      }
     } else {
       showStatusToast('Error al actualizar el estado', 'error');
       proposalStore.fetchProposals();
@@ -1214,9 +1222,22 @@ async function confirmSend() {
   if (!sendConfirmId.value) return;
   isSending.value = true;
   try {
-    await proposalStore.sendProposal(sendConfirmId.value);
+    const result = await proposalStore.sendProposal(sendConfirmId.value);
     sendConfirmId.value = null;
     proposalStore.fetchProposals();
+    if (result.success) {
+      const ed = result.email_delivery;
+      if (ed && ed.ok === false) {
+        showStatusToast(
+          `Estado cambiado a Enviada, pero el correo al cliente falló: ${ed.detail || ed.reason}. Verifica el email del cliente y reintenta con "Re-enviar".`,
+          'error',
+        );
+      } else {
+        showStatusToast('Propuesta enviada al cliente', 'success');
+      }
+    } else {
+      showStatusToast('Error al enviar la propuesta', 'error');
+    }
   } finally {
     isSending.value = false;
   }
@@ -1229,8 +1250,21 @@ function handleResend(id) {
     variant: 'info',
     confirmText: 'Re-enviar',
     onConfirm: async () => {
-      await proposalStore.resendProposal(id);
+      const result = await proposalStore.resendProposal(id);
       proposalStore.fetchProposals();
+      if (result.success) {
+        const ed = result.email_delivery;
+        if (ed && ed.ok === false) {
+          showStatusToast(
+            `Reenvío registrado, pero el correo al cliente falló: ${ed.detail || ed.reason}.`,
+            'error',
+          );
+        } else {
+          showStatusToast('Propuesta re-enviada al cliente', 'success');
+        }
+      } else {
+        showStatusToast('Error al re-enviar la propuesta', 'error');
+      }
     },
   });
 }

@@ -436,7 +436,10 @@ function openFolderManager() {
 }
 
 async function handleFoldersChanged() {
-  await documentStore.fetchDocuments();
+  await Promise.all([
+    documentStore.fetchDocuments(),
+    folderStore.fetchFolders(),
+  ]);
 }
 
 async function handleTagsChanged() {

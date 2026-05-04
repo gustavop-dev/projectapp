@@ -302,7 +302,11 @@ export const useProposalStore = defineStore('proposals', {
       try {
         const response = await create_request(`proposals/${id}/send/`, {});
         this.currentProposal = response.data;
-        return { success: true, data: response.data };
+        return {
+          success: true,
+          data: response.data,
+          email_delivery: response.data?.email_delivery ?? null,
+        };
       } catch (error) {
         this.error = 'send_failed';
         console.error('Error sending proposal:', error);
@@ -323,7 +327,11 @@ export const useProposalStore = defineStore('proposals', {
       try {
         const response = await create_request(`proposals/${id}/resend/`, {});
         this.currentProposal = response.data;
-        return { success: true, data: response.data };
+        return {
+          success: true,
+          data: response.data,
+          email_delivery: response.data?.email_delivery ?? null,
+        };
       } catch (error) {
         this.error = 'resend_failed';
         console.error('Error resending proposal:', error);
@@ -378,11 +386,15 @@ export const useProposalStore = defineStore('proposals', {
         if (idx !== -1) {
           this.proposals[idx].status = response.data.status;
         }
-        return { success: true, data: response.data };
+        return {
+          success: true,
+          data: response.data,
+          email_delivery: response.data?.email_delivery ?? null,
+        };
       } catch (error) {
         this.error = 'update_status_failed';
         console.error('Error updating proposal status:', error);
-        return { success: false };
+        return { success: false, errors: error.response?.data };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -479,16 +491,21 @@ export const useProposalStore = defineStore('proposals', {
           `proposals/sections/${sectionId}/update/`,
           payload,
         );
-        // Update the section in currentProposal
-        if (this.currentProposal?.sections) {
-          const idx = this.currentProposal.sections.findIndex(
-            (s) => s.id === sectionId,
-          );
-          if (idx !== -1) {
-            this.currentProposal.sections[idx] = response.data;
+        const { section, proposal_totals, investment_section } = response.data || {};
+        if (this.currentProposal) {
+          const replaceSection = (s) => {
+            const i = this.currentProposal.sections?.findIndex((x) => x.id === s.id);
+            if (i != null && i !== -1) this.currentProposal.sections[i] = s;
+          };
+          if (section) replaceSection(section);
+          if (investment_section) replaceSection(investment_section);
+          if (proposal_totals) {
+            this.currentProposal.total_investment = proposal_totals.total_investment;
+            this.currentProposal.effective_total_investment =
+              proposal_totals.effective_total_investment;
           }
         }
-        return { success: true, data: response.data };
+        return { success: true, data: section };
       } catch (error) {
         this.error = 'update_section_failed';
         console.error('Error updating section:', error);

@@ -577,9 +577,40 @@ describe('useProposalStore', () => {
       expect(result.success).toBe(false);
       expect(result.errors).toBeUndefined();
     });
+
+    it('propagates email_delivery from backend response', async () => {
+      const sentData = {
+        id: 1,
+        status: 'sent',
+        email_delivery: {
+          ok: false,
+          reason: 'placeholder_email',
+          detail: 'El correo del cliente está vacío.',
+        },
+      };
+      create_request.mockResolvedValue({ data: sentData });
+
+      const result = await store.sendProposal(1);
+
+      expect(result.success).toBe(true);
+      expect(result.email_delivery).toEqual(sentData.email_delivery);
+    });
+
+    it('email_delivery is null when backend omits the field', async () => {
+      create_request.mockResolvedValue({ data: { id: 1, status: 'sent' } });
+
+      const result = await store.sendProposal(1);
+
+      expect(result.success).toBe(true);
+      expect(result.email_delivery).toBeNull();
+    });
   });
 
   describe('updateSection', () => {
+    const wrap = (section, extras = {}) => ({
+      data: { section, proposal_totals: { total_investment: '0', effective_total_investment: '0' }, ...extras },
+    });
+
     it('updates section content_json and syncs currentProposal', async () => {
       store.currentProposal = {
         sections: [
@@ -592,7 +623,7 @@ describe('useProposalStore', () => {
         section_type: 'greeting',
         content_json: { clientName: 'New Client' },
       };
-      patch_request.mockResolvedValue({ data: updatedSection });
+      patch_request.mockResolvedValue(wrap(updatedSection));
 
       const result = await store.updateSection(10, {
         content_json: { clientName: 'New Client' },
@@ -618,7 +649,7 @@ describe('useProposalStore', () => {
         highlights: ['Custom design', 'Responsive development', 'SEO optimization'],
       };
       const updatedSection = { id: 20, section_type: 'executive_summary', content_json: complexContent };
-      patch_request.mockResolvedValue({ data: updatedSection });
+      patch_request.mockResolvedValue(wrap(updatedSection));
 
       const result = await store.updateSection(20, { content_json: complexContent });
 
@@ -649,9 +680,9 @@ describe('useProposalStore', () => {
         ],
         additionalModules: [],
       };
-      patch_request.mockResolvedValue({
-        data: { id: 30, section_type: 'functional_requirements', content_json: reqContent },
-      });
+      patch_request.mockResolvedValue(wrap(
+        { id: 30, section_type: 'functional_requirements', content_json: reqContent },
+      ));
 
       const result = await store.updateSection(30, { content_json: reqContent });
 
@@ -680,7 +711,7 @@ describe('useProposalStore', () => {
 
     it('skips local sync when currentProposal is null', async () => {
       store.currentProposal = null;
-      patch_request.mockResolvedValue({ data: { id: 10 } });
+      patch_request.mockResolvedValue(wrap({ id: 10 }));
 
       const result = await store.updateSection(10, { title: 'New' });
 
@@ -691,12 +722,76 @@ describe('useProposalStore', () => {
       store.currentProposal = {
         sections: [{ id: 99, section_type: 'other' }],
       };
-      patch_request.mockResolvedValue({ data: { id: 10 } });
+      patch_request.mockResolvedValue(wrap({ id: 10 }));
 
       const result = await store.updateSection(10, { title: 'New' });
 
       expect(result.success).toBe(true);
       expect(store.currentProposal.sections[0].id).toBe(99);
+    });
+
+    it('updates proposal totals from wrapped response', async () => {
+      store.currentProposal = {
+        total_investment: '1000000',
+        effective_total_investment: '1250000',
+        sections: [
+          { id: 30, section_type: 'functional_requirements', content_json: {} },
+        ],
+      };
+      const updatedSection = {
+        id: 30,
+        section_type: 'functional_requirements',
+        content_json: { groups: [] },
+      };
+      patch_request.mockResolvedValue({
+        data: {
+          section: updatedSection,
+          proposal_totals: {
+            total_investment: '1000000',
+            effective_total_investment: '1000000.00',
+          },
+        },
+      });
+
+      const result = await store.updateSection(30, { content_json: { groups: [] } });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(updatedSection);
+      expect(store.currentProposal.sections[0]).toEqual(updatedSection);
+      expect(store.currentProposal.effective_total_investment).toBe('1000000.00');
+      expect(store.currentProposal.total_investment).toBe('1000000');
+    });
+
+    it('replaces auto-resynced investment_section when returned', async () => {
+      store.currentProposal = {
+        total_investment: '1000000',
+        effective_total_investment: '1250000',
+        sections: [
+          { id: 30, section_type: 'functional_requirements', content_json: {} },
+          { id: 31, section_type: 'investment', content_json: { totalInvestment: '$old' } },
+        ],
+      };
+      const updatedFr = { id: 30, section_type: 'functional_requirements', content_json: {} };
+      const resyncedInvestment = {
+        id: 31,
+        section_type: 'investment',
+        content_json: { totalInvestment: '$1.000.000', paymentOptions: [] },
+      };
+      patch_request.mockResolvedValue({
+        data: {
+          section: updatedFr,
+          proposal_totals: {
+            total_investment: '1000000',
+            effective_total_investment: '1000000.00',
+          },
+          investment_section: resyncedInvestment,
+        },
+      });
+
+      await store.updateSection(30, { content_json: {} });
+
+      expect(store.currentProposal.sections[1]).toEqual(resyncedInvestment);
+      expect(store.currentProposal.sections[1].content_json.totalInvestment).toBe('$1.000.000');
     });
   });
 
@@ -1277,6 +1372,30 @@ describe('useProposalStore', () => {
       expect(patch_request).toHaveBeenCalledWith('proposals/7/update-status/', { status: 'finished' });
       expect(result.success).toBe(true);
       expect(store.proposals[0].status).toBe('finished');
+    });
+
+    it('propagates email_delivery on draft→sent transitions', async () => {
+      const respData = {
+        id: 9,
+        status: 'sent',
+        email_delivery: { ok: true, reason: 'sent', detail: '' },
+      };
+      patch_request.mockResolvedValue({ data: respData });
+      store.proposals = [{ id: 9, status: 'draft' }];
+
+      const result = await store.updateProposalStatus(9, 'sent');
+
+      expect(result.success).toBe(true);
+      expect(result.email_delivery).toEqual(respData.email_delivery);
+    });
+
+    it('email_delivery is null for transitions that do not send email', async () => {
+      patch_request.mockResolvedValue({ data: { id: 1, status: 'viewed' } });
+      store.proposals = [{ id: 1, status: 'sent' }];
+
+      const result = await store.updateProposalStatus(1, 'viewed');
+
+      expect(result.email_delivery).toBeNull();
     });
   });
 

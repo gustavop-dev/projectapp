@@ -684,16 +684,19 @@ class TestSendStakeholderDetectedNotification:
 
 
 class TestSendProposalToClientEdgePaths:
-    def test_returns_false_when_no_client_email(self, no_email_proposal):
-        """send_proposal_to_client returns False when proposal has no client_email."""
+    def test_returns_placeholder_email_reason_when_no_client_email(self, no_email_proposal):
+        """send_proposal_to_client reports placeholder_email when client_email is missing."""
         result = ProposalEmailService.send_proposal_to_client(no_email_proposal)
-        assert result is False
+        assert result['ok'] is False
+        assert result['reason'] == 'placeholder_email'
 
     @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('Template error'))
-    def test_returns_false_on_exception(self, mock_render, email_proposal):
-        """send_proposal_to_client returns False when template rendering fails."""
+    def test_returns_send_failed_on_exception(self, mock_render, email_proposal):
+        """send_proposal_to_client reports send_failed when template rendering fails."""
         result = ProposalEmailService.send_proposal_to_client(email_proposal)
-        assert result is False
+        assert result['ok'] is False
+        assert result['reason'] == 'send_failed'
+        assert 'Template error' in result['detail']
 
 
 class TestSendSellerInactivityEscalation:
@@ -800,20 +803,23 @@ class TestSendProposalToClient:
 
         result = ProposalEmailService.send_proposal_to_client(email_proposal)
 
-        assert result is True
+        assert result['ok'] is True
+        assert result['reason'] == 'sent'
         mock_instance.send.assert_called_once_with(fail_silently=False)
         assert mock_render.call_count == 2
 
-    def test_returns_false_when_no_client_email(self, no_email_proposal):
-        """Returns False when proposal has no client_email."""
+    def test_reports_placeholder_email_when_no_client_email(self, no_email_proposal):
+        """Reports placeholder_email when proposal has no client_email."""
         result = ProposalEmailService.send_proposal_to_client(no_email_proposal)
-        assert result is False
+        assert result['ok'] is False
+        assert result['reason'] == 'placeholder_email'
 
     @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
-    def test_returns_false_on_exception(self, mock_render, email_proposal):
-        """Returns False when template rendering fails."""
+    def test_reports_send_failed_on_exception(self, mock_render, email_proposal):
+        """Reports send_failed when template rendering fails."""
         result = ProposalEmailService.send_proposal_to_client(email_proposal)
-        assert result is False
+        assert result['ok'] is False
+        assert result['reason'] == 'send_failed'
 
 
 class TestSendPostRejectionRevisitAlert:
@@ -1022,9 +1028,11 @@ class TestTemplateDisabledReturnsEarly:
             is_active=False,
         )
 
-    def test_send_proposal_to_client_returns_false_when_disabled(self, email_proposal):
+    def test_send_proposal_to_client_reports_template_disabled(self, email_proposal):
         self._disable_template('proposal_sent_client')
-        assert ProposalEmailService.send_proposal_to_client(email_proposal) is False
+        result = ProposalEmailService.send_proposal_to_client(email_proposal)
+        assert result['ok'] is False
+        assert result['reason'] == 'template_disabled'
 
     def test_send_reminder_returns_false_when_disabled(self, email_proposal):
         self._disable_template('proposal_reminder')

@@ -183,29 +183,29 @@
 
           <Transition name="fade-modal">
             <div
-              v-if="deletingFolder"
-              class="mx-6 mb-4 flex-shrink-0 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 p-4"
+              v-if="deleteVariant"
+              class="mx-6 mb-4 flex-shrink-0 rounded-xl border p-4"
+              :class="deleteVariant.panel"
             >
               <div class="flex items-start gap-3">
-                <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/40 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg class="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div
+                  class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                  :class="deleteVariant.iconWrap"
+                >
+                  <svg class="w-4 h-4" :class="deleteVariant.iconStroke" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-semibold text-red-800 dark:text-red-200 truncate">
-                    Eliminar "{{ deletingFolder.name }}"
+                  <p class="text-sm font-semibold truncate" :class="deleteVariant.title">
+                    {{ deleteVariant.titleText }}
                   </p>
-                  <p class="text-xs text-red-600 dark:text-red-400 mt-0.5">
-                    <template v-if="deletingFolder.document_count">
-                      Sus {{ deletingFolder.document_count }} documento(s) quedarán sin carpeta.
-                    </template>
-                    <template v-else>
-                      Esta acción no se puede deshacer.
-                    </template>
+                  <p class="text-xs mt-0.5" :class="deleteVariant.body">
+                    {{ deleteVariant.bodyText }}
                   </p>
                   <div class="flex items-center gap-2 mt-3">
                     <button
+                      v-if="deleteVariant.kind === 'destructive'"
                       type="button"
                       :disabled="folderStore.isUpdating"
                       class="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
@@ -215,10 +215,11 @@
                     </button>
                     <button
                       type="button"
-                      class="px-3 py-1.5 text-xs font-medium text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
+                      class="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
+                      :class="deleteVariant.dismiss"
                       @click="deletingFolder = null"
                     >
-                      Cancelar
+                      {{ deleteVariant.dismissText }}
                     </button>
                   </div>
                 </div>
@@ -244,7 +245,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 
 const props = defineProps({
@@ -321,6 +322,37 @@ function askDelete(folder) {
   deletingFolder.value = folder;
   editingId.value = null;
 }
+
+const deleteVariant = computed(() => {
+  const folder = deletingFolder.value;
+  if (!folder) return null;
+  if (folder.document_count) {
+    return {
+      kind: 'blocked',
+      panel: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20',
+      iconWrap: 'bg-amber-100 dark:bg-amber-900/40',
+      iconStroke: 'text-amber-600 dark:text-amber-400',
+      title: 'text-amber-800 dark:text-amber-200',
+      body: 'text-amber-700 dark:text-amber-300',
+      titleText: `No se puede eliminar "${folder.name}"`,
+      bodyText: `Primero mueve o elimina sus ${folder.document_count} documento(s).`,
+      dismiss: 'bg-amber-600 text-white hover:bg-amber-700',
+      dismissText: 'Entendido',
+    };
+  }
+  return {
+    kind: 'destructive',
+    panel: 'border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20',
+    iconWrap: 'bg-red-100 dark:bg-red-900/40',
+    iconStroke: 'text-red-600 dark:text-red-400',
+    title: 'text-red-800 dark:text-red-200',
+    body: 'text-red-600 dark:text-red-400',
+    titleText: `Eliminar "${folder.name}"`,
+    bodyText: 'Esta acción no se puede deshacer.',
+    dismiss: 'text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40',
+    dismissText: 'Cancelar',
+  };
+});
 
 async function confirmDelete() {
   if (!deletingFolder.value) return;

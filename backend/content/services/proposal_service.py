@@ -2386,6 +2386,9 @@ class ProposalService:
         Args:
             proposal: BusinessProposal instance.
 
+        Returns:
+            dict: Email delivery result from ``_send_initial_email``.
+
         Raises:
             ValueError: If client_email is not set.
         """
@@ -2404,8 +2407,9 @@ class ProposalService:
 
         proposal.save(update_fields=update_fields)
 
-        ProposalService._send_initial_email(proposal)
+        delivery = ProposalService._send_initial_email(proposal)
         ProposalService._schedule_email_tasks(proposal)
+        return delivery
 
     @staticmethod
     def resend_proposal(proposal):
@@ -2417,6 +2421,9 @@ class ProposalService:
 
         Args:
             proposal: BusinessProposal instance.
+
+        Returns:
+            dict: Email delivery result from ``_send_initial_email``.
 
         Raises:
             ValueError: If client_email is not set.
@@ -2432,22 +2439,30 @@ class ProposalService:
             'status', 'sent_at', 'reminder_sent_at', 'urgency_email_sent_at',
         ])
 
-        ProposalService._send_initial_email(proposal)
+        delivery = ProposalService._send_initial_email(proposal)
         ProposalService._schedule_email_tasks(proposal)
+        return delivery
 
     @staticmethod
     def _send_initial_email(proposal):
-        """Send the proposal link email to the client."""
+        """
+        Send the proposal link email to the client.
+
+        Unexpected errors are swallowed (logged + reported as
+        ``unexpected_error``) so the status change is not rolled back.
+        """
+        from content.services.proposal_email_service import (
+            ProposalEmailService,
+            _delivery,
+        )
         try:
-            from content.services.proposal_email_service import (
-                ProposalEmailService,
-            )
-            ProposalEmailService.send_proposal_to_client(proposal)
-        except Exception:
+            return ProposalEmailService.send_proposal_to_client(proposal)
+        except Exception as exc:
             logger.exception(
                 'Failed to send initial email for proposal %s',
                 proposal.uuid,
             )
+            return _delivery(False, 'unexpected_error', str(exc)[:500])
 
     @staticmethod
     def _schedule_email_tasks(proposal):
@@ -2523,6 +2538,40 @@ class ProposalService:
             bool: True if expired.
         """
         return proposal.is_expired
+
+    @staticmethod
+    def reopen_if_unexpired(proposal, *, old_status):
+        """
+        Revert ``status`` from ``expired`` when ``expires_at`` is now in the future.
+
+        Mirrors the system rule that only ``sent`` / ``viewed`` proposals get
+        marked ``expired`` (see ``expire_stale_proposals`` task). When un-expiring,
+        we revert to ``viewed`` if the client has visited the proposal at least
+        once (``view_count > 0``), otherwise to ``sent``.
+
+        Mutates ``proposal.status`` in memory only; the caller persists and logs.
+
+        Args:
+            proposal: BusinessProposal instance with the new expires_at already applied.
+            old_status: Status before the update.
+
+        Returns:
+            str | None: The new status if changed, else None.
+        """
+        from content.models import BusinessProposal
+
+        if old_status != BusinessProposal.Status.EXPIRED:
+            return None
+        if not proposal.expires_at or proposal.expires_at <= timezone.now():
+            return None
+
+        new_status = (
+            BusinessProposal.Status.VIEWED
+            if proposal.view_count > 0
+            else BusinessProposal.Status.SENT
+        )
+        proposal.status = new_status
+        return new_status
 
     @staticmethod
     def get_hardcoded_defaults(language='es'):

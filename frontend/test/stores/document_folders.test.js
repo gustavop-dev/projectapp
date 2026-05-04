@@ -92,4 +92,21 @@ describe('useDocumentFolderStore', () => {
     expect(result.success).toBe(false)
     expect(store.error).toBe('delete_folder_failed')
   })
+
+  it('deleteFolder propagates 409 detail and keeps folders unchanged', async () => {
+    store.folders = [{ id: 1, name: 'A' }, { id: 2, name: 'B' }]
+    delete_request.mockRejectedValueOnce({
+      response: {
+        status: 409,
+        data: { detail: 'La carpeta tiene 2 documento(s).', document_count: 2 },
+      },
+    })
+    const result = await store.deleteFolder(1)
+    expect(result.success).toBe(false)
+    expect(result.errors).toEqual({
+      detail: 'La carpeta tiene 2 documento(s).',
+      document_count: 2,
+    })
+    expect(store.folders).toEqual([{ id: 1, name: 'A' }, { id: 2, name: 'B' }])
+  })
 })
