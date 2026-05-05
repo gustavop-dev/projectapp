@@ -148,7 +148,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { useProposalsStore } from '~/stores/proposals';
+import { useProposalStore } from '~/stores/proposals';
 import { formatMoney as formatMoneyUtil } from '~/utils/formatMoney';
 
 const props = defineProps({
@@ -177,7 +177,7 @@ const STATUS_GROUPS = [
   },
 ];
 
-const proposalsStore = useProposalsStore();
+const proposalsStore = useProposalStore();
 const loading = ref(false);
 const sending = ref(false);
 const candidates = ref([]);
