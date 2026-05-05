@@ -166,6 +166,59 @@ class TestUpdateClientProfile:
         assert proposal.client_email == 'sync@gmail.com'
         assert proposal.client_phone == '+57 300'
 
+    def test_sync_snapshot_preserves_typed_email_when_linked_user_is_placeholder(self):
+        # Simulate the admin-collision flow: an admin user already exists with
+        # email X; when an admin creates a proposal typing X as client_email,
+        # get_or_create_client_for_proposal returns a placeholder profile —
+        # but the proposal's snapshot client_email must keep the real X so
+        # the client email can still be sent.
+        admin_user = User.objects.create_user(
+            username='colliding-admin', email='admin@gmail.com', password='x',
+        )
+        UserProfile.objects.create(user=admin_user, role=UserProfile.ROLE_ADMIN)
+
+        placeholder_profile = (
+            proposal_client_service.get_or_create_client_for_proposal(
+                name='Tester', email='admin@gmail.com',
+            )
+        )
+        assert placeholder_profile.is_email_placeholder is True
+
+        proposal = BusinessProposal.objects.create(
+            title='Admin collision',
+            client_name='Tester',
+            client_email='admin@gmail.com',  # real typed email
+            client=placeholder_profile,
+            total_investment=1000,
+        )
+
+        proposal_client_service.sync_snapshot(proposal)
+        proposal.refresh_from_db()
+
+        assert proposal.client_email == 'admin@gmail.com'
+        assert not proposal.client_email.endswith(
+            UserProfile.PLACEHOLDER_EMAIL_DOMAIN
+        )
+
+    def test_sync_snapshot_for_profile_does_not_propagate_placeholder_email(self):
+        profile = proposal_client_service.get_or_create_client_for_proposal(
+            name='No Email', email='',
+        )
+        assert profile.is_email_placeholder is True
+
+        proposal = BusinessProposal.objects.create(
+            title='Typed email kept',
+            client_name='Typed',
+            client_email='typed@gmail.com',  # snapshot pre-set by the view
+            client=profile,
+            total_investment=1500,
+        )
+
+        proposal_client_service.sync_snapshot_for_profile(profile)
+        proposal.refresh_from_db()
+
+        assert proposal.client_email == 'typed@gmail.com'
+
 
 # ---------------------------------------------------------------------------
 # delete_orphan_client

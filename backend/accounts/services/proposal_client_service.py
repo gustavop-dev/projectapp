@@ -285,6 +285,11 @@ def sync_snapshot_for_profile(profile):
 
     Raw bulk update: bypasses auto_now and per-row signals on purpose.
     Idempotent — safe to call repeatedly.
+
+    The ``client_email`` snapshot is only overwritten when the linked user
+    has a real (non-placeholder) email. This preserves the admin-typed
+    ``client_email`` on the proposal when the linked profile is a placeholder
+    (e.g. admin-account collision), so client-facing emails can still be sent.
     """
     from django.utils import timezone
 
@@ -294,19 +299,27 @@ def sync_snapshot_for_profile(profile):
     user = profile.user
     now = timezone.now()
     display_name = build_client_display_name(profile)
-    BusinessProposal.objects.filter(client=profile).update(
-        client_name=display_name,
-        client_email=user.email,
-        client_phone=profile.phone,
-        updated_at=now,
+    email_is_real = bool(user.email) and not user.email.endswith(
+        UserProfile.PLACEHOLDER_EMAIL_DOMAIN
     )
-    WebAppDiagnostic.objects.filter(client=profile).update(
-        client_name=display_name,
-        client_email=user.email,
-        client_phone=profile.phone,
-        client_company=profile.company_name or '',
-        updated_at=now,
-    )
+
+    proposal_update = {
+        'client_name': display_name,
+        'client_phone': profile.phone,
+        'updated_at': now,
+    }
+    diagnostic_update = {
+        'client_name': display_name,
+        'client_phone': profile.phone,
+        'client_company': profile.company_name or '',
+        'updated_at': now,
+    }
+    if email_is_real:
+        proposal_update['client_email'] = user.email
+        diagnostic_update['client_email'] = user.email
+
+    BusinessProposal.objects.filter(client=profile).update(**proposal_update)
+    WebAppDiagnostic.objects.filter(client=profile).update(**diagnostic_update)
 
 
 def sync_snapshot(proposal):
@@ -314,15 +327,22 @@ def sync_snapshot(proposal):
     Mirror the canonical client identity onto the legacy snapshot fields of
     a single proposal. Called from serializers right after assigning
     ``proposal.client``. Saves the proposal in-place.
+
+    The ``client_email`` snapshot is only overwritten when the linked user
+    has a real (non-placeholder) email — otherwise the typed ``client_email``
+    set by the caller is preserved so the proposal can still be emailed.
     """
     profile = proposal.client
     if profile is None:
         return proposal
     user = profile.user
     proposal.client_name = build_client_display_name(profile)
-    proposal.client_email = user.email or ''
     proposal.client_phone = profile.phone or ''
-    proposal.save(update_fields=['client_name', 'client_email', 'client_phone'])
+    update_fields = ['client_name', 'client_phone']
+    if user.email and not user.email.endswith(UserProfile.PLACEHOLDER_EMAIL_DOMAIN):
+        proposal.client_email = user.email
+        update_fields.append('client_email')
+    proposal.save(update_fields=update_fields)
     return proposal
 
 
