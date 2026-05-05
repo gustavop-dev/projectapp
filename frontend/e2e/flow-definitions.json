@@ -223,7 +223,18 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Send a proposal to a client via email from the proposals list (actions modal) or from the edit page. Backend returns email_delivery: {ok, reason, detail}; when ok=false, the panel surfaces a red toast with the reason (placeholder_email, template_disabled, send_failed) instead of generic success.",
+      "description": "Send a proposal to a client via email from the proposals list (actions modal) or from the edit page. The email body now interpolates the editable email_intro field from the proposal and the commercial PDF is attached automatically. Backend returns email_delivery: {ok, reason, detail}; when ok=false, the panel surfaces a red toast with the reason (placeholder_email, template_disabled, send_failed) instead of generic success.",
+      "expectedSpecs": 1,
+      "knownGaps": "email_intro textarea editing on /panel/proposals/:id/edit and the PDF-attachment side effect have no dedicated UI assertions; failure-feedback toast is also not asserted."
+    },
+    "admin-proposal-multi-send": {
+      "name": "Admin Proposal Multi Send",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "From /panel/proposals/:id/edit click the lightning-bolt button → ProposalActionsModal → 'Enviar varias propuestas como un solo correo'. The ProposalMultiSendModal opens showing all proposals of the same client grouped by status (Borradores / Enviadas-Vistas-Negociación / Expiradas). The current proposal is pre-selected and locked. Admin selects ≥2 proposals (max 10) and clicks 'Enviar N propuestas' → POST /api/proposals/:id/send-multi/ sends a single email with one PDF attachment per proposal and applies per-proposal side effects (draft→sent + reminders, expired→reopen + extend expires_at, sent/viewed/negotiating→resend timers). Success shows a toast with the count.",
       "expectedSpecs": 1
     },
     "admin-proposal-resend": {

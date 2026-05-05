@@ -160,6 +160,12 @@ class Command(BaseCommand):
                 'language': lang,
                 'project_type': chosen_project_type,
                 'market_type': chosen_market_type,
+                'email_intro': (
+                    f'Esta propuesta cubre el alcance de {project_type.lower()} '
+                    f'para {client_name.split()[0]}, incluyendo diseño, desarrollo, '
+                    'pruebas y despliegue. Encontrarás el desglose completo dentro '
+                    'del documento.'
+                ),
             }
 
             # Fill custom text when type is 'other'

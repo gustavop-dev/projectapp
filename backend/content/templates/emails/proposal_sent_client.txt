@@ -1,13 +1,22 @@
-Hola {{ client_name }},
+{{ greeting }}
 
-Hemos preparado una propuesta personalizada para tu proyecto: {{ title }}
+{{ body }}
 
-{% if total_investment %}Inversión: ${{ total_investment }} {{ currency }}{% endif %}
+— {{ title }} —
+{{ email_intro }}
 
+Adjunto el link de la propuesta para que puedas verla con más detalle:
+{{ proposal_url }}
+
+{% if total_investment %}Inversión: ${{ total_investment }} {{ currency }}{% endif %}{% if total_duration %} · Duración: {{ total_duration }}{% endif %}{% if payment_summary %} · Pagos: {{ payment_summary }}{% endif %}
+{% if payment_options %}
+{% for opt in payment_options %}- {{ opt.label }}: {{ opt.description }}
+{% endfor %}{% endif %}
 {% if days_remaining is not None %}Esta propuesta es válida por {{ days_remaining }} día{{ days_remaining|pluralize:"s" }}.{% endif %}
 
-Ver propuesta: {{ proposal_url }}
+{% if closing %}{{ closing }}
 
-¿Dudas? Escríbenos a team@projectapp.co o WhatsApp +57 323 812 2373
-
-— El equipo de ProjectApp.co
+{% endif %}Un saludo cordial,
+El equipo de Project App
+team@projectapp.co · +57 323 812 2373
+www.projectapp.co

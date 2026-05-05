@@ -968,6 +968,73 @@ describe('useProposalStore', () => {
     });
   });
 
+  describe('fetchProposalsByClient', () => {
+    it('returns the list when the request succeeds', async () => {
+      const list = [{ id: 1, client: { id: 7 } }, { id: 2, client: { id: 7 } }];
+      get_request.mockResolvedValue({ data: list });
+
+      const result = await store.fetchProposalsByClient(7);
+
+      expect(get_request).toHaveBeenCalledWith('proposals/?client_id=7');
+      expect(result).toEqual({ success: true, data: list });
+    });
+
+    it('returns success=false with empty data on failure', async () => {
+      get_request.mockRejectedValue(new Error('boom'));
+
+      const result = await store.fetchProposalsByClient(7);
+
+      expect(result).toEqual({ success: false, data: [] });
+    });
+  });
+
+  describe('sendMultiProposal', () => {
+    it('posts proposal_ids and propagates email_delivery', async () => {
+      const responseData = {
+        id: 12,
+        status: 'sent',
+        email_delivery: { ok: true, reason: 'sent', detail: 'group=abc' },
+        transitions: { 12: 'sent', 18: 'resent' },
+      };
+      create_request.mockResolvedValue({ data: responseData });
+
+      const result = await store.sendMultiProposal(12, [12, 18]);
+
+      expect(create_request).toHaveBeenCalledWith(
+        'proposals/12/send-multi/',
+        { proposal_ids: [12, 18] },
+      );
+      expect(result.success).toBe(true);
+      expect(result.email_delivery).toEqual(responseData.email_delivery);
+      expect(store.currentProposal).toEqual(responseData);
+    });
+
+    it('returns error and surfaces backend payload on failure', async () => {
+      create_request.mockRejectedValue({
+        response: {
+          data: { error: 'Algunas propuestas no pertenecen al mismo cliente.' },
+        },
+      });
+
+      const result = await store.sendMultiProposal(12, [12, 99]);
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('send_multi_failed');
+      expect(result.errors).toEqual({
+        error: 'Algunas propuestas no pertenecen al mismo cliente.',
+      });
+    });
+
+    it('email_delivery is null when backend omits the field', async () => {
+      create_request.mockResolvedValue({ data: { id: 12, status: 'sent' } });
+
+      const result = await store.sendMultiProposal(12, [12, 18]);
+
+      expect(result.success).toBe(true);
+      expect(result.email_delivery).toBeNull();
+    });
+  });
+
   describe('toggleProposalActive', () => {
     it('toggles active and updates currentProposal when matching', async () => {
       store.currentProposal = { id: 5, is_active: true };

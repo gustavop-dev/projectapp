@@ -25,12 +25,19 @@
       :proposal="proposal || {}"
       @close="showActionsModal = false"
       @send="handleSend"
+      @send-multi="showMultiSendModal = true"
       @resend="handleResend"
       @negotiate="openContractModal(false)"
       @approve="handleStatusChange('accepted')"
       @launch="handleLaunchToPlatform"
       @finish="handleMarkAsFinished"
       @reject="handleStatusChange('rejected')"
+    />
+    <ProposalMultiSendModal
+      :visible="showMultiSendModal"
+      :current-proposal="proposal || {}"
+      @close="showMultiSendModal = false"
+      @sent="handleMultiSendSent"
     />
     <BusinessProposalAdminSyncPreviewModal
       :visible="syncPreviewVisible"
@@ -496,6 +503,24 @@
             </div>
 
           </div>
+
+          <div>
+            <label class="block text-sm font-medium text-text-default mb-1" for="edit-email-intro">
+              Texto introductorio del correo
+            </label>
+            <p class="text-xs text-text-muted mb-2">
+              Párrafo descriptivo que aparecerá en el correo enviado al cliente cuando reciba la propuesta. Si lo dejas vacío se usa un texto por defecto basado en el título.
+            </p>
+            <BaseTextarea
+              id="edit-email-intro"
+              v-model="form.email_intro"
+              :rows="5"
+              size="sm"
+              placeholder="Ej. Esta primera fase contempla la construcción de la plataforma base de tu firma..."
+              data-testid="edit-email-intro"
+            />
+          </div>
+
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-text-default mb-1">Tipo de proyecto</label>
@@ -1263,6 +1288,7 @@ import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/Technic
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
 import ProposalActionsModal from '~/components/BusinessProposal/admin/ProposalActionsModal.vue';
+import ProposalMultiSendModal from '~/components/BusinessProposal/admin/ProposalMultiSendModal.vue';
 import ProposalDocumentsTab from '~/components/BusinessProposal/admin/ProposalDocumentsTab.vue';
 import ProposalEmailsTab from '~/components/BusinessProposal/admin/ProposalEmailsTab.vue';
 import ProjectScheduleEditor from '~/components/BusinessProposal/admin/ProjectScheduleEditor.vue';
@@ -1474,6 +1500,24 @@ const tabs = computed(() => {
 
 // ── Actions menu (modal) ──
 const showActionsModal = ref(false);
+const showMultiSendModal = ref(false);
+
+async function handleMultiSendSent(payload) {
+  if (payload?.error) {
+    const errors = payload.error;
+    showToast({
+      type: 'error',
+      text: errors?.error
+        || (errors ? Object.entries(errors).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' | ') : 'No se pudo enviar el correo conjunto.'),
+    });
+    return;
+  }
+  await refreshData();
+  showToast({
+    type: 'success',
+    text: `Correo enviado al cliente con ${payload?.count ?? 0} propuestas.`,
+  });
+}
 const nextAction = computed(() => {
   const base = getProposalNextAction(proposal.value);
   if (!base) return null;
@@ -1751,6 +1795,7 @@ const form = reactive({
   urgency_reminder_days: 15,
   discount_percent: 0,
   automations_paused: true,
+  email_intro: '',
 });
 
 const DEFAULT_EXPIRY_DAYS = 21;
@@ -1925,6 +1970,7 @@ function hydrateFormFromProposal() {
     urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
     discount_percent: proposal.value.discount_percent ?? 0,
     automations_paused: proposal.value.automations_paused ?? true,
+    email_intro: proposal.value.email_intro || '',
   });
 }
 

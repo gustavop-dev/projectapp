@@ -822,6 +822,333 @@ class TestSendProposalToClient:
         assert result['reason'] == 'send_failed'
 
 
+class TestSendProposalToClientEnrichedContext:
+    """Tests for the enriched email context (email_intro, payment_options,
+    total_duration) and PDF attachment added to send_proposal_to_client."""
+
+    @pytest.fixture
+    def proposal_with_sections(self, db):
+        """Proposal with INVESTMENT and TIMELINE sections populated."""
+        from content.models import ProposalSection
+
+        proposal = BusinessProposal.objects.create(
+            title='Fase 1 — Plataforma Jurídica',
+            client_name='Juan García',
+            client_email='juan@cliente.com',
+            language='es',
+            total_investment=Decimal('4320000'),
+            currency='COP',
+            status='sent',
+            expires_at=timezone.now() + timezone.timedelta(days=15),
+            email_intro='Esta primera fase contempla la plataforma base.',
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='investment',
+            title='Inversión',
+            order=1,
+            content_json={
+                'paymentOptions': [
+                    {'label': '40% al firmar', 'description': '$1.728.000 COP'},
+                    {'label': '30% al aprobar diseño', 'description': '$1.296.000 COP'},
+                    {'label': '30% al desplegar', 'description': '$1.296.000 COP'},
+                ],
+            },
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='timeline',
+            title='Cronograma',
+            order=2,
+            content_json={'totalDuration': 'Aproximadamente 1 mes'},
+        )
+        return proposal
+
+    def test_build_context_reads_sections(self, proposal_with_sections):
+        ctx = ProposalEmailService._build_initial_email_context(proposal_with_sections)
+
+        assert ctx['email_intro'] == 'Esta primera fase contempla la plataforma base.'
+        assert ctx['total_duration'] == 'Aproximadamente 1 mes'
+        assert len(ctx['payment_options']) == 3
+        assert ctx['payment_options'][0]['label'] == '40% al firmar'
+        assert ctx['payment_options'][0]['description'] == '$1.728.000 COP'
+        assert ctx['payment_summary'] == '40/30/30'
+
+    def test_build_context_falls_back_when_email_intro_blank(self, db):
+        proposal = BusinessProposal.objects.create(
+            title='Sitio Demo',
+            client_name='Carla',
+            client_email='carla@x.com',
+            email_intro='',
+            status='sent',
+        )
+
+        ctx = ProposalEmailService._build_initial_email_context(proposal)
+
+        assert ctx['email_intro']
+        assert 'Sitio Demo' in ctx['email_intro']
+        assert ctx['payment_options'] == []
+        assert ctx['total_duration'] == ''
+        assert ctx['payment_summary'] == ''
+
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate')
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_attaches_commercial_pdf(
+        self, mock_render, mock_email_cls, mock_pdf, proposal_with_sections,
+    ):
+        mock_render.return_value = '<html>x</html>'
+        mock_instance = _stub_email()
+        mock_email_cls.return_value = mock_instance
+        mock_pdf.return_value = b'%PDF-fake-bytes'
+
+        result = ProposalEmailService.send_proposal_to_client(proposal_with_sections)
+
+        assert result['ok'] is True
+        mock_pdf.assert_called_once_with(proposal_with_sections)
+        attach_calls = mock_instance.attach.call_args_list
+        assert len(attach_calls) == 1
+        filename, payload, mime = attach_calls[0].args
+        assert filename.startswith('Propuesta_Comercial_')
+        assert filename.endswith('.pdf')
+        assert payload == b'%PDF-fake-bytes'
+        assert mime == 'application/pdf'
+
+        log = EmailLog.objects.get(template_key='proposal_sent_client')
+        assert log.metadata.get('pdf_attached') is True
+
+    @patch(
+        'content.services.proposal_pdf_service.ProposalPdfService.generate',
+        side_effect=RuntimeError('boom'),
+    )
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_pdf_failure_does_not_block_send(
+        self, mock_render, mock_email_cls, mock_pdf, proposal_with_sections,
+    ):
+        mock_render.return_value = '<html>x</html>'
+        mock_instance = _stub_email()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_proposal_to_client(proposal_with_sections)
+
+        assert result['ok'] is True
+        assert result['reason'] == 'sent'
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        mock_instance.attach.assert_not_called()
+
+        log = EmailLog.objects.get(template_key='proposal_sent_client')
+        assert log.metadata.get('pdf_attached') is False
+
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=b'pdf')
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    def test_renders_payment_options_in_html(
+        self, mock_email_cls, mock_pdf, proposal_with_sections,
+    ):
+        """End-to-end render: the HTML template includes payment rows and intro text."""
+        mock_instance = _stub_email()
+        mock_email_cls.return_value = mock_instance
+
+        ProposalEmailService.send_proposal_to_client(proposal_with_sections)
+
+        html_call = mock_instance.attach_alternative.call_args
+        assert html_call is not None
+        rendered_html = html_call.args[0]
+        assert 'Esta primera fase contempla la plataforma base.' in rendered_html
+        assert 'Aproximadamente 1 mes' in rendered_html
+        assert '40% al firmar' in rendered_html
+        assert '$1.728.000 COP' in rendered_html
+        assert 'team@projectapp.co' in rendered_html
+
+
+class TestSendMultiProposalToClient:
+    """Tests for ProposalEmailService.send_multi_proposal_to_client —
+    multi-proposal envelope with N PDF attachments."""
+
+    @pytest.fixture
+    def two_proposals(self, db):
+        from content.models import ProposalSection
+        common_kwargs = dict(
+            client_name='Juan García',
+            client_email='juan@cliente.com',
+            language='es',
+            currency='COP',
+            status='sent',
+            expires_at=timezone.now() + timezone.timedelta(days=15),
+        )
+        p1 = BusinessProposal.objects.create(
+            title='Fase 1 — Plataforma',
+            total_investment=Decimal('4320000'),
+            email_intro='Esta primera fase contempla la plataforma base.',
+            **common_kwargs,
+        )
+        p2 = BusinessProposal.objects.create(
+            title='Fase 2 — Vigilancia',
+            total_investment=Decimal('14100000'),
+            email_intro='La segunda fase suma un módulo de vigilancia.',
+            **common_kwargs,
+        )
+        for proposal in (p1, p2):
+            ProposalSection.objects.create(
+                proposal=proposal, section_type='investment', title='Inversión',
+                order=1,
+                content_json={
+                    'paymentOptions': [
+                        {'label': '40% al firmar', 'description': '$x COP'},
+                        {'label': '30% al aprobar', 'description': '$y COP'},
+                        {'label': '30% al desplegar', 'description': '$z COP'},
+                    ],
+                },
+            )
+            ProposalSection.objects.create(
+                proposal=proposal, section_type='timeline', title='Cronograma',
+                order=2,
+                content_json={'totalDuration': '1 mes'},
+            )
+        return [p1, p2]
+
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=b'pdf')
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    def test_sends_one_email_with_n_attachments(
+        self, mock_email_cls, mock_pdf, two_proposals,
+    ):
+        mock_instance = _stub_email()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_multi_proposal_to_client(two_proposals)
+
+        assert result['ok'] is True
+        assert result['reason'] == 'sent'
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        # Two PDF attachments — one per proposal
+        assert mock_instance.attach.call_count == 2
+        # All filenames follow the convention
+        for call in mock_instance.attach.call_args_list:
+            filename, payload, mime = call.args
+            assert filename.startswith('Propuesta_Comercial_')
+            assert filename.endswith('.pdf')
+            assert mime == 'application/pdf'
+
+        # One EmailLog per proposal, all with same group_uuid
+        logs = EmailLog.objects.filter(template_key='proposal_multi_sent_client')
+        assert logs.count() == 2
+        group_uuids = {log.metadata.get('group_uuid') for log in logs}
+        assert len(group_uuids) == 1
+        assert all(log.metadata.get('group_size') == 2 for log in logs)
+        assert all(log.metadata.get('pdfs_attached') == 2 for log in logs)
+
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=b'pdf')
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    def test_rendered_html_includes_each_proposal(
+        self, mock_email_cls, mock_pdf, two_proposals,
+    ):
+        mock_instance = _stub_email()
+        mock_email_cls.return_value = mock_instance
+
+        ProposalEmailService.send_multi_proposal_to_client(two_proposals)
+
+        rendered_html = mock_instance.attach_alternative.call_args.args[0]
+        assert 'Fase 1 — Plataforma' in rendered_html
+        assert 'Fase 2 — Vigilancia' in rendered_html
+        assert 'Esta primera fase contempla la plataforma base.' in rendered_html
+        assert 'La segunda fase suma un módulo de vigilancia.' in rendered_html
+        assert 'Propuesta 1 de 2' in rendered_html
+        assert 'Propuesta 2 de 2' in rendered_html
+
+    def test_rejects_empty_proposals(self):
+        result = ProposalEmailService.send_multi_proposal_to_client([])
+        assert result['ok'] is False
+        assert result['reason'] == 'no_proposals'
+
+    def test_rejects_when_primary_email_missing(self, db):
+        proposal = BusinessProposal.objects.create(
+            title='Sin email', client_name='X', client_email='', status='draft',
+        )
+        result = ProposalEmailService.send_multi_proposal_to_client([proposal])
+        assert result['ok'] is False
+        assert result['reason'] == 'placeholder_email'
+
+
+class TestSendMultiProposalsService:
+    """Tests for ProposalService.send_multi_proposals — side effects."""
+
+    @pytest.fixture
+    def client_with_proposals(self, db):
+        from accounts.models import UserProfile
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.create_user(
+            username='multi_test_client',
+            email='multi@cliente.com',
+            password='x',
+        )
+        profile = UserProfile.objects.create(user=user, role='client')
+        now = timezone.now()
+        p_draft = BusinessProposal.objects.create(
+            title='Draft', client=profile, client_name='Cli',
+            client_email='multi@cliente.com', status='draft',
+            total_investment=Decimal('1000'),
+        )
+        p_expired = BusinessProposal.objects.create(
+            title='Expired', client=profile, client_name='Cli',
+            client_email='multi@cliente.com', status='expired',
+            expires_at=now - timezone.timedelta(days=5),
+            total_investment=Decimal('2000'),
+        )
+        p_sent = BusinessProposal.objects.create(
+            title='Sent', client=profile, client_name='Cli',
+            client_email='multi@cliente.com', status='sent',
+            sent_at=now - timezone.timedelta(days=3),
+            expires_at=now + timezone.timedelta(days=10),
+            total_investment=Decimal('3000'),
+        )
+        return [p_draft, p_expired, p_sent]
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=b'pdf')
+    def test_applies_status_transitions(
+        self, mock_pdf, mock_email_cls, client_with_proposals,
+    ):
+        mock_email_cls.return_value = _stub_email()
+        from content.services.proposal_service import ProposalService
+
+        result = ProposalService.send_multi_proposals(client_with_proposals)
+
+        assert result['ok'] is True
+        transitions = result['transitions']
+        p_draft, p_expired, p_sent = client_with_proposals
+        assert transitions[p_draft.id] == 'sent'
+        assert transitions[p_expired.id] == 'reopened'
+        assert transitions[p_sent.id] == 'resent'
+
+        p_draft.refresh_from_db()
+        p_expired.refresh_from_db()
+        assert p_draft.status == 'sent'
+        assert p_draft.sent_at is not None
+        assert p_expired.status in ('sent', 'viewed')
+        assert p_expired.expires_at > timezone.now()
+
+    def test_rejects_mixed_clients(self, db, client_with_proposals):
+        # Create a proposal under a different client
+        from accounts.models import UserProfile
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        other_user = User.objects.create_user(
+            username='other', email='other@x.com', password='x',
+        )
+        other_profile = UserProfile.objects.create(user=other_user, role='client')
+        other = BusinessProposal.objects.create(
+            title='Other', client=other_profile, client_name='Otro',
+            client_email='other@x.com', status='draft',
+        )
+        from content.services.proposal_service import ProposalService
+
+        with pytest.raises(ValueError, match='same client'):
+            ProposalService.send_multi_proposals(
+                [client_with_proposals[0], other],
+            )
+
+
 class TestSendPostRejectionRevisitAlert:
     @freeze_time('2026-03-10 12:00:00')
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')

@@ -42,6 +42,7 @@ export const ADMIN_PROPOSAL_CREATE_FROM_JSON = ['@flow:admin-proposal-create-fro
 export const ADMIN_PROPOSAL_EDIT = ['@flow:admin-proposal-edit', '@module:admin', '@priority:P1'];
 export const ADMIN_PROPOSAL_DELETE = ['@flow:admin-proposal-delete', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_SEND = ['@flow:admin-proposal-send', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_MULTI_SEND = ['@flow:admin-proposal-multi-send', '@module:admin', '@priority:P1'];
 export const ADMIN_BLOG_LIST = ['@flow:admin-blog-list', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_SECTION_EDIT_FORM = ['@flow:admin-proposal-section-edit-form', '@module:admin', '@priority:P1'];
 export const ADMIN_PROPOSAL_SECTION_EDIT_PASTE = ['@flow:admin-proposal-section-edit-paste', '@module:admin', '@priority:P1'];

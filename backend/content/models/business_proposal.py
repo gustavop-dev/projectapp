@@ -174,6 +174,16 @@ class BusinessProposal(models.Model):
     rejection_reason = models.CharField(max_length=100, blank=True, default='')
     rejection_comment = models.TextField(blank=True, default='')
 
+    email_intro = models.TextField(
+        blank=True,
+        default='',
+        help_text=(
+            'Párrafo descriptivo del alcance de la propuesta usado en el '
+            'correo inicial enviado al cliente. Si queda vacío se usa un '
+            'texto por defecto derivado del título.'
+        ),
+    )
+
     # Tracking
     last_activity_at = models.DateTimeField(null=True, blank=True)
     view_count = models.PositiveIntegerField(default=0)

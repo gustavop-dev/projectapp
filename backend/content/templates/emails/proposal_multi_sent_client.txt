@@ -1,0 +1,20 @@
+{{ greeting }}
+
+{{ body }}
+
+{% for phase in phases %}
+— {{ phase.title }} —
+{{ phase.email_intro }}
+
+Link: {{ phase.proposal_url }}
+
+{% if phase.total_investment %}Inversión: ${{ phase.total_investment }} {{ phase.currency }}{% endif %}{% if phase.total_duration %} · Duración: {{ phase.total_duration }}{% endif %}{% if phase.payment_summary %} · Pagos: {{ phase.payment_summary }}{% endif %}
+{% if phase.payment_options %}{% for opt in phase.payment_options %}- {{ opt.label }}: {{ opt.description }}
+{% endfor %}{% endif %}
+{% endfor %}
+{% if closing %}{{ closing }}
+
+{% endif %}Un saludo cordial,
+El equipo de Project App
+team@projectapp.co · +57 323 812 2373
+www.projectapp.co

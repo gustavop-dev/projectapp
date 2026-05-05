@@ -1066,17 +1066,37 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/proposals/`, `/panel/proposals/:id/edit`
-- **Description:** Send a proposal to a client via email. On edit page, a visual pre-send checklist modal replaces the native `confirm()` dialog, validating: client email, client name, investment > $0, future expiration date, at least 1 enabled section. The backend returns `email_delivery: { ok, reason, detail }`; when `ok=false`, the panel shows a red toast with the reason (`placeholder_email`, `template_disabled`, `send_failed`) instead of the generic "Propuesta enviada" toast, so the admin learns the email did not actually reach the client.
+- **Description:** Send a proposal to a client via email. On edit page, a visual pre-send checklist modal replaces the native `confirm()` dialog, validating: client email, client name, investment > $0, future expiration date, at least 1 enabled section. The email body now interpolates the editable `email_intro` textarea (BusinessProposal.email_intro, persisted on the General tab) and the commercial PDF is attached automatically (`ProposalEmailService._attach_commercial_pdf`). The backend returns `email_delivery: { ok, reason, detail }`; when `ok=false`, the panel shows a red toast with the reason (`placeholder_email`, `template_disabled`, `send_failed`) instead of the generic "Propuesta enviada" toast, so the admin learns the email did not actually reach the client.
 - **Steps:**
   1. Admin views the proposal edit page or the actions modal in the list page.
-  2. Admin clicks "Enviar al Cliente".
-  3. Pre-send checklist modal opens showing pass/fail status for each item (✓/✗).
-  4. "Enviar al Cliente" button is disabled until all checks pass.
-  5. Admin clicks "Enviar al Cliente" in modal → API call to `POST /api/proposals/:id/send/`.
-  6. Backend changes status to `sent`, attempts to send the email, and returns the proposal payload with `email_delivery`.
-  7. If `email_delivery.ok === true`, success toast "Propuesta enviada al cliente". If `false`, error toast surfacing `email_delivery.detail || email_delivery.reason` with a hint to verify client email and use "Re-enviar".
-- **Coverage:** 🟡 Partial — happy path covered; **email_delivery failure-feedback toast is not asserted in E2E**.
-- **E2E Spec:** `e2e/admin/admin-proposal-send.spec.js` (extend with mocked `email_delivery.ok=false` cases for `placeholder_email`, `template_disabled`, `send_failed`).
+  2. Admin (optional) edits the "Texto introductorio del correo" textarea (`data-testid=edit-email-intro`) in the General tab and saves the form. Empty falls back to a default derived from the title.
+  3. Admin clicks "Enviar al Cliente".
+  4. Pre-send checklist modal opens showing pass/fail status for each item (✓/✗).
+  5. "Enviar al Cliente" button is disabled until all checks pass.
+  6. Admin clicks "Enviar al Cliente" in modal → API call to `POST /api/proposals/:id/send/`.
+  7. Backend changes status to `sent`, generates the commercial PDF, attaches it, sends the email, and returns the proposal payload with `email_delivery`. `EmailLog.metadata.pdf_attached` records whether the attachment succeeded.
+  8. If `email_delivery.ok === true`, success toast "Propuesta enviada al cliente". If `false`, error toast surfacing `email_delivery.detail || email_delivery.reason` with a hint to verify client email and use "Re-enviar".
+- **Coverage:** 🟡 Partial — happy path covered; **email_delivery failure-feedback toast, `email_intro` editing, and PDF-attached metadata are not asserted in E2E**.
+- **E2E Spec:** `e2e/admin/admin-proposal-send.spec.js` (extend with: edit `email_intro` and assert it appears in the request payload; mocked `email_delivery.ok=false` cases for `placeholder_email`, `template_disabled`, `send_failed`).
+
+### FLOW: `admin-proposal-multi-send`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/proposals/:id/edit`
+- **Description:** Send a single email referencing 2+ proposals from the same client. From the edit page, the lightning-bolt button opens `ProposalActionsModal`; the new action "Enviar varias propuestas como un solo correo" (visible whenever `client_email` is set) opens `ProposalMultiSendModal`. The modal lists every proposal of that client grouped by status: Borradores (draft), Enviadas/Vistas/Negociación (sent/viewed/negotiating), and Expiradas (status=`expired` or past `expires_at`). The current proposal is pre-selected and the checkbox is disabled to keep it always included. Selecting an "Expiradas" item shows a "Se reabrirá" badge. The send button stays disabled until ≥2 are selected and is capped at 10. Click → `POST /api/proposals/:id/send-multi/` with `{ proposal_ids: [...] }`. The backend dispatches a single email rendering each proposal as a numbered phase ("Propuesta N de M") and attaches one PDF per proposal. Per-proposal side effects: draft→sent + Huey reminders, expired/past expires_at→reopen + extend expires_at, sent/viewed/negotiating→resend timers (no status change). One `EmailLog` row per proposal sharing a `group_uuid` in metadata, plus a `ProposalChangeLog` entry per proposal.
+- **Steps:**
+  1. Admin opens `/panel/proposals/:id/edit` for a client that has another eligible proposal.
+  2. Admin clicks the lightning-bolt button next to "Guardar cambios".
+  3. `ProposalActionsModal` opens; admin clicks "Enviar varias propuestas como un solo correo" (`data-testid=proposal-action-send-multi`).
+  4. `ProposalMultiSendModal` opens, listing the client's other proposals grouped by status. The current proposal is pre-checked and locked.
+  5. Admin selects one or more additional proposals → "Enviar N propuestas" button enables.
+  6. Admin clicks the send button → `POST /api/proposals/:id/send-multi/` with `proposal_ids`.
+  7. Backend validates same-client, ≥2 proposals, ≤10 proposals, applies side effects, sends one email with N PDF attachments, returns the proposal payload + `email_delivery` + `transitions` map.
+  8. Modal closes; success toast "Correo enviado al cliente con N propuestas." renders. Page data refreshes so updated statuses/expires_at show.
+- **Coverage:** ❌ Missing — feature is brand new; no spec exercises the modal, the backend call, the same-client validation, the ≥2/≤10 guards, or the success toast.
+- **E2E Spec (suggested):** `e2e/admin/admin-proposal-multi-send.spec.js`. Mock `GET /api/proposals/?client_id=` to return ≥2 proposals across at least two of the status groups, click through the modal, mock `POST /api/proposals/:id/send-multi/` with `email_delivery.ok=true`, and assert the success toast.
 
 ### FLOW: `admin-proposal-resend`
 
@@ -2182,7 +2202,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-client-create-standalone` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-client-delete-orphan` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-client-delete-protected` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
-| `admin-proposal-send` | admin | admin | P1 | 🟡 Partial (failure-feedback toast not asserted) | `e2e/admin/admin-proposal-send.spec.js` |
+| `admin-proposal-send` | admin | admin | P1 | 🟡 Partial (email_intro editing, PDF attachment, failure-feedback toast not asserted) | `e2e/admin/admin-proposal-send.spec.js` |
+| `admin-proposal-multi-send` | admin | admin | P1 | ❌ Missing | `e2e/admin/admin-proposal-multi-send.spec.js` |
 | `admin-proposal-resend` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-proposal-resend.spec.js` |
 | `admin-blog-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-list.spec.js` |
 | `admin-blog-calendar` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-calendar.spec.js` |

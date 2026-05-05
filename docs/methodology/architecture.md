@@ -221,7 +221,7 @@ flowchart TD
 | Service | Footprint | Responsibilities |
 |---------|-----------|-----------------|
 | **ProposalService** | Very large | Proposal CRUD, section management, default sections, analytics computation, engagement scoring, dashboard aggregation, CSV export, scorecard |
-| **ProposalEmailService** | Very large | All email sending: proposal sent, reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration, branded + proposal composed emails, stage warning + stage overdue (via shared `_send_stage_notification` helper) |
+| **ProposalEmailService** | Very large | All email sending: proposal sent (single + multi-proposal envelope), reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration, branded + proposal composed emails, stage warning + stage overdue. Shared helpers: `_attach_commercial_pdf(email, proposal)` (used by `send_proposal_to_client`, `send_acceptance_confirmation`, `send_multi_proposal_to_client`), `_build_initial_email_context(proposal)` (per-proposal phase context), `_send_stage_notification`. |
 | **ProposalStageTracker** | Small | Day-by-day decision logic for project-stage email notifications. Holds the canonical `STAGE_DEFINITIONS` catalog (`design`, `development`), `ensure_stages` / `get_or_create_stage` helpers, `format_remaining_time(days)` (`"hoy"`, `"1 día"`, `"1 semana 5 días"`), and `process(proposal)` decision tree (70%-elapsed warning + every-3-days overdue reminders). |
 | **ProposalPdfService** | Large | PDF generation with ReportLab: all 12 section types rendered to PDF |
 | **ContractPdfService** | Medium | Contract PDF generation with contractor signature block, draft mode (no signature), Helvetica font, clickable TOC |

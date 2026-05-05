@@ -195,6 +195,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
             'last_activity_at',
             'view_count', 'first_viewed_at', 'sent_at', 'responded_at',
             'created_at', 'updated_at',
+            'email_intro',
             'sections', 'requirement_groups', 'project_stages', 'change_logs',
             'days_remaining', 'is_expired', 'public_url',
             'discounted_investment', 'effective_total_investment',
@@ -383,6 +384,7 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
             'discount_percent', 'is_active', 'automations_paused',
             'project_type', 'market_type', 'client_phone',
             'project_type_custom', 'market_type_custom',
+            'email_intro',
             'client_id', 'client_company', 'propagate_client_updates', 'client',
         )
 

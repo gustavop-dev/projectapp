@@ -72,7 +72,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'send', 'resend', 'negotiate', 'approve', 'launch', 'finish', 'reject', 'close',
+  'send', 'send-multi', 'resend', 'negotiate', 'approve', 'launch', 'finish', 'reject', 'close',
 ]);
 
 const suggestedKey = computed(() => getProposalNextAction(props.proposal)?.key || null);
@@ -98,6 +98,14 @@ const actions = computed(() => {
       label: 'Re-enviar al Cliente',
       description: 'Vuelve a enviar el email manteniendo la misma fecha de expiración.',
       dotClass: 'bg-blue-500',
+    });
+  }
+  if (hasEmail) {
+    list.push({
+      key: 'send-multi',
+      label: 'Enviar varias propuestas como un solo correo',
+      description: 'Selecciona otras propuestas del mismo cliente y envíalas en un único email con sus PDFs.',
+      dotClass: 'bg-cyan-500',
     });
   }
   if (transitions.includes('negotiating')) {

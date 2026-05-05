@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tu propuesta está lista — Project App</title>
+  <title>Tus propuestas están listas — Project App</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
 
@@ -13,7 +13,6 @@
 
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;max-width:600px;width:100%;">
 
-          <!-- Header -->
           <tr>
             <td style="background-color:#059669;padding:32px 40px;text-align:center;">
               <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.02em;">
@@ -25,7 +24,6 @@
             </td>
           </tr>
 
-          <!-- Greeting -->
           <tr>
             <td style="padding:40px 40px 8px;">
               <h2 style="margin:0;color:#1f2937;font-size:22px;font-weight:600;">
@@ -37,107 +35,67 @@
             </td>
           </tr>
 
-          <!-- Phase card -->
+          {% for phase in phases %}
           <tr>
-            <td style="padding:24px 40px 8px;">
+            <td style="padding:24px 40px 0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0fdf4;border-radius:12px;border:1px solid #bbf7d0;">
                 <tr>
                   <td style="padding:24px;">
                     <p style="margin:0 0 8px;color:#059669;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">
-                      Tu propuesta
+                      Propuesta {{ forloop.counter }} de {{ phases_count }}
                     </p>
                     <h3 style="margin:0 0 12px;color:#1f2937;font-size:20px;font-weight:700;line-height:1.3;">
-                      {{ title }}
+                      {{ phase.title }}
                     </h3>
-                    <p style="margin:0;color:#374151;font-size:15px;line-height:1.65;">
-                      {{ email_intro|linebreaksbr }}
+                    <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.65;">
+                      {{ phase.email_intro|linebreaksbr }}
                     </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
 
-          <!-- Link explanation -->
-          <tr>
-            <td style="padding:16px 40px 8px;">
-              <p style="margin:0;color:#4b5563;font-size:15px;line-height:1.6;">
-                Adjunto el link de la propuesta de negocio para que puedas verla con mayor detalle y compartirla con las demás personas de interés:
-              </p>
-            </td>
-          </tr>
-
-          <!-- CTA Button -->
-          <tr>
-            <td style="padding:8px 40px 24px;text-align:center;">
-              <a href="{{ proposal_url }}"
-                 style="display:inline-block;background-color:#059669;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:12px;font-size:16px;font-weight:600;letter-spacing:-0.01em;">
-                {{ cta_text }}
-              </a>
-              <p style="margin:12px 0 0;color:#9ca3af;font-size:12px;word-break:break-all;">
-                {{ proposal_url }}
-              </p>
-            </td>
-          </tr>
-
-          <!-- Executive summary -->
-          {% if total_investment or total_duration or payment_summary %}
-          <tr>
-            <td style="padding:8px 40px 8px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#ecfdf5;border-radius:12px;">
-                <tr>
-                  <td style="padding:18px 24px;">
-                    <p style="margin:0;color:#065f46;font-size:14px;line-height:1.7;">
-                      {% if total_investment %}<strong style="color:#047857;">Inversión:</strong> ${{ total_investment }} {{ currency }}{% endif %}{% if total_duration %} &middot; <strong style="color:#047857;">Duración:</strong> {{ total_duration }}{% endif %}{% if payment_summary %} &middot; <strong style="color:#047857;">Pagos:</strong> {{ payment_summary }}{% endif %}
+                    <p style="margin:0 0 8px;color:#4b5563;font-size:14px;line-height:1.5;">
+                      Adjunto el link para que la veas con mayor detalle:
                     </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          {% endif %}
+                    <p style="margin:0 0 16px;">
+                      <a href="{{ phase.proposal_url }}" style="color:#059669;text-decoration:underline;word-break:break-all;font-size:14px;">
+                        {{ phase.proposal_url }}
+                      </a>
+                    </p>
 
-          <!-- Payment breakdown -->
-          {% if payment_options %}
-          <tr>
-            <td style="padding:8px 40px 8px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                {% for opt in payment_options %}
-                <tr>
-                  <td style="padding:10px 0;border-bottom:1px solid #e5e7eb;">
+                    {% if phase.total_investment or phase.total_duration or phase.payment_summary %}
+                    <p style="margin:0 0 12px;color:#065f46;font-size:14px;line-height:1.6;">
+                      {% if phase.total_investment %}<strong>Inversión:</strong> ${{ phase.total_investment }} {{ phase.currency }}{% endif %}{% if phase.total_duration %} · <strong>Duración:</strong> {{ phase.total_duration }}{% endif %}{% if phase.payment_summary %} · <strong>Pagos:</strong> {{ phase.payment_summary }}{% endif %}
+                    </p>
+                    {% endif %}
+
+                    {% if phase.payment_options %}
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      {% for opt in phase.payment_options %}
                       <tr>
-                        <td style="color:#374151;font-size:14px;line-height:1.5;">
-                          {{ opt.label }}
-                        </td>
-                        <td style="color:#059669;font-size:14px;font-weight:600;text-align:right;white-space:nowrap;padding-left:12px;">
-                          {{ opt.description }}
+                        <td style="padding:8px 0;border-bottom:1px solid #d1fae5;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="color:#374151;font-size:13px;line-height:1.5;">
+                                {{ opt.label }}
+                              </td>
+                              <td style="color:#059669;font-size:13px;font-weight:600;text-align:right;white-space:nowrap;padding-left:12px;">
+                                {{ opt.description }}
+                              </td>
+                            </tr>
+                          </table>
                         </td>
                       </tr>
+                      {% endfor %}
                     </table>
+                    {% endif %}
                   </td>
                 </tr>
-                {% endfor %}
               </table>
             </td>
           </tr>
-          {% endif %}
+          {% endfor %}
 
-          <!-- Validity badge -->
-          {% if days_remaining is not None %}
-          <tr>
-            <td style="padding:16px 40px 8px;">
-              <p style="margin:0;color:#065f46;font-size:13px;text-align:center;">
-                📅 Esta propuesta es válida por {{ days_remaining }} día{{ days_remaining|pluralize:"s" }}
-              </p>
-            </td>
-          </tr>
-          {% endif %}
-
-          <!-- Closing -->
           {% if closing %}
           <tr>
-            <td style="padding:24px 40px 8px;">
+            <td style="padding:32px 40px 8px;">
               <p style="margin:0;color:#4b5563;font-size:15px;line-height:1.65;">
                 {{ closing|linebreaksbr }}
               </p>
@@ -145,7 +103,6 @@
           </tr>
           {% endif %}
 
-          <!-- Signature -->
           <tr>
             <td style="padding:24px 40px 8px;">
               <p style="margin:0;color:#1f2937;font-size:15px;line-height:1.5;">
@@ -160,14 +117,12 @@
             </td>
           </tr>
 
-          <!-- Divider -->
           <tr>
             <td style="padding:16px 40px 0;">
               <hr style="border:none;border-top:1px solid #e5e7eb;margin:0;">
             </td>
           </tr>
 
-          <!-- Footer -->
           <tr>
             <td style="padding:16px 40px 32px;text-align:center;">
               <p style="margin:0;color:#9ca3af;font-size:12px;">

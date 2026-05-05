@@ -318,6 +318,49 @@ export const useProposalStore = defineStore('proposals', {
     },
 
     /**
+     * fetchProposalsByClient: List proposals for a specific client.
+     * @param {number} clientId - UserProfile id of the client.
+     */
+    async fetchProposalsByClient(clientId) {
+      try {
+        const response = await get_request(`proposals/?client_id=${clientId}`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching client proposals:', error);
+        return { success: false, data: [] };
+      }
+    },
+
+    /**
+     * sendMultiProposal: Send a single email referencing several proposals.
+     * @param {number} primaryId - Proposal ID in path (the one being edited).
+     * @param {number[]} proposalIds - All proposal IDs to include.
+     */
+    async sendMultiProposal(primaryId, proposalIds) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          `proposals/${primaryId}/send-multi/`,
+          { proposal_ids: proposalIds },
+        );
+        this.currentProposal = response.data;
+        return {
+          success: true,
+          data: response.data,
+          email_delivery: response.data?.email_delivery ?? null,
+        };
+      } catch (error) {
+        this.error = 'send_multi_failed';
+        console.error('Error sending multi proposal:', error);
+        return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
      * resendProposal: Re-send a proposal keeping existing expires_at.
      * @param {number} id - Proposal ID.
      */

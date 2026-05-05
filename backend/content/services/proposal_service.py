@@ -2534,6 +2534,108 @@ class ProposalService:
         return proposal.is_expired
 
     @staticmethod
+    def send_multi_proposals(proposals):
+        """Send a single email referencing several proposals from the same client.
+
+        Side effects per proposal (mirrors send/resend single):
+        - draft → sent + sent_at=now + expires_at if missing + schedule reminders
+        - status='expired' OR expires_at past → bumps expires_at to now+default,
+          status reverts to sent (or viewed if view_count > 0), reschedules.
+        - sent / viewed / negotiating → re-send (resets reminder/urgency timestamps,
+          reschedules) without changing status.
+
+        Args:
+            proposals: ordered list of ``BusinessProposal`` from the same client.
+
+        Returns:
+            dict: Email delivery result merged with ``transitions`` map
+                  ``{proposal_id: 'sent' | 'resent' | 'reopened'}``.
+
+        Raises:
+            ValueError: If client_email is not set on the primary proposal,
+                        or proposals span multiple clients.
+        """
+        from content.models import BusinessProposal
+
+        if not proposals:
+            raise ValueError('proposals is empty')
+
+        primary = proposals[0]
+        ProposalService._require_valid_client_email(primary)
+
+        client_id = primary.client_id
+        if any(p.client_id != client_id for p in proposals):
+            raise ValueError('All proposals must belong to the same client.')
+
+        Status = BusinessProposal.Status
+        now = timezone.now()
+        transitions = {}
+
+        for proposal in proposals:
+            old_status = proposal.status
+            update_fields = []
+
+            expires_past = (
+                proposal.expires_at is not None and proposal.expires_at <= now
+            )
+            if old_status == Status.DRAFT:
+                proposal.status = Status.SENT
+                proposal.sent_at = now
+                update_fields += ['status', 'sent_at']
+                if not proposal.expires_at:
+                    proposal.expires_at = now + timedelta(
+                        days=ProposalService.get_default_expiration_days(proposal.language),
+                    )
+                    update_fields.append('expires_at')
+                transitions[proposal.id] = 'sent'
+
+            elif old_status == Status.EXPIRED or expires_past:
+                proposal.expires_at = now + timedelta(
+                    days=ProposalService.get_default_expiration_days(proposal.language),
+                )
+                proposal.status = (
+                    Status.VIEWED if proposal.view_count > 0 else Status.SENT
+                )
+                proposal.sent_at = now
+                proposal.reminder_sent_at = None
+                proposal.urgency_email_sent_at = None
+                update_fields += [
+                    'status', 'sent_at', 'expires_at',
+                    'reminder_sent_at', 'urgency_email_sent_at',
+                ]
+                transitions[proposal.id] = 'reopened'
+
+            else:
+                proposal.sent_at = now
+                proposal.reminder_sent_at = None
+                proposal.urgency_email_sent_at = None
+                update_fields += [
+                    'sent_at', 'reminder_sent_at', 'urgency_email_sent_at',
+                ]
+                transitions[proposal.id] = 'resent'
+
+            if update_fields:
+                proposal.save(update_fields=update_fields)
+
+        from content.services.proposal_email_service import (
+            ProposalEmailService,
+            _delivery,
+        )
+
+        try:
+            delivery = ProposalEmailService.send_multi_proposal_to_client(proposals)
+        except Exception as exc:
+            logger.exception(
+                'Failed to send multi-proposal email for client %s', client_id,
+            )
+            delivery = _delivery(False, 'unexpected_error', str(exc)[:500])
+
+        for proposal in proposals:
+            ProposalService._schedule_email_tasks(proposal)
+
+        return {**delivery, 'transitions': transitions}
+
+    @staticmethod
     def reopen_if_unexpired(proposal, *, old_status):
         """
         Revert ``status`` from ``expired`` when ``expires_at`` is now in the future.

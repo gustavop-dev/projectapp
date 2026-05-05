@@ -79,7 +79,7 @@ EMAIL_TEMPLATE_REGISTRY = {
     # -----------------------------------------------------------------------
     'proposal_sent_client': {
         'name': 'Propuesta Enviada',
-        'description': 'Se envía cuando el vendedor envía la propuesta al cliente por primera vez.',
+        'description': 'Se envía cuando el vendedor envía la propuesta al cliente por primera vez. Adjunta el PDF comercial.',
         'category': 'client',
         'html_template': 'emails/proposal_sent_client.html',
         'txt_template': 'emails/proposal_sent_client.txt',
@@ -94,31 +94,151 @@ EMAIL_TEMPLATE_REGISTRY = {
                 'key': 'greeting',
                 'label': 'Saludo',
                 'type': 'text',
-                'default': 'Hola {client_name} \U0001f44b',
+                'default': 'Hola {client_name},',
             },
             {
                 'key': 'body',
                 'label': 'Cuerpo del mensaje',
                 'type': 'textarea',
                 'default': (
-                    'Hemos preparado una propuesta personalizada para tu proyecto. '
-                    'Dentro encontrarás todos los detalles: alcance, inversión, '
-                    'cronograma y próximos pasos.'
+                    'Espero que estés muy bien. Te comparto la propuesta comercial '
+                    'que hemos trabajado para tu proyecto. La hemos estructurado '
+                    'para que puedas tomar decisiones con la información completa '
+                    'sobre alcance, inversión y cronograma.'
+                ),
+            },
+            {
+                'key': 'closing',
+                'label': 'Cierre del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'Encontrarás el detalle de los requerimientos funcionales, el '
+                    'cronograma de ejecución, la metodología de trabajo y el detalle '
+                    'técnico de la solución. Cualquier duda, ajuste o tema que '
+                    'quieras conversar, agendamos una llamada cuando te quede '
+                    'cómodo.\n\nQuedo atento a tus comentarios.'
                 ),
             },
             {
                 'key': 'cta_text',
                 'label': 'Texto del botón',
                 'type': 'text',
-                'default': '\U0001f4cb Ver mi propuesta',
+                'default': '\U0001f4cb Ver propuesta completa',
             },
         ],
         'available_variables': [
             'client_name', 'title', 'total_investment', 'currency',
-            'days_remaining',
+            'days_remaining', 'email_intro', 'total_duration',
+            'payment_summary',
         ],
         'sample_context': {
             **_client_sample(),
+            'email_intro': (
+                'Esta primera fase contempla la construcción de la plataforma '
+                'base de tu firma: pantallas de inicio, registro, login y un '
+                'dashboard como punto de entrada al trabajo diario, junto con '
+                'el módulo central de elaboración guiada de demandas laborales.'
+            ),
+            'total_duration': 'Aproximadamente 1 mes',
+            'payment_summary': '40/30/30',
+            'payment_options': [
+                {'label': '40% al firmar el contrato', 'description': '$1.728.000 COP'},
+                {'label': '30% al aprobar el diseño final', 'description': '$1.296.000 COP'},
+                {'label': '30% al desplegar la plataforma', 'description': '$1.296.000 COP'},
+            ],
+        },
+    },
+
+    'proposal_multi_sent_client': {
+        'name': 'Propuesta Multi — Envío Conjunto',
+        'description': (
+            'Se envía cuando el vendedor envía 2+ propuestas del mismo '
+            'cliente como un único correo. Adjunta el PDF comercial de cada '
+            'propuesta seleccionada.'
+        ),
+        'category': 'client',
+        'html_template': 'emails/proposal_multi_sent_client.html',
+        'txt_template': 'emails/proposal_multi_sent_client.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\U0001f4cb {client_name}, tus propuestas comerciales — Project App',
+            },
+            {
+                'key': 'greeting',
+                'label': 'Saludo',
+                'type': 'text',
+                'default': 'Hola {client_name},',
+            },
+            {
+                'key': 'body',
+                'label': 'Cuerpo del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'Espero que estés muy bien. Te comparto las propuestas '
+                    'comerciales que hemos trabajado para tu proyecto. '
+                    'Las hemos estructurado en fases para que puedas tomar '
+                    'decisiones progresivas según tus prioridades y presupuesto.'
+                ),
+            },
+            {
+                'key': 'closing',
+                'label': 'Cierre del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'En todas las propuestas encontrarás el detalle de los '
+                    'requerimientos funcionales, el cronograma de ejecución, '
+                    'la metodología de trabajo y el detalle técnico de la '
+                    'solución. Cualquier duda, ajuste o tema que quieras '
+                    'conversar, agendamos una llamada cuando te quede '
+                    'cómodo.\n\nQuedo atento a tus comentarios.'
+                ),
+            },
+        ],
+        'available_variables': [
+            'client_name', 'phases_count',
+        ],
+        'sample_context': {
+            'client_name': 'Juan',
+            'phases_count': 2,
+            'phases': [
+                {
+                    'title': 'Fase 1 — Plataforma Jurídica',
+                    'email_intro': (
+                        'Esta primera fase contempla la construcción de la '
+                        'plataforma base de tu firma...'
+                    ),
+                    'proposal_url': 'https://projectapp.co/proposal/juan-fase-1',
+                    'total_investment': format_cop_email(4320000),
+                    'currency': 'COP',
+                    'total_duration': '1 mes',
+                    'payment_summary': '40/30/30',
+                    'payment_options': [
+                        {'label': '40% al firmar el contrato', 'description': '$1.728.000 COP'},
+                        {'label': '30% al aprobar el diseño final', 'description': '$1.296.000 COP'},
+                        {'label': '30% al desplegar la plataforma', 'description': '$1.296.000 COP'},
+                    ],
+                },
+                {
+                    'title': 'Fase 2 — Módulo de Vigilancia Judicial',
+                    'email_intro': (
+                        'La segunda fase suma a la plataforma un módulo que '
+                        'vigila automáticamente los procesos...'
+                    ),
+                    'proposal_url': 'https://projectapp.co/proposal/juan-fase-2',
+                    'total_investment': format_cop_email(14100000),
+                    'currency': 'COP',
+                    'total_duration': '2 meses',
+                    'payment_summary': '40/30/30',
+                    'payment_options': [
+                        {'label': '40% al firmar el contrato', 'description': '$5.640.000 COP'},
+                        {'label': '30% al aprobar el diseño final', 'description': '$4.230.000 COP'},
+                        {'label': '30% al desplegar el módulo', 'description': '$4.230.000 COP'},
+                    ],
+                },
+            ],
         },
     },
 

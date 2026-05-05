@@ -741,13 +741,16 @@ def download_proposal_pdf(request, proposal_uuid):
 def list_proposals(request):
     """
     List all proposals with lightweight serializer.
-    Supports ?status= query parameter for filtering.
+    Supports ?status= and ?client_id= query parameters for filtering.
     Includes heat_score (1-10) for active non-draft proposals.
     """
     qs = BusinessProposal.objects.select_related('client__user').all()
     status_filter = request.query_params.get('status')
     if status_filter:
         qs = qs.filter(status=status_filter)
+    client_id = request.query_params.get('client_id')
+    if client_id:
+        qs = qs.filter(client_id=client_id)
 
     proposals = list(qs)
     effective_totals = _build_effective_totals_map(proposals)
@@ -1674,6 +1677,98 @@ def send_proposal(request, proposal_id):
     )
 
     return _proposal_admin_response(request, proposal, delivery)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def send_multi_proposal(request, proposal_id):
+    """
+    Send a single email referencing 2+ proposals from the same client.
+
+    Body:
+        { "proposal_ids": [12, 15, 18] }
+
+    The path proposal is implicitly added if missing. All proposals must
+    belong to the same client.
+    """
+    primary = get_object_or_404(BusinessProposal, pk=proposal_id)
+
+    raw_ids = request.data.get('proposal_ids') or []
+    if not isinstance(raw_ids, list) or not raw_ids:
+        return Response(
+            {'error': 'proposal_ids debe ser una lista no vacía.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        ids = list(dict.fromkeys(int(x) for x in raw_ids))
+    except (TypeError, ValueError):
+        return Response(
+            {'error': 'proposal_ids debe contener solo enteros.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    MAX_PROPOSALS_PER_EMAIL = 10
+    if len(ids) > MAX_PROPOSALS_PER_EMAIL:
+        return Response(
+            {'error': f'No se pueden enviar más de {MAX_PROPOSALS_PER_EMAIL} propuestas en un solo correo.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if primary.client_id is None:
+        return Response(
+            {'error': 'La propuesta principal no tiene cliente asociado.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    selected = list(
+        BusinessProposal.objects
+        .filter(pk__in=ids, client_id=primary.client_id)
+        .prefetch_related('sections')
+    )
+    if len(selected) != len(ids):
+        return Response(
+            {'error': 'Algunas propuestas no existen o no pertenecen al mismo cliente.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    by_id = {p.id: p for p in selected}
+    seen = set()
+    ordered = []
+    if primary.id not in by_id:
+        ordered.append(primary)
+        seen.add(primary.id)
+    for pid in ids:
+        if pid in by_id and pid not in seen:
+            ordered.append(by_id[pid])
+            seen.add(pid)
+
+    if len(ordered) < 2:
+        return Response(
+            {'error': 'Se requieren al menos 2 propuestas para un envío conjunto.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    from content.services.proposal_service import ProposalService
+    try:
+        result = ProposalService.send_multi_proposals(ordered)
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    transitions = result.get('transitions', {})
+    titles = ', '.join(p.title for p in ordered)
+    for proposal in ordered:
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type='sent',
+            actor_type='seller',
+            description=(
+                f'Multi-envío a {primary.client_email}: {len(ordered)} '
+                f'propuestas ({titles}). Acción: {transitions.get(proposal.id, "")}.'
+            ),
+        )
+
+    return _proposal_admin_response(request, primary, result)
 
 
 @api_view(['POST'])
