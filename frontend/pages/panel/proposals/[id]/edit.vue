@@ -462,7 +462,7 @@
                 />
               </div>
               <div>
-                <label class="block text-xs font-medium text-text-muted mb-1">Email snapshot</label>
+                <label class="block text-xs font-medium text-text-muted mb-1">Email del cliente</label>
                 <BaseInput
                   id="edit-client-email"
                   v-model="form.client_email"
@@ -495,18 +495,6 @@
               </div>
             </div>
 
-            <!-- Propagate-to-profile checkbox -->
-            <label class="flex items-start gap-2 cursor-pointer">
-              <input
-                v-model="form.propagate_client_updates"
-                type="checkbox"
-                data-testid="edit-client-propagate"
-                class="mt-0.5 rounded border-gray-300 text-text-brand focus:ring-focus-ring/30"
-              />
-              <span class="text-xs text-text-muted/60">
-                Actualizar el perfil del cliente con estos cambios (también se reflejarán en sus otras propuestas).
-              </span>
-            </label>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -1748,7 +1736,6 @@ const form = reactive({
   client_email: '',
   client_phone: '',
   client_company: '',
-  propagate_client_updates: false,
   project_type: '',
   market_type: '',
   project_type_custom: '',
@@ -1921,7 +1908,6 @@ function hydrateFormFromProposal() {
     client_email: proposal.value.client_email || '',
     client_phone: proposal.value.client_phone || '',
     client_company: proposal.value.client?.company || '',
-    propagate_client_updates: false,
     project_type: proposal.value.project_type || '',
     market_type: proposal.value.market_type || '',
     project_type_custom: proposal.value.project_type_custom || '',
@@ -1978,7 +1964,7 @@ async function toggleAutomationsPaused() {
 }
 
 async function handleUpdate() {
-  const payload = { ...form };
+  const payload = { ...form, propagate_client_updates: true };
   if (payload.expires_at) {
     const d = new Date(payload.expires_at);
     payload.expires_at = isNaN(d.getTime()) ? null : d.toISOString();

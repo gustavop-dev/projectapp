@@ -1473,7 +1473,13 @@ def update_proposal(request, proposal_id):
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    serializer.save()
+    try:
+        serializer.save()
+    except ValueError as exc:
+        return Response(
+            {'client_email': [str(exc)]},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     from content.services.proposal_service import ProposalService
     reopened_status = ProposalService.reopen_if_unexpired(

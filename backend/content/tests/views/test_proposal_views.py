@@ -13,6 +13,7 @@ from django.urls import reverse
 from django.utils import timezone
 from freezegun import freeze_time
 
+from accounts.services import proposal_client_service
 from content.models import (
     BusinessProposal,
     ProposalChangeLog,
@@ -758,6 +759,61 @@ class TestAdminUpdateProposal:
         assert response.status_code == 200
         expired_proposal.refresh_from_db()
         assert expired_proposal.status == 'viewed'
+
+    def test_update_with_propagate_updates_canonical_client_email(
+        self, admin_client, proposal,
+    ):
+        client_profile = (
+            proposal_client_service.get_or_create_client_for_proposal(
+                name='Old Name', email='old@gmail.com',
+            )
+        )
+        proposal.client = client_profile
+        proposal.save(update_fields=['client'])
+        proposal_client_service.sync_snapshot(proposal)
+
+        url = reverse('update-proposal', kwargs={'proposal_id': proposal.id})
+        response = admin_client.patch(
+            url,
+            {
+                'client_email': 'new@gmail.com',
+                'propagate_client_updates': True,
+            },
+            format='json',
+        )
+
+        assert response.status_code == 200
+        proposal.refresh_from_db()
+        client_profile.refresh_from_db()
+        client_profile.user.refresh_from_db()
+        assert client_profile.user.email == 'new@gmail.com'
+        assert proposal.client_email == 'new@gmail.com'
+
+    def test_update_returns_400_when_email_collides_with_other_user(
+        self, admin_client, proposal,
+    ):
+        proposal_client_service.get_or_create_client_for_proposal(
+            name='Other', email='taken@gmail.com',
+        )
+        client_b = proposal_client_service.get_or_create_client_for_proposal(
+            name='Linked', email='linked@gmail.com',
+        )
+        proposal.client = client_b
+        proposal.save(update_fields=['client'])
+
+        url = reverse('update-proposal', kwargs={'proposal_id': proposal.id})
+        response = admin_client.patch(
+            url,
+            {
+                'client_email': 'taken@gmail.com',
+                'propagate_client_updates': True,
+            },
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'client_email' in response.data
+        assert 'taken@gmail.com' in response.data['client_email'][0]
 
 
 class TestAdminDeleteProposal:
