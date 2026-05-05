@@ -319,7 +319,7 @@ class Command(BaseCommand):
             content_markdown=(
                 '# CONTRATO DE PRESTACIÓN DE SERVICIOS\n\n'
                 'Entre **{client_full_name}** (C.C. {client_cedula}) y '
-                '**{contractor_full_name}** (C.C. {contractor_cedula}).\n\n'
+                '**{contractor_full_name}** (NIT {contractor_nit}).\n\n'
                 '**Correo contratante:** {client_email}\n\n'
                 '**Correo contratista:** {contractor_email}\n\n'
                 '**Ciudad:** {contract_city}\n\n'

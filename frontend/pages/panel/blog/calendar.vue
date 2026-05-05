@@ -163,6 +163,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useBlogStore } from '~/stores/blog';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 
 const localePath = useLocalePath();
 
@@ -263,4 +264,5 @@ async function fetchWeekData() {
 watch(weekOffset, () => { fetchWeekData(); });
 
 onMounted(() => { fetchWeekData(); });
+usePanelRefresh(fetchWeekData);
 </script>

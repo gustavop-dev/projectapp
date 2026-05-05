@@ -402,6 +402,7 @@ import { useBlogStore } from '~/stores/blog';
 const localePath = useLocalePath();
 import BlogContentRenderer from '~/components/blog/BlogContentRenderer.vue';
 import { resolveBlogPublishMode } from '~/utils/blogPublishMode.js';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -465,12 +466,7 @@ const linkedinMsg = ref('');
 const linkedinError = ref('');
 const isPublishingLinkedIn = ref(false);
 
-onMounted(async () => {
-  windowWidth.value = window.innerWidth;
-  window.addEventListener('resize', handleResize);
-  window.addEventListener('message', handleLinkedInMessage);
-  blogStore.fetchCategories();
-
+async function reloadPost() {
   const [result, liStatus] = await Promise.all([
     blogStore.fetchAdminPost(route.params.id),
     blogStore.fetchLinkedInStatus(),
@@ -481,6 +477,17 @@ onMounted(async () => {
   if (liStatus.success) {
     linkedinStatus.value = liStatus.data;
   }
+}
+
+usePanelRefresh(reloadPost);
+
+onMounted(async () => {
+  windowWidth.value = window.innerWidth;
+  window.addEventListener('resize', handleResize);
+  window.addEventListener('message', handleLinkedInMessage);
+  blogStore.fetchCategories();
+
+  await reloadPost();
   loaded.value = true;
 });
 

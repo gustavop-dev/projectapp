@@ -422,7 +422,7 @@ def contract_template(db):
         content_markdown=(
             '# CONTRATO DE PRESTACION DE SERVICIOS\n\n'
             'Entre {client_full_name}, CC {client_cedula}, y '
-            '{contractor_full_name}, CC {contractor_cedula}.\n\n'
+            '{contractor_full_name}, NIT {contractor_nit}.\n\n'
             'Ciudad: {contract_city}. Fecha: {contract_date}.'
         ),
         is_default=True,
@@ -462,7 +462,7 @@ def company_settings(db):
         pk=1,
         defaults={
             'contractor_full_name': 'CARLOS MARIO BLANCO PEREZ',
-            'contractor_cedula': '1.037.635.428',
+            'contractor_nit': '1.037.635.428',
             'contractor_email': 'team@projectapp.co',
             'bank_name': 'Bancolombia',
             'bank_account_type': 'Ahorros',

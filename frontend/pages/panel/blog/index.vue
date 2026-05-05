@@ -179,6 +179,7 @@
 import { computed, onMounted } from 'vue';
 import { useBlogStore } from '~/stores/blog';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import BasePagination from '~/components/base/BasePagination.vue';
 
 const localePath = useLocalePath();
@@ -214,9 +215,15 @@ function goToPage(page) {
   blogStore.fetchAdminPosts(page);
 }
 
+function refreshAdminPosts() {
+  return blogStore.fetchAdminPosts(blogStore.adminPagination.page || 1);
+}
+
 onMounted(() => {
   blogStore.fetchAdminPosts();
 });
+
+usePanelRefresh(refreshAdminPosts);
 
 function formatDate(dateStr) {
   if (!dateStr) return '—';

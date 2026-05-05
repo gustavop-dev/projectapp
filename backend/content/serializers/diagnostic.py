@@ -275,7 +275,7 @@ class ConfidentialityParamsSerializer(serializers.Serializer):
     client_legal_representative = serializers.CharField(required=False, allow_blank=True, max_length=255)
     client_email = serializers.CharField(required=False, allow_blank=True, max_length=255)
     contractor_full_name = serializers.CharField(required=False, allow_blank=True, max_length=255)
-    contractor_cedula = serializers.CharField(required=False, allow_blank=True, max_length=64)
+    contractor_nit = serializers.CharField(required=False, allow_blank=True, max_length=64)
     contractor_email = serializers.CharField(required=False, allow_blank=True, max_length=255)
     contract_city = serializers.CharField(required=False, allow_blank=True, max_length=120)
     contract_day = serializers.CharField(required=False, allow_blank=True, max_length=8)

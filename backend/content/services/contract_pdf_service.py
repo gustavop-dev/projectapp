@@ -70,7 +70,7 @@ def _build_params(raw_params: dict, draft: bool = False) -> dict:
         blank = _PLACEHOLDER_DRAFT
         return {
             'contractor_full_name': blank,
-            'contractor_cedula': blank,
+            'contractor_nit': blank,
             'contractor_email': blank,
             'bank_name': blank,
             'bank_account_type': blank,
@@ -84,7 +84,7 @@ def _build_params(raw_params: dict, draft: bool = False) -> dict:
     blank = _PLACEHOLDER_BLANK
     return {
         'contractor_full_name': raw_params.get('contractor_full_name', blank),
-        'contractor_cedula': raw_params.get('contractor_cedula', blank),
+        'contractor_nit': raw_params.get('contractor_nit', blank),
         'contractor_email': raw_params.get('contractor_email', blank),
         'bank_name': raw_params.get('bank_name', blank),
         'bank_account_type': raw_params.get('bank_account_type', 'Ahorros'),
@@ -295,7 +295,7 @@ def _draw_signature_block(c, y, params, ps, signature_path=None):
     c.drawString(col2_x, y, params.get('contractor_full_name', ''))
     y -= 12
     c.drawString(col1_x, y, f'C.C. {params.get("client_cedula", "")}')
-    c.drawString(col2_x, y, f'C.C. {params.get("contractor_cedula", "")}')
+    c.drawString(col2_x, y, f'NIT {params.get("contractor_nit", "")}')
 
     return y
 

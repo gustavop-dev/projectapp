@@ -42,7 +42,7 @@ const mockProposal = {
   proposal_documents: [existingContractDoc],
   contract_params: {
     contractor_full_name: 'Carlos Dev',
-    contractor_cedula: '1234567890',
+    contractor_nit: '1234567890',
     contractor_email: 'carlos@projectapp.co',
     bank_name: 'Bancolombia',
     bank_account_type: 'Ahorros',
@@ -58,7 +58,7 @@ const mockProposal = {
 
 const companySettings = {
   contractor_full_name: 'Carlos Dev',
-  contractor_cedula: '1234567890',
+  contractor_nit: '1234567890',
   contractor_email: 'carlos@projectapp.co',
   bank_name: 'Bancolombia',
   bank_account_type: 'Ahorros',

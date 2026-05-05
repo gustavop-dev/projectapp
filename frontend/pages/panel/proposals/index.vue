@@ -610,19 +610,6 @@
         </div>
       </Transition>
     </Teleport>
-
-    <!-- Floating refresh button (corner on mobile, above MetricsManual ? on desktop) -->
-    <button
-      type="button"
-      class="fixed bottom-4 right-4 sm:bottom-[76px] sm:right-6 z-50 w-12 h-12 rounded-full bg-primary hover:bg-primary-strong text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 disabled:opacity-50 flex items-center justify-center dark:bg-primary-strong dark:hover:bg-primary"
-      :disabled="isRefreshing"
-      :title="isRefreshing ? 'Actualizando...' : 'Actualizar datos'"
-      @click="refreshData"
-    >
-      <svg class="w-5 h-5" :class="{ 'animate-spin': isRefreshing }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-      </svg>
-    </button>
   </div>
 </template>
 
@@ -634,6 +621,7 @@ import ContractParamsModal from '~/components/BusinessProposal/admin/ContractPar
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ProposalFilterPanel from '~/components/proposals/ProposalFilterPanel.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useProposalFilters } from '~/composables/useProposalFilters';
 
 const localePath = useLocalePath();
@@ -1081,6 +1069,8 @@ async function refreshData() {
     isRefreshing.value = false;
   }
 }
+
+usePanelRefresh(refreshData);
 
 onMounted(async () => {
   proposalStore.fetchProposals();

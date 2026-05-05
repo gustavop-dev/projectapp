@@ -54,7 +54,7 @@ _PARAM_KEYS = (
     'client_legal_representative',
     'client_email',
     'contractor_full_name',
-    'contractor_cedula',
+    'contractor_nit',
     'contractor_email',
     'contract_city',
     'contract_day',
@@ -265,7 +265,7 @@ def _draw_signature_block(c, y, params, ps):
     c.drawString(col2_x, y, params.get('contractor_full_name', ''))
     y -= 12
     c.drawString(col1_x, y, f'C.C./NIT {params.get("client_cedula", "")}')
-    c.drawString(col2_x, y, f'C.C./NIT {params.get("contractor_cedula", "")}')
+    c.drawString(col2_x, y, f'NIT {params.get("contractor_nit", "")}')
 
     return y
 

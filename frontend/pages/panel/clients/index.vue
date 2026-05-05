@@ -521,6 +521,7 @@ import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useClientFilters } from '~/composables/useClientFilters';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge';
 import { usePagination } from '~/composables/usePagination';
 import { useProposalClientsStore } from '~/stores/proposalClients';
@@ -618,6 +619,8 @@ onMounted(() => {
   loadClients();
   document.addEventListener('keydown', handleEditEscape);
 });
+
+usePanelRefresh(loadClients);
 onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer);
   document.removeEventListener('keydown', handleEditEscape);

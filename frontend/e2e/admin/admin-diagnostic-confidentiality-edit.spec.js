@@ -25,7 +25,7 @@ const savedParams = {
   client_legal_representative: 'Juan Gómez',
   client_email: 'juan@betacorp.co',
   contractor_full_name: 'Project App SAS',
-  contractor_cedula: '900.123.456-7',
+  contractor_nit: '900.123.456-7',
   contractor_email: 'team@projectapp.co',
   contract_city: 'Medellín',
   contract_day: '5',

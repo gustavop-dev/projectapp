@@ -176,6 +176,7 @@ import TaskColumn from '~/components/Tasks/TaskColumn.vue';
 import TaskFormModal from '~/components/Tasks/TaskFormModal.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -238,9 +239,12 @@ function priorityDot(priority) {
   return 'bg-gray-300 dark:bg-white/20';
 }
 
-onMounted(() => {
-  Promise.all([taskStore.fetchAllBoards(), taskStore.fetchAssignees()]);
-});
+function loadTasks() {
+  return Promise.all([taskStore.fetchAllBoards(), taskStore.fetchAssignees()]);
+}
+
+onMounted(loadTasks);
+usePanelRefresh(loadTasks);
 
 function openCreate(status) {
   editingTask.value = null;

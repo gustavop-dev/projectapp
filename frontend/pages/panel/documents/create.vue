@@ -270,6 +270,7 @@
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue';
 import TagSelector from '~/components/panel/documents/TagSelector.vue';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 const { parseMarkdown } = useMarkdownPreview();
 
 const localePath = useLocalePath();
@@ -296,6 +297,8 @@ const form = reactive({
   folder_id: null,
   tag_ids: [],
 });
+
+usePanelRefresh(() => Promise.all([folderStore.fetchFolders(), tagStore.fetchTags()]));
 
 onMounted(async () => {
   await Promise.all([folderStore.fetchFolders(), tagStore.fetchTags()]);

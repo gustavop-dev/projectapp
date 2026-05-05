@@ -258,6 +258,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
 import { useBlogStore } from '~/stores/blog';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 
 const localePath = useLocalePath();
 
@@ -272,6 +273,8 @@ const scheduledDate = ref('');
 onMounted(() => {
   blogStore.fetchCategories();
 });
+
+usePanelRefresh(() => blogStore.fetchCategories());
 
 // -------------------------------------------------------------------------
 // MANUAL mode

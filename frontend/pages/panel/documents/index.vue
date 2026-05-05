@@ -355,6 +355,7 @@ import MoveFolderModal from '~/components/panel/documents/MoveFolderModal.vue';
 import { tagBadgeClass, tagDotClass } from '~/utils/documentTagColors.js';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { usePagination } from '~/composables/usePagination';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -411,13 +412,16 @@ const otherFoldersCount = computed(() => {
   return folderStore.folders.reduce((sum, f) => sum + (f.document_count || 0), 0);
 });
 
-onMounted(async () => {
+async function loadDocuments() {
   await Promise.all([
     documentStore.fetchDocuments(),
     folderStore.fetchFolders(),
     tagStore.fetchTags(),
   ]);
-});
+}
+
+onMounted(loadDocuments);
+usePanelRefresh(loadDocuments);
 
 function handleSelectFolder(id) {
   documentStore.setFilters({ folder: id });

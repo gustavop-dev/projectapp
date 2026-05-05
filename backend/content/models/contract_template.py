@@ -14,7 +14,7 @@ class ContractTemplate(models.Model):
 
     name = models.CharField(max_length=255)
     content_markdown = models.TextField(
-        help_text='Markdown text. Use {client_full_name}, {contractor_cedula}, etc. for placeholders.',
+        help_text='Markdown text. Use {client_full_name}, {contractor_nit}, etc. for placeholders.',
     )
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -143,6 +143,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePortfolioWorksStore } from '~/stores/portfolio_works';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 
 const localePath = useLocalePath();
 
@@ -191,11 +192,14 @@ function populateForm(w) {
     ? JSON.stringify(w.content_json_en, null, 2) : '{}';
 }
 
-onMounted(async () => {
+async function reloadWork() {
   const id = Number(route.params.id);
   await portfolioStore.fetchAdminWork(id);
   populateForm(work.value);
-});
+}
+
+onMounted(reloadWork);
+usePanelRefresh(reloadWork);
 
 watch(work, (w) => { if (w) populateForm(w); });
 

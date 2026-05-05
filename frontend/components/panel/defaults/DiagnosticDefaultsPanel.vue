@@ -279,6 +279,7 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import PanelToast from '~/components/panel/PanelToast.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelToast } from '~/composables/usePanelToast';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 import { toSlug } from '~/utils/slugify';
 
@@ -443,4 +444,6 @@ function confirmReset() {
 onMounted(() => {
   loadDefaults(generalForm.value.language);
 });
+
+usePanelRefresh(() => loadDefaults(generalForm.value.language));
 </script>

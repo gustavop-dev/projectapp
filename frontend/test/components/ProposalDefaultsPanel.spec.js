@@ -40,6 +40,11 @@ jest.mock('../../composables/useConfirmModal', () => ({
   useConfirmModal: () => mockConfirmModal,
 }));
 
+let capturedRefreshHandler = null;
+jest.mock('../../composables/usePanelRefresh', () => ({
+  usePanelRefresh: (fn) => { capturedRefreshHandler = fn; },
+}));
+
 jest.mock('../../composables/useSellerPrompt', () => {
   const { ref } = require('vue');
   return {
@@ -976,13 +981,15 @@ describe('ProposalDefaultsPanel', () => {
   // ── refreshData ───────────────────────────────────────────────────────────
 
   describe('refreshData', () => {
-    it('calls fetchProposalDefaults again when the floating refresh button is clicked', async () => {
-      const wrapper = mountPanel();
+    it('registers a handler that re-fetches defaults when invoked', async () => {
+      capturedRefreshHandler = null;
+      mountPanel();
       await flushPromises();
 
       mockProposalStore.fetchProposalDefaults.mockClear();
+      expect(typeof capturedRefreshHandler).toBe('function');
 
-      await wrapper.find('button[title="Actualizar datos"]').trigger('click');
+      await capturedRefreshHandler();
       await flushPromises();
 
       expect(mockProposalStore.fetchProposalDefaults).toHaveBeenCalled();

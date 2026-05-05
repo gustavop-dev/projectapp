@@ -298,7 +298,7 @@ class ContractParamsSerializer(serializers.Serializer):
     client_cedula = serializers.CharField(max_length=30)
     client_email = serializers.EmailField(required=False, default='')
     contractor_full_name = serializers.CharField(max_length=255, required=False, default='')
-    contractor_cedula = serializers.CharField(max_length=30, required=False, default='')
+    contractor_nit = serializers.CharField(max_length=30, required=False, default='')
     contractor_email = serializers.EmailField(required=False, default='')
     bank_name = serializers.CharField(max_length=100, required=False, default='')
     bank_account_type = serializers.ChoiceField(

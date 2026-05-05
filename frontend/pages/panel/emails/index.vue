@@ -300,6 +300,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import draggable from 'vuedraggable';
 import { useEmailStore } from '~/stores/emails';
 import { validateEmailAttachments } from '~/utils/emailAttachments';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 
 definePageMeta({ layout: 'admin' });
 
@@ -443,7 +444,10 @@ function formatDate(isoString) {
   });
 }
 
-onMounted(() => {
-  Promise.all([loadDefaults(), emailStore.fetchHistory()]);
-});
+function refreshEmails() {
+  return Promise.all([loadDefaults(), emailStore.fetchHistory(1)]);
+}
+
+onMounted(refreshEmails);
+usePanelRefresh(refreshEmails);
 </script>

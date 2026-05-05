@@ -4655,6 +4655,24 @@ class TestProposalJsonTemplate:
         assert 'integration_international_payments' in autoselect
         assert 'Stripe' in autoselect
 
+    def test_template_includes_roi_projection_section(self, admin_client):
+        response = admin_client.get('/api/proposals/json-template/?lang=es')
+        assert response.status_code == 200
+        assert 'roiProjection' in response.data
+        roi = response.data['roiProjection']
+        assert 'kpis' in roi
+        assert 'scenarios' in roi
+        assert 'scenariosTitle' in roi
+        assert 'ctaNote' in roi
+
+    def test_seller_prompt_includes_roi_projection_guidance(self, admin_client):
+        response = admin_client.get('/api/proposals/json-template/?lang=es')
+        assert 'CRITICAL_roiProjection' in response.data['_seller_prompt']
+        roi_guidance = response.data['_seller_prompt']['CRITICAL_roiProjection']
+        assert 'kpis' in roi_guidance
+        assert 'scenarios' in roi_guidance
+        assert 'emphasis' in roi_guidance
+
 
 # ── Bulk action ────────────────────────────────────────────────────────────
 

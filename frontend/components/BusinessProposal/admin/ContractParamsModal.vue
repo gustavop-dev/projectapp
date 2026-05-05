@@ -37,8 +37,8 @@
                     <BaseInput v-model="form.contractor_full_name" type="text" size="sm" />
                   </div>
                   <div>
-                    <label class="block text-xs text-text-muted mb-1">Cedula</label>
-                    <BaseInput v-model="form.contractor_cedula" type="text" size="sm" />
+                    <label class="block text-xs text-text-muted mb-1">NIT</label>
+                    <BaseInput v-model="form.contractor_nit" type="text" size="sm" />
                   </div>
                   <div>
                     <label class="block text-xs text-text-muted mb-1">Email de notificacion</label>
@@ -222,7 +222,7 @@ const previewHtml = computed(() => DOMPurify.sanitize(parseMarkdown(debouncedMar
 
 const form = ref({
   contractor_full_name: '',
-  contractor_cedula: '',
+  contractor_nit: '',
   contractor_email: '',
   bank_name: '',
   bank_account_type: 'Ahorros',
@@ -251,7 +251,7 @@ function resetForm() {
 
   form.value = {
     contractor_full_name: existing.contractor_full_name || defaults.contractor_full_name || '',
-    contractor_cedula: existing.contractor_cedula || defaults.contractor_cedula || '',
+    contractor_nit: existing.contractor_nit || defaults.contractor_nit || '',
     contractor_email: existing.contractor_email || defaults.contractor_email || '',
     bank_name: existing.bank_name || defaults.bank_name || '',
     bank_account_type: existing.bank_account_type || defaults.bank_account_type || 'Ahorros',

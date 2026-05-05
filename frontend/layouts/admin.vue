@@ -75,6 +75,12 @@
       </div>
       <slot />
     </main>
+
+    <PanelRefreshButton
+      v-if="refreshStore.hasHandler"
+      :loading="refreshStore.isRefreshing"
+      @click="refreshStore.trigger()"
+    />
   </div>
 </template>
 
@@ -84,8 +90,12 @@ import { useDarkMode, themeToggleLabel } from '~/composables/useDarkMode'
 import { usePanelSidebar } from '~/composables/usePanelSidebar'
 import { getPanelNavSections } from '~/config/panelNav'
 import { isPanelNavItemActive } from '~/utils/panelNavActive'
+import { usePanelRefreshStore } from '~/stores/panel_refresh'
 import PanelSidebar from '~/components/panel/PanelSidebar.vue'
 import PanelMobileDrawer from '~/components/panel/PanelMobileDrawer.vue'
+import PanelRefreshButton from '~/components/panel/PanelRefreshButton.vue'
+
+const refreshStore = usePanelRefreshStore()
 
 const localePath = useLocalePath()
 const route = useRoute()

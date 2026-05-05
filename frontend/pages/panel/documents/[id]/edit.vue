@@ -285,6 +285,7 @@
 import { reactive, ref, computed, onMounted } from 'vue';
 import TagSelector from '~/components/panel/documents/TagSelector.vue';
 import MarkdownPreviewModal from '~/components/panel/documents/MarkdownPreviewModal.vue';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 const { parseMarkdown } = useMarkdownPreview();
 
 const localePath = useLocalePath();
@@ -331,7 +332,7 @@ const statusLabel = computed(
   () => statusOptions.find((option) => option.value === form.status)?.label || '',
 );
 
-onMounted(async () => {
+async function reloadDocument() {
   const id = route.params.id;
   const [result] = await Promise.all([
     documentStore.fetchDocument(id),
@@ -352,7 +353,10 @@ onMounted(async () => {
   } else {
     loadError.value = true;
   }
-});
+}
+
+onMounted(reloadDocument);
+usePanelRefresh(reloadDocument);
 
 function formatError(errors) {
   if (errors && typeof errors === 'object') {

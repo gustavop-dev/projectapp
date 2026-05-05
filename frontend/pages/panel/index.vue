@@ -302,6 +302,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { getPanelNavSections } from '~/config/panelNav';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -349,12 +350,19 @@ const discountDelta = computed(() => {
   return Math.round((d - n) * 10) / 10;
 });
 
-onMounted(async () => {
-  await proposalStore.fetchProposals();
-  const result = await proposalStore.fetchProposalDashboard();
-  if (result.success) kpis.value = result.data;
-  loading.value = false;
-});
+async function loadDashboard() {
+  loading.value = true;
+  try {
+    await proposalStore.fetchProposals();
+    const result = await proposalStore.fetchProposalDashboard();
+    if (result.success) kpis.value = result.data;
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(loadDashboard);
+usePanelRefresh(loadDashboard);
 
 function rejectionBarWidth(count) {
   return Math.round((count / maxRejectionCount.value) * 100);

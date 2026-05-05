@@ -75,7 +75,7 @@ class TestGenerateContractPdf:
                 'client_full_name': 'Test Client',
                 'client_cedula': '123456',
                 'contractor_full_name': 'Contractor',
-                'contractor_cedula': '654321',
+                'contractor_nit': '654321',
                 'contract_date': '2026-04-02',
             },
             pk=1,
@@ -133,7 +133,7 @@ class TestDraftMode:
                 'client_full_name': 'Test Client',
                 'client_cedula': '123456',
                 'contractor_full_name': 'Contractor',
-                'contractor_cedula': '654321',
+                'contractor_nit': '654321',
             },
             pk=10,
         )
@@ -151,7 +151,7 @@ class TestDraftMode:
                 'client_full_name': 'Test Client',
                 'client_cedula': '123456',
                 'contractor_full_name': 'Contractor',
-                'contractor_cedula': '654321',
+                'contractor_nit': '654321',
             },
             pk=11,
         )
@@ -170,7 +170,7 @@ class TestDraftMode:
                     'client_full_name': 'C',
                     'client_cedula': '1',
                     'contractor_full_name': 'X',
-                    'contractor_cedula': '2',
+                    'contractor_nit': '2',
                 },
                 pk=12,
             )
@@ -201,7 +201,7 @@ class TestSignatureRendering:
                     'client_full_name': 'Client',
                     'client_cedula': '111',
                     'contractor_full_name': 'Contractor',
-                    'contractor_cedula': '222',
+                    'contractor_nit': '222',
                 },
                 pk=20,
             )
@@ -224,7 +224,7 @@ class TestSignatureRendering:
                     'client_full_name': 'Client',
                     'client_cedula': '111',
                     'contractor_full_name': 'Contractor',
-                    'contractor_cedula': '222',
+                    'contractor_nit': '222',
                 },
                 pk=21,
             )
@@ -262,7 +262,7 @@ class TestContractSpecialChars:
                 'client_full_name': 'Julián Andrés Ñoño García',
                 'client_cedula': '1234567890',
                 'contractor_full_name': 'María José Peñaloza Ruíz',
-                'contractor_cedula': '9876543210',
+                'contractor_nit': '9876543210',
             },
             pk=30,
         )
@@ -278,7 +278,7 @@ class TestContractSpecialChars:
                 'client_full_name': 'Client',
                 'client_cedula': '1',
                 'contractor_full_name': 'Contractor',
-                'contractor_cedula': '2',
+                'contractor_nit': '2',
                 'bank_account_number': '9' * 30,  # unusually long account number
             },
             pk=31,
@@ -314,7 +314,7 @@ class TestDefaultTemplateIntegrity:
             'client_full_name': 'Test Client',
             'client_cedula': '123',
             'contractor_full_name': 'Test Contractor',
-            'contractor_cedula': '456',
+            'contractor_nit': '456',
         })
         result = self.template.content_markdown.format(**params)
         assert '{' not in result or '{{' in self.template.content_markdown

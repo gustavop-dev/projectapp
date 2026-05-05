@@ -559,6 +559,7 @@ import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import { DocumentDuplicateIcon, CheckIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelToast } from '~/composables/usePanelToast';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { getDiagnosticNextAction } from '~/utils/diagnosticNextAction';
 import { toSlug } from '~/utils/slugify';
 
@@ -1169,6 +1170,7 @@ function onDelete() {
 }
 
 onMounted(() => store.fetchDetail(id.value));
+usePanelRefresh(() => store.fetchDetail(id.value));
 onUnmounted(() => {
   if (urlCopiedTimer) clearTimeout(urlCopiedTimer);
   if (jsonCopiedTimer) clearTimeout(jsonCopiedTimer);

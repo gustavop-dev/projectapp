@@ -31,7 +31,7 @@ class TestSaveContractAndNegotiate:
                 'client_cedula': '123456789',
                 'client_full_name': 'Test Client',
                 'contractor_full_name': 'Contractor',
-                'contractor_cedula': '987654321',
+                'contractor_nit': '987654321',
                 'contract_source': 'default',
             }
         }
@@ -359,7 +359,7 @@ class TestUpdateContractParams:
                 'client_cedula': '9876543210',
                 'client_email': 'updated@client.com',
                 'contractor_full_name': 'Contractor',
-                'contractor_cedula': '1037635428',
+                'contractor_nit': '1037635428',
                 'contractor_email': 'team@projectapp.co',
                 'bank_name': 'Bancolombia',
                 'bank_account_type': 'Ahorros',

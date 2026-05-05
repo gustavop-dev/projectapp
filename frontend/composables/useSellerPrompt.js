@@ -62,11 +62,12 @@ La propuesta no es una lista de secciones independientes. Es un flujo narrativo:
 Resumen ejecutivo (la promesa)
     → Contexto y diagnóstico (el problema + urgencia)
         → Estrategia de conversión (la solución)
-            → Requerimientos funcionales (lo tangible que se entrega)
-                → Incluido sin costo (módulos base que refuerzan valor percibido)
-                    → Inversión (el precio, ya anclado en valor)
-                        → Cronograma (certidumbre de ejecución)
-                            → Nota final (visión de futuro + llamado a la acción)
+            → Proyección de retorno (ROI: KPIs + escenarios que anclan valor)
+                → Requerimientos funcionales (lo tangible que se entrega)
+                    → Incluido sin costo (módulos base que refuerzan valor percibido)
+                        → Inversión (el precio, ya anclado en valor)
+                            → Cronograma (certidumbre de ejecución)
+                                → Nota final (visión de futuro + llamado a la acción)
 \`\`\`
 
 ### 6. Escribe como si hablaras con el dueño del negocio
@@ -126,7 +127,19 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 | \`steps[].bullets\` | array de strings | **Mínimo 2, máximo 3 por step.** Cada bullet: 1 frase concreta (~8-20 palabras). |
 | \`result\` | string | **1-2 oraciones.** El resultado de negocio esperado. Máx ~200 caracteres. |
 
-#### \`investment\` 
+#### \`roiProjection\`
+| Campo | Tipo | Restricción |
+|---|---|---|
+| \`index\` | string | NO modificar. Valor por defecto: \`"4"\`. |
+| \`title\` | string | ≤80 chars. Adaptar al sector del cliente (ej. "Proyección de retorno y beneficios"). |
+| \`subtitle\` | string | ≤200 chars. 1 oración que enmarca el bloque y conecta con el modelo financiero. |
+| \`kpis\` | array de objetos | **Mínimo 3, máximo 4 KPIs.** Cada uno: \`icon\` (emoji), \`value\` (formato corto: "+90K", "$34M", "3x"), \`label\` (1 frase entendible por una persona NO financiera — sin jerga: en vez de "+12% MRR" escribe "de cada 100 visitas, 3 reservan"; en vez de "−40% churn" escribe "se quedan 4 de cada 10 clientes que antes se iban"), \`sublabel\` (~3-6 palabras opcional, ej. "mes 6"), \`source\` (**OBLIGATORIO** y verificable: nombre real del reporte/estudio o ley + organización + año, ej. "IHRSA Global Report 2023", "HubSpot State of Marketing 2024", "Clio Legal Trends Report 2023", "Ley 2213 de 2022 (Congreso de Colombia)"). **REGLA DURA: si no hay reporte/estudio/ley con año, NO ES UN KPI — ES UNA PROMESA. ELIMÍNALO.** No vale "Benchmark sectorial", "Estudio interno", "Datos del mercado" sin nombre y año. Mejor 3 KPIs bien sourced que 4 con fuentes vagas. |
+| \`scenariosTitle\` | string | ≤60 chars. Default: "Escenarios proyectados". |
+| \`scenarios\` | array de objetos | **Exactamente 3 escenarios** en orden: conservador, realista, optimista. Cada uno: \`name\` (machine name en snake_case: \`"conservative"\`, \`"realistic"\`, \`"optimistic"\`), \`label\` (display name: "Conservador", "Realista", "Optimista"), \`icon\` (emoji), \`metrics\` (array de 3-5 métricas). |
+| \`scenarios[].metrics\` | array de objetos | **Mínimo 3, máximo 5 por escenario.** Cada métrica: \`label\` (~3-6 palabras), \`value\` (string corto), \`emphasis\` (boolean: \`true\` SOLO en la métrica más importante del escenario, normalmente el ingreso anual proyectado). Las métricas deben ser **paralelas entre escenarios** (mismas \`label\`s, distintos \`value\`s) para que el cliente pueda comparar. |
+| \`ctaNote\` | string | ≤200 chars. 1 oración con tono consultivo y honesto que conecte la proyección con la inversión (ej. "Estos números son proyecciones basadas en benchmarks reales del sector — no promesas."). Acepta Markdown ligero. |
+
+#### \`investment\`
 | Campo | Tipo | Restricción |
 |---|---|---|
 | \`totalInvestment\` | string | Formato: "$X.XXX.XXX" con puntos como separador de miles colombiano. |
@@ -307,7 +320,33 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 - \`result\`: Una frase que cierre con visión. No solo "un sitio bonito", sino el resultado de negocio: más ventas, más clientes, más profesionalismo.
 - **Formato con negrillas:** En \`intro\`, usa \`<b>texto</b>\` para resaltar el concepto estratégico principal. En los \`title\` de cada step, resalta la acción clave con \`<b>\`. En \`result\`, destaca el resultado de negocio más impactante. Máximo 1-2 fragmentos en negrilla por campo.
 
-### \`investment\` 
+### \`roiProjection\`
+- Es la sección que **ancla la inversión en valor antes de mostrar el precio**. Va inmediatamente antes de \`investment\` en el flujo narrativo.
+- \`kpis\`: 3-4 métricas de impacto de negocio (no técnicas) relevantes al sector y proyecto del cliente, **escritas en lenguaje que entienda una persona NO financiera** — sin "MRR", "LTV", "CAC", "churn", "conv. rate". Ejemplos por sector (formato KPI no-financiero):
+  - **E-commerce:** "De cada 100 visitas, 3 hacen una compra"; "Cada cliente compra 2.4 veces al año en promedio".
+  - **Servicios profesionales:** "Por cada 10 personas que cotizan, 2 contratan"; "Cada cliente se queda activo 18 meses en promedio".
+  - **Inmobiliaria:** "1 de cada 8 visitas web agenda un tour"; "Costo de captar un lead calificado: $45.000".
+- **Regla dura sobre \`source\`:** cada KPI necesita un **reporte / estudio / ley con nombre real + organización + año**, escrito **en español siempre que exista equivalente natural**. Si el reporte es publicado solo en inglés, usa una descripción en español del estudio + año entre comillas (no traduzcas siglas de organizaciones).
+- **Prioridad de origen — colombiano > LATAM > internacional.** Como ProjectApp construye software a la medida para clientes colombianos y latinoamericanos en cualquier sector (comercio, salud, educación, construcción, banca, agro, transporte, turismo, manufactura, servicios profesionales, deporte, legal, etc.), las fuentes deben venir del entorno del cliente.
+- **Categorías sugeridas (NO es una lista cerrada — son puntos de partida).** Tienes libertad de citar otra fuente que no esté aquí siempre que sea **real, con nombre + año, y que el vendedor pueda verificarla con una búsqueda en Google**. Las categorías comunes son:
+  - **Estatales colombianos transversales:** DANE (TIC, hogares, comercio, industria), Banco de la República (macro), Mintic (digital y gobierno), DNP (políticas públicas y encuestas nacionales), Confecámaras, Procolombia.
+  - **Superintendencias y reguladores colombianos según sector:** Financiera, Industria y Comercio (SIC), Salud, Sociedades, Servicios Públicos, Transporte, Subsidio Familiar, Notariado y Registro, Educación, etc.
+  - **Ministerios sectoriales:** el ministerio que corresponda al sector del cliente (MinSalud, MinEducación, MinTransporte, MinAgricultura, MinComercio Industria y Turismo, MinJusticia, MinTrabajo, MinVivienda, MinDeporte, MinCultura, etc.).
+  - **Gremios y asociaciones colombianas según sector:** Fenalco (comercio), ANDI (industria), ANIF (financiero/sectorial), Acopi (pymes), Camacol (construcción), Asobancaria, Anato (turismo), Cotelco (hotelería), Andesco, FedeArroz, Fedegan, Asocolflores, etc.
+  - **Cámaras de Comercio regionales** (Bogotá, Medellín, Cali, Barranquilla, Cartagena, Bucaramanga, etc.) — sus observatorios económicos por ciudad o región.
+  - **Universidades colombianas con observatorios sectoriales:** Andes (CEDE), Rosario, Javeriana, EAFIT, Externado, Nacional, EIA, etc.
+  - **Medios económicos / periodísticos reconocidos** (cuando publican una cifra de un estudio o entrevista citables): Portafolio, La República, El Tiempo (sección Economía), Semana / Dinero, Valora Analitik, BloombergLínea, BNamericas, América Economía, Forbes Colombia / Forbes LATAM, Reuters, El Espectador (sección negocios), Revista P&M, La Silla Vacía. Cuando uses un medio, cita el nombre del medio + año + idealmente el reporte/estudio que el medio menciona.
+  - **LATAM regional:** CEPAL, BID, Felaban, AMVO (e-commerce LATAM), IAB Colombia / IAB LATAM (publicidad digital), CCCE (Cámara Colombiana de Comercio Electrónico), reportes regionales de gremios internacionales (ej. corte LATAM de un informe global).
+  - **Marco legal colombiano** cuando una ley, decreto o resolución del Congreso / Presidencia / ente regulador es relevante.
+  - **Otras fuentes verificables** (consultoras locales, think tanks, observatorios privados, papers académicos LATAM, etc.) — son válidas si tienen nombre + año y son rastreables.
+- **Internacionales (US / Europa / global)** solo cuando no exista equivalente colombiano o LATAM publicado para ese dato específico, y entonces **máximo una vez por bloque de KPIs**, marcando en \`sublabel\` "referente internacional aplicable".
+- **Test de verificabilidad:** si el vendedor copia el texto de \`source\` en Google y no encuentra nada que respalde la cifra, esa fuente no es válida. Sin fuente real con año, NO entra. Es preferible eliminar el KPI que dejar uno con \`"Benchmark sectorial"\`, \`"Estudio interno"\`, \`"Datos del mercado"\` o cualquier fuente vaga sin nombre y año. Mejor 3 KPIs bien sustentados (y locales al sector del cliente) que 4 con humo o con data de otro continente.
+- \`scenarios\`: exactamente 3 escenarios (conservador / realista / optimista). Las métricas dentro de cada escenario deben ser **paralelas** (mismas \`label\`s, distintos \`value\`s) para que el cliente pueda comparar fila a fila.
+- En cada escenario, marca \`emphasis: true\` en **una sola** métrica (la más relevante para el negocio, normalmente el ingreso anual proyectado o el MRR objetivo). El resto va sin \`emphasis\`.
+- \`ctaNote\`: tono consultivo y honesto. NO prometas resultados. Frasea como proyección basada en benchmarks. Personaliza con el nombre del cliente cuando aplique.
+- **Formato con negrillas:** En \`subtitle\` y \`ctaNote\`, usa \`<b>texto</b>\` para resaltar la cifra/concepto principal. Máximo 1-2 fragmentos en negrilla por campo.
+
+### \`investment\`
 - \`paymentOptions\`: Calcula los porcentajes (40% / 30% / 30%) sobre el monto total y escríbelos en la \`description\` de cada opción en formato "$X.XXX.XXX COP".
 - \`whatsIncluded\`: Adapta las descripciones al proyecto específico. No dejes textos genéricos.
 - \`valueReasons\`: Razones que justifiquen el precio ANTES de que el cliente lo cuestione. Incluye diferenciadores: "diseñado a medida para el sector X", "integración con pasarela de pago colombiana", etc.
@@ -372,6 +411,8 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 - No uses lenguaje genérico que podría aplicar a cualquier negocio. Cada frase debe gritar "esto fue hecho para ESTE cliente".
 - No dejes campos vacíos ni con texto placeholder **en las secciones comerciales**; la única excepción es \`sections.technicalDocument\`, donde los vacíos según plantilla están permitidos hasta completar el paso 2 (prompt «Detalle técnico»).
 - No inventes métricas. Si no tienes un dato, busca uno real del sector o usa un rango conservador con fuente.
+- No inventes KPIs ni escenarios en \`roiProjection\`. **Si un KPI no tiene reporte/estudio/ley con nombre + organización + año en \`source\`, ELIMÍNALO — es una promesa, no un dato.** Mejor 3 KPIs bien sustentados que 4 con fuentes vagas. Las métricas de escenarios deben ser paralelas (mismas \`label\`s) y solo UNA puede llevar \`emphasis: true\` por escenario.
+- Las \`label\`s de los KPIs y de las métricas de escenarios se leen como las leería el cliente: usa lenguaje natural, no jerga financiera. "Ingresos al mes" en vez de "MRR"; "clientes que se quedan" en vez de "retención"; "de cada 100 visitas, 3 reservan" en vez de "tasa de conversión 3%".
 - No elimines grupos de \`functionalRequirements\` que tengan \`_do_not_remove: true\`.
 - No uses jerga técnica en secciones que lee el cliente (todo excepto \`_meta\` y \`_seller_prompt\`).
 - No hagas la propuesta más larga de lo necesario. Cada palabra debe justificar su existencia.

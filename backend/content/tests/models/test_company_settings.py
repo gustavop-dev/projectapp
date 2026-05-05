@@ -44,7 +44,7 @@ class TestCompanySettingsToDict:
     def test_to_dict_returns_all_fields(self, company_settings):
         result = company_settings.to_dict()
         expected_keys = {
-            'contractor_full_name', 'contractor_cedula', 'contractor_email',
+            'contractor_full_name', 'contractor_nit', 'contractor_email',
             'bank_name', 'bank_account_type', 'bank_account_number', 'contract_city',
         }
         assert expected_keys.issubset(set(result.keys()))

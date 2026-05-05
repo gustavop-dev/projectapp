@@ -48,8 +48,8 @@
                   <input v-model="form.contractor_full_name" type="text" class="nda-input" />
                 </label>
                 <label class="block">
-                  <span class="text-xs text-text-muted dark:text-white/70">NIT / C.C.</span>
-                  <input v-model="form.contractor_cedula" type="text" class="nda-input" />
+                  <span class="text-xs text-text-muted dark:text-white/70">NIT</span>
+                  <input v-model="form.contractor_nit" type="text" class="nda-input" />
                 </label>
                 <label class="block sm:col-span-2">
                   <span class="text-xs text-text-muted dark:text-white/70">Correo electrónico</span>
@@ -137,7 +137,7 @@ const EMPTY_FORM = {
   client_legal_representative: '',
   client_email: '',
   contractor_full_name: '',
-  contractor_cedula: '',
+  contractor_nit: '',
   contractor_email: '',
   contract_city: '',
   contract_day: '',

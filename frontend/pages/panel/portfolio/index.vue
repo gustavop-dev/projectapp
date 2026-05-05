@@ -116,6 +116,7 @@
 import { computed, onMounted } from 'vue';
 import { usePortfolioWorksStore } from '~/stores/portfolio_works';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { usePagination } from '~/composables/usePagination';
 
@@ -140,6 +141,7 @@ const {
 } = usePagination(works, { pageSize: 10 });
 
 onMounted(() => { portfolioStore.fetchAdminWorks(); });
+usePanelRefresh(() => portfolioStore.fetchAdminWorks());
 
 function formatDate(dateStr) {
   if (!dateStr) return '—';

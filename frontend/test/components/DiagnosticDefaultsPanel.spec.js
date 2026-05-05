@@ -35,6 +35,10 @@ jest.mock('../../composables/useConfirmModal', () => ({
   useConfirmModal: () => mockConfirmModal,
 }));
 
+jest.mock('../../composables/usePanelRefresh', () => ({
+  usePanelRefresh: jest.fn(),
+}));
+
 import DiagnosticDefaultsPanel from '../../components/panel/defaults/DiagnosticDefaultsPanel.vue';
 
 const { toastMsg, clearToast } = usePanelToast();

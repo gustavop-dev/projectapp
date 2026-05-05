@@ -154,6 +154,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -189,4 +190,6 @@ async function loadStats() {
 onMounted(() => {
   loadStats();
 });
+
+usePanelRefresh(loadStats);
 </script>

@@ -16,11 +16,11 @@ class CompanySettings(models.Model):
         blank=True,
         help_text='Legal name of the contractor (EL CONTRATISTA).',
     )
-    contractor_cedula = models.CharField(
+    contractor_nit = models.CharField(
         max_length=30,
         default='',
         blank=True,
-        help_text='Cédula number of the contractor.',
+        help_text='NIT del contratista (persona natural con NIT registrado).',
     )
     contractor_email = models.EmailField(
         default='',
@@ -82,7 +82,7 @@ class CompanySettings(models.Model):
         """Return settings as a plain dict for contract param defaults."""
         return {
             'contractor_full_name': self.contractor_full_name,
-            'contractor_cedula': self.contractor_cedula,
+            'contractor_nit': self.contractor_nit,
             'contractor_email': self.contractor_email,
             'bank_name': self.bank_name,
             'bank_account_type': self.bank_account_type,

@@ -331,6 +331,7 @@ import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useDiagnosticFilters } from '~/composables/useDiagnosticFilters';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -495,6 +496,7 @@ function formatDate(iso) {
 }
 
 onMounted(() => store.fetchAll());
+usePanelRefresh(() => store.fetchAll());
 </script>
 
 <style scoped>

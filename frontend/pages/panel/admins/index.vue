@@ -194,6 +194,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -227,6 +228,8 @@ const filteredAdmins = computed(() => {
 onMounted(() => {
   adminStore.fetchAdmins();
 });
+
+usePanelRefresh(() => adminStore.fetchAdmins());
 
 function initials(firstName, lastName) {
   return ((firstName?.[0] || '') + (lastName?.[0] || '')).toUpperCase() || '?';

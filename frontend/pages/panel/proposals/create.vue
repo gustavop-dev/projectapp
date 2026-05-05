@@ -902,6 +902,7 @@ import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import { get_request } from '~/stores/services/request_http';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { detectLegacyTechnicalFormat, downloadMigratedProposalJson, LEGACY_FIELD_LABELS } from '~/utils/proposalJsonMigration';
 import LegacyFormatWarning from '~/components/panel/LegacyFormatWarning.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
@@ -989,11 +990,14 @@ function handleResetCreateTechnicalPrompt() {
   createTechnicalPromptIsEditing.value = false;
 }
 
-onMounted(async () => {
+async function refreshCreateDefaults() {
   loadCreateCommercialPrompt();
   loadCreateTechnicalPrompt();
   await loadExpirationDefaults(form.language);
-});
+}
+
+onMounted(refreshCreateDefaults);
+usePanelRefresh(refreshCreateDefaults);
 
 // -------------------------------------------------------------------------
 // Shared helpers
