@@ -1021,7 +1021,7 @@ const expiryDaysInput = ref(getExpiryDaysFromStr(defaultExpiryStr));
 // This cross-mode sync is intentional: only one mode is visible at a time, and
 // keeping both in sync avoids stale expiration dates when the user switches modes.
 async function loadExpirationDefaults(lang = 'es') {
-  const days = await proposalStore.fetchExpirationDays(lang);
+  const days = await proposalStore.fetchExpirationDays(lang, { force: true });
   if (!Number.isInteger(days) || days < 1) return;
   defaultExpirationDays.value = days;
   const expiryStr = buildDefaultExpiryStr(days);
@@ -1208,6 +1208,10 @@ watch(expiryDaysInput, (days) => {
 });
 
 function parseJson() {
+  // Re-parses fired by every textarea keystroke must not clobber values
+  // the user already edited in the metadata form.
+  const isFirstParse = jsonParsed.value === null;
+
   jsonError.value = '';
   jsonParsed.value = null;
   legacyFormatIssues.value = [];
@@ -1237,13 +1241,14 @@ function parseJson() {
 
   jsonParsed.value = parsed;
 
-  // Auto-populate metadata form
+  if (!isFirstParse) return;
+
   const clientName = parsed.general.clientName;
-  jsonForm.title = `Propuesta — ${clientName}`;
+  const proposalTitle = parsed.general?.proposalTitle?.trim();
+  jsonForm.title = proposalTitle || `Propuesta — ${clientName}`;
   jsonForm.total_investment = parseInvestmentString(parsed.investment?.totalInvestment);
   jsonForm.currency = parsed.investment?.currency || 'COP';
 
-  // Auto-populate from _meta.optional_metadata if present
   const meta = parsed._meta?.optional_metadata || {};
   if (meta.client_email) jsonForm.client_email = meta.client_email;
   if (meta.client_phone) jsonForm.client_phone = meta.client_phone;
@@ -1252,7 +1257,7 @@ function parseJson() {
   if (meta.language) jsonForm.language = meta.language;
   if (meta.expires_at) {
     const d = new Date(meta.expires_at);
-    if (!isNaN(d.getTime())) {
+    if (!isNaN(d.getTime()) && d.getTime() > Date.now()) {
       jsonForm.expires_at = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
   }

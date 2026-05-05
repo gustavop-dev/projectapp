@@ -871,8 +871,8 @@ export const useProposalStore = defineStore('proposals', {
      * @param {string} lang - 'es' or 'en'.
      * @returns {Promise<number|null>} expiration_days or null on failure.
      */
-    async fetchExpirationDays(lang = 'es') {
-      if (this._expirationDaysCache[lang] != null) {
+    async fetchExpirationDays(lang = 'es', { force = false } = {}) {
+      if (!force && this._expirationDaysCache[lang] != null) {
         return this._expirationDaysCache[lang];
       }
       const result = await this.fetchProposalDefaults(lang);

@@ -23,10 +23,7 @@ DEFAULT_SECTIONS = [
         'content_json': {
             'proposalTitle': '',
             'clientName': '',
-            'inspirationalQuote': (
-                'Design is not just what it looks like and feels like. '
-                'Design is how it works.'
-            ),
+            'inspirationalQuote': '',
         },
     },
     {
@@ -1131,10 +1128,7 @@ DEFAULT_SECTIONS_EN = [
         'content_json': {
             'proposalTitle': '',
             'clientName': '',
-            'inspirationalQuote': (
-                'Design is not just what it looks like and feels like. '
-                'Design is how it works.'
-            ),
+            'inspirationalQuote': '',
         },
     },
     {
