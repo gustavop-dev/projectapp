@@ -144,7 +144,7 @@ erDiagram
 | Model | Purpose | Key Fields |
 |-------|---------|------------|
 | **BusinessProposal** | Core proposal entity | uuid, title, **client (FK→accounts.UserProfile, PROTECT)**, client_name (snapshot), client_email (snapshot), client_phone (snapshot), status, total_investment, currency, language, expires_at, view_count, cached_heat_score. Snapshots are write-through, kept in sync via `proposal_client_service.sync_snapshot()`. |
-| **ProposalSection** | Individual section within a proposal | proposal_fk, section_type (12 types), title, order, is_enabled, content_json, is_wide_panel |
+| **ProposalSection** | Individual section within a proposal | proposal_fk, section_type (17 types — incl. `roi_projection`, web-only), title, order, is_enabled, content_json, is_wide_panel |
 | **ProposalRequirementGroup** | Functional requirements group | proposal_fk, group_id, title, description, order |
 | **ProposalRequirementItem** | Individual requirement item | group_fk, name, description, icon |
 | **ProposalAlert** | Manual/auto alerts for sellers | proposal_fk, alert_type (12 types), message, alert_date, priority, is_dismissed |

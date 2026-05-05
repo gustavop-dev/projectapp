@@ -78,7 +78,8 @@ class TestGetDefaultSections:
         """Verify all default section types are present (count = EXPECTED_DEFAULT_SECTION_COUNT)."""
         expected_types = {
             'greeting', 'executive_summary', 'context_diagnostic',
-            'conversion_strategy', 'design_ux', 'creative_support',
+            'conversion_strategy', 'roi_projection',
+            'design_ux', 'creative_support',
             'development_stages', 'process_methodology',
             'value_added_modules',
             'functional_requirements',

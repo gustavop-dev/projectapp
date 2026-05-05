@@ -1936,6 +1936,8 @@ SECTION_RENDERERS = {
     'value_added_modules': _render_value_added_modules,
     'final_note': _render_final_note,
     'next_steps': _render_next_steps,
+    # Note: 'roi_projection' is intentionally web-only — no PDF renderer.
+    # Sections without a renderer are silently skipped by the generator.
 }
 
 
@@ -2088,6 +2090,11 @@ class ProposalPdfService:
                     and data.get('rawText')
                 )
                 renderer = SECTION_RENDERERS.get(stype)
+
+                # Web-only sections have no renderer and no paste content;
+                # skip them entirely so they don't pollute the TOC.
+                if not is_paste and not renderer:
+                    continue
 
                 if first_content:
                     first_content = False

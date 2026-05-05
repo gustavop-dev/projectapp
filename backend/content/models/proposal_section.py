@@ -26,6 +26,7 @@ class ProposalSection(models.Model):
         NEXT_STEPS = 'next_steps', 'Next Steps'
         TECHNICAL_DOCUMENT = 'technical_document', 'Technical Document'
         VALUE_ADDED_MODULES = 'value_added_modules', 'Value Added Modules'
+        ROI_PROJECTION = 'roi_projection', 'ROI Projection'
 
     proposal = models.ForeignKey(
         'BusinessProposal',

@@ -120,9 +120,27 @@ DEFAULT_SECTIONS = [
         },
     },
     {
+        'section_type': 'roi_projection',
+        'title': '📈 Proyección de retorno y beneficios',
+        'order': 4,
+        'is_wide_panel': False,
+        'content_json': {
+            'index': '4',
+            'title': 'Proyección de retorno y beneficios',
+            'subtitle': (
+                'Lo que esta inversión puede generar para tu negocio — '
+                'métricas clave del modelo financiero.'
+            ),
+            'kpis': [],
+            'scenariosTitle': 'Escenarios proyectados',
+            'scenarios': [],
+            'ctaNote': '',
+        },
+    },
+    {
         'section_type': 'investment',
         'title': '💰 Tu inversión y cómo pagar',
-        'order': 4,
+        'order': 5,
         'is_wide_panel': False,
         'content_json': {
             'index': '4',
@@ -208,7 +226,7 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'timeline',
         'title': '⏳ Cuándo lo tendrás listo',
-        'order': 6,
+        'order': 7,
         'is_wide_panel': True,
         'content_json': {
             'index': '6',
@@ -262,7 +280,7 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'design_ux',
         'title': '🎨 Una experiencia visual que enamora',
-        'order': 7,
+        'order': 8,
         'is_wide_panel': False,
         'content_json': {
             'index': '7',
@@ -287,7 +305,7 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'creative_support',
         'title': '🤝 Te acompañamos en cada paso',
-        'order': 8,
+        'order': 9,
         'is_wide_panel': False,
         'content_json': {
             'index': '8',
@@ -312,7 +330,7 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'value_added_modules',
         'title': '🎁 Incluido sin costo adicional',
-        'order': 10,
+        'order': 11,
         'is_wide_panel': False,
         'content_json': {
             'index': '10',
@@ -335,7 +353,7 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'functional_requirements',
         'title': '🧩 Todo lo que incluye tu proyecto',
-        'order': 9,
+        'order': 10,
         'is_wide_panel': True,
         'content_json': {
             'index': '9',
@@ -852,7 +870,7 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'development_stages',
         'title': '📌 Así avanzamos juntos',
-        'order': 11,
+        'order': 12,
         'is_wide_panel': True,
         'content_json': {
             'index': '11',
@@ -902,7 +920,7 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'process_methodology',
         'title': '⚙️ Proceso y Metodología',
-        'order': 5,
+        'order': 6,
         'is_wide_panel': False,
         'content_json': {
             'index': '5',
@@ -946,7 +964,7 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'proposal_summary',
         'title': '📋 Resumen de la Propuesta',
-        'order': 12,
+        'order': 13,
         'is_wide_panel': False,
         'content_json': {
             'index': '12',
@@ -999,7 +1017,7 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'final_note',
         'title': '📝 Nuestro compromiso contigo',
-        'order': 13,
+        'order': 14,
         'is_wide_panel': False,
         'content_json': {
             'index': '13',
@@ -1045,7 +1063,7 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'next_steps',
         'title': '✅ ¿Listo para empezar?',
-        'order': 13,
+        'order': 15,
         'is_wide_panel': False,
         'content_json': {
             'index': '13',
@@ -1113,7 +1131,7 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'technical_document',
         'title': '🔧 Detalle técnico',
-        'order': 14,
+        'order': 16,
         'is_wide_panel': True,
         'content_json': deepcopy(EMPTY_TECHNICAL_DOCUMENT_JSON),
     },
@@ -1215,9 +1233,27 @@ DEFAULT_SECTIONS_EN = [
         },
     },
     {
+        'section_type': 'roi_projection',
+        'title': '📈 ROI projection & business outcomes',
+        'order': 4,
+        'is_wide_panel': False,
+        'content_json': {
+            'index': '4',
+            'title': 'ROI projection & business outcomes',
+            'subtitle': (
+                'What this investment can generate for your business — '
+                'key metrics from the financial model.'
+            ),
+            'kpis': [],
+            'scenariosTitle': 'Projected scenarios',
+            'scenarios': [],
+            'ctaNote': '',
+        },
+    },
+    {
         'section_type': 'investment',
         'title': '� Investment & Payment Options',
-        'order': 4,
+        'order': 5,
         'is_wide_panel': False,
         'content_json': {
             'index': '4',
@@ -1288,7 +1324,7 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'timeline',
         'title': '⏳ Project Timeline',
-        'order': 6,
+        'order': 7,
         'is_wide_panel': True,
         'content_json': {
             'index': '6',
@@ -1342,7 +1378,7 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'design_ux',
         'title': '🎨 Visual Design & User Experience',
-        'order': 7,
+        'order': 8,
         'is_wide_panel': False,
         'content_json': {
             'index': '7',
@@ -1367,7 +1403,7 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'creative_support',
         'title': '🤝 Personalized Creative Support',
-        'order': 8,
+        'order': 9,
         'is_wide_panel': False,
         'content_json': {
             'index': '8',
@@ -1392,7 +1428,7 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'value_added_modules',
         'title': '🎁 Included at no extra cost',
-        'order': 10,
+        'order': 11,
         'is_wide_panel': False,
         'content_json': {
             'index': '10',
@@ -1415,7 +1451,7 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'functional_requirements',
         'title': '🧩 Functional Requirements',
-        'order': 9,
+        'order': 10,
         'is_wide_panel': True,
         'content_json': {
             'index': '9',
@@ -1931,7 +1967,7 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'development_stages',
         'title': '📌 Contracting & Development Stages',
-        'order': 11,
+        'order': 12,
         'is_wide_panel': True,
         'content_json': {
             'index': '11',
@@ -1976,7 +2012,7 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'process_methodology',
         'title': '⚙️ Process & Methodology',
-        'order': 5,
+        'order': 6,
         'is_wide_panel': False,
         'content_json': {
             'index': '5',
@@ -2020,7 +2056,7 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'proposal_summary',
         'title': '📋 Proposal Summary',
-        'order': 12,
+        'order': 13,
         'is_wide_panel': False,
         'content_json': {
             'index': '12',
@@ -2073,7 +2109,7 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'final_note',
         'title': '📝 Final Note & Next Steps',
-        'order': 13,
+        'order': 14,
         'is_wide_panel': False,
         'content_json': {
             'index': '13',
@@ -2119,7 +2155,7 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'next_steps',
         'title': '✅ Closing & Next Steps',
-        'order': 13,
+        'order': 15,
         'is_wide_panel': False,
         'content_json': {
             'index': '13',
@@ -2187,7 +2223,7 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'technical_document',
         'title': '🔧 Technical document',
-        'order': 14,
+        'order': 16,
         'is_wide_panel': True,
         'content_json': deepcopy(EMPTY_TECHNICAL_DOCUMENT_JSON),
     },

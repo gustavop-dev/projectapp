@@ -576,3 +576,51 @@ DRF's `request.data` delivers form-submitted booleans as strings (`"true"`, `"fa
 Before adding a new CSS transition, check whether an existing overlay/transition already covers the visual effect you need. The `switch-mode-overlay` in `proposal/[uuid]/index.vue` was designed for gateway → mode transitions but works equally well for mode → gateway by adding a new sentinel value (`'gateway'`) to the icon/heading/subtitle ternary chain. No new CSS needed — the bouncy-scale enter/leave keyframes are reused as-is.
 
 **Pattern**: add a new `v-else-if` case to the overlay template, update `handleBackToGateway` to set `switchOverlayMode = 'gateway'` and `switchOverlayVisible = true` before resetting state, then mirror the timing of the existing `handleViewModeSelect` function (1 s hold → state reset → 1.2 s overlay hide).
+
+## 18. Adding a New `ProposalSection.SectionType`
+
+These three lessons surfaced together while shipping `roi_projection`; treat them as a single checklist for the next person adding a section type.
+
+### Migration backfill: don't trust `ProposalService.get_default_sections` from inside the migration
+
+`ProposalDefaultConfig` is a DB-backed override of the hardcoded `DEFAULT_SECTIONS` list. When the migration calls `ProposalService.get_default_sections(language)` and the DB row exists with the OLD section list (no entry for the new type), `cfg = _defaults_index(language).get('roi_projection')` returns `None` and the row creation **silently no-ops** — the migration reports success but no rows are created. The order-bump step still runs, leaving a permanent gap at `order=4`.
+
+**Fix pattern**: import the canonical hardcoded list directly inside the migration, not via the service:
+
+```python
+from content.services.proposal_service import DEFAULT_SECTIONS, DEFAULT_SECTIONS_EN
+cfg = next((s for s in (DEFAULT_SECTIONS_EN if lang == 'en' else DEFAULT_SECTIONS)
+            if s['section_type'] == 'roi_projection'), None)
+```
+
+After running the migration, also update `ProposalDefaultConfig.sections_json` for each language so future proposals (created via `/panel/defaults` or the panel UI) include the new section by default.
+
+### Frontend dispatcher: components expecting `{ content }` need a named branch
+
+`getSectionProps(section, currentIndex)` in `pages/proposal/[uuid]/index.vue` flat-spreads `content_json` keys as top-level props for any section type without a named `if` branch. Components like `ProposalSummary.vue` and `RoiProjection.vue` that `defineProps({ content: { type: Object } })` will mount but bind `undefined` everywhere.
+
+**Fix pattern**: every new section component that uses the single-`content` prop pattern must add a named branch:
+
+```js
+if (section.section_type === 'roi_projection') {
+  return { content: { ...content, index: paddedIndex } };
+}
+```
+
+Symptom in browser: section element renders (correct CSS class) but inner h2/cards are empty. Symptom in Playwright: snapshot shows the section but `getByText(...)` for inner content times out.
+
+### Web-only sections: skip from PDF *including* the TOC
+
+Sections without an entry in `SECTION_RENDERERS` (`proposal_pdf_service.py`) silently skip content rendering, but historically the section loop **still appended a TOC entry** for them — leaving orphan TOC links pointing at the next section. After fixing this for `roi_projection`, the loop now `continue`s before appending the TOC entry when both `is_paste=False` and `renderer is None`. The same guard now also drops `proposal_summary` and `process_methodology` from the TOC (they were always content-less in the PDF anyway).
+
+**Pattern**: web-only sections need only one explicit code change — *not* registering them in `SECTION_RENDERERS`. The TOC behavior is consistent because of the loop guard.
+
+### Schema dead-code check before reusing existing components
+
+Before deciding "I'll just add a `kpis` array to `proposal_summary` instead of building a new section", grep the public component:
+
+```bash
+grep -nE "v-html|v-for|content\.kpis" frontend/components/BusinessProposal/ProposalSummary.vue
+```
+
+`ProposalSummary.vue` defines a `kpis` field in its admin form and seller prompt but the public template only iterates `cards[]`. The `kpis` array is dead schema. Always verify the data path is wired end-to-end (admin form → JSON → backend serializer → public component) before adding fields to an existing section.

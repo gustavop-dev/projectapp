@@ -324,6 +324,7 @@ import {
   ProposalSummary,
   ProcessMethodology,
   ValueAddedModules,
+  RoiProjection,
 } from '~/components/BusinessProposal';
 import ProposalIndex from '~/components/BusinessProposal/ProposalIndex.vue';
 import SectionCounter from '~/components/BusinessProposal/SectionCounter.vue';
@@ -386,6 +387,7 @@ const sectionComponentMap = {
   final_note: FinalNote,
   next_steps: NextSteps,
   proposal_summary: ProposalSummary,
+  roi_projection: RoiProjection,
   proposal_closing: ProposalClosing,
   technical_document_public: TechnicalDocumentPublicPanel,
 };
@@ -978,6 +980,14 @@ function getSectionProps(section, displayIndex) {
       effectiveTotal: resolvedInvestmentTotal.value || effectiveBaselineTotal.value,
       isCustomized: isInvestmentCustomized.value,
       selectedModuleIds: [...selectedCalculatorModuleIds.value],
+    };
+  }
+
+  // For roi_projection: pass content_json as a single ``content`` prop
+  // (component expects ``content``, not flat-spread fields).
+  if (section.section_type === 'roi_projection') {
+    return {
+      content: { ...content, index: paddedIndex },
     };
   }
 

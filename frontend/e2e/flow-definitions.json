@@ -819,6 +819,16 @@
       "description": "Proposal Summary section displays personalized KPI cards with value, label, and source citation.",
       "expectedSpecs": 1
     },
+    "proposal-roi-projection": {
+      "name": "Proposal ROI Projection",
+      "module": "proposal",
+      "roles": [
+        "guest"
+      ],
+      "priority": "P1",
+      "description": "ROI Projection section renders KPI cards (visualizations, MRR, payback, ad reach), per-scenario blocks (cons/realistic/optimistic) with metrics and emphasis flag for totals, and a closing CTA note. The section sits between conversion_strategy and investment so the sponsor sees quantified business outcomes before the price. Web-only (no PDF renderer). Each existing proposal received a disabled empty row via migration 0118; admins enable + populate per-proposal.",
+      "expectedSpecs": 1
+    },
     "proposal-calculator-new-modules": {
       "name": "Proposal Calculator New Default Modules",
       "module": "proposal",

@@ -307,6 +307,26 @@ const processMethodologyJson = {
   ],
 };
 
+const roiProjectionJson = {
+  index: '4',
+  title: '📈 Proyección de retorno',
+  subtitle: 'Outcomes test.',
+  kpis: [
+    { icon: '👁️', value: '90K', label: 'Visualizaciones', sublabel: 'mes 6', source: 'Benchmark' },
+  ],
+  scenariosTitle: 'Escenarios',
+  scenarios: [
+    {
+      name: 'realistic', label: 'Realista', icon: '🎯',
+      metrics: [
+        { label: 'MAU', value: '80K' },
+        { label: 'Total año 1', value: '$280M', emphasis: true },
+      ],
+    },
+  ],
+  ctaNote: 'Cubre la inversión.',
+};
+
 function buildSection(sectionType, contentJson, extra = {}) {
   return {
     id: 99,
@@ -369,6 +389,7 @@ describe('SectionEditor component', () => {
     ['final_note', finalNoteJson],
     ['next_steps', nextStepsJson],
     ['process_methodology', processMethodologyJson],
+    ['roi_projection', roiProjectionJson],
   ])('mounts the %s branch without crashing', (sectionType, contentJson) => {
     const wrapper = mountSectionEditor({
       section: buildSection(sectionType, contentJson),

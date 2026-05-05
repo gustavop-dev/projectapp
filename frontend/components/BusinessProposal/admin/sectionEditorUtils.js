@@ -135,6 +135,31 @@ export function buildFormFromJson(json, type, proposalData) {
         footer_note: j.footer_note || '',
       };
     }
+    case 'roi_projection':
+      return {
+        index: j.index || '',
+        title: j.title || '',
+        subtitle: j.subtitle || '',
+        kpis: (j.kpis || []).map(k => ({
+          icon: k.icon || '',
+          value: k.value || '',
+          label: k.label || '',
+          sublabel: k.sublabel || '',
+          source: k.source || '',
+        })),
+        scenariosTitle: j.scenariosTitle || '',
+        scenarios: (j.scenarios || []).map(s => ({
+          name: s.name || '',
+          label: s.label || '',
+          icon: s.icon || '',
+          metrics: (s.metrics || []).map(m => ({
+            label: m.label || '',
+            value: m.value || '',
+            emphasis: !!m.emphasis,
+          })),
+        })),
+        ctaNote: j.ctaNote || '',
+      };
     default:
       return {};
   }
@@ -235,6 +260,37 @@ export function formToJson(formData, type) {
         footer_note: f.footer_note || '',
       };
     }
+    case 'roi_projection':
+      return {
+        index: f.index,
+        title: f.title,
+        subtitle: f.subtitle,
+        kpis: (f.kpis || [])
+          .filter(k => k.value || k.label)
+          .map(k => ({
+            icon: k.icon || '',
+            value: k.value || '',
+            label: k.label || '',
+            sublabel: k.sublabel || '',
+            source: k.source || '',
+          })),
+        scenariosTitle: f.scenariosTitle || '',
+        scenarios: (f.scenarios || [])
+          .filter(s => s.label || s.name || (s.metrics || []).length)
+          .map(s => ({
+            name: s.name || '',
+            label: s.label || '',
+            icon: s.icon || '',
+            metrics: (s.metrics || [])
+              .filter(m => m.label || m.value)
+              .map(m => ({
+                label: m.label || '',
+                value: m.value || '',
+                ...(m.emphasis ? { emphasis: true } : {}),
+              })),
+          })),
+        ctaNote: f.ctaNote || '',
+      };
     default:
       return {};
   }
@@ -368,6 +424,22 @@ export function formToReadableText(form, type) {
       if (s.description) parts.push(`  ${s.description}`);
       if (s.clientAction) parts.push(`  Acción del cliente: ${s.clientAction}`);
     }
+  } else if (type === 'roi_projection') {
+    if (form.subtitle) parts.push(form.subtitle);
+    if (form.kpis?.length) {
+      parts.push('\nKPIs:');
+      for (const k of form.kpis) {
+        parts.push(`${k.icon || ''} ${k.value} — ${k.label}${k.sublabel ? ` (${k.sublabel})` : ''}${k.source ? ` · ${k.source}` : ''}`);
+      }
+    }
+    if (form.scenariosTitle) parts.push(`\n${form.scenariosTitle}`);
+    for (const s of (form.scenarios || [])) {
+      parts.push(`\n${s.icon || ''} ${s.label || s.name}`);
+      for (const m of (s.metrics || [])) {
+        parts.push(`  ${m.label}: ${m.value}${m.emphasis ? ' ★' : ''}`);
+      }
+    }
+    if (form.ctaNote) parts.push(`\n${form.ctaNote}`);
   }
   return parts.join('\n').trim();
 }

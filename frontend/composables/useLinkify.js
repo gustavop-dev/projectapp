@@ -14,16 +14,34 @@ const FULL_URL_RE = /https?:\/\/[^\s),]+/g;
 // Bare domains: example.com, example.co/path (must have known TLD)
 const BARE_DOMAIN_RE = /(?<![\/\w@])([a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.(?:com|co|net|org|io|dev|app|at|de|es|fr|uk|us|me|info|biz|tv|cc)(?:\/[^\s),]*)?)(?![\/\w])/g;
 
+function escapeHtml(s) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * Replace URLs in text with anchor tags that open in a new tab.
- * @param {string} text - Plain text that may contain URLs.
+ * HTML in the input is escaped before linkifying, so admin-authored content
+ * never injects raw markup. <b>/<strong> tags traditionally embedded in
+ * content_json are preserved by re-allowing them after escape.
+ * @param {string} text - Plain text that may contain URLs and limited inline HTML.
  * @returns {string} HTML string with URLs wrapped in <a> tags.
  */
 export function linkify(text) {
   if (!text || typeof text !== 'string') return '';
 
+  // Escape all HTML first to prevent XSS, then re-allow a small whitelist
+  // of inline tags that admin copy historically uses (<b>, <strong>, <i>,
+  // <em>, <br>). Anything else stays escaped.
+  let safe = escapeHtml(text)
+    .replace(/&lt;(\/?)(b|strong|i|em|br)\s*&gt;/gi, '<$1$2>');
+
   // Step 1: replace full URLs first
-  let result = text.replace(FULL_URL_RE, (url) => {
+  let result = safe.replace(FULL_URL_RE, (url) => {
     const display = formatDisplay(url);
     return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="linkify-link">${display}</a>`;
   });
