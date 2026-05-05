@@ -1152,7 +1152,6 @@ def get_proposal_json_template(request):
             'language': 'es | en',
             'total_investment': 0,
             'currency': 'COP | USD',
-            'expires_at': '2026-04-06T00:00:00Z',
         },
     }
 
