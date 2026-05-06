@@ -33,26 +33,31 @@
                 <legend class="text-sm font-semibold text-text-brand mb-3">EL CONTRATISTA (tu empresa)</legend>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label class="block text-xs text-text-muted mb-1">Nombre completo</label>
+                    <label class="block text-xs text-text-muted mb-1">Nombre completo *</label>
                     <BaseInput v-model="form.contractor_full_name" type="text" size="sm" />
+                    <p v-if="formErrors.contractor_full_name" class="text-xs text-danger-strong mt-1">{{ formErrors.contractor_full_name }}</p>
                   </div>
                   <div>
-                    <label class="block text-xs text-text-muted mb-1">NIT</label>
+                    <label class="block text-xs text-text-muted mb-1">NIT *</label>
                     <BaseInput v-model="form.contractor_nit" type="text" size="sm" />
+                    <p v-if="formErrors.contractor_nit" class="text-xs text-danger-strong mt-1">{{ formErrors.contractor_nit }}</p>
                   </div>
                   <div>
-                    <label class="block text-xs text-text-muted mb-1">Email de notificacion</label>
+                    <label class="block text-xs text-text-muted mb-1">Email de notificacion *</label>
                     <BaseInput v-model="form.contractor_email" type="email" size="sm" />
+                    <p v-if="formErrors.contractor_email" class="text-xs text-danger-strong mt-1">{{ formErrors.contractor_email }}</p>
                   </div>
                   <div>
-                    <label class="block text-xs text-text-muted mb-1">Ciudad del contrato</label>
+                    <label class="block text-xs text-text-muted mb-1">Ciudad del contrato *</label>
                     <BaseInput v-model="form.contract_city" type="text" size="sm" />
+                    <p v-if="formErrors.contract_city" class="text-xs text-danger-strong mt-1">{{ formErrors.contract_city }}</p>
                   </div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
                   <div>
-                    <label class="block text-xs text-text-muted mb-1">Banco</label>
+                    <label class="block text-xs text-text-muted mb-1">Banco *</label>
                     <BaseInput v-model="form.bank_name" type="text" size="sm" />
+                    <p v-if="formErrors.bank_name" class="text-xs text-danger-strong mt-1">{{ formErrors.bank_name }}</p>
                   </div>
                   <div>
                     <label class="block text-xs text-text-muted mb-1">Tipo de cuenta</label>
@@ -63,8 +68,9 @@
                     />
                   </div>
                   <div>
-                    <label class="block text-xs text-text-muted mb-1">Numero de cuenta</label>
+                    <label class="block text-xs text-text-muted mb-1">Numero de cuenta *</label>
                     <BaseInput v-model="form.bank_account_number" type="text" size="sm" />
+                    <p v-if="formErrors.bank_account_number" class="text-xs text-danger-strong mt-1">{{ formErrors.bank_account_number }}</p>
                   </div>
                 </div>
               </fieldset>
@@ -74,16 +80,19 @@
                 <legend class="text-sm font-semibold text-text-brand mb-3">EL CONTRATANTE (cliente)</legend>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label class="block text-xs text-text-muted mb-1">Nombre completo</label>
+                    <label class="block text-xs text-text-muted mb-1">Nombre completo *</label>
                     <BaseInput v-model="form.client_full_name" type="text" size="sm" />
+                    <p v-if="formErrors.client_full_name" class="text-xs text-danger-strong mt-1">{{ formErrors.client_full_name }}</p>
                   </div>
                   <div>
-                    <label class="block text-xs text-text-muted mb-1">Cedula *</label>
+                    <label class="block text-xs text-text-muted mb-1">Cédula/NIT *</label>
                     <BaseInput v-model="form.client_cedula" type="text" size="sm" placeholder="Ej: 1.234.567.890" />
+                    <p v-if="formErrors.client_cedula" class="text-xs text-danger-strong mt-1">{{ formErrors.client_cedula }}</p>
                   </div>
                   <div class="sm:col-span-2">
-                    <label class="block text-xs text-text-muted mb-1">Email de notificacion</label>
+                    <label class="block text-xs text-text-muted mb-1">Email de notificacion *</label>
                     <BaseInput v-model="form.client_email" type="email" size="sm" />
+                    <p v-if="formErrors.client_email" class="text-xs text-danger-strong mt-1">{{ formErrors.client_email }}</p>
                   </div>
                 </div>
               </fieldset>
@@ -93,8 +102,9 @@
                 <legend class="text-sm font-semibold text-text-brand mb-3">Datos del contrato</legend>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label class="block text-xs text-text-muted mb-1">Fecha del contrato</label>
+                    <label class="block text-xs text-text-muted mb-1">Fecha del contrato *</label>
                     <BaseInput v-model="form.contract_date" type="date" size="sm" />
+                    <p v-if="formErrors.contract_date" class="text-xs text-danger-strong mt-1">{{ formErrors.contract_date }}</p>
                   </div>
                 </div>
               </fieldset>
@@ -161,8 +171,9 @@
                 <legend class="text-sm font-semibold text-text-brand mb-3">Datos del contrato</legend>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label class="block text-xs text-text-muted mb-1">Fecha del contrato</label>
+                    <label class="block text-xs text-text-muted mb-1">Fecha del contrato *</label>
                     <BaseInput v-model="form.contract_date" type="date" size="sm" />
+                    <p v-if="formErrors.contract_date" class="text-xs text-danger-strong mt-1">{{ formErrors.contract_date }}</p>
                   </div>
                 </div>
               </fieldset>
@@ -209,6 +220,7 @@ const companyDefaults = ref({});
 const contractSource = ref('default');
 const customMarkdown = ref('');
 const showPreview = ref(false);
+const formErrors = ref({});
 
 const debouncedMarkdown = ref('');
 let debounceTimer = null;
@@ -242,6 +254,7 @@ async function loadDefaults() {
 }
 
 function resetForm() {
+  formErrors.value = {};
   const defaults = companyDefaults.value;
   const existing = props.initialParams || {};
   const p = props.proposal || {};
@@ -283,7 +296,40 @@ function handleFileUpload(event) {
   reader.readAsText(file);
 }
 
+function validate() {
+  const errors = {};
+  if (contractSource.value === 'default') {
+    const required = [
+      ['contractor_full_name', 'Nombre completo del contratista'],
+      ['contractor_nit', 'NIT del contratista'],
+      ['contractor_email', 'Email del contratista'],
+      ['contract_city', 'Ciudad del contrato'],
+      ['bank_name', 'Banco'],
+      ['bank_account_number', 'Número de cuenta'],
+      ['client_full_name', 'Nombre completo del cliente'],
+      ['client_cedula', 'Cédula/NIT del cliente'],
+      ['client_email', 'Email del cliente'],
+      ['contract_date', 'Fecha del contrato'],
+    ];
+    for (const [field, label] of required) {
+      if (!form.value[field]?.toString().trim()) {
+        errors[field] = `${label} es obligatorio`;
+      }
+    }
+  } else {
+    if (!customMarkdown.value.trim()) {
+      errors.customMarkdown = 'El contenido del contrato es obligatorio';
+    }
+    if (!form.value.contract_date?.trim()) {
+      errors.contract_date = 'Fecha del contrato es obligatoria';
+    }
+  }
+  formErrors.value = errors;
+  return Object.keys(errors).length === 0;
+}
+
 function handleSubmit() {
+  if (!validate()) return;
   if (contractSource.value === 'custom') {
     emit('confirm', {
       contract_source: 'custom',
