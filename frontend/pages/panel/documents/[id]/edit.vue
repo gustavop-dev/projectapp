@@ -35,7 +35,7 @@
         <button
           type="submit"
           form="doc-edit-form"
-          :disabled="documentStore.isUpdating"
+          :disabled="documentStore.isUpdating || !hasChanges"
           class="px-5 py-2.5 bg-primary text-white rounded-xl font-medium text-sm
                  hover:bg-primary transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -243,7 +243,7 @@
         <div class="mt-5 flex flex-wrap items-center gap-3 lg:hidden">
           <button
             type="submit"
-            :disabled="documentStore.isUpdating"
+            :disabled="documentStore.isUpdating || !hasChanges"
             class="px-5 sm:px-6 py-2.5 bg-primary text-white rounded-xl font-medium text-sm
                    hover:bg-primary transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -302,6 +302,12 @@ const isDownloading = ref(false);
 const showPreview = ref(true);
 const showFullPreview = ref(false);
 
+const savedForm = ref(null);
+const hasChanges = computed(() => {
+  if (!savedForm.value) return false;
+  return JSON.stringify({ ...form, tag_ids: [...form.tag_ids] }) !== JSON.stringify(savedForm.value);
+});
+
 const form = reactive({
   title: '',
   client_name: '',
@@ -350,6 +356,7 @@ async function reloadDocument() {
     form.content_markdown = result.data.content_markdown || '';
     form.folder_id = result.data.folder || null;
     form.tag_ids = Array.isArray(result.data.tag_ids) ? [...result.data.tag_ids] : [];
+    savedForm.value = { ...form, tag_ids: [...form.tag_ids] };
   } else {
     loadError.value = true;
   }
@@ -386,6 +393,7 @@ async function handleSave() {
 
   const result = await documentStore.updateDocument(route.params.id, payload);
   if (result.success) {
+    savedForm.value = { ...form, tag_ids: [...form.tag_ids] };
     saveSuccess.value = true;
     setTimeout(() => { saveSuccess.value = false; }, 3000);
   } else {
