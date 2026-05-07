@@ -1292,6 +1292,7 @@ import { getProposalNextAction } from '~/utils/proposalNextAction';
 import { toSlug } from '~/utils/slugify';
 import { detectLegacyTechnicalFormat, downloadMigratedProposalJson, LEGACY_FIELD_LABELS } from '~/utils/proposalJsonMigration';
 import LegacyFormatWarning from '~/components/panel/LegacyFormatWarning.vue';
+import DevChecklistTab from '~/components/panel/proposal/DevChecklistTab.vue';
 import PanelToast from '~/components/panel/PanelToast.vue';
 import { usePanelToast } from '~/composables/usePanelToast';
 
@@ -1442,7 +1443,7 @@ const sectionCompleteness = computed(() => {
   return Math.round(sectionsWithContent.value / enabledSectionsCount.value * 100);
 });
 
-const validTabs = ['general', 'emails', 'documents', 'schedule', 'sections', 'technical', 'prompt', 'json', 'activity', 'analytics'];
+const validTabs = ['general', 'emails', 'documents', 'schedule', 'development', 'sections', 'technical', 'prompt', 'json', 'activity', 'analytics'];
 const activeTab = ref(validTabs.includes(route.query.tab) ? route.query.tab : 'general');
 const technicalSubTab = ref('editor');
 const hasSendEmailTab = computed(() =>
