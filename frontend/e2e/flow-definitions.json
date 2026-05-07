@@ -839,6 +839,16 @@
       "description": "Calculator displays Email Marketing (10%), i18n (15%), Gift Cards (20%) modules. KPI Dashboard removed from calculator (included by default like Analytics).",
       "expectedSpecs": 1
     },
+    "proposal-calculator-biometric-module": {
+      "name": "Proposal Calculator Biometric Verification Module",
+      "module": "proposal",
+      "roles": [
+        "guest"
+      ],
+      "priority": "P2",
+      "description": "Calculator displays the biometric_verification_module as a provider-billed integration: appears with 'Agendar llamada' label instead of a price (is_invite=true, price_percent=0), and clicking the row reveals the invite_note. Sibling modules QR generator (25%) and AI content generator with editorial calendar (30%) are catalog-level only and structurally covered by existing calculator-modules and calculator-new-modules flows.",
+      "expectedSpecs": 1
+    },
     "proposal-calculator-integrations": {
       "name": "Proposal Calculator Integration Modules",
       "module": "proposal",
@@ -1584,10 +1594,7 @@
       ],
       "priority": "P3",
       "description": "From the Documents tab of the proposal edit page, admin clicks the eye icon next to a document. A modal opens previewing the file inline — PDF (rendered in iframe) or image (via <img> tag), gated by frontend/utils/filePreview.js (isPdfUrl / isImageUrl / canPreviewFile). Non-previewable files (Word/Excel/etc.) keep only the existing download action. Modal is dismissed via close button or backdrop click.",
-      "expectedSpecs": 0,
-      "knownGaps": [
-        "Eye-icon preview modal added to ProposalDocumentsTab.vue on 2026-04-26 (commits 9877df24, e827bd38). E2E spec pending — should mock a /uploads/<file>.pdf URL and assert the modal opens."
-      ]
+      "expectedSpecs": 1
     },
     "admin-proposal-documents-send": {
       "name": "Admin Proposal Documents Send (SUPERSEDED)",
@@ -2253,11 +2260,8 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "After a proposal is accepted, admin clicks 'Lanzar a plataforma' — POST /api/proposals/:id/launch-to-platform/ — which creates a PlatformProject linked to the proposal and sends the client a platform invitation email with an OTP. Admin sees a 'Ver en plataforma' action in the proposal actions panel. Client then starts the platform onboarding flow (platform-login → platform-verify-onboarding → platform-complete-profile).",
-      "expectedSpecs": 0,
-      "knownGaps": [
-        "No E2E spec covers the full proposal-accepted → launch-to-platform → platform-project-created handoff. Covers a critical cross-module transition between the proposal and platform modules."
-      ]
+      "description": "After a proposal is accepted, admin clicks 'Lanzar a plataforma' from the actions modal — POST /api/proposals/:id/launch-to-platform/ — which creates a PlatformProject linked to the proposal and sends the client a platform invitation email with an OTP. Admin sees a 'Ver en plataforma' action in the proposal actions panel. Client then starts the platform onboarding flow (platform-login → platform-verify-onboarding → platform-complete-profile).",
+      "expectedSpecs": 1
     },
     "diagnostic-public-phase-visibility": {
       "name": "Diagnostic Public Phase Visibility",
@@ -2280,10 +2284,50 @@
       ],
       "priority": "P2",
       "description": "Admin toggles section visibility (is_enabled) from the Secciones tab of the proposal edit page. Each section row has an enable/disable toggle; disabled sections are greyed out in the admin list and excluded from the public proposal view. PATCH /api/proposals/sections/:id/update/ with { is_enabled: false }. Complements admin-proposal-section-reorder — both operations can be combined in sequence.",
-      "expectedSpecs": 0,
+      "expectedSpecs": 1
+    },
+    "admin-proposal-section-sync": {
+      "name": "Admin Proposal Section Sync (Preview & Apply)",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin uses the SyncPreviewModal on the proposal edit page to preview a server-computed diff between the current section's content_json and the canonical default, then applies the sync to overwrite. Backend endpoints: GET /api/proposals/sections/:id/sync-preview/ and POST /api/proposals/sections/:id/apply-sync/. UI lives at frontend/components/BusinessProposal/admin/SyncPreviewModal.vue (mounted in pages/panel/proposals/[id]/edit.vue).",
+      "expectedSpecs": 1,
       "knownGaps": [
-        "admin-proposal-section-reorder covers drag reorder only. No E2E explicitly asserts that toggling is_enabled on a section removes it from the public proposal view."
+        "No Playwright spec yet. Suggested spec asserts: modal opens with diff payload mocked, apply triggers POST and updates the section, dismiss leaves content unchanged."
       ]
+    },
+    "admin-send-branded-email": {
+      "name": "Admin Send Branded Email (Negotiating)",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin sends a branded marketing email from the Correos tab of a proposal in negotiating/accepted/rejected status. Composer with draggable sections, file attachments, branded preview, paginated history. Endpoints: POST /api/proposals/:id/branded-email/send/, GET /api/proposals/:id/branded-email/defaults/, GET /api/proposals/:id/branded-email/history/.",
+      "expectedSpecs": 1
+    },
+    "admin-send-proposal-email": {
+      "name": "Admin Send Proposal Email (Sent+)",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin sends a proposal email from the Enviar correo tab once the proposal is sent or beyond. Each send writes ProposalChangeLog with EMAIL_SENT change type and updates last_activity_at. Reuses the same composer UI as branded email via mode prop. Endpoints: POST /api/proposals/:id/proposal-email/send/, GET /api/proposals/:id/proposal-email/defaults/, GET /api/proposals/:id/proposal-email/history/, POST /api/proposals/:id/proposal-email/markdown-attachment/.",
+      "expectedSpecs": 1
+    },
+    "proposal-magic-link-request": {
+      "name": "Proposal Magic Link Request (Expired)",
+      "module": "proposal",
+      "roles": [
+        "guest"
+      ],
+      "priority": "P1",
+      "description": "Guest who lands on an expired proposal submits their email to receive a fresh magic-link via the form in ProposalExpired.vue. Calls POST /api/proposals/request-link/ with { email } and shows a neutral confirmation message ('Si tenemos propuestas asociadas a ese email, recibirás un enlace en breve.') regardless of backend outcome to avoid leaking which emails are clients. Out of scope of proposal-expired-graceful (which covers the expired-state UI).",
+      "expectedSpecs": 1
     },
     "proposal-slug-access": {
       "name": "Proposal Slug Access",
@@ -2303,10 +2347,7 @@
       ],
       "priority": "P1",
       "description": "Admin sets or regenerates the human-friendly slug (URL personalizada) for a proposal from the General tab. Includes format validation (lowercase/numbers/hyphens), uniqueness error on 400, and one-click regeneration from client name. PATCH /api/proposals/:id/update/ with { slug }.",
-      "expectedSpecs": 0,
-      "knownGaps": [
-        "Slug input, save, and regenerate actions on the proposal edit General tab have no E2E coverage."
-      ]
+      "expectedSpecs": 1
     },
     "admin-proposal-defaults-slug-pattern": {
       "name": "Admin Proposal Defaults — Slug Pattern",
@@ -2316,10 +2357,7 @@
       ],
       "priority": "P2",
       "description": "Admin configures the default slug pattern used when new proposals are created (e.g. {client_name}, {client_name}-{year}). Live preview shows the slugified result. Saved to ProposalDefaultConfig.default_slug_pattern via PUT /api/proposals/defaults/.",
-      "expectedSpecs": 0,
-      "knownGaps": [
-        "Slug pattern input and preview in ProposalDefaultsPanel General tab have no E2E coverage."
-      ]
+      "expectedSpecs": 1
     },
     "platform-access-view": {
       "name": "Platform Access View",

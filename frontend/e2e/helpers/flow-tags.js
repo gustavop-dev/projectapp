@@ -132,6 +132,9 @@ export const PROPOSAL_EXECUTIVE_TO_DETAILED = ['@flow:proposal-executive-to-deta
 export const PROPOSAL_TECHNICAL_VIEW = ['@flow:proposal-technical-view', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_SECTION_ONBOARDING = ['@flow:proposal-section-onboarding', '@module:proposal', '@priority:P3'];
 
+// ── Biometric module (provider-billed, is_invite) ──
+export const PROPOSAL_CALCULATOR_BIOMETRIC_MODULE = ['@flow:proposal-calculator-biometric-module', '@module:proposal', '@priority:P2'];
+
 // ── Platform ──
 export const PLATFORM_LOGIN = ['@flow:platform-login', '@module:platform', '@priority:P1'];
 export const PLATFORM_VERIFY_ONBOARDING = ['@flow:platform-verify-onboarding', '@module:platform', '@priority:P1'];
@@ -289,6 +292,8 @@ export const PLATFORM_LAYOUT_TITLE_MAPPING = ['@flow:platform-layout-title-mappi
 
 // ── Flows Audit — Missing gaps registered (Apr 20, 2026) ──
 export const ADMIN_PROPOSAL_PLATFORM_HANDOFF      = ['@flow:admin-proposal-platform-handoff',      '@module:admin',      '@priority:P1'];
+export const PROPOSAL_MAGIC_LINK_REQUEST          = ['@flow:proposal-magic-link-request',          '@module:proposal',   '@priority:P1'];
+export const ADMIN_PROPOSAL_DOCUMENT_PREVIEW      = ['@flow:admin-proposal-document-preview',      '@module:admin',      '@priority:P3'];
 export const DIAGNOSTIC_PUBLIC_PHASE_VISIBILITY   = ['@flow:diagnostic-public-phase-visibility',   '@module:diagnostic', '@priority:P2'];
 export const ADMIN_PROPOSAL_SECTION_DISABLE       = ['@flow:admin-proposal-section-disable',       '@module:admin',      '@priority:P2'];
 

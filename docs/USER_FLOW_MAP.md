@@ -792,6 +792,26 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-section-reorder.spec.js`
 
+### FLOW: `admin-proposal-section-sync`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/:id/edit` (Secciones tab → SyncPreviewModal)
+- **Description:** Admin reconciles a section's `content_json` against the canonical default for that `section_type`. The SyncPreviewModal shows a server-computed diff (added / removed / changed keys), and on apply the section is overwritten with the merged payload. Mounted at `frontend/components/BusinessProposal/admin/SyncPreviewModal.vue` from `pages/panel/proposals/[id]/edit.vue:42`.
+- **Steps:**
+  1. Admin opens the proposal edit page and selects a section.
+  2. Admin triggers "Sincronizar con default" → `GET /api/proposals/sections/:id/sync-preview/` returns the diff payload.
+  3. SyncPreviewModal renders the diff (keys to add / overwrite / drop) with side-by-side preview.
+  4. Admin clicks "Aplicar" → `POST /api/proposals/sections/:id/apply-sync/` overwrites `content_json` and returns the updated section.
+  5. UI refreshes the section in place (no page reload).
+- **Branches:**
+  - [Branch A — No drift] Diff is empty; modal shows "Sin cambios" and the apply button is disabled.
+  - [Branch B — Cancel] Admin closes the modal without applying; section unchanged.
+- **Coverage:** ❌ Missing — deferred (high mocking surface)
+- **Note:** The modal only appears when saving a `technical_document` section on a proposal whose platform project already exists (`has_project: true`). An E2E would need to mock the full proposal detail with a launched project, simulate the section editor save flow, and intercept both `sync-preview/` and `apply-sync/`. The cost outweighs the P2 value; component-level coverage of `SyncPreviewModal.vue` would be a better fit.
+- **Suggested E2E Spec:** `e2e/admin/admin-proposal-section-sync.spec.js`
+
 ### FLOW: `admin-proposal-functional-requirements-form`
 
 - **Module:** admin
@@ -961,8 +981,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Valid pattern] Pattern saved; new proposals use the pattern.
   - [Branch B — Custom text] Any free-text pattern (no placeholders) works; becomes a fixed prefix with collision suffix appended.
-- **Coverage:** ❌ Not covered
-- **E2E Spec:** *(pending `e2e/admin/admin-proposal-defaults-slug-pattern.spec.js`)*
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-defaults-slug-pattern.spec.js`
 
 ### FLOW: `admin-email-templates-config`
 
@@ -1411,6 +1431,25 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-view.spec.js` (Branch A — Proposal expired)
 
+### FLOW: `proposal-magic-link-request`
+
+- **Module:** proposal
+- **Role:** guest (on expired proposal view)
+- **Priority:** P1
+- **Routes:** `/proposal/:uuid` or `/proposal/:slug` (when expired)
+- **Description:** A guest who lands on an expired proposal submits their email through the form in `ProposalExpired.vue:160` to receive a fresh magic-link. Backend looks up active proposals by client email and sends a new email with the link(s). This is the recovery path that complements `proposal-expired-graceful` (which only covers the expired-state visuals).
+- **Steps:**
+  1. Guest opens an expired proposal URL → `ProposalExpired` component renders.
+  2. Guest types their email into the input and submits the form.
+  3. Frontend calls `proposalStore.requestMagicLink(email)` → `POST /api/proposals/request-link/` with `{ email }`.
+  4. Backend looks up non-finished proposals belonging to the email; if found, sends a new email with the magic link(s).
+  5. UI shows a success confirmation ("Te enviamos un enlace nuevo a tu correo").
+- **Branches:**
+  - [Branch A — Email not found] Backend returns 404 / generic message; UI shows neutral feedback (avoid leaking which emails are clients).
+  - [Branch B — Network error] Submit fails; UI surfaces a retry message.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-magic-link-request.spec.js`
+
 ### FLOW: `proposal-calculator-abandonment-tracking`
 
 - **Module:** proposal
@@ -1675,6 +1714,22 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   6. KPI Dashboard is NOT shown in the modal (included by default like Analytics module).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-calculator-new-modules.spec.js`
+
+### FLOW: `proposal-calculator-biometric-module`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** The investment calculator exposes `biometric_verification_module` as a provider-billed integration: ID document reading + OCR, facial recognition, liveness detection, antifraud + KYC, frictionless digital onboarding, and a verifications panel. Because the integration provider invoices the end client directly, the module follows the `is_invite=True, price_percent=0` pattern (same as `ai_module` and `integration_conversion_tracking`). Two sibling modules — `qr_generator_module` (25%) and `content_generator_module` (30%, with editorial calendar + scheduling) — are added to the catalog at the same time but are regular non-invite calculator modules; their structural behavior is already covered by `proposal-calculator-modules` and `proposal-calculator-new-modules`.
+- **Steps:**
+  1. Client opens the calculator modal on a proposal that includes `biometric_verification_module`.
+  2. Module row renders with the bilingual title "🪪 Verificación y Validación Biométrica (Integración API)".
+  3. Module shows "Agendar llamada" badge instead of a price (because `is_invite=True, price_percent=0`).
+  4. Client clicks the module row → `invite_note` is revealed ("Te invitamos a una llamada... un proveedor especializado factura el servicio directamente al cliente final").
+  5. Selecting the module does NOT alter the total investment (provider-billed; verified at the unit level by `computeWeeksAddition — does not count invite modules`).
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-calculator-biometric-module.spec.js`
 
 ### FLOW: `proposal-calculator-integrations`
 
@@ -2214,6 +2269,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-section-edit-form` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-section-form.spec.js` |
 | `admin-proposal-section-edit-paste` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-section-paste.spec.js` |
 | `admin-proposal-section-reorder` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-section-reorder.spec.js` |
+| `admin-proposal-section-sync` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-proposal-section-sync.spec.js` (suggested) |
 | `admin-proposal-functional-requirements-form` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-requirements.spec.js` |
 | `admin-proposal-functional-requirements-paste` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-requirements.spec.js` |
 | `admin-proposal-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-delete.spec.js` |
@@ -2259,6 +2315,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-calculator-selected-first` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-modules.spec.js` |
 | `proposal-calculator-integrations` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-integrations.spec.js` |
 | `proposal-expired-graceful` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view.spec.js` |
+| `proposal-magic-link-request` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-magic-link-request.spec.js` |
 | `proposal-calculator-abandonment-tracking` | proposal | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
 | `admin-proposal-batch-actions` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
 | `admin-proposal-engagement-decay-alert` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
@@ -2275,6 +2332,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-summary-kpis` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-summary-kpis.spec.js` |
 | `admin-proposal-log-activity` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-log-activity.spec.js` |
 | `proposal-calculator-new-modules` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-new-modules.spec.js` |
+| `proposal-calculator-biometric-module` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-biometric-module.spec.js` |
 | `admin-proposal-inline-status-change` | admin | admin | P2 | 🟡 Partial (draft→sent dispatch + email_delivery toast not asserted) | `e2e/admin/admin-proposal-inline-status.spec.js` |
 | `admin-proposal-scorecard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-scorecard.spec.js` |
 | `admin-proposal-section-completeness` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-section-completeness.spec.js` |
@@ -4135,7 +4193,7 @@ No active browser flow is registered for client profile editing at this time.
 | `admin-proposal-diagnostic-templates` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-diagnostic-templates.spec.js` |
 | `admin-diagnostic-markdown-attachment` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-markdown-attachment.spec.js` |
 | `admin-defaults-unified` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-defaults-unified.spec.js` |
-| `admin-proposal-defaults-slug-pattern` | admin | admin | P2 | ❌ Missing | pending `e2e/admin/admin-proposal-defaults-slug-pattern.spec.js` |
+| `admin-proposal-defaults-slug-pattern` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-defaults-slug-pattern.spec.js` |
 
 ---
 
@@ -4524,7 +4582,8 @@ Two transitions that were previously bundled into other flows now have their own
 | **Module** | admin |
 | **Role** | admin |
 | **Priority** | P1 |
-| **Status** | ❌ Missing — no E2E spec |
+| **Status** | ✅ Covered |
+| **E2E Spec** | `e2e/admin/admin-proposal-platform-handoff.spec.js` |
 
 **Routes:** `/panel/proposals/:id/edit` (actions panel after acceptance)
 
@@ -4584,7 +4643,8 @@ Two transitions that were previously bundled into other flows now have their own
 | **Module** | admin |
 | **Role** | admin |
 | **Priority** | P2 |
-| **Status** | ❌ Missing — no E2E spec |
+| **Status** | ✅ Covered |
+| **E2E Spec** | `e2e/admin/admin-proposal-section-disable.spec.js` |
 
 **Routes:** `/panel/proposals/:id/edit` (Secciones tab)
 
@@ -4730,7 +4790,8 @@ Two transitions that were previously bundled into other flows now have their own
 | **Module** | admin |
 | **Role** | admin |
 | **Priority** | P3 |
-| **Status** | ❌ Missing — no E2E spec |
+| **Status** | ✅ Covered |
+| **E2E Spec** | `e2e/admin/admin-proposal-document-preview.spec.js` |
 
 **Routes:** `/panel/proposals/:id/edit` (Documents tab)
 
@@ -4845,7 +4906,7 @@ Two transitions that were previously bundled into other flows now have their own
 | Flow ID | Module | Role | Priority | Status | Suggested Spec |
 |---------|--------|------|----------|--------|----------------|
 | `diagnostic-public-onboarding` | diagnostic | guest | P3 | ❌ Missing | `e2e/public/diagnostic-public-onboarding.spec.js` |
-| `admin-proposal-document-preview` | admin | admin | P3 | ❌ Missing | extend `e2e/admin/admin-proposal-documents-manage.spec.js` |
+| `admin-proposal-document-preview` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-document-preview.spec.js` |
 | `admin-diagnostic-document-preview` | admin | admin | P3 | ❌ Missing | extend `e2e/admin/admin-diagnostic-email-documents.spec.js` |
 | `admin-blog-publish-mode` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-blog-publish-mode.spec.js` |
 | `admin-blog-overdue-detection` | admin | system | P2 | ⬜ Backend-only | N/A |

@@ -727,6 +727,38 @@ DEFAULT_SECTIONS = [
                     ],
                 },
                 {
+                    'id': 'biometric_verification_module',
+                    'icon': '🪪',
+                    'title': 'Verificación y Validación Biométrica (Integración API)',
+                    'is_visible': True,
+                    'description': (
+                        'Valida que la persona detrás de la pantalla es realmente quien dice ser, '
+                        'combinando lectura del documento de identidad, reconocimiento facial y '
+                        'prueba de vida. Reduce fraude, cumple requisitos de KYC y agiliza el '
+                        'onboarding digital de tus clientes y/o usuarios internos.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 0,
+                    'is_invite': True,
+                    'invite_note': (
+                        '🤝 Te invitamos a una llamada donde definimos juntos el alcance de la '
+                        'verificación biométrica y validación de identidad para tu negocio. '
+                        'La integración la realiza un proveedor especializado que factura el '
+                        'servicio directamente al cliente final — nosotros conectamos la solución '
+                        'a tu plataforma, sin compromiso.'
+                    ),
+                    'items': [
+                        {'icon': '🪪', 'name': 'Lectura y validación de documento', 'description': 'Captura del documento de identidad (anverso y reverso) con OCR y validación de campos, formatos y autenticidad.'},
+                        {'icon': '👤', 'name': 'Reconocimiento facial', 'description': 'Comparación biométrica entre la foto del documento y un selfie en vivo del usuario para confirmar coincidencia de identidad.'},
+                        {'icon': '🎬', 'name': 'Prueba de vida (liveness)', 'description': 'Detección activa o pasiva de que la persona está físicamente presente, evitando suplantación con fotos, videos o máscaras.'},
+                        {'icon': '🛡️', 'name': 'Antifraude y KYC', 'description': 'Reglas de aceptación, listas de control y trazabilidad por intento — alineado con buenas prácticas de KYC y cumplimiento.'},
+                        {'icon': '⚡', 'name': 'Onboarding digital sin fricción', 'description': 'Flujo end-to-end embebido en tu plataforma: el usuario se valida en minutos desde su celular o computador, sin trámites presenciales.'},
+                        {'icon': '📊', 'name': 'Panel de verificaciones', 'description': 'Vista administrativa con el estado de cada verificación (aprobada, rechazada, pendiente), evidencias y motivo, lista para auditoría.'},
+                    ],
+                },
+                {
                     'id': 'reports_alerts_module',
                     'icon': '📬',
                     'title': 'Reportes y Alertas vía Correo, WhatsApp o Telegram',
@@ -768,6 +800,56 @@ DEFAULT_SECTIONS = [
                         {'icon': '🎯', 'name': 'Segmentación de audiencia', 'description': 'Clasifica a tus suscriptores por comportamiento, intereses y datos demográficos para enviar mensajes relevantes y personalizados.'},
                         {'icon': '📊', 'name': 'Analítica de campañas', 'description': 'Métricas detalladas de apertura, clics, conversiones y ROI de cada campaña para optimizar tu estrategia de comunicación.'},
                         {'icon': '🔗', 'name': 'Integración con plataformas', 'description': 'Conexión nativa con Mailchimp, SendGrid, Brevo u otras plataformas líderes de email marketing según tus necesidades.'},
+                    ],
+                },
+                {
+                    'id': 'qr_generator_module',
+                    'icon': '🔳',
+                    'title': 'Generador de Códigos QR',
+                    'is_visible': True,
+                    'description': (
+                        'Convierte cualquier enlace, texto o acción en un código QR listo para '
+                        'imprimir, compartir o pegar donde tu negocio lo necesite. Pensado para '
+                        'que conectes el mundo físico con tu plataforma digital sin fricción — '
+                        'desde una mesa de restaurante hasta el empaque de tu producto.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 25,
+                    'items': [
+                        {'icon': '⚡', 'name': 'Generación instantánea', 'description': 'Crea códigos QR desde URLs, textos, contactos vCard, redes WiFi, números de WhatsApp o cualquier flujo interno de la plataforma — en segundos.'},
+                        {'icon': '🎨', 'name': 'Personalización con tu marca', 'description': 'Aplica los colores corporativos, agrega tu logo al centro y elige formatos (PNG, SVG, PDF) listos para imprimir en alta resolución sin perder calidad.'},
+                        {'icon': '🔄', 'name': 'Códigos dinámicos editables', 'description': 'Cambia a dónde apunta un QR ya impreso sin tener que reimprimirlo. Ideal para menús de temporada, promociones, eventos y campañas que evolucionan.'},
+                        {'icon': '📊', 'name': 'Tracking de escaneos', 'description': 'Mide cuántas veces se escanea cada código, desde qué dispositivo y en qué momento — perfecto para evaluar el desempeño de campañas físicas, vallas, flyers y empaques.'},
+                        {'icon': '🗂️', 'name': 'Biblioteca de códigos', 'description': 'Todos los QR generados quedan organizados en un panel, agrupados por campaña o propósito, listos para reutilizar, descargar o desactivar cuando ya no apliquen.'},
+                        {'icon': '🚀', 'name': 'Casos de uso listos para activar', 'description': 'Menú digital, link a WhatsApp, registro a eventos, descarga de catálogo, login rápido, encuestas, propinas o reseñas — preconfigurados para arrancar el mismo día.'},
+                    ],
+                },
+                {
+                    'id': 'content_generator_module',
+                    'icon': '✍️',
+                    'title': 'Generador de Contenido con IA y Calendario Editorial',
+                    'is_visible': True,
+                    'description': (
+                        'Mantén tu marca activa y consistente sin depender de inspiración diaria. '
+                        'La IA redacta blogs, correos y publicaciones para redes sociales con la '
+                        'voz de tu negocio, y un calendario editorial te permite planear, programar '
+                        'y publicar en automático — todo desde un solo panel, con vista mensual o '
+                        'semanal de lo que viene.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 30,
+                    'items': [
+                        {'icon': '🤖', 'name': 'Redacción asistida con IA', 'description': 'Generación de borradores de blogs, newsletters, emails y posts a partir de un brief simple. Ajusta tono, extensión y formato con un par de clics.'},
+                        {'icon': '🎙️', 'name': 'Voz de marca y plantillas', 'description': 'Define tu identidad editorial una vez (tono, estilo, palabras prohibidas, llamados a la acción) y la IA respeta esa voz en cada pieza que genera.'},
+                        {'icon': '🌐', 'name': 'Multicanal: blog, email y redes', 'description': 'Una misma idea se adapta automáticamente al formato del canal: post largo para blog, asunto y cuerpo para email, copy corto para Instagram, LinkedIn o X.'},
+                        {'icon': '📅', 'name': 'Calendario editorial visual', 'description': 'Vista mensual y semanal con todas las piezas planeadas, en borrador, programadas y publicadas. Arrastra y suelta para reorganizar fechas en segundos.'},
+                        {'icon': '⏰', 'name': 'Programación y publicación automática', 'description': 'Agenda cada pieza para una fecha y hora específica. El sistema publica solo en el blog, envía el correo o postea en las redes conectadas — sin intervención manual.'},
+                        {'icon': '📊', 'name': 'Panel de seguimiento', 'description': 'Estado de cada publicación (borrador, programada, publicada, fallida), métricas básicas de desempeño y posibilidad de reagendar o duplicar piezas con un clic.'},
+                        {'icon': '🔗', 'name': 'Integración con tus canales', 'description': 'Conexión con tu blog, proveedor de email y redes sociales para que todo lo planeado en el calendario salga publicado en los canales que tu audiencia ya frecuenta.'},
                     ],
                 },
                 {
@@ -1825,6 +1907,38 @@ DEFAULT_SECTIONS_EN = [
                     ],
                 },
                 {
+                    'id': 'biometric_verification_module',
+                    'icon': '🪪',
+                    'title': 'Biometric Verification & Validation (API Integration)',
+                    'is_visible': True,
+                    'description': (
+                        'Confirms that the person behind the screen is really who they claim to be, '
+                        'combining ID document reading, facial recognition, and liveness detection. '
+                        'Reduces fraud, meets KYC requirements, and streamlines digital onboarding '
+                        'for your customers and/or internal users.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 0,
+                    'is_invite': True,
+                    'invite_note': (
+                        '🤝 We invite you to a call where we\'ll define together the scope of '
+                        'biometric verification and identity validation for your business. '
+                        'A specialized provider runs the integration and bills the service '
+                        'directly to the end client — we connect the solution to your platform, '
+                        'no commitment required.'
+                    ),
+                    'items': [
+                        {'icon': '🪪', 'name': 'ID Document Reading & Validation', 'description': 'Captures the identity document (front and back) with OCR and validates fields, formats, and authenticity.'},
+                        {'icon': '👤', 'name': 'Facial Recognition', 'description': 'Biometric comparison between the document photo and a live selfie of the user to confirm identity match.'},
+                        {'icon': '🎬', 'name': 'Liveness Detection', 'description': 'Active or passive detection that the person is physically present, preventing spoofing with photos, videos, or masks.'},
+                        {'icon': '🛡️', 'name': 'Antifraud & KYC', 'description': 'Acceptance rules, watchlists, and per-attempt traceability — aligned with KYC best practices and compliance.'},
+                        {'icon': '⚡', 'name': 'Frictionless Digital Onboarding', 'description': 'End-to-end flow embedded in your platform: the user validates in minutes from their phone or computer, without in-person paperwork.'},
+                        {'icon': '📊', 'name': 'Verifications Panel', 'description': 'Admin view with the status of each verification (approved, rejected, pending), evidence, and reason — ready for audit.'},
+                    ],
+                },
+                {
                     'id': 'reports_alerts_module',
                     'icon': '📬',
                     'title': 'Reports & Alerts via Email, WhatsApp or Telegram',
@@ -1866,6 +1980,56 @@ DEFAULT_SECTIONS_EN = [
                         {'icon': '🎯', 'name': 'Audience Segmentation', 'description': 'Classify your subscribers by behavior, interests and demographics to send relevant, personalized messages.'},
                         {'icon': '📊', 'name': 'Campaign Analytics', 'description': 'Detailed metrics on opens, clicks, conversions and ROI of each campaign to optimize your communication strategy.'},
                         {'icon': '🔗', 'name': 'Platform Integration', 'description': 'Native connection with Mailchimp, SendGrid, Brevo or other leading email marketing platforms based on your needs.'},
+                    ],
+                },
+                {
+                    'id': 'qr_generator_module',
+                    'icon': '🔳',
+                    'title': 'QR Code Generator',
+                    'is_visible': True,
+                    'description': (
+                        'Turn any link, text, or action into a QR code ready to print, share, or '
+                        'paste wherever your business needs it. Built to bridge the physical world '
+                        'and your digital platform without friction — from a restaurant table to '
+                        'your product packaging.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 25,
+                    'items': [
+                        {'icon': '⚡', 'name': 'Instant Generation', 'description': 'Create QR codes from URLs, text, vCard contacts, WiFi networks, WhatsApp numbers, or any internal platform flow — in seconds.'},
+                        {'icon': '🎨', 'name': 'Branded Customization', 'description': 'Apply your corporate colors, place your logo at the center, and pick formats (PNG, SVG, PDF) ready for high-resolution printing without quality loss.'},
+                        {'icon': '🔄', 'name': 'Editable Dynamic Codes', 'description': 'Change where an already-printed QR points to without reprinting it. Ideal for seasonal menus, promos, events, and campaigns that evolve.'},
+                        {'icon': '📊', 'name': 'Scan Tracking', 'description': 'Measure how often each code is scanned, from which device, and at what time — perfect for evaluating the performance of physical campaigns, billboards, flyers, and packaging.'},
+                        {'icon': '🗂️', 'name': 'Code Library', 'description': 'Every QR generated is organized in a panel, grouped by campaign or purpose, ready to reuse, download, or deactivate once no longer needed.'},
+                        {'icon': '🚀', 'name': 'Ready-to-Use Cases', 'description': 'Digital menu, WhatsApp link, event check-in, catalog download, quick login, surveys, tipping, or reviews — preconfigured to launch the same day.'},
+                    ],
+                },
+                {
+                    'id': 'content_generator_module',
+                    'icon': '✍️',
+                    'title': 'AI Content Generator with Editorial Calendar',
+                    'is_visible': True,
+                    'description': (
+                        'Keep your brand active and consistent without relying on daily '
+                        'inspiration. AI drafts blog posts, emails, and social content in your '
+                        'business voice, and an editorial calendar lets you plan, schedule, and '
+                        'auto-publish — all from a single panel, with monthly or weekly views '
+                        'of what\'s coming up.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 30,
+                    'items': [
+                        {'icon': '🤖', 'name': 'AI-Assisted Writing', 'description': 'Draft blog posts, newsletters, emails, and social posts from a simple brief. Tweak tone, length, and format with a couple of clicks.'},
+                        {'icon': '🎙️', 'name': 'Brand Voice & Templates', 'description': 'Define your editorial identity once (tone, style, banned words, calls to action) and the AI honors that voice in every piece it generates.'},
+                        {'icon': '🌐', 'name': 'Multichannel: Blog, Email & Social', 'description': 'A single idea automatically adapts to each channel\'s format: long post for the blog, subject and body for email, short copy for Instagram, LinkedIn, or X.'},
+                        {'icon': '📅', 'name': 'Visual Editorial Calendar', 'description': 'Monthly and weekly views with every piece planned, in draft, scheduled, and published. Drag and drop to rearrange dates in seconds.'},
+                        {'icon': '⏰', 'name': 'Scheduling & Auto-Publishing', 'description': 'Schedule each piece for a specific date and time. The system publishes to the blog, sends the email, or posts to connected social networks — without manual intervention.'},
+                        {'icon': '📊', 'name': 'Tracking Panel', 'description': 'Status of every publication (draft, scheduled, published, failed), basic performance metrics, and the option to reschedule or duplicate pieces with one click.'},
+                        {'icon': '🔗', 'name': 'Channel Integrations', 'description': 'Connection to your blog, email provider, and social networks so everything planned on the calendar is published on the channels your audience already follows.'},
                     ],
                 },
                 {

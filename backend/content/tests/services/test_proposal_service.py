@@ -23,9 +23,11 @@ pytestmark = pytest.mark.django_db
 CALCULATOR_MODULE_IDS = (
     'pwa_module', 'corporate_branding_module', 'ai_module', 'reports_alerts_module',
     'email_marketing_module',
+    'qr_generator_module', 'content_generator_module',
     'i18n_module',
     'integration_international_payments', 'integration_regional_payments',
     'integration_electronic_invoicing', 'integration_conversion_tracking',
+    'biometric_verification_module',
     'dark_mode_module', 'live_chat_module',
 )
 
@@ -40,7 +42,9 @@ EXPECTED_ADDITIONAL_MODULE_ORDER = [
     'integration_international_payments',
     'pwa_module', 'corporate_branding_module', 'ai_module',
     'integration_conversion_tracking',
+    'biometric_verification_module',
     'reports_alerts_module', 'email_marketing_module',
+    'qr_generator_module', 'content_generator_module',
     'i18n_module',
     'live_chat_module', 'dark_mode_module',
     'gift_cards_module',
@@ -102,13 +106,13 @@ class TestGetDefaultSections:
         assert 'Resumen' in es_section['content_json']['title']
 
     def test_functional_requirements_has_default_groups(self):
-        """Verify ES functional_requirements has 6 groups and 13 additionalModules."""
+        """Verify ES functional_requirements has 7 groups and 16 additionalModules."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
         additional = fr['content_json']['additionalModules']
         assert len(groups) == 7
-        assert len(additional) == 13
+        assert len(additional) == 16
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
@@ -118,8 +122,10 @@ class TestGetDefaultSections:
         assert additional_ids == {
             'integration_international_payments', 'integration_regional_payments',
             'integration_electronic_invoicing', 'integration_conversion_tracking',
+            'biometric_verification_module',
             'pwa_module', 'corporate_branding_module', 'ai_module', 'reports_alerts_module',
             'email_marketing_module',
+            'qr_generator_module', 'content_generator_module',
             'i18n_module', 'gift_cards_module',
             'dark_mode_module', 'live_chat_module',
         }
@@ -187,6 +193,56 @@ class TestGetDefaultSections:
         assert ct['is_invite'] is True
         assert ct['invite_note']
 
+    def test_biometric_verification_module_is_invite_with_zero_percent(self):
+        """Verify biometric_verification_module: 6 items, 0%, is_invite, has invite_note (provider-billed integration)."""
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        bio = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'biometric_verification_module')
+        assert bio['icon'] == '🪪'
+        assert len(bio['items']) == 6
+        assert bio['is_visible'] is True
+        assert bio['is_calculator_module'] is True
+        assert bio['default_selected'] is False
+        assert bio['selected'] is False
+        assert bio['price_percent'] == 0
+        assert bio['is_invite'] is True
+        assert bio['invite_note']
+
+    def test_qr_generator_module_has_25_percent(self):
+        """Verify qr_generator_module: calculator module, 25%, not invite, 6 items."""
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        qr = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'qr_generator_module')
+        assert qr['icon'] == '🔳'
+        assert len(qr['items']) == 6
+        assert qr['is_visible'] is True
+        assert qr['is_calculator_module'] is True
+        assert qr['default_selected'] is False
+        assert qr['selected'] is False
+        assert qr['price_percent'] == 25
+        assert qr.get('is_invite', False) is False
+        assert 'invite_note' not in qr
+
+    def test_content_generator_module_has_30_percent_and_calendar(self):
+        """Verify content_generator_module: calculator module, 30%, not invite, mentions editorial calendar and scheduling."""
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        cg = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'content_generator_module')
+        assert cg['icon'] == '✍️'
+        assert len(cg['items']) == 7
+        assert cg['is_visible'] is True
+        assert cg['is_calculator_module'] is True
+        assert cg['default_selected'] is False
+        assert cg['selected'] is False
+        assert cg['price_percent'] == 30
+        assert cg.get('is_invite', False) is False
+        assert 'invite_note' not in cg
+        # Title and items must reflect the editorial calendar + scheduling requirement
+        assert 'Calendario' in cg['title']
+        haystack = ' '.join(i['name'] + ' ' + i['description'] for i in cg['items']).lower()
+        assert 'calendario' in haystack
+        assert 'programaci' in haystack  # programación / programar
+
     def test_greeting_title_has_emoji(self):
         sections = ProposalService.get_default_sections('es')
         greeting = next(s for s in sections if s['section_type'] == 'greeting')
@@ -246,14 +302,14 @@ class TestGetDefaultSections:
             assert es_g['is_calculator_module'] == en_g['is_calculator_module']
             assert es_g.get('price_percent') == en_g.get('price_percent')
 
-    def test_en_functional_requirements_has_7_groups_and_13_modules(self):
-        """Verify EN functional_requirements has 7 groups and 13 additionalModules."""
+    def test_en_functional_requirements_has_7_groups_and_16_modules(self):
+        """Verify EN functional_requirements has 7 groups and 16 additionalModules."""
         sections = ProposalService.get_default_sections('en')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
         additional = fr['content_json']['additionalModules']
         assert len(groups) == 7
-        assert len(additional) == 13
+        assert len(additional) == 16
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
@@ -263,8 +319,10 @@ class TestGetDefaultSections:
         assert additional_ids == {
             'integration_international_payments', 'integration_regional_payments',
             'integration_electronic_invoicing', 'integration_conversion_tracking',
+            'biometric_verification_module',
             'pwa_module', 'corporate_branding_module', 'ai_module', 'reports_alerts_module',
             'email_marketing_module',
+            'qr_generator_module', 'content_generator_module',
             'i18n_module', 'gift_cards_module',
             'dark_mode_module', 'live_chat_module',
         }
