@@ -212,6 +212,41 @@ export const useDocumentStore = defineStore('documents', {
     },
 
     /**
+     * getEmailDefaults: Fetch default greeting/subject/footer for the email composer.
+     */
+    async getEmailDefaults() {
+      try {
+        const response = await get_request('emails/defaults/');
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching email defaults:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * sendDocumentEmail: Send a branded email with optional document PDFs attached.
+     * @param {object} payload - { recipient_email, subject, greeting, footer, sections, document_ids }
+     */
+    async sendDocumentEmail(payload) {
+      try {
+        const formData = new FormData();
+        formData.append('recipient_email', payload.recipient_email);
+        formData.append('subject', payload.subject);
+        formData.append('greeting', payload.greeting || '');
+        formData.append('footer', payload.footer || '');
+        formData.append('sections', JSON.stringify(payload.sections || []));
+        formData.append('document_ids', JSON.stringify(payload.document_ids || []));
+        const response = await create_request('emails/send/', formData);
+        return { success: true, data: response.data };
+      } catch (error) {
+        const data = error.response?.data;
+        const errorCode = error.response?.status === 429 ? 'rate_limited' : 'send_failed';
+        return { success: false, errors: data, code: errorCode };
+      }
+    },
+
+    /**
      * downloadPdf: Download a document as PDF.
      * @param {number} id - Document ID.
      * @param {string} title - Filename for the download.

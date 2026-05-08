@@ -18,7 +18,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
-from content.models import EmailLog
+from content.models import Document, EmailLog
 
 _ALLOWED_EXT = {'.pdf', '.doc', '.docx', '.xls', '.xlsx', '.png', '.jpg', '.jpeg'}
 _MAX_FILE = 15 * 1024 * 1024  # 15 MB
@@ -99,6 +99,31 @@ def _parse_standalone_email(request):
             )
         mime_type = mimetypes.guess_type(f.name)[0] or 'application/octet-stream'
         attachments.append((f.name, f.read(), mime_type))
+
+    # ── Document references (PDFs generated server-side) ──
+    raw_doc_ids = request.data.get('document_ids', '[]')
+    try:
+        document_ids = json.loads(raw_doc_ids) if isinstance(raw_doc_ids, str) else raw_doc_ids
+    except (json.JSONDecodeError, TypeError):
+        return None, Response(
+            {'error': 'document_ids debe ser JSON válido.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if not isinstance(document_ids, list):
+        document_ids = []
+    document_ids = [int(d) for d in document_ids if isinstance(d, (int, str)) and str(d).isdigit()]
+
+    if document_ids:
+        from content.services.document_pdf_service import DocumentPdfService
+        documents = Document.objects.filter(pk__in=document_ids)
+        for doc in documents:
+            if not doc.content_json or not doc.content_json.get('blocks'):
+                continue
+            pdf_bytes = DocumentPdfService.generate(doc)
+            if not pdf_bytes:
+                continue
+            filename = f'{doc.title or f"documento-{doc.pk}"}.pdf'
+            attachments.append((filename, pdf_bytes, 'application/pdf'))
 
     return {
         'recipient_email': recipient_email,

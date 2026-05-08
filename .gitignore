@@ -104,3 +104,5 @@ AUDIT-*.md
 panel-authenticated.png
 styleguide-*.png
 .claude/scheduled_tasks.lock
+.playwright_prod/
+.playwright_staging/
