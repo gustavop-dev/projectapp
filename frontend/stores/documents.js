@@ -197,6 +197,21 @@ export const useDocumentStore = defineStore('documents', {
     },
 
     /**
+     * getDocumentMarkdown: Fetch only the markdown content of a document without
+     * touching isLoading or currentDocument (safe to call from list views).
+     * @param {number} id - Document ID.
+     */
+    async getDocumentMarkdown(id) {
+      try {
+        const response = await get_request(`documents/${id}/detail/`);
+        return { success: true, markdown: response.data.content_markdown || '' };
+      } catch (error) {
+        console.error('Error fetching document markdown:', error);
+        return { success: false };
+      }
+    },
+
+    /**
      * downloadPdf: Download a document as PDF.
      * @param {number} id - Document ID.
      * @param {string} title - Filename for the download.

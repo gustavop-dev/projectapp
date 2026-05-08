@@ -291,6 +291,7 @@ def duplicate_document(request, document_id):
         include_portada=document.include_portada,
         include_subportada=document.include_subportada,
         include_contraportada=document.include_contraportada,
+        folder=document.folder,
         status=Document.Status.DRAFT,
         content_markdown=document.content_markdown,
         content_json=copy.deepcopy(document.content_json),

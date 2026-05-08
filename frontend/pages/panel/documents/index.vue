@@ -118,7 +118,10 @@
                 v-for="doc in pagedDocuments"
                 :key="doc.id"
                 class="hover:bg-surface-muted dark:hover:bg-gray-700/50 transition-colors cursor-grab active:cursor-grabbing select-none"
-                :class="{ 'opacity-50': draggingDoc?.id === doc.id }"
+                :class="[
+                  { 'opacity-50': draggingDoc?.id === doc.id },
+                  { 'bg-primary-soft transition-colors duration-1000': doc.id === newlyCreatedId }
+                ]"
                 draggable="true"
                 @click="navigateTo(localePath(`/panel/documents/${doc.id}/edit`))"
                 @dragstart="handleDragStart($event, doc)"
@@ -195,6 +198,17 @@
                     </button>
                     <button
                       type="button"
+                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-teal-600 dark:hover:text-teal-400"
+                      :class="{ 'text-teal-600 dark:text-teal-400': copiedMarkdownId === doc.id }"
+                      title="Copiar markdown"
+                      @click="handleCopyMarkdown(doc.id)"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
                       class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-purple-600 dark:hover:text-purple-400"
                       title="Duplicar"
                       @click="handleDuplicate(doc.id)"
@@ -226,6 +240,7 @@
             v-for="doc in pagedDocuments"
             :key="`mobile-${doc.id}`"
             class="bg-surface rounded-xl shadow-sm border border-border-muted p-4  "
+            :class="{ 'bg-primary-soft transition-colors duration-1000': doc.id === newlyCreatedId }"
             @click="navigateTo(localePath(`/panel/documents/${doc.id}/edit`))"
           >
             <div class="flex items-start justify-between mb-2">
@@ -261,6 +276,17 @@
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-teal-600 dark:hover:text-teal-400"
+                  :class="{ 'text-teal-600 dark:text-teal-400': copiedMarkdownId === doc.id }"
+                  title="Copiar markdown"
+                  @click="handleCopyMarkdown(doc.id)"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </button>
                 <button
@@ -365,6 +391,10 @@ const folderStore = useDocumentFolderStore();
 const tagStore = useDocumentTagStore();
 
 const searchQuery = ref('');
+const newlyCreatedId = ref(null);
+const copiedMarkdownId = ref(null);
+let newlyCreatedTimer = null;
+let copiedMarkdownTimer = null;
 const filteredDocuments = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
   if (!q) return documentStore.documents;
@@ -506,7 +536,23 @@ async function handleDownloadPdf(doc) {
 async function handleDuplicate(id) {
   const result = await documentStore.duplicateDocument(id);
   if (result.success) {
+    clearTimeout(newlyCreatedTimer);
     await documentStore.fetchDocuments();
+    newlyCreatedId.value = result.data.id;
+    newlyCreatedTimer = setTimeout(() => { newlyCreatedId.value = null; }, 2500);
+  }
+}
+
+async function handleCopyMarkdown(id) {
+  const result = await documentStore.getDocumentMarkdown(id);
+  if (!result.success) return;
+  try {
+    await navigator.clipboard.writeText(result.markdown);
+    clearTimeout(copiedMarkdownTimer);
+    copiedMarkdownId.value = id;
+    copiedMarkdownTimer = setTimeout(() => { copiedMarkdownId.value = null; }, 1500);
+  } catch {
+    // clipboard unavailable or denied — no false feedback
   }
 }
 
