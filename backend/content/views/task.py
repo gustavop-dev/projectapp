@@ -168,6 +168,27 @@ def delete_task(request, task_id):
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def duplicate_task(request, task_id):
+    """Duplicate a task. Copies basic fields only — no comments, alerts, archive state."""
+    original = get_object_or_404(Task, pk=task_id)
+    new_task = Task.objects.create(
+        title=f'{original.title} (copia)',
+        description=original.description,
+        status=original.status,
+        priority=original.priority,
+        board_type=original.board_type,
+        assignee=original.assignee,
+        due_date=original.due_date,
+        position=_next_position(original.status, board_type=original.board_type),
+    )
+    return Response(
+        TaskListSerializer(new_task, context=_serializer_context()).data,
+        status=status.HTTP_201_CREATED,
+    )
+
+
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def list_task_assignees(request):

@@ -155,6 +155,71 @@ class TestDeleteTask:
         assert response.status_code == 404
 
 
+class TestDuplicateTask:
+    def test_duplicates_basic_fields_with_copia_suffix(self, admin_client, db):
+        original = Task.objects.create(
+            title='Plan release',
+            description='Q3 launch',
+            status=Task.Status.IN_PROGRESS,
+            priority=Task.Priority.HIGH,
+            board_type=Task.BoardType.WEEKLY,
+            position=4,
+        )
+        # Sibling at position 5 — duplicate must land at 6.
+        Task.objects.create(
+            title='Other',
+            status=Task.Status.IN_PROGRESS,
+            board_type=Task.BoardType.WEEKLY,
+            position=5,
+        )
+
+        response = admin_client.post(
+            reverse('duplicate-task', kwargs={'task_id': original.id}), {}, format='json',
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data['title'] == 'Plan release (copia)'
+        assert data['description'] == 'Q3 launch'
+        assert data['status'] == 'in_progress'
+        assert data['priority'] == 'high'
+        assert data['board_type'] == 'weekly'
+        assert data['position'] == 6
+        assert data['is_archived'] is False
+        assert Task.objects.filter(pk=original.id).exists()
+
+    def test_does_not_copy_comments_alerts_or_archive_state(self, admin_client, admin_user, db):
+        from content.models import TaskAlert, TaskComment
+        from datetime import date
+
+        original = Task.objects.create(
+            title='Source',
+            status=Task.Status.TODO,
+            is_archived=True,
+            archive_reason='reason here',
+        )
+        TaskComment.objects.create(task=original, author=admin_user, text='note')
+        TaskAlert.objects.create(task=original, notify_at=date(2030, 1, 1))
+
+        response = admin_client.post(
+            reverse('duplicate-task', kwargs={'task_id': original.id}), {}, format='json',
+        )
+
+        assert response.status_code == 201
+        copy_id = response.json()['id']
+        copy = Task.objects.get(pk=copy_id)
+        assert copy.is_archived is False
+        assert copy.archive_reason == ''
+        assert copy.comments.count() == 0
+        assert copy.alerts.count() == 0
+
+    def test_nonexistent_task_returns_404(self, admin_client):
+        response = admin_client.post(
+            reverse('duplicate-task', kwargs={'task_id': 999999}), {}, format='json',
+        )
+        assert response.status_code == 404
+
+
 class TestListTasksMacroBoard:
     def test_returns_macro_board_tasks_only(self, admin_client):
         Task.objects.create(title='Standard', board_type=Task.BoardType.STANDARD, status=Task.Status.TODO)

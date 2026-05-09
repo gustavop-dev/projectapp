@@ -81,6 +81,7 @@ from content.views.proposal_clients import (
 )
 from content.views.task import (
     list_tasks, create_task, update_task, reorder_task, delete_task,
+    duplicate_task,
     list_task_assignees,
     archive_task, unarchive_task, list_archived_tasks,
     list_task_comments, create_task_comment, delete_task_comment,
@@ -268,6 +269,7 @@ urlpatterns = [
     path('tasks/<int:task_id>/update/', update_task, name='update-task'),
     path('tasks/<int:task_id>/reorder/', reorder_task, name='reorder-task'),
     path('tasks/<int:task_id>/delete/', delete_task, name='delete-task'),
+    path('tasks/<int:task_id>/duplicate/', duplicate_task, name='duplicate-task'),
     path('tasks/<int:task_id>/archive/', archive_task, name='archive-task'),
     path('tasks/<int:task_id>/unarchive/', unarchive_task, name='unarchive-task'),
     path('tasks/<int:task_id>/comments/', list_task_comments, name='list-task-comments'),

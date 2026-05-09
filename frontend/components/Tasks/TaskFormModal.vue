@@ -6,15 +6,16 @@
         class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
         @click.self="close"
       >
-        <div class="bg-surface rounded-2xl shadow-2xl max-w-lg w-full p-6" data-testid="task-form-modal">
-          <div class="flex items-center justify-between mb-5">
+        <div class="bg-surface rounded-2xl shadow-2xl max-w-lg w-full max-h-[calc(100vh-2rem)] flex flex-col" data-testid="task-form-modal">
+          <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-border-default">
             <h3 class="text-lg font-semibold text-text-default">
               {{ isEditing ? 'Edit task' : 'New task' }}
             </h3>
             <button class="text-gray-400 hover:text-text-muted dark:hover:text-gray-200" @click="close">✕</button>
           </div>
 
-          <form class="space-y-4" @submit.prevent="handleSubmit">
+          <form class="flex flex-col flex-1 min-h-0" @submit.prevent="handleSubmit">
+            <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
             <div>
               <label class="block text-xs text-text-muted dark:text-gray-400 mb-1">Title</label>
               <input
@@ -254,7 +255,9 @@
               </div>
             </div>
 
-            <div class="flex items-center justify-between pt-3">
+            </div>
+
+            <div class="flex items-center justify-between gap-2 px-6 py-4 border-t border-border-default bg-surface">
               <button
                 v-if="isEditing"
                 type="button"
@@ -266,6 +269,16 @@
               </button>
               <span v-else></span>
               <div class="flex gap-2">
+                <button
+                  v-if="isEditing"
+                  type="button"
+                  class="px-4 py-2 text-sm rounded-lg bg-gray-100 text-text-default hover:bg-gray-200 disabled:opacity-50"
+                  :disabled="busy"
+                  data-testid="task-duplicate-btn"
+                  @click="handleDuplicate"
+                >
+                  Duplicar
+                </button>
                 <button
                   type="button"
                   class="px-4 py-2 text-sm rounded-lg bg-gray-100 text-text-default hover:bg-gray-200"
@@ -303,7 +316,7 @@ const props = defineProps({
   assignees: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(['update:modelValue', 'submit', 'delete', 'archive']);
+const emit = defineEmits(['update:modelValue', 'submit', 'delete', 'archive', 'duplicate']);
 
 const store = useTaskStore();
 
@@ -416,6 +429,10 @@ function formatCommentDate(dateStr) {
 
 function handleDelete() {
   emit('delete', props.task);
+}
+
+function handleDuplicate() {
+  emit('duplicate', props.task);
 }
 
 async function handleAddAlert() {

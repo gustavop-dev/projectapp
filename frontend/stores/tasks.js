@@ -184,6 +184,25 @@ export const useTaskStore = defineStore('tasks', {
       }
     },
 
+    /** Duplicate a task. Server creates a copy at the end of the same status+board column. */
+    async duplicateTask(id) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(`tasks/${id}/duplicate/`, {});
+        const task = response.data;
+        await this.refetchBoard(task.board_type || 'standard');
+        return { success: true, data: task };
+      } catch (error) {
+        this.error = 'duplicate_failed';
+        console.error('Error duplicating task:', error);
+        return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
     /** Archive a task with an optional reason. */
     async archiveTask(id, reason) {
       this.isUpdating = true;

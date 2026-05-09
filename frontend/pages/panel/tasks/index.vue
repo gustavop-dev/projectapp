@@ -154,6 +154,7 @@
       @submit="handleSubmit"
       @delete="handleDelete"
       @archive="handleArchive"
+      @duplicate="handleDuplicate"
     />
 
     <!-- Confirm modal -->
@@ -284,6 +285,12 @@ async function handleDelete(task) {
   });
   if (!confirmed) return;
   const result = await taskStore.deleteTask(task.id);
+  if (result.success) showModal.value = false;
+}
+
+async function handleDuplicate(task) {
+  if (!task?.id) return;
+  const result = await taskStore.duplicateTask(task.id);
   if (result.success) showModal.value = false;
 }
 

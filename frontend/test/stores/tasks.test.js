@@ -145,6 +145,30 @@ describe('useTaskStore', () => {
     expect(store.boardTasks.standard.todo.map((t) => t.id)).toEqual([1])
   })
 
+  it('duplicateTask hits duplicate endpoint and refetches the board', async () => {
+    create_request.mockResolvedValueOnce({
+      data: { id: 99, title: 'Foo (copia)', status: 'todo', priority: 'medium', board_type: 'standard' },
+    })
+    get_request.mockResolvedValueOnce({
+      data: {
+        todo: [{ id: 7, board_type: 'standard' }, { id: 99, title: 'Foo (copia)', board_type: 'standard' }],
+        in_progress: [], blocked: [], done: [],
+      },
+    })
+    const result = await store.duplicateTask(7)
+    expect(create_request).toHaveBeenCalledWith('tasks/7/duplicate/', {})
+    expect(get_request).toHaveBeenCalledWith('tasks/?board=standard')
+    expect(result).toEqual({ success: true, data: expect.objectContaining({ id: 99 }) })
+    expect(store.boardTasks.standard.todo.map((t) => t.id)).toEqual([7, 99])
+  })
+
+  it('duplicateTask returns failure when request errors', async () => {
+    create_request.mockRejectedValueOnce({ response: { data: { detail: 'nope' } } })
+    const result = await store.duplicateTask(5)
+    expect(result.success).toBe(false)
+    expect(store.error).toBe('duplicate_failed')
+  })
+
   it('getTaskById searches across all board columns', () => {
     store.boardTasks.standard.in_progress = [{ id: 42, title: 'Deep' }]
     expect(store.getTaskById(42)).toEqual({ id: 42, title: 'Deep' })
