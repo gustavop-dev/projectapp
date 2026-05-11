@@ -987,3 +987,53 @@ class TestAdminPinnedCalculatorGroupIds:
 
         assert admin_pinned_calculator_group_ids(None) == set()
         assert admin_pinned_calculator_group_ids([]) == set()
+
+
+class TestAdminDefaultCalculatorGroupIds:
+    """admin_default_calculator_group_ids: `selected` is the source of truth;
+    `default_selected` is only a fallback when `selected` is absent."""
+
+    def _fr(self, *modules):
+        return {'groups': [], 'additionalModules': list(modules)}
+
+    def test_selected_true_included_selected_false_excluded(self):
+        from content.services.proposal_service import admin_default_calculator_group_ids
+
+        fr = self._fr(
+            {'id': 'ai', 'is_calculator_module': True, 'selected': True, 'is_visible': True},
+            {'id': 'pwa', 'is_calculator_module': True, 'selected': False, 'is_visible': True},
+        )
+        assert admin_default_calculator_group_ids(fr) == {'ai'}
+
+    def test_explicit_selected_false_overrides_default_selected_true(self):
+        from content.services.proposal_service import admin_default_calculator_group_ids
+
+        fr = self._fr(
+            {'id': 'branding', 'is_calculator_module': True, 'selected': False,
+             'default_selected': True, 'is_visible': True},
+        )
+        assert admin_default_calculator_group_ids(fr) == set()
+
+    def test_default_selected_true_used_when_selected_absent(self):
+        from content.services.proposal_service import admin_default_calculator_group_ids
+
+        fr = self._fr(
+            {'id': 'legacy', 'is_calculator_module': True, 'default_selected': True, 'is_visible': True},
+        )
+        assert admin_default_calculator_group_ids(fr) == {'legacy'}
+
+    def test_hidden_and_non_calc_and_blank_ignored(self):
+        from content.services.proposal_service import admin_default_calculator_group_ids
+
+        fr = self._fr(
+            {'id': 'hidden', 'is_calculator_module': True, 'selected': True, 'is_visible': False},
+            {'id': 'not_calc', 'is_calculator_module': False, 'selected': True, 'is_visible': True},
+            {'id': '', 'is_calculator_module': True, 'selected': True, 'is_visible': True},
+            'not-a-dict',
+        )
+        assert admin_default_calculator_group_ids(fr) == set()
+
+    def test_non_dict_input_returns_empty_set(self):
+        from content.services.proposal_service import admin_default_calculator_group_ids
+
+        assert admin_default_calculator_group_ids(None) == set()

@@ -349,8 +349,8 @@ def _calculate_effective_total_investment(
     the calculator modules the admin explicitly pinned (``selected is True``),
     which always win even over an empty confirmation, mirroring the client
     view. When ``False``, the persisted list is ignored and the admin's
-    ``selected`` / ``default_selected`` flags in the FR content JSON are used
-    as the initial scope — the client has not customized yet.
+    ``selected`` flags in the FR content JSON drive the initial scope
+    (``default_selected`` only as a fallback when ``selected`` is absent).
     """
     base = _safe_decimal(base_total).quantize(Decimal('0.01'))
 

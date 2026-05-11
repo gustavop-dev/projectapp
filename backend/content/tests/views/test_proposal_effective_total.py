@@ -132,13 +132,10 @@ class TestCalculateEffectiveTotalInvestment:
         # base 6M + ai(80%) = 10.8M
         assert result == Decimal('10800000.00')
 
-    def test_default_selected_true_with_explicit_selected_false_still_counts(self):
-        """``default_selected=True`` is the admin's pre-inclusion signal: it
-        carries the price into ``effective_total_investment`` even when the
-        admin later flipped ``selected`` off. Whether the module is listed
-        in the FR display is a separate concern (handled in the PDF render
-        layer) — the totals must keep matching the headline price the
-        public Investment section shows."""
+    def test_explicit_selected_false_overrides_default_selected_true(self):
+        """``selected`` is the source of truth (the panel checkbox). An
+        explicit ``selected=False`` excludes the module from the effective
+        total even if ``default_selected=True`` — the admin unchecked it."""
         fr_content = {
             'additionalModules': [
                 {
@@ -148,6 +145,30 @@ class TestCalculateEffectiveTotalInvestment:
                     'is_calculator_module': True,
                     'default_selected': True,
                     'selected': False,
+                    'price_percent': 35,
+                },
+            ],
+            'groups': [],
+        }
+        result = _calculate_effective_total_investment(
+            base_total=Decimal('6000000'),
+            selected_modules=[],
+            fr_content_json=fr_content,
+            has_confirmed=False,
+        )
+        assert result == Decimal('6000000.00')
+
+    def test_default_selected_true_counts_when_selected_absent(self):
+        """Legacy fallback: a module with no explicit ``selected`` key still
+        counts when ``default_selected=True``."""
+        fr_content = {
+            'additionalModules': [
+                {
+                    'id': 'branding',
+                    'title': 'Branding',
+                    'is_visible': True,
+                    'is_calculator_module': True,
+                    'default_selected': True,
                     'price_percent': 35,
                 },
             ],

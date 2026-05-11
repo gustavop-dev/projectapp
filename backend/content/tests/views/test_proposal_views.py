@@ -532,9 +532,10 @@ class TestAdminListProposals:
         # Only i18n (15%) should be included: 1000 + 150 = 1150
         assert item['effective_total_investment'] == '1150.00'
 
-    def test_effective_total_explicit_selection_overrides_fr_defaults(self, admin_client, db):
-        """When the client confirmed with an explicit selection, FR
-        selected/default_selected is ignored."""
+    def test_effective_total_confirmed_selection_unioned_with_admin_pinned(self, admin_client, db):
+        """When the client confirmed an explicit selection, it is honored but
+        unioned with the calculator modules the admin pinned (``selected=True``)
+        — the admin's panel choices always reach the total."""
         proposal = BusinessProposal.objects.create(
             title='Explicit override',
             client_name='Override',
@@ -575,8 +576,8 @@ class TestAdminListProposals:
         response = admin_client.get(reverse('list-proposals'))
         assert response.status_code == 200
         item = next(i for i in response.data if i['id'] == proposal.id)
-        # Only pwa (40%) via explicit selection: 1000 + 400 = 1400
-        assert item['effective_total_investment'] == '1400.00'
+        # pwa (40%, confirmed) + i18n (15%, admin-pinned) → 1000 + 400 + 150 = 1550
+        assert item['effective_total_investment'] == '1550.00'
 
 
 class TestAdminRetrieveProposal:

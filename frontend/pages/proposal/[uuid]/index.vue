@@ -679,11 +679,11 @@ const allGroupCalculatorItems = computed(() => {
     const isCalcModule = group.is_calculator_module === true;
     const pricePercent = group.price_percent ?? 0;
     const price = pricePercent > 0 ? Math.round(baseTotal * pricePercent / 100) : 0;
-    // A calc module is pre-selected when the admin marked `selected` OR
-    // `default_selected` — same rule the backend uses for the effective total
-    // (admin_default_calculator_group_ids) and the PDF scope, so the modal
-    // checkboxes and the headline price stay in sync.
-    const defaultSelected = group.selected === true || group.default_selected === true;
+    // `selected` is the source of truth (the "Seleccionado" checkbox in the
+    // admin panel); `default_selected` is only a fallback for legacy data that
+    // never got an explicit `selected` value. Same rule the backend uses for
+    // the effective total (admin_default_calculator_group_ids) and PDF scope.
+    const defaultSelected = group.selected ?? group.default_selected ?? !isCalcModule;
     items.push({
       id: isCalcModule ? `module-${group.id}` : `group-${group.id}`,
       name: `${group.icon || ''} ${group.title}`.trim(),

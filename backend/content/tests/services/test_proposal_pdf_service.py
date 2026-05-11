@@ -2937,12 +2937,11 @@ class TestDefaultSelectedModulesFromContent:
 
         assert 'module-pwa' not in result
 
-    def test_includes_calc_module_when_default_selected_true_only(self):
-        """A calc module with ``default_selected=True`` (or ``selected=True``)
-        counts as an admin pre-inclusion: it must appear in the PDF default
-        scope so that the rendered total and ``effective_total_investment``
-        match. Whether it shows in the FR section is a separate display
-        concern handled by ``_filter_calculator_groups``."""
+    def test_explicit_selected_false_excludes_even_with_default_selected_true(self):
+        """``selected`` is the source of truth: an explicit ``selected=False``
+        keeps the module out of the PDF scope even if ``default_selected=True``
+        — the admin unchecked it in the panel. (The ``selected``-absent
+        fallback is covered by ``test_falls_back_to_default_selected_when_selected_absent``.)"""
         proposal = self._make_proposal(
             fr_content=_fr_section_content_json(additionalModules=[
                 _calculator_module_group(
@@ -2953,7 +2952,7 @@ class TestDefaultSelectedModulesFromContent:
 
         result = default_selected_modules_from_content(proposal)
 
-        assert 'module-branding' in result
+        assert 'module-branding' not in result
 
     def test_excludes_group_when_is_visible_false(self):
         proposal = self._make_proposal(

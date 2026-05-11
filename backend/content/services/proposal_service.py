@@ -2499,13 +2499,16 @@ def normalize_selected_module_ids(selected, fr_content_json):
 
 
 def admin_default_calculator_group_ids(fr_content_json):
-    """Return the bare ids of calculator modules the admin marked as selected
-    in the FR content JSON.
+    """Return the bare ids of the visible calculator modules the admin marked
+    as selected in the FR content JSON.
 
-    A calculator module (``is_calculator_module=True``) counts as an admin
-    default when it carries ``selected=True`` or ``default_selected=True``.
-    Returns a set of bare ids (no ``module-`` prefix) so callers can shape
-    them as needed.
+    ``selected`` is the source of truth (the "Seleccionado" checkbox in the
+    admin panel): a calculator module (``is_calculator_module=True``) counts
+    as an admin default when ``selected`` is truthy. ``default_selected`` only
+    acts as a fallback when the module carries no explicit ``selected`` value
+    (legacy data / old JSON imports) — an explicit ``selected=False`` wins
+    over ``default_selected=True``. Hidden modules (``is_visible=False``) are
+    excluded. Returns a set of bare ids (no ``module-`` prefix).
 
     Pure function: no ORM queries, no side effects.
     """
@@ -2518,7 +2521,12 @@ def admin_default_calculator_group_ids(fr_content_json):
                 continue
             if not group.get('is_calculator_module'):
                 continue
-            if not (group.get('selected') or group.get('default_selected')):
+            if group.get('is_visible') is False:
+                continue
+            sel = group.get('selected')
+            if sel is None:
+                sel = group.get('default_selected')
+            if not sel:
                 continue
             gid = str(group.get('id') or '').strip()
             if gid:
