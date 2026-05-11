@@ -333,7 +333,7 @@ DEFAULT_SECTIONS = [
         'order': 11,
         'is_wide_panel': False,
         'content_json': {
-            'index': '10',
+            'index': '11',
             'title': 'Lo que sumamos a tu proyecto sin costo extra',
             'intro': (
                 'Estos módulos no se cobran aparte. Se incluyen porque creemos que todo '
@@ -356,7 +356,7 @@ DEFAULT_SECTIONS = [
         'order': 10,
         'is_wide_panel': True,
         'content_json': {
-            'index': '9',
+            'index': '10',
             'title': 'Requerimientos Funcionales del Proyecto',
             'intro': 'A continuación se detallan los requerimientos funcionales del proyecto.',
             'groups': [
@@ -1513,7 +1513,7 @@ DEFAULT_SECTIONS_EN = [
         'order': 11,
         'is_wide_panel': False,
         'content_json': {
-            'index': '10',
+            'index': '11',
             'title': 'What we add to your project at no extra cost',
             'intro': (
                 'These modules are not billed separately. They are included because we believe '
@@ -1536,7 +1536,7 @@ DEFAULT_SECTIONS_EN = [
         'order': 10,
         'is_wide_panel': True,
         'content_json': {
-            'index': '9',
+            'index': '10',
             'title': 'Functional Requirements',
             'intro': 'Below are the functional requirements for the project.',
             'groups': [

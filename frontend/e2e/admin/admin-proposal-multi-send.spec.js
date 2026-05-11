@@ -82,7 +82,7 @@ test.describe('Admin Proposal Multi Send', () => {
       if (apiPath === `proposals/${PRIMARY_ID}/detail/`) {
         return { status: 200, contentType: 'application/json', body: JSON.stringify(mockPrimaryProposal) };
       }
-      if (apiPath.startsWith(`proposals/?client_id=${CLIENT_ID}`)) {
+      if (apiPath === 'proposals/' && route.request().url().includes(`client_id=${CLIENT_ID}`)) {
         return { status: 200, contentType: 'application/json', body: JSON.stringify([
           { ...mockPrimaryProposal, sections: undefined, requirement_groups: undefined },
           mockSecondProposal,

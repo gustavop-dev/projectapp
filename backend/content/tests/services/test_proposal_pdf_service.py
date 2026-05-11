@@ -2327,7 +2327,7 @@ class TestRenderInvestmentEndToEndAdminDefaults:
             title='FR', order=1, is_enabled=True,
             content_json=_fr_section_content_json(additionalModules=[
                 _calculator_module_group(
-                    id='branding', default_selected=True, selected=False,
+                    id='branding', default_selected=True,
                     price_percent=35,
                 ),
             ]),
@@ -2362,18 +2362,16 @@ class TestRenderInvestmentEndToEndAdminDefaults:
         assert '$3.240.000' in text
         assert '$4.860.000' in text
 
-    def test_explicit_selected_false_hides_from_fr_but_keeps_in_total(self, db):
-        """Admin pre-includes a module via ``default_selected=True`` but
-        explicitly flipped ``selected=False``. The totals (cuotas, hosting)
-        must keep counting it (``effective_total_investment`` stays $14.1M-
-        like), and the FR section of the PDF must NOT list it — same
-        contract the public client view enforces (prop 86 scenario)."""
+    def test_explicit_selected_false_excludes_from_total_and_fr(self, db):
+        """Admin explicitly unchecked a module (``selected=False``), even though
+        ``default_selected=True``. Under the 'selected is source of truth' rule,
+        the module is excluded from both the effective total and the FR section."""
         from content.services.proposal_pdf_service import (
             ProposalPdfService, default_selected_modules_from_content,
         )
 
         proposal = BusinessProposal.objects.create(
-            title='HiddenButCounts', client_name='Test',
+            title='HiddenAndExcluded', client_name='Test',
             client_email='t@t.com', language='es',
             total_investment=Decimal('6000000'), currency='COP',
             status='sent',
@@ -2405,8 +2403,8 @@ class TestRenderInvestmentEndToEndAdminDefaults:
         )
 
         sel = default_selected_modules_from_content(proposal)
-        # Module counted toward totals via the canonical OR rule.
-        assert 'module-branding' in sel
+        # Explicit selected=False wins over default_selected=True — not counted.
+        assert 'module-branding' not in sel
 
         pdf = ProposalPdfService.generate(proposal, selected_modules=sel)
         from pypdf import PdfReader
@@ -2415,11 +2413,9 @@ class TestRenderInvestmentEndToEndAdminDefaults:
             (page.extract_text() or '')
             for page in PdfReader(_io.BytesIO(pdf)).pages
         )
-        # Cuotas computed against effective $8.1M (40% / 60%) — matches public view.
-        assert '$8.100.000' in text
-        assert '$3.240.000' in text
-        assert '$4.860.000' in text
-        # FR section must NOT list a module the admin explicitly deselected.
+        # Base $6M renders (no module added to total).
+        assert '$6.000.000' in text
+        # FR section must NOT list the explicitly unchecked module.
         assert 'Identidad Visual' not in text
 
     def test_adjusted_duration_renders_when_modules_deselected(self, pdf_canvas, proposal_obj):

@@ -23,6 +23,22 @@ jest.mock('../../stores/proposalClients', () => ({
   useProposalClientsStore: () => mockStore,
 }));
 
+jest.mock('../../stores/proposals', () => ({
+  useProposalStore: () => ({
+    deleteProposal: jest.fn().mockResolvedValue({ success: true }),
+  }),
+}));
+
+jest.mock('../../stores/diagnostics', () => ({
+  useDiagnosticsStore: () => ({
+    remove: jest.fn().mockResolvedValue({ success: true }),
+  }),
+}));
+
+jest.mock('../../composables/usePanelRefresh', () => ({
+  usePanelRefresh: jest.fn(),
+}));
+
 jest.mock('../../composables/useConfirmModal', () => ({
   useConfirmModal: () => ({
     confirmState: {

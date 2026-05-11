@@ -372,6 +372,9 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
     propagate_client_updates = serializers.BooleanField(
         write_only=True, required=False, default=False,
     )
+    create_new_client = serializers.BooleanField(
+        write_only=True, required=False, default=False,
+    )
     client = ProposalClientSerializer(read_only=True)
 
     class Meta:
@@ -385,7 +388,8 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
             'project_type', 'market_type', 'client_phone',
             'project_type_custom', 'market_type_custom',
             'email_intro',
-            'client_id', 'client_company', 'propagate_client_updates', 'client',
+            'client_id', 'client_company', 'propagate_client_updates',
+            'create_new_client', 'client',
         )
 
     def validate_client_email(self, value):
@@ -440,6 +444,7 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
             'phone': validated_data.get('client_phone', ''),
             'company': validated_data.pop('client_company', ''),
             'propagate': validated_data.pop('propagate_client_updates', False),
+            'create_new': validated_data.pop('create_new_client', False),
         }
 
     def create(self, validated_data):
@@ -460,6 +465,21 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         client_inputs = self._pop_client_inputs(validated_data)
         explicit_profile = client_inputs['client']
+
+        # Caller explicitly asked to create a brand-new client from the inline
+        # fields (and did not pick an existing one). Resolve/create the profile
+        # and (re)assign it WITHOUT touching the previously linked client.
+        if client_inputs['create_new'] and explicit_profile is None:
+            new_profile = proposal_client_service.get_or_create_client_for_proposal(
+                name=client_inputs['name'],
+                email=client_inputs['email'],
+                phone=client_inputs['phone'],
+                company=client_inputs['company'],
+            )
+            validated_data['client'] = new_profile
+            proposal = super().update(instance, validated_data)
+            proposal_client_service.sync_snapshot(proposal)
+            return proposal
 
         # If caller passed a client_id, switch the FK and skip auto-create.
         if explicit_profile is not None:

@@ -1787,6 +1787,11 @@ const form = reactive({
   email_intro: '',
 });
 
+// True when the admin chose "create a new client" from the autocomplete: the
+// backend must build a fresh UserProfile from the inline fields instead of
+// editing the currently linked one.
+const creatingNewClient = ref(false);
+
 const DEFAULT_EXPIRY_DAYS = 21;
 const padDate = (n) => String(n).padStart(2, '0');
 function getExpiryDaysFromStr(datetimeStr) {
@@ -1808,6 +1813,7 @@ watch(expiryDaysInput, (days) => {
 
 function onClientSelected(client) {
   if (!client) return;
+  creatingNewClient.value = false;
   form.client_id = client.id;
   form.client_name = client.name || form.client_name;
   // Empty input is friendlier than a fake placeholder address; the badge already signals it.
@@ -1817,10 +1823,14 @@ function onClientSelected(client) {
 }
 
 function onCreateInlineClient(typedName) {
+  creatingNewClient.value = true;
   form.client_id = null;
-  if (typedName) {
-    form.client_name = typedName;
-  }
+  form.client_name = typedName || '';
+  // Drop the previously selected client's contact details so the new profile
+  // isn't matched (by email) to that existing client.
+  form.client_email = '';
+  form.client_phone = '';
+  form.client_company = '';
 }
 
 function parseSectionContentJson(section) {
@@ -1961,6 +1971,7 @@ function hydrateFormFromProposal() {
     automations_paused: proposal.value.automations_paused ?? true,
     email_intro: proposal.value.email_intro || '',
   });
+  creatingNewClient.value = false;
 }
 
 onMounted(async () => {
@@ -2001,7 +2012,14 @@ async function toggleAutomationsPaused() {
 }
 
 async function handleUpdate() {
-  const payload = { ...form, propagate_client_updates: true };
+  const payload = { ...form };
+  if (creatingNewClient.value) {
+    payload.create_new_client = true;
+    payload.propagate_client_updates = false;
+    payload.client_id = null;
+  } else {
+    payload.propagate_client_updates = true;
+  }
   if (payload.expires_at) {
     const d = new Date(payload.expires_at);
     payload.expires_at = isNaN(d.getTime()) ? null : d.toISOString();

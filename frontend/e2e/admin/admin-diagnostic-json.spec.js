@@ -101,7 +101,7 @@ test.describe('Admin Diagnostic — JSON export tab', () => {
 
     await expect(page.getByText('JSON del diagnóstico')).toBeVisible({ timeout: 10_000 });
 
-    await expect(page.getByRole('button', { name: /Actualizar/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Actualizar$/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Copiar/i }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: /Descargar/i })).toBeVisible();
   });
@@ -122,7 +122,7 @@ test.describe('Admin Diagnostic — JSON export tab', () => {
     await page.getByRole('tab', { name: 'JSON' }).click();
     await expect(page.getByText('JSON del diagnóstico')).toBeVisible({ timeout: 10_000 });
 
-    await page.getByRole('button', { name: /Actualizar/i }).click();
+    await page.getByRole('button', { name: /^Actualizar$/i }).click();
 
     await expect(page.locator('textarea[readonly]')).toHaveValue(/Delta Inc \(Actualizado\)/, { timeout: 5_000 });
   });

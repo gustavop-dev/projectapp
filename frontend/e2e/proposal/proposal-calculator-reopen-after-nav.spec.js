@@ -139,7 +139,7 @@ async function openModal(page) {
 }
 
 function modalRow(page, label) {
-  return page.locator('div.rounded-xl.border').filter({ hasText: label });
+  return page.locator('div.rounded-xl').filter({ hasText: label }).first();
 }
 
 async function assertChecked(page, label) {

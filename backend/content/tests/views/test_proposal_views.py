@@ -296,7 +296,7 @@ class TestDownloadProposalPdf:
                     {
                         'id': 'extra_ai',
                         'is_calculator_module': True,
-                        'selected': True,
+                        'selected': False,
                         'price_percent': 35,
                     },
                 ],

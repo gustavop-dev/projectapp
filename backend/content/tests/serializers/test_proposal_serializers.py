@@ -483,6 +483,58 @@ class TestProposalCreateUpdateSerializerClientResolution:
         assert updated.client_id == new_profile.pk
         mock_sync_snapshot.assert_called_once_with(updated)
 
+    def test_update_with_create_new_client_resolves_new_profile_without_touching_existing(self, proposal):
+        original_user = User.objects.create_user(
+            username='serializer-existing-client@test.com',
+            email='serializer-existing-client@test.com',
+            password='pass12345',
+        )
+        proposal.client = UserProfile.objects.create(
+            user=original_user, role=UserProfile.ROLE_CLIENT,
+        )
+        proposal.save(update_fields=['client'])
+
+        new_user = User.objects.create_user(
+            username='serializer-brand-new-client@test.com',
+            email='serializer-brand-new-client@test.com',
+            password='pass12345',
+        )
+        new_profile = UserProfile.objects.create(
+            user=new_user, role=UserProfile.ROLE_CLIENT,
+        )
+
+        serializer = ProposalCreateUpdateSerializer(
+            proposal,
+            data={
+                'client_name': 'Brand New Client',
+                'client_email': '',
+                'create_new_client': True,
+                'propagate_client_updates': False,
+            },
+            partial=True,
+        )
+
+        with patch(
+            'content.serializers.proposal.proposal_client_service.get_or_create_client_for_proposal',
+            return_value=new_profile,
+        ) as mock_get_or_create, patch(
+            'content.serializers.proposal.proposal_client_service.update_client_profile'
+        ) as mock_update_client_profile, patch(
+            'content.serializers.proposal.proposal_client_service.sync_snapshot'
+        ) as mock_sync_snapshot:
+            assert serializer.is_valid(), serializer.errors
+            updated = serializer.save()
+
+        assert updated.client_id == new_profile.pk
+        mock_get_or_create.assert_called_once_with(
+            name='Brand New Client',
+            email='',
+            phone='',
+            company='',
+        )
+        mock_update_client_profile.assert_not_called()
+        mock_sync_snapshot.assert_called_once_with(updated)
+
 
 class TestProposalHostingBillingDiscounts:
     """Tests for hosting_discount_semiannual and hosting_discount_quarterly fields."""

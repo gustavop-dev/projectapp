@@ -33,7 +33,7 @@ test.describe('Admin Proposal Metrics Manual', () => {
     tag: [...ADMIN_PROPOSAL_METRICS_MANUAL, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/panel/proposals');
+    await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
 
     // Click the floating ? button
     const triggerBtn = page.getByTitle('Manual de métricas');
@@ -53,7 +53,7 @@ test.describe('Admin Proposal Metrics Manual', () => {
     tag: [...ADMIN_PROPOSAL_METRICS_MANUAL, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/panel/proposals');
+    await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
 
     await page.getByTitle('Manual de métricas').click();
     await expect(page.getByText('Manual de Métricas')).toBeVisible({ timeout: 5000 });
