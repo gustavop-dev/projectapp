@@ -480,6 +480,41 @@ def _resync_investment_from_modules(proposal, fr_content_json):
     inv_section.save(update_fields=['content_json'])
 
 
+def _rebaseline_client_module_selection(proposal, old_fr_content, new_fr_content):
+    """Re-baseline the client's calculator selection when the admin changes
+    the set of admin-default calculator modules.
+
+    The client view freezes a confirmed selection (``calc_confirmed`` log +
+    ``selected_modules``) and otherwise derives the initial selection from the
+    ``selected``/``default_selected`` flags. Once a client has confirmed, later
+    admin edits to those flags are invisible to the client. When the admin
+    actually changes that default set, drop the prior confirmation and reset
+    ``selected_modules`` to the new admin defaults so the next open reflects
+    the current curation. Returns True when a re-baseline happened.
+    """
+    from content.services.proposal_service import admin_default_calculator_group_ids
+
+    old_ids = admin_default_calculator_group_ids(old_fr_content)
+    new_ids = admin_default_calculator_group_ids(new_fr_content)
+    if old_ids == new_ids:
+        return False
+    proposal.change_logs.filter(change_type='calc_confirmed').delete()
+    proposal.selected_modules = [
+        f'{_CALC_MODULE_PREFIX}{gid}' for gid in sorted(new_ids)
+    ]
+    proposal.save(update_fields=['selected_modules', 'updated_at'])
+    ProposalChangeLog.objects.create(
+        proposal=proposal,
+        change_type='updated',
+        actor_type='seller',
+        description=(
+            'Selección de módulos del cliente reseteada por cambio del admin '
+            'en módulos calculadora.'
+        ),
+    )
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Public endpoints (no auth required)
 # ---------------------------------------------------------------------------
@@ -1487,6 +1522,8 @@ def update_proposal_from_json(request, proposal_id):
 
     # --- Update section content_json ---
     updated_sections = []
+    old_fr_content = None
+    new_fr_content = None
     for section in proposal.sections.all():
         json_key = SECTION_TYPE_TO_KEY.get(section.section_type)
         if json_key and json_key in sections_data:
@@ -1503,6 +1540,7 @@ def update_proposal_from_json(request, proposal_id):
             # Normalize functional_requirements: move calculator modules
             # from groups[] to additionalModules[]
             if section.section_type == 'functional_requirements':
+                old_fr_content = copy.deepcopy(section.content_json)
                 final_groups = []
                 new_content.setdefault('additionalModules', [])
                 existing_mod_ids = {m.get('id') for m in new_content['additionalModules']}
@@ -1513,10 +1551,14 @@ def update_proposal_from_json(request, proposal_id):
                     else:
                         final_groups.append(g)
                 new_content['groups'] = final_groups
+                new_fr_content = new_content
 
             section.content_json = new_content
             section.save(update_fields=['content_json'])
             updated_sections.append(json_key)
+
+    if new_fr_content is not None:
+        _rebaseline_client_module_selection(proposal, old_fr_content, new_fr_content)
 
     ProposalChangeLog.objects.create(
         proposal=proposal,
@@ -2245,6 +2287,8 @@ def update_proposal_section(request, section_id):
     badge "Cliente ve: $X" stays in sync without an extra refetch round-trip.
     """
     section = get_object_or_404(ProposalSection.objects.select_related('proposal'), pk=section_id)
+    is_fr_section = section.section_type == ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS
+    old_fr_content = copy.deepcopy(section.content_json) if is_fr_section else None
     serializer = ProposalSectionUpdateSerializer(
         section, data=request.data, partial=True
     )
@@ -2254,7 +2298,10 @@ def update_proposal_section(request, section_id):
     serializer.save()
 
     investment_section = None
-    if section.section_type == ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS:
+    if is_fr_section:
+        _rebaseline_client_module_selection(
+            section.proposal, old_fr_content, section.content_json
+        )
         _resync_investment_from_modules(section.proposal, section.content_json)
         investment_section = section.proposal.sections.filter(
             section_type=ProposalSection.SectionType.INVESTMENT,
