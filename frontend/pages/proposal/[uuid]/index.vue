@@ -679,8 +679,11 @@ const allGroupCalculatorItems = computed(() => {
     const isCalcModule = group.is_calculator_module === true;
     const pricePercent = group.price_percent ?? 0;
     const price = pricePercent > 0 ? Math.round(baseTotal * pricePercent / 100) : 0;
-    // Backward compat: selected ?? default_selected ?? true (regular groups default to selected)
-    const defaultSelected = group.selected ?? group.default_selected ?? !isCalcModule;
+    // A calc module is pre-selected when the admin marked `selected` OR
+    // `default_selected` — same rule the backend uses for the effective total
+    // (admin_default_calculator_group_ids) and the PDF scope, so the modal
+    // checkboxes and the headline price stay in sync.
+    const defaultSelected = group.selected === true || group.default_selected === true;
     items.push({
       id: isCalcModule ? `module-${group.id}` : `group-${group.id}`,
       name: `${group.icon || ''} ${group.title}`.trim(),
@@ -689,6 +692,9 @@ const allGroupCalculatorItems = computed(() => {
       included: true,
       is_required: pricePercent === 0 && !group.is_invite,
       default_selected: defaultSelected,
+      // Admin explicitly pinned this module ("selected" checkbox in the panel):
+      // it is forced into the client's selection even after a confirmation.
+      pinned: group.selected === true,
       is_calculator_module: isCalcModule,
       is_invite: group.is_invite || false,
       invite_note: group.invite_note || '',
@@ -780,12 +786,15 @@ function computeInitialSelection() {
     ? proposal.value.selected_modules
     : [];
   const persisted = normalizePersistedSelectedIds(persistedRaw, calcItems);
+  // Calculator modules the admin pinned explicitly ("selected" in the panel)
+  // are always part of the initial selection, even over a prior confirmation.
+  const adminPinnedIds = calcItems.filter(m => m.pinned === true).map(m => m.id);
 
   let selectedIds;
   if (hasConfirmed) {
-    // Client has confirmed a selection — trust the persisted list literally,
-    // including an empty array (meaning "client confirmed zero modules").
-    selectedIds = new Set(persisted);
+    // Client confirmed a selection — honor it, but union in the admin's
+    // explicit pins so panel changes always reach the client.
+    selectedIds = new Set([...persisted, ...adminPinnedIds]);
   } else {
     const derived = [];
     for (const m of investmentModules) {

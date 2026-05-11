@@ -3000,10 +3000,29 @@ class TestDefaultSelectedModulesFromContent:
 
         assert result == ['module-pwa']
 
-    def test_confirmed_with_empty_selection_returns_empty(self):
+    def test_confirmed_empty_selection_does_not_leak_default_selected_modules(self):
         """When the client confirmed an empty selection, the PDF must not
-        fall back to the admin's default_selected modules — the empty list
-        is the literal source of truth.
+        fall back to the admin's ``default_selected`` modules — the empty list
+        is the literal source of truth (unless a module is explicitly pinned).
+        """
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(
+                    id='pwa', default_selected=True, selected=False,
+                ),
+            ]),
+            persisted=[],
+            confirmed=True,
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert result == []
+
+    def test_confirmed_empty_selection_still_includes_admin_pinned_modules(self):
+        """A calculator module the admin pinned explicitly (``selected=True``)
+        is forced into the PDF scope even when the client confirmed an empty
+        selection — "I checked it in the panel" wins.
         """
         proposal = self._make_proposal(
             fr_content=_fr_section_content_json(additionalModules=[
@@ -3015,7 +3034,22 @@ class TestDefaultSelectedModulesFromContent:
 
         result = default_selected_modules_from_content(proposal)
 
-        assert result == []
+        assert result == ['module-pwa']
+
+    def test_confirmed_unions_persisted_with_admin_pinned_modules(self):
+        """The PDF scope = the client's confirmed list ∪ the admin's pins."""
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='pwa', selected=False, price_percent=40),
+                _calculator_module_group(id='ai', selected=True, price_percent=80),
+            ]),
+            persisted=['module-pwa'],
+            confirmed=True,
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert set(result) == {'module-pwa', 'module-ai'}
 
     def test_unconfirmed_empty_persisted_falls_back_to_content_json(self):
         """Without a confirmation log, the admin's content_json defaults

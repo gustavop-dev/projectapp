@@ -143,6 +143,7 @@ def default_selected_modules_from_content(proposal, has_confirmed=None):
     """
     from content.services.proposal_service import (
         admin_default_calculator_group_ids,
+        admin_pinned_calculator_group_ids,
         normalize_selected_module_ids,
     )
 
@@ -157,8 +158,15 @@ def default_selected_modules_from_content(proposal, has_confirmed=None):
     fr_content = fr.content_json if fr else None
 
     if has_confirmed:
+        # The client's confirmed list — unioned with the calculator modules the
+        # admin pinned explicitly (``selected is True``), which always win even
+        # over an empty confirmation, mirroring the public client view.
+        pinned = [
+            f'module-{gid}'
+            for gid in admin_pinned_calculator_group_ids(fr_content)
+        ]
         return normalize_selected_module_ids(
-            getattr(proposal, 'selected_modules', None) or [],
+            list(getattr(proposal, 'selected_modules', None) or []) + pinned,
             fr_content,
         )
 

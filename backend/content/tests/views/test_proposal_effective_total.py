@@ -93,6 +93,45 @@ class TestCalculateEffectiveTotalInvestment:
         )
         assert result == Decimal('2520000.00')
 
+    def test_confirmed_unions_persisted_with_admin_pinned_modules(self):
+        """A calc module the admin pinned (``selected=True``) is added to the
+        effective total even when the client's confirmed list excludes it."""
+        fr_content = {
+            'additionalModules': [
+                {'id': 'pwa_module', 'title': 'PWA', 'is_visible': True,
+                 'is_calculator_module': True, 'selected': False, 'price_percent': 40},
+                {'id': 'ai_module', 'title': 'IA', 'is_visible': True,
+                 'is_calculator_module': True, 'selected': True, 'price_percent': 80},
+            ],
+            'groups': [],
+        }
+        result = _calculate_effective_total_investment(
+            base_total=Decimal('6000000'),
+            selected_modules=['module-pwa_module'],
+            fr_content_json=fr_content,
+            has_confirmed=True,
+        )
+        # base 6M + pwa(40%)=2.4M + ai(80%)=4.8M = 13.2M
+        assert result == Decimal('13200000.00')
+
+    def test_confirmed_empty_selection_still_includes_admin_pinned_modules(self):
+        """An explicitly pinned module wins even over an empty confirmation."""
+        fr_content = {
+            'additionalModules': [
+                {'id': 'ai_module', 'title': 'IA', 'is_visible': True,
+                 'is_calculator_module': True, 'selected': True, 'price_percent': 80},
+            ],
+            'groups': [],
+        }
+        result = _calculate_effective_total_investment(
+            base_total=Decimal('6000000'),
+            selected_modules=[],
+            fr_content_json=fr_content,
+            has_confirmed=True,
+        )
+        # base 6M + ai(80%) = 10.8M
+        assert result == Decimal('10800000.00')
+
     def test_default_selected_true_with_explicit_selected_false_still_counts(self):
         """``default_selected=True`` is the admin's pre-inclusion signal: it
         carries the price into ``effective_total_investment`` even when the

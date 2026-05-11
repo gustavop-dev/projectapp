@@ -2526,6 +2526,37 @@ def admin_default_calculator_group_ids(fr_content_json):
     return ids
 
 
+def admin_pinned_calculator_group_ids(fr_content_json):
+    """Bare ids of visible calculator modules the admin pinned explicitly
+    (``selected is True``).
+
+    Unlike :func:`admin_default_calculator_group_ids` (which also counts
+    ``default_selected``), pinned modules are forced into a client's selection
+    even when the client already confirmed a different one — "I checked it in
+    the panel, so the client sees it selected". Hidden modules
+    (``is_visible=False``) are excluded.
+
+    Pure function: no ORM queries, no side effects.
+    """
+    ids = set()
+    if not isinstance(fr_content_json, dict):
+        return ids
+    for arr_key in ('groups', 'additionalModules'):
+        for group in (fr_content_json.get(arr_key) or []):
+            if not isinstance(group, dict):
+                continue
+            if not group.get('is_calculator_module'):
+                continue
+            if group.get('is_visible') is False:
+                continue
+            if group.get('selected') is not True:
+                continue
+            gid = str(group.get('id') or '').strip()
+            if gid:
+                ids.add(gid)
+    return ids
+
+
 class ProposalService:
     """
     Business logic for proposal lifecycle management.

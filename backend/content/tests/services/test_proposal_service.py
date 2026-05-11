@@ -950,3 +950,40 @@ class TestNormalizeHostingPlan:
         assert result['title'] == 'Cloud'
         assert result['description'] == 'Managed.'
         assert result['specs'] == [{'label': 'SSL', 'value': 'included'}]
+
+
+class TestAdminPinnedCalculatorGroupIds:
+    """admin_pinned_calculator_group_ids: visible calc modules with selected is True."""
+
+    def _fr(self, *modules):
+        return {'groups': [], 'additionalModules': list(modules)}
+
+    def test_includes_only_explicitly_selected_visible_calc_modules(self):
+        from content.services.proposal_service import admin_pinned_calculator_group_ids
+
+        fr = self._fr(
+            {'id': 'ai', 'is_calculator_module': True, 'selected': True, 'is_visible': True},
+            {'id': 'pwa', 'is_calculator_module': True, 'selected': False, 'is_visible': True},
+            {'id': 'branding', 'is_calculator_module': True, 'default_selected': True,
+             'selected': False, 'is_visible': True},
+            {'id': 'hidden_ai', 'is_calculator_module': True, 'selected': True, 'is_visible': False},
+            {'id': 'not_calc', 'is_calculator_module': False, 'selected': True, 'is_visible': True},
+            {'id': '', 'is_calculator_module': True, 'selected': True, 'is_visible': True},
+            'not-a-dict',
+        )
+        assert admin_pinned_calculator_group_ids(fr) == {'ai'}
+
+    def test_reads_both_groups_and_additional_modules(self):
+        from content.services.proposal_service import admin_pinned_calculator_group_ids
+
+        fr = {
+            'groups': [{'id': 'g1', 'is_calculator_module': True, 'selected': True, 'is_visible': True}],
+            'additionalModules': [{'id': 'm1', 'is_calculator_module': True, 'selected': True, 'is_visible': True}],
+        }
+        assert admin_pinned_calculator_group_ids(fr) == {'g1', 'm1'}
+
+    def test_non_dict_input_returns_empty_set(self):
+        from content.services.proposal_service import admin_pinned_calculator_group_ids
+
+        assert admin_pinned_calculator_group_ids(None) == set()
+        assert admin_pinned_calculator_group_ids([]) == set()
