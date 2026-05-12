@@ -970,6 +970,21 @@ class TestCreateProposalFromJSON:
         assert proposal.client.user.email == 'json-client@example.com'
         assert proposal.client_name == 'JSON Client'
 
+    def test_links_existing_client_when_client_id_is_provided(self, admin_client, diag_client_profile):
+        url = reverse('create-proposal-from-json')
+        payload = self._minimal_payload()
+        payload['client_id'] = diag_client_profile.id
+        # Inline client_* fields are ignored when an explicit client_id is given.
+        payload['client_email'] = 'should-be-ignored@example.com'
+        response = admin_client.post(url, payload, format='json')
+
+        assert response.status_code == 201
+        proposal = BusinessProposal.objects.get(pk=response.data['id'])
+        assert proposal.client_id == diag_client_profile.id
+        # Snapshot is rebuilt from the canonical profile.
+        assert proposal.client_name == 'Ana Cliente'
+        assert proposal.client_email == 'diag@example.com'
+
     def test_technical_document_section_present_after_minimal_json_create(self, admin_client):
         url = reverse('create-proposal-from-json')
         response = admin_client.post(url, self._minimal_payload(), format='json')

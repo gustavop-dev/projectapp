@@ -965,6 +965,7 @@ def create_proposal_from_json(request):
 
     data = serializer.validated_data
     sections_data = data.pop('sections')
+    explicit_client = data.pop('client', None)
 
     from content.services.proposal_service import ProposalService
 
@@ -974,16 +975,20 @@ def create_proposal_from_json(request):
             data.get('language', 'es'),
         )
 
-    # Resolve the canonical client (UserProfile, role=client) — auto-creates
+    # Resolve the canonical client (UserProfile, role=client). When the caller
+    # picked an existing client, use that profile as-is; otherwise auto-create
     # via placeholder when no email is provided so the FK is always populated.
     from accounts.services import proposal_client_service
 
-    client_profile = proposal_client_service.get_or_create_client_for_proposal(
-        name=data.get('client_name', ''),
-        email=data.get('client_email', ''),
-        phone=data.get('client_phone', ''),
-        company=data.get('client_company', ''),
-    )
+    if explicit_client is not None:
+        client_profile = explicit_client
+    else:
+        client_profile = proposal_client_service.get_or_create_client_for_proposal(
+            name=data.get('client_name', ''),
+            email=data.get('client_email', ''),
+            phone=data.get('client_phone', ''),
+            company=data.get('client_company', ''),
+        )
 
     # Create the BusinessProposal
     proposal = BusinessProposal.objects.create(

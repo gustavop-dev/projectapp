@@ -577,8 +577,19 @@ class ProposalFromJSONSerializer(serializers.Serializer):
 
     title = serializers.CharField(max_length=255)
     client_name = serializers.CharField(max_length=255)
+    # Optional FK to an existing client UserProfile. When provided, that
+    # profile is used as-is and the inline client_* fields are ignored
+    # (the snapshot is rebuilt from the profile via sync_snapshot).
+    client_id = serializers.PrimaryKeyRelatedField(
+        queryset=UserProfile.objects.clients(),
+        source='client',
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
     client_email = serializers.EmailField(required=False, default='', allow_blank=True)
     client_phone = serializers.CharField(max_length=30, required=False, default='', allow_blank=True)
+    client_company = serializers.CharField(max_length=200, required=False, default='', allow_blank=True)
     project_type = serializers.CharField(max_length=20, required=False, default='', allow_blank=True)
     market_type = serializers.CharField(max_length=20, required=False, default='', allow_blank=True)
     project_type_custom = serializers.CharField(max_length=100, required=False, default='', allow_blank=True)
