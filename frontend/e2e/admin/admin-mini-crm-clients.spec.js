@@ -91,6 +91,20 @@ const mockClientDetails = {
         sent_at: '2026-03-01T10:00:00Z',
       },
     ],
+    diagnostics: [
+      {
+        id: 11,
+        title: 'Diagnóstico Web Carlos',
+        status: 'draft',
+        created_at: '2026-02-15T10:00:00Z',
+      },
+      {
+        id: 12,
+        title: 'Diagnóstico SEO Carlos',
+        status: 'draft',
+        created_at: '2026-03-05T10:00:00Z',
+      },
+    ],
   },
   102: {
     ...mockClients[1],
@@ -154,6 +168,30 @@ function setupMock(page, {
     const deleteMatch = apiPath.match(/^proposals\/client-profiles\/(\d+)\/delete\/$/);
     if (deleteMatch && method === 'DELETE') {
       if (onDelete) return onDelete(route, Number(deleteMatch[1]));
+      return { status: 204, body: '' };
+    }
+
+    // Delete a single proposal from within the expanded client detail.
+    const proposalDeleteMatch = apiPath.match(/^proposals\/(\d+)\/delete\/$/);
+    if (proposalDeleteMatch && method === 'DELETE') {
+      const proposalId = Number(proposalDeleteMatch[1]);
+      for (const detail of Object.values(details)) {
+        if (Array.isArray(detail.proposals)) {
+          detail.proposals = detail.proposals.filter((p) => p.id !== proposalId);
+        }
+      }
+      return { status: 204, body: '' };
+    }
+
+    // Delete a single diagnostic from within the expanded client detail.
+    const diagnosticDeleteMatch = apiPath.match(/^diagnostics\/(\d+)\/delete\/$/);
+    if (diagnosticDeleteMatch && method === 'DELETE') {
+      const diagnosticId = Number(diagnosticDeleteMatch[1]);
+      for (const detail of Object.values(details)) {
+        if (Array.isArray(detail.diagnostics)) {
+          detail.diagnostics = detail.diagnostics.filter((d) => d.id !== diagnosticId);
+        }
+      }
       return { status: 204, body: '' };
     }
 
@@ -411,5 +449,61 @@ test.describe('Admin Clients — Delete orphan client', () => {
     await page.getByTestId('client-delete-101').click();
     await expect(page.getByRole('button', { name: 'Entendido', exact: true })).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: 'Eliminar', exact: true })).toHaveCount(0);
+  });
+});
+
+test.describe('Admin Clients — Delete proposal/diagnostic from a client row', () => {
+  test.describe.configure({ timeout: 60_000 });
+
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-admin-token',
+      userAuth: { id: 8100, role: 'admin', is_staff: true },
+    });
+  });
+
+  async function expandCarlos(page) {
+    await page.getByTestId('client-row-101').getByText('Carlos López').click();
+    await expect(page.getByRole('link', { name: 'Propuesta Alpha' })).toBeVisible({ timeout: 10_000 });
+  }
+
+  test('deletes a proposal from the row after typing DELETE', {
+    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin'],
+  }, async ({ page }) => {
+    // Clone so the mutation done by the delete handler does not leak across tests.
+    await setupMock(page, { details: JSON.parse(JSON.stringify(mockClientDetails)) });
+    await gotoClients(page);
+    await expandCarlos(page);
+
+    await page.getByTestId('client-proposal-delete-1').click();
+
+    const confirmBtn = page.getByRole('button', { name: 'Eliminar', exact: true });
+    await expect(confirmBtn).toBeVisible({ timeout: 5_000 });
+    await page.getByTestId('confirm-type-input').fill('DELETE');
+    await confirmBtn.click();
+
+    await expect(page.getByRole('link', { name: 'Propuesta Alpha' })).not.toBeVisible({ timeout: 5_000 });
+    // Sibling proposals remain.
+    await expect(page.getByRole('link', { name: 'Propuesta Beta' })).toBeVisible();
+  });
+
+  test('deletes a diagnostic from the row after typing DELETE', {
+    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin'],
+  }, async ({ page }) => {
+    await setupMock(page, { details: JSON.parse(JSON.stringify(mockClientDetails)) });
+    await gotoClients(page);
+    await expandCarlos(page);
+
+    await expect(page.getByText('Diagnóstico Web Carlos')).toBeVisible();
+    await page.getByTestId('client-diagnostic-delete-11').click();
+
+    const confirmBtn = page.getByRole('button', { name: 'Eliminar', exact: true });
+    await expect(confirmBtn).toBeVisible({ timeout: 5_000 });
+    await page.getByTestId('confirm-type-input').fill('DELETE');
+    await confirmBtn.click();
+
+    await expect(page.getByText('Diagnóstico Web Carlos')).not.toBeVisible({ timeout: 5_000 });
+    // Sibling diagnostic remains.
+    await expect(page.getByText('Diagnóstico SEO Carlos')).toBeVisible();
   });
 });

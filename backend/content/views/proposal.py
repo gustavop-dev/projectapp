@@ -1218,6 +1218,13 @@ def get_proposal_json_template(request):
             'designUX (paragraphs, focusItems, objective), '
             'creativeSupport (paragraphs, includes, closing).'
         ),
+        'CRITICAL_metadata': (
+            'Do NOT add any keys to "_meta.optional_metadata" beyond the ones already '
+            'listed there (title, client_email, language, total_investment, currency). '
+            'In particular, NEVER add an "expires_at" field: the proposal expiration date '
+            'is set automatically from the admin-configured default when the proposal is '
+            'created, not from this JSON.'
+        ),
         'CRITICAL_functionalRequirements': (
             'Do NOT remove any groups or modules from the functionalRequirements section. '
             'All base groups in "groups" and all optional modules in "additionalModules" '
@@ -4690,10 +4697,16 @@ def proposal_alerts(request):
                     'message': f'El cliente volvió después de {gap_days} días — posible comparación con competencia.',
                 })
 
-    # Manual alerts (not dismissed, alert_date <= now)
+    # Manual alerts (not dismissed, alert_date <= now). Accepted/finished
+    # proposals are closed deals and never "need attention".
     manual_qs = ProposalAlert.objects.filter(
         is_dismissed=False,
         alert_date__lte=now,
+    ).exclude(
+        proposal__status__in=[
+            BusinessProposal.Status.ACCEPTED,
+            BusinessProposal.Status.FINISHED,
+        ],
     ).select_related('proposal')
     for a in manual_qs:
         alerts.append({

@@ -3683,6 +3683,40 @@ class TestProposalAlerts:
         assert any('manual_' in at for at in alert_types)
 
     @freeze_time('2026-03-10 12:00:00')
+    def test_excludes_manual_alert_for_accepted_proposal(self, admin_client, db):
+        """Manual alerts on accepted (closed) proposals are not returned."""
+        from content.models import ProposalAlert
+        p = BusinessProposal.objects.create(
+            title='Closed Deal', client_name='CD', status='accepted',
+            total_investment=1000,
+        )
+        ProposalAlert.objects.create(
+            proposal=p, alert_type='custom_reminder',
+            message='Follow up with client', alert_date=timezone.now(),
+        )
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        proposal_ids = [a['id'] for a in response.data]
+        assert p.id not in proposal_ids
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_excludes_manual_alert_for_finished_proposal(self, admin_client, db):
+        """Manual alerts on finished proposals are not returned."""
+        from content.models import ProposalAlert
+        p = BusinessProposal.objects.create(
+            title='Wrapped Up', client_name='WU', status='finished',
+            total_investment=1000,
+        )
+        ProposalAlert.objects.create(
+            proposal=p, alert_type='custom_reminder',
+            message='Follow up with client', alert_date=timezone.now(),
+        )
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        proposal_ids = [a['id'] for a in response.data]
+        assert p.id not in proposal_ids
+
+    @freeze_time('2026-03-10 12:00:00')
     def test_hides_persistently_dismissed_computed_alert(self, admin_client, db):
         """Computed alerts with persisted dismissal marker are not returned."""
         from content.models import ProposalAlert
