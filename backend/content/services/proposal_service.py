@@ -132,7 +132,8 @@ DEFAULT_SECTIONS = [
                 'métricas clave del modelo financiero.'
             ),
             'kpis': [],
-            'scenariosTitle': 'Escenarios proyectados',
+            'methodology': '',
+            'scenariosTitle': 'Escenarios proyectados al primer año',
             'scenarios': [],
             'ctaNote': '',
         },
@@ -1327,7 +1328,8 @@ DEFAULT_SECTIONS_EN = [
                 'key metrics from the financial model.'
             ),
             'kpis': [],
-            'scenariosTitle': 'Projected scenarios',
+            'methodology': '',
+            'scenariosTitle': 'Year-one projected scenarios',
             'scenarios': [],
             'ctaNote': '',
         },

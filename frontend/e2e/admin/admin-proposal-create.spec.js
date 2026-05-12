@@ -237,6 +237,35 @@ test.describe('Admin Proposal Create from JSON', () => {
     await expect(page.getByText('JSON inválido')).toBeVisible();
   });
 
+  test('importing JSON does not override the configured expiration default', {
+    tag: [...ADMIN_PROPOSAL_CREATE_FROM_JSON, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath.startsWith('proposals/defaults/')) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ language: 'es', expiration_days: 21, sections_json: [] }) };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/proposals/create');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
+
+    const textarea = page.getByPlaceholder(/general/);
+    await expect(textarea).toBeVisible();
+    await textarea.fill(JSON.stringify({
+      general: { clientName: 'Diego Ramírez' },
+      executiveSummary: { paragraphs: ['Resumen.'] },
+      _meta: { optional_metadata: { expires_at: new Date(Date.now() + 29 * 24 * 60 * 60 * 1000).toISOString() } },
+    }));
+    await textarea.dispatchEvent('input');
+
+    // The "Datos de la propuesta" section (with the expiration field) renders after parsing
+    await expect(page.getByText('Datos de la propuesta')).toBeVisible();
+    // Expiration must stay at the configured default (21), not the JSON's 29 days
+    await expect(page.getByTestId('json-expires-days')).toHaveValue('21');
+  });
+
   test('submitting valid JSON creates proposal and redirects to edit page', {
     tag: [...ADMIN_PROPOSAL_CREATE_FROM_JSON, '@role:admin'],
   }, async ({ page }) => {

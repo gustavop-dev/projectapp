@@ -615,6 +615,14 @@
           <FieldInput v-model="form.title" label="Título" />
         </div>
         <FieldTextarea v-model="form.subtitle" label="Subtítulo" :rows="2" :isSingle="true" />
+        <FieldTextarea
+          v-model="form.methodology"
+          label="Cómo calculamos esto (metodología)"
+          :rows="3"
+          :isSingle="true"
+          placeholder="Partimos del tráfico esperado del mercado local; asumimos que de cada 100 visitas X agendan; proyectamos a 12 meses. Cada escenario cambia ese supuesto."
+        />
+        <p class="text-[10px] text-text-subtle -mt-2">Se muestra al cliente justo encima de los escenarios para que entienda de dónde salen los números. Lenguaje llano, 2-3 frases.</p>
 
         <div>
           <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">KPIs / Métricas destacadas</label>
@@ -642,10 +650,10 @@
           <button type="button" class="text-xs text-text-brand font-medium" @click="if (!form.kpis) form.kpis = []; form.kpis.push({ icon: '', value: '', label: '', sublabel: '', source: '' })">+ Agregar KPI</button>
         </div>
 
-        <FieldInput v-model="form.scenariosTitle" label="Título de escenarios" placeholder="Escenarios proyectados" />
+        <FieldInput v-model="form.scenariosTitle" label="Título de escenarios" placeholder="Escenarios proyectados al primer año" />
         <div>
           <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Escenarios (cons / real / opt)</label>
-          <p class="text-[10px] text-text-subtle mb-2">Cada escenario tiene un nombre y una lista de métricas. Marca "Énfasis" en la métrica final (totales).</p>
+          <p class="text-[10px] text-text-subtle mb-2">Cada escenario tiene supuestos (las palancas que lo distinguen, 2-4) y una lista de métricas. Marca "Énfasis" en la métrica final (totales); el "cómo se calculó" es obligatorio en esa métrica.</p>
           <draggable v-model="form.scenarios" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
             <template #item="{ element: scenario, index: sIdx }">
               <div class="mb-3 bg-surface-raised rounded-xl p-3 border border-border-muted">
@@ -661,21 +669,30 @@
                   <FieldInput v-model="scenario.name" label="ID" placeholder="conservative" />
                   <FieldInput v-model="scenario.label" label="Etiqueta" placeholder="Conservador" />
                 </div>
-                <label class="block text-[10px] text-text-subtle mb-1">Métricas</label>
-                <div v-for="(metric, mIdx) in (scenario.metrics || [])" :key="'m-' + mIdx" class="grid grid-cols-[1fr_120px_60px_28px] gap-2 mb-1 items-center">
-                  <FieldInput v-model="metric.label" label="" placeholder="MAU mes 6" />
-                  <FieldInput v-model="metric.value" label="" placeholder="80K" />
-                  <label class="flex items-center gap-1 text-[10px] text-text-subtle cursor-pointer">
-                    <input type="checkbox" v-model="metric.emphasis" class="rounded" />
-                    Énfasis
-                  </label>
-                  <button type="button" class="text-xs text-red-500" @click="scenario.metrics.splice(mIdx, 1)">×</button>
+                <label class="block text-[10px] text-text-subtle mb-1">Supuestos (palancas que distinguen este escenario)</label>
+                <div v-for="(assumption, aIdx) in (scenario.assumptions || [])" :key="'a-' + aIdx" class="grid grid-cols-[1fr_28px] gap-2 mb-1 items-center">
+                  <FieldInput v-model="scenario.assumptions[aIdx]" label="" placeholder="3 de cada 100 visitas agendan" />
+                  <button type="button" class="text-xs text-red-500" @click="scenario.assumptions.splice(aIdx, 1)">×</button>
                 </div>
-                <button type="button" class="text-[11px] text-text-brand font-medium mt-1" @click="if (!scenario.metrics) scenario.metrics = []; scenario.metrics.push({ label: '', value: '', emphasis: false })">+ Métrica</button>
+                <button type="button" class="text-[11px] text-text-brand font-medium mt-1 mb-2" @click="if (!scenario.assumptions) scenario.assumptions = []; scenario.assumptions.push('')">+ Supuesto</button>
+                <label class="block text-[10px] text-text-subtle mb-1">Métricas</label>
+                <div v-for="(metric, mIdx) in (scenario.metrics || [])" :key="'m-' + mIdx" class="bg-surface rounded-lg p-2 mb-1 border border-border-muted">
+                  <div class="grid grid-cols-[1fr_120px_60px_28px] gap-2 items-center">
+                    <FieldInput v-model="metric.label" label="" placeholder="MAU mes 6" />
+                    <FieldInput v-model="metric.value" label="" placeholder="80K" />
+                    <label class="flex items-center gap-1 text-[10px] text-text-subtle cursor-pointer">
+                      <input type="checkbox" v-model="metric.emphasis" class="rounded" />
+                      Énfasis
+                    </label>
+                    <button type="button" class="text-xs text-red-500" @click="scenario.metrics.splice(mIdx, 1)">×</button>
+                  </div>
+                  <FieldInput v-model="metric.basis" label="" placeholder="Cómo se calculó — ej. ≈ 6.500 clientes × $43.000 ticket promedio" class="mt-1" />
+                </div>
+                <button type="button" class="text-[11px] text-text-brand font-medium mt-1" @click="if (!scenario.metrics) scenario.metrics = []; scenario.metrics.push({ label: '', value: '', basis: '', emphasis: false })">+ Métrica</button>
               </div>
             </template>
           </draggable>
-          <button type="button" class="text-xs text-text-brand font-medium" @click="if (!form.scenarios) form.scenarios = []; form.scenarios.push({ name: '', label: '', icon: '', metrics: [] })">+ Agregar escenario</button>
+          <button type="button" class="text-xs text-text-brand font-medium" @click="if (!form.scenarios) form.scenarios = []; form.scenarios.push({ name: '', label: '', icon: '', assumptions: [], metrics: [] })">+ Agregar escenario</button>
         </div>
 
         <FieldTextarea v-model="form.ctaNote" label="Nota de cierre" :rows="2" :isSingle="true" placeholder="En cualquier escenario, los ingresos cubren la inversión antes de…" />

@@ -140,6 +140,7 @@ export function buildFormFromJson(json, type, proposalData) {
         index: j.index || '',
         title: j.title || '',
         subtitle: j.subtitle || '',
+        methodology: j.methodology || '',
         kpis: (j.kpis || []).map(k => ({
           icon: k.icon || '',
           value: k.value || '',
@@ -152,9 +153,11 @@ export function buildFormFromJson(json, type, proposalData) {
           name: s.name || '',
           label: s.label || '',
           icon: s.icon || '',
+          assumptions: Array.isArray(s.assumptions) ? s.assumptions.map(a => String(a ?? '')) : [],
           metrics: (s.metrics || []).map(m => ({
             label: m.label || '',
             value: m.value || '',
+            basis: m.basis || '',
             emphasis: !!m.emphasis,
           })),
         })),
@@ -265,6 +268,7 @@ export function formToJson(formData, type) {
         index: f.index,
         title: f.title,
         subtitle: f.subtitle,
+        methodology: f.methodology || '',
         kpis: (f.kpis || [])
           .filter(k => k.value || k.label)
           .map(k => ({
@@ -281,11 +285,13 @@ export function formToJson(formData, type) {
             name: s.name || '',
             label: s.label || '',
             icon: s.icon || '',
+            assumptions: (s.assumptions || []).map(a => (a || '').trim()).filter(Boolean),
             metrics: (s.metrics || [])
               .filter(m => m.label || m.value)
               .map(m => ({
                 label: m.label || '',
                 value: m.value || '',
+                ...(m.basis && m.basis.trim() ? { basis: m.basis.trim() } : {}),
                 ...(m.emphasis ? { emphasis: true } : {}),
               })),
           })),
@@ -426,6 +432,7 @@ export function formToReadableText(form, type) {
     }
   } else if (type === 'roi_projection') {
     if (form.subtitle) parts.push(form.subtitle);
+    if (form.methodology) parts.push(`\nCómo calculamos esto: ${form.methodology}`);
     if (form.kpis?.length) {
       parts.push('\nKPIs:');
       for (const k of form.kpis) {
@@ -435,8 +442,11 @@ export function formToReadableText(form, type) {
     if (form.scenariosTitle) parts.push(`\n${form.scenariosTitle}`);
     for (const s of (form.scenarios || [])) {
       parts.push(`\n${s.icon || ''} ${s.label || s.name}`);
+      for (const a of (s.assumptions || [])) {
+        if (a) parts.push(`  - ${a}`);
+      }
       for (const m of (s.metrics || [])) {
-        parts.push(`  ${m.label}: ${m.value}${m.emphasis ? ' ★' : ''}`);
+        parts.push(`  ${m.label}: ${m.value}${m.basis ? ` (${m.basis})` : ''}${m.emphasis ? ' ★' : ''}`);
       }
     }
     if (form.ctaNote) parts.push(`\n${form.ctaNote}`);

@@ -41,6 +41,19 @@
         </div>
       </div>
 
+      <!-- Methodology — how the projections were built -->
+      <div
+        v-if="content.methodology"
+        data-animate="fade-up"
+        class="bg-primary-soft border border-border-default rounded-2xl p-5 md:p-6 mb-8 flex gap-3"
+      >
+        <span class="text-xl md:text-2xl shrink-0 leading-none mt-0.5">🧮</span>
+        <p
+          class="text-sm md:text-base text-text-default/80 font-light leading-relaxed"
+          v-html="linkify(content.methodology)"
+        />
+      </div>
+
       <!-- Scenarios -->
       <div v-if="scenarios.length" data-animate="fade-up" class="mb-12">
         <h3
@@ -59,25 +72,45 @@
               <span v-if="scenario.icon" class="text-xl">{{ scenario.icon }}</span>
               <h4 class="font-bold text-text-brand text-lg">{{ scenario.label || scenario.name }}</h4>
             </div>
+            <ul
+              v-if="(scenario.assumptions || []).length"
+              class="space-y-1 mb-4"
+            >
+              <li
+                v-for="(assumption, aIdx) in scenario.assumptions"
+                :key="'a-' + aIdx"
+                class="text-xs text-text-default/70 leading-snug flex gap-1.5"
+              >
+                <span class="text-text-brand/60 shrink-0">·</span>
+                <span>{{ assumption }}</span>
+              </li>
+            </ul>
             <ul class="space-y-2">
               <li
                 v-for="(metric, mIdx) in (scenario.metrics || [])"
                 :key="mIdx"
-                class="flex items-baseline justify-between gap-3"
                 :class="metric.emphasis ? 'pt-2 border-t border-border-default mt-2' : ''"
               >
-                <span
-                  class="text-xs text-text-default/70 leading-tight"
-                  :class="metric.emphasis ? 'font-semibold text-text-brand' : ''"
+                <div class="flex items-baseline justify-between gap-3">
+                  <span
+                    class="text-xs text-text-default/70 leading-tight"
+                    :class="metric.emphasis ? 'font-semibold text-text-brand' : ''"
+                  >
+                    {{ metric.label }}
+                  </span>
+                  <span
+                    class="text-sm font-bold text-text-brand tabular-nums whitespace-nowrap"
+                    :class="metric.emphasis ? 'text-base' : ''"
+                  >
+                    {{ metric.value }}
+                  </span>
+                </div>
+                <p
+                  v-if="metric.basis"
+                  class="text-[11px] italic text-text-default/50 leading-tight mt-0.5"
                 >
-                  {{ metric.label }}
-                </span>
-                <span
-                  class="text-sm font-bold text-text-brand tabular-nums whitespace-nowrap"
-                  :class="metric.emphasis ? 'text-base' : ''"
-                >
-                  {{ metric.value }}
-                </span>
+                  {{ metric.basis }}
+                </p>
               </li>
             </ul>
           </div>

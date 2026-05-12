@@ -633,6 +633,7 @@
                 type="number"
                 min="1"
                 max="365"
+                data-testid="json-expires-days"
                 class="w-20 px-3 py-2.5 border border-input-border bg-input-bg text-input-text rounded-xl text-sm text-center focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               />
               <span class="text-xs text-text-subtle whitespace-nowrap">días</span>
@@ -1259,12 +1260,8 @@ function parseJson() {
   if (meta.project_type) jsonForm.project_type = meta.project_type;
   if (meta.market_type) jsonForm.market_type = meta.market_type;
   if (meta.language) jsonForm.language = meta.language;
-  if (meta.expires_at) {
-    const d = new Date(meta.expires_at);
-    if (!isNaN(d.getTime()) && d.getTime() > Date.now()) {
-      jsonForm.expires_at = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    }
-  }
+  // Expiration is a business default (admin-configured); it is intentionally
+  // NOT taken from the imported JSON. The seller can adjust the date manually.
 }
 
 function handleFileUpload(event) {
