@@ -133,7 +133,7 @@ test.describe('Admin Diagnostic — Generar NDA', () => {
     const modal = modalRoot(page);
 
     // Consultor section pre-fills Project App SAS.
-    const contractorSection = modal.locator('section').filter({ has: modal.locator('h3', { hasText: 'Consultor' }) });
+    const contractorSection = modal.locator('section').filter({ has: page.locator('h3', { hasText: 'Consultor' }) });
     const contractorName = contractorSection.locator('label').filter({ hasText: 'Razón social / Nombre' }).locator('input');
     await expect(contractorName).toHaveValue('Project App SAS');
 
@@ -146,7 +146,7 @@ test.describe('Admin Diagnostic — Generar NDA', () => {
     );
 
     // Fill client block.
-    const clientSection = modal.locator('section').filter({ has: modal.locator('h3', { hasText: 'Cliente' }) });
+    const clientSection = modal.locator('section').filter({ has: page.locator('h3', { hasText: 'Cliente' }) });
     await clientSection.locator('label').filter({ hasText: 'Razón social / Nombre' }).locator('input')
       .fill('Acme Corp SAS');
     await modal.locator('label').filter({ hasText: 'NIT / C.C.' }).locator('input')

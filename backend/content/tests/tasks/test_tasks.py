@@ -621,7 +621,7 @@ class TestSuggestPreExpirationDiscountTask:
         import content.tasks as tasks_module
         tasks_module.suggest_pre_expiration_discount.call_local()
 
-        assert proposal.alerts.filter(alert_type='discount_suggestion').exists()
+        assert proposal.manual_alerts.filter(alert_type='discount_suggestion').exists()
 
     @freeze_time('2026-03-10 12:00:00')
     def test_skips_creating_duplicate_discount_suggestion(self):
@@ -634,7 +634,7 @@ class TestSuggestPreExpirationDiscountTask:
             responded_at=None,
             expires_at=timezone.now() + timezone.timedelta(days=2),
         )
-        proposal.alerts.create(
+        proposal.manual_alerts.create(
             alert_type='discount_suggestion',
             message='Already suggested',
             alert_date=timezone.now(),
@@ -644,7 +644,7 @@ class TestSuggestPreExpirationDiscountTask:
         import content.tasks as tasks_module
         tasks_module.suggest_pre_expiration_discount.call_local()
 
-        assert proposal.alerts.filter(alert_type='discount_suggestion').count() == 1
+        assert proposal.manual_alerts.filter(alert_type='discount_suggestion').count() == 1
 
     @freeze_time('2026-03-10 12:00:00')
     def test_skips_non_candidate_proposal(self):
@@ -661,7 +661,7 @@ class TestSuggestPreExpirationDiscountTask:
         import content.tasks as tasks_module
         tasks_module.suggest_pre_expiration_discount.call_local()
 
-        assert proposal.alerts.count() == 0
+        assert proposal.manual_alerts.count() == 0
 
     @freeze_time('2026-03-10 12:00:00')
     @patch(
@@ -676,6 +676,7 @@ class TestSuggestPreExpirationDiscountTask:
             client_name='Client',
             client_email='client@test.com',
             status='viewed',
+            automations_paused=False,
             first_viewed_at=now - timedelta(hours=5),
         )
         ve = ProposalViewEvent.objects.create(
@@ -783,6 +784,7 @@ class TestSuggestPreExpirationDiscountTask:
             client_name='Client',
             client_email='client@test.com',
             status='viewed',
+            automations_paused=False,
             first_viewed_at=now - timedelta(hours=5),
         )
         view_event = ProposalViewEvent.objects.create(

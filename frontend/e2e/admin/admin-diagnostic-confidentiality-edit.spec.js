@@ -118,7 +118,7 @@ test.describe('Admin Diagnostic — Edit NDA Params', () => {
     await expect(modal.locator('h2', { hasText: 'Acuerdo de Confidencialidad' })).toBeVisible({ timeout: 5_000 });
 
     // Client block pre-filled.
-    const clientSection = modal.locator('section').filter({ has: modal.locator('h3', { hasText: 'Cliente' }) });
+    const clientSection = modal.locator('section').filter({ has: page.locator('h3', { hasText: 'Cliente' }) });
     const clientName = clientSection.locator('label').filter({ hasText: 'Razón social / Nombre' }).locator('input');
     await expect(clientName).toHaveValue('Beta Corp SAS');
 
@@ -145,7 +145,7 @@ test.describe('Admin Diagnostic — Edit NDA Params', () => {
     const modal = modalRoot(page);
     await expect(modal.locator('h2', { hasText: 'Acuerdo de Confidencialidad' })).toBeVisible();
 
-    const clientSection = modal.locator('section').filter({ has: modal.locator('h3', { hasText: 'Cliente' }) });
+    const clientSection = modal.locator('section').filter({ has: page.locator('h3', { hasText: 'Cliente' }) });
     const clientName = clientSection.locator('label').filter({ hasText: 'Razón social / Nombre' }).locator('input');
     await clientName.fill('Beta Corp SAS (Actualizado)');
 

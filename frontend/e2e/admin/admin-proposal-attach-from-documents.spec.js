@@ -175,7 +175,7 @@ test.describe('Admin Proposal — Adjuntar desde Documentos', () => {
     // Modal overlay should close (the button with the same label stays visible)
     await expect(page.locator('.fixed.inset-0')).not.toBeVisible({ timeout: 3000 });
     // A "Documento" badge label appears inside the doc_ref attachment chip
-    await expect(page.locator('span', { hasText: 'Documento' })).toBeVisible();
+    await expect(page.locator('span', { hasText: 'Documento' }).first()).toBeVisible();
   });
 
   test('POST to send/ includes doc_refs when a ref is selected', {

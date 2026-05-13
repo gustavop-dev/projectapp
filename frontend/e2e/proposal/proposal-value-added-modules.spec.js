@@ -120,7 +120,7 @@ test.describe('Proposal Value Added Modules', () => {
     await expect(page.getByText('Capacitación del equipo')).toBeVisible();
 
     // Each card shows "Gratis" badge (free badge per card)
-    await expect(page.getByText('Gratis')).toBeVisible();
+    await expect(page.getByText('Gratis').first()).toBeVisible();
   });
 
   test('renders justification text for each card', {

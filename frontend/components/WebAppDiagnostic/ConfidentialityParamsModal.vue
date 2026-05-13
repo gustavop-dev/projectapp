@@ -166,6 +166,7 @@ watch(
       ...stored,
     };
   },
+  { immediate: true },
 );
 
 async function handleSave() {
