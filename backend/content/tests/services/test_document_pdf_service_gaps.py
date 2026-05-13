@@ -179,8 +179,7 @@ def test_generate_returns_none_for_empty_blocks():
 # ---------------------------------------------------------------------------
 
 def test_generate_toc_document_with_all_dry_run_block_types():
-    """Covers _collect_section_pages dry-run paths for every block type and
-    the heading bookmark branch when has_toc is True."""
+    """Covers _collect_section_pages dry-run paths for every block type and the heading bookmark branch when has_toc is True."""
     blocks = [
         {'type': 'paragraph', 'text': 'Intro paragraph.'},
         {'type': 'toc'},

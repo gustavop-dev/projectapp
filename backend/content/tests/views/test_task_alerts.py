@@ -1,8 +1,9 @@
 """Tests for manual TaskAlert CRUD endpoints and Huey notification task."""
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from django.contrib.auth import get_user_model
-from django.test import TestCase, Client
+from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 

@@ -502,15 +502,65 @@
             />
           </div>
 
-          <!-- Client email -->
-          <div>
-            <label class="block text-xs font-medium text-text-muted mb-1">Email del cliente</label>
-            <input
-              v-model="jsonForm.client_email"
-              type="email"
-              placeholder="cliente@example.com"
-              class="w-full px-4 py-2.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-            />
+          <!-- Client picker (autocomplete + snapshot fields) -->
+          <div class="space-y-4 border border-border-muted rounded-xl p-4 bg-surface-raised">
+            <div>
+              <label class="block text-sm font-medium text-text-default mb-1">Cliente</label>
+              <ClientAutocomplete
+                v-model="jsonForm.client_id"
+                :initial-label="jsonForm.client_name"
+                test-id="json-client-autocomplete"
+                @select="onJsonClientSelected"
+                @create-new="onCreateInlineJsonClient"
+              />
+              <p class="text-xs text-text-subtle mt-1">
+                Busca un cliente existente o escribe uno nuevo. Si no tiene email, generaremos uno temporal y pausaremos automatizaciones hasta que lo agregues.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="json-client-name" class="block text-xs font-medium text-text-muted mb-1">Nombre</label>
+                <input
+                  id="json-client-name"
+                  v-model="jsonForm.client_name"
+                  type="text"
+                  required
+                  placeholder="María García"
+                  data-testid="json-client-name"
+                  class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+                />
+              </div>
+              <div>
+                <label for="json-client-email" class="block text-xs font-medium text-text-muted mb-1">Email</label>
+                <input
+                  id="json-client-email"
+                  v-model="jsonForm.client_email"
+                  type="email"
+                  placeholder="maria@gmail.com (opcional)"
+                  data-testid="json-client-email"
+                  class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-text-muted mb-1">Teléfono / WhatsApp</label>
+                <input
+                  v-model="jsonForm.client_phone"
+                  type="tel"
+                  placeholder="+57 300 123 4567"
+                  class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-text-muted mb-1">Empresa</label>
+                <input
+                  v-model="jsonForm.client_company"
+                  type="text"
+                  placeholder="Acme Inc."
+                  class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+                />
+              </div>
+            </div>
           </div>
 
           <!-- Investment + Currency -->
@@ -633,6 +683,7 @@
                 type="number"
                 min="1"
                 max="365"
+                data-testid="json-expires-days"
                 class="w-20 px-3 py-2.5 border border-input-border bg-input-bg text-input-text rounded-xl text-sm text-center focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               />
               <span class="text-xs text-text-subtle whitespace-nowrap">días</span>
@@ -1156,8 +1207,11 @@ const legacyFormatIssues = ref([]);
 
 const jsonForm = reactive({
   title: '',
+  client_id: null,
+  client_name: '',
   client_email: 'usuario@temp.example.com',
   client_phone: '',
+  client_company: '',
   project_type: '',
   market_type: '',
   project_type_custom: '',
@@ -1184,6 +1238,25 @@ const jsonPreview = computed(() => {
   const epicCount = Array.isArray(epics) ? epics.length : null;
   return { clientName, sectionCount, investment, epicCount };
 });
+
+function onJsonClientSelected(client) {
+  if (!client) {
+    jsonForm.client_id = null;
+    return;
+  }
+  jsonForm.client_id = client.id;
+  jsonForm.client_name = client.name || jsonForm.client_name;
+  jsonForm.client_email = client.is_email_placeholder ? '' : (client.email || '');
+  jsonForm.client_phone = client.phone || jsonForm.client_phone;
+  jsonForm.client_company = client.company || jsonForm.client_company;
+}
+
+function onCreateInlineJsonClient(typedName) {
+  jsonForm.client_id = null;
+  if (typedName) {
+    jsonForm.client_name = typedName;
+  }
+}
 
 watch(
   [() => form.language, () => jsonForm.language],
@@ -1250,21 +1323,20 @@ function parseJson() {
   const clientName = parsed.general.clientName;
   const proposalTitle = parsed.general?.proposalTitle?.trim();
   jsonForm.title = proposalTitle || `Propuesta — ${clientName}`;
+  jsonForm.client_id = null;
+  jsonForm.client_name = clientName;
   jsonForm.total_investment = parseInvestmentString(parsed.investment?.totalInvestment);
   jsonForm.currency = parsed.investment?.currency || 'COP';
 
   const meta = parsed._meta?.optional_metadata || {};
   if (meta.client_email) jsonForm.client_email = meta.client_email;
   if (meta.client_phone) jsonForm.client_phone = meta.client_phone;
+  if (meta.client_company) jsonForm.client_company = meta.client_company;
   if (meta.project_type) jsonForm.project_type = meta.project_type;
   if (meta.market_type) jsonForm.market_type = meta.market_type;
   if (meta.language) jsonForm.language = meta.language;
-  if (meta.expires_at) {
-    const d = new Date(meta.expires_at);
-    if (!isNaN(d.getTime()) && d.getTime() > Date.now()) {
-      jsonForm.expires_at = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    }
-  }
+  // Expiration is a business default (admin-configured); it is intentionally
+  // NOT taken from the imported JSON. The seller can adjust the date manually.
 }
 
 function handleFileUpload(event) {
@@ -1323,12 +1395,17 @@ async function handleJsonSubmit() {
 
   const sections = { ...jsonParsed.value };
   delete sections._meta;
+  // Keep the greeting consistent with the linked/typed client.
+  if (sections.general) {
+    sections.general = { ...sections.general, clientName: jsonForm.client_name };
+  }
 
   const payload = {
     title: jsonForm.title,
-    client_name: jsonParsed.value.general.clientName,
+    client_name: jsonForm.client_name,
     client_email: jsonForm.client_email || '',
     client_phone: jsonForm.client_phone || '',
+    client_company: jsonForm.client_company || '',
     project_type: jsonForm.project_type || '',
     market_type: jsonForm.market_type || '',
     project_type_custom: jsonForm.project_type_custom || '',
@@ -1341,6 +1418,7 @@ async function handleJsonSubmit() {
     urgency_reminder_days: jsonForm.urgency_reminder_days,
     discount_percent: jsonForm.discount_percent,
     sections,
+    ...(jsonForm.client_id ? { client_id: jsonForm.client_id } : {}),
   };
 
   const result = await proposalStore.createProposalFromJSON(payload);

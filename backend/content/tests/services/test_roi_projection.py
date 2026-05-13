@@ -1,5 +1,4 @@
-"""
-End-to-end tests for the ``roi_projection`` proposal section.
+"""End-to-end tests for the ``roi_projection`` proposal section.
 
 Covers: enum membership, default seeding (es/en), serializer key map,
 JSON template/import endpoints, PDF rendering edge cases, and that the
@@ -7,7 +6,7 @@ section count expectation stays in sync with EXPECTED_DEFAULT_SECTION_COUNT.
 """
 import pytest
 
-from content.models import BusinessProposal, ProposalSection
+from content.models import ProposalSection
 from content.serializers.proposal import (
     SECTION_KEY_MAP,
     SECTION_TYPE_TO_KEY,
@@ -19,7 +18,6 @@ from content.services.proposal_service import (
     ProposalService,
 )
 from content.tests.constants import EXPECTED_DEFAULT_SECTION_COUNT
-
 
 # ─── Enum / model ──────────────────────────────────────────────────────
 
@@ -37,16 +35,16 @@ def test_default_sections_es_includes_roi_at_order_4():
     assert len(matches) == 1
     cfg = matches[0]
     assert cfg['order'] == 4
-    assert 'kpis' in cfg['content_json']
-    assert 'scenarios' in cfg['content_json']
     assert cfg['content_json']['kpis'] == []
     assert cfg['content_json']['scenarios'] == []
+    assert cfg['content_json']['methodology'] == ''
 
 
 def test_default_sections_en_includes_roi_at_order_4():
     matches = [s for s in DEFAULT_SECTIONS_EN if s['section_type'] == 'roi_projection']
     assert len(matches) == 1
     assert matches[0]['order'] == 4
+    assert 'methodology' in matches[0]['content_json']
 
 
 def test_get_default_sections_count_matches_constant_es():
@@ -122,8 +120,7 @@ def test_disabled_roi_projection_excluded_from_pdf_sections(proposal):
 
 @pytest.mark.django_db
 def test_admin_can_patch_roi_projection_content_json(admin_client, proposal):
-    """``PATCH /api/proposals/sections/<id>/update/`` must persist the full
-    roi_projection schema (kpis + scenarios + ctaNote) without coercion."""
+    """``PATCH /api/proposals/sections/<id>/update/`` must persist the full roi_projection schema (kpis + methodology + scenarios w/ assumptions + metrics w/ basis + ctaNote) without coercion."""
     section = ProposalSection.objects.create(
         proposal=proposal,
         section_type='roi_projection',
@@ -132,35 +129,44 @@ def test_admin_can_patch_roi_projection_content_json(admin_client, proposal):
         is_enabled=False,
         content_json={},
     )
+    total_metric = {'label': 'Total año 1', 'value': '$280M', 'emphasis': True, 'basis': '≈ 6.500 clientes × $43.000 ticket promedio'}
     payload = {
         'is_enabled': True,
         'content_json': {
             'index': '4',
             'title': '📈 Proyección de retorno',
             'subtitle': 'Outcomes test.',
-            'kpis': [
-                {'icon': '👁️', 'value': '90K', 'label': 'Visualizaciones',
-                 'sublabel': 'mes 6', 'source': 'Benchmark'},
-            ],
-            'scenariosTitle': 'Escenarios',
-            'scenarios': [
-                {'name': 'realistic', 'label': 'Realista', 'icon': '🎯',
-                 'metrics': [
-                     {'label': 'MAU', 'value': '80K'},
-                     {'label': 'Total año 1', 'value': '$280M', 'emphasis': True},
-                 ]},
-            ],
+            'methodology': 'Partimos del tráfico esperado del mercado local; asumimos que de cada 100 visitas 3 agendan; proyectamos a 12 meses.',
+            'kpis': [{'icon': '👁️', 'value': '90K', 'label': 'Visualizaciones', 'sublabel': 'mes 6', 'source': 'Benchmark'}],
+            'scenariosTitle': 'Escenarios proyectados al primer año',
+            'scenarios': [{'name': 'realistic', 'label': 'Realista', 'icon': '🎯',
+                            'assumptions': ['Tráfico orgánico del mercado local', '3 de cada 100 visitas agendan'],
+                            'metrics': [{'label': 'MAU', 'value': '80K'}, total_metric]}],
             'ctaNote': 'Cubre la inversión.',
         },
     }
-    response = admin_client.patch(
-        f'/api/proposals/sections/{section.id}/update/',
-        data=payload, format='json',
-    )
+    response = admin_client.patch(f'/api/proposals/sections/{section.id}/update/', data=payload, format='json')
     assert response.status_code == 200, response.data
 
     section.refresh_from_db()
     assert section.is_enabled is True
     assert section.content_json['kpis'][0]['value'] == '90K'
-    assert section.content_json['scenarios'][0]['metrics'][1]['emphasis'] is True
+    assert section.content_json['methodology'].startswith('Partimos del tráfico')
+    scenario = section.content_json['scenarios'][0]
+    assert scenario['assumptions'] == ['Tráfico orgánico del mercado local', '3 de cada 100 visitas agendan']
+    assert scenario['metrics'][1] == total_metric
     assert section.content_json['ctaNote'] == 'Cubre la inversión.'
+
+
+# ─── JSON template / seller prompt guidance ────────────────────────────
+
+@pytest.mark.django_db
+def test_json_template_roi_section_includes_methodology(admin_client):
+    response = admin_client.get('/api/proposals/json-template/?lang=es')
+    assert response.status_code == 200
+    roi = response.data['roiProjection']
+    assert 'methodology' in roi
+    guidance = response.data['_seller_prompt']['CRITICAL_roiProjection']
+    assert 'methodology' in guidance
+    assert 'assumptions' in guidance
+    assert 'basis' in guidance

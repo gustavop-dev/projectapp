@@ -221,9 +221,8 @@ class TestCheckEngagementFollowupsInvestmentLog:
     @patch('content.services.proposal_email_service.ProposalEmailService.send_investment_interest_followup')
     @freeze_time('2026-01-15 12:00:00')
     def test_logs_after_sending_investment_interest_followup(self, mock_send):  # quality: disable no_assertions (mock assertion replaces assert keyword)
-        from content.models import ProposalSectionView, ProposalViewEvent
-
         import content.tasks as tasks_module
+        from content.models import ProposalSectionView, ProposalViewEvent
 
         now = timezone.now()
         proposal = BusinessProposal.objects.create(
@@ -381,9 +380,8 @@ class TestNotifyProposalStageDeadlinesException:
     @patch('content.services.proposal_stage_tracker.ProposalStageTracker.process',
            side_effect=RuntimeError('tracker failed'))
     def test_exception_during_tracker_is_caught_and_logged(self, mock_process):  # quality: disable no_assertions (no-raise is the assertion - task must swallow per-proposal exceptions)
-        from content.models import ProposalProjectStage
-
         import content.tasks as tasks_module
+        from content.models import ProposalProjectStage
 
         proposal = BusinessProposal.objects.create(
             title='Exception Stage', client_name='C',
@@ -459,9 +457,8 @@ class TestTaskEmailAssigneeResolution:
 class TestTaskNotificationExceptionPaths:
     @patch('content.tasks._check_single_task_deadlines', side_effect=RuntimeError('deadline fail'))
     def test_check_task_deadline_notifications_exception_is_caught(self, mock_check):  # quality: disable no_assertions (mock assertion replaces assert keyword)
-        from content.models.task import Task
-
         import content.tasks as tasks_module
+        from content.models.task import Task
 
         Task.objects.create(
             title='Failing Deadline Task',
@@ -476,10 +473,9 @@ class TestTaskNotificationExceptionPaths:
 
     @patch('content.tasks._send_task_alert_email', side_effect=RuntimeError('alert fail'))
     def test_check_task_alert_notifications_exception_is_caught(self, mock_alert):  # quality: disable no_assertions (mock assertion replaces assert keyword)
+        import content.tasks as tasks_module
         from content.models.task import Task
         from content.models.task_alert import TaskAlert
-
-        import content.tasks as tasks_module
 
         task = Task.objects.create(
             title='Failing Alert Task',

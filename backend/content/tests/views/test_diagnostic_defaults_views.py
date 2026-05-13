@@ -4,7 +4,6 @@ from django.urls import reverse
 
 from content.models import DiagnosticDefaultConfig
 
-
 pytestmark = pytest.mark.django_db
 
 

@@ -154,8 +154,8 @@ test.describe('Proposal Client Autocomplete', () => {
     await page.getByTestId('client-autocomplete-option-301').click();
 
     // Snapshot fields should be populated
-    await expect(page.locator('#create-client-name')).toHaveValue('Sandra Gómez');
-    await expect(page.locator('#create-client-email')).toHaveValue('sandra@example.com');
+    await expect(page.getByLabel('Nombre')).toHaveValue('Sandra Gómez');
+    await expect(page.getByLabel('Email')).toHaveValue('sandra@example.com');
   });
 
   test('no match shows "Crear nuevo" button that sets the client name', {
@@ -178,7 +178,7 @@ test.describe('Proposal Client Autocomplete', () => {
     await page.getByTestId('client-autocomplete-create-new').click();
 
     // Client name field should be set to the typed value
-    await expect(page.locator('#create-client-name')).toHaveValue('Nombre Inexistente');
+    await expect(page.getByLabel('Nombre')).toHaveValue('Nombre Inexistente');
   });
 });
 
@@ -214,7 +214,7 @@ test.describe('Proposal Create Without Client Email', () => {
 
     // Fill required fields — leave email blank intentionally
     await page.getByLabel('Título').fill('Propuesta Sin Email Test');
-    await page.locator('#create-client-name').fill('Pedro Sin Email');
+    await page.getByLabel('Nombre').fill('Pedro Sin Email');
 
     // Placeholder hint text is always visible in the client section
     await expect(

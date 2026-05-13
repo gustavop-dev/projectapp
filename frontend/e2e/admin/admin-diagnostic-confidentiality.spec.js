@@ -132,8 +132,9 @@ test.describe('Admin Diagnostic — Generar NDA', () => {
 
     const modal = modalRoot(page);
 
-    // Consultor (second "Razón social / Nombre" label) pre-fills Project App SAS.
-    const contractorName = modal.locator('label').filter({ hasText: 'Razón social / Nombre' }).nth(1).locator('input');
+    // Consultor section pre-fills Project App SAS.
+    const contractorSection = modal.locator('section').filter({ has: page.locator('h3', { hasText: 'Consultor' }) });
+    const contractorName = contractorSection.locator('label').filter({ hasText: 'Razón social / Nombre' }).locator('input');
     await expect(contractorName).toHaveValue('Project App SAS');
 
     const contractCity = modal.locator('label').filter({ hasText: 'Ciudad' }).locator('input');
@@ -144,10 +145,11 @@ test.describe('Admin Diagnostic — Generar NDA', () => {
       'CINCUENTA SALARIOS MÍNIMOS MENSUALES LEGALES VIGENTES (50 SMMLV)',
     );
 
-    // Fill client block (first "Razón social / Nombre" + first "NIT / C.C.").
-    await modal.locator('label').filter({ hasText: 'Razón social / Nombre' }).first().locator('input')
+    // Fill client block.
+    const clientSection = modal.locator('section').filter({ has: page.locator('h3', { hasText: 'Cliente' }) });
+    await clientSection.locator('label').filter({ hasText: 'Razón social / Nombre' }).locator('input')
       .fill('Acme Corp SAS');
-    await modal.locator('label').filter({ hasText: 'NIT / C.C.' }).first().locator('input')
+    await modal.locator('label').filter({ hasText: 'NIT / C.C.' }).locator('input')
       .fill('900.123.456-7');
 
     await page.getByRole('button', { name: 'Guardar y generar PDF' }).click();

@@ -288,11 +288,7 @@ class TestProcessStageOverdue:
 
 @freeze_time(FROZEN)
 class TestMaybeResetWarningOnDateChange:
-    """
-    The admin can extend `end_date` after the first 70% warning fired.
-    When the new dates put elapsed% below 70%, `warning_sent_at` is
-    cleared so the daily task can fire again at the new threshold.
-    """
+    """The admin can extend `end_date` after the first 70% warning fired. When the new dates put elapsed% below 70%, `warning_sent_at` is cleared so the daily task can fire again at the new threshold."""
 
     def test_returns_false_when_warning_never_sent(self, accepted_proposal):
         stage = _make_stage(

@@ -68,7 +68,7 @@ test.describe('Admin Document Edit', () => {
 
     const titleInput = page.getByLabel(/T[ií]tulo/i);
     await titleInput.fill('Contrato Actualizado');
-    await page.getByRole('button', { name: /Guardar|Actualizar/i }).click();
+    await page.getByRole('button', { name: /Guardar|Actualizar/i }).first().click();
 
     await page.waitForFunction(() => window._patchCalled || true, { timeout: 5000 }).catch(() => {});
     expect(patchCalled).toBe(true);

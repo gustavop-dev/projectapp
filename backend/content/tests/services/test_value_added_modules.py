@@ -37,7 +37,8 @@ class TestValueAddedModulesSection:
         ]
         assert set(cj['justifications'].keys()) == set(cj['module_ids'])
         for value in cj['justifications'].values():
-            assert isinstance(value, str) and value
+            assert isinstance(value, str)
+            assert len(value) > 0
         assert cj['footer_note']
 
     def test_section_order_is_after_functional_requirements(self):
@@ -47,7 +48,7 @@ class TestValueAddedModulesSection:
         assert vam['order'] > fr['order']
 
     def test_orders_are_contiguous_after_shift(self):
-        """functional_requirements sits at order 9 and value_added_modules at 10.
+        """functional_requirements sits at order 10 and value_added_modules at 11.
 
         The value-added summary intentionally appears AFTER the full functional
         requirements block so the client first sees everything included, then
@@ -55,11 +56,11 @@ class TestValueAddedModulesSection:
         """
         sections = ProposalService.get_default_sections('es')
         by_type = {s['section_type']: s['order'] for s in sections}
-        assert by_type['functional_requirements'] == 9
-        assert by_type['value_added_modules'] == 10
-        assert by_type['development_stages'] == 11
-        assert by_type['proposal_summary'] == 12
-        assert by_type['technical_document'] == 14
+        assert by_type['functional_requirements'] == 10
+        assert by_type['value_added_modules'] == 11
+        assert by_type['development_stages'] == 12
+        assert by_type['proposal_summary'] == 13
+        assert by_type['technical_document'] == 16
 
     @pytest.mark.parametrize('language', ['es', 'en'])
     def test_content_json_index_matches_order(self, language):

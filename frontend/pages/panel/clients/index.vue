@@ -110,6 +110,7 @@
             <div class="min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <p class="text-sm font-semibold text-text-default truncate">{{ client.name }}</p>
+                <span class="text-xs text-text-subtle tabular-nums">#{{ client.id }}</span>
                 <span
                   v-if="client.is_email_placeholder"
                   class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong font-medium uppercase tracking-wide"
@@ -222,6 +223,7 @@
                     <th class="px-4 py-3">Inversión</th>
                     <th class="px-4 py-3 text-center">Vistas</th>
                     <th class="px-4 py-3">Enviada</th>
+                    <th class="px-4 py-3 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-border-muted">
@@ -252,6 +254,17 @@
                     <td class="px-4 py-3 text-center text-text-muted/60">{{ p.view_count }}</td>
                     <td class="px-4 py-3 text-text-muted text-xs">
                       {{ p.sent_at ? formatDate(p.sent_at) : '—' }}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        :data-testid="`client-proposal-delete-${p.id}`"
+                        class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
+                        title="Eliminar propuesta"
+                        @click.stop="confirmDeleteProposal(client, p)"
+                      >
+                        <TrashIcon class="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 </tbody>
@@ -307,6 +320,7 @@
                       <th class="px-5 py-3">Diagnóstico</th>
                       <th class="px-4 py-3">Estado</th>
                       <th class="px-4 py-3">Creado</th>
+                      <th class="px-4 py-3 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-border-muted">
@@ -323,6 +337,17 @@
                       </td>
                       <td class="px-4 py-3 text-text-muted text-xs">
                         {{ diag.created_at ? formatDate(diag.created_at) : '—' }}
+                      </td>
+                      <td class="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          :data-testid="`client-diagnostic-delete-${diag.id}`"
+                          class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
+                          title="Eliminar diagnóstico"
+                          @click.stop="confirmDeleteDiagnostic(client, diag)"
+                        >
+                          <TrashIcon class="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                   </tbody>
@@ -525,12 +550,16 @@ import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge';
 import { usePagination } from '~/composables/usePagination';
 import { useProposalClientsStore } from '~/stores/proposalClients';
+import { useProposalStore } from '~/stores/proposals';
+import { useDiagnosticsStore } from '~/stores/diagnostics';
 
 const localePath = useLocalePath();
 const { goToPlatform, isBridging } = usePanelToPlatformBridge();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const clientsStore = useProposalClientsStore();
+const proposalStore = useProposalStore();
+const diagnosticsStore = useDiagnosticsStore();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =
   useConfirmModal();
 
@@ -773,6 +802,43 @@ function confirmDelete(client) {
         // Refresh in case the orphan flag was stale.
         await loadClients();
       }
+    },
+  });
+}
+
+async function refreshClientDetail(clientId) {
+  const result = await clientsStore.fetchClient(clientId);
+  if (result.success) detailCache[clientId] = result.data;
+  // Counts and the orphan badge live on the list rows, not the detail payload.
+  await loadClients();
+}
+
+function confirmDeleteProposal(client, proposal) {
+  requestConfirm({
+    title: 'Eliminar propuesta',
+    message: `Esto eliminará la propuesta "${proposal.title}" de forma permanente. Esta acción no se puede deshacer.`,
+    variant: 'danger',
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar',
+    requireTypeText: 'DELETE',
+    onConfirm: async () => {
+      const result = await proposalStore.deleteProposal(proposal.id);
+      if (result.success) await refreshClientDetail(client.id);
+    },
+  });
+}
+
+function confirmDeleteDiagnostic(client, diagnostic) {
+  requestConfirm({
+    title: 'Eliminar diagnóstico',
+    message: `Esto eliminará el diagnóstico "${diagnostic.title}" de forma permanente. Esta acción no se puede deshacer.`,
+    variant: 'danger',
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar',
+    requireTypeText: 'DELETE',
+    onConfirm: async () => {
+      const result = await diagnosticsStore.remove(diagnostic.id);
+      if (result.success) await refreshClientDetail(client.id);
     },
   });
 }

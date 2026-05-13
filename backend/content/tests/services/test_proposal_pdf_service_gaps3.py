@@ -19,8 +19,8 @@ from content.models import BusinessProposal
 from content.models.proposal_section import ProposalSection
 from content.services.proposal_pdf_service import (
     MARGIN_B,
-    PAGE_H,
     MARGIN_T,
+    PAGE_H,
     _register_fonts,
     _render_creative_support,
     _render_investment,

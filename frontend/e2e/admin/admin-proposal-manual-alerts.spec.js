@@ -15,12 +15,14 @@ const mockProposals = [
   { id: 1, uuid: 'aaa', title: 'Propuesta Alpha', client_name: 'Carlos', client_email: 'c@t.com', status: 'sent', total_investment: 5000, currency: 'COP', view_count: 0, is_active: true },
   { id: 2, uuid: 'bbb', title: 'Propuesta Beta', client_name: 'Ana', client_email: 'a@t.com', status: 'draft', total_investment: 3000, currency: 'USD', view_count: 2, is_active: true },
   { id: 3, uuid: 'ccc', title: 'Propuesta Gamma', client_name: 'Pedro', client_email: 'p@t.com', status: 'accepted', total_investment: 9000, currency: 'USD', view_count: 5, is_active: true },
+  { id: 4, uuid: 'ddd', title: 'Propuesta Delta', client_name: 'Lucía', client_email: 'l@t.com', status: 'finished', total_investment: 8000, currency: 'COP', view_count: 3, is_active: true },
 ];
 
 const mockAlerts = [
   { id: 1, client_name: 'Carlos', title: 'Propuesta Alpha', alert_type: 'not_viewed', message: 'No ha sido vista en 3 días' },
   { id: 2, client_name: 'Ana', title: 'Propuesta Beta', alert_type: 'manual_reminder', message: 'Llamar para seguimiento', manual_alert_id: 10 },
   { id: 3, client_name: 'Pedro', title: 'Propuesta Gamma', alert_type: 'manual_followup', message: 'No debería mostrarse porque está aceptada', manual_alert_id: 11 },
+  { id: 4, client_name: 'Lucía', title: 'Propuesta Delta', alert_type: 'manual_reminder', message: 'No debería mostrarse porque está finalizada', manual_alert_id: 12 },
 ];
 
 const dashboardData = { total_proposals: 2, conversion_rate: 0, avg_time_to_first_view: null, avg_time_to_response: null, status_distribution: {}, top_rejection_reasons: [], monthly_trends: [], avg_value_by_status: {} };
@@ -62,7 +64,7 @@ function setupMock(page, { alerts = mockAlerts, proposals = mockProposals } = {}
 
 async function gotoProposalPanel(page) {
   await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('h1').filter({ hasText: /^Propuestas$/ }).first()).toBeVisible({ timeout: 30000 });
+  await expect(page.locator('h1').filter({ hasText: /^Propuestas$/ })).toBeVisible({ timeout: 30000 });
   await expect(page.getByText('Propuestas que necesitan atención')).toBeVisible({ timeout: 30000 });
 }
 
@@ -86,6 +88,7 @@ test.describe('Admin Proposal Manual Alerts', () => {
     await expect(page.getByText('No ha sido vista en 3 días')).toBeVisible();
     await expect(page.getByText('Llamar para seguimiento')).toBeVisible();
     await expect(page.getByText('No debería mostrarse porque está aceptada')).not.toBeVisible();
+    await expect(page.getByText('No debería mostrarse porque está finalizada')).not.toBeVisible();
   });
 
   test('clicking "+ Crear recordatorio" toggles the alert creation form', {
@@ -140,10 +143,8 @@ test.describe('Admin Proposal Manual Alerts', () => {
     // Alert cards use semantic `bg-surface` (was `bg-white` pre-design-system migration).
     const dismissBtn = page
       .getByText('Llamar para seguimiento')
-      .first()
       .locator('xpath=ancestor::div[contains(@class,"bg-surface")][1]')
-      .locator('button[title="Descartar"]')
-      .first();
+      .getByTitle('Descartar');
     await expect(dismissBtn).toBeVisible();
 
     const [response] = await Promise.all([

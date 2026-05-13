@@ -1,21 +1,15 @@
-"""
-Verify that ProposalEmailService client-facing methods skip silently when
-the proposal's client email is a generated placeholder. This is the safety
-net that prevents test/draft proposals from accidentally emailing recipients
-when they share a placeholder address with another draft.
-"""
+"""Verify that ProposalEmailService client-facing methods skip silently when the proposal's client email is a generated placeholder. This is the safety net that prevents test/draft proposals from accidentally emailing recipients when they share a placeholder address with another draft."""
 
 from unittest.mock import patch
 
 import pytest
-
 from accounts.services import proposal_client_service
+
 from content.models.business_proposal import BusinessProposal
 from content.services.proposal_email_service import (
     ProposalEmailService,
     _is_unsendable_client_email,
 )
-
 
 pytestmark = pytest.mark.django_db
 

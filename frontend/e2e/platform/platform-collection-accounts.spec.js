@@ -141,8 +141,8 @@ test.describe('Platform collection accounts', () => {
     await page.getByRole('button', { name: /new collection account/i }).click();
     const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByRole('heading', { name: 'New collection account' }) });
     await expect(modal).toBeVisible();
-    await modal.locator('input:not([type="number"])').first().fill('E2E New Account');
-    await modal.locator('input[type="number"]').nth(0).fill('1');
+    await modal.getByTestId('new-account-title').fill('E2E New Account');
+    await modal.getByTestId('new-account-project-id').fill('1');
     const postWait = page.waitForResponse(
       (res) => res.request().method() === 'POST' && res.url().includes('collection-accounts/') && !res.url().includes('/pdf/'),
     );

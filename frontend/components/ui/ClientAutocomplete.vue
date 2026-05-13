@@ -38,6 +38,15 @@
       </button>
     </div>
 
+    <!-- Linked client hint (id beside the name) -->
+    <p
+      v-if="modelValue"
+      class="text-xs text-text-subtle mt-1"
+      data-testid="client-autocomplete-linked"
+    >
+      Cliente enlazado: {{ inputText }} <span class="tabular-nums">(#{{ modelValue }})</span>
+    </p>
+
     <!-- Dropdown -->
     <div
       v-if="isOpen"
@@ -72,6 +81,7 @@
               <div class="flex items-center gap-2 flex-wrap">
                 <p class="font-medium text-text-default text-sm truncate">
                   {{ client.name }}
+                  <span class="text-text-subtle font-normal tabular-nums">(#{{ client.id }})</span>
                 </p>
                 <span
                   v-if="client.is_email_placeholder"

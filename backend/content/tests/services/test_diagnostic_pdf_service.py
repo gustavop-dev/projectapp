@@ -12,15 +12,12 @@ from content.services.diagnostic_pdf_service import (
     _draw_cover,
     _render_categories,
     _render_cost,
-    _render_delivery_structure,
     _render_executive_summary,
     _render_purpose,
-    _render_radiography,
     _render_scope,
     _render_timeline,
 )
 from content.services.pdf_utils import MARGIN_T, PAGE_H, _register_fonts
-
 
 # -- Canvas helper fixture ---------------------------------------------------
 
@@ -60,7 +57,7 @@ def test_generate_returns_bytes_for_diagnostic_with_all_sections_enabled(diagnos
 
 @pytest.mark.django_db
 @patch('content.services.diagnostic_pdf_service.canvas.Canvas', side_effect=Exception('canvas fail'))
-def test_generate_returns_none_when_canvas_creation_raises(_mock_canvas, diagnostic):
+def test_generate_returns_none_when_canvas_creation_raises(_mock_canvas, diagnostic):  # noqa: PT019
     result = DiagnosticPdfService.generate(diagnostic)
     assert result is None
 

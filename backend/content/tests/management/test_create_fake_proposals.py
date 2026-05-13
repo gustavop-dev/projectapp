@@ -21,9 +21,9 @@ Business rules asserted:
 import random
 
 import pytest
+from accounts.models import UserProfile
 from django.core.management import call_command
 
-from accounts.models import UserProfile
 from content.models import BusinessProposal, ProposalProjectStage
 
 pytestmark = pytest.mark.django_db

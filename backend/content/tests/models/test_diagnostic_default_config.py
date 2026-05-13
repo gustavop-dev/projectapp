@@ -5,7 +5,6 @@ from django.db import IntegrityError
 
 from content.models import DiagnosticDefaultConfig
 
-
 pytestmark = pytest.mark.django_db
 
 

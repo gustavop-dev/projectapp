@@ -1,18 +1,16 @@
 """Gap tests for content/views/diagnostic.py — targeting uncovered branches."""
 
-import io
 import json
 
 import pytest
+from accounts.models import UserProfile
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone
 from freezegun import freeze_time
 
-from accounts.models import UserProfile
 from content.models import WebAppDiagnostic
 from content.models.diagnostic_attachment import DiagnosticAttachment
-from content.services import diagnostic_service
 
 User = get_user_model()
 

@@ -11,7 +11,6 @@ from content.services.technical_document_pdf import (
     generate_technical_document_pdf,
 )
 
-
 # ===========================================================================
 # _nonempty_str helper
 # ===========================================================================

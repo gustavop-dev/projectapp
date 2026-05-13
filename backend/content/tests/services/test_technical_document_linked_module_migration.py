@@ -1,3 +1,4 @@
+"""Tests for technical document → module migration helpers."""
 import copy
 import importlib
 from types import SimpleNamespace
@@ -6,7 +7,6 @@ import pytest
 from django.apps import apps
 
 from content.models import ProposalSection
-
 
 pytestmark = pytest.mark.django_db
 

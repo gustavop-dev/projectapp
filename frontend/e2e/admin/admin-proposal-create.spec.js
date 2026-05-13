@@ -47,7 +47,7 @@ test.describe('Admin Proposal Create', () => {
     // JSON tab is active by default — textarea is rendered
     await expect(page.getByPlaceholder(/general/)).toBeVisible();
     // Manual mode form is not rendered
-    await expect(page.locator('#create-client-name')).not.toBeVisible();
+    await expect(page.getByLabel('Nombre')).not.toBeVisible();
   });
 
   test('fills manual form and submits, verifying API payload', {
@@ -72,8 +72,8 @@ test.describe('Admin Proposal Create', () => {
 
     // Fill required fields
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
-    await page.locator('#create-client-name').fill('Carlos López');
-    await page.locator('#create-client-email').fill('carlos@test.com');
+    await page.getByLabel('Nombre').fill('Carlos López');
+    await page.getByLabel('Email').fill('carlos@test.com');
 
     // Submit form — wait for the API response
     const [response] = await Promise.all([
@@ -127,8 +127,8 @@ test.describe('Admin Proposal Create', () => {
     await page.getByRole('button', { name: 'Manual' }).click();
 
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
-    await page.locator('#create-client-name').fill('Carlos López');
-    await page.locator('#create-client-email').fill('carlos@test.com');
+    await page.getByLabel('Nombre').fill('Carlos López');
+    await page.getByLabel('Email').fill('carlos@test.com');
 
     // Submit and wait for API response
     const [response] = await Promise.all([
@@ -237,6 +237,35 @@ test.describe('Admin Proposal Create from JSON', () => {
     await expect(page.getByText('JSON inválido')).toBeVisible();
   });
 
+  test('importing JSON does not override the configured expiration default', {
+    tag: [...ADMIN_PROPOSAL_CREATE_FROM_JSON, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath.startsWith('proposals/defaults/')) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ language: 'es', expiration_days: 21, sections_json: [] }) };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/proposals/create');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
+
+    const textarea = page.getByPlaceholder(/general/);
+    await expect(textarea).toBeVisible();
+    await textarea.fill(JSON.stringify({
+      general: { clientName: 'Diego Ramírez' },
+      executiveSummary: { paragraphs: ['Resumen.'] },
+      _meta: { optional_metadata: { expires_at: new Date(Date.now() + 29 * 24 * 60 * 60 * 1000).toISOString() } },
+    }));
+    await textarea.dispatchEvent('input');
+
+    // The "Datos de la propuesta" section (with the expiration field) renders after parsing
+    await expect(page.getByText('Datos de la propuesta')).toBeVisible();
+    // Expiration must stay at the configured default (21), not the JSON's 29 days
+    await expect(page.getByTestId('json-expires-days')).toHaveValue('21');
+  });
+
   test('submitting valid JSON creates proposal and redirects to edit page', {
     tag: [...ADMIN_PROPOSAL_CREATE_FROM_JSON, '@role:admin'],
   }, async ({ page }) => {
@@ -310,8 +339,8 @@ test.describe('Admin Proposal Create & Send', () => {
 
     // Fill required fields for direct send
     await page.getByLabel('Título').fill('Propuesta Directa');
-    await page.locator('#create-client-name').fill('Ana Test');
-    await page.locator('#create-client-email').fill('ana@test.com');
+    await page.getByLabel('Nombre').fill('Ana Test');
+    await page.getByLabel('Email').fill('ana@test.com');
     await page.getByPlaceholder('3500000').fill('5000000');
 
     // Button should now be visible
@@ -343,8 +372,8 @@ test.describe('Admin Proposal Create & Send', () => {
     await page.getByRole('button', { name: 'Manual' }).click();
 
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
-    await page.locator('#create-client-name').fill('Carlos López');
-    await page.locator('#create-client-email').fill('carlos@test.com');
+    await page.getByLabel('Nombre').fill('Carlos López');
+    await page.getByLabel('Email').fill('carlos@test.com');
     await page.getByPlaceholder('3500000').fill('15000000');
 
     await page.getByRole('button', { name: /Crear y Enviar/i }).click();
@@ -383,8 +412,8 @@ test.describe('Admin Proposal Create Preview', () => {
     await page.getByRole('button', { name: 'Manual' }).click();
 
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
-    await page.locator('#create-client-name').fill('Carlos López');
-    await page.locator('#create-client-email').fill('carlos@test.com');
+    await page.getByLabel('Nombre').fill('Carlos López');
+    await page.getByLabel('Email').fill('carlos@test.com');
 
     const [response] = await Promise.all([
       page.waitForResponse(r => r.url().includes('proposals/create/')),
@@ -417,8 +446,8 @@ test.describe('Admin Proposal Create Preview', () => {
     await page.getByRole('button', { name: 'Manual' }).click();
 
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
-    await page.locator('#create-client-name').fill('Carlos López');
-    await page.locator('#create-client-email').fill('carlos@test.com');
+    await page.getByLabel('Nombre').fill('Carlos López');
+    await page.getByLabel('Email').fill('carlos@test.com');
     await page.getByPlaceholder('3500000').fill('15000000');
 
     const [response] = await Promise.all([

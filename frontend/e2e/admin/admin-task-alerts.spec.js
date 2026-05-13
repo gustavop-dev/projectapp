@@ -117,7 +117,7 @@ test.describe('Admin Task — Alertas section', () => {
     await page.getByText('Revisar propuesta cliente').click();
     await expect(page.getByTestId('task-form-modal')).toBeVisible({ timeout: 10_000 });
 
-    await page.locator('input[type="date"]').last().fill('2026-06-01');
+    await page.getByTestId('new-alert-date').fill('2026-06-01');
     await page.locator('input[placeholder*="Revisar avance"]').fill('Llamar al cliente');
     await page.getByRole('button', { name: '+ Agregar' }).first().click();
 
@@ -192,7 +192,7 @@ test.describe('Admin Task — Alertas section', () => {
     await expect(page.getByTestId('task-form-modal')).toBeVisible({ timeout: 10_000 });
 
     const modal = page.getByTestId('task-form-modal');
-    await expect(modal.locator('span', { hasText: /^Enviada$/ }).first()).toBeVisible({ timeout: 10_000 });
+    await expect(modal.locator('span', { hasText: /^Enviada$/ })).toBeVisible({ timeout: 10_000 });
     await expect(modal.getByText('Notificación enviada')).toBeVisible();
   });
 });

@@ -12,9 +12,10 @@
         </div>
 
         <div data-animate="fade-up" class="requirements-intro mb-12">
-          <p class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl max-w-3xl">
-            {{ data.intro }}
-          </p>
+          <p
+            class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl max-w-3xl"
+            v-html="linkify(data.intro)"
+          />
         </div>
 
         <!-- Overview: clickable group cards that open detail modal -->
@@ -40,7 +41,7 @@
                 {{ group.items.length }}
               </span>
             </div>
-            <p class="text-sm text-text-default/70 font-light leading-relaxed mb-3">{{ group.description }}</p>
+            <p class="text-sm text-text-default/70 font-light leading-relaxed mb-3" v-html="linkify(group.description)" />
             <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-light group-hover:text-text-brand transition-colors">
               {{ t.viewDetail }}
               <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,6 +64,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import { linkify } from '~/composables/useLinkify';
 import { trackRequirementClick } from '~/utils/trackRequirementClick';
 import FunctionalRequirementsModal from './FunctionalRequirementsModal.vue';
 

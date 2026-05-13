@@ -101,8 +101,7 @@ class TestPublishScheduledBlogPosts:
 
     @freeze_time('2026-01-15 12:00:00')
     def test_scheduled_publish_triggers_linkedin_auto_publish(self):
-        """Scheduled publication also fires the LinkedIn auto-publish pipeline,
-        so the post reaches LinkedIn without admins having to manually re-publish."""
+        """Scheduled publication also fires the LinkedIn auto-publish pipeline, so the post reaches LinkedIn without admins having to manually re-publish."""
         post = BlogPost.objects.create(
             **BLOG_POST_BASE,
             is_published=False,

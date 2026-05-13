@@ -823,8 +823,7 @@ class TestSendProposalToClient:
 
 
 class TestSendProposalToClientEnrichedContext:
-    """Tests for the enriched email context (email_intro, payment_options,
-    total_duration) and PDF attachment added to send_proposal_to_client."""
+    """Tests for the enriched email context (email_intro, payment_options, total_duration) and PDF attachment added to send_proposal_to_client."""
 
     @pytest.fixture
     def proposal_with_sections(self, db):
@@ -962,8 +961,7 @@ class TestSendProposalToClientEnrichedContext:
 
 
 class TestSendMultiProposalToClient:
-    """Tests for ProposalEmailService.send_multi_proposal_to_client —
-    multi-proposal envelope with N PDF attachments."""
+    """Tests for ProposalEmailService.send_multi_proposal_to_client — multi-proposal envelope with N PDF attachments."""
 
     @pytest.fixture
     def two_proposals(self, db):
@@ -1012,6 +1010,7 @@ class TestSendMultiProposalToClient:
     def test_sends_one_email_with_n_attachments(
         self, mock_email_cls, mock_pdf, two_proposals,
     ):
+        """Single email is sent with one PDF attachment per proposal."""
         mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
@@ -1020,16 +1019,35 @@ class TestSendMultiProposalToClient:
         assert result['ok'] is True
         assert result['reason'] == 'sent'
         mock_instance.send.assert_called_once_with(fail_silently=False)
-        # Two PDF attachments — one per proposal
         assert mock_instance.attach.call_count == 2
-        # All filenames follow the convention
+
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=b'pdf')
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    def test_attachment_filenames_follow_naming_convention(
+        self, mock_email_cls, mock_pdf, two_proposals,
+    ):
+        """Each PDF attachment follows the Propuesta_Comercial_*.pdf convention."""
+        mock_instance = _stub_email()
+        mock_email_cls.return_value = mock_instance
+
+        ProposalEmailService.send_multi_proposal_to_client(two_proposals)
+
         for call in mock_instance.attach.call_args_list:
             filename, payload, mime = call.args
             assert filename.startswith('Propuesta_Comercial_')
             assert filename.endswith('.pdf')
             assert mime == 'application/pdf'
 
-        # One EmailLog per proposal, all with same group_uuid
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=b'pdf')
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    def test_email_logs_one_entry_per_proposal_with_group_uuid(
+        self, mock_email_cls, mock_pdf, two_proposals,
+    ):
+        """One EmailLog per proposal, all sharing the same group_uuid."""
+        mock_email_cls.return_value = _stub_email()
+
+        ProposalEmailService.send_multi_proposal_to_client(two_proposals)
+
         logs = EmailLog.objects.filter(template_key='proposal_multi_sent_client')
         assert logs.count() == 2
         group_uuids = {log.metadata.get('group_uuid') for log in logs}
@@ -1104,11 +1122,13 @@ class TestSendMultiProposalsService:
         )
         return [p_draft, p_expired, p_sent]
 
+    @freeze_time('2025-06-01 12:00:00')
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
     @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=b'pdf')
     def test_applies_status_transitions(
         self, mock_pdf, mock_email_cls, client_with_proposals,
     ):
+        """send_multi_proposals returns the correct per-proposal transition labels."""
         mock_email_cls.return_value = _stub_email()
         from content.services.proposal_service import ProposalService
 
@@ -1121,6 +1141,19 @@ class TestSendMultiProposalsService:
         assert transitions[p_expired.id] == 'reopened'
         assert transitions[p_sent.id] == 'resent'
 
+    @freeze_time('2025-06-01 12:00:00')
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=b'pdf')
+    def test_applies_status_transitions_updates_db_state(
+        self, mock_pdf, mock_email_cls, client_with_proposals,
+    ):
+        """send_multi_proposals persists status changes and extends expiry for reopened proposals."""
+        mock_email_cls.return_value = _stub_email()
+        from content.services.proposal_service import ProposalService
+
+        ProposalService.send_multi_proposals(client_with_proposals)
+
+        p_draft, p_expired, _ = client_with_proposals
         p_draft.refresh_from_db()
         p_expired.refresh_from_db()
         assert p_draft.status == 'sent'
@@ -1143,10 +1176,11 @@ class TestSendMultiProposalsService:
         )
         from content.services.proposal_service import ProposalService
 
-        with pytest.raises(ValueError, match='same client'):
+        with pytest.raises(ValueError, match='same client') as exc_info:
             ProposalService.send_multi_proposals(
                 [client_with_proposals[0], other],
             )
+        assert 'same client' in str(exc_info.value)
 
 
 class TestSendPostRejectionRevisitAlert:

@@ -5,8 +5,6 @@ from unittest.mock import patch
 import pytest
 
 from content.models import WebAppDiagnostic
-from content.services import diagnostic_service
-
 
 # -- list_diagnostic_sections ------------------------------------------------
 
@@ -63,7 +61,7 @@ def test_list_diagnostic_attachments_returns_empty_list(admin_client, diagnostic
     'content.services.diagnostic_email_service.DiagnosticEmailService.get_defaults',
     return_value={'subject': 'Test', 'body': ''},
 )
-def test_get_diagnostic_email_defaults_returns_200(_mock_defaults, admin_client, diagnostic):
+def test_get_diagnostic_email_defaults_returns_200(_mock_defaults, admin_client, diagnostic):  # noqa: PT019
     response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/email/defaults/')
     assert response.status_code == 200
     assert 'subject' in response.json()
@@ -77,7 +75,7 @@ def test_get_diagnostic_email_defaults_returns_200(_mock_defaults, admin_client,
     'content.services.diagnostic_email_service.DiagnosticEmailService.list_emails',
     return_value={'results': [], 'total': 0},
 )
-def test_list_diagnostic_emails_returns_200(_mock_list, admin_client, diagnostic):
+def test_list_diagnostic_emails_returns_200(_mock_list, admin_client, diagnostic):  # noqa: PT019
     response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/email/history/')
     assert response.status_code == 200
 
@@ -87,12 +85,12 @@ def test_list_diagnostic_emails_returns_200(_mock_list, admin_client, diagnostic
     'content.services.diagnostic_email_service.DiagnosticEmailService.list_emails',
     return_value={'results': [], 'total': 0},
 )
-def test_list_diagnostic_emails_invalid_page_defaults_to_page_one(_mock_list, admin_client, diagnostic):
+def test_list_diagnostic_emails_invalid_page_defaults_to_page_one(mock_list, admin_client, diagnostic):
     response = admin_client.get(
         f'/api/diagnostics/{diagnostic.id}/email/history/?page=notanumber',
     )
     assert response.status_code == 200
-    _mock_list.assert_called_once_with(diagnostic, page=1)
+    mock_list.assert_called_once_with(diagnostic, page=1)
 
 
 # -- retrieve_public_diagnostic_by_slug --------------------------------------
@@ -131,7 +129,7 @@ def test_download_confidentiality_pdf_returns_404_when_no_attachment(admin_clien
     return_value=None,
 )
 def test_generate_confidentiality_pdf_returns_500_when_generation_fails(
-    _mock_gen, admin_client, diagnostic,
+    _mock_gen, admin_client, diagnostic,  # noqa: PT019
 ):
     response = admin_client.post(f'/api/diagnostics/{diagnostic.id}/confidentiality/generate/')
     assert response.status_code == 500
@@ -147,7 +145,7 @@ def test_generate_confidentiality_pdf_returns_500_when_generation_fails(
     return_value=None,
 )
 def test_download_draft_confidentiality_pdf_returns_500_when_generation_fails(
-    _mock_gen, admin_client, diagnostic,
+    _mock_gen, admin_client, diagnostic,  # noqa: PT019
 ):
     response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/confidentiality/draft-pdf/')
     assert response.status_code == 500
@@ -163,7 +161,7 @@ def test_download_draft_confidentiality_pdf_returns_500_when_generation_fails(
     side_effect=ValueError('invalid_transition: diagnostic in wrong state'),
 )
 def test_send_initial_returns_400_when_status_transition_is_invalid(
-    _mock_transition, admin_client, diagnostic,
+    _mock_transition, admin_client, diagnostic,  # noqa: PT019
 ):
     response = admin_client.post(f'/api/diagnostics/{diagnostic.id}/send-initial/', {}, format='json')
     assert response.status_code == 400
@@ -176,7 +174,7 @@ def test_send_initial_returns_400_when_status_transition_is_invalid(
     side_effect=Exception('SMTP connection refused'),
 )
 def test_send_initial_returns_200_with_email_ok_false_when_email_raises(
-    _mock_send, admin_client, diagnostic,
+    _mock_send, admin_client, diagnostic,  # noqa: PT019
 ):
     response = admin_client.post(f'/api/diagnostics/{diagnostic.id}/send-initial/', {}, format='json')
     assert response.status_code == 200

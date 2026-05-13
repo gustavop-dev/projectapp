@@ -24,9 +24,11 @@
 
           <!-- Body -->
           <div class="overflow-y-auto px-6 py-6 flex-1">
-            <p v-if="group.description" class="modal-description text-text-default/80 font-light leading-relaxed text-base mb-8">
-              {{ group.description }}
-            </p>
+            <p
+              v-if="group.description"
+              class="modal-description text-text-default/80 font-light leading-relaxed text-base mb-8"
+              v-html="linkify(group.description)"
+            />
 
             <div v-if="group.items && group.items.length" class="grid md:grid-cols-2 gap-4">
               <div v-for="(item, idx) in group.items" :key="idx"
@@ -37,7 +39,7 @@
                   </div>
                   <div>
                     <h4 class="req-title font-bold text-text-brand mb-1">{{ item.name }}</h4>
-                    <p class="req-description text-sm text-text-default/70 font-light">{{ item.description }}</p>
+                    <p class="req-description text-sm text-text-default/70 font-light" v-html="linkify(item.description)" />
                   </div>
                 </div>
               </div>
@@ -51,6 +53,7 @@
 
 <script setup>
 import { useProposalDarkMode } from '~/composables/useProposalDarkMode';
+import { linkify } from '~/composables/useLinkify';
 
 const { isDark } = useProposalDarkMode();
 

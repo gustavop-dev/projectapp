@@ -109,6 +109,7 @@ export const ADMIN_PROPOSAL_BATCH_ACTIONS = ['@flow:admin-proposal-batch-actions
 export const ADMIN_PROPOSAL_QUICK_SEND = ['@flow:admin-proposal-quick-send', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_QUICK_LOG = ['@flow:admin-proposal-quick-log', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_JSON_IMPORT_WARNINGS = ['@flow:admin-proposal-json-import-warnings', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_JSON_IMPORT_CLIENT_PICKER = ['@flow:admin-proposal-json-import-client-picker', '@module:admin', '@priority:P2'];
 export const PROPOSAL_SUMMARY_KPIS = ['@flow:proposal-summary-kpis', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_ROI_PROJECTION = ['@flow:proposal-roi-projection', '@module:proposal', '@priority:P1'];
 export const PROPOSAL_CALCULATOR_NEW_MODULES = ['@flow:proposal-calculator-new-modules', '@module:proposal', '@priority:P2'];
@@ -245,6 +246,12 @@ export const ADMIN_DIAGNOSTIC_DELETE     = ['@flow:admin-diagnostic-delete', '@m
 // ── Diagnostic — JSON section rewrite (Apr 16, 2026) ──
 export const ADMIN_DIAGNOSTIC_SECTIONS  = ['@flow:admin-diagnostic-sections',  '@module:admin', '@priority:P1'];
 export const ADMIN_DIAGNOSTIC_ACTIVITY  = ['@flow:admin-diagnostic-activity',  '@module:admin', '@priority:P2'];
+
+// ── Proposal lifecycle gaps ──
+export const ADMIN_PROPOSAL_RESEND              = ['@flow:admin-proposal-resend',              '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_REOPEN_FROM_EXPIRED = ['@flow:admin-proposal-reopen-from-expired', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_UPDATE_FROM_JSON    = ['@flow:admin-proposal-update-from-json',    '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_SECTION_SYNC        = ['@flow:admin-proposal-section-sync',        '@module:admin', '@priority:P2'];
 export const ADMIN_DIAGNOSTIC_ANALYTICS        = ['@flow:admin-diagnostic-analytics',        '@module:admin', '@priority:P2'];
 export const ADMIN_DIAGNOSTIC_ENGAGEMENT_SCORE = ['@flow:admin-diagnostic-engagement-score', '@module:admin', '@priority:P2'];
 export const ADMIN_DIAGNOSTIC_PROMPT           = ['@flow:admin-diagnostic-prompt',           '@module:admin', '@priority:P2'];

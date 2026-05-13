@@ -20,7 +20,6 @@ from reportlab.pdfgen import canvas
 from content.models import BusinessProposal
 from content.services.proposal_pdf_service import (
     MARGIN_B,
-    PAGE_H,
     _register_fonts,
     _render_context_diagnostic,
     _render_creative_support,

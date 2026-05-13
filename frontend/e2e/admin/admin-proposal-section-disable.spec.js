@@ -79,7 +79,7 @@ test.describe('Admin Proposal — Section Disable Toggle', () => {
     const sectionHeader = page.getByTestId('section-header-executive_summary');
     await expect(sectionHeader).toBeVisible({ timeout: 15000 });
 
-    const visibleCheckbox = sectionHeader.locator('input[type="checkbox"]').first();
+    const visibleCheckbox = sectionHeader.locator('input[type="checkbox"]');
     await expect(visibleCheckbox).toBeChecked();
     await visibleCheckbox.click();
 
@@ -106,7 +106,7 @@ test.describe('Admin Proposal — Section Disable Toggle', () => {
     const sectionHeader = page.getByTestId('section-header-executive_summary');
     await expect(sectionHeader).toBeVisible({ timeout: 15000 });
 
-    const visibleCheckbox = sectionHeader.locator('input[type="checkbox"]').first();
+    const visibleCheckbox = sectionHeader.locator('input[type="checkbox"]');
     await expect(visibleCheckbox).not.toBeChecked();
   });
 });

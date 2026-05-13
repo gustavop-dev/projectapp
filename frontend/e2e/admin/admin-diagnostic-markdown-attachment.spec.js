@@ -125,7 +125,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
     await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Crear documento desde markdown/i }).click();
 
-    await expect(page.locator('input[type="text"]').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('Ej: Resumen de cambios al alcance')).toBeVisible({ timeout: 10000 });
     // The modal's markdown textarea is the last one on the page (its placeholder
     // starts with "# Encabezado") — scope by placeholder to avoid matching
     // Correos-tab textareas rendered behind the modal.

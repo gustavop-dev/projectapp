@@ -303,6 +303,54 @@ describe('ClientAutocomplete', () => {
     expect(wrapper.get('[data-testid="client-autocomplete-input"]').element.value).toBe('Cliente Precargado');
   });
 
+  it('renders the client id beside the name in each option', async () => {
+    mockStore.searchClients.mockResolvedValueOnce({
+      success: true,
+      data: [
+        { id: 802, name: 'María García', email: 'maria@example.com', phone: '', company: 'Acme', is_email_placeholder: false },
+      ],
+    });
+
+    const wrapper = mountAutocomplete();
+
+    await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('mar');
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="client-autocomplete-option-802"]').text()).toContain('(#802)');
+  });
+
+  it('shows the linked-client hint with the id when a client is selected', async () => {
+    mockStore.searchClients.mockResolvedValueOnce({
+      success: true,
+      data: [
+        { id: 803, name: 'Pedro Páez', email: 'pedro@example.com', phone: '', company: '', is_email_placeholder: false },
+      ],
+    });
+
+    const wrapper = mountAutocomplete();
+
+    await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('ped');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="client-autocomplete-linked"]').exists()).toBe(false);
+
+    await wrapper.get('[data-testid="client-autocomplete-option-803"]').trigger('click');
+    // Mirror the v-model round-trip the parent would perform.
+    await wrapper.setProps({ modelValue: wrapper.emitted('update:modelValue').at(-1)[0] });
+    await nextTick();
+
+    const hint = wrapper.get('[data-testid="client-autocomplete-linked"]');
+    expect(hint.text()).toContain('Pedro Páez');
+    expect(hint.text()).toContain('(#803)');
+  });
+
+  it('shows the linked-client hint for a pre-selected client', () => {
+    const wrapper = mountAutocomplete({ modelValue: 55, initialLabel: 'Cliente Precargado' });
+
+    const hint = wrapper.get('[data-testid="client-autocomplete-linked"]');
+    expect(hint.text()).toContain('Cliente Precargado');
+    expect(hint.text()).toContain('(#55)');
+  });
+
   it('closes the dropdown when the click-outside handler runs', async () => {
     mockStore.searchClients.mockResolvedValueOnce({
       success: true,

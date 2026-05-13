@@ -140,9 +140,8 @@ test.describe('Platform Access View', () => {
     await setupAccessMocks(page);
     await page.goto('/platform/access', { waitUntil: 'domcontentloaded' });
 
-    const cards = page.locator('[data-testid="access-card"]');
-    const secondCard = cards.nth(1);
-    await expect(secondCard.getByText(/Sin credenciales/)).toBeVisible();
+    const noCredCard = page.locator('[data-testid="access-card"]').filter({ hasText: 'Sin URLs' });
+    await expect(noCredCard.getByText(/Sin credenciales/)).toBeVisible();
   });
 
   test('filters cards by search term', {

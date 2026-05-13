@@ -5,8 +5,8 @@ validate_content_json_en on CreateUpdate and FromJSON serializers.
 """
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
-from rest_framework.request import Request
 from rest_framework import serializers as drf_serializers
+from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 
 from content.serializers.portfolio_works import (

@@ -710,6 +710,8 @@ function handleBulkAction(action) {
 }
 
 const ZOMBIE_TYPES = ['zombie', 'zombie_draft', 'zombie_sent_stale'];
+// Closed deals (accepted) and wrapped-up projects (finished) never "need attention".
+const CLOSED_STATUSES = ['accepted', 'finished'];
 const proposalStatusById = computed(() => {
   const map = new Map();
   for (const proposal of proposals.value) {
@@ -723,7 +725,7 @@ const zombieAlerts = computed(() =>
 const activeAlerts = computed(() =>
   alerts.value.filter((a) => {
     if (ZOMBIE_TYPES.includes(a.alert_type)) return false;
-    if (proposalStatusById.value.get(a.id) === 'accepted') return false;
+    if (CLOSED_STATUSES.includes(proposalStatusById.value.get(a.id))) return false;
     if (!a.manual_alert_id && dismissedComputedAlertKeys.value.has(getComputedAlertKey(a))) return false;
     return true;
   })

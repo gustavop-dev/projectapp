@@ -2,11 +2,10 @@
   <BaseModal
     :model-value="visible"
     size="xl"
-    data-testid="proposal-multi-send-modal"
     @update:model-value="(v) => !v && handleClose()"
     @close="handleClose"
   >
-    <div class="sticky top-0 z-10 bg-surface border-b border-border-muted px-6 py-4 flex items-start justify-between gap-3 rounded-t-2xl">
+    <div data-testid="proposal-multi-send-modal" class="sticky top-0 z-10 bg-surface border-b border-border-muted px-6 py-4 flex items-start justify-between gap-3 rounded-t-2xl">
       <div>
         <h2 class="text-lg font-semibold text-text-default">
           Enviar varias propuestas como un solo correo

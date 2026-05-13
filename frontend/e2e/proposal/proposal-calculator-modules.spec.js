@@ -21,6 +21,7 @@ const mockProposal = {
   status: 'sent',
   language: 'es',
   total_investment: '10000000',
+  effective_total_investment: 12000000,
   currency: 'COP',
   sections: [
     {
@@ -187,11 +188,10 @@ test.describe('Proposal Calculator Modules (PWA, AI, Reports)', () => {
     await openCalculatorModal(page);
 
     // PWA group label should be visible
-    await expect(page.getByText(/Progressive Web App/i).first()).toBeVisible();
+    await expect(page.getByText(/Progressive Web App/i)).toBeVisible();
 
     // PWA module row should be visible
-    // quality: allow-fragile-selector (module row has no testid, identified by text content within styled container)
-    const pwaRow = page.locator('.rounded-xl').filter({ hasText: /Progressive Web App/ }).first();
+    const pwaRow = page.locator('div.rounded-xl').filter({ hasText: /Progressive Web App/ });
     await expect(pwaRow).toBeVisible();
 
     // Unselected modules show an impact warning — verify it is present (proves unselected state)
@@ -237,7 +237,7 @@ test.describe('Proposal Calculator Modules (PWA, AI, Reports)', () => {
     await expect(page.locator('h4').filter({ hasText: /Reportes y Alertas/i })).toBeVisible();
 
     // Module item row should exist
-    const reportsRow = page.locator('div.rounded-xl.border').filter({ hasText: /Reportes y Alertas/ });
+    const reportsRow = page.locator('div.rounded-xl').filter({ hasText: /Reportes y Alertas/ });
     await expect(reportsRow).toBeVisible();
 
     // The module checkbox should show selected state (checkmark SVG visible)
@@ -253,7 +253,7 @@ test.describe('Proposal Calculator Modules (PWA, AI, Reports)', () => {
 
     // Modal footer total — scope to the border-t footer area containing "Total inversión"
     // Reports & Alerts is default_selected:true at 20% = +$2.000.000, so initial = $12.000.000
-    const modalFooter = page.locator('div.border-t.border-border-default.bg-surface-muted');
+    const modalFooter = page.locator('div.border-t.border-border-default.bg-surface');
     const footerTotal = modalFooter.locator('span.font-bold').filter({ hasText: /\$/ });
     await expect(footerTotal).toContainText('12.000.000');
 

@@ -965,6 +965,7 @@ def create_proposal_from_json(request):
 
     data = serializer.validated_data
     sections_data = data.pop('sections')
+    explicit_client = data.pop('client', None)
 
     from content.services.proposal_service import ProposalService
 
@@ -974,16 +975,20 @@ def create_proposal_from_json(request):
             data.get('language', 'es'),
         )
 
-    # Resolve the canonical client (UserProfile, role=client) — auto-creates
+    # Resolve the canonical client (UserProfile, role=client). When the caller
+    # picked an existing client, use that profile as-is; otherwise auto-create
     # via placeholder when no email is provided so the FK is always populated.
     from accounts.services import proposal_client_service
 
-    client_profile = proposal_client_service.get_or_create_client_for_proposal(
-        name=data.get('client_name', ''),
-        email=data.get('client_email', ''),
-        phone=data.get('client_phone', ''),
-        company=data.get('client_company', ''),
-    )
+    if explicit_client is not None:
+        client_profile = explicit_client
+    else:
+        client_profile = proposal_client_service.get_or_create_client_for_proposal(
+            name=data.get('client_name', ''),
+            email=data.get('client_email', ''),
+            phone=data.get('client_phone', ''),
+            company=data.get('client_company', ''),
+        )
 
     # Create the BusinessProposal
     proposal = BusinessProposal.objects.create(
@@ -1218,6 +1223,13 @@ def get_proposal_json_template(request):
             'designUX (paragraphs, focusItems, objective), '
             'creativeSupport (paragraphs, includes, closing).'
         ),
+        'CRITICAL_metadata': (
+            'Do NOT add any keys to "_meta.optional_metadata" beyond the ones already '
+            'listed there (title, client_email, language, total_investment, currency). '
+            'In particular, NEVER add an "expires_at" field: the proposal expiration date '
+            'is set automatically from the admin-configured default when the proposal is '
+            'created, not from this JSON.'
+        ),
         'CRITICAL_functionalRequirements': (
             'Do NOT remove any groups or modules from the functionalRequirements section. '
             'All base groups in "groups" and all optional modules in "additionalModules" '
@@ -1306,7 +1318,27 @@ def get_proposal_json_template(request):
             'rule. Tailor KPIs and metrics to the client sector and the '
             'total_investment provided (which already includes selected '
             'additionalModules). Keep ctaNote consultative and honest — '
-            'projections grounded in real reports, not promises.'
+            'projections grounded in real reports, not promises. '
+            'SHOW YOUR WORK so the client understands HOW the numbers were '
+            'obtained — these three fields are mandatory: '
+            '(1) "methodology" (section level): 2-3 plain-language sentences '
+            'naming the verifiable BASE you start from for this sector '
+            '(e.g. expected local-market traffic / number of potential clients '
+            '/ size of the target audience), the KEY ASSUMPTION you apply '
+            '("out of every 100 visits, X book") and that you project it over '
+            '12 months — then state that each scenario simply moves that '
+            'assumption up or down. Same anti-jargon rule as the labels. '
+            '(2) "assumptions" (array on EACH scenario): 2-4 short phrases '
+            'with the concrete levers that define THAT scenario (adoption pace, '
+            'share of the reachable market, active channels, conversion, etc.), '
+            'kept parallel across the three scenarios so the client sees why '
+            'conservative < realistic < optimistic. '
+            '(3) "basis" (string on metrics): the arithmetic behind the number '
+            '(e.g. "≈ 6,500 clients × $43,000 average ticket"). REQUIRED on '
+            'every metric flagged emphasis=true; strongly recommended on the '
+            'other numeric metrics. Everything must reconcile: the basis and '
+            'assumptions have to add up to the values shown — never invent a '
+            'formula, anchor every projection to the verifiable base.'
         ),
         'CRITICAL_additionalModules_autoselect': (
             'Scan the project requirements, brief, and notes provided by the seller. '
@@ -4670,10 +4702,16 @@ def proposal_alerts(request):
                     'message': f'El cliente volvió después de {gap_days} días — posible comparación con competencia.',
                 })
 
-    # Manual alerts (not dismissed, alert_date <= now)
+    # Manual alerts (not dismissed, alert_date <= now). Accepted/finished
+    # proposals are closed deals and never "need attention".
     manual_qs = ProposalAlert.objects.filter(
         is_dismissed=False,
         alert_date__lte=now,
+    ).exclude(
+        proposal__status__in=[
+            BusinessProposal.Status.ACCEPTED,
+            BusinessProposal.Status.FINISHED,
+        ],
     ).select_related('proposal')
     for a in manual_qs:
         alerts.append({

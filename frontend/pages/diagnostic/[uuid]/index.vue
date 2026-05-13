@@ -2,6 +2,7 @@
   <div
     class="diagnostic-public min-h-screen py-16 px-4"
     :class="{ dark: isDark }"
+    data-testid="diagnostic-public-wrapper"
   >
     <DiagnosticIndex
       v-if="sections.length > 1"

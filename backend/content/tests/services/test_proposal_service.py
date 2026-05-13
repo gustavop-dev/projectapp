@@ -202,6 +202,12 @@ class TestGetDefaultSections:
         assert len(bio['items']) == 6
         assert bio['is_visible'] is True
         assert bio['is_calculator_module'] is True
+
+    def test_biometric_verification_module_flags_and_invite(self):
+        """Verify biometric_verification_module selection defaults and invite status."""
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        bio = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'biometric_verification_module')
         assert bio['default_selected'] is False
         assert bio['selected'] is False
         assert bio['price_percent'] == 0
@@ -217,6 +223,12 @@ class TestGetDefaultSections:
         assert len(qr['items']) == 6
         assert qr['is_visible'] is True
         assert qr['is_calculator_module'] is True
+
+    def test_qr_generator_module_price_and_no_invite(self):
+        """Verify qr_generator_module selection defaults and non-invite status."""
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        qr = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'qr_generator_module')
         assert qr['default_selected'] is False
         assert qr['selected'] is False
         assert qr['price_percent'] == 25
@@ -235,9 +247,14 @@ class TestGetDefaultSections:
         assert cg['default_selected'] is False
         assert cg['selected'] is False
         assert cg['price_percent'] == 30
+
+    def test_content_generator_module_no_invite_and_calendar_copy(self):
+        """Verify content_generator_module has no invite flag and contains editorial calendar content."""
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        cg = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'content_generator_module')
         assert cg.get('is_invite', False) is False
         assert 'invite_note' not in cg
-        # Title and items must reflect the editorial calendar + scheduling requirement
         assert 'Calendario' in cg['title']
         haystack = ' '.join(i['name'] + ' ' + i['description'] for i in cg['items']).lower()
         assert 'calendario' in haystack
@@ -990,8 +1007,7 @@ class TestAdminPinnedCalculatorGroupIds:
 
 
 class TestAdminDefaultCalculatorGroupIds:
-    """admin_default_calculator_group_ids: `selected` is the source of truth;
-    `default_selected` is only a fallback when `selected` is absent."""
+    """admin_default_calculator_group_ids: `selected` is the source of truth; `default_selected` is only a fallback when `selected` is absent."""
 
     def _fr(self, *modules):
         return {'groups': [], 'additionalModules': list(modules)}

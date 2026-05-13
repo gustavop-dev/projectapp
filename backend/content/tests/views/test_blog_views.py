@@ -269,8 +269,7 @@ class TestAdminCreateFromJSON:
         assert response.status_code == 400
 
     def test_persists_scheduled_published_at_as_draft(self, admin_client):
-        """Scheduling from JSON: is_published=False + future published_at is stored
-        so the periodic task can pick it up when the time arrives."""
+        """Scheduling from JSON: is_published=False + future published_at is stored so the periodic task can pick it up when the time arrives."""
         scheduled = dj_timezone.now() + timedelta(hours=2)
         payload = {
             'title_es': 'Programado',
@@ -293,8 +292,7 @@ class TestAdminCreateFromJSON:
         assert abs((post.published_at - scheduled).total_seconds()) < 2
 
     def test_publish_now_sets_published_at_via_model_hook(self, admin_client):
-        """is_published=True without an explicit published_at still gets timestamped
-        by the model save hook."""
+        """is_published=True without an explicit published_at still gets timestamped by the model save hook."""
         payload = {
             'title_es': 'Ahora', 'title_en': 'Now',
             'excerpt_es': 'E', 'excerpt_en': 'E',

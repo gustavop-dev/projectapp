@@ -10,10 +10,8 @@ from content.models import (
     DiagnosticChangeLog,
     DiagnosticSectionView,
     DiagnosticViewEvent,
-    WebAppDiagnostic,
 )
 from content.services import diagnostic_service
-
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 

@@ -102,7 +102,7 @@ test.describe('Admin Diagnostic — Prompt editor tab', () => {
 
     await expect(page.getByRole('button', { name: /Guardar/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Cancelar/i })).toBeVisible();
-    await expect(page.locator('textarea').first()).toBeVisible();
+    await expect(page.getByTestId('prompt-editor-textarea')).toBeVisible();
   });
 
   test('saves a custom prompt and shows "Restaurar original" button', {
@@ -115,12 +115,12 @@ test.describe('Admin Diagnostic — Prompt editor tab', () => {
 
     await page.getByRole('button', { name: /Editar/i }).first().click();
 
-    const textarea = page.locator('textarea').first();
+    const textarea = page.getByTestId('prompt-editor-textarea');
     await textarea.fill('Prompt personalizado de prueba.');
     await page.getByRole('button', { name: /Guardar/i }).click();
 
     // Back to view mode — custom text rendered.
-    await expect(page.locator('pre').first()).toContainText('Prompt personalizado de prueba.', { timeout: 5_000 });
+    await expect(page.getByTestId('prompt-editor-display').first()).toContainText('Prompt personalizado de prueba.', { timeout: 5_000 });
 
     // "Restaurar original" now visible.
     await expect(page.getByRole('button', { name: /Restaurar original/i })).toBeVisible();
@@ -144,7 +144,7 @@ test.describe('Admin Diagnostic — Prompt editor tab', () => {
 
     // Default prompt restored — "Restaurar original" disappears.
     await expect(page.getByRole('button', { name: /Restaurar original/i })).not.toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('pre').first()).not.toContainText('Prompt personalizado de prueba.');
+    await expect(page.getByTestId('prompt-editor-display').first()).not.toContainText('Prompt personalizado de prueba.');
   });
 
   test('Detalle técnico sub-tab shows its own prompt editor', {

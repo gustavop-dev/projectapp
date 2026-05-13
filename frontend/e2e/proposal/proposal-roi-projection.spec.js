@@ -19,6 +19,7 @@ const ROI_CONTENT = {
   index: '4',
   title: 'Proyección de retorno y beneficios',
   subtitle: 'Lo que esta inversión genera (escenario realista, COP).',
+  methodology: 'Partimos del tráfico esperado del mercado local; de cada 100 visitas 3 agendan; proyectamos a 12 meses. Cada escenario cambia ese supuesto.',
   kpis: [
     {
       icon: '👁️', value: '≈90K', label: 'Visualizaciones diarias',
@@ -31,13 +32,14 @@ const ROI_CONTENT = {
       source: '120 comerciantes activos',
     },
   ],
-  scenariosTitle: 'Escenarios proyectados',
+  scenariosTitle: 'Escenarios proyectados al primer año',
   scenarios: [
     {
       name: 'realistic', label: 'Realista', icon: '🎯',
+      assumptions: ['Tráfico orgánico del mercado local', '3 de cada 100 visitas agendan'],
       metrics: [
         { label: 'MAU mes 6', value: '80K' },
-        { label: 'Ingresos año 1', value: '$280M', emphasis: true },
+        { label: 'Ingresos año 1', value: '$280M', basis: '≈ 6.500 clientes × $43.000 ticket promedio', emphasis: true },
       ],
     },
   ],
@@ -119,9 +121,18 @@ test.describe('Proposal ROI Projection', () => {
     await expect(page.getByText('≈90K').first()).toBeVisible();
     await expect(page.getByText('Visualizaciones diarias').first()).toBeVisible();
 
-    // Scenario label and emphasized total
+    // Methodology block (how the projections were built)
+    await expect(
+      page.getByText('Partimos del tráfico esperado del mercado local', { exact: false }),
+    ).toBeVisible();
+
+    // Scenario label, assumptions, and emphasized total + its basis
     await expect(page.getByText('Realista').first()).toBeVisible();
+    await expect(page.getByText('3 de cada 100 visitas agendan').first()).toBeVisible();
     await expect(page.getByText('$280M').first()).toBeVisible();
+    await expect(
+      page.getByText('≈ 6.500 clientes × $43.000 ticket promedio').first(),
+    ).toBeVisible();
 
     // CTA note
     await expect(

@@ -14,7 +14,11 @@ from django.core.files.base import ContentFile
 from django.urls import reverse
 from django.utils import timezone
 
-from content.models import BusinessProposal, DiagnosticAttachment, EmailLog, ProposalDocument
+from content.models import (
+    BusinessProposal,
+    DiagnosticAttachment,
+    ProposalDocument,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -92,6 +96,7 @@ def _email_service_patches(module):
 
 class _FakeRequest:
     """Minimal stand-in for request.data in parse_doc_refs_field tests."""
+
     def __init__(self, data):
         self.data = data
 

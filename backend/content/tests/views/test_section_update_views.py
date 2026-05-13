@@ -681,67 +681,36 @@ class TestUpdateSectionEdgeCases:
         assert section.title == 'Only Title Changed'
         assert section.content_json['clientName'] == 'Keep Me'
 
-    def test_response_returns_proposal_totals_and_investment_section_for_fr_save(
-        self, admin_client, prop,
-    ):
-        """Saving a functional_requirements section recomputes proposal totals
-        and returns the auto-resynced investment section so the admin General
-        tab badge can update without a refetch."""
+    def _setup_fr_save_scenario(self, prop):
         prop.total_investment = 1000000
         prop.currency = 'COP'
         prop.save(update_fields=['total_investment', 'currency'])
-
         fr = _create_section(prop, 'functional_requirements', order=0)
-        fr.content_json = {
-            'groups': [
-                {
-                    'id': 'views',
-                    'title': 'Vistas',
-                    'is_calculator_module': True,
-                    'price_percent': 25,
-                    'selected': True,
-                    'items': [],
-                },
-            ],
-            'additionalModules': [],
-        }
+        fr.content_json = {'groups': [{'id': 'views', 'title': 'Vistas', 'is_calculator_module': True, 'price_percent': 25, 'selected': True, 'items': []}], 'additionalModules': []}
         fr.save(update_fields=['content_json'])
-
         inv = _create_section(prop, 'investment', order=1)
-        inv.content_json = {
-            'totalInvestment': '$1.000.000',
-            'currency': 'COP',
-            'paymentOptions': [
-                {'label': '40% al firmar', 'description': '$500.000 COP'},
-                {'label': '60% al desplegar', 'description': '$750.000 COP'},
-            ],
-        }
+        inv.content_json = {'totalInvestment': '$1.000.000', 'currency': 'COP', 'paymentOptions': [{'label': '40% al firmar', 'description': '$500.000 COP'}, {'label': '60% al desplegar', 'description': '$750.000 COP'}]}
         inv.save(update_fields=['content_json'])
+        payload = {'content_json': {'groups': [{'id': 'views', 'title': 'Vistas', 'is_calculator_module': True, 'price_percent': 25, 'selected': False, 'items': []}], 'additionalModules': []}}
+        return fr, inv, payload
 
-        url = reverse('update-proposal-section', kwargs={'section_id': fr.id})
-        payload = {
-            'content_json': {
-                'groups': [
-                    {
-                        'id': 'views',
-                        'title': 'Vistas',
-                        'is_calculator_module': True,
-                        'price_percent': 25,
-                        'selected': False,
-                        'items': [],
-                    },
-                ],
-                'additionalModules': [],
-            },
-        }
-
-        response = admin_client.patch(url, payload, format='json')
-
+    def test_response_returns_section_with_updated_selection(self, admin_client, prop):
+        """PATCH response includes the updated section with the new selection state."""
+        fr, inv, payload = self._setup_fr_save_scenario(prop)
+        response = admin_client.patch(reverse('update-proposal-section', kwargs={'section_id': fr.id}), payload, format='json')
         assert response.status_code == 200
         body = response.json()
         assert 'section' in body
         assert body['section']['id'] == fr.id
         assert body['section']['content_json']['groups'][0]['selected'] is False
+
+    def test_response_returns_proposal_totals_and_investment_section_for_fr_save(
+        self, admin_client, prop,
+    ):
+        """Saving a functional_requirements section recomputes proposal totals and returns the auto-resynced investment section."""
+        fr, inv, payload = self._setup_fr_save_scenario(prop)
+        response = admin_client.patch(reverse('update-proposal-section', kwargs={'section_id': fr.id}), payload, format='json')
+        body = response.json()
         totals = body['proposal_totals']
         assert totals['total_investment'] == '1000000.00'
         assert totals['effective_total_investment'] == '1000000.00'
@@ -754,8 +723,7 @@ class TestUpdateSectionEdgeCases:
     def test_response_returns_proposal_totals_for_non_fr_save_without_investment(
         self, admin_client, prop,
     ):
-        """Non-FR saves skip _resync, so investment_section is omitted; totals
-        are still included so the General tab can stay current."""
+        """Non-FR saves skip _resync, so investment_section is omitted; totals are still included so the General tab can stay current."""
         prop.total_investment = 500000
         prop.save(update_fields=['total_investment'])
         section = _create_section(prop, 'greeting')

@@ -104,7 +104,7 @@ test.describe('Admin Standalone Email Composer', () => {
 
     await page.getByPlaceholder('correo@ejemplo.com').fill('test@example.com');
     await page.getByPlaceholder('Asunto del correo').fill('Test Subject');
-    await page.locator('textarea').first().fill('Hello, this is a test email body.');
+    await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Hello, this is a test email body.');
 
     const sendButton = page.getByRole('button', { name: /enviar correo/i });
     await expect(sendButton).toBeEnabled();
@@ -119,7 +119,7 @@ test.describe('Admin Standalone Email Composer', () => {
 
     await page.getByPlaceholder('correo@ejemplo.com').fill('client@example.com');
     await page.getByPlaceholder('Asunto del correo').fill('Welcome Email');
-    await page.locator('textarea').first().fill('Welcome to our platform.');
+    await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Welcome to our platform.');
 
     const sendWait = page.waitForResponse(
       (res) => res.url().includes('emails/send/') && res.status() === 200,
@@ -139,7 +139,7 @@ test.describe('Admin Standalone Email Composer', () => {
 
     await page.getByPlaceholder('correo@ejemplo.com').fill('test@example.com');
     await page.getByPlaceholder('Asunto del correo').fill('Preview Test');
-    await page.locator('textarea').first().fill('Body content for preview.');
+    await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Body content for preview.');
 
     await page.getByRole('button', { name: /vista previa/i }).click();
 

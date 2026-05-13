@@ -809,6 +809,16 @@
         "Covered within admin-proposal-create.spec.js"
       ]
     },
+    "admin-proposal-json-import-client-picker": {
+      "name": "Admin Proposal JSON Import — Client Picker",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "In the 'Datos de la propuesta' form of JSON-import mode (/panel/proposals/create), the client name pre-fills from the imported JSON and a ClientAutocomplete lets the seller link an existing client (sends client_id, shows the (#id) hint, syncs sections.general.clientName) or create a new one inline.",
+      "expectedSpecs": 1
+    },
     "proposal-summary-kpis": {
       "name": "Proposal Summary KPIs",
       "module": "proposal",

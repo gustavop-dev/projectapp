@@ -7,7 +7,7 @@
         <div class="relative bg-surface rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
           <div class="sticky top-0 bg-surface border-b border-border-muted px-6 py-4 rounded-t-2xl z-10">
             <h2 class="text-lg font-semibold text-text-default dark:text-white">Acuerdo de Confidencialidad</h2>
-            <p class="text-xs text-text-muted dark:text-gray-400 mt-0.5">
+            <p class="text-xs text-text-muted mt-0.5">
               Datos para rellenar la plantilla. Los campos vacíos quedarán como
               <span class="font-mono">_______________</span> en el PDF.
             </p>
@@ -166,6 +166,7 @@ watch(
       ...stored,
     };
   },
+  { immediate: true },
 );
 
 async function handleSave() {

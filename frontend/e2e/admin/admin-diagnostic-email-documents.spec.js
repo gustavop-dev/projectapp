@@ -164,7 +164,7 @@ test.describe('Admin Diagnostic — Correos tab', () => {
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
     await page.getByRole('tab', { name: 'Correos' }).click();
 
-    await page.locator('textarea').first().fill('Este es el cuerpo del correo de seguimiento.');
+    await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Este es el cuerpo del correo de seguimiento.');
     await page.getByRole('button', { name: /Enviar correo/i }).click();
 
     await expect(() => expect(sendCalled).toBe(true)).toPass({ timeout: 5000 });

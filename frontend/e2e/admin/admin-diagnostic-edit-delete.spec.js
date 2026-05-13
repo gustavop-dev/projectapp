@@ -97,7 +97,7 @@ test.describe('Admin Diagnostic — Edit page', () => {
 
     await expect(page.getByText('AcmeCorp').first()).toBeVisible({ timeout: 10000 });
     // Language is a <select> — assert its selected value matches 'es'.
-    await expect(page.locator('select').filter({ has: page.locator('option[value="es"]') }).first()).toHaveValue('es');
+    await expect(page.locator('select').filter({ has: page.locator('option[value="es"]') })).toHaveValue('es');
   });
 
   test('PATCH to update/ is called when General form is saved', {
