@@ -62,7 +62,17 @@ const mockSecondProposal = {
   days_remaining: 30,
 };
 
+const mockSentResponse = {
+  ...mockPrimaryProposal,
+  status: 'sent',
+  sent_at: '2026-05-05T12:00:00Z',
+  email_delivery: { ok: true, reason: 'sent', detail: 'group=abc' },
+  transitions: { [PRIMARY_ID]: 'sent', [SECOND_ID]: 'resent' },
+};
+
 test.describe('Admin Proposal Multi Send', () => {
+  test.setTimeout(60_000);
+
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, {
       token: 'e2e-admin-token',
@@ -73,8 +83,9 @@ test.describe('Admin Proposal Multi Send', () => {
   test('lightning menu opens multi-send modal, selects another proposal, posts ids and shows success toast', {
     tag: [...ADMIN_PROPOSAL_MULTI_SEND, '@role:admin'],
   }, async ({ page }) => {
-    let multiSendBody = null;
+    let capturedBody = null;
 
+    // General mock for auth, detail, candidates list, and page-level API calls
     await mockApi(page, async ({ route, apiPath, method }) => {
       if (apiPath === 'auth/check/') {
         return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
@@ -88,21 +99,27 @@ test.describe('Admin Proposal Multi Send', () => {
           mockSecondProposal,
         ]) };
       }
-      if (apiPath === `proposals/${PRIMARY_ID}/send-multi/` && method === 'POST') {
-        multiSendBody = route.request().postDataJSON();
-        return {
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            ...mockPrimaryProposal,
-            status: 'sent',
-            sent_at: '2026-05-05T12:00:00Z',
-            email_delivery: { ok: true, reason: 'sent', detail: 'group=abc' },
-            transitions: { [PRIMARY_ID]: 'sent', [SECOND_ID]: 'resent' },
-          }),
-        };
+      // Analytics returns null so ProposalAnalytics renders safely (shows "No data" state).
+      // Without this, {} is returned which causes analytics.comparison to be undefined,
+      // crashing the render function and cascading Vue errors that block modal close.
+      if (apiPath === `proposals/${PRIMARY_ID}/analytics/`) {
+        return { status: 200, contentType: 'application/json', body: 'null' };
       }
       return null;
+    });
+
+    // Dedicated route for the send-multi POST (registered after mockApi → LIFO priority wins).
+    // Using a glob + synchronous fulfill avoids the async-handler timing issue that was
+    // causing the axios XHR to hang in CI: the inline non-async fulfill fires the CDP
+    // Fetch.fulfillRequest command before any microtask boundary.
+    await page.route(`**/api/proposals/${PRIMARY_ID}/send-multi/`, (route) => {
+      if (route.request().method() !== 'POST') { route.continue(); return; }
+      capturedBody = route.request().postData();
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockSentResponse),
+      });
     });
 
     await page.goto(`/panel/proposals/${PRIMARY_ID}/edit`, { waitUntil: 'domcontentloaded' });
@@ -127,18 +144,16 @@ test.describe('Admin Proposal Multi Send', () => {
 
     // Select the second proposal
     await page.getByTestId(`proposal-multi-send-option-${SECOND_ID}`).check();
-
     await expect(confirm).toBeEnabled();
 
-    const [sendResponse] = await Promise.all([
-      page.waitForResponse(r => r.url().includes(`proposals/${PRIMARY_ID}/send-multi/`)),
-      confirm.click(),
-    ]);
-    await sendResponse.finished();
+    await confirm.click();
 
-    expect(multiSendBody).toEqual({ proposal_ids: [PRIMARY_ID, SECOND_ID] });
+    // Wait for the modal to disappear — this means the send completed and the
+    // close chain ran. capturedBody is already set by the route handler.
+    await page.locator('[data-testid="proposal-multi-send-modal"]').waitFor({ state: 'detached', timeout: 15000 });
 
-    // Modal closes after success
-    await expect(modal).toBeHidden();
+    // Verify request payload
+    expect(capturedBody).toBeTruthy();
+    expect(JSON.parse(capturedBody)).toEqual({ proposal_ids: [PRIMARY_ID, SECOND_ID] });
   });
 });

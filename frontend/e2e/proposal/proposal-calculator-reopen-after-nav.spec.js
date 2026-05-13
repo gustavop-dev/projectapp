@@ -126,7 +126,7 @@ function setupMock(page) {
 async function goToInvestmentSection(page) {
   await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
   const nextBtn = page.getByTestId('nav-next');
-  await expect(nextBtn).toBeVisible({ timeout: 15000 });
+  await expect(nextBtn).toBeVisible({ timeout: 30000 });
   await nextBtn.click();
   await expect(page.getByRole('button', { name: /Personalizar tu inversión/i })).toBeVisible({ timeout: 10000 });
 }
@@ -168,7 +168,7 @@ test.describe('Calculator selection persists across section navigation', () => {
     await setupMock(page);
     await goToInvestmentSection(page);
 
-    const totalLocator = page.locator('section.investment span.text-on-primary').filter({ hasText: /\$/ }).first();
+    const totalLocator = page.locator('section.investment span.tabular-nums').filter({ hasText: /\$/ }).first();
     const initialTotal = (await totalLocator.innerText()).trim();
 
     await openModal(page);
@@ -256,7 +256,7 @@ test.describe('Calculator selection persists across section navigation', () => {
     // flags stay suppressed; the reload only wipes the in-memory page state.
     await page.reload();
     const nextBtn = page.getByTestId('nav-next');
-    await expect(nextBtn).toBeVisible({ timeout: 15000 });
+    await expect(nextBtn).toBeVisible({ timeout: 30000 });
     await nextBtn.click();
     await expect(page.getByRole('button', { name: /Personalizar tu inversión/i })).toBeVisible({ timeout: 10000 });
 

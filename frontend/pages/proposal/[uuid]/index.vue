@@ -1173,8 +1173,9 @@ function onCalculatorModulesUpdate(selectedIds) {
   selectedCalculatorModuleIds.value = new Set(selectedIds);
 }
 
-function onModuleSelectionConfirmed({ selectedIds } = {}) {
+function onModuleSelectionConfirmed({ selectedIds, total } = {}) {
   hasConfirmedModuleSelection.value = true;
+  if (total != null) customizedTotal.value = total;
   selectedCalculatorModuleIds.value = new Set(
     Array.isArray(selectedIds) ? selectedIds : [],
   );
