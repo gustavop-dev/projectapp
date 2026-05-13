@@ -75,7 +75,7 @@ test.describe('Admin View Map', () => {
     await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: 'Mapa de vistas', level: 1 })).toBeVisible({ timeout: 30_000 });
 
-    const viewCard = page.locator('article').filter({ hasText: '/panel/views' }).first();
+    const viewCard = page.locator('article').filter({ hasText: '/panel/views' });
     const copyButton = viewCard.getByTitle('Copiar referencia');
     await copyButton.click();
 

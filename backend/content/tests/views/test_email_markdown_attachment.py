@@ -4,7 +4,6 @@ from unittest.mock import patch
 import pytest
 from django.urls import reverse
 
-
 pytestmark = pytest.mark.django_db
 
 

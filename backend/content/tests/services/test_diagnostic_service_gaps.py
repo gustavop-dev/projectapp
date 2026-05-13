@@ -1,8 +1,8 @@
 """Gap tests for content/services/diagnostic_service.py — uncovered branches."""
 import pytest
+from accounts.models import UserProfile
 from django.contrib.auth import get_user_model
 
-from accounts.models import UserProfile
 from content.models import WebAppDiagnostic
 from content.models.diagnostic_section import DiagnosticSection
 from content.services import diagnostic_service

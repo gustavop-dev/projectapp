@@ -10,10 +10,9 @@ from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
 from django.utils import timezone
 from rest_framework.test import APIClient
-
-from django.core.files.base import ContentFile
 
 from content.models import (
     BlogPost,

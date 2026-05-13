@@ -6,6 +6,7 @@ days_remaining property, public_url property, and __str__.
 import datetime
 
 import pytest
+from accounts.models import UserProfile
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from freezegun import freeze_time
@@ -18,7 +19,6 @@ from content.models import (
     ProposalShareLink,
     ProposalViewEvent,
 )
-from accounts.models import UserProfile
 
 pytestmark = pytest.mark.django_db
 

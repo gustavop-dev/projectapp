@@ -131,7 +131,7 @@ test.describe('Admin Proposal JSON Import — Client Picker', () => {
     await gotoJsonModeWithParsedJson(page);
 
     await expect(page.getByTestId('json-client-autocomplete')).toBeVisible();
-    await expect(page.locator('#json-client-name')).toHaveValue('Cliente Del JSON');
+    await expect(page.getByLabel('Nombre')).toHaveValue('Cliente Del JSON');
   });
 
   test('selecting an existing client links it, shows the (#id) hint, and sends client_id on submit', {
@@ -154,8 +154,8 @@ test.describe('Admin Proposal JSON Import — Client Picker', () => {
     await firstOption.click();
 
     // Snapshot fields auto-fill from the selected client + linked hint shows the id.
-    await expect(page.locator('#json-client-name')).toHaveValue('Acme Corp');
-    await expect(page.locator('#json-client-email')).toHaveValue('contacto@acme.co');
+    await expect(page.getByLabel('Nombre')).toHaveValue('Acme Corp');
+    await expect(page.getByLabel('Email')).toHaveValue('contacto@acme.co');
     await expect(page.getByTestId('client-autocomplete-linked')).toContainText('(#401)');
 
     const [response] = await Promise.all([
@@ -196,7 +196,7 @@ test.describe('Admin Proposal JSON Import — Client Picker', () => {
     await expect(createNew).toBeVisible({ timeout: 5_000 });
     await createNew.click();
 
-    await expect(page.locator('#json-client-name')).toHaveValue('Cliente Nuevo Inline');
+    await expect(page.getByLabel('Nombre')).toHaveValue('Cliente Nuevo Inline');
     await expect(page.getByTestId('client-autocomplete-linked')).toHaveCount(0);
 
     const [response] = await Promise.all([

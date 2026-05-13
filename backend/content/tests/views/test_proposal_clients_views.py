@@ -1,5 +1,4 @@
-"""
-End-to-end tests for the proposal-side client management endpoints.
+"""End-to-end tests for the proposal-side client management endpoints.
 
 Covers ``/api/proposals/client-profiles/`` (list, search, retrieve, create,
 update, delete) plus the integration with proposal create/update via
@@ -10,13 +9,12 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+from accounts.models import Project, UserProfile
+from accounts.services import proposal_client_service
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
-from accounts.models import Project, UserProfile
-from accounts.services import proposal_client_service
 from content.models.business_proposal import BusinessProposal
-
 
 pytestmark = pytest.mark.django_db
 User = get_user_model()
@@ -181,7 +179,7 @@ class TestSearchProposalClients:
         assert len(response.data) == 2
 
     @pytest.mark.parametrize(
-        'query,first_name,last_name,company_name',
+        ('query', 'first_name', 'last_name', 'company_name'),
         [
             ('marcela', 'Marcela', 'Lopez', ''),
             ('lopez', 'Marcela', 'Lopez', ''),

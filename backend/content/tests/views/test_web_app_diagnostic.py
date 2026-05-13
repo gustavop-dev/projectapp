@@ -1,13 +1,10 @@
 """Targeted tests for the WebAppDiagnostic feature (JSON sections model)."""
 
-import io
 import pytest
-
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from content.models import DiagnosticChangeLog, DiagnosticSection, WebAppDiagnostic
+from content.models import DiagnosticChangeLog, WebAppDiagnostic
 from content.services import diagnostic_service
-
 
 # ── Service tests ──────────────────────────────────────────────────────────
 
@@ -62,7 +59,7 @@ def test_transition_status_validates_and_stamps_timestamp(diagnostic):
     assert diagnostic.initial_sent_at is not None
 
     # Invalid jump SENT → FINISHED must raise (FINISHED only after ACCEPTED).
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='invalid_transition'):
         diagnostic_service.transition_status(
             diagnostic, WebAppDiagnostic.Status.FINISHED,
         )
@@ -214,7 +211,8 @@ def test_track_reuses_view_event_for_same_session(api_client, diagnostic):
     url = f'/api/diagnostics/public/{diagnostic.uuid}/track/'
     r1 = api_client.post(url, {'session_id': 'session-xyz'}, format='json')
     r2 = api_client.post(url, {'session_id': 'session-xyz'}, format='json')
-    assert r1.status_code == 200 and r2.status_code == 200
+    assert r1.status_code == 200
+    assert r2.status_code == 200
     diagnostic.refresh_from_db()
     # view_count is bumped on each register_view call (second-click re-visit
     # is a real signal), but the view_event row is unique per session.
@@ -574,6 +572,7 @@ def test_delete_attachment_returns_204(admin_client, diagnostic):
 
 def test_delete_generated_attachment_returns_400(admin_client, diagnostic):
     from django.core.files.base import ContentFile
+
     from content.models import DiagnosticAttachment
     attachment = DiagnosticAttachment.objects.create(
         diagnostic=diagnostic,

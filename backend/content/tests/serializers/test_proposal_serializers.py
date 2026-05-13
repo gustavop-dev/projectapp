@@ -2,12 +2,12 @@
 from unittest.mock import patch
 
 import pytest
+from accounts.models import UserProfile
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from freezegun import freeze_time
 from rest_framework import serializers
 
-from accounts.models import UserProfile
 from content.models import (
     ProposalChangeLog,
     ProposalDocument,
@@ -484,33 +484,16 @@ class TestProposalCreateUpdateSerializerClientResolution:
         mock_sync_snapshot.assert_called_once_with(updated)
 
     def test_update_with_create_new_client_resolves_new_profile_without_touching_existing(self, proposal):
-        original_user = User.objects.create_user(
-            username='serializer-existing-client@test.com',
-            email='serializer-existing-client@test.com',
-            password='pass12345',
-        )
-        proposal.client = UserProfile.objects.create(
-            user=original_user, role=UserProfile.ROLE_CLIENT,
-        )
+        original_user = User.objects.create_user(username='serializer-existing-client@test.com', email='serializer-existing-client@test.com', password='pass12345')
+        proposal.client = UserProfile.objects.create(user=original_user, role=UserProfile.ROLE_CLIENT)
         proposal.save(update_fields=['client'])
 
-        new_user = User.objects.create_user(
-            username='serializer-brand-new-client@test.com',
-            email='serializer-brand-new-client@test.com',
-            password='pass12345',
-        )
-        new_profile = UserProfile.objects.create(
-            user=new_user, role=UserProfile.ROLE_CLIENT,
-        )
+        new_user = User.objects.create_user(username='serializer-brand-new-client@test.com', email='serializer-brand-new-client@test.com', password='pass12345')
+        new_profile = UserProfile.objects.create(user=new_user, role=UserProfile.ROLE_CLIENT)
 
         serializer = ProposalCreateUpdateSerializer(
             proposal,
-            data={
-                'client_name': 'Brand New Client',
-                'client_email': '',
-                'create_new_client': True,
-                'propagate_client_updates': False,
-            },
+            data={'client_name': 'Brand New Client', 'client_email': '', 'create_new_client': True, 'propagate_client_updates': False},
             partial=True,
         )
 
@@ -912,13 +895,11 @@ class TestSlugValidation:
 
 
 class TestProposalSectionDetailSerializerHostingNormalization:
-    """Investment.hostingPlan must be normalized against BusinessProposal
-    model fields in the API response so the public UI doesn't have to
-    re-implement the override client-side.
-    """
+    """Investment.hostingPlan must be normalized against BusinessProposal model fields in the API response so the public UI doesn't have to re-implement the override client-side."""
 
     def test_investment_section_hosting_plan_is_normalized(self):
         from decimal import Decimal
+
         from content.models import BusinessProposal, ProposalSection
         from content.serializers.proposal import ProposalSectionDetailSerializer
 

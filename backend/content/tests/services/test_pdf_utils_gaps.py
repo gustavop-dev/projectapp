@@ -309,8 +309,7 @@ class TestDrawCodeBlock:
 
 class TestMergeWithCoversNoop:
     def test_returns_content_bytes_unchanged_when_no_covers_requested(self):
-        """When include_portada=False, include_contraportada=False, and no prepend,
-        returns content_bytes as-is without merging."""
+        """When include_portada=False, include_contraportada=False, and no prepend, returns content_bytes as-is without merging."""
         from content.services.pdf_utils import merge_with_covers
 
         content = b'%PDF-1.4 minimal'

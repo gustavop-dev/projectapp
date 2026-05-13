@@ -1012,7 +1012,7 @@ class TestPublishScheduledBlogPostsTask:
         assert post.is_published is False
 
 
-class TestSuggestPreExpirationDiscountTask:
+class TestSuggestPreExpirationDiscountTaskExpiryWindow:
     @freeze_time('2026-03-10 12:00:00')
     def test_creates_alert_for_viewed_proposal_expiring_soon(self):
         """Creates discount_suggestion alert for viewed proposal expiring within 5 days."""
@@ -2437,8 +2437,9 @@ class TestNotifyProposalStageDeadlines:
     )
     def test_calls_tracker_for_proposals_with_active_stages(self, mock_process):
         """A proposal with at least one stage having dates and no completion is processed."""
-        from content.models import ProposalProjectStage
         from datetime import date
+
+        from content.models import ProposalProjectStage
 
         proposal = BusinessProposal.objects.create(
             title='With Active Stage', client_name='C',
@@ -2460,8 +2461,9 @@ class TestNotifyProposalStageDeadlines:
         'content.services.proposal_stage_tracker.ProposalStageTracker.process',
     )
     def test_skips_paused_automations(self, mock_process):
-        from content.models import ProposalProjectStage
         from datetime import date
+
+        from content.models import ProposalProjectStage
 
         proposal = BusinessProposal.objects.create(
             title='Paused', client_name='C',
@@ -2481,8 +2483,9 @@ class TestNotifyProposalStageDeadlines:
         'content.services.proposal_stage_tracker.ProposalStageTracker.process',
     )
     def test_skips_inactive_proposals(self, mock_process):
-        from content.models import ProposalProjectStage
         from datetime import date
+
+        from content.models import ProposalProjectStage
 
         proposal = BusinessProposal.objects.create(
             title='Inactive', client_name='C',
@@ -2503,8 +2506,9 @@ class TestNotifyProposalStageDeadlines:
         'content.services.proposal_stage_tracker.ProposalStageTracker.process',
     )
     def test_skips_proposals_with_only_completed_stages(self, mock_process):
-        from content.models import ProposalProjectStage
         from datetime import date
+
+        from content.models import ProposalProjectStage
 
         proposal = BusinessProposal.objects.create(
             title='Done', client_name='C', status='accepted',
@@ -2546,8 +2550,9 @@ class TestNotifyProposalStageDeadlines:
         side_effect=RuntimeError('tracker failed'),
     )
     def test_logs_and_continues_when_tracker_raises(self, mock_process, mock_log_exception):
-        from content.models import ProposalProjectStage
         from datetime import date
+
+        from content.models import ProposalProjectStage
 
         proposal = BusinessProposal.objects.create(
             title='Broken Stage Tracker', client_name='C',
@@ -2625,7 +2630,7 @@ class TestCheckSingleTaskDeadlines:
     def _make_task(self, creation_date, due_date):
         """Create a Task with a controlled created_at date."""
         from datetime import datetime
-        from django.utils import timezone
+
         from content.models import Task
 
         with freeze_time(datetime.combine(creation_date, datetime.min.time())):
@@ -2635,6 +2640,7 @@ class TestCheckSingleTaskDeadlines:
     def test_sends_40_pct_email_when_threshold_reached(self, mailoutbox):
         """Email sent at 40% elapsed; task flagged as notified_40."""
         from datetime import date
+
         from content.tasks import _check_single_task_deadlines
 
         # Created April 12, due May 12 (30 days total). Today April 24 = 40%.
@@ -2649,6 +2655,7 @@ class TestCheckSingleTaskDeadlines:
     def test_sends_70_pct_email_when_threshold_reached(self, mailoutbox):
         """Email sent at 70% elapsed; task flagged as notified_70."""
         from datetime import date
+
         from content.tasks import _check_single_task_deadlines
 
         # Created April 3, due May 3 (30 days total). Today April 24 = 70%.
@@ -2664,6 +2671,7 @@ class TestCheckSingleTaskDeadlines:
     def test_sends_100_pct_email_on_due_date(self, mailoutbox):
         """Email sent when today equals due_date; task flagged as notified_100."""
         from datetime import date
+
         from content.tasks import _check_single_task_deadlines
 
         task = self._make_task(date(2026, 4, 1), date(2026, 4, 24))
@@ -2679,6 +2687,7 @@ class TestCheckSingleTaskDeadlines:
     def test_sends_overdue_reminder_when_past_due_date(self, mailoutbox):
         """Overdue reminder sent when today is after due_date."""
         from datetime import date
+
         from content.tasks import _check_single_task_deadlines
 
         task = self._make_task(date(2026, 4, 1), date(2026, 4, 23))
@@ -2695,6 +2704,7 @@ class TestCheckSingleTaskDeadlines:
     def test_suppresses_overdue_reminder_when_recently_notified(self, mailoutbox):
         """No overdue reminder sent if last_overdue_notified_at < 2 days ago."""
         from datetime import date
+
         from content.tasks import _check_single_task_deadlines
 
         task = self._make_task(date(2026, 4, 1), date(2026, 4, 23))
@@ -2710,6 +2720,7 @@ class TestCheckSingleTaskDeadlines:
     def test_skips_all_notifications_when_already_notified(self, mailoutbox):
         """No emails sent when all thresholds already flagged and no overdue."""
         from datetime import date
+
         from content.tasks import _check_single_task_deadlines
 
         # Task not yet at due date but all notifications already sent.
@@ -2728,7 +2739,8 @@ class TestCheckTaskDeadlineNotifications:
     @freeze_time('2026-04-24')
     def test_periodic_task_processes_eligible_task(self, mailoutbox):
         """Periodic task sends email for task at 40% threshold."""
-        from datetime import date, datetime
+        from datetime import date
+
         from content.models import Task
 
         with freeze_time('2026-04-12 08:00:00'):
@@ -2744,7 +2756,8 @@ class TestCheckTaskDeadlineNotifications:
     @freeze_time('2026-04-24')
     def test_periodic_task_skips_done_tasks(self, mailoutbox):
         """Periodic task ignores tasks with status DONE."""
-        from datetime import date, datetime
+        from datetime import date
+
         from content.models import Task
 
         with freeze_time('2026-04-12 08:00:00'):
@@ -2767,7 +2780,8 @@ class TestCheckTaskAlertNotifications:
     @freeze_time('2026-04-24')
     def test_dispatches_pending_alert_and_marks_sent(self, mailoutbox):
         """Pending alert with notify_at <= today is sent and marked sent=True."""
-        from datetime import date, datetime
+        from datetime import date
+
         from content.models import Task, TaskAlert
 
         with freeze_time('2026-04-01 08:00:00'):
@@ -2785,7 +2799,8 @@ class TestCheckTaskAlertNotifications:
     @freeze_time('2026-04-24')
     def test_skips_already_sent_alerts(self, mailoutbox):
         """Alerts with sent=True are not dispatched again."""
-        from datetime import date, datetime
+        from datetime import date
+
         from content.models import Task, TaskAlert
 
         with freeze_time('2026-04-01 08:00:00'):
@@ -2800,7 +2815,8 @@ class TestCheckTaskAlertNotifications:
     @freeze_time('2026-04-24')
     def test_skips_future_alerts(self, mailoutbox):
         """Alert with notify_at > today is not sent."""
-        from datetime import date, datetime
+        from datetime import date
+
         from content.models import Task, TaskAlert
 
         with freeze_time('2026-04-01 08:00:00'):
@@ -2813,7 +2829,7 @@ class TestCheckTaskAlertNotifications:
         assert len(mailoutbox) == 0
 
 
-class TestNotifyProposalStageDeadlines:
+class TestNotifyProposalStageDeadlinesIntegration:
     """Tests for the notify_proposal_stage_deadlines periodic task."""
 
     def test_calls_tracker_for_eligible_proposals(self):  # quality: disable no_assertions (mock assertion replaces assert keyword)

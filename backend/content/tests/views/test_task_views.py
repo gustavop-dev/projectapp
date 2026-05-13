@@ -156,32 +156,26 @@ class TestDeleteTask:
 
 
 class TestDuplicateTask:
-    def test_duplicates_basic_fields_with_copia_suffix(self, admin_client, db):
-        original = Task.objects.create(
-            title='Plan release',
-            description='Q3 launch',
-            status=Task.Status.IN_PROGRESS,
-            priority=Task.Priority.HIGH,
-            board_type=Task.BoardType.WEEKLY,
-            position=4,
-        )
-        # Sibling at position 5 — duplicate must land at 6.
-        Task.objects.create(
-            title='Other',
-            status=Task.Status.IN_PROGRESS,
-            board_type=Task.BoardType.WEEKLY,
-            position=5,
-        )
+    def _create_duplicate_scenario(self, db):
+        original = Task.objects.create(title='Plan release', description='Q3 launch', status=Task.Status.IN_PROGRESS, priority=Task.Priority.HIGH, board_type=Task.BoardType.WEEKLY, position=4)
+        Task.objects.create(title='Other', status=Task.Status.IN_PROGRESS, board_type=Task.BoardType.WEEKLY, position=5)
+        return original
 
-        response = admin_client.post(
-            reverse('duplicate-task', kwargs={'task_id': original.id}), {}, format='json',
-        )
-
+    def test_duplicates_title_description_and_status(self, admin_client, db):
+        """Duplicate inherits title with (copia) suffix, description, and status."""
+        original = self._create_duplicate_scenario(db)
+        response = admin_client.post(reverse('duplicate-task', kwargs={'task_id': original.id}), {}, format='json')
         assert response.status_code == 201
         data = response.json()
         assert data['title'] == 'Plan release (copia)'
         assert data['description'] == 'Q3 launch'
         assert data['status'] == 'in_progress'
+
+    def test_duplicates_basic_fields_with_copia_suffix(self, admin_client, db):
+        """Duplicate inherits priority, board, position, and does not archive; original is preserved."""
+        original = self._create_duplicate_scenario(db)
+        response = admin_client.post(reverse('duplicate-task', kwargs={'task_id': original.id}), {}, format='json')
+        data = response.json()
         assert data['priority'] == 'high'
         assert data['board_type'] == 'weekly'
         assert data['position'] == 6
@@ -189,8 +183,9 @@ class TestDuplicateTask:
         assert Task.objects.filter(pk=original.id).exists()
 
     def test_does_not_copy_comments_alerts_or_archive_state(self, admin_client, admin_user, db):
-        from content.models import TaskAlert, TaskComment
         from datetime import date
+
+        from content.models import TaskAlert, TaskComment
 
         original = Task.objects.create(
             title='Source',
@@ -268,8 +263,8 @@ class TestArchiveTask:
         assert todo_task.archive_reason == ''
 
     def test_list_archived_returns_only_archived_tasks(self, admin_client, todo_task):
-        active = Task.objects.create(title='Active', status=Task.Status.TODO)
-        archived = Task.objects.create(
+        Task.objects.create(title='Active', status=Task.Status.TODO)
+        Task.objects.create(
             title='Archived', status=Task.Status.TODO, is_archived=True,
         )
         response = admin_client.get(reverse('list-archived-tasks'))
@@ -335,7 +330,6 @@ class TestTaskComments:
 
 class TestTaskAlerts:
     def test_create_alert_returns_201(self, admin_client, todo_task):
-        from datetime import date
         response = admin_client.post(
             reverse('create-task-alert', kwargs={'task_id': todo_task.id}),
             {'notify_at': '2026-05-01', 'note': 'Check progress'},

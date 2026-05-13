@@ -166,9 +166,7 @@ test.describe('Admin Proposal — Adjuntar desde Documentos', () => {
     await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Adjuntar desde Documentos/i }).click();
 
-    // Scope to the modal overlay to avoid matching hidden form checkboxes
-    const firstCheckbox = page.locator('.fixed.inset-0 input[type="checkbox"]').first();
-    await firstCheckbox.check();
+    await page.getByLabel('Propuesta comercial (PDF)').check();
 
     const confirmBtn = page.getByRole('button', { name: /Adjuntar \(1\)/i });
     await expect(confirmBtn).toBeEnabled();
@@ -177,7 +175,7 @@ test.describe('Admin Proposal — Adjuntar desde Documentos', () => {
     // Modal overlay should close (the button with the same label stays visible)
     await expect(page.locator('.fixed.inset-0')).not.toBeVisible({ timeout: 3000 });
     // A "Documento" badge label appears inside the doc_ref attachment chip
-    await expect(page.locator('span', { hasText: 'Documento' }).first()).toBeVisible();
+    await expect(page.locator('span', { hasText: 'Documento' })).toBeVisible();
   });
 
   test('POST to send/ includes doc_refs when a ref is selected', {
@@ -206,8 +204,7 @@ test.describe('Admin Proposal — Adjuntar desde Documentos', () => {
 
     // Attach a document
     await page.getByRole('button', { name: /Adjuntar desde Documentos/i }).click();
-    const firstCheckbox = page.locator('.fixed.inset-0 input[type="checkbox"]').first();
-    await firstCheckbox.check();
+    await page.getByLabel('Propuesta comercial (PDF)').check();
     await page.getByRole('button', { name: /Adjuntar \(1\)/i }).click();
 
     await page.getByRole('button', { name: /Enviar correo/i }).click();

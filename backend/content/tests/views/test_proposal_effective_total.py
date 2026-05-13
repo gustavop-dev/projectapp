@@ -82,9 +82,7 @@ class TestCalculateEffectiveTotalInvestment:
         assert result == Decimal('2520000.00')
 
     def test_confirmed_ignores_admin_default_when_not_in_list(self):
-        """Even though reports_alerts.default_selected=True, with
-        has_confirmed=True and an explicit list that excludes it, the
-        admin default is ignored."""
+        """Even though reports_alerts.default_selected=True, with has_confirmed=True and an explicit list that excludes it, the admin default is ignored."""
         result = _calculate_effective_total_investment(
             base_total=Decimal('1800000'),
             selected_modules=['module-pwa_module'],
@@ -94,8 +92,7 @@ class TestCalculateEffectiveTotalInvestment:
         assert result == Decimal('2520000.00')
 
     def test_confirmed_unions_persisted_with_admin_pinned_modules(self):
-        """A calc module the admin pinned (``selected=True``) is added to the
-        effective total even when the client's confirmed list excludes it."""
+        """A calc module the admin pinned (``selected=True``) is added to the effective total even when the client's confirmed list excludes it."""
         fr_content = {
             'additionalModules': [
                 {'id': 'pwa_module', 'title': 'PWA', 'is_visible': True,
@@ -133,9 +130,7 @@ class TestCalculateEffectiveTotalInvestment:
         assert result == Decimal('10800000.00')
 
     def test_explicit_selected_false_overrides_default_selected_true(self):
-        """``selected`` is the source of truth (the panel checkbox). An
-        explicit ``selected=False`` excludes the module from the effective
-        total even if ``default_selected=True`` — the admin unchecked it."""
+        """``selected`` is the source of truth (the panel checkbox). An explicit ``selected=False`` excludes the module from the effective total even if ``default_selected=True`` — the admin unchecked it."""
         fr_content = {
             'additionalModules': [
                 {
@@ -159,8 +154,7 @@ class TestCalculateEffectiveTotalInvestment:
         assert result == Decimal('6000000.00')
 
     def test_default_selected_true_counts_when_selected_absent(self):
-        """Legacy fallback: a module with no explicit ``selected`` key still
-        counts when ``default_selected=True``."""
+        """Legacy fallback: a module with no explicit ``selected`` key still counts when ``default_selected=True``."""
         fr_content = {
             'additionalModules': [
                 {
@@ -185,8 +179,7 @@ class TestCalculateEffectiveTotalInvestment:
 
 
 class TestEffectiveTotalForProposal:
-    """Integration-lite: exercises the single-proposal wrapper that reads
-    the flag from the model itself."""
+    """Integration-lite: exercises the single-proposal wrapper that reads the flag from the model itself."""
 
     def _make_proposal(self, selected_modules, with_confirmed_log):
         proposal = BusinessProposal.objects.create(
@@ -223,8 +216,7 @@ class TestEffectiveTotalForProposal:
 
 
 class TestBuildEffectiveTotalsMap:
-    """Batch wrapper must evaluate the has_confirmed flag per proposal
-    (not use a single stale value for all rows)."""
+    """Batch wrapper must evaluate the has_confirmed flag per proposal (not use a single stale value for all rows)."""
 
     @freeze_time('2026-01-15 12:00:00')
     def test_mixed_inputs_resolve_each_proposal_independently(self):

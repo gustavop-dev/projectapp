@@ -33,7 +33,6 @@ from content.services.proposal_pdf_service import (
     PAGE_H,
     SECTION_RENDERERS,
     ProposalPdfService,
-    default_selected_modules_from_content,
     _clean_inline_bold,
     _clean_url_display,
     _draw_banner_box,
@@ -57,6 +56,7 @@ from content.services.proposal_pdf_service import (
     _replace_urls_with_placeholders,
     _safe,
     _strip_emoji,
+    default_selected_modules_from_content,
 )
 
 pytestmark = pytest.mark.django_db
@@ -2141,10 +2141,7 @@ class TestPaymentPillDesc:
 
 
 class TestInvestmentRendersAgainstEffectiveTotal:
-    """Integration: ensure _render_investment writes amounts derived from the
-    backend effective total (base + admin defaults) when no client
-    customization is present, matching the public view contract.
-    """
+    """Integration: ensure _render_investment writes amounts derived from the backend effective total (base + admin defaults) when no client customization is present, matching the public view contract."""
 
     @pytest.fixture
     def proposal_obj(self, db):
@@ -2161,12 +2158,11 @@ class TestInvestmentRendersAgainstEffectiveTotal:
     def test_payment_amounts_match_effective_total(
         self, pdf_canvas, proposal_obj, monkeypatch,
     ):
-        """When backend effective is 4.32M (base + 35% admin module), the
-        PDF must render 40/30/30 against 4.32M, not against base 3.2M nor
-        against the stored description amount."""
+        """When backend effective is 4.32M (base + 35% admin module), the PDF must render 40/30/30 against 4.32M, not against base 3.2M nor against the stored description amount."""
+        from decimal import Decimal as _D
+
         from content.services import proposal_pdf_service as svc
         from content.views import proposal as views_proposal
-        from decimal import Decimal as _D
 
         recorded_pills = []
         original_pill = svc._payment_pill_desc
@@ -2201,9 +2197,7 @@ class TestInvestmentRendersAgainstEffectiveTotal:
 
 
 class TestInviteModuleAINote:
-    """Cover the new product rule: invite modules with a real ``price_percent``
-    no longer trigger the "we'll define this in a call" note, because the
-    calculator already shows them with a price."""
+    """Cover the new product rule: invite modules with a real ``price_percent`` no longer trigger the "we'll define this in a call" note, because the calculator already shows them with a price."""
 
     @pytest.fixture
     def proposal_obj(self, db):
@@ -2294,10 +2288,7 @@ class TestInviteModuleAINote:
 
 
 class TestRenderInvestmentEndToEndAdminDefaults:
-    """Mirror the prop 86 scenario end-to-end through ProposalPdfService.generate
-    so a proposal whose admin marked a module ``default_selected=True``
-    (without flipping ``selected=True``) renders against the same effective
-    total the public client view shows."""
+    """Mirror the prop 86 scenario end-to-end through ProposalPdfService.generate so a proposal whose admin marked a module ``default_selected=True`` (without flipping ``selected=True``) renders against the same effective total the public client view shows."""
 
     @pytest.fixture
     def proposal_obj(self, db):
@@ -2312,7 +2303,8 @@ class TestRenderInvestmentEndToEndAdminDefaults:
 
     def test_default_selected_only_module_counts_in_effective(self, db):
         from content.services.proposal_pdf_service import (
-            ProposalPdfService, default_selected_modules_from_content,
+            ProposalPdfService,
+            default_selected_modules_from_content,
         )
 
         proposal = BusinessProposal.objects.create(
@@ -2349,10 +2341,11 @@ class TestRenderInvestmentEndToEndAdminDefaults:
         assert 'module-branding' in sel
 
         pdf = ProposalPdfService.generate(proposal, selected_modules=sel)
-        assert pdf and len(pdf) > 1000
+        assert len(pdf) > 1000
+
+        import io as _io
 
         from pypdf import PdfReader
-        import io as _io
         text = '\n'.join(
             (page.extract_text() or '')
             for page in PdfReader(_io.BytesIO(pdf)).pages
@@ -2363,11 +2356,10 @@ class TestRenderInvestmentEndToEndAdminDefaults:
         assert '$4.860.000' in text
 
     def test_explicit_selected_false_excludes_from_total_and_fr(self, db):
-        """Admin explicitly unchecked a module (``selected=False``), even though
-        ``default_selected=True``. Under the 'selected is source of truth' rule,
-        the module is excluded from both the effective total and the FR section."""
+        """Admin explicitly unchecked a module (``selected=False``), even though ``default_selected=True``. Under the 'selected is source of truth' rule, the module is excluded from both the effective total and the FR section."""
         from content.services.proposal_pdf_service import (
-            ProposalPdfService, default_selected_modules_from_content,
+            ProposalPdfService,
+            default_selected_modules_from_content,
         )
 
         proposal = BusinessProposal.objects.create(
@@ -2407,8 +2399,9 @@ class TestRenderInvestmentEndToEndAdminDefaults:
         assert 'module-branding' not in sel
 
         pdf = ProposalPdfService.generate(proposal, selected_modules=sel)
-        from pypdf import PdfReader
         import io as _io
+
+        from pypdf import PdfReader
         text = '\n'.join(
             (page.extract_text() or '')
             for page in PdfReader(_io.BytesIO(pdf)).pages
@@ -2934,10 +2927,7 @@ class TestDefaultSelectedModulesFromContent:
         assert 'module-pwa' not in result
 
     def test_explicit_selected_false_excludes_even_with_default_selected_true(self):
-        """``selected`` is the source of truth: an explicit ``selected=False``
-        keeps the module out of the PDF scope even if ``default_selected=True``
-        — the admin unchecked it in the panel. (The ``selected``-absent
-        fallback is covered by ``test_falls_back_to_default_selected_when_selected_absent``.)"""
+        """``selected`` is the source of truth: an explicit ``selected=False`` keeps the module out of the PDF scope even if ``default_selected=True`` — the admin unchecked it in the panel. (The ``selected``-absent fallback is covered by ``test_falls_back_to_default_selected_when_selected_absent``.)."""
         proposal = self._make_proposal(
             fr_content=_fr_section_content_json(additionalModules=[
                 _calculator_module_group(
@@ -2962,10 +2952,7 @@ class TestDefaultSelectedModulesFromContent:
         assert 'module-hidden' not in result
 
     def test_confirmed_persisted_selected_modules_wins_over_content_json(self):
-        """Once the client confirmed a selection, the persisted list is the
-        source of truth and overrides the admin's content_json defaults —
-        mirrors the frontend behaviour in pages/proposal/[uuid]/index.vue.
-        """
+        """Once the client confirmed a selection, the persisted list is the source of truth and overrides the admin's content_json defaults — mirrors the frontend behaviour in pages/proposal/[uuid]/index.vue."""
         proposal = self._make_proposal(
             fr_content=_fr_section_content_json(additionalModules=[
                 _calculator_module_group(id='pwa', selected=False),
@@ -2979,10 +2966,7 @@ class TestDefaultSelectedModulesFromContent:
         assert result == ['module-pwa']
 
     def test_confirmed_persisted_bare_ids_are_normalized_to_canonical_prefixed_form(self):
-        """Legacy payloads without the module-/group- prefix must still match
-        the prefixed ids the PDF renderer builds internally; otherwise the
-        additional-module prices never sum into the client-facing total.
-        """
+        """Legacy payloads without the module-/group- prefix must still match the prefixed ids the PDF renderer builds internally; otherwise the additional-module prices never sum into the client-facing total."""
         proposal = self._make_proposal(
             fr_content=_fr_section_content_json(additionalModules=[
                 _calculator_module_group(id='pwa', selected=False),
@@ -2996,10 +2980,7 @@ class TestDefaultSelectedModulesFromContent:
         assert result == ['module-pwa']
 
     def test_confirmed_empty_selection_does_not_leak_default_selected_modules(self):
-        """When the client confirmed an empty selection, the PDF must not
-        fall back to the admin's ``default_selected`` modules — the empty list
-        is the literal source of truth (unless a module is explicitly pinned).
-        """
+        """When the client confirmed an empty selection, the PDF must not fall back to the admin's ``default_selected`` modules — the empty list is the literal source of truth (unless a module is explicitly pinned)."""
         proposal = self._make_proposal(
             fr_content=_fr_section_content_json(additionalModules=[
                 _calculator_module_group(
@@ -3015,10 +2996,7 @@ class TestDefaultSelectedModulesFromContent:
         assert result == []
 
     def test_confirmed_empty_selection_still_includes_admin_pinned_modules(self):
-        """A calculator module the admin pinned explicitly (``selected=True``)
-        is forced into the PDF scope even when the client confirmed an empty
-        selection — "I checked it in the panel" wins.
-        """
+        """A calculator module the admin pinned explicitly (``selected=True``) is forced into the PDF scope even when the client confirmed an empty selection — "I checked it in the panel" wins."""
         proposal = self._make_proposal(
             fr_content=_fr_section_content_json(additionalModules=[
                 _calculator_module_group(id='pwa', selected=True),
@@ -3047,9 +3025,7 @@ class TestDefaultSelectedModulesFromContent:
         assert set(result) == {'module-pwa', 'module-ai'}
 
     def test_unconfirmed_empty_persisted_falls_back_to_content_json(self):
-        """Without a confirmation log, the admin's content_json defaults
-        drive the PDF — the selected_modules field is ignored.
-        """
+        """Without a confirmation log, the admin's content_json defaults drive the PDF — the selected_modules field is ignored."""
         proposal = self._make_proposal(
             fr_content=_fr_section_content_json(additionalModules=[
                 _calculator_module_group(id='pwa', selected=True),
@@ -3109,10 +3085,7 @@ class TestDefaultSelectedModulesFromContent:
 # ── Hosting: model fields override content_json ───────────────
 
 class TestInvestmentHostingModelOverride:
-    """BusinessProposal.hosting_* fields must override content_json.hostingPlan
-    in the PDF (mirrors the public UI in frontend/pages/proposal/[uuid]/index.vue).
-    Prevents regression of the stale-hosting bug introduced by d793ac79.
-    """
+    """BusinessProposal.hosting_* fields must override content_json.hostingPlan in the PDF (mirrors the public UI in frontend/pages/proposal/[uuid]/index.vue). Prevents regression of the stale-hosting bug introduced by d793ac79."""
 
     def test_model_hosting_percent_and_discount_override_content_json(  # quality: disable test_too_long (verifies full investment rendering cycle across hosting, discount, and tax fields)
         self, pdf_canvas, db,
@@ -3184,11 +3157,7 @@ class TestInvestmentHostingModelOverride:
 # ── value_added_modules: dedicated "Sin costo adicional" section ──
 
 class TestInvestmentModelTotalOverride:
-    """BusinessProposal.total_investment and .currency must override
-    content_json mirrors in the PDF, matching the frontend override in
-    pages/proposal/[uuid]/index.vue. Prevents the staleness bug reported
-    for proposal id=41 (PDF showed JSON total, UI showed model total).
-    """
+    """BusinessProposal.total_investment and .currency must override content_json mirrors in the PDF, matching the frontend override in pages/proposal/[uuid]/index.vue. Prevents the staleness bug reported for proposal id=41 (PDF showed JSON total, UI showed model total)."""
 
     def test_model_total_investment_overrides_content_json(
         self, pdf_canvas, db,
@@ -3233,10 +3202,7 @@ class TestInvestmentModelTotalOverride:
 
 
 class TestValueAddedModulesSection:
-    """The PDF must render value_added_modules in its own section with the
-    admin-written justifications, dedupe those IDs from functional_requirements,
-    and exclude unselected calculator modules.
-    """
+    """The PDF must render value_added_modules in its own section with the admin-written justifications, dedupe those IDs from functional_requirements, and exclude unselected calculator modules."""
 
     def _proposal_with_value_added(self, *, selected_modules=None):
         p = BusinessProposal.objects.create(
@@ -3302,7 +3268,7 @@ class TestValueAddedModulesSection:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_value_added_section_renders_justifications(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)
+    def test_value_added_section_renders_justifications(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)  # noqa: PT019
         proposal, _ = self._proposal_with_value_added()
         pdf_bytes = ProposalPdfService.generate(proposal)
 
@@ -3324,7 +3290,7 @@ class TestValueAddedModulesSection:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_functional_requirements_excludes_value_added_ids(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)
+    def test_functional_requirements_excludes_value_added_ids(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)  # noqa: PT019
         proposal, _ = self._proposal_with_value_added()
         pdf_bytes = ProposalPdfService.generate(proposal)
 
@@ -3344,7 +3310,7 @@ class TestValueAddedModulesSection:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_unselected_calculator_module_absent_from_pdf(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)
+    def test_unselected_calculator_module_absent_from_pdf(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)  # noqa: PT019
         proposal, _ = self._proposal_with_value_added()
         pdf_bytes = ProposalPdfService.generate(proposal, selected_modules=[])
 

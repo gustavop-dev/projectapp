@@ -139,7 +139,7 @@ async function openModal(page) {
 }
 
 function modalRow(page, label) {
-  return page.locator('div.rounded-xl').filter({ hasText: label }).first();
+  return page.locator('div.rounded-xl').filter({ hasText: label });
 }
 
 async function assertChecked(page, label) {
@@ -168,7 +168,7 @@ test.describe('Calculator selection persists across section navigation', () => {
     await setupMock(page);
     await goToInvestmentSection(page);
 
-    const totalLocator = page.locator('section.investment span.tabular-nums').filter({ hasText: /\$/ }).first();
+    const totalLocator = page.locator('section.investment span.tabular-nums').filter({ hasText: /\$/ });
     const initialTotal = (await totalLocator.innerText()).trim();
 
     await openModal(page);

@@ -37,7 +37,8 @@ class TestValueAddedModulesSection:
         ]
         assert set(cj['justifications'].keys()) == set(cj['module_ids'])
         for value in cj['justifications'].values():
-            assert isinstance(value, str) and value
+            assert isinstance(value, str)
+            assert len(value) > 0
         assert cj['footer_note']
 
     def test_section_order_is_after_functional_requirements(self):

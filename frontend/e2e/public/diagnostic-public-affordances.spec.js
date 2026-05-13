@@ -173,7 +173,7 @@ test.describe('Diagnostic Public — Dark Mode Toggle', () => {
     const toggle = page.getByTestId('diagnostic-theme-toggle');
     await expect(toggle).toBeVisible({ timeout: 10000 });
 
-    const wrapper = page.locator('.diagnostic-public');
+    const wrapper = page.getByTestId('diagnostic-public-wrapper');
     await expect(wrapper).not.toHaveClass(/(^|\s)dark(\s|$)/);
 
     await toggle.click();
@@ -201,7 +201,7 @@ test.describe('Diagnostic Public — Dark Mode Toggle', () => {
     await setupMock(page);
     await loadDiagnosticPage(page);
 
-    const wrapper = page.locator('.diagnostic-public');
+    const wrapper = page.getByTestId('diagnostic-public-wrapper');
     await expect(wrapper).toHaveClass(/(^|\s)dark(\s|$)/, { timeout: 10000 });
   });
 });

@@ -965,6 +965,7 @@ class TestCalculatorInteractionAdminSkip:
     def test_staff_user_gets_skipped_response(self, admin_user, db):
         """track_calculator_interaction returns skipped status for staff using session auth."""
         import json as _json
+
         from django.test import Client
 
         p = BusinessProposal.objects.create(
@@ -995,7 +996,7 @@ class TestEngagementScoreStatusBranches:
     """Cover status and days-without-response branches in _compute_engagement_score."""
 
     def test_accepted_status_adds_max_response_score(self, db):
-        """accepted status contributes max points for the response-time factor."""
+        """Accepted status contributes max points for the response-time factor."""
         from content.views.proposal import _compute_engagement_score
 
         p = BusinessProposal.objects.create(

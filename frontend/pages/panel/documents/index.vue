@@ -170,7 +170,7 @@
                   <div class="hidden md:flex items-center gap-1">
                     <NuxtLink
                       :to="localePath(`/panel/documents/${doc.id}/edit`)"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-text-brand"
+                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-text-brand"
                       title="Editar contenido"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,7 +179,7 @@
                     </NuxtLink>
                     <button
                       type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-amber-600 dark:hover:text-amber-400"
+                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-amber-600 dark:hover:text-amber-400"
                       title="Renombrar"
                       @click="handleRenameDoc(doc)"
                     >
@@ -189,7 +189,7 @@
                     </button>
                     <button
                       type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-violet-600 dark:hover:text-violet-400"
+                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-violet-600 dark:hover:text-violet-400"
                       title="Mover a carpeta"
                       @click="handleMoveDoc(doc)"
                     >
@@ -199,7 +199,7 @@
                     </button>
                     <button
                       type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-text-brand"
+                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-text-brand"
                       title="Enviar por correo"
                       @click="handleSendEmail(doc)"
                     >
@@ -209,7 +209,7 @@
                     </button>
                     <button
                       type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-blue-600 dark:hover:text-blue-400"
+                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-blue-600 dark:hover:text-blue-400"
                       title="Descargar PDF"
                       @click="handleDownloadPdf(doc)"
                     >
@@ -219,28 +219,28 @@
                     </button>
                     <button
                       type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-teal-600 dark:hover:text-teal-400"
+                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-teal-600 dark:hover:text-teal-400"
                       :class="{ 'text-teal-600 dark:text-teal-400': copiedMarkdownId === doc.id }"
                       title="Copiar markdown"
                       @click="handleCopyMarkdown(doc.id)"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                       </svg>
                     </button>
                     <button
                       type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-purple-600 dark:hover:text-purple-400"
+                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-purple-600 dark:hover:text-purple-400"
                       title="Duplicar"
                       @click="handleDuplicate(doc.id)"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
                       </svg>
                     </button>
                     <button
                       type="button"
-                      class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-text-subtle hover:text-red-600 dark:hover:text-red-400"
+                      class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-red-600 dark:hover:text-red-400"
                       title="Eliminar"
                       @click="handleDelete(doc)"
                     >

@@ -152,10 +152,8 @@ class TestDrawCodeBlockLargeNops:
 
 class TestMergeWithCoversBackOnly:
     def test_back_cover_requested_but_file_does_not_exist(self):
-        """include_portada=False, include_contraportada=True with missing cover file
-        still returns valid PDF bytes."""
-        from unittest.mock import patch, PropertyMock
-        from pathlib import Path
+        """include_portada=False, include_contraportada=True with missing cover file still returns valid PDF bytes."""
+        from unittest.mock import patch
 
         from content.services.pdf_utils import merge_with_covers
 
@@ -298,7 +296,7 @@ class TestDrawBulletListNestedChildrenYGuards:
         assert isinstance(new_y, (int, float))
 
     def test_nested_children_without_ps_returns_when_y_too_low(self):
-        """y just above guard for parent but drops below guard in children (line 722)."""
+        """Y just above guard for parent but drops below guard in children (line 722)."""
         from content.services.pdf_utils import MARGIN_B, _draw_bullet_list
 
         c, _ = _make_canvas()

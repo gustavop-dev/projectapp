@@ -1,5 +1,4 @@
-"""
-Central expectations shared across content tests.
+"""Central expectations shared across content tests.
 
 When the number of hardcoded default proposal sections changes (see
 ``ProposalService.get_default_sections`` / ``DEFAULT_SECTIONS``), update

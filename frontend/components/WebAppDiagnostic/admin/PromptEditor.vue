@@ -43,10 +43,11 @@
         v-model="buffer"
         rows="24"
         class="w-full px-4 py-3 text-xs font-mono leading-relaxed text-text-default bg-transparent focus:outline-none"
+        data-testid="prompt-editor-textarea"
       ></textarea>
     </div>
     <div v-else class="bg-surface-muted rounded-xl border border-border-muted p-4 max-h-[520px] overflow-auto">
-      <pre class="text-xs leading-relaxed text-text-default whitespace-pre-wrap font-mono break-words">{{ state.promptText.value }}</pre>
+      <pre class="text-xs leading-relaxed text-text-default whitespace-pre-wrap font-mono break-words" data-testid="prompt-editor-display">{{ state.promptText.value }}</pre>
     </div>
 
     <p v-if="isCustom" class="text-xs text-amber-600 dark:text-amber-400 mt-3">

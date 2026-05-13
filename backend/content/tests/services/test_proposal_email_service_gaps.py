@@ -133,8 +133,8 @@ class TestBuildPlatformContextWithDeliverable:
 
 @pytest.fixture
 def admin_user(db):
-    from django.contrib.auth import get_user_model
     from accounts.models import UserProfile
+    from django.contrib.auth import get_user_model
     User = get_user_model()
     u = User.objects.create_user(
         username='admin@gaps.com', email='admin@gaps.com', password='adminpass1!',

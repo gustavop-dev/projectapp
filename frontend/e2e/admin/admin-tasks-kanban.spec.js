@@ -168,7 +168,7 @@ test.describe('Admin Kanban Tasks', () => {
     await page.getByTestId('task-title-input').fill('Full-field task');
     const modal = page.getByTestId('task-form-modal');
     await modal.locator('textarea').fill('Detailed description here');
-    await modal.locator('select').nth(1).selectOption('high');
+    await modal.getByTestId('task-priority-select').selectOption('high');
     await modal.locator('input[type="date"]').fill('2026-12-31');
     await page.locator('form').evaluate((form) => form.requestSubmit());
 

@@ -1,0 +1,98 @@
+/**
+ * E2E tests for auto-reopening an expired proposal via JSON update.
+ *
+ * Covers: expired proposal edit page → paste JSON with future expires_at →
+ * confirm warning modal → PUT /proposals/:id/update-from-json/ → status reverts.
+ *
+ * The backend's ProposalService.reopen_if_unexpired() automatically changes
+ * status from 'expired' to 'viewed' (or 'sent') when expires_at is extended.
+ */
+import { test, expect } from '../helpers/test.js';
+import { mockApi } from '../helpers/api.js';
+import { setAuthLocalStorage } from '../helpers/auth.js';
+import { ADMIN_PROPOSAL_REOPEN_FROM_EXPIRED } from '../helpers/flow-tags.js';
+
+test.describe.configure({ timeout: 60_000 });
+
+const PROPOSAL_ID = 2;
+const pastDate = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+const futureDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+const mockExpiredProposal = {
+  id: PROPOSAL_ID,
+  uuid: '33333333-3333-3333-3333-333333333333',
+  title: 'Expired Test Proposal',
+  client_name: 'Expired Client',
+  client_email: 'expired@test.com',
+  status: 'expired',
+  sent_at: '2026-01-01T12:00:00Z',
+  expires_at: pastDate,
+  language: 'es',
+  total_investment: '5000000',
+  currency: 'COP',
+  view_count: 3,
+  is_active: true,
+  sections: [],
+  requirement_groups: [],
+};
+
+const importJson = JSON.stringify({
+  general: { clientName: 'Expired Client' },
+  _meta: { expires_at: futureDate },
+});
+
+test.describe('Admin Proposal Reopen From Expired', () => {
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-admin-token',
+      userAuth: { id: 8300, role: 'admin', is_staff: true },
+    });
+  });
+
+  test('JSON with future expires_at on expired proposal calls update-from-json and auto-reopens', {
+    tag: [...ADMIN_PROPOSAL_REOPEN_FROM_EXPIRED, '@role:admin'],
+  }, async ({ page }) => {
+    let updateCalled = false;
+
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockExpiredProposal) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/update-from-json/` && method === 'PUT') {
+        updateCalled = true;
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...mockExpiredProposal, status: 'viewed', expires_at: futureDate }),
+        };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+
+    await page.getByRole('tab', { name: 'JSON' }).click();
+
+    const textarea = page.getByTestId('proposal-import-json-textarea');
+    await textarea.fill(importJson);
+    await textarea.dispatchEvent('input');
+
+    const applyBtn = page.getByRole('button', { name: 'Aplicar JSON' });
+    await expect(applyBtn).toBeVisible({ timeout: 5000 });
+    await applyBtn.click();
+
+    await expect(page.getByRole('heading', { name: 'Aplicar JSON' })).toBeVisible({ timeout: 5000 });
+
+    const [response] = await Promise.all([
+      page.waitForResponse(r => r.url().includes(`proposals/${PROPOSAL_ID}/update-from-json/`)),
+      page.getByTestId('confirm-modal-confirm').click(),
+    ]);
+    await response.finished();
+
+    expect(updateCalled).toBe(true);
+    await expect(page.getByText('Propuesta actualizada desde JSON.')).toBeVisible({ timeout: 5000 });
+  });
+});

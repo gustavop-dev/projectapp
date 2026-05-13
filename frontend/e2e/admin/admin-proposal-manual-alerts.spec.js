@@ -64,7 +64,7 @@ function setupMock(page, { alerts = mockAlerts, proposals = mockProposals } = {}
 
 async function gotoProposalPanel(page) {
   await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('h1').filter({ hasText: /^Propuestas$/ }).first()).toBeVisible({ timeout: 30000 });
+  await expect(page.locator('h1').filter({ hasText: /^Propuestas$/ })).toBeVisible({ timeout: 30000 });
   await expect(page.getByText('Propuestas que necesitan atención')).toBeVisible({ timeout: 30000 });
 }
 
@@ -143,10 +143,8 @@ test.describe('Admin Proposal Manual Alerts', () => {
     // Alert cards use semantic `bg-surface` (was `bg-white` pre-design-system migration).
     const dismissBtn = page
       .getByText('Llamar para seguimiento')
-      .first()
       .locator('xpath=ancestor::div[contains(@class,"bg-surface")][1]')
-      .locator('button[title="Descartar"]')
-      .first();
+      .getByTitle('Descartar');
     await expect(dismissBtn).toBeVisible();
 
     const [response] = await Promise.all([

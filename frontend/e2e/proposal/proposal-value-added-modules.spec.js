@@ -116,12 +116,11 @@ test.describe('Proposal Value Added Modules', () => {
     await expect(page.getByTestId('value-added-card-training')).toBeVisible();
 
     // Card titles from functional_requirements groups
-    await expect(page.getByText('Mantenimiento mensual').first()).toBeVisible();
-    await expect(page.getByText('Capacitación del equipo').first()).toBeVisible();
+    await expect(page.getByText('Mantenimiento mensual')).toBeVisible();
+    await expect(page.getByText('Capacitación del equipo')).toBeVisible();
 
     // Each card shows "Gratis" badge (free badge per card)
-    const freeBadges = page.getByText('Gratis');
-    await expect(freeBadges.first()).toBeVisible();
+    await expect(page.getByText('Gratis')).toBeVisible();
   });
 
   test('renders justification text for each card', {

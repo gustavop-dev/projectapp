@@ -1,9 +1,9 @@
+"""Tests for content.services.technical_document_filter."""
 import pytest
 
 from content.services.technical_document_filter import (
     filter_technical_document_by_module_selection,
 )
-
 
 pytestmark = pytest.mark.django_db
 

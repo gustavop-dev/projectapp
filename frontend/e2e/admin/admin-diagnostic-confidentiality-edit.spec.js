@@ -118,10 +118,11 @@ test.describe('Admin Diagnostic — Edit NDA Params', () => {
     await expect(modal.locator('h2', { hasText: 'Acuerdo de Confidencialidad' })).toBeVisible({ timeout: 5_000 });
 
     // Client block pre-filled.
-    const clientName = modal.locator('label').filter({ hasText: 'Razón social / Nombre' }).first().locator('input');
+    const clientSection = modal.locator('section').filter({ has: modal.locator('h3', { hasText: 'Cliente' }) });
+    const clientName = clientSection.locator('label').filter({ hasText: 'Razón social / Nombre' }).locator('input');
     await expect(clientName).toHaveValue('Beta Corp SAS');
 
-    const clientCedula = modal.locator('label').filter({ hasText: 'NIT / C.C.' }).first().locator('input');
+    const clientCedula = modal.locator('label').filter({ hasText: 'NIT / C.C.' }).locator('input');
     await expect(clientCedula).toHaveValue('800.555.111-2');
   });
 
@@ -144,7 +145,8 @@ test.describe('Admin Diagnostic — Edit NDA Params', () => {
     const modal = modalRoot(page);
     await expect(modal.locator('h2', { hasText: 'Acuerdo de Confidencialidad' })).toBeVisible();
 
-    const clientName = modal.locator('label').filter({ hasText: 'Razón social / Nombre' }).first().locator('input');
+    const clientSection = modal.locator('section').filter({ has: modal.locator('h3', { hasText: 'Cliente' }) });
+    const clientName = clientSection.locator('label').filter({ hasText: 'Razón social / Nombre' }).locator('input');
     await clientName.fill('Beta Corp SAS (Actualizado)');
 
     await page.getByRole('button', { name: 'Guardar y generar PDF' }).click();

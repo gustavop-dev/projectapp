@@ -54,6 +54,7 @@
                 <select
                   v-model="form.priority"
                   class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface"
+                  data-testid="task-priority-select"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -146,6 +147,7 @@
                     v-model="newAlert.notify_at"
                     type="date"
                     class="px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+                    data-testid="new-alert-date"
                   />
                 </div>
                 <div class="flex-1 min-w-0">

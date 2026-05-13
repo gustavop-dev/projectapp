@@ -100,11 +100,11 @@
         <form class="mt-4 space-y-3" @submit.prevent="submitCreate">
           <div>
             <label class="block text-xs text-green-light">Title</label>
-            <input v-model="createForm.title" required class="mt-1 w-full rounded-xl border border-border-default px-3 py-2 text-sm dark:text-white" />
+            <input v-model="createForm.title" required class="mt-1 w-full rounded-xl border border-border-default px-3 py-2 text-sm dark:text-white" data-testid="new-account-title" />
           </div>
           <div>
             <label class="block text-xs text-green-light">Project ID</label>
-            <input v-model.number="createForm.project_id" type="number" class="mt-1 w-full rounded-xl border border-border-default px-3 py-2 text-sm dark:text-white" />
+            <input v-model.number="createForm.project_id" type="number" class="mt-1 w-full rounded-xl border border-border-default px-3 py-2 text-sm dark:text-white" data-testid="new-account-project-id" />
           </div>
           <div>
             <label class="block text-xs text-green-light">Client user ID (optional if project set)</label>

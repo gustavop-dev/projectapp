@@ -3,7 +3,8 @@
 Covers: send_whatsapp_notification, send_email_notification —
 happy paths, missing config, API errors, email errors.
 """
-from datetime import date, datetime, timezone as dt_timezone
+from datetime import date, datetime
+from datetime import timezone as dt_timezone
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
@@ -38,7 +39,7 @@ class _FakeMxRecord:
 
 
 class TestFormatCopEmail:
-    @pytest.mark.parametrize('value, expected', [
+    @pytest.mark.parametrize(('value', 'expected'), [
         (1490000, "1'490.000"),
         (15000000, "15'000.000"),
         (123456, '123.456'),

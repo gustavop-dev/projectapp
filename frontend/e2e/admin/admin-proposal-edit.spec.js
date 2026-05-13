@@ -178,7 +178,7 @@ test.describe('Admin Proposal Edit', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`, { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByText('Propuesta E2E')).toBeVisible({ timeout: 20_000 });
-    await expect(page.locator('input[type="text"][required]').nth(1)).toHaveValue('Cliente Edit E2E');
+    await expect(page.getByTestId('edit-client-name')).toHaveValue('Cliente Edit E2E');
   });
 
   test('shows expiry days number input beside Fecha de expiración field', {

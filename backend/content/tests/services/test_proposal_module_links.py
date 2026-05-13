@@ -1,5 +1,4 @@
 """Tests for content.services.proposal_module_links — 100% coverage target."""
-import pytest
 
 from content.services.proposal_module_links import (
     build_proposal_module_link_catalog,

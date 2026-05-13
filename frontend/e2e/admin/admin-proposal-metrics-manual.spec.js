@@ -34,7 +34,7 @@ test.describe('Admin Proposal Metrics Manual', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('h1').filter({ hasText: /^Propuestas$/ }).first()).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('h1').filter({ hasText: /^Propuestas$/ })).toBeVisible({ timeout: 30000 });
 
     // Click the floating ? button
     const triggerBtn = page.getByTitle('Manual de métricas');
@@ -55,7 +55,7 @@ test.describe('Admin Proposal Metrics Manual', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('h1').filter({ hasText: /^Propuestas$/ }).first()).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('h1').filter({ hasText: /^Propuestas$/ })).toBeVisible({ timeout: 30000 });
 
     await page.getByTitle('Manual de métricas').click();
     await expect(page.getByText('Manual de Métricas')).toBeVisible({ timeout: 5000 });

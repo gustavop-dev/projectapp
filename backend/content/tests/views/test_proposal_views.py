@@ -9,11 +9,11 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
+from accounts.services import proposal_client_service
 from django.urls import reverse
 from django.utils import timezone
 from freezegun import freeze_time
 
-from accounts.services import proposal_client_service
 from content.models import (
     BusinessProposal,
     ProposalChangeLog,
@@ -233,9 +233,7 @@ class TestDownloadProposalPdf:
     def test_commercial_pdf_resolves_admin_toggled_calculator_modules(
         self, mock_generate, api_client, sent_proposal,
     ):
-        """Admin-toggled calc modules in content_json must reach the PDF service
-        even when the client never confirmed the calculator (ruta A).
-        """
+        """Admin-toggled calc modules in content_json must reach the PDF service even when the client never confirmed the calculator (ruta A)."""
         ProposalSection.objects.create(
             proposal=sent_proposal,
             section_type='functional_requirements',
@@ -276,9 +274,7 @@ class TestDownloadProposalPdf:
     def test_commercial_pdf_prefers_persisted_selected_modules(
         self, mock_generate, api_client, sent_proposal,
     ):
-        """When BusinessProposal.selected_modules is populated and the client
-        confirmed, it takes priority over content_json toggles (ruta B /
-        client confirmation)."""
+        """When BusinessProposal.selected_modules is populated and the client confirmed, it takes priority over content_json toggles (ruta B / client confirmation)."""
         sent_proposal.selected_modules = ['module-persisted_a', 'group-persisted_b']
         sent_proposal.save(update_fields=['selected_modules'])
         ProposalChangeLog.objects.create(
@@ -315,8 +311,7 @@ class TestDownloadProposalPdf:
     def test_commercial_pdf_query_param_overrides_resolution(
         self, mock_generate, api_client, sent_proposal,
     ):
-        """Explicit ?selected_modules= still wins over any persisted or
-        content_json resolution (calculator personalization flow)."""
+        """Explicit ?selected_modules= still wins over any persisted or content_json resolution (calculator personalization flow)."""
         sent_proposal.selected_modules = ['module-persisted_a']
         sent_proposal.save(update_fields=['selected_modules'])
 
@@ -533,9 +528,7 @@ class TestAdminListProposals:
         assert item['effective_total_investment'] == '1150.00'
 
     def test_effective_total_confirmed_selection_unioned_with_admin_pinned(self, admin_client, db):
-        """When the client confirmed an explicit selection, it is honored but
-        unioned with the calculator modules the admin pinned (``selected=True``)
-        — the admin's panel choices always reach the total."""
+        """When the client confirmed an explicit selection, it is honored but unioned with the calculator modules the admin pinned (``selected=True``) — the admin's panel choices always reach the total."""
         proposal = BusinessProposal.objects.create(
             title='Explicit override',
             client_name='Override',
@@ -730,6 +723,7 @@ class TestAdminUpdateProposal:
         assert expired_proposal.title == 'Renamed While Expired'
         assert expired_proposal.status == 'expired'
 
+    @freeze_time('2025-06-01 12:00:00')
     def test_update_reopens_status_when_expires_at_moved_to_future_no_views(
         self, admin_client, expired_proposal,
     ):
@@ -747,6 +741,7 @@ class TestAdminUpdateProposal:
         assert log is not None
         assert 'Auto-reopened from expired' in log.description
 
+    @freeze_time('2025-06-01 12:00:00')
     def test_update_reopens_to_viewed_when_proposal_was_visited(
         self, admin_client, expired_proposal,
     ):
@@ -1362,6 +1357,7 @@ class TestUpdateProposalFromJSON:
         expired_proposal.refresh_from_db()
         assert expired_proposal.status == 'expired'
 
+    @freeze_time('2025-06-01 12:00:00')
     def test_update_from_json_reopens_status_when_expires_at_moved_to_future(
         self, admin_client, expired_proposal,
     ):
@@ -1739,9 +1735,7 @@ class TestTrackProposalEngagement:
     def test_deduplicates_view_activity_for_repeat_session(
         self, api_client, sent_proposal,
     ):
-        """Repeat posts from the same session_id do not create duplicate
-        viewed change-log entries, thanks to the unique constraint on
-        (proposal, session_id)."""
+        """Repeat posts from the same session_id do not create duplicate viewed change-log entries, thanks to the unique constraint on (proposal, session_id)."""
         url = self._url(sent_proposal.uuid)
         payload = {
             'view_mode': 'detailed',
@@ -4546,11 +4540,7 @@ class TestUpdateProjectStage:
     def test_clears_warning_sent_at_when_end_date_extended_below_threshold(
         self, admin_client, accepted_proposal,
     ):
-        """
-        When the admin extends end_date far enough that elapsed% drops
-        below 70%, warning_sent_at is cleared so the daily tracker can
-        re-fire the warning at the new threshold.
-        """
+        """When the admin extends end_date far enough that elapsed% drops below 70%, warning_sent_at is cleared so the daily tracker can re-fire the warning at the new threshold."""
         from content.models import ProposalProjectStage
 
         stage = ProposalProjectStage.objects.create(
@@ -4572,10 +4562,7 @@ class TestUpdateProjectStage:
     def test_preserves_warning_sent_at_when_elapsed_still_above_threshold(
         self, admin_client, accepted_proposal,
     ):
-        """
-        Minor tweaks to end_date that leave elapsed% ≥ 70 must not clear
-        the warning timestamp (avoids spam on small corrections).
-        """
+        """Minor tweaks to end_date that leave elapsed% ≥ 70 must not clear the warning timestamp (avoids spam on small corrections)."""
         from content.models import ProposalProjectStage
 
         warning_ts = timezone.now() - timedelta(days=1)

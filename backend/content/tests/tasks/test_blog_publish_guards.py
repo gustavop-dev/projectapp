@@ -97,8 +97,7 @@ def test_single_is_noop_when_already_published():
 
 @freeze_time('2026-01-15 12:00:00')
 def test_periodic_skips_post_already_published_between_query_and_update():
-    """If a parallel task flips is_published before our UPDATE runs,
-    the conditional update returns 0 rows and we must not call LinkedIn."""
+    """If a parallel task flips is_published before our UPDATE runs, the conditional update returns 0 rows and we must not call LinkedIn."""
     post = BlogPost.objects.create(
         **BLOG_POST_BASE,
         is_published=False,

@@ -87,8 +87,7 @@ def backfill_fn():
 
 class TestBackfillSelectedModules:
     def test_confirmed_proposal_with_empty_list_is_populated(self, backfill_fn):
-        """The flagship case: confirmed + empty → populate with canonical
-        IDs derived from content defaults."""
+        """The flagship case: confirmed + empty → populate with canonical IDs derived from content defaults."""
         proposal = _make_proposal('Target', selected_modules=[], with_confirmed_log=True)
 
         backfill_fn(django_apps, schema_editor=None)
@@ -114,8 +113,7 @@ class TestBackfillSelectedModules:
         assert proposal.selected_modules == ['module-pwa_module']
 
     def test_unconfirmed_proposal_is_untouched(self, backfill_fn):
-        """Without a confirmation log we can't distinguish "empty deliberate"
-        from "never configured", so we leave the row alone."""
+        """Without a confirmation log we can't distinguish "empty deliberate" from "never configured", so we leave the row alone."""
         proposal = _make_proposal(
             'Unconfirmed',
             selected_modules=[],
