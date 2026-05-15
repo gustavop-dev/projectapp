@@ -624,3 +624,45 @@ grep -nE "v-html|v-for|content\.kpis" frontend/components/BusinessProposal/Propo
 ```
 
 `ProposalSummary.vue` defines a `kpis` field in its admin form and seller prompt but the public template only iterates `cards[]`. The `kpis` array is dead schema. Always verify the data path is wired end-to-end (admin form → JSON → backend serializer → public component) before adding fields to an existing section.
+
+---
+
+## Hierarchical Data Patterns (Folder Tree, May 15, 2026)
+
+### Skip `WITH RECURSIVE` when depth is bounded
+
+The nested folder system has `MAX_FOLDER_DEPTH = 5` and a small absolute folder count. We chose against PostgreSQL/MySQL recursive CTEs in favor of:
+
+1. One annotated query (`Count('documents')` direct only).
+2. Python DFS via `_build_tree_context()` to derive `path`, `depth`, recursive counts.
+
+This keeps the query portable (production targets MySQL, tests use SQLite), avoids ORM gymnastics for window functions, and is trivially testable. Reach for recursive CTEs only when the tree is truly unbounded or when the working set is large enough that per-row Python traversal would dominate.
+
+### `_build_tree_context` pattern for hierarchical reads
+
+Whenever a list endpoint needs per-node `path`/`depth`/`recursive_count`, build the maps once in the view and inject them via `serializer.context`. The `SerializerMethodField`s then resolve in O(1) per node. Without this pattern the same fields would N+1 across the list — visible only in production when the folder count grows past a handful.
+
+### Validate both at the serializer and at the model
+
+For invariants like cycle/depth/self-parent, **duplicate the check** in `Model.clean()` and in `Serializer.validate()`:
+
+- `clean()` protects every save path — shell, admin, future internal callers — including paths that don't go through DRF.
+- `validate()` makes the 400 error surface cleanly in the API response (otherwise you'd surface an `IntegrityError` or have to wrap `full_clean()` manually).
+
+The duplication is cheap; the asymmetry is what causes bugs.
+
+### `vuedraggable` cross-list moves with `group="folders"`
+
+To support drag-reorder among siblings **and** drag-reparent between lists, give every nested `<draggable>` the same `group` name and inspect `evt.added` / `evt.moved` / `evt.removed` in the change handler. The receiving list's `added` event fires after the source list's `removed`, so handling only `added` (not `removed`) is enough to avoid double API calls.
+
+### Module-level singleton composables for shared UI state
+
+`useFolderExpansion` is invoked from `FolderSidebar`, `FolderTreeNode`, and (potentially) `MoveFolderModal` — all three must see the same expanded set. Cache the state in a module-level `let _state = null;` and lazy-init on first call. This avoids prop-drilling and avoids the overhead of a Pinia store for a tiny boolean set. Persistence via `usePersistedRef` → localStorage is handled inside the singleton so it survives reloads.
+
+### Capture `emit` in `<script setup>` when needed outside the template
+
+If a handler defined in `<script setup>` (not inline in template) needs to emit, just assign `defineEmits()`'s return value to `const emit` and call it directly. Don't reach for `getCurrentInstance().emit` — that's an internal API and produces noisier code.
+
+### Post-click feedback needs to outlast `:active`
+
+The Tailwind pattern `active:scale-95` is instantaneous and disappears the moment the user releases the click. On touch devices and during rapid clicks this can feel like the button didn't respond. To reinforce, add a class that re-triggers a 320 ms keyframe animation (e.g. `action-icon-flash` with a `currentColor` ring + scale bounce) via a `flash(key)` helper that uses `nextTick` to force re-trigger when the same key fires twice in a row. Keep the animation under ~350 ms so it doesn't feel sluggish, and use `currentColor` so each button reflects its own hover color (red for delete, brand for edit, etc.).

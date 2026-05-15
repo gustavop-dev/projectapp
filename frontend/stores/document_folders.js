@@ -11,6 +11,70 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
     error: null,
   }),
 
+  getters: {
+    getById: (state) => (id) => state.folders.find((f) => f.id === id) || null,
+
+    /**
+     * Build a tree from the flat folders array.
+     * Returns root-level nodes; each node is { folder, children: [...] }.
+     */
+    tree: (state) => {
+      const byParent = new Map();
+      for (const f of state.folders) {
+        const key = f.parent ?? null;
+        if (!byParent.has(key)) byParent.set(key, []);
+        byParent.get(key).push(f);
+      }
+      const sortSiblings = (arr) =>
+        arr.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name));
+      const build = (parentId) =>
+        sortSiblings(byParent.get(parentId) || []).map((folder) => ({
+          folder,
+          children: build(folder.id),
+        }));
+      return build(null);
+    },
+
+    /**
+     * IDs of all descendants of `id` (excluding self).
+     */
+    descendantIdsOf: (state) => (id) => {
+      const childrenByParent = new Map();
+      for (const f of state.folders) {
+        const key = f.parent ?? null;
+        if (!childrenByParent.has(key)) childrenByParent.set(key, []);
+        childrenByParent.get(key).push(f);
+      }
+      const result = new Set();
+      const stack = [...(childrenByParent.get(id) || [])];
+      while (stack.length) {
+        const node = stack.pop();
+        if (result.has(node.id)) continue;
+        result.add(node.id);
+        stack.push(...(childrenByParent.get(node.id) || []));
+      }
+      return result;
+    },
+
+    /**
+     * Ancestor folders ordered root→parent (excluding self).
+     */
+    ancestorsOf: (state) => (id) => {
+      const chain = [];
+      let current = state.folders.find((f) => f.id === id);
+      const seen = new Set();
+      while (current && current.parent != null && !seen.has(current.parent)) {
+        seen.add(current.parent);
+        const parent = state.folders.find((f) => f.id === current.parent);
+        if (!parent) break;
+        chain.push(parent);
+        current = parent;
+      }
+      chain.reverse();
+      return chain;
+    },
+  },
+
   actions: {
     async fetchFolders() {
       this.isLoading = true;
@@ -82,13 +146,42 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
       }
     },
 
-    async reorderFolders(orderedIds) {
+    /**
+     * Reparent a folder and optionally set its position among new siblings.
+     * Re-fetches all folders on success so counts/order stay consistent.
+     */
+    async moveFolder(id, { parent_id = null, position = null } = {}) {
       this.isUpdating = true;
       this.error = null;
       try {
-        await create_request('document-folders/reorder/', { ids: orderedIds });
-        const reordered = orderedIds.map((id) => this.folders.find((f) => f.id === id)).filter(Boolean);
-        if (reordered.length === this.folders.length) this.folders = reordered;
+        const body = { parent_id };
+        if (position !== null) body.position = position;
+        await create_request(`document-folders/${id}/move/`, body);
+        await this.fetchFolders();
+        return { success: true };
+      } catch (error) {
+        this.error = 'move_folder_failed';
+        console.error('Error moving folder:', error);
+        return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * Reorder siblings within a parent scope (parent_id may be null for root).
+     */
+    async reorderFolders({ parent_id = null, ids } = {}) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        await create_request('document-folders/reorder/', { parent_id, ids });
+        // Apply order locally for the affected siblings.
+        const orderMap = new Map(ids.map((id, idx) => [id, idx]));
+        for (const folder of this.folders) {
+          if (orderMap.has(folder.id)) folder.order = orderMap.get(folder.id);
+        }
         return { success: true };
       } catch (error) {
         console.error('Error reordering folders:', error);

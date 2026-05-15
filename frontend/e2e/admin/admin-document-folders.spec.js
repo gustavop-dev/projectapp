@@ -18,8 +18,15 @@ const authCheck = {
   body: JSON.stringify({ user: { username: 'admin', is_staff: true } }),
 };
 
-const FOLDER_CUENTAS = { id: 11, name: 'Cuentas de cobro', slug: 'cuentas-de-cobro', order: 0, document_count: 1 };
-const FOLDER_CONTRATOS = { id: 12, name: 'Contratos', slug: 'contratos', order: 0, document_count: 0 };
+const FOLDER_CUENTAS = { id: 11, name: 'Cuentas de cobro', slug: 'cuentas-de-cobro', order: 0, document_count: 1, parent: null, depth: 0, path: [{ id: 11, name: 'Cuentas de cobro' }] };
+const FOLDER_CONTRATOS = { id: 12, name: 'Contratos', slug: 'contratos', order: 0, document_count: 0, parent: null, depth: 0, path: [{ id: 12, name: 'Contratos' }] };
+
+// Nested fixtures for the post-2026-05-15 tree branches
+const FOLDER_CLIENTES = { id: 30, name: 'Clientes', slug: 'clientes', order: 0, document_count: 3, parent: null, depth: 0, path: [{ id: 30, name: 'Clientes' }] };
+const FOLDER_ACTIVOS = { id: 31, name: 'Activos', slug: 'activos', order: 0, document_count: 2, parent: 30, depth: 1, path: [{ id: 30, name: 'Clientes' }, { id: 31, name: 'Activos' }] };
+const FOLDER_2026 = { id: 32, name: '2026', slug: '2026', order: 0, document_count: 2, parent: 31, depth: 2, path: [{ id: 30, name: 'Clientes' }, { id: 31, name: 'Activos' }, { id: 32, name: '2026' }] };
+const NESTED_TREE = [FOLDER_CLIENTES, FOLDER_ACTIVOS, FOLDER_2026];
+const DOC_IN_2026 = { id: 50, title: 'Contrato profundo', status: 'published', client_name: 'X', created_at: '2026-05-01T10:00:00Z', folder: FOLDER_2026.id, folder_name: FOLDER_2026.name, tag_details: [] };
 
 const TAG_URGENTE = { id: 21, name: 'Urgente', slug: 'urgente', color: 'red' };
 const TAG_FIRMADO = { id: 22, name: 'Firmado', slug: 'firmado', color: 'emerald' };
@@ -154,5 +161,85 @@ test.describe('Admin Document Folders and Tags', () => {
 
     await expect(page.getByRole('table').getByText('Borrador sin carpeta')).toBeVisible();
     await expect(page.getByRole('table').getByText('Factura ACME')).toBeHidden();
+  });
+
+  // ── Nested-tree branches (added 2026-05-15) ──────────────────────────────
+
+  test('clicking a parent folder filters list to include descendant documents', {
+    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin'],
+  }, async ({ page }) => {
+    const requestedUrls = [];
+
+    await mockApi(page, async ({ apiPath, route }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'document-folders/') return jsonOk(NESTED_TREE);
+      if (apiPath === 'document-tags/') return jsonOk([]);
+      if (apiPath.startsWith('documents/')) {
+        const reqUrl = route.request().url();
+        requestedUrls.push(reqUrl);
+        const u = new URL(reqUrl);
+        // Backend expands ?folder=<parent> to descendants — return docs from deep folder
+        if (u.searchParams.get('folder') === String(FOLDER_CLIENTES.id)) return jsonOk([DOC_IN_2026]);
+        return jsonOk([]);
+      }
+      return null;
+    });
+
+    await page.goto('/panel/documents');
+    await page.waitForLoadState('domcontentloaded');
+
+    await page.getByRole('button', { name: 'Clientes' }).click();
+    await expect.poll(
+      () => requestedUrls.some((u) => u.includes(`folder=${FOLDER_CLIENTES.id}`)),
+      { timeout: 5000 },
+    ).toBe(true);
+    // A document that lives inside Clientes / Activos / 2026 should appear.
+    await expect(page.getByRole('table').getByText('Contrato profundo')).toBeVisible();
+  });
+
+  test('recursive document_count is rendered in the sidebar badge', {
+    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'document-folders/') return jsonOk(NESTED_TREE);
+      if (apiPath === 'document-tags/') return jsonOk([]);
+      if (apiPath.startsWith('documents/')) return jsonOk([]);
+      return null;
+    });
+
+    await page.goto('/panel/documents');
+    await page.waitForLoadState('domcontentloaded');
+
+    const clientesEntry = page.getByRole('button', { name: /Clientes/ });
+    // FOLDER_CLIENTES.document_count is 3 (parent + descendant docs aggregated by backend).
+    await expect(clientesEntry).toContainText('3');
+  });
+
+  test('deleting a folder with children shows the "contiene subcarpetas" blocked panel', {
+    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'document-folders/') return jsonOk(NESTED_TREE);
+      if (apiPath === 'document-tags/') return jsonOk([]);
+      if (apiPath.startsWith('documents/')) return jsonOk([]);
+      return null;
+    });
+
+    await page.goto('/panel/documents');
+    await page.waitForLoadState('domcontentloaded');
+
+    // Open the manager modal
+    await page.getByRole('button', { name: /Gestionar/i }).first().click();
+    await expect(page.getByText('Gestionar carpetas')).toBeVisible();
+
+    // Trigger delete on the parent ("Clientes") — first delete icon row
+    const deleteBtns = page.getByRole('button', { name: 'Eliminar carpeta' });
+    await deleteBtns.first().click();
+
+    await expect(page.getByText(/contiene subcarpetas/i)).toBeVisible();
+    // Destructive confirm button should not appear (blocked panel only)
+    await expect(page.getByRole('button', { name: /Confirmar eliminación/i })).toHaveCount(0);
   });
 });

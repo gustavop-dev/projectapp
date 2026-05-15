@@ -34,12 +34,20 @@ def list_documents(request):
         documents = documents.filter(folder__isnull=True)
     elif folder_param not in (None, '', 'all'):
         try:
-            documents = documents.filter(folder_id=int(folder_param))
+            folder_id = int(folder_param)
         except (TypeError, ValueError):
             return Response(
                 {'folder': 'Invalid folder id.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        from content.models import DocumentFolder
+        try:
+            folder = DocumentFolder.objects.get(pk=folder_id)
+        except DocumentFolder.DoesNotExist:
+            documents = documents.none()
+        else:
+            descendant_ids = folder.get_descendant_ids(include_self=True)
+            documents = documents.filter(folder_id__in=descendant_ids)
 
     tags_param = request.query_params.get('tags')
     if tags_param:

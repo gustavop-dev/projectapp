@@ -60,27 +60,28 @@
               </svg>
             </button>
 
-            <!-- Folder entries -->
+            <!-- Folder entries (tree, indented by depth) -->
             <button
-              v-for="folder in folderStore.folders"
-              :key="folder.id"
+              v-for="row in flatFolders"
+              :key="row.folder.id"
               type="button"
               :disabled="isMoving"
               class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left disabled:opacity-50"
-              :class="document.folder_id === folder.id
+              :class="document.folder_id === row.folder.id
                 ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
                 : 'border-border-muted hover:border-border-default dark:hover:border-gray-600 hover:bg-surface-muted dark:hover:bg-gray-700/50'"
-              @click="moveToFolder(folder.id)"
+              :style="{ paddingLeft: `${12 + row.depth * 16}px` }"
+              @click="moveToFolder(row.folder.id)"
             >
               <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0">
                 <svg class="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
                 </svg>
               </div>
-              <span class="flex-1 min-w-0 text-sm font-medium text-text-default truncate">{{ folder.name }}</span>
-              <span class="flex-shrink-0 text-xs text-text-subtle">{{ folder.document_count }}</span>
+              <span class="flex-1 min-w-0 text-sm font-medium text-text-default truncate">{{ row.folder.name }}</span>
+              <span class="flex-shrink-0 text-xs text-text-subtle">{{ row.folder.document_count }}</span>
               <svg
-                v-if="document.folder_id === folder.id"
+                v-if="document.folder_id === row.folder.id"
                 class="w-4 h-4 text-blue-500 flex-shrink-0"
                 fill="currentColor"
                 viewBox="0 0 24 24"
@@ -89,7 +90,7 @@
               </svg>
             </button>
 
-            <div v-if="!folderStore.folders.length" class="text-center py-4">
+            <div v-if="!flatFolders.length" class="text-center py-4">
               <p class="text-sm text-text-muted">No hay carpetas creadas.</p>
             </div>
           </div>
@@ -117,7 +118,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import { useDocumentStore } from '~/stores/documents';
+import { useDocumentFolderStore } from '~/stores/document_folders';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -129,6 +132,18 @@ const documentStore = useDocumentStore();
 const folderStore = useDocumentFolderStore();
 const isMoving = ref(false);
 const errorMsg = ref('');
+
+const flatFolders = computed(() => {
+  const result = [];
+  const walk = (nodes, depth) => {
+    for (const n of nodes) {
+      result.push({ folder: n.folder, depth });
+      if (n.children?.length) walk(n.children, depth + 1);
+    }
+  };
+  walk(folderStore.tree, 0);
+  return result;
+});
 
 function close() {
   emit('update:modelValue', false);

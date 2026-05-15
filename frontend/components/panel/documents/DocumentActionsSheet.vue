@@ -33,8 +33,11 @@
               :key="action.event"
               type="button"
               class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all active:scale-[0.98] hover:bg-surface-muted dark:hover:bg-gray-700/50"
-              :class="action.danger ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20' : 'text-text-default'"
-              @click="trigger(action.event)"
+              :class="[
+                action.danger ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20' : 'text-text-default',
+                flashedEvent === action.event ? 'action-row-flash' : '',
+              ]"
+              @click="flashAction(action.event); trigger(action.event)"
             >
               <div
                 class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -68,12 +71,15 @@
 </template>
 
 <script setup>
+import { ref, nextTick } from 'vue';
+
 defineProps({
   modelValue: { type: Boolean, default: false },
   document: { type: Object, default: null },
 });
 const emit = defineEmits([
   'update:modelValue',
+  'preview',
   'rename',
   'move',
   'download-pdf',
@@ -84,6 +90,12 @@ const emit = defineEmits([
 ]);
 
 const actions = [
+  {
+    event: 'preview',
+    label: 'Vista previa',
+    description: 'Ver el documento renderizado en pantalla completa',
+    icon: 'M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4',
+  },
   {
     event: 'rename',
     label: 'Renombrar',
@@ -133,5 +145,16 @@ function close() {
 function trigger(eventName) {
   emit(eventName);
   close();
+}
+
+const flashedEvent = ref(null);
+let flashTimer = null;
+function flashAction(eventName) {
+  flashedEvent.value = null;
+  nextTick(() => {
+    flashedEvent.value = eventName;
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => { flashedEvent.value = null; }, 350);
+  });
 }
 </script>

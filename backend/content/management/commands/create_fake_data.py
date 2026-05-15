@@ -54,6 +54,13 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Seeding Kanban tasks...'))
         call_command('create_fake_tasks')
 
+        # Seed document folder tree + documents
+        self.stdout.write(self.style.SUCCESS('Seeding document folder tree...'))
+        call_command('create_fake_document_folders')
+
+        self.stdout.write(self.style.SUCCESS('Seeding fake documents...'))
+        call_command('create_fake_documents')
+
         self.stdout.write(self.style.SUCCESS('All fake data has been created'))
 
         self.stdout.write(self.style.SUCCESS('Running seed_platform_data (platform graph)...'))

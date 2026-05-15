@@ -8,6 +8,7 @@
 
 const mockFolderStore = {
   folders: [],
+  tree: [],
   isUpdating: false,
   fetchFolders: jest.fn(),
   createFolder: jest.fn(),
@@ -15,6 +16,22 @@ const mockFolderStore = {
   deleteFolder: jest.fn(),
   reorderFolders: jest.fn(),
 };
+
+/**
+ * Build a flat-rendered tree from a simple {id, name, parent, children} list.
+ * Helper to set both `folders` and `tree` consistently in the mock store.
+ */
+function setFolders(folders) {
+  mockFolderStore.folders = folders;
+  const byId = new Map(folders.map((f) => [f.id, { folder: f, children: [] }]));
+  const roots = [];
+  for (const f of folders) {
+    const node = byId.get(f.id);
+    if (f.parent == null) roots.push(node);
+    else byId.get(f.parent)?.children.push(node);
+  }
+  mockFolderStore.tree = roots;
+}
 
 // Nuxt auto-import — must be set before the component is required
 global.useDocumentFolderStore = jest.fn(() => mockFolderStore);
@@ -34,8 +51,8 @@ const DraggableStub = {
   template: '<div data-testid="folder-draggable"><slot name="item" v-for="(el, i) in modelValue" :key="i" :element="el" /></div>',
 };
 
-const baseFolder = { id: 1, name: 'Design', document_count: 3 };
-const emptyFolder = { id: 9, name: 'Empty', document_count: 0 };
+const baseFolder = { id: 1, name: 'Design', document_count: 3, parent: null, order: 0 };
+const emptyFolder = { id: 9, name: 'Empty', document_count: 0, parent: null, order: 0 };
 
 function mountModal(props = {}) {
   return mount(FolderManagerModal, {
@@ -52,7 +69,7 @@ function mountModal(props = {}) {
 
 describe('FolderManagerModal', () => {
   beforeEach(() => {
-    mockFolderStore.folders = [];
+    setFolders([]);
     mockFolderStore.isUpdating = false;
     mockFolderStore.fetchFolders.mockReset().mockResolvedValue({ success: true });
     mockFolderStore.createFolder.mockReset().mockResolvedValue({ success: true });
@@ -83,14 +100,14 @@ describe('FolderManagerModal', () => {
     });
 
     it('renders the folder name when folders are in the store', () => {
-      mockFolderStore.folders = [baseFolder];
+      setFolders([baseFolder]);
       const wrapper = mountModal();
 
       expect(wrapper.text()).toContain('Design');
     });
 
     it('shows the document count badge for each folder', () => {
-      mockFolderStore.folders = [baseFolder];
+      setFolders([baseFolder]);
       const wrapper = mountModal();
 
       expect(wrapper.text()).toContain('3');
@@ -143,7 +160,7 @@ describe('FolderManagerModal', () => {
 
   describe('rename flow', () => {
     it('shows the edit input when the rename button is clicked', async () => {
-      mockFolderStore.folders = [baseFolder];
+      setFolders([baseFolder]);
       const wrapper = mountModal();
       await wrapper.find('[title="Renombrar"]').trigger('click');
 
@@ -151,7 +168,7 @@ describe('FolderManagerModal', () => {
     });
 
     it('hides the edit input when Cancelar is clicked during rename', async () => {
-      mockFolderStore.folders = [baseFolder];
+      setFolders([baseFolder]);
       const wrapper = mountModal();
       await wrapper.find('[title="Renombrar"]').trigger('click');
       await wrapper.findAll('button').find((btn) => btn.text() === 'Cancelar').trigger('click');
@@ -160,7 +177,7 @@ describe('FolderManagerModal', () => {
     });
 
     it('calls updateFolder with the new name when Guardar is clicked', async () => {
-      mockFolderStore.folders = [baseFolder];
+      setFolders([baseFolder]);
       const wrapper = mountModal();
       await wrapper.find('[title="Renombrar"]').trigger('click');
       await wrapper.findAll('input[type="text"]').at(1).setValue('Renamed Folder');
@@ -171,7 +188,7 @@ describe('FolderManagerModal', () => {
     });
 
     it('cancels rename when Esc is pressed in the edit input', async () => {
-      mockFolderStore.folders = [baseFolder];
+      setFolders([baseFolder]);
       const wrapper = mountModal();
       await wrapper.find('[title="Renombrar"]').trigger('click');
       await wrapper.findAll('input[type="text"]').at(1).trigger('keyup', { key: 'Escape' });
@@ -184,7 +201,7 @@ describe('FolderManagerModal', () => {
 
   describe('delete flow', () => {
     it('shows delete confirmation for an empty folder', async () => {
-      mockFolderStore.folders = [emptyFolder];
+      setFolders([emptyFolder]);
       const wrapper = mountModal();
       await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
 
@@ -192,7 +209,7 @@ describe('FolderManagerModal', () => {
     });
 
     it('calls deleteFolder when Confirmar eliminación is clicked', async () => {
-      mockFolderStore.folders = [emptyFolder];
+      setFolders([emptyFolder]);
       const wrapper = mountModal();
       await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
       await wrapper.findAll('button').find((btn) => btn.text().includes('Confirmar eliminación')).trigger('click');
@@ -202,7 +219,7 @@ describe('FolderManagerModal', () => {
     });
 
     it('hides the delete confirmation when Cancelar is clicked', async () => {
-      mockFolderStore.folders = [emptyFolder];
+      setFolders([emptyFolder]);
       const wrapper = mountModal();
       await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
       await wrapper.findAll('button').find((btn) => btn.text() === 'Cancelar').trigger('click');
@@ -211,7 +228,7 @@ describe('FolderManagerModal', () => {
     });
 
     it('blocks deletion and shows a warning when the folder has documents', async () => {
-      mockFolderStore.folders = [baseFolder];
+      setFolders([baseFolder]);
       const wrapper = mountModal();
       await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
 
@@ -221,7 +238,7 @@ describe('FolderManagerModal', () => {
     });
 
     it('dismisses the warning when Entendido is clicked without calling deleteFolder', async () => {
-      mockFolderStore.folders = [baseFolder];
+      setFolders([baseFolder]);
       const wrapper = mountModal();
       await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
       await wrapper.findAll('button').find((btn) => btn.text() === 'Entendido').trigger('click');
@@ -254,29 +271,73 @@ describe('FolderManagerModal', () => {
     });
   });
 
-  // ── handleReorder ─────────────────────────────────────────────────────────
+  // ── Parent selector (added 2026-05-15 nested folders) ─────────────────────
 
-  describe('handleReorder', () => {
-    it('calls reorderFolders with the folder id order when a drag ends', async () => {
-      mockFolderStore.folders = [
-        { id: 1, name: 'A', document_count: 0 },
-        { id: 2, name: 'B', document_count: 0 },
-      ];
+  describe('parent selector "Dentro de"', () => {
+    it('renders the "Raíz" option plus an option per folder', () => {
+      setFolders([
+        { id: 1, name: 'A', parent: null, order: 0, document_count: 0 },
+        { id: 2, name: 'B', parent: 1, order: 0, document_count: 0 },
+      ]);
       const wrapper = mountModal();
-      wrapper.findComponent(DraggableStub).vm.$emit('end');
-      await flushPromises();
-
-      expect(mockFolderStore.reorderFolders).toHaveBeenCalledWith([1, 2]);
+      const select = wrapper.find('select');
+      const optionTexts = select.findAll('option').map((o) => o.text());
+      expect(optionTexts[0]).toContain('Raíz');
+      expect(optionTexts.join(' ')).toContain('A');
+      expect(optionTexts.join(' ')).toContain('B');
     });
 
-    it('shows an error message when reorderFolders fails', async () => {
-      mockFolderStore.folders = [{ id: 1, name: 'A', document_count: 0 }];
-      mockFolderStore.reorderFolders.mockResolvedValue({ success: false });
+    it('forwards selected parent to createFolder', async () => {
+      setFolders([{ id: 7, name: 'A', parent: null, order: 0, document_count: 0 }]);
       const wrapper = mountModal();
-      wrapper.findComponent(DraggableStub).vm.$emit('end');
+      await wrapper.find('input[placeholder="Nombre de la nueva carpeta..."]')
+        .setValue('Hija');
+      await wrapper.find('select').setValue('7');
+      await wrapper.find('form').trigger('submit.prevent');
       await flushPromises();
+      expect(mockFolderStore.createFolder).toHaveBeenCalledWith({
+        name: 'Hija',
+        parent: 7,
+      });
+    });
 
-      expect(wrapper.text()).toContain('Error al reordenar');
+    it('creates a root folder when "Raíz" is selected', async () => {
+      const wrapper = mountModal();
+      await wrapper.find('input[placeholder="Nombre de la nueva carpeta..."]')
+        .setValue('Raíz nueva');
+      // "Raíz" is the default value (null) — no change needed
+      await wrapper.find('form').trigger('submit.prevent');
+      await flushPromises();
+      expect(mockFolderStore.createFolder).toHaveBeenCalledWith({
+        name: 'Raíz nueva',
+        parent: null,
+      });
+    });
+  });
+
+  // ── Delete blocked by children (added 2026-05-15) ─────────────────────────
+
+  describe('delete blocked by children', () => {
+    it('shows a "contiene subcarpetas" warning when the folder has children', async () => {
+      setFolders([
+        { id: 1, name: 'Padre', parent: null, order: 0, document_count: 0 },
+        { id: 2, name: 'Hijo', parent: 1, order: 0, document_count: 0 },
+      ]);
+      const wrapper = mountModal();
+      // Click delete on the parent — finding the icon button with title="Eliminar carpeta"
+      const deleteBtns = wrapper.findAll('button[title="Eliminar carpeta"]');
+      // First delete button corresponds to "Padre" (parent rendered before child)
+      await deleteBtns[0].trigger('click');
+      expect(wrapper.text()).toContain('contiene subcarpetas');
+      // Destructive button should not appear
+      expect(wrapper.text()).not.toContain('Confirmar eliminación');
+    });
+
+    it('still blocks for has_documents when the folder has no children but has docs', async () => {
+      setFolders([{ id: 1, name: 'Solo', parent: null, order: 0, document_count: 4 }]);
+      const wrapper = mountModal();
+      await wrapper.find('button[title="Eliminar carpeta"]').trigger('click');
+      expect(wrapper.text()).toContain('Primero mueve o elimina sus 4 documento(s).');
     });
   });
 });

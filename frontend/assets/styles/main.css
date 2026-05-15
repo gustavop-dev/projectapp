@@ -240,3 +240,24 @@
   opacity: 0;
   transform: translateY(-4px);
 }
+
+/* ============================
+   Action icon / row click flash — post-click confirmation that persists
+   beyond the instantaneous :active state. Used by documents list actions.
+   ============================ */
+@keyframes action-icon-flash {
+  0%   { box-shadow: 0 0 0 0   currentColor; transform: scale(0.92); }
+  40%  { box-shadow: 0 0 0 3px currentColor; transform: scale(1.08); }
+  100% { box-shadow: 0 0 0 0   transparent;  transform: scale(1); }
+}
+.action-icon-flash {
+  animation: action-icon-flash 320ms ease-out;
+}
+
+@keyframes action-row-flash {
+  0%   { background-color: color-mix(in srgb, currentColor 14%, transparent); }
+  100% { background-color: transparent; }
+}
+.action-row-flash {
+  animation: action-row-flash 320ms ease-out;
+}

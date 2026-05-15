@@ -128,6 +128,9 @@ erDiagram
     ProposalRequirementGroup ||--o{ ProposalRequirementItem : "has items"
     ProposalViewEvent ||--o{ ProposalSectionView : "has section views"
     Document }o--o{ UserProfile : "created by (optional)"
+    Document }o--|| DocumentFolder : "folder (SET_NULL)"
+    Document }o--o{ DocumentTag : "tags (M2M)"
+    DocumentFolder ||--o{ DocumentFolder : "parent self-FK (PROTECT)"
     ContractTemplate ||--o{ ProposalDocument : "used in"
 
     UserProfile ||--o{ Project : "owns projects"
@@ -549,3 +552,79 @@ flowchart LR
 9. Automated emails triggered based on behavior (reminder, urgency, abandonment, etc.) — every client-facing send checks `_is_unsendable_client_email()` first, so placeholder accounts never receive mail
 10. Client responds: accept / reject (with reason) / negotiate / comment. Acceptance fires `ProposalEmailService.send_acceptance_confirmation()` to the client (this branch was added 2026-04-09 — see ERR-007).
 11. Admin monitors via dashboard, alerts, analytics, scorecard. Orphan clients (zero proposals, zero projects) can be cleaned up from `/panel/clients` Huérfanos tab.
+
+---
+
+## 10. Document Folder Tree
+
+Folders form a self-referential tree (max depth 5) with explicit invariants enforced both at the model and serializer layers.
+
+```mermaid
+flowchart TB
+    Root["DocumentFolder (parent=NULL)"]
+    Child1["DocumentFolder (parent=Root)"]
+    Child2["DocumentFolder (parent=Root)"]
+    Grand["DocumentFolder (parent=Child1)"]
+    Doc1["Document.folder = Root"]
+    Doc2["Document.folder = Grand"]
+    Root --> Child1
+    Root --> Child2
+    Child1 --> Grand
+    Root -.-> Doc1
+    Grand -.-> Doc2
+```
+
+**Invariants** (enforced by `DocumentFolder.clean()` + `DocumentFolderSerializer.validate()`):
+
+- A folder cannot be its own parent.
+- A folder cannot be moved into one of its own descendants (no cycles).
+- `parent_depth + 1 < MAX_FOLDER_DEPTH` (default 5).
+
+**Read path** — `list_document_folders` calls `_build_tree_context()` which does **one** annotated query (`Count('documents')`) and a Python DFS to compute the maps below, then injects them into `serializer.context`:
+
+| Map | Contents |
+|---|---|
+| `folder_by_id` | `{id: folder}` for `path` + `depth` resolution |
+| `children_map` | `{parent_id: [folder, ...]}` for descendants traversal |
+| `direct_counts` | `{id: int}` — documents directly in this folder |
+| `recursive_counts` | `{id: int}` — direct + descendants (post-order DFS) |
+
+`DocumentFolderSerializer.get_path()`/`get_depth()`/`get_document_count()` resolve in O(1) per folder using these maps. Without them the same fields would trigger N+1 queries.
+
+**Write path** — `move_document_folder` (POST `/document-folders/<id>/move/`) is the only endpoint that performs reparenting + repositioning atomically:
+
+```mermaid
+sequenceDiagram
+    participant UI as Sidebar (FolderTreeNode)
+    participant Store as documentFolderStore
+    participant API as POST /document-folders/<id>/move/
+    participant DB as PostgreSQL/MySQL
+    UI->>Store: drag → @change.added
+    Store->>API: { parent_id, position }
+    API->>API: serializer.validate (cycle, depth)
+    API->>DB: BEGIN; UPDATE parent; bulk_update order
+    API->>DB: COMMIT
+    API-->>Store: 200 + new folder snapshot
+    Store->>Store: fetchFolders() — refresh tree
+    Store-->>UI: reactive update
+```
+
+**Delete guard** — `delete_document_folder` returns 409 with `reasons[]` listing all blocking conditions:
+
+| Condition | Reason key |
+|---|---|
+| `folder.children.exists()` | `has_children` |
+| `Document.objects.filter(folder_id__in=descendants).exists()` | `has_documents` |
+
+The frontend modal renders an amber blocked panel and tells the operator exactly what to clear first.
+
+---
+
+## 11. Claude Code Hooks
+
+`.claude/settings.json` wires two automated hooks; see `docs/methodology/technical.md` § 10 for the full table. At the architecture level the contract is:
+
+- **SessionStart** → reads `git status` across tracked repos, injects `behind/ahead/dirty` per repo into the agent's first turn. Agents are expected to invoke the `git-sync` skill (rebase against parent branch with interactive conflict resolution) whenever the report is non-clean.
+- **Stop** → checks for uncommitted frontend UI changes; if any, surfaces a reminder to invoke the `e2e-user-flows-check` skill before declaring the task complete. Non-blocking.
+
+Both hook scripts live outside this repo (under `~/webapps/ops/vps/scripts/maintenance/`) so they can be reused across every project hosted on the same VPS.

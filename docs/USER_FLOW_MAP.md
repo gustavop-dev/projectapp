@@ -3107,23 +3107,31 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents`
-- **Description:** Organize admin documents with a folder sidebar and tag filter chips. Admin selects a folder to filter the list, toggles tag chips for multi-tag OR filtering, opens the FolderManagerModal to create/rename/delete folders, and opens the TagManagerModal to create/rename/delete tags with color coding.
+- **Description:** Organize admin documents with a hierarchical folder sidebar (tree with up to 5 levels of nesting) and tag filter chips. Admin selects any folder in the tree to filter the list (including documents of all descendants), toggles tag chips for multi-tag OR filtering, opens FolderManagerModal to create/rename/delete folders with a parent selector, and opens TagManagerModal for tag CRUD. Folder counts in the sidebar are **recursive** (include documents in subfolders).
 - **Steps:**
-  1. Admin loads `/panel/documents` — left sidebar renders all folders; tag chips appear above the table.
-  2. Admin clicks a folder entry (e.g., "Cuentas de cobro") → list refreshes with `?folder=<id>`.
+  1. Admin loads `/panel/documents` — left sidebar renders the folder tree; tag chips appear above the table.
+  2. Admin clicks a folder entry → list refreshes with `?folder=<id>` and shows documents from that folder **and all its descendants**.
   3. Admin clicks "Sin carpeta" → list refreshes with `?folder=none`.
   4. Admin clicks "Todos" → list refreshes without folder param.
   5. Admin clicks a tag chip → list refreshes with `?tags=<id>` (OR logic; multiple chips additive).
   6. Admin clicks "Limpiar" → tag filter cleared, list refreshes.
   7. Admin clicks "Gestionar" / "Gestionar etiquetas" → modal opens for inline CRUD.
-  8. Admin creates, renames, or deletes a folder/tag → modal emits `@changed` → document list refreshes.
+  8. Admin creates a folder optionally selecting a parent via "Dentro de" select, or renames/deletes a folder/tag → modal emits `@changed` → document list refreshes.
+  9. Admin clicks the chevron next to a folder with children to expand/collapse its subtree; the expanded set persists in `localStorage` (`panel.documents.folderExpanded`). Ancestors of the active folder auto-expand on load.
 - **Branches:**
   - [Branch A — Empty folders] No folders yet → "Sin carpeta" and "Todos" entries only; "Crear la primera →" prompt for tags.
-  - [Branch B — Create folder] Admin fills name + submits in FolderManagerModal → folder added to sidebar.
-  - [Branch C — Delete folder with SET_NULL] Deleting a folder leaves documents with `folder = null` (not deleted).
-  - [Branch D — Assign on create] Creating a document from `?folder=<id>` pre-selects that folder.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-document-folders.spec.js`
+  - [Branch B — Create root folder] Admin fills name + leaves "Dentro de" as "— Raíz —" → folder created at root.
+  - [Branch C — Create nested folder] Admin fills name + selects a parent in "Dentro de" → folder created as child; appears indented under its parent in the sidebar.
+  - [Branch D — Depth limit] Parent options at depth 4 are disabled with "(nivel máximo)" suffix; backend returns 400 if bypassed (max 5 levels total).
+  - [Branch E — Recursive filter] Selecting "Clientes" with subfolders "Activos/2026" shows documents from all three.
+  - [Branch F — Recursive count] The badge next to "Clientes" sums documents in itself + every descendant.
+  - [Branch G — Delete blocked by children] Trying to delete a folder with subfolders → 409 with `has_children` reason; modal shows amber blocked panel "La carpeta contiene subcarpetas".
+  - [Branch H — Delete blocked by descendant docs] Trying to delete a folder where any descendant has documents → 409 with `has_documents` reason; modal shows amber blocked panel with descendant count.
+  - [Branch I — Delete empty leaf] Folder with no children and no documents → red destructive confirmation; on confirm, removed.
+  - [Branch J — Folder path chip] In the "Todos" view, each document row shows a breadcrumb chip "Clientes › Activos › 2026" via `FolderPathChip`.
+  - [Branch K — Assign on create] Creating a document from `?folder=<id>` pre-selects that folder.
+- **Coverage:** ⚠️ Partial — existing spec covers flat folder CRUD + flat filter. New branches C/D/E/F/G/H/I/J are **not yet covered**. Existing tests likely fail until updated for the new tree UI (`FolderTreeNode`, recursive count, parent selector in create form).
+- **E2E Spec:** `e2e/admin/admin-document-folders.spec.js` *(needs update)*
 
 #### FLOW: `admin-document-pdf-download`
 
@@ -3151,20 +3159,43 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Priority:** P1
 - **Routes:** `/panel/documents`
 - **API:** `PATCH /api/content/documents/<id>/update/`
-- **Description:** Admin moves a document to a different folder (or removes it from any folder) via MoveFolderModal from the documents list page. The modal shows all folders from `document-folders/`; clicking a folder PATCHes the document with `folder_id`; "Sin carpeta" sets `folder_id: null`.
+- **Description:** Admin moves a document to a different folder (or removes it from any folder) via MoveFolderModal from the documents list page. The modal shows folders as an **indented tree** (depth via `paddingLeft`); clicking a folder PATCHes the document with `folder_id`; "Sin carpeta" sets `folder_id: null`.
 - **Steps:**
   1. Admin loads `/panel/documents`.
   2. Admin clicks "Mover a carpeta" button on a document row → `MoveFolderModal` opens.
-  3. Modal renders "Sin carpeta" option and all available folder buttons.
-  4. Admin clicks a target folder → `documentStore.updateDocument(id, { folder_id })` is called.
+  3. Modal renders "Sin carpeta" option and the full folder tree indented by depth.
+  4. Admin clicks a target folder (at any depth) → `documentStore.updateDocument(id, { folder_id })` is called.
   5. On success, modal closes and document list + folder counts refresh.
 - **Branches:**
   - [Branch A — Move to folder] Admin selects a named folder → PATCH with `folder_id: <id>`.
-  - [Branch B — Remove from folder] Admin clicks "Sin carpeta" → PATCH with `folder_id: null`.
-  - [Branch C — Same folder] Clicking the current folder → no PATCH, modal closes.
-  - [Branch D — Error] PATCH fails → modal shows "No se pudo mover el documento." error message.
+  - [Branch B — Move to nested folder] Admin selects a deep folder (e.g. "Clientes/Activos/2026") → PATCH with the leaf's `folder_id`.
+  - [Branch C — Remove from folder] Admin clicks "Sin carpeta" → PATCH with `folder_id: null`.
+  - [Branch D — Same folder] Clicking the current folder → no PATCH, modal closes.
+  - [Branch E — Error] PATCH fails → modal shows "No se pudo mover el documento." error message.
+- **Coverage:** ⚠️ Partial — existing spec asserts flat list; tree indentation and Branch B (nested target) need new assertions.
+- **E2E Spec:** `e2e/admin/admin-document-move-folder.spec.js` *(needs update for nested targets)*
+
+#### FLOW: `admin-document-folders-tree-drag`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **API:** `POST /api/content/document-folders/<id>/move/`, `POST /api/content/document-folders/reorder/`
+- **Description:** Admin reorganizes the folder tree via drag-and-drop in the sidebar. Dragging a folder into another folder reparents it (`move`); dragging within the same parent reorders siblings (`reorder` scoped by `parent_id`). Both interactions use `vuedraggable` with `group="folders"` so cross-list moves are supported. Backend validates cycle and depth.
+- **Steps:**
+  1. Admin loads `/panel/documents` with at least 2 root folders ("Clientes", "Internos") and one child ("Activos" under "Clientes").
+  2. Admin hovers a folder row → drag handle appears (six-dots icon).
+  3. Admin drags "Internos" via the handle and drops it inside "Clientes" (reparent) → frontend calls `moveFolder(id, { parent_id: <Clientes.id>, position: <n> })` → sidebar refetches and shows "Internos" indented under "Clientes".
+  4. Admin drags "Internos" within "Clientes" between siblings (reorder) → frontend calls `reorderFolders({ parent_id: <Clientes.id>, ids: [...] })` → order updated.
+  5. Admin drags "Internos" back to the root drop zone → frontend calls `moveFolder(id, { parent_id: null, position: 0 })`.
+- **Branches:**
+  - [Branch A — Reparent to root] Drop a nested folder onto the root drag area → `parent_id: null`.
+  - [Branch B — Reparent into descendant rejected] Backend returns 400 if user somehow drags a parent into one of its own descendants (cycle); frontend logs error and refetches.
+  - [Branch C — Depth exceeded] Reparenting that would create a 6th level → backend 400; sidebar refetch reverts.
+  - [Branch D — Reorder within parent] Drag a folder among its siblings (no parent change) → triggers `reorder` only.
 - **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-document-move-folder.spec.js`
+- **E2E Spec:** `e2e/admin/admin-document-folders-tree-drag.spec.js` *(3 tests — reparent, reorder within parent, reparent to root; uses `page.evaluate` against the live Pinia store because SortableJS drag is not reliably reproducible with synthetic events)*
 
 ### 9.2 Admin User Management
 
@@ -3255,9 +3286,10 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
 | `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
-| `admin-document-folders` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folders.spec.js` |
+| `admin-document-folders` | admin | admin | P2 | ⚠️ Partial | `e2e/admin/admin-document-folders.spec.js` *(needs update — nested tree, recursive filter/count, parent selector, double-delete-guard, path chip not yet asserted)* |
+| `admin-document-folders-tree-drag` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folders-tree-drag.spec.js` |
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
-| `admin-document-move-folder` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-move-folder.spec.js` |
+| `admin-document-move-folder` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-document-move-folder.spec.js` *(needs update — assert tree indentation and a nested-target selection branch)* |
 | `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
 | `admin-diagnostic-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-create.spec.js` |
 | `admin-diagnostic-send-initial` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` |

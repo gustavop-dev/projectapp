@@ -11,7 +11,22 @@ const mockDocumentStore = {
 
 const mockFolderStore = {
   folders: [],
+  tree: [],
 };
+
+// Build tree from a flat folder list so existing flat-list tests keep working
+// and nested tests can assert depth-indentation.
+function setFolders(folders) {
+  mockFolderStore.folders = folders;
+  const byId = new Map(folders.map((f) => [f.id, { folder: f, children: [] }]));
+  const roots = [];
+  for (const f of folders) {
+    const node = byId.get(f.id);
+    if (f.parent == null) roots.push(node);
+    else byId.get(f.parent)?.children.push(node);
+  }
+  mockFolderStore.tree = roots;
+}
 
 // Nuxt auto-imports — must be set before the component is required
 global.useDocumentStore = jest.fn(() => mockDocumentStore);
@@ -26,7 +41,7 @@ async function flushPromises() {
 }
 
 const baseDocument = { id: 10, title: 'Especificaciones técnicas', folder_id: null };
-const baseFolder = { id: 3, name: 'Propuestas', document_count: 5 };
+const baseFolder = { id: 3, name: 'Propuestas', document_count: 5, parent: null, order: 0 };
 
 function mountModal(props = {}) {
   return mount(MoveFolderModal, {
@@ -42,7 +57,7 @@ function mountModal(props = {}) {
 
 describe('MoveFolderModal', () => {
   beforeEach(() => {
-    mockFolderStore.folders = [];
+    setFolders([]);
     mockDocumentStore.updateDocument.mockReset().mockResolvedValue({ success: true });
   });
 
@@ -78,14 +93,14 @@ describe('MoveFolderModal', () => {
     });
 
     it('renders all folders from the store', () => {
-      mockFolderStore.folders = [baseFolder];
+      setFolders([baseFolder]);
       const wrapper = mountModal();
 
       expect(wrapper.text()).toContain('Propuestas');
     });
 
     it('shows empty state when there are no folders', () => {
-      mockFolderStore.folders = [];
+      setFolders([]);
       const wrapper = mountModal();
 
       expect(wrapper.text()).toContain('No hay carpetas creadas.');
@@ -110,7 +125,7 @@ describe('MoveFolderModal', () => {
     });
 
     it('calls updateDocument with the folder id when a folder button is clicked', async () => {
-      mockFolderStore.folders = [baseFolder];
+      setFolders([baseFolder]);
       const wrapper = mountModal({ document: { ...baseDocument, folder_id: null } });
       const folderBtn = wrapper.findAll('button').find(b => b.text().includes('Propuestas'));
       await folderBtn.trigger('click');
@@ -153,6 +168,42 @@ describe('MoveFolderModal', () => {
       await flushPromises();
 
       expect(mockDocumentStore.updateDocument).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── Tree indentation (added 2026-05-15 nested folders) ───────────────────
+
+  describe('tree indentation', () => {
+    it('indents nested folders by depth via padding-left', () => {
+      setFolders([
+        { id: 1, name: 'Padre', parent: null, order: 0, document_count: 0 },
+        { id: 2, name: 'Hijo', parent: 1, order: 0, document_count: 0 },
+        { id: 3, name: 'Nieto', parent: 2, order: 0, document_count: 0 },
+      ]);
+      const wrapper = mountModal();
+      const buttons = wrapper.findAll('button').filter((b) =>
+        ['Padre', 'Hijo', 'Nieto'].some((n) => b.text().includes(n))
+      );
+      const styles = buttons.map((b) => b.attributes('style') || '');
+      // depth 0 → 12px, depth 1 → 28px, depth 2 → 44px
+      expect(styles.some((s) => s.includes('12px'))).toBe(true);
+      expect(styles.some((s) => s.includes('28px'))).toBe(true);
+      expect(styles.some((s) => s.includes('44px'))).toBe(true);
+    });
+
+    it('move to a nested folder PATCHes with the leaf id', async () => {
+      setFolders([
+        { id: 1, name: 'Clientes', parent: null, order: 0, document_count: 0 },
+        { id: 2, name: 'Activos', parent: 1, order: 0, document_count: 0 },
+        { id: 3, name: '2026', parent: 2, order: 0, document_count: 0 },
+      ]);
+      const wrapper = mountModal({ document: { ...baseDocument, folder_id: null } });
+      const leafBtn = wrapper.findAll('button').find((b) => b.text().includes('2026'));
+      await leafBtn.trigger('click');
+      await flushPromises();
+      expect(mockDocumentStore.updateDocument).toHaveBeenCalledWith(baseDocument.id, {
+        folder_id: 3,
+      });
     });
   });
 

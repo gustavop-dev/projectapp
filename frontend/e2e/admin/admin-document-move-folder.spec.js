@@ -121,4 +121,40 @@ test.describe('Admin Document Move Folder', () => {
     await expect(() => expect(patchBody).not.toBeNull()).toPass({ timeout: 5000 });
     expect(patchBody.folder_id).toBeNull();
   });
+
+  // ── Nested target (added 2026-05-15) ─────────────────────────────────────
+
+  test('moving to a nested folder PATCHes documents/{id}/update/ with the leaf folder id', {
+    tag: [...ADMIN_DOCUMENT_MOVE_FOLDER, '@role:admin'],
+  }, async ({ page }) => {
+    const FOLDER_CLIENTES = { id: 100, name: 'Clientes', slug: 'clientes', order: 0, document_count: 0, parent: null, depth: 0, path: [{ id: 100, name: 'Clientes' }] };
+    const FOLDER_ACTIVOS = { id: 101, name: 'Activos', slug: 'activos', order: 0, document_count: 0, parent: 100, depth: 1, path: [{ id: 100, name: 'Clientes' }, { id: 101, name: 'Activos' }] };
+    const FOLDER_2026 = { id: 102, name: '2026', slug: '2026', order: 0, document_count: 0, parent: 101, depth: 2, path: [{ id: 100, name: 'Clientes' }, { id: 101, name: 'Activos' }, { id: 102, name: '2026' }] };
+    let patchBody = null;
+
+    await mockApi(page, async ({ apiPath, method, route }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/' && method === 'GET') return jsonOk([DOC]);
+      if (apiPath === 'document-folders/') return jsonOk([FOLDER_CLIENTES, FOLDER_ACTIVOS, FOLDER_2026]);
+      if (apiPath === 'document-tags/') return jsonOk([]);
+      if (apiPath === `documents/${DOC.id}/update/` && method === 'PATCH') {
+        patchBody = route.request().postDataJSON();
+        return jsonOk({ ...DOC, ...patchBody });
+      }
+      return null;
+    });
+
+    await page.goto('/panel/documents');
+    await expect(page.getByText('Brief de Proyecto').first()).toBeVisible({ timeout: 15000 });
+
+    await page.getByTitle('Mover a carpeta').first().click();
+    const modal = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover documento' });
+    await expect(modal).toBeVisible();
+
+    // Pick the deepest folder (2026) — its row carries the leaf folder id.
+    await modal.getByRole('button', { name: '2026' }).click();
+
+    await expect(() => expect(patchBody).not.toBeNull()).toPass({ timeout: 5000 });
+    expect(patchBody.folder_id).toBe(FOLDER_2026.id);
+  });
 });

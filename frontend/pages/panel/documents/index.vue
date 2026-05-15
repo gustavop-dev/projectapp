@@ -130,13 +130,7 @@
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-2">
                     <span class="text-sm font-medium text-text-default truncate">{{ doc.title }}</span>
-                    <span
-                      v-if="doc.folder_name"
-                      class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-surface-raised text-text-muted   flex-shrink-0"
-                      :title="`Carpeta: ${doc.folder_name}`"
-                    >
-                      📁 {{ doc.folder_name }}
-                    </span>
+                    <FolderPathChip v-if="doc.folder" :folder-id="doc.folder" />
                   </div>
                   <div v-if="doc.client_name" class="text-xs text-text-subtle mt-0.5">{{ doc.client_name }}</div>
                 </td>
@@ -171,7 +165,9 @@
                     <NuxtLink
                       :to="localePath(`/panel/documents/${doc.id}/edit`)"
                       class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-text-brand"
+                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:edit` }"
                       title="Editar contenido"
+                      @click="flash(`${doc.id}:edit`)"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -179,9 +175,21 @@
                     </NuxtLink>
                     <button
                       type="button"
+                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-sky-600 dark:hover:text-sky-400"
+                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:preview` }"
+                      title="Vista previa"
+                      @click="flash(`${doc.id}:preview`); handlePreview(doc)"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
                       class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-amber-600 dark:hover:text-amber-400"
+                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:rename` }"
                       title="Renombrar"
-                      @click="handleRenameDoc(doc)"
+                      @click="flash(`${doc.id}:rename`); handleRenameDoc(doc)"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
@@ -190,8 +198,9 @@
                     <button
                       type="button"
                       class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-violet-600 dark:hover:text-violet-400"
+                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:move` }"
                       title="Mover a carpeta"
-                      @click="handleMoveDoc(doc)"
+                      @click="flash(`${doc.id}:move`); handleMoveDoc(doc)"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm13 1l3 3-3 3" />
@@ -200,8 +209,9 @@
                     <button
                       type="button"
                       class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-text-brand"
+                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:email` }"
                       title="Enviar por correo"
-                      @click="handleSendEmail(doc)"
+                      @click="flash(`${doc.id}:email`); handleSendEmail(doc)"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -210,8 +220,9 @@
                     <button
                       type="button"
                       class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-blue-600 dark:hover:text-blue-400"
+                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:pdf` }"
                       title="Descargar PDF"
-                      @click="handleDownloadPdf(doc)"
+                      @click="flash(`${doc.id}:pdf`); handleDownloadPdf(doc)"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -220,9 +231,12 @@
                     <button
                       type="button"
                       class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-teal-600 dark:hover:text-teal-400"
-                      :class="{ 'text-teal-600 dark:text-teal-400': copiedMarkdownId === doc.id }"
+                      :class="{
+                        'text-teal-600 dark:text-teal-400': copiedMarkdownId === doc.id,
+                        'action-icon-flash': flashedKey === `${doc.id}:copy`,
+                      }"
                       title="Copiar markdown"
-                      @click="handleCopyMarkdown(doc.id)"
+                      @click="flash(`${doc.id}:copy`); handleCopyMarkdown(doc.id)"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -231,8 +245,9 @@
                     <button
                       type="button"
                       class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-purple-600 dark:hover:text-purple-400"
+                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:duplicate` }"
                       title="Duplicar"
-                      @click="handleDuplicate(doc.id)"
+                      @click="flash(`${doc.id}:duplicate`); handleDuplicate(doc.id)"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
@@ -241,8 +256,9 @@
                     <button
                       type="button"
                       class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-red-600 dark:hover:text-red-400"
+                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:delete` }"
                       title="Eliminar"
-                      @click="handleDelete(doc)"
+                      @click="flash(`${doc.id}:delete`); handleDelete(doc)"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -334,6 +350,7 @@
     <DocumentActionsSheet
       v-model="showActionsSheet"
       :document="actionDoc"
+      @preview="handlePreview(actionDoc)"
       @rename="handleRenameDoc(actionDoc)"
       @move="handleMoveDoc(actionDoc)"
       @download-pdf="handleDownloadPdf(actionDoc)"
@@ -342,6 +359,29 @@
       @send-email="handleSendEmail(actionDoc)"
       @delete="handleDelete(actionDoc)"
     />
+
+    <MarkdownPreviewModal
+      v-model="showPreviewModal"
+      :title="previewTitle"
+    >
+      <div
+        v-if="previewLoading"
+        class="flex items-center justify-center h-64 text-sm text-text-subtle"
+      >
+        Cargando vista previa...
+      </div>
+      <div
+        v-else-if="previewMarkdown.trim()"
+        class="markdown-preview markdown-preview--full max-w-4xl mx-auto"
+        v-html="previewHtml"
+      ></div>
+      <div
+        v-else
+        class="flex items-center justify-center h-full text-sm text-text-subtle"
+      >
+        No hay contenido para mostrar.
+      </div>
+    </MarkdownPreviewModal>
 
     <!-- Delete confirmation modal -->
     <Teleport to="body">
@@ -380,7 +420,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import FolderSidebar from '~/components/panel/documents/FolderSidebar.vue';
 import TagFilterChips from '~/components/panel/documents/TagFilterChips.vue';
 import FolderManagerModal from '~/components/panel/documents/FolderManagerModal.vue';
@@ -389,6 +429,9 @@ import MoveFolderModal from '~/components/panel/documents/MoveFolderModal.vue';
 import RenameDocumentModal from '~/components/panel/documents/RenameDocumentModal.vue';
 import SendDocumentEmailModal from '~/components/panel/documents/SendDocumentEmailModal.vue';
 import DocumentActionsSheet from '~/components/panel/documents/DocumentActionsSheet.vue';
+import MarkdownPreviewModal from '~/components/panel/documents/MarkdownPreviewModal.vue';
+import FolderPathChip from '~/components/panel/documents/FolderPathChip.vue';
+import { useMarkdownPreview } from '~/composables/useMarkdownPreview';
 import { tagBadgeClass, tagDotClass } from '~/utils/documentTagColors.js';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { usePagination } from '~/composables/usePagination';
@@ -455,6 +498,37 @@ const showActionsSheet = computed({
   get: () => !!actionDoc.value,
   set: (v) => { if (!v) actionDoc.value = null; },
 });
+
+const { parseMarkdown } = useMarkdownPreview();
+const showPreviewModal = ref(false);
+const previewTitle = ref('');
+const previewMarkdown = ref('');
+const previewLoading = ref(false);
+const previewHtml = computed(() =>
+  previewMarkdown.value ? parseMarkdown(previewMarkdown.value) : '',
+);
+
+const flashedKey = ref(null);
+let flashTimer = null;
+function flash(key) {
+  flashedKey.value = null;
+  nextTick(() => {
+    flashedKey.value = key;
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => { flashedKey.value = null; }, 350);
+  });
+}
+
+async function handlePreview(doc) {
+  if (!doc) return;
+  previewTitle.value = doc.title || 'Vista previa';
+  previewMarkdown.value = '';
+  previewLoading.value = true;
+  showPreviewModal.value = true;
+  const result = await documentStore.getDocumentMarkdown(doc.id);
+  previewLoading.value = false;
+  if (result.success) previewMarkdown.value = result.markdown;
+}
 
 const createLink = computed(() => {
   const folder = documentStore.activeFolderId;
@@ -606,3 +680,149 @@ async function confirmDelete() {
   }
 }
 </script>
+
+<style>
+.markdown-preview .md-h1 {
+  font-size: 1.5rem; font-weight: 700; line-height: 1.3;
+  margin-bottom: 0.75rem; padding-bottom: 0.5rem;
+  border-bottom: 1px solid #d1d5db; color: #047857;
+}
+.markdown-preview .md-h2 {
+  font-size: 1.25rem; font-weight: 600; line-height: 1.35;
+  margin-top: 1.25rem; margin-bottom: 0.5rem; color: #047857;
+}
+.markdown-preview .md-h3 {
+  font-size: 1.1rem; font-weight: 600; line-height: 1.4;
+  margin-top: 1rem; margin-bottom: 0.4rem; color: #059669;
+}
+.markdown-preview .md-h4,
+.markdown-preview .md-h5,
+.markdown-preview .md-h6 {
+  font-size: 1rem; font-weight: 600; line-height: 1.4;
+  margin-top: 0.85rem; margin-bottom: 0.35rem; color: #059669;
+}
+.markdown-preview .md-p {
+  margin-bottom: 0.75rem; line-height: 1.7;
+  font-size: 0.875rem; color: #374151;
+}
+.markdown-preview .md-ul,
+.markdown-preview .md-ol {
+  margin-bottom: 0.75rem; padding-left: 1.5rem;
+  font-size: 0.875rem; color: #374151;
+}
+.markdown-preview .md-ul { list-style-type: disc; }
+.markdown-preview .md-ol { list-style-type: decimal; }
+.markdown-preview .md-ul li,
+.markdown-preview .md-ol li { margin-bottom: 0.25rem; line-height: 1.6; }
+.markdown-preview .md-blockquote {
+  border-left: 3px solid #10b981; background-color: #f0fdf4;
+  padding: 0.75rem 1rem; margin-bottom: 0.75rem;
+  font-style: italic; font-size: 0.875rem; color: #4b5563;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+.markdown-preview .md-code-block {
+  background-color: #f3f4f6; border: 1px solid #e5e7eb;
+  border-radius: 0.5rem; padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem; overflow-x: auto;
+  font-size: 0.8rem; line-height: 1.6;
+}
+.markdown-preview .md-code-block code {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  color: #1f2937;
+}
+.markdown-preview .md-table {
+  width: 100%; border-collapse: collapse;
+  margin-bottom: 0.75rem; font-size: 0.8rem;
+}
+.markdown-preview .md-table th {
+  background-color: #f9fafb; border: 1px solid #e5e7eb;
+  padding: 0.5rem 0.75rem; text-align: left;
+  font-weight: 600; color: #374151;
+}
+.markdown-preview .md-table td {
+  border: 1px solid #e5e7eb; padding: 0.5rem 0.75rem; color: #4b5563;
+}
+.markdown-preview .md-table tbody tr:nth-child(even) { background-color: #f9fafb; }
+.markdown-preview .md-hr {
+  border: none; border-top: 1px solid #d1d5db; margin: 1.25rem 0;
+}
+.markdown-preview .md-link {
+  color: #059669; text-decoration: underline; text-underline-offset: 2px;
+}
+.markdown-preview .md-link:hover { color: #047857; }
+.markdown-preview strong { font-weight: 600; }
+.markdown-preview em { font-style: italic; }
+.markdown-preview del { text-decoration: line-through; color: #6b7280; }
+.markdown-preview code {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85em; background-color: #f3f4f6; color: #374151;
+  padding: 1px 4px; border-radius: 3px; border: 1px solid #e5e7eb;
+}
+.markdown-preview ul ul,
+.markdown-preview ol ol,
+.markdown-preview ul ol,
+.markdown-preview ol ul {
+  margin-top: 4px; margin-bottom: 4px; margin-left: 20px;
+}
+.markdown-preview .callout {
+  border-radius: 6px; padding: 10px 14px; margin: 12px 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.markdown-preview .callout-label { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; }
+.markdown-preview .callout-body { font-size: 13px; line-height: 1.5; }
+.markdown-preview .callout-note { background-color: #e6efef; border-left: 3px solid #002921; }
+.markdown-preview .callout-note .callout-label { color: #002921; }
+.markdown-preview .callout-tip { background-color: #f0fff4; border-left: 3px solid #809490; }
+.markdown-preview .callout-tip .callout-label { color: #809490; }
+.markdown-preview .callout-important { background-color: #eef2ff; border-left: 3px solid #6366f1; }
+.markdown-preview .callout-important .callout-label { color: #6366f1; }
+.markdown-preview .callout-warning { background-color: #fffbeb; border-left: 3px solid #d97706; }
+.markdown-preview .callout-warning .callout-label { color: #d97706; }
+.markdown-preview .callout-caution { background-color: #fff1f2; border-left: 3px solid #f43f5e; }
+.markdown-preview .callout-caution .callout-label { color: #f43f5e; }
+
+.dark .markdown-preview .md-h1 { color: #6ee7b7; border-bottom-color: #374151; }
+.dark .markdown-preview .md-h2 { color: #6ee7b7; }
+.dark .markdown-preview .md-h3 { color: #a7f3d0; }
+.dark .markdown-preview .md-h4,
+.dark .markdown-preview .md-h5,
+.dark .markdown-preview .md-h6 { color: #a7f3d0; }
+.dark .markdown-preview .md-p,
+.dark .markdown-preview .md-ul,
+.dark .markdown-preview .md-ol,
+.dark .markdown-preview .md-ul li,
+.dark .markdown-preview .md-ol li { color: #d1d5db; }
+.dark .markdown-preview .md-blockquote {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-left-color: #10b981; color: #9ca3af;
+}
+.dark .markdown-preview .md-code-block { background-color: #1f2937; border-color: #374151; }
+.dark .markdown-preview .md-code-block code { color: #e5e7eb; }
+.dark .markdown-preview .md-table th { background-color: #1f2937; border-color: #374151; color: #d1d5db; }
+.dark .markdown-preview .md-table td { border-color: #374151; color: #9ca3af; }
+.dark .markdown-preview .md-table tbody tr:nth-child(even) { background-color: rgba(31, 41, 55, 0.5); }
+.dark .markdown-preview .md-hr { border-top-color: #374151; }
+.dark .markdown-preview .md-link { color: #6ee7b7; }
+.dark .markdown-preview .md-link:hover { color: #a7f3d0; }
+.dark .markdown-preview del { color: #9ca3af; }
+.dark .markdown-preview code { background-color: #374151; color: #d1d5db; border-color: #4b5563; }
+.dark .markdown-preview .callout-note { background-color: #0d2b24; border-color: #809490; }
+.dark .markdown-preview .callout-tip { background-color: #052e16; border-color: #4ade80; }
+.dark .markdown-preview .callout-tip .callout-label { color: #4ade80; }
+.dark .markdown-preview .callout-important { background-color: #1e1b4b; border-color: #818cf8; }
+.dark .markdown-preview .callout-important .callout-label { color: #818cf8; }
+.dark .markdown-preview .callout-warning { background-color: #1c1400; border-color: #fbbf24; }
+.dark .markdown-preview .callout-warning .callout-label { color: #fbbf24; }
+.dark .markdown-preview .callout-caution { background-color: #200a0e; border-color: #fb7185; }
+.dark .markdown-preview .callout-caution .callout-label { color: #fb7185; }
+
+.markdown-preview--full .md-h1 { font-size: 2rem; }
+.markdown-preview--full .md-h2 { font-size: 1.5rem; }
+.markdown-preview--full .md-h3 { font-size: 1.25rem; }
+.markdown-preview--full .md-p,
+.markdown-preview--full .md-ul,
+.markdown-preview--full .md-ol,
+.markdown-preview--full .md-blockquote { font-size: 1rem; line-height: 1.75; }
+.markdown-preview--full .md-table { font-size: 0.95rem; }
+.markdown-preview--full .md-code-block { font-size: 0.9rem; }
+</style>

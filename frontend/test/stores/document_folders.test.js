@@ -109,4 +109,155 @@ describe('useDocumentFolderStore', () => {
     })
     expect(store.folders).toEqual([{ id: 1, name: 'A' }, { id: 2, name: 'B' }])
   })
+
+  // --- Nested-tree getters (added 2026-05-15) -----------------------------
+
+  describe('getById getter', () => {
+    it('returns folder when id matches', () => {
+      store.folders = [{ id: 1, name: 'A' }, { id: 2, name: 'B' }]
+      expect(store.getById(1)).toEqual({ id: 1, name: 'A' })
+    })
+
+    it('returns null when id missing', () => {
+      store.folders = [{ id: 1, name: 'A' }]
+      expect(store.getById(99)).toBeNull()
+    })
+  })
+
+  describe('tree getter', () => {
+    it('builds nested tree from flat parent FKs', () => {
+      store.folders = [
+        { id: 1, name: 'Root', order: 0, parent: null },
+        { id: 2, name: 'Child A', order: 0, parent: 1 },
+        { id: 3, name: 'Child B', order: 1, parent: 1 },
+        { id: 4, name: 'Grand', order: 0, parent: 2 },
+      ]
+      const tree = store.tree
+      expect(tree).toHaveLength(1)
+      expect(tree[0].folder.name).toBe('Root')
+      expect(tree[0].children).toHaveLength(2)
+      expect(tree[0].children[0].folder.name).toBe('Child A')
+      expect(tree[0].children[0].children[0].folder.name).toBe('Grand')
+      expect(tree[0].children[1].folder.name).toBe('Child B')
+    })
+
+    it('sorts siblings by order then name', () => {
+      store.folders = [
+        { id: 1, name: 'B', order: 0, parent: null },
+        { id: 2, name: 'A', order: 0, parent: null },
+        { id: 3, name: 'C', order: 1, parent: null },
+      ]
+      const tree = store.tree
+      expect(tree.map((n) => n.folder.name)).toEqual(['A', 'B', 'C'])
+    })
+
+    it('returns empty array when store empty', () => {
+      store.folders = []
+      expect(store.tree).toEqual([])
+    })
+  })
+
+  describe('descendantIdsOf getter', () => {
+    it('returns all descendants excluding self', () => {
+      store.folders = [
+        { id: 1, parent: null, name: 'r', order: 0 },
+        { id: 2, parent: 1, name: 'a', order: 0 },
+        { id: 3, parent: 1, name: 'b', order: 0 },
+        { id: 4, parent: 2, name: 'g', order: 0 },
+      ]
+      expect(store.descendantIdsOf(1)).toEqual(new Set([2, 3, 4]))
+    })
+
+    it('returns empty Set for a leaf folder', () => {
+      store.folders = [{ id: 1, parent: null, name: 'r', order: 0 }]
+      expect(store.descendantIdsOf(1)).toEqual(new Set())
+    })
+  })
+
+  describe('ancestorsOf getter', () => {
+    it('returns ancestors ordered root→parent (excluding self)', () => {
+      store.folders = [
+        { id: 1, parent: null, name: 'R', order: 0 },
+        { id: 2, parent: 1, name: 'M', order: 0 },
+        { id: 3, parent: 2, name: 'L', order: 0 },
+      ]
+      const chain = store.ancestorsOf(3)
+      expect(chain.map((f) => f.name)).toEqual(['R', 'M'])
+    })
+
+    it('returns empty array for a root folder', () => {
+      store.folders = [{ id: 1, parent: null, name: 'R', order: 0 }]
+      expect(store.ancestorsOf(1)).toEqual([])
+    })
+  })
+
+  // --- moveFolder action (added 2026-05-15) -------------------------------
+
+  describe('moveFolder action', () => {
+    it('POSTs to move endpoint and refetches', async () => {
+      create_request.mockResolvedValueOnce({ data: {} })  // move call
+      get_request.mockResolvedValueOnce({ data: [{ id: 1, name: 'r', order: 0, parent: null }] })  // refetch
+      const result = await store.moveFolder(5, { parent_id: 2, position: 1 })
+      expect(create_request).toHaveBeenCalledWith('document-folders/5/move/', {
+        parent_id: 2,
+        position: 1,
+      })
+      expect(get_request).toHaveBeenCalledWith('document-folders/')
+      expect(result.success).toBe(true)
+    })
+
+    it('omits position when null', async () => {
+      create_request.mockResolvedValueOnce({ data: {} })
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.moveFolder(5, { parent_id: null })
+      expect(create_request).toHaveBeenCalledWith('document-folders/5/move/', { parent_id: null })
+    })
+
+    it('sets error on failure', async () => {
+      create_request.mockRejectedValueOnce({ response: { data: { parent_id: 'invalid' } } })
+      const result = await store.moveFolder(5, { parent_id: 999 })
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('move_folder_failed')
+    })
+  })
+
+  // --- Scoped reorder (added 2026-05-15) ----------------------------------
+
+  describe('reorderFolders scoped by parent', () => {
+    it('POSTs parent_id and ids, then applies order locally', async () => {
+      store.folders = [
+        { id: 1, parent: 99, order: 0, name: 'a' },
+        { id: 2, parent: 99, order: 1, name: 'b' },
+      ]
+      create_request.mockResolvedValueOnce({ data: {} })
+      await store.reorderFolders({ parent_id: 99, ids: [2, 1] })
+      expect(create_request).toHaveBeenCalledWith('document-folders/reorder/', {
+        parent_id: 99,
+        ids: [2, 1],
+      })
+      expect(store.folders.find((f) => f.id === 2).order).toBe(0)
+      expect(store.folders.find((f) => f.id === 1).order).toBe(1)
+    })
+
+    it('does not touch folders outside the scoped ids', async () => {
+      store.folders = [
+        { id: 1, parent: 99, order: 0 },
+        { id: 9, parent: null, order: 5 },  // unrelated
+      ]
+      create_request.mockResolvedValueOnce({ data: {} })
+      await store.reorderFolders({ parent_id: 99, ids: [1] })
+      expect(store.folders.find((f) => f.id === 9).order).toBe(5)
+    })
+  })
+
+  // --- createFolder with parent (added 2026-05-15) ------------------------
+
+  it('createFolder forwards parent in payload', async () => {
+    create_request.mockResolvedValueOnce({ data: { id: 2, name: 'Child', order: 0, parent: 1 } })
+    await store.createFolder({ name: 'Child', parent: 1 })
+    expect(create_request).toHaveBeenCalledWith('document-folders/create/', {
+      name: 'Child',
+      parent: 1,
+    })
+  })
 })

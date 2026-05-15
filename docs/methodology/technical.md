@@ -310,3 +310,18 @@ projectapp/
 7. **Bogotá timezone for day-level arithmetic** — Django's `TIME_ZONE='UTC'` means `date.today()` returns UTC date. For day-level logic (e.g., the daily Huey task computing "is the stage overdue today?") always use `today_bogota()` from `content/utils.py`. Bogotá is fixed UTC-5 with no DST so the offset is stable year-round.
 8. **Huey cron schedule is in UTC** — `crontab(hour='13', minute='30')` means 13:30 UTC = 08:30 Bogotá. Document the offset in a comment above any periodic task that's meant to land in the team inbox at a specific local time.
 9. **`PROJECT_ACCESS_CIPHER_KEY` required** — must be set in production `.env`; generate with Fernet before first deploy of quick-access feature
+10. **Folder hierarchy depth cap** — `content.models.document_folder.MAX_FOLDER_DEPTH = 5`. Enforced in `DocumentFolder.clean()` and in `DocumentFolderSerializer.validate()` (which also rejects self-parent and cycle: `parent ∈ self.get_descendant_ids()`). The serializer is reused by the dedicated `move_document_folder` view so the same rules apply to reparenting via drag-and-drop. The DB FK is `on_delete=PROTECT` because the delete view already blocks-with-409 on non-empty subtrees.
+11. **Tree context pattern** — for hierarchical reads that need `path`, `depth`, and recursive aggregates per node, do **not** rely on `WITH RECURSIVE` SQL or N+1 lookups. `backend/content/views/document_folder.py:_build_tree_context()` is the canonical pattern: one annotated query (`annotate(_direct_count=Count('documents'))`) + Python DFS to populate `folder_by_id`, `children_map`, `direct_counts`, `recursive_counts`; the maps are passed via `serializer.context` and the serializer's `SerializerMethodField`s resolve in O(1) per node. Acceptable because depth is bounded (max 5) and folder count is small.
+
+---
+
+## 10. Claude Code Hooks (`.claude/settings.json`)
+
+Two hooks are wired so the agent receives context and reminders automatically:
+
+| Event | Command (timeout) | Purpose |
+|-------|---|---|
+| `SessionStart` | `timeout 20 bash /home/ryzepeck/webapps/ops/vps/scripts/maintenance/session-start-git-status.sh` | Read-only `git fetch` + status across all tracked repos; injects `behind=N ahead=N dirty=N` per repo so the agent can decide whether to invoke the `git-sync` skill before editing. The agent **must not** use `git pull --force`, `git reset --hard`, or auto-stash to resolve drift — only the `git-sync` skill, which rebases against the parent branch and walks the operator through any conflicts. |
+| `Stop` | `timeout 10 bash /home/ryzepeck/webapps/ops/vps/scripts/maintenance/stop-check-user-flows.sh` | Checks for uncommitted changes under `frontend/src/`, `frontend/app/`, `frontend/pages/`, or `frontend/components/` and, if found, surfaces a reminder to run the `e2e-user-flows-check` skill before claiming the task complete. Non-blocking; the rule in `CLAUDE.md` § "E2E User Flows Check" applies regardless. |
+
+Both hooks are wrapped in `|| true` so a failed script never blocks the session. The scripts themselves live outside the project tree (under the shared `ops/vps/scripts/maintenance/` toolkit) so they can be reused across every project on this VPS.

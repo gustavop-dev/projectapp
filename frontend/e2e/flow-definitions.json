@@ -1459,7 +1459,20 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Organize admin documents with folders and tags: sidebar folder navigation, tag filter chips, and folder/tag management modals.",
+      "description": "Organize admin documents with a hierarchical folder tree (up to 5 levels) and tags: sidebar tree navigation with chevron expand/collapse, recursive filter (parent shows descendants' docs), recursive document counts, parent selector in FolderManagerModal, double-guard delete (blocks if has children or descendant docs), and FolderPathChip breadcrumbs in document rows.",
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Existing spec covers flat folder CRUD only; nested-creation, recursive filter/count, expand/collapse persistence, delete-blocked-by-children, and FolderPathChip branches need new assertions."
+      ]
+    },
+    "admin-document-folders-tree-drag": {
+      "name": "Admin Document Folders Tree Drag",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin reorganizes the folder tree via drag-and-drop in the sidebar: dragging into another folder reparents (POST /document-folders/<id>/move/); dragging among siblings reorders scoped by parent_id (POST /document-folders/reorder/). Backend validates cycle and depth (max 5 levels).",
       "expectedSpecs": 1
     },
     "admin-admin-management": {
@@ -1859,8 +1872,11 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Admin moves a document to a different folder (or removes it from any folder) via MoveFolderModal from the documents page. PATCHes documents/{id}/update/ with folder_id.",
-      "expectedSpecs": 3
+      "description": "Admin moves a document to a different folder (including any depth in the nested folder tree, indented in the modal) or removes it from any folder via MoveFolderModal. PATCHes documents/{id}/update/ with folder_id.",
+      "expectedSpecs": 3,
+      "knownGaps": [
+        "Existing spec asserts the modal renders a flat folder list; needs a new assertion that nested folders show indented (paddingLeft scales with depth) and a branch selecting a depth-2+ folder."
+      ]
     },
     "admin-document-pdf-download": {
       "name": "Admin Document PDF Download",

@@ -8,6 +8,52 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ## Recent Focus Areas
 
+- **Document Folder System — Hierarchical (Nested up to 5 levels)** (May 15, 2026):
+  - **Motivation**: Flat folder model under `/panel/documents` did not scale — sellers organize by "Clientes > Activos > 2026 > Contratos" and the lineal sidebar became unmanageable.
+  - **Backend — model**: `DocumentFolder.parent = ForeignKey('self', PROTECT, null=True, blank=True, related_name='children')`. New constant `MAX_FOLDER_DEPTH = 5`. New methods: `get_depth()`, `get_ancestors()` (root→parent), `get_descendant_ids(include_self=False)` (BFS), `clean()` validates self-parent, cycle (parent ∈ descendants), and depth (`parent_depth + 1 < MAX`).
+  - **Backend — migration**: `0122_documentfolder_parent.py` is `AddField` only; no data migration (existing folders keep `parent=NULL` = root). Backward compatible.
+  - **Backend — serializer**: extended `DocumentFolderSerializer` with `parent` (PrimaryKeyRelatedField, nullable), `path` (root→self with `{id, name}`), `depth`. `document_count` is now **recursive** — resolved from serializer `context` (`recursive_counts` map injected by the view) in O(1), with fallback to `Document.objects.filter(folder_id__in=descendants).count()` for single-object responses. `validate()` enforces self-parent/cycle/depth at the API surface.
+  - **Backend — views (`document_folder.py`)**: helper `_build_tree_context()` does a single annotated query + Python DFS to compute `folder_by_id`, `children_map`, `direct_counts`, `recursive_counts` and passes them via serializer context (avoids N+1 across path/depth/count). `delete_document_folder` now has a **double guard** — blocks with 409 when `folder.children.exists()` (`has_children: true`) OR any descendant has documents (`has_documents`, with descendant count); response includes `reasons: ['has_children'|'has_documents']`. `reorder_document_folders` now requires `{ parent_id, ids }` and rejects ids whose actual `parent_id` doesn't match the declared scope. **NEW endpoint** `move_document_folder(POST /document-folders/<pk>/move/)` accepts `{ parent_id, position? }` and atomically reparents + reorders new siblings.
+  - **Backend — recursive document filter**: `list_documents` now expands `?folder=<id>` to `folder_id__in=folder.get_descendant_ids(include_self=True)`. `?folder=none` and `?folder=all` unchanged.
+  - **Backend — URLs**: `path('document-folders/<int:folder_id>/move/', move_document_folder, name='move-document-folder')`.
+  - **Frontend — store (`document_folders.js`)**: state stays flat (`folders: []`). New getters `getById`, `tree` (flat→nested with sorted siblings), `descendantIdsOf`, `ancestorsOf`. `createFolder({ name, parent })` accepts optional parent. New action `moveFolder(id, { parent_id, position })` POSTs to the new endpoint and refetches. `reorderFolders({ parent_id, ids })` now scoped.
+  - **Frontend — composable `useFolderExpansion`**: module-level singleton, persists `panel.documents.folderExpanded` array via `usePersistedRef`. Exposes `isExpanded`, `toggle`, `expand`/`collapse`, `expandPath` (used by sidebar to auto-open ancestors of the active folder on mount).
+  - **Frontend — components**:
+    - `FolderTreeNode.vue` (recursive): chevron expand/collapse, drag handle (six-dots), drop zone for document drag, padding-left = `level * 12px`. Inner `<draggable group="folders" @change="onChildrenChange">` distinguishes `added` (reparent → `moveFolder`) vs `moved` (reorder → `reorderFolders`).
+    - `FolderPathChip.vue` (new): renders `Clientes › Activos › 2026` truncated chip with folder icon — replaces inline `📁 folder_name` in `/panel/documents/index.vue`.
+    - `FolderSidebar.vue` (rewritten): iterates `folderStore.tree` of root nodes; auto-expands ancestors of `activeId` on mount via `watch`; root-level draggable with `group="folders"` so dragging a deep node out to the sidebar margin reparents to root.
+    - `FolderManagerModal.vue`: "Dentro de" parent `<select>` with depth-indented option labels (options at depth ≥ 4 disabled with "(nivel máximo)" suffix). List is now flat indented by `row.depth`; drag-reorder removed from the modal (lives in the sidebar). Delete blocked panel adds "has children" branch in addition to "has documents".
+    - `MoveFolderModal.vue`: destination list is the full tree indented by depth (`paddingLeft` scales with `row.depth`).
+  - **Tests backend**: 30/30 passing in `test_document_folder_views.py` (13 new: `TestNestedFolderModel`, `TestCreateNestedFolder` with depth limit, `TestUpdateNestedFolder` rejecting self-parent + cycle, `TestDeleteWithChildren` (`has_children` + `has_documents` + reasons), `TestRecursiveDocumentFilter`, `TestMoveFolder` (reparent + root + reject-into-descendant), `TestSerializerFields` (recursive count + path), `TestReorderScopedByParent`). All 131 document-related tests passing — no regressions.
+  - **E2E flows**: `admin-document-folders` flagged ⚠️ Partial (existing spec asserts flat UI; nested-creation/recursive-filter/path-chip branches need new assertions). `admin-document-move-folder` flagged ⚠️ Partial (nested-target branch missing). NEW flow `admin-document-folders-tree-drag` registered (P2, ⬜ Missing) in both `docs/USER_FLOW_MAP.md` and `frontend/e2e/flow-definitions.json`.
+  - **Gaps / Follow-up**:
+    1. Migration `0122` not applied to staging/prod yet — pending operator action.
+    2. Frontend Jest specs (`FolderSidebar.spec.js`, `FolderManagerModal.spec.js`, `MoveFolderModal.spec.js`, `document_folders.test.js`) need updates for tree props and `reorderFolders({ parent_id, ids })` signature.
+    3. E2E spec `admin-document-folders-tree-drag` to be written (drag reparent + reorder + cycle rejection).
+
+- **Document Preview Button on List View** (May 15, 2026):
+  - **Motivation**: Operators had to enter the detail page just to glance at a document's rendered markdown. A preview action in the list saves the round-trip.
+  - **Frontend**: `expand-arrows` icon (same SVG path as the "Vista completa" button in `[id]/edit.vue:181`) added between "Editar" and "Renombrar" in the desktop row. On click, fetches markdown via the existing `documentStore.getDocumentMarkdown(id)`, renders via the existing `useMarkdownPreview().parseMarkdown(md)` composable, and opens the existing `MarkdownPreviewModal` (slot-based fullscreen). Same action appears as the first item in `DocumentActionsSheet` for mobile.
+  - **CSS — click-flash feedback**: new keyframes `action-icon-flash` (320ms, scales 0.92→1.08→1 + box-shadow ring in `currentColor`) and `action-row-flash` (background-color fade via `color-mix(in srgb, currentColor 14%, transparent)`) added to `frontend/assets/styles/main.css`. Applied conditionally to all 9 desktop action icons and to the mobile sheet rows via a small `flash(key)` helper that uses `nextTick` to retrigger the animation reliably.
+  - **No backend changes**: `documents/{id}/detail/` already returns `content_markdown`.
+  - **Tokens**: `text-emerald-600` initially flagged by `check-design-tokens.mjs` (semantic equivalent `text-text-brand` was already used by Edit) — switched to `text-sky-600` to remain distinguishable.
+
+- **Session Start Protocol — git-sync hook** (commit `65fb2f7a`, May 15, 2026):
+  - `.claude/settings.json` SessionStart hook runs `timeout 20 bash /home/ryzepeck/webapps/ops/vps/scripts/maintenance/session-start-git-status.sh` and injects `behind=N ahead=N dirty=N` per repo at session start.
+  - Motivation: the operator switches machines; cron and CI commit changes. Editing on a stale tree creates conflicts / duplicate work.
+  - When `behind > 0` or `dirty > 0`, Claude is instructed (via `CLAUDE.md` § "Session Start Protocol") to invoke the `git-sync` skill — never `git pull --force`, `reset --hard`, or auto-stash.
+
+- **E2E User Flows Protocol — Stop hook** (commit `cf0fca6c`, May 15, 2026):
+  - `.claude/settings.json` Stop hook runs `timeout 10 bash /home/ryzepeck/webapps/ops/vps/scripts/maintenance/stop-check-user-flows.sh` and surfaces a reminder if uncommitted changes touch `frontend/src/`, `frontend/app/`, `frontend/pages/`, or `frontend/components/`.
+  - The reminder instructs the agent to invoke the `e2e-user-flows-check` skill before reporting the task complete. Non-blocking — the obligation in `CLAUDE.md` § "E2E User Flows Check" applies regardless.
+
+- **Calculator Modules — `selected` Source of Truth + Admin-Pinned Union** (commits `7229589b`, `7f71c18d`, ~May 12, 2026):
+  - `selected` (client confirmation state) is now the source of truth for which calculator modules are active; `default_selected` is only the fallback when no confirmation has been recorded.
+  - Confirmation flow unions admin-pinned modules into the client's confirmed selection so admin intent isn't lost when the client unticks an item.
+
+- **Double-Check May 11 (PR #41)** (commit `4ceae560`):
+  - Squash-merged with a generic message; follow-up audit needed to capture the actual scope in this log.
+
 - **Proposal — 3 New Additional Modules: Biometric Verification, QR Generator, AI Content Generator with Editorial Calendar** (May 7, 2026):
   - **Motivation**: The seller wanted to expose 3 more selectable add-ons to clients via the calculator. Biometric verification is provider-billed (we don't collect — the integration provider invoices the end client directly), so it follows the `is_invite=True, price_percent=0` pattern of `ai_module` / `integration_conversion_tracking`. The QR generator (25%) and AI content generator (30%) are regular calculator modules. The content generator must explicitly include an **editorial calendar with scheduling/auto-publishing** so the client sees the planning workflow, not just AI text generation.
   - **Catalog (`backend/content/services/proposal_service.py`)**: 3 entries added to both `DEFAULT_SECTIONS` (ES) `additionalModules` and `DEFAULT_SECTIONS_EN` `additionalModules`.

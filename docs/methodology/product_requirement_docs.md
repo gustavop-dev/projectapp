@@ -143,9 +143,16 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - PDF generation via `DocumentPdfService` + `MarkdownParser` + shared `PdfUtils` layer
 - Admin CRUD panel (`/panel/documents/`) with create, edit, list, status management
 - Bilingual support (es/en)
-- **Folders & tags**: documents organize into `DocumentFolder`s and `DocumentTag`s managed inline from the documents list page.
-  - Folder deletion is **blocked (HTTP 409)** when the folder contains documents; the admin must move or delete each document first. The DB FK keeps `on_delete=SET_NULL` only as a safety net for non-API removals.
-  - Folder/tag mutations from `FolderManagerModal`/`TagManagerModal` re-fetch both the documents list and the folder/tag stores so the sidebar count and order reflect the change without a page reload.
+- **Hierarchical folders & tags**: documents organize into a tree of `DocumentFolder`s (up to **5 levels** deep) plus a flat set of `DocumentTag`s, all managed inline from the documents list page.
+  - **Tree shape**: each `DocumentFolder` has an optional `parent` FK (self-reference, `on_delete=PROTECT`); folders without a parent are roots. Profundidad máxima 5 niveles, validada en backend (`MAX_FOLDER_DEPTH`) y reflejada en el "Dentro de" selector (opciones a profundidad ≥ 4 deshabilitadas con "(nivel máximo)").
+  - **Recursive filter**: selecting a folder in the sidebar shows documents from that folder **and every descendant** (`?folder=<id>` expands to `folder_id__in=<descendants_including_self>`).
+  - **Recursive count**: the badge next to each folder in the sidebar is the count of documents in the folder plus all its descendants.
+  - **Drag-and-drop reorganization**: arrastrar una carpeta entre hermanos la reordena; arrastrar dentro de otra carpeta la reparenta. Backend valida cycle (parent ∉ self.descendants) y depth (parent_depth + 1 < MAX).
+  - **Breadcrumb chip**: in the "Todos" view, each document row shows a `FolderPathChip` with the full path "Clientes › Activos › 2026" (truncated with max-width). Replaces the previous flat `📁 folder_name` chip.
+  - **Auto-expand**: on page load and on folder selection, the sidebar auto-expands the ancestors of the active folder so it is always visible. Expanded state persists per browser in `localStorage` (`panel.documents.folderExpanded`).
+  - **Deletion is blocked (HTTP 409) when**: the folder has subfolders (`has_children`) OR any document in the folder or any descendant (`has_documents`). The response includes the specific `reasons[]` so the modal can show the right message. DB FK keeps `on_delete=PROTECT` (no silent cascade); the legacy `Document.folder` FK retains `SET_NULL` as a safety net for non-API removals.
+  - **Document preview from list**: the desktop row exposes a "Vista previa" action (expand-arrows icon) that fetches the document's markdown and opens the same `MarkdownPreviewModal` used by the edit page — no navigation required. The mobile sheet has the same action as the first option. All 9 action icons show a 320 ms click-flash (ring + scale) so touch users get unambiguous feedback.
+  - Folder/tag mutations from `FolderManagerModal`/`TagManagerModal` re-fetch both the documents list and the folder/tag stores so the sidebar count, tree shape, and ordering reflect the change without a page reload.
 
 ### 3.6 Contract System
 
