@@ -269,9 +269,10 @@
    because creation is a less-frequent, higher-signal event.
    ============================ */
 @keyframes folder-highlight-flash {
-  /* First pulse */
-  0%   { background-color: var(--color-primary-soft); box-shadow: 0 0 0 0 var(--color-primary-soft); }
-  12%  { background-color: var(--color-primary-soft); box-shadow: 0 0 0 4px var(--color-primary-soft); }
+  /* First pulse: off -> fade-in -> halo -> fade-out (symmetric to second) */
+  0%   { background-color: transparent;               box-shadow: 0 0 0 0 transparent; }
+  6%   { background-color: var(--color-primary-soft); box-shadow: 0 0 0 0 var(--color-primary-soft); }
+  18%  { background-color: var(--color-primary-soft); box-shadow: 0 0 0 4px var(--color-primary-soft); }
   30%  { background-color: transparent;               box-shadow: 0 0 0 0 transparent; }
   /* Second pulse */
   42%  { background-color: var(--color-primary-soft); box-shadow: 0 0 0 0 var(--color-primary-soft); }
