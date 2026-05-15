@@ -1,3 +1,6 @@
+jest.mock('../../stores/document_folders', () => ({ useDocumentFolderStore: jest.fn() }));
+jest.mock('../../composables/useFolderExpansion', () => ({ useFolderExpansion: jest.fn() }));
+
 /**
  * Tests for FolderSidebar.vue (nested-tree version, 2026-05-15).
  *
@@ -26,13 +29,15 @@ const mockFolderStore = {
   ancestorsOf: jest.fn(() => []),
   fetchFolders: jest.fn(),
 };
-global.useDocumentFolderStore = jest.fn(() => mockFolderStore);
+useDocumentFolderStore.mockReturnValue(mockFolderStore);
 
 const mockExpansion = {
   expandPath: jest.fn(),
 };
-global.useFolderExpansion = jest.fn(() => mockExpansion);
+useFolderExpansion.mockReturnValue(mockExpansion);
 
+import { useDocumentFolderStore } from '../../stores/document_folders';
+import { useFolderExpansion } from '../../composables/useFolderExpansion';
 import { mount } from '@vue/test-utils';
 import FolderSidebar from '../../components/panel/documents/FolderSidebar.vue';
 

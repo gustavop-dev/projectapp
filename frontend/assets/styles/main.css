@@ -261,3 +261,18 @@
 .action-row-flash {
   animation: action-row-flash 320ms ease-out;
 }
+
+/* ============================
+   Folder creation highlight — used by FolderTreeNode when folder.id matches
+   folderStore.newlyCreatedId. 2500 ms total so it fades naturally with the
+   store's auto-clear timer. Slower + more expressive than action-row-flash
+   because creation is a less-frequent, higher-signal event.
+   ============================ */
+@keyframes folder-highlight-flash {
+  0%   { background-color: var(--color-primary-soft); box-shadow: 0 0 0 0 var(--color-primary-soft); }
+  10%  { background-color: var(--color-primary-soft); box-shadow: 0 0 0 4px var(--color-primary-soft); }
+  100% { background-color: transparent; box-shadow: 0 0 0 0 transparent; }
+}
+.folder-highlight-flash {
+  animation: folder-highlight-flash 2500ms ease-out;
+}

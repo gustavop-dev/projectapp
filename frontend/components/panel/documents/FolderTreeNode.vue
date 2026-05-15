@@ -2,7 +2,11 @@
   <li class="group">
     <div
       class="flex items-center rounded-lg transition-all"
-      :class="[entryClass, dropZoneClass]"
+      :class="[
+        entryClass,
+        dropZoneClass,
+        { 'folder-highlight-flash': folder.id === folderStore.newlyCreatedId },
+      ]"
       :style="indentStyle"
       @dragover.prevent="onDocDragOver"
       @dragleave="dragOverId === folder.id && (dragOverId = null)"

@@ -3,17 +3,34 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
       <h1 class="text-2xl font-light text-text-default">Documentos</h1>
-      <NuxtLink
-        :to="createLink"
-        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl
-               font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm
-               dark:bg-primary-strong dark:hover:bg-primary"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        Nuevo Documento
-      </NuxtLink>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <button
+          type="button"
+          class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
+                 font-medium text-sm transition-colors shadow-sm
+                 bg-surface text-text-default border border-border-default
+                 hover:bg-surface-raised dark:hover:bg-gray-700/50"
+          title="Crear nueva carpeta"
+          @click="openFolderManager"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11v6m-3-3h6" />
+          </svg>
+          Crear carpeta
+        </button>
+        <NuxtLink
+          :to="createLink"
+          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl
+                 font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm
+                 dark:bg-primary-strong dark:hover:bg-primary"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Nuevo Documento
+        </NuxtLink>
+      </div>
     </div>
 
     <!-- Search bar -->

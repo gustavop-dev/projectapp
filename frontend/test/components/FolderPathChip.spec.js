@@ -1,3 +1,5 @@
+jest.mock('../../stores/document_folders', () => ({ useDocumentFolderStore: jest.fn() }));
+
 /**
  * Tests for FolderPathChip.vue.
  *
@@ -10,8 +12,9 @@ const mockFolderStore = {
   ancestorsOf: jest.fn(),
 };
 
-global.useDocumentFolderStore = jest.fn(() => mockFolderStore);
+useDocumentFolderStore.mockReturnValue(mockFolderStore);
 
+import { useDocumentFolderStore } from '../../stores/document_folders';
 import { mount } from '@vue/test-utils';
 import FolderPathChip from '../../components/panel/documents/FolderPathChip.vue';
 

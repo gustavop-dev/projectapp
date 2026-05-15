@@ -1,3 +1,6 @@
+jest.mock('../../stores/document_folders', () => ({ useDocumentFolderStore: jest.fn() }));
+jest.mock('../../stores/documents', () => ({ useDocumentStore: jest.fn() }));
+
 /**
  * Tests for MoveFolderModal.vue.
  *
@@ -28,10 +31,11 @@ function setFolders(folders) {
   mockFolderStore.tree = roots;
 }
 
-// Nuxt auto-imports — must be set before the component is required
-global.useDocumentStore = jest.fn(() => mockDocumentStore);
-global.useDocumentFolderStore = jest.fn(() => mockFolderStore);
+useDocumentStore.mockReturnValue(mockDocumentStore);
+useDocumentFolderStore.mockReturnValue(mockFolderStore);
 
+import { useDocumentStore } from '../../stores/documents';
+import { useDocumentFolderStore } from '../../stores/document_folders';
 import { mount } from '@vue/test-utils';
 import MoveFolderModal from '../../components/panel/documents/MoveFolderModal.vue';
 

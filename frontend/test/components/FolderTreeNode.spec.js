@@ -1,3 +1,6 @@
+jest.mock('../../stores/document_folders', () => ({ useDocumentFolderStore: jest.fn() }));
+jest.mock('../../composables/useFolderExpansion', () => ({ useFolderExpansion: jest.fn() }));
+
 /**
  * Tests for FolderTreeNode.vue.
  *
@@ -9,14 +12,16 @@ const mockFolderStore = {
   moveFolder: jest.fn(),
   reorderFolders: jest.fn(),
 };
-global.useDocumentFolderStore = jest.fn(() => mockFolderStore);
+useDocumentFolderStore.mockReturnValue(mockFolderStore);
 
 const mockExpansion = {
   isExpanded: jest.fn(() => false),
   toggle: jest.fn(),
 };
-global.useFolderExpansion = jest.fn(() => mockExpansion);
+useFolderExpansion.mockReturnValue(mockExpansion);
 
+import { useDocumentFolderStore } from '../../stores/document_folders';
+import { useFolderExpansion } from '../../composables/useFolderExpansion';
 import { mount } from '@vue/test-utils';
 import FolderTreeNode from '../../components/panel/documents/FolderTreeNode.vue';
 

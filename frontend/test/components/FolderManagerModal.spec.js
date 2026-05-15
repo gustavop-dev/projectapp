@@ -1,3 +1,8 @@
+jest.mock('../../stores/document_folders', () => ({ useDocumentFolderStore: jest.fn() }));
+jest.mock('../../composables/useFolderExpansion', () => ({
+  useFolderExpansion: jest.fn(() => ({ expandPath: jest.fn() })),
+}));
+
 /**
  * Tests for FolderManagerModal.vue.
  *
@@ -15,6 +20,7 @@ const mockFolderStore = {
   updateFolder: jest.fn(),
   deleteFolder: jest.fn(),
   reorderFolders: jest.fn(),
+  ancestorsOf: jest.fn(() => []),
 };
 
 /**
@@ -33,9 +39,9 @@ function setFolders(folders) {
   mockFolderStore.tree = roots;
 }
 
-// Nuxt auto-import — must be set before the component is required
-global.useDocumentFolderStore = jest.fn(() => mockFolderStore);
+useDocumentFolderStore.mockReturnValue(mockFolderStore);
 
+import { useDocumentFolderStore } from '../../stores/document_folders';
 import { mount } from '@vue/test-utils';
 import FolderManagerModal from '../../components/panel/documents/FolderManagerModal.vue';
 
@@ -43,6 +49,16 @@ async function flushPromises() {
   await Promise.resolve();
   await Promise.resolve();
 }
+
+const FolderTreeSelectStub = {
+  name: 'FolderTreeSelect',
+  props: ['modelValue'],
+  emits: ['update:modelValue'],
+  computed: {
+    folders: () => mockFolderStore.folders,
+  },
+  template: `<select @change="$emit('update:modelValue', $event.target.value ? Number($event.target.value) : null)"><option value="">Raíz</option><option v-for="f in folders" :key="f.id" :value="f.id">{{ f.name }}</option></select>`,
+};
 
 const DraggableStub = {
   name: 'Draggable',
@@ -62,6 +78,7 @@ function mountModal(props = {}) {
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
         draggable: DraggableStub,
+        FolderTreeSelect: FolderTreeSelectStub,
       },
     },
   });
@@ -72,10 +89,11 @@ describe('FolderManagerModal', () => {
     setFolders([]);
     mockFolderStore.isUpdating = false;
     mockFolderStore.fetchFolders.mockReset().mockResolvedValue({ success: true });
-    mockFolderStore.createFolder.mockReset().mockResolvedValue({ success: true });
+    mockFolderStore.createFolder.mockReset().mockResolvedValue({ success: true, data: { id: 99 } });
     mockFolderStore.updateFolder.mockReset().mockResolvedValue({ success: true });
     mockFolderStore.deleteFolder.mockReset().mockResolvedValue({ success: true });
     mockFolderStore.reorderFolders.mockReset().mockResolvedValue({ success: true });
+    mockFolderStore.ancestorsOf.mockReset().mockReturnValue([]);
   });
 
   // ── Rendering ──────────────────────────────────────────────────────────────
@@ -123,7 +141,7 @@ describe('FolderManagerModal', () => {
       await wrapper.find('form').trigger('submit');
       await flushPromises();
 
-      expect(mockFolderStore.createFolder).toHaveBeenCalledWith({ name: 'My Folder' });
+      expect(mockFolderStore.createFolder).toHaveBeenCalledWith({ name: 'My Folder', parent: null });
     });
 
     it('disables the Crear button when the input is empty', () => {

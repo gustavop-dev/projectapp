@@ -1459,10 +1459,14 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Organize admin documents with a hierarchical folder tree (up to 5 levels) and tags: sidebar tree navigation with chevron expand/collapse, recursive filter (parent shows descendants' docs), recursive document counts, parent selector in FolderManagerModal, double-guard delete (blocks if has children or descendant docs), and FolderPathChip breadcrumbs in document rows.",
+      "description": "Organize admin documents with a hierarchical folder tree (up to 5 levels) and tags: sidebar tree navigation with chevron expand/collapse, recursive filter (parent shows descendants' docs), recursive document counts, FolderTreeSelect popover (custom dropdown replacing the native <select>) for choosing the parent in FolderManagerModal, double-guard delete (blocks if has children or descendant docs), and FolderPathChip breadcrumbs in document rows. The page header exposes a 'Crear carpeta' shortcut button next to 'Nuevo Documento'; newly-created folders flash a 2500 ms highlight in the sidebar and auto-expand their ancestor path if nested.",
       "expectedSpecs": 1,
       "knownGaps": [
-        "Existing spec covers flat folder CRUD only; nested-creation, recursive filter/count, expand/collapse persistence, delete-blocked-by-children, and FolderPathChip branches need new assertions."
+        "Existing spec covers flat folder CRUD + recursive filter/count + delete-blocked-by-children. Still missing: expand/collapse persistence assertion, FolderPathChip breadcrumb in document row.",
+        "Header 'Crear carpeta' button entry point not yet asserted in E2E.",
+        "FolderTreeSelect popover behavior (open on trigger click, close on ESC, close on click-outside, select root, select nested, search filtering, depth-disabled 'Nivel máx.' rows) not yet covered — replaces the previous <select> tests which are now invalid.",
+        "Highlight class `folder-highlight-flash` on the newly-created FolderTreeNode not yet asserted.",
+        "Auto-expand ancestors (`useFolderExpansion().expandPath`) after creating a nested folder not yet asserted."
       ]
     },
     "admin-document-folders-tree-drag": {

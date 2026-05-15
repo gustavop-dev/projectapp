@@ -9,6 +9,9 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
     isLoading: false,
     isUpdating: false,
     error: null,
+    newlyCreatedId: null,
+    // Non-reactive timer handle (Pinia doesn't proxy non-state assignments).
+    _newlyCreatedTimer: null,
   }),
 
   getters: {
@@ -100,6 +103,11 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
         const response = await create_request('document-folders/create/', payload);
         this.folders.push(response.data);
         this.folders.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+        this.newlyCreatedId = response.data.id;
+        if (this._newlyCreatedTimer) clearTimeout(this._newlyCreatedTimer);
+        this._newlyCreatedTimer = setTimeout(() => {
+          this.newlyCreatedId = null;
+        }, 2500);
         return { success: true, data: response.data };
       } catch (error) {
         this.error = 'create_folder_failed';

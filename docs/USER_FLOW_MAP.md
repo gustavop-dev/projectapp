@@ -3107,7 +3107,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents`
-- **Description:** Organize admin documents with a hierarchical folder sidebar (tree with up to 5 levels of nesting) and tag filter chips. Admin selects any folder in the tree to filter the list (including documents of all descendants), toggles tag chips for multi-tag OR filtering, opens FolderManagerModal to create/rename/delete folders with a parent selector, and opens TagManagerModal for tag CRUD. Folder counts in the sidebar are **recursive** (include documents in subfolders).
+- **Description:** Organize admin documents with a hierarchical folder sidebar (tree with up to 5 levels of nesting) and tag filter chips. Admin selects any folder in the tree to filter the list (including documents of all descendants), toggles tag chips for multi-tag OR filtering, opens FolderManagerModal to create/rename/delete folders with a parent selector (custom `FolderTreeSelect` popover, not a native `<select>`), and opens TagManagerModal for tag CRUD. Folder counts in the sidebar are **recursive** (include documents in subfolders). A dedicated **"Crear carpeta"** button in the page header provides a one-click shortcut to the create form; newly-created folders are highlighted in the sidebar for 2.5 seconds so the user knows where they landed.
 - **Steps:**
   1. Admin loads `/panel/documents` — left sidebar renders the folder tree; tag chips appear above the table.
   2. Admin clicks a folder entry → list refreshes with `?folder=<id>` and shows documents from that folder **and all its descendants**.
@@ -3116,13 +3116,14 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   5. Admin clicks a tag chip → list refreshes with `?tags=<id>` (OR logic; multiple chips additive).
   6. Admin clicks "Limpiar" → tag filter cleared, list refreshes.
   7. Admin clicks "Gestionar" / "Gestionar etiquetas" → modal opens for inline CRUD.
-  8. Admin creates a folder optionally selecting a parent via "Dentro de" select, or renames/deletes a folder/tag → modal emits `@changed` → document list refreshes.
+  8. Admin creates a folder optionally selecting a parent via the `FolderTreeSelect` popover ("Dentro de"), or renames/deletes a folder/tag → modal emits `@changed` → document list refreshes.
   9. Admin clicks the chevron next to a folder with children to expand/collapse its subtree; the expanded set persists in `localStorage` (`panel.documents.folderExpanded`). Ancestors of the active folder auto-expand on load.
+  10. Admin alternatively clicks the **"Crear carpeta"** button in the page header (left of "Nuevo Documento") → opens `FolderManagerModal` directly with the name input focused. Equivalent shortcut to opening via the sidebar's "Gestionar" button.
 - **Branches:**
   - [Branch A — Empty folders] No folders yet → "Sin carpeta" and "Todos" entries only; "Crear la primera →" prompt for tags.
-  - [Branch B — Create root folder] Admin fills name + leaves "Dentro de" as "— Raíz —" → folder created at root.
-  - [Branch C — Create nested folder] Admin fills name + selects a parent in "Dentro de" → folder created as child; appears indented under its parent in the sidebar.
-  - [Branch D — Depth limit] Parent options at depth 4 are disabled with "(nivel máximo)" suffix; backend returns 400 if bypassed (max 5 levels total).
+  - [Branch B — Create root folder] Admin fills name + leaves the `FolderTreeSelect` popover trigger showing "— Raíz —" → folder created at root.
+  - [Branch C — Create nested folder] Admin fills name + opens the `FolderTreeSelect` popover, clicks a folder option (e.g. "Clientes › Activos"), trigger updates to show the selected path → folder created as child; appears indented under its parent in the sidebar.
+  - [Branch D — Depth limit] In the `FolderTreeSelect` popover, options at depth 4 display a "Nivel máx." badge and are non-clickable (opacity-50, `cursor-not-allowed`); backend additionally returns 400 if bypassed (max 5 levels total).
   - [Branch E — Recursive filter] Selecting "Clientes" with subfolders "Activos/2026" shows documents from all three.
   - [Branch F — Recursive count] The badge next to "Clientes" sums documents in itself + every descendant.
   - [Branch G — Delete blocked by children] Trying to delete a folder with subfolders → 409 with `has_children` reason; modal shows amber blocked panel "La carpeta contiene subcarpetas".
@@ -3130,8 +3131,13 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch I — Delete empty leaf] Folder with no children and no documents → red destructive confirmation; on confirm, removed.
   - [Branch J — Folder path chip] In the "Todos" view, each document row shows a breadcrumb chip "Clientes › Activos › 2026" via `FolderPathChip`.
   - [Branch K — Assign on create] Creating a document from `?folder=<id>` pre-selects that folder.
-- **Coverage:** ⚠️ Partial — existing spec covers flat folder CRUD + flat filter. New branches C/D/E/F/G/H/I/J are **not yet covered**. Existing tests likely fail until updated for the new tree UI (`FolderTreeNode`, recursive count, parent selector in create form).
-- **E2E Spec:** `e2e/admin/admin-document-folders.spec.js` *(needs update)*
+  - [Branch L — Autofocus on open] Opening the `FolderManagerModal` (via header button OR sidebar "Gestionar") autofocuses the name input via `nextTick(() => nameInputRef.value?.focus())`, allowing immediate keyboard entry.
+  - [Branch M — Highlight on create] After a successful `createFolder`, the store sets `newlyCreatedId` and the matching `FolderTreeNode` receives the `folder-highlight-flash` class (2500 ms keyframe animation: primary-soft background + ring fade-out). The class is auto-removed via a 2500 ms `setTimeout` in the store.
+  - [Branch N — Auto-expand on create] If the new folder is nested, `FolderManagerModal.handleCreate()` calls `useFolderExpansion().expandPath(folderStore.ancestorsOf(newId).map(a => a.id))` so the highlight is visible even when the parent branch was collapsed.
+  - [Branch O — FolderTreeSelect search] When the popover lists ≥ 5 folders, a search input appears that filters by folder name OR any ancestor name (case-insensitive).
+  - [Branch P — FolderTreeSelect dismiss] Pressing ESC or clicking outside the popover closes it without changing the selection (`useVueUse onClickOutside` + `onKeyStroke('Escape')`).
+- **Coverage:** ⚠️ Partial — existing spec covers flat folder CRUD + flat filter + recursive filter/count + delete-blocked-by-children. Gaps remaining (see flow-definitions `knownGaps`): header "Crear carpeta" button entry point, `FolderTreeSelect` popover behavior, highlight class assertion, auto-expand ancestors after nested create, `FolderPathChip` breadcrumb in row, expand/collapse persistence.
+- **E2E Spec:** `e2e/admin/admin-document-folders.spec.js` *(needs update — see gaps above)*
 
 #### FLOW: `admin-document-pdf-download`
 

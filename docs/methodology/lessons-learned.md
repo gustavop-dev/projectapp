@@ -666,3 +666,41 @@ If a handler defined in `<script setup>` (not inline in template) needs to emit,
 ### Post-click feedback needs to outlast `:active`
 
 The Tailwind pattern `active:scale-95` is instantaneous and disappears the moment the user releases the click. On touch devices and during rapid clicks this can feel like the button didn't respond. To reinforce, add a class that re-triggers a 320 ms keyframe animation (e.g. `action-icon-flash` with a `currentColor` ring + scale bounce) via a `flash(key)` helper that uses `nextTick` to force re-trigger when the same key fires twice in a row. Keep the animation under ~350 ms so it doesn't feel sluggish, and use `currentColor` so each button reflects its own hover color (red for delete, brand for edit, etc.).
+
+### Pinia store as singleton for transient UI feedback state
+
+When a UI signal needs to outlive the component that triggered it (e.g. "highlight the newly-created folder for 2.5 s — but the modal that created it is about to close"), parking the state in a component ref is wrong: the ref dies with the modal and any sibling that needs the signal can't reach it. Pinia is the right home — the store is a session-scoped singleton consumed reactively by anyone. Pattern:
+
+```js
+state: () => ({
+  newlyCreatedId: null,
+  _timer: null,  // non-reactive, Pinia doesn't proxy underscore-prefixed handles
+}),
+actions: {
+  async createFolder(payload) {
+    const response = await create_request(...);
+    this.newlyCreatedId = response.data.id;
+    if (this._timer) clearTimeout(this._timer);
+    this._timer = setTimeout(() => { this.newlyCreatedId = null; }, 2500);
+  }
+}
+```
+
+Three nuances that bit during implementation:
+1. The timer **must be cleared on each new creation** — otherwise rapid double-creates leave the wrong id highlighted when the first timer fires.
+2. Underscore-prefixed fields *are* declared in `state()` but Pinia treats them like normal state (just convention — Vue's reactive proxy still wraps them). If you genuinely need a raw value (a `setTimeout` handle), declaring it in state works fine in practice because `setTimeout` returns a primitive number/Object — no reactivity issues.
+3. Consumers use the store reactively (`folder.id === folderStore.newlyCreatedId`) without needing to import the timer or any helper — Pinia's reactivity model handles propagation.
+
+### Custom popover beats native `<select>` for hierarchical pickers
+
+The native `<select>` is fine for flat lists. It falls over for trees because:
+- Indentation via `' '.repeat(depth*2)` or NBSP gets collapsed by most browsers' option rendering.
+- You can't render a badge or icon inside an `<option>`.
+- Search/filter is impossible without third-party widgets.
+- The "disabled" state for an option (`<option disabled>`) gives no contextual reason for the user.
+
+A custom popover with `<button>` trigger + absolutely-positioned `<ul>` is the right tool when any of these matter. The popover I built for `FolderTreeSelect.vue` is ~180 lines and reuses VueUse `onClickOutside` + `onKeyStroke('Escape')` for dismiss — no novel patterns. Show the search input only above a threshold (e.g. 5 folders) so simple cases stay clean. Match the trigger's visible label to the **breadcrumb path** of the selection so the user always sees full context, not just the leaf name.
+
+### Visual feedback for create operations needs a visible target
+
+A highlight class on a hidden DOM node is wasted UX. When the user creates a nested resource (folder under a collapsed parent), call `expandPath(ancestors)` *after* the create succeeds *before* the highlight animation runs. The composable singleton pattern (`useFolderExpansion`) makes this trivial from any layer that knows the new id — store, modal, sidebar — without prop-drilling. Order matters: `expandPath` first, then trust the reactive `newlyCreatedId` to drive the keyframe via CSS class binding.

@@ -40,6 +40,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
                 </svg>
                 <input
+                  ref="nameInputRef"
                   v-model="newName"
                   type="text"
                   placeholder="Nombre de la nueva carpeta..."
@@ -56,20 +57,9 @@
             </form>
             <div class="flex items-center gap-2">
               <label class="text-xs text-text-subtle flex-shrink-0">Dentro de:</label>
-              <select
-                v-model="newParent"
-                class="flex-1 text-sm px-2 py-1.5 border border-border-default rounded-lg bg-surface text-text-default focus:ring-2 focus:ring-focus-ring/30 outline-none"
-              >
-                <option :value="null">— Raíz —</option>
-                <option
-                  v-for="opt in parentOptions"
-                  :key="opt.id"
-                  :value="opt.id"
-                  :disabled="opt.depth >= MAX_DEPTH - 1"
-                >
-                  {{ ' '.repeat(opt.depth * 2) }}{{ opt.label }}{{ opt.depth >= MAX_DEPTH - 1 ? ' (nivel máximo)' : '' }}
-                </option>
-              </select>
+              <div class="flex-1 min-w-0">
+                <FolderTreeSelect v-model="newParent" />
+              </div>
             </div>
           </div>
 
@@ -243,8 +233,9 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useDocumentFolderStore } from '~/stores/document_folders';
-
-const MAX_DEPTH = 5; // mirrors backend MAX_FOLDER_DEPTH
+import { useFolderExpansion } from '~/composables/useFolderExpansion';
+import FolderTreeSelect from './FolderTreeSelect.vue';
+import { nextTick } from 'vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -252,12 +243,14 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'changed']);
 
 const folderStore = useDocumentFolderStore();
+const { expandPath } = useFolderExpansion();
 const newName = ref('');
 const newParent = ref(null);
 const editingId = ref(null);
 const editingName = ref('');
 const deletingFolder = ref(null);
 const errorMsg = ref('');
+const nameInputRef = ref(null);
 
 // Flatten the store's tree into rows ordered by traversal, each with depth.
 const flatFolders = computed(() => {
@@ -272,14 +265,6 @@ const flatFolders = computed(() => {
   return result;
 });
 
-const parentOptions = computed(() =>
-  flatFolders.value.map((row) => ({
-    id: row.folder.id,
-    depth: row.depth,
-    label: row.folder.name,
-  })),
-);
-
 watch(() => props.modelValue, async (open) => {
   if (open) {
     errorMsg.value = '';
@@ -287,6 +272,7 @@ watch(() => props.modelValue, async (open) => {
     editingId.value = null;
     newParent.value = null;
     await folderStore.fetchFolders();
+    nextTick(() => nameInputRef.value?.focus());
   }
 });
 
@@ -301,6 +287,11 @@ async function handleCreate() {
   const result = await folderStore.createFolder({ name, parent: newParent.value });
   if (result.success) {
     newName.value = '';
+    // Make sure the new folder is visible in the sidebar: expand the path
+    // from root down to its parent so the highlight is not hidden in a
+    // collapsed branch.
+    const ancestorIds = folderStore.ancestorsOf(result.data.id).map((a) => a.id);
+    expandPath(ancestorIds);
     emit('changed');
   } else {
     errorMsg.value = formatErr(result.errors) || 'No se pudo crear la carpeta.';

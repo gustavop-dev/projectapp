@@ -8,6 +8,39 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ## Recent Focus Areas
 
+- **Document Folders — UX Polish (later in same session, 2026-05-15)**:
+  - **Header "Crear carpeta" shortcut**: `frontend/pages/panel/documents/index.vue` header now exposes a secondary button (`bg-surface border`, `folder-plus` SVG) next to "Nuevo Documento" that opens `FolderManagerModal` directly via `showFolderManager.value = true`. Same modal as before; just a faster entry-point.
+  - **`FolderTreeSelect.vue` (new component)**: replaces the previous native `<select>` "Dentro de" picker. Popover trigger shows the selected path breadcrumb ("Clientes › Activos"); options indented by `depth * 16px`; search input visible when ≥ 5 folders (filters by folder name OR any ancestor name); depth-4 options render a "Nivel máx." badge with `opacity-50 cursor-not-allowed`; click-outside via VueUse `onClickOutside`; ESC via VueUse `onKeyStroke('Escape')`.
+  - **Highlight on create**: `document_folders.js` store extended with `newlyCreatedId` + `_newlyCreatedTimer` (non-reactive timer handle); `createFolder` setter clears any previous timer and sets a fresh 2500 ms `setTimeout` to null it. `FolderTreeNode.vue` applies conditional class `folder-highlight-flash` when `folder.id === folderStore.newlyCreatedId`. Keyframe added to `frontend/assets/styles/main.css` (2500 ms, `var(--color-primary-soft)` background + 4px box-shadow ring, fade-out).
+  - **Autofocus**: `FolderManagerModal.vue` adds `nameInputRef` ref; `watch(modelValue → true)` schedules `nextTick(() => nameInputRef.value?.focus())` so the input is ready for typing without an extra click.
+  - **Auto-expand ancestors on nested create**: `FolderManagerModal.handleCreate()` post-success calls `useFolderExpansion().expandPath(folderStore.ancestorsOf(result.data.id).map(a => a.id))` so a freshly-created leaf is always visible even if its parent branch was collapsed.
+  - **Tokens**: design-token check is clean for the 6 modified files; 17 pre-existing legacy literals in `main.css` (`bg-esmerald`/`bg-lemon` etc.) flagged but pre-existing — no new violations introduced.
+  - **Carry-forward**: `FolderManagerModal.spec.js`, `FolderSidebar.spec.js`, `MoveFolderModal.spec.js`, `FolderPathChip.spec.js`, `FolderTreeNode.spec.js`, `useFolderExpansion.test.js`, `document_folders.test.js` were all extended/rewritten in this session; the linter added `jest.mock(...)` headers in the files that needed them. Specs not yet executed locally (no `node_modules`) — first `npm test` run is the verification gate.
+
+- **Document Fake Data Infrastructure** (2026-05-15):
+  - Motivation: the document system (model added April 2026, folders nested May 15) had **no** fake data — `create_fake_data.py` only dispatched contacts/proposals/blog/tasks. Manual QA and Playwright runs had to hand-craft folders + docs every time.
+  - **`create_fake_document_folders.py` (new)**: idempotent (`get_or_create`) seed of 3 root trees totalling 12 folders, max depth 3 — `Clientes / Activos / 2026 / Contratos`, `Internos / Recursos legales / NDAs`, `Archivo` (empty leaf branch for the empty-state test).
+  - **`create_fake_documents.py` (new)**: 20 documents distributed across the tree + 4 root-orphans. Edge cases included: emoji + accents in title ("Cobranza 💰 — Acción requerida"), near-max title length (250 chars), markdown vacío (skipped via guard since `title` is required), mix of `language` and `cover_type` enums. Idempotent (filter on `(title, folder)` pair).
+  - **Wired**: `create_fake_data.py` dispatcher now calls both commands after `create_fake_tasks`. `delete_fake_data.py` purges documents (`folder` is `SET_NULL` so docs delete cleanly) then blanks `parent` on all folders before bulk delete (`PROTECT` would otherwise reject).
+  - **Smoke verified** on local sqlite: 12 folders / 20 docs / max_depth=3 after first run; second run idempotent (`0 created, 21 skipped`); `delete_fake_data --confirm` leaves 0/0 with all proposals/contacts intact.
+
+- **Document Folders — E2E audit (later in same session, 2026-05-15)**:
+  - Updated `docs/USER_FLOW_MAP.md` § `admin-document-folders` with **Step 10** ("Crear carpeta" header shortcut) and **Branches L/M/N/O/P** (autofocus, highlight on create, auto-expand on create, popover search, popover dismiss). Re-wrote Branches B/C/D to reflect the popover (no more `<select>`/`<option disabled>`).
+  - Updated `frontend/e2e/flow-definitions.json` § `admin-document-folders` `knownGaps` from a generic single-item list to 5 specific gaps: header button, popover behavior, highlight class, auto-expand ancestors, expand/collapse persistence + FolderPathChip breadcrumb (carry-over).
+  - **Coverage status**: ⚠️ Partial — existing 6 tests still pass (flat CRUD + recursive filter/count + delete-blocked-by-children); the new UX-polish branches will need +5 tests in a future session.
+  - **No new flow IDs** — all changes are sub-flujos of the existing `admin-document-folders`.
+
+- **Tests added during this session**:
+  - `frontend/test/composables/useFolderExpansion.test.js` (new, 12 tests).
+  - `frontend/test/components/FolderTreeNode.spec.js` (new, 14 tests).
+  - `frontend/test/components/FolderPathChip.spec.js` (new, 5 tests).
+  - `frontend/test/components/FolderSidebar.spec.js` (rewritten for tree).
+  - `frontend/test/components/FolderManagerModal.spec.js` (extended: parent selector via stub, delete-by-children branch).
+  - `frontend/test/components/MoveFolderModal.spec.js` (extended: tree indentation + nested target).
+  - `frontend/test/stores/document_folders.test.js` (extended: tree getter, getById, descendantIdsOf, ancestorsOf, moveFolder, scoped reorderFolders, createFolder with parent).
+  - `frontend/e2e/admin/admin-document-folders-tree-drag.spec.js` (new E2E, 3 tests via `page.evaluate` against the live Pinia store).
+  - **Counts post-refresh**: 263 frontend unit test files (was 260), 179 E2E test files (was 178).
+
 - **Document Folder System — Hierarchical (Nested up to 5 levels)** (May 15, 2026):
   - **Motivation**: Flat folder model under `/panel/documents` did not scale — sellers organize by "Clientes > Activos > 2026 > Contratos" and the lineal sidebar became unmanageable.
   - **Backend — model**: `DocumentFolder.parent = ForeignKey('self', PROTECT, null=True, blank=True, related_name='children')`. New constant `MAX_FOLDER_DEPTH = 5`. New methods: `get_depth()`, `get_ancestors()` (root→parent), `get_descendant_ids(include_self=False)` (BFS), `clean()` validates self-parent, cycle (parent ∈ descendants), and depth (`parent_depth + 1 < MAX`).
