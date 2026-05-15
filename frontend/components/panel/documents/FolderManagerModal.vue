@@ -238,6 +238,7 @@ import { useDocumentFolderStore } from '~/stores/document_folders';
 import { useFolderExpansion } from '~/composables/useFolderExpansion';
 import FolderTreeSelect from './FolderTreeSelect.vue';
 import { nextTick } from 'vue';
+import { smoothScrollContainerToElement } from '~/composables/useSmoothScroll';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -401,14 +402,17 @@ function formatErr(errors) {
 }
 
 // When a folder is created, scroll the modal's list to center the new row so
-// the highlight flash is always visible regardless of list length.
+// the highlight flash is always visible regardless of list length. Uses the
+// RAF-driven helper so the motion has perceptible ease-out deceleration.
 watch(
   () => folderStore.newlyCreatedId,
   async (id) => {
     if (id == null) return;
     await nextTick();
-    const el = listContainerRef.value?.querySelector(`[data-folder-row="${id}"]`);
-    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    const container = listContainerRef.value;
+    const el = container?.querySelector(`[data-folder-row="${id}"]`);
+    if (!container || !el) return;
+    smoothScrollContainerToElement(container, el, { duration: 700, block: 'center' });
   },
 );
 </script>

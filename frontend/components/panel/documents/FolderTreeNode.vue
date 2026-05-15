@@ -105,6 +105,10 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
+import {
+  smoothScrollContainerToElement,
+  findScrollableAncestor,
+} from '~/composables/useSmoothScroll';
 import { useFolderExpansion } from '~/composables/useFolderExpansion';
 import { useDocumentFolderStore } from '~/stores/document_folders';
 
@@ -179,12 +183,18 @@ async function onChildrenChange(evt) {
 // Auto-scroll this row into view when it becomes the newly-created folder so
 // the user actually sees the flash even if it landed outside the sidebar's
 // scrollable viewport. Other nodes' watchers no-op via the id-match guard.
+// Uses our RAF-driven smooth scroll for perceptible deceleration (the native
+// `behavior: 'smooth'` is too fast and uncontrollable).
 watch(
   () => folderStore.newlyCreatedId,
   async (id) => {
     if (id == null || id !== folder.value.id) return;
     await nextTick();
-    rowRef.value?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    const el = rowRef.value;
+    if (!el) return;
+    const container = findScrollableAncestor(el);
+    if (!container) return;
+    smoothScrollContainerToElement(container, el, { duration: 700, block: 'center' });
   },
 );
 </script>
