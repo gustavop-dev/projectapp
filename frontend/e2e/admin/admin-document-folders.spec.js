@@ -234,7 +234,8 @@ test.describe('Admin Document Folders and Tags', () => {
     await page.getByRole('button', { name: /Gestionar/i }).first().click();
     await expect(page.getByText('Gestionar carpetas')).toBeVisible();
 
-    // Trigger delete on the parent ("Clientes") — first delete icon row
+    // Hover the first row to reveal the opacity-0 action buttons, then delete
+    await page.locator('[data-folder-row]').first().hover();
     const deleteBtns = page.getByRole('button', { name: 'Eliminar carpeta' });
     await deleteBtns.first().click();
 

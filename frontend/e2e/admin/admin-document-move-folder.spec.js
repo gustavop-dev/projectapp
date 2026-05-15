@@ -53,8 +53,10 @@ test.describe('Admin Document Move Folder', () => {
     await page.goto('/panel/documents');
     await expect(page.getByText('Brief de Proyecto').first()).toBeVisible({ timeout: 15000 });
 
-    await page.getByTitle('Mover a carpeta').first().click();
-
+    await page.getByTitle('Más acciones').first().click();
+    const actionsSheet = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover a carpeta' });
+    await expect(actionsSheet).toBeVisible();
+    await actionsSheet.getByRole('button', { name: 'Mover a carpeta' }).click();
     const modal = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover documento' });
     await expect(modal).toBeVisible();
     await expect(modal.getByRole('button', { name: 'Sin carpeta' })).toBeVisible();
@@ -82,7 +84,10 @@ test.describe('Admin Document Move Folder', () => {
     await page.goto('/panel/documents');
     await expect(page.getByText('Brief de Proyecto').first()).toBeVisible({ timeout: 15000 });
 
-    await page.getByTitle('Mover a carpeta').first().click();
+    await page.getByTitle('Más acciones').first().click();
+    const actionsSheet = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover a carpeta' });
+    await expect(actionsSheet).toBeVisible();
+    await actionsSheet.getByRole('button', { name: 'Mover a carpeta' }).click();
     const modal = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover documento' });
     await expect(modal).toBeVisible();
 
@@ -112,7 +117,10 @@ test.describe('Admin Document Move Folder', () => {
     await page.goto('/panel/documents');
     await expect(page.getByText('Brief de Proyecto').first()).toBeVisible({ timeout: 15000 });
 
-    await page.getByTitle('Mover a carpeta').first().click();
+    await page.getByTitle('Más acciones').first().click();
+    const actionsSheet = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover a carpeta' });
+    await expect(actionsSheet).toBeVisible();
+    await actionsSheet.getByRole('button', { name: 'Mover a carpeta' }).click();
     const modal = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover documento' });
     await expect(modal).toBeVisible();
 
@@ -147,7 +155,10 @@ test.describe('Admin Document Move Folder', () => {
     await page.goto('/panel/documents');
     await expect(page.getByText('Brief de Proyecto').first()).toBeVisible({ timeout: 15000 });
 
-    await page.getByTitle('Mover a carpeta').first().click();
+    await page.getByTitle('Más acciones').first().click();
+    const actionsSheet = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover a carpeta' });
+    await expect(actionsSheet).toBeVisible();
+    await actionsSheet.getByRole('button', { name: 'Mover a carpeta' }).click();
     const modal = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover documento' });
     await expect(modal).toBeVisible();
 
