@@ -235,9 +235,9 @@ test.describe('Admin Document Folders and Tags', () => {
     await expect(page.getByText('Gestionar carpetas')).toBeVisible();
 
     // Hover the first row to reveal the opacity-0 action buttons, then delete
-    await page.locator('[data-folder-row]').first().hover();
-    const deleteBtns = page.getByRole('button', { name: 'Eliminar carpeta' });
-    await deleteBtns.first().click();
+    const firstRow = page.locator('[data-folder-row]').first();
+    await firstRow.hover();
+    await firstRow.getByRole('button', { name: 'Eliminar carpeta' }).click();
 
     await expect(page.getByText(/contiene subcarpetas/i)).toBeVisible();
     // Destructive confirm button should not appear (blocked panel only)
