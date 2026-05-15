@@ -196,13 +196,13 @@ DEFAULT_SECTIONS = [
                 ],
                 'renewalNote': (
                     'Renovaciones a partir del segundo año: el costo se ajusta anualmente '
-                    'con base en el SMLMV (Salario Mínimo Legal Mensual Vigente) del año '
-                    'de renovación, aplicando la siguiente fórmula:\n\n'
-                    'Costo de renovación = Costo del año anterior + '
-                    '(6% × SMLMV del año de renovación)\n\n'
-                    'Por ejemplo, si el SMLMV del año de renovación fuera $1.300.000 COP, '
-                    'el incremento sería de $78.000 COP, llevando el costo a $758.000 COP '
-                    'para ese año.'
+                    'con base en el porcentaje de aumento del SMLMV (Salario Mínimo Legal '
+                    'Mensual Vigente) del año de renovación, aplicando la siguiente fórmula:\n\n'
+                    'Costo de renovación = Costo del año anterior × '
+                    '(1 + % de aumento del SMLMV del año de renovación)\n\n'
+                    'Por ejemplo, si el costo del año anterior fue $680.000 COP y el SMLMV '
+                    'aumentó un 9,5%, el costo de renovación sería '
+                    '$680.000 × 1,095 = $744.600 COP para ese año.'
                 ),
                 'coverageNote': (
                     'El costo de hosting cubre tres componentes: el mantenimiento técnico '
