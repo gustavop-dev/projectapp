@@ -92,6 +92,7 @@
               >
                 <div
                   class="group flex items-center gap-3 px-3 py-3 rounded-xl border border-border-muted hover:border-border-default dark:hover:border-gray-600 bg-surface hover:bg-surface-muted dark:hover:bg-gray-700/50 transition-all"
+                  :class="{ 'folder-highlight-flash': row.folder.id === folderStore.newlyCreatedId }"
                   :style="{ paddingLeft: `${12 + row.depth * 16}px` }"
                 >
                   <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0">
@@ -239,6 +240,7 @@ import { nextTick } from 'vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
+  defaultParent: { type: [Number, null], default: null },
 });
 const emit = defineEmits(['update:modelValue', 'changed']);
 
@@ -270,8 +272,11 @@ watch(() => props.modelValue, async (open) => {
     errorMsg.value = '';
     deletingFolder.value = null;
     editingId.value = null;
-    newParent.value = null;
     await folderStore.fetchFolders();
+    // Default parent to whichever folder the user is currently browsing so
+    // creating a folder while inside "Clientes / Activos" lands the new one
+    // there instead of at root. Falls back to null when there's no real id.
+    newParent.value = props.defaultParent ?? null;
     nextTick(() => nameInputRef.value?.focus());
   }
 });

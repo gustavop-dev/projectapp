@@ -66,6 +66,7 @@
         @create="openFolderManager"
         @manage="openFolderManager"
         @folder-drop="handleDropOnFolder"
+        @delete-folder="handleDeleteFolderFromSidebar"
       />
 
       <section class="min-w-0 flex flex-col">
@@ -177,117 +178,12 @@
                   {{ formatDate(doc.created_at) }}
                 </td>
                 <td class="px-6 py-4" @click.stop>
-                  <!-- md+ icons inline -->
-                  <div class="hidden md:flex items-center gap-1">
-                    <NuxtLink
-                      :to="localePath(`/panel/documents/${doc.id}/edit`)"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-text-brand"
-                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:edit` }"
-                      title="Editar contenido"
-                      @click="flash(`${doc.id}:edit`)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </NuxtLink>
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-sky-600 dark:hover:text-sky-400"
-                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:preview` }"
-                      title="Vista previa"
-                      @click="flash(`${doc.id}:preview`); handlePreview(doc)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-amber-600 dark:hover:text-amber-400"
-                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:rename` }"
-                      title="Renombrar"
-                      @click="flash(`${doc.id}:rename`); handleRenameDoc(doc)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-violet-600 dark:hover:text-violet-400"
-                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:move` }"
-                      title="Mover a carpeta"
-                      @click="flash(`${doc.id}:move`); handleMoveDoc(doc)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm13 1l3 3-3 3" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-text-brand"
-                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:email` }"
-                      title="Enviar por correo"
-                      @click="flash(`${doc.id}:email`); handleSendEmail(doc)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-blue-600 dark:hover:text-blue-400"
-                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:pdf` }"
-                      title="Descargar PDF"
-                      @click="flash(`${doc.id}:pdf`); handleDownloadPdf(doc)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-teal-600 dark:hover:text-teal-400"
-                      :class="{
-                        'text-teal-600 dark:text-teal-400': copiedMarkdownId === doc.id,
-                        'action-icon-flash': flashedKey === `${doc.id}:copy`,
-                      }"
-                      title="Copiar markdown"
-                      @click="flash(`${doc.id}:copy`); handleCopyMarkdown(doc.id)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-purple-600 dark:hover:text-purple-400"
-                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:duplicate` }"
-                      title="Duplicar"
-                      @click="flash(`${doc.id}:duplicate`); handleDuplicate(doc.id)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-red-600 dark:hover:text-red-400"
-                      :class="{ 'action-icon-flash': flashedKey === `${doc.id}:delete` }"
-                      title="Eliminar"
-                      @click="flash(`${doc.id}:delete`); handleDelete(doc)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                  <!-- <md kebab -->
+                  <!-- Unified kebab — opens DocumentActionsSheet across all viewports -->
                   <button
                     type="button"
-                    class="md:hidden p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-text-default"
+                    class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-text-default"
                     title="Más acciones"
-                    @click="actionDoc = doc"
+                    @click.stop="actionDoc = doc"
                   >
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <circle cx="12" cy="5" r="1.6" />
@@ -359,7 +255,11 @@
       </section>
     </div>
 
-    <FolderManagerModal v-model="showFolderManager" @changed="handleFoldersChanged" />
+    <FolderManagerModal
+      v-model="showFolderManager"
+      :default-parent="activeFolderForCreate"
+      @changed="handleFoldersChanged"
+    />
     <TagManagerModal v-model="showTagManager" @changed="handleTagsChanged" />
     <MoveFolderModal v-model="showMoveModal" :document="movingDoc" @changed="handleMoved" />
     <RenameDocumentModal v-model="showRenameModal" :document="renamingDoc" @changed="handleRenamed" />
@@ -367,6 +267,7 @@
     <DocumentActionsSheet
       v-model="showActionsSheet"
       :document="actionDoc"
+      @edit="handleEditFromSheet(actionDoc)"
       @preview="handlePreview(actionDoc)"
       @rename="handleRenameDoc(actionDoc)"
       @move="handleMoveDoc(actionDoc)"
@@ -433,11 +334,51 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Folder delete confirmation modal (inline-from-sidebar) -->
+    <Teleport to="body">
+      <Transition name="fade-modal">
+        <div
+          v-if="folderDeleteConfirm"
+          class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          @click.self="folderDeleteConfirm = null; folderDeleteError = ''"
+        >
+          <div class="bg-surface rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+            <div class="text-4xl mb-3">🗑️</div>
+            <h3 class="text-lg font-bold text-text-default mb-2">Eliminar carpeta</h3>
+            <p class="text-sm text-text-muted mb-2">
+              Se eliminará la carpeta "<span class="font-semibold">{{ folderDeleteConfirm.name }}</span>".
+            </p>
+            <p v-if="!folderDeleteError" class="text-xs text-text-subtle mb-6">
+              Esta acción no se puede deshacer.
+            </p>
+            <p v-else class="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 rounded-lg mb-6">
+              {{ folderDeleteError }}
+            </p>
+            <div class="flex gap-3 justify-center">
+              <button
+                class="px-6 py-2.5 bg-red-600 text-white rounded-xl font-medium text-sm hover:bg-red-700 transition-colors disabled:opacity-50"
+                :disabled="folderStore.isUpdating || !!folderDeleteError"
+                @click="confirmDeleteFolder"
+              >
+                {{ folderStore.isUpdating ? 'Eliminando...' : 'Eliminar' }}
+              </button>
+              <button
+                class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                @click="folderDeleteConfirm = null; folderDeleteError = ''"
+              >
+                {{ folderDeleteError ? 'Cerrar' : 'Cancelar' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import FolderSidebar from '~/components/panel/documents/FolderSidebar.vue';
 import TagFilterChips from '~/components/panel/documents/TagFilterChips.vue';
 import FolderManagerModal from '~/components/panel/documents/FolderManagerModal.vue';
@@ -492,6 +433,8 @@ watch(() => documentStore.activeFolderId, () => docResetPage());
 watch(() => documentStore.activeTagIds, () => docResetPage(), { deep: true });
 
 const deleteConfirm = ref(null);
+const folderDeleteConfirm = ref(null);
+const folderDeleteError = ref('');
 const showFolderManager = ref(false);
 const showTagManager = ref(false);
 const movingDoc = ref(null);
@@ -525,17 +468,6 @@ const previewHtml = computed(() =>
   previewMarkdown.value ? parseMarkdown(previewMarkdown.value) : '',
 );
 
-const flashedKey = ref(null);
-let flashTimer = null;
-function flash(key) {
-  flashedKey.value = null;
-  nextTick(() => {
-    flashedKey.value = key;
-    clearTimeout(flashTimer);
-    flashTimer = setTimeout(() => { flashedKey.value = null; }, 350);
-  });
-}
-
 async function handlePreview(doc) {
   if (!doc) return;
   previewTitle.value = doc.title || 'Vista previa';
@@ -554,6 +486,16 @@ const createLink = computed(() => {
   }
   return localePath('/panel/documents/create');
 });
+
+const activeFolderForCreate = computed(() => {
+  const id = documentStore.activeFolderId;
+  return typeof id === 'number' ? id : null;
+});
+
+function handleEditFromSheet(doc) {
+  if (!doc) return;
+  navigateTo(localePath(`/panel/documents/${doc.id}/edit`));
+}
 
 const otherFoldersCount = computed(() => {
   return folderStore.folders.reduce((sum, f) => sum + (f.document_count || 0), 0);
@@ -694,6 +636,30 @@ async function confirmDelete() {
   const result = await documentStore.deleteDocument(deleteConfirm.value.id);
   if (result.success) {
     deleteConfirm.value = null;
+  }
+}
+
+function handleDeleteFolderFromSidebar(folderId) {
+  const folder = folderStore.getById(folderId);
+  if (!folder) return;
+  folderDeleteError.value = '';
+  folderDeleteConfirm.value = folder;
+}
+
+async function confirmDeleteFolder() {
+  if (!folderDeleteConfirm.value) return;
+  const folderId = folderDeleteConfirm.value.id;
+  const result = await folderStore.deleteFolder(folderId);
+  if (result.success) {
+    folderDeleteConfirm.value = null;
+    folderDeleteError.value = '';
+    if (documentStore.activeFolderId === folderId) {
+      await documentStore.setFilters({ folder: 'all' });
+    }
+    await documentStore.fetchDocuments();
+  } else {
+    const errors = result.errors || {};
+    folderDeleteError.value = errors.detail || 'No se pudo eliminar la carpeta.';
   }
 }
 </script>

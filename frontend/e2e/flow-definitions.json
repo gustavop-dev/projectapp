@@ -1429,8 +1429,14 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "View the list of admin documents with title, status, client association, and actions (edit, download PDF, duplicate, delete). Navigate to create or edit pages.",
-      "expectedSpecs": 1
+      "description": "View the list of admin documents with title, status, client association, and row actions accessed through a unified kebab (3 dots) + DocumentActionsSheet pattern across ALL viewports (the previous 9-icons-on-hover affordance on md+ was removed in favor of a single sheet that mirrors mobile UX). The sheet exposes 9 actions: Editar contenido, Vista previa, Renombrar, Mover a carpeta, Enviar por correo, Descargar PDF, Copiar markdown, Duplicar, Eliminar. Clicking the row body outside the kebab navigates to the edit page; the kebab has @click.stop to prevent bubble.",
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Existing 3 tests (list renders, empty state, 'Nuevo Documento' navigation) still pass because they don't depend on row-action selectors.",
+        "Kebab + DocumentActionsSheet flow not covered: should open the sheet via 'Más acciones' button and assert that clicking 'Editar contenido' navigates to /panel/documents/<id>/edit.",
+        "Other 8 sheet actions (Vista previa, Renombrar, Mover, Enviar correo, PDF, Copiar markdown, Duplicar, Eliminar) lack explicit kebab-driven tests — selectors that targeted inline icons like getByTitle('Editar contenido') in row context are now invalid; chain must be: click kebab → click sheet item.",
+        "Row body click → /edit navigation (Branch E) not asserted."
+      ]
     },
     "admin-document-create": {
       "name": "Admin Document Create",
@@ -1459,14 +1465,16 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Organize admin documents with a hierarchical folder tree (up to 5 levels) and tags: sidebar tree navigation with chevron expand/collapse, recursive filter (parent shows descendants' docs), recursive document counts, FolderTreeSelect popover (custom dropdown replacing the native <select>) for choosing the parent in FolderManagerModal, double-guard delete (blocks if has children or descendant docs), and FolderPathChip breadcrumbs in document rows. The page header exposes a 'Crear carpeta' shortcut button next to 'Nuevo Documento'; newly-created folders flash a 2500 ms highlight in the sidebar and auto-expand their ancestor path if nested.",
+      "description": "Organize admin documents with a hierarchical folder tree (up to 5 levels) and tags: sidebar tree navigation with chevron expand/collapse, recursive filter (parent shows descendants' docs), recursive document counts, FolderTreeSelect popover (custom dropdown replacing the native <select>) for choosing the parent in FolderManagerModal, inline trash button per sidebar folder row with destructive/blocked confirm modal (mirrors the manager modal's 409 logic), double-guard delete, and FolderPathChip breadcrumbs in document rows. The page header exposes a 'Crear carpeta' shortcut button; the parent selector pre-fills with the currently active folder (`defaultParent` prop) so creations land where the user is browsing. Newly-created folders flash a 2500 ms highlight in BOTH the sidebar AND inside the manager modal's flat list, and the sidebar auto-expands the ancestor path for nested creations.",
       "expectedSpecs": 1,
       "knownGaps": [
         "Existing spec covers flat folder CRUD + recursive filter/count + delete-blocked-by-children. Still missing: expand/collapse persistence assertion, FolderPathChip breadcrumb in document row.",
         "Header 'Crear carpeta' button entry point not yet asserted in E2E.",
         "FolderTreeSelect popover behavior (open on trigger click, close on ESC, close on click-outside, select root, select nested, search filtering, depth-disabled 'Nivel máx.' rows) not yet covered — replaces the previous <select> tests which are now invalid.",
-        "Highlight class `folder-highlight-flash` on the newly-created FolderTreeNode not yet asserted.",
-        "Auto-expand ancestors (`useFolderExpansion().expandPath`) after creating a nested folder not yet asserted."
+        "Highlight class `folder-highlight-flash` on the newly-created FolderTreeNode not yet asserted; also missing assertion that the same class appears on the matching row INSIDE the manager modal's flat list (the 2026-05-15 bug-fix).",
+        "Auto-expand ancestors (`useFolderExpansion().expandPath`) after creating a nested folder not yet asserted.",
+        "Inline trash button on each FolderSidebar row (hover-only) not asserted: hover reveals icon, click opens Teleport confirm modal with destructive 'Eliminar' (red) for empty folders OR amber blocked panel with backend `detail` for folders with children/docs (`reasons: ['has_children'|'has_documents']`).",
+        "Parent pre-selection via `defaultParent` prop: opening FolderManagerModal while inside 'Clientes' should show 'Clientes' in the FolderTreeSelect trigger; for 'all'/'none' it falls back to '— Raíz —'."
       ]
     },
     "admin-document-folders-tree-drag": {

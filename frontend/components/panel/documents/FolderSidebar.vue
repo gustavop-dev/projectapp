@@ -63,6 +63,7 @@
             :is-dragging="isDragging"
             @select="$emit('select', $event)"
             @folder-drop="$emit('folder-drop', $event)"
+            @delete="$emit('delete-folder', $event)"
           />
         </template>
       </draggable>
@@ -98,7 +99,7 @@ const props = defineProps({
   isDragging: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['select', 'manage', 'folder-drop']);
+const emit = defineEmits(['select', 'manage', 'folder-drop', 'delete-folder']);
 
 const folderStore = useDocumentFolderStore();
 const { expandPath } = useFolderExpansion();

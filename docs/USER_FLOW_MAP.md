@@ -3044,20 +3044,24 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents`
-- **Description:** View the list of admin documents with title, status, client association, and row actions (edit, download PDF, duplicate, delete).
+- **Description:** View the list of admin documents with title, status, client association, and row actions accessed through a **unified kebab + `DocumentActionsSheet` pattern across all viewports** (no more inline icons on `md+` — the previous 9-icons-on-hover affordance was unified with mobile's kebab to keep UI consistent and reduce visual noise).
 - **Steps:**
   1. Admin navigates to `/panel/documents`.
   2. Document list loads from API (`GET /api/content/documents/`).
-  3. Table renders with columns: title, client name, status badge, created date, actions.
-  4. Admin clicks a row or the edit icon → navigates to `/panel/documents/:id/edit`.
-  5. "Nuevo Documento" button navigates to `/panel/documents/create`.
+  3. Table renders with columns: title, client name, status badge, created date, and a single kebab (3 dots) button in the actions column.
+  4. Admin clicks the kebab → `DocumentActionsSheet` (Teleport-to-body) opens with 9 actions in order: **Editar contenido**, Vista previa, Renombrar, Mover a carpeta, Enviar por correo, Descargar PDF, Copiar markdown, Duplicar, Eliminar.
+  5. Admin clicks "Editar contenido" in the sheet → navigates to `/panel/documents/:id/edit`.
+  6. Admin clicks the row body (outside the kebab) → navigates to `/panel/documents/:id/edit` (the kebab has `@click.stop` so its own click doesn't bubble).
+  7. "Nuevo Documento" button navigates to `/panel/documents/create`.
 - **Branches:**
   - [Branch A — Empty state] No documents → "No hay documentos todavía." with create link.
-  - [Branch B — Download PDF] Admin clicks download icon → PDF generated and downloaded.
-  - [Branch C — Duplicate] Admin clicks duplicate icon → document cloned and list refreshes.
-  - [Branch D — Delete] Admin clicks delete icon → confirm modal → document removed from list.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-document-list.spec.js`
+  - [Branch B — Download PDF via sheet] Admin opens kebab → clicks "Descargar PDF" → PDF generated and downloaded.
+  - [Branch C — Duplicate via sheet] Admin opens kebab → clicks "Duplicar" → document cloned and list refreshes; the new doc is briefly highlighted in the table via `newlyCreatedId` (separate ref for documents).
+  - [Branch D — Delete via sheet] Admin opens kebab → clicks "Eliminar" → confirm modal ("¿Eliminar documento?") → on confirm, document removed from list.
+  - [Branch E — Row click navigation] Click anywhere on `<tr>` (outside kebab) navigates to edit. Guaranteed by `@click.stop` on the kebab button.
+  - [Branch F — Edit via sheet vs row click] Both paths land on `/edit`; the sheet path is the only way to access the other 8 actions.
+- **Coverage:** ⚠️ Partial — existing 3 tests (list renders, empty state, "Nuevo Documento" navigation) still pass because they don't depend on the icon affordance. Kebab + sheet pattern itself is NOT covered: no test opens the sheet and asserts any specific action navigates/PATCHes/deletes.
+- **E2E Spec:** `e2e/admin/admin-document-list.spec.js` *(needs +5 tests covering kebab/sheet actions)*
 
 #### FLOW: `admin-document-create`
 
@@ -3107,7 +3111,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents`
-- **Description:** Organize admin documents with a hierarchical folder sidebar (tree with up to 5 levels of nesting) and tag filter chips. Admin selects any folder in the tree to filter the list (including documents of all descendants), toggles tag chips for multi-tag OR filtering, opens FolderManagerModal to create/rename/delete folders with a parent selector (custom `FolderTreeSelect` popover, not a native `<select>`), and opens TagManagerModal for tag CRUD. Folder counts in the sidebar are **recursive** (include documents in subfolders). A dedicated **"Crear carpeta"** button in the page header provides a one-click shortcut to the create form; newly-created folders are highlighted in the sidebar for 2.5 seconds so the user knows where they landed.
+- **Description:** Organize admin documents with a hierarchical folder sidebar (tree with up to 5 levels of nesting) and tag filter chips. Admin selects any folder in the tree to filter the list (including documents of all descendants), toggles tag chips for multi-tag OR filtering, opens FolderManagerModal to create/rename/delete folders with a parent selector (custom `FolderTreeSelect` popover, not a native `<select>`), and opens TagManagerModal for tag CRUD. Each folder row in the sidebar exposes an **inline trash button** (hover-only, opens a small confirmation modal with destructive or blocked state mirroring the manager modal's 409 logic). Folder counts in the sidebar are **recursive** (include documents in subfolders). A dedicated **"Crear carpeta"** button in the page header provides a one-click shortcut to the create form; the parent selector pre-fills with the currently active folder so creations land where the user is browsing. Newly-created folders are highlighted for 2.5 seconds simultaneously in the sidebar and inside the manager modal's flat list.
 - **Steps:**
   1. Admin loads `/panel/documents` — left sidebar renders the folder tree; tag chips appear above the table.
   2. Admin clicks a folder entry → list refreshes with `?folder=<id>` and shows documents from that folder **and all its descendants**.
@@ -3132,10 +3136,13 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch J — Folder path chip] In the "Todos" view, each document row shows a breadcrumb chip "Clientes › Activos › 2026" via `FolderPathChip`.
   - [Branch K — Assign on create] Creating a document from `?folder=<id>` pre-selects that folder.
   - [Branch L — Autofocus on open] Opening the `FolderManagerModal` (via header button OR sidebar "Gestionar") autofocuses the name input via `nextTick(() => nameInputRef.value?.focus())`, allowing immediate keyboard entry.
-  - [Branch M — Highlight on create] After a successful `createFolder`, the store sets `newlyCreatedId` and the matching `FolderTreeNode` receives the `folder-highlight-flash` class (2500 ms keyframe animation: primary-soft background + ring fade-out). The class is auto-removed via a 2500 ms `setTimeout` in the store.
+  - [Branch M — Highlight on create] After a successful `createFolder`, the store sets `newlyCreatedId` and the matching folder row receives the `folder-highlight-flash` class (2500 ms keyframe animation: primary-soft background + ring fade-out) **simultaneously in the sidebar (`FolderTreeNode.vue`) AND inside the manager modal's flat list** (`FolderManagerModal.vue:row`). The class is auto-removed via a 2500 ms `setTimeout` in the store, so both surfaces fade in sync.
   - [Branch N — Auto-expand on create] If the new folder is nested, `FolderManagerModal.handleCreate()` calls `useFolderExpansion().expandPath(folderStore.ancestorsOf(newId).map(a => a.id))` so the highlight is visible even when the parent branch was collapsed.
   - [Branch O — FolderTreeSelect search] When the popover lists ≥ 5 folders, a search input appears that filters by folder name OR any ancestor name (case-insensitive).
   - [Branch P — FolderTreeSelect dismiss] Pressing ESC or clicking outside the popover closes it without changing the selection (`useVueUse onClickOutside` + `onKeyStroke('Escape')`).
+  - [Branch Q — Inline trash on sidebar row] Hover over a folder in `FolderSidebar` reveals a red trash icon button (`opacity-0 group-hover:opacity-100`); click stops propagation (does NOT select the folder) and opens a small `Teleport` confirmation modal. For empty folders (no children, no docs in subtree), the modal shows a destructive red "Eliminar" button.
+  - [Branch R — Inline trash blocked state] If the folder has subfolders OR documents in any descendant, the confirmation modal renders an amber panel with the backend's `detail` from the 409 response ("La carpeta no se puede eliminar: contiene subcarpetas. Hay N documento(s)..."); the "Eliminar" button is disabled, and "Cancelar" changes its label to "Cerrar" to signal the action cannot proceed.
+  - [Branch S — Parent pre-selected to active folder] When `FolderManagerModal` opens (via header "Crear carpeta", sidebar "Gestionar", or any entry point) and `documentStore.activeFolderId` is a numeric id, the `FolderTreeSelect` trigger renders that folder's path breadcrumb pre-selected. For `'all'` or `'none'` the trigger shows "— Raíz —" (fallback). Implemented via `:default-parent` prop on `FolderManagerModal` + `activeFolderForCreate` computed in `index.vue`.
 - **Coverage:** ⚠️ Partial — existing spec covers flat folder CRUD + flat filter + recursive filter/count + delete-blocked-by-children. Gaps remaining (see flow-definitions `knownGaps`): header "Crear carpeta" button entry point, `FolderTreeSelect` popover behavior, highlight class assertion, auto-expand ancestors after nested create, `FolderPathChip` breadcrumb in row, expand/collapse persistence.
 - **E2E Spec:** `e2e/admin/admin-document-folders.spec.js` *(needs update — see gaps above)*
 
