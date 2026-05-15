@@ -1,6 +1,7 @@
 <template>
   <li class="group">
     <div
+      ref="rowRef"
       class="flex items-center rounded-lg transition-all"
       :class="[
         entryClass,
@@ -102,7 +103,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 import { useFolderExpansion } from '~/composables/useFolderExpansion';
 import { useDocumentFolderStore } from '~/stores/document_folders';
@@ -120,6 +121,7 @@ const folderStore = useDocumentFolderStore();
 const { isExpanded: isExp, toggle } = useFolderExpansion();
 
 const dragOverId = ref(null);
+const rowRef = ref(null);
 
 const folder = computed(() => props.node.folder);
 const hasChildren = computed(() => (props.node.children || []).length > 0);
@@ -173,4 +175,16 @@ async function onChildrenChange(evt) {
     // Handled by the receiving list's `added` event.
   }
 }
+
+// Auto-scroll this row into view when it becomes the newly-created folder so
+// the user actually sees the flash even if it landed outside the sidebar's
+// scrollable viewport. Other nodes' watchers no-op via the id-match guard.
+watch(
+  () => folderStore.newlyCreatedId,
+  async (id) => {
+    if (id == null || id !== folder.value.id) return;
+    await nextTick();
+    rowRef.value?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  },
+);
 </script>

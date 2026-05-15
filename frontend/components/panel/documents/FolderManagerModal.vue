@@ -74,7 +74,7 @@
           </div>
 
           <!-- Folder list (flat, indented by depth) -->
-          <div class="flex-1 overflow-y-auto px-6 pb-2">
+          <div ref="listContainerRef" class="flex-1 overflow-y-auto px-6 pb-2">
             <div v-if="!flatFolders.length" class="flex flex-col items-center justify-center py-12 text-center">
               <div class="w-14 h-14 rounded-2xl bg-surface-raised flex items-center justify-center mb-3">
                 <svg class="w-7 h-7 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,6 +89,7 @@
               <div
                 v-for="row in flatFolders"
                 :key="row.folder.id"
+                :data-folder-row="row.folder.id"
               >
                 <div
                   class="group flex items-center gap-3 px-3 py-3 rounded-xl border border-border-muted hover:border-border-default dark:hover:border-gray-600 bg-surface hover:bg-surface-muted dark:hover:bg-gray-700/50 transition-all"
@@ -253,6 +254,7 @@ const editingName = ref('');
 const deletingFolder = ref(null);
 const errorMsg = ref('');
 const nameInputRef = ref(null);
+const listContainerRef = ref(null);
 
 // Flatten the store's tree into rows ordered by traversal, each with depth.
 const flatFolders = computed(() => {
@@ -397,4 +399,16 @@ function formatErr(errors) {
   if (typeof errors === 'string') return errors;
   return Object.values(errors).flat().join(' · ');
 }
+
+// When a folder is created, scroll the modal's list to center the new row so
+// the highlight flash is always visible regardless of list length.
+watch(
+  () => folderStore.newlyCreatedId,
+  async (id) => {
+    if (id == null) return;
+    await nextTick();
+    const el = listContainerRef.value?.querySelector(`[data-folder-row="${id}"]`);
+    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  },
+);
 </script>
