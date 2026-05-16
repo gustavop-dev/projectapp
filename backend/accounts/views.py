@@ -25,6 +25,9 @@ from accounts.serializers import (
     CreateAdminSerializer,
     CreateClientSerializer,
     LoginSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetVerifyCodeSerializer,
     ResendCodeSerializer,
     UpdateClientSerializer,
     UpdateProfileSerializer,
@@ -32,6 +35,12 @@ from accounts.serializers import (
     VerifyOnboardingSerializer,
 )
 from accounts.services.onboarding import create_admin, create_client, resend_invitation
+from accounts.services.password_reset import (
+    PasswordResetError,
+    confirm_password_reset,
+    request_password_reset,
+    verify_reset_code,
+)
 from accounts.services.proposal_client_service import update_client_profile
 from accounts.services.tokens import get_tokens_for_user, get_verification_token_for_user
 from accounts.services.verification import create_and_send_otp, validate_otp
@@ -234,6 +243,58 @@ def token_refresh_view(request):
             {'detail': 'Refresh token inválido o expirado.'},
             status=status.HTTP_401_UNAUTHORIZED,
         )
+
+
+# ==========================================================================
+# Password recovery — 3-step wizard
+# ==========================================================================
+
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def password_reset_request_view(request):
+    """Step 1: receives `{email}`, always responds 200 with a request token."""
+    serializer = PasswordResetRequestSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    token = request_password_reset(serializer.validated_data['email'])
+    return Response({'reset_request_token': token})
+
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def password_reset_verify_view(request):
+    """Step 2: receives `{reset_request_token, code}` and returns a verified token."""
+    serializer = PasswordResetVerifyCodeSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    try:
+        verified_token = verify_reset_code(
+            serializer.validated_data['reset_request_token'],
+            serializer.validated_data['code'],
+        )
+    except PasswordResetError as exc:
+        body = {'detail': exc.code, **exc.extra}
+        return Response(body, status=exc.http_status)
+    return Response({'reset_verified_token': verified_token})
+
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def password_reset_confirm_view(request):
+    """Step 3: sets the new password and returns a fresh session."""
+    serializer = PasswordResetConfirmSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    try:
+        payload = confirm_password_reset(
+            serializer.validated_data['reset_verified_token'],
+            serializer.validated_data['new_password'],
+        )
+    except PasswordResetError as exc:
+        body = {'detail': exc.code, **exc.extra}
+        return Response(body, status=exc.http_status)
+    return Response(payload)
 
 
 # ==========================================================================

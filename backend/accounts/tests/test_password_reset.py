@@ -271,3 +271,134 @@ def test_confirm_sends_confirmation_email_to_user(reset_user, settings):
     confirmation_emails = [m for m in mail.outbox if 'restableci' in m.subject.lower()]
     assert len(confirmation_emails) == 1
     assert confirmation_emails[0].to == [reset_user.email]
+
+
+# ==========================================================================
+# HTTP-level integration tests (views + routes)
+# ==========================================================================
+
+
+from rest_framework.test import APIClient  # noqa: E402
+
+
+@pytest.fixture
+def api_client():
+    return APIClient()
+
+
+def test_request_view_returns_token_for_existing_email(api_client, reset_user, settings):
+    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    mail.outbox = []
+    resp = api_client.post(
+        '/api/accounts/password-reset/request/',
+        {'email': reset_user.email}, format='json',
+    )
+    assert resp.status_code == 200
+    assert resp.json()['reset_request_token']
+    assert len(mail.outbox) == 1
+
+
+def test_request_view_returns_decoy_token_for_unknown_email(api_client, settings):
+    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    mail.outbox = []
+    resp = api_client.post(
+        '/api/accounts/password-reset/request/',
+        {'email': 'ghost@example.com'}, format='json',
+    )
+    assert resp.status_code == 200
+    assert resp.json()['reset_request_token']
+    assert len(mail.outbox) == 0
+
+
+def test_request_view_rejects_malformed_email(api_client):
+    resp = api_client.post(
+        '/api/accounts/password-reset/request/',
+        {'email': 'not-an-email'}, format='json',
+    )
+    assert resp.status_code == 400
+
+
+def test_verify_view_happy_path(api_client, reset_user, settings):
+    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    mail.outbox = []
+    r1 = api_client.post(
+        '/api/accounts/password-reset/request/',
+        {'email': reset_user.email}, format='json',
+    )
+    request_token = r1.json()['reset_request_token']
+    code = VerificationCode.objects.latest('created_at').code
+    r2 = api_client.post(
+        '/api/accounts/password-reset/verify-code/',
+        {'reset_request_token': request_token, 'code': code}, format='json',
+    )
+    assert r2.status_code == 200
+    assert r2.json()['reset_verified_token']
+
+
+def test_verify_view_wrong_code_surfaces_attempts_left(api_client, reset_user, settings):
+    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    mail.outbox = []
+    r1 = api_client.post(
+        '/api/accounts/password-reset/request/',
+        {'email': reset_user.email}, format='json',
+    )
+    request_token = r1.json()['reset_request_token']
+    r2 = api_client.post(
+        '/api/accounts/password-reset/verify-code/',
+        {'reset_request_token': request_token, 'code': '000000'}, format='json',
+    )
+    assert r2.status_code == 400
+    body = r2.json()
+    assert body['detail'] == 'invalid_code'
+    assert body['attempts_left'] == 4
+
+
+def test_confirm_view_completes_flow_and_returns_session(api_client, reset_user, settings):
+    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    mail.outbox = []
+    r1 = api_client.post(
+        '/api/accounts/password-reset/request/',
+        {'email': reset_user.email}, format='json',
+    )
+    request_token = r1.json()['reset_request_token']
+    code = VerificationCode.objects.latest('created_at').code
+    r2 = api_client.post(
+        '/api/accounts/password-reset/verify-code/',
+        {'reset_request_token': request_token, 'code': code}, format='json',
+    )
+    verified_token = r2.json()['reset_verified_token']
+    r3 = api_client.post(
+        '/api/accounts/password-reset/confirm/',
+        {'reset_verified_token': verified_token, 'new_password': 'NewStrongPass456!'}, format='json',
+    )
+    assert r3.status_code == 200
+    body = r3.json()
+    assert 'access' in body and 'refresh' in body
+    reset_user.refresh_from_db()
+    assert reset_user.check_password('NewStrongPass456!')
+
+
+def test_confirm_view_weak_password_returns_errors(api_client, reset_user, settings):
+    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    mail.outbox = []
+    r1 = api_client.post(
+        '/api/accounts/password-reset/request/',
+        {'email': reset_user.email}, format='json',
+    )
+    request_token = r1.json()['reset_request_token']
+    code = VerificationCode.objects.latest('created_at').code
+    r2 = api_client.post(
+        '/api/accounts/password-reset/verify-code/',
+        {'reset_request_token': request_token, 'code': code}, format='json',
+    )
+    verified_token = r2.json()['reset_verified_token']
+    r3 = api_client.post(
+        '/api/accounts/password-reset/confirm/',
+        {'reset_verified_token': verified_token, 'new_password': '12345678'}, format='json',
+    )
+    # 8-char all-numeric password: passes serializer min_length but should fail
+    # Django's NumericPasswordValidator inside the service.
+    assert r3.status_code == 400
+    body = r3.json()
+    assert body['detail'] == 'weak_password'
+    assert isinstance(body['errors'], list) and body['errors']
