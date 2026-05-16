@@ -1150,3 +1150,22 @@ class ProposalSummarySerializer(serializers.Serializer):
     hosting_discount_semiannual = serializers.IntegerField()
     hosting_discount_quarterly = serializers.IntegerField()
     status = serializers.CharField()
+
+
+# ==========================================================================
+# Password recovery — input serializers for the 3-step wizard
+# ==========================================================================
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordResetVerifyCodeSerializer(serializers.Serializer):
+    reset_request_token = serializers.CharField()
+    code = serializers.CharField(min_length=6, max_length=6)
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    reset_verified_token = serializers.CharField()
+    new_password = serializers.CharField(min_length=8, write_only=True)
