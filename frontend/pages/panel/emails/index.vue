@@ -67,7 +67,7 @@
           <draggable v-model="sections" item-key="id" handle=".drag-handle" ghost-class="opacity-30"
             class="space-y-3">
             <template #item="{ element: section, index: idx }">
-              <div class="bg-surface-muted  rounded-lg p-3 border border-border-muted ">
+              <div class="bg-surface rounded-lg p-3 border border-border-muted">
                 <div class="flex items-center gap-2 mb-2">
                   <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted select-none text-sm">⠿</span>
                   <span class="text-[10px] text-text-subtle uppercase tracking-wide">Sección {{ idx + 1 }}</span>
@@ -254,7 +254,7 @@
           </button>
 
           <!-- Expanded detail -->
-          <div v-if="expandedIds[entry.id]" class="border-t border-border-muted  px-4 py-3 bg-surface-muted  space-y-3">
+          <div v-if="expandedIds[entry.id]" class="border-t border-border-muted px-4 py-3 bg-surface space-y-3">
             <div v-if="entry.metadata?.greeting">
               <p class="text-[10px] text-text-subtle uppercase tracking-wide mb-0.5">Saludo</p>
               <p class="text-xs text-text-default">{{ entry.metadata.greeting }}</p>

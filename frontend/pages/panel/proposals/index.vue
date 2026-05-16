@@ -372,10 +372,10 @@
                 </span>
               </template>
               <template v-else-if="p.last_activity_at">
-                {{ timeAgo(p.last_activity_at) }}
+                {{ formatActivityDate(p.last_activity_at) }}
               </template>
               <template v-else-if="p.created_at">
-                {{ timeAgo(p.created_at) }}
+                {{ formatActivityDate(p.created_at) }}
                 <span class="text-[10px] text-text-subtle dark:text-green-light/60 ml-1">(creada)</span>
               </template>
               <span v-else class="text-text-subtle dark:text-green-light/60">—</span>
@@ -447,8 +447,8 @@
           <div class="bg-surface rounded-2xl shadow-2xl max-w-md w-full  dark:border dark:border-white/[0.06]">
             <!-- Header -->
             <div class="px-6 py-4 border-b border-border-muted flex items-center justify-between">
-              <div>
-                <h3 class="text-base font-bold text-text-default truncate">{{ actionsModalProposal.title }}</h3>
+              <div class="min-w-0 flex-1 pr-3">
+                <h3 class="text-base font-bold text-text-default break-words">{{ actionsModalProposal.title }}</h3>
                 <p class="text-xs text-text-muted mt-0.5">{{ actionsModalProposal.client_name }}</p>
               </div>
               <button class="w-8 h-8 rounded-lg flex items-center justify-center text-text-subtle hover:bg-surface-raised transition-colors" @click="actionsModalProposal = null">
@@ -811,13 +811,16 @@ function effectiveInvestmentTotal(proposal) {
   return Number(val != null && val !== '' ? val : proposal?.total_investment) || 0;
 }
 
+const normalizeForSearch = (s) =>
+  (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
 const filteredProposals = computed(() => {
-  const q = searchQuery.value.trim().toLowerCase();
+  const q = normalizeForSearch(searchQuery.value.trim());
   let list = applyFilters(proposals.value).filter((p) => {
     if (q && !(
-      (p.title || '').toLowerCase().includes(q) ||
-      (p.client_name || '').toLowerCase().includes(q) ||
-      (p.client_email || '').toLowerCase().includes(q)
+      normalizeForSearch(p.title).includes(q) ||
+      normalizeForSearch(p.client_name).includes(q) ||
+      normalizeForSearch(p.client_email).includes(q)
     )) return false;
     return true;
   });
@@ -865,6 +868,23 @@ function timeAgo(dateStr) {
   const days = Math.floor(hours / 24);
   if (days < 30) return `hace ${days}d`;
   return d.toLocaleDateString();
+}
+
+function formatActivityDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const now = new Date();
+  const toLocalMidnight = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  const diffDays = Math.floor((toLocalMidnight(now) - toLocalMidnight(d)) / 86400000);
+  if (diffDays === 0) return 'Hoy';
+  if (diffDays === 1) return 'Ayer';
+  const parts = new Intl.DateTimeFormat('es-CO', {
+    day: 'numeric', month: 'long', year: 'numeric',
+  }).formatToParts(d);
+  const get = (t) => parts.find((p) => p.type === t)?.value || '';
+  const month = get('month');
+  const monthCap = month.charAt(0).toUpperCase() + month.slice(1);
+  return `${get('day')} de ${monthCap} ${get('year')}`;
 }
 
 
