@@ -264,34 +264,23 @@
 
 /* ============================
    Folder creation highlight — used by FolderTreeNode and FolderManagerModal
-   when folder.id matches folderStore.newlyCreatedId. "Inner lamp" effect:
-   a radial soft glow rises from the row's center twice, with an off valley
-   between the two pulses. The row's own background is left untouched; the
-   glow lives on a ::after pseudo so text/icons remain on top.
+   when folder.id matches folderStore.newlyCreatedId. "Lit frame" effect:
+   a thin primary rim with a soft outer glow turns on twice, with an off
+   valley between pulses. Elegant, clearly visible, no bg flood.
    ============================ */
 @keyframes folder-highlight-flash {
-  0%   { opacity: 0; }
-  20%  { opacity: 0.8; }  /* lamp ON #1 */
-  40%  { opacity: 0; }    /* off valley */
-  60%  { opacity: 0.8; }  /* lamp ON #2 */
-  100% { opacity: 0; }
+  0%, 40%, 100% {
+    box-shadow:
+      0 0 0 0 transparent,
+      0 0 0 0 transparent;
+  }
+  20%, 60% {
+    box-shadow:
+      0 0 0 1.5px var(--color-primary),
+      0 0 12px 2px var(--color-primary-soft);
+  }
 }
 .folder-highlight-flash {
-  position: relative;
-  isolation: isolate;
-}
-.folder-highlight-flash::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background: radial-gradient(
-    ellipse at center,
-    var(--color-primary-soft) 0%,
-    transparent 70%
-  );
-  opacity: 0;
-  pointer-events: none;
   animation: folder-highlight-flash 2200ms ease-out;
+  border-radius: inherit;
 }
