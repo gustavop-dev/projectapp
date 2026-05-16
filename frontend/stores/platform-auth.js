@@ -164,6 +164,110 @@ export const usePlatformAuthStore = defineStore('platformAuth', {
       }
     },
 
+    async requestPasswordReset({ email }) {
+      const trimmed = (email || '').trim().toLowerCase()
+      if (!trimmed) {
+        this.error = 'Ingresa tu email.'
+        return { success: false, message: this.error }
+      }
+      this.isLoading = true
+      this.error = ''
+      try {
+        const { post } = usePlatformApi()
+        const response = await post(
+          'password-reset/request/',
+          { email: trimmed },
+          { skipAuth: true, skipRefresh: true },
+        )
+        this.startPasswordReset({
+          email: trimmed,
+          requestToken: response.data.reset_request_token,
+        })
+        return { success: true }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No pudimos iniciar el flujo de recuperación.'
+        this.error = message
+        return { success: false, message }
+      /* c8 ignore next 3 */
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async verifyResetCode({ code }) {
+      const value = `${code || ''}`.trim()
+      if (!this.passwordReset.requestToken) {
+        return { success: false, message: 'Empieza desde la página inicial de recuperación.' }
+      }
+      if (!/^\d{6}$/.test(value)) {
+        this.error = 'Ingresa un código válido de 6 dígitos.'
+        return { success: false, message: this.error }
+      }
+      this.isVerifying = true
+      this.error = ''
+      try {
+        const { post } = usePlatformApi()
+        const response = await post(
+          'password-reset/verify-code/',
+          { reset_request_token: this.passwordReset.requestToken, code: value },
+          { skipAuth: true, skipRefresh: true },
+        )
+        this.markCodeVerified({ verifiedToken: response.data.reset_verified_token })
+        return { success: true }
+      } catch (error) {
+        const data = error.response?.data || {}
+        const message = data.detail || 'No pudimos verificar el código.'
+        this.error = message
+        return {
+          success: false,
+          message,
+          code: data.detail,
+          attemptsLeft: data.attempts_left,
+        }
+      /* c8 ignore next 3 */
+      } finally {
+        this.isVerifying = false
+      }
+    },
+
+    async confirmPasswordReset({ newPassword }) {
+      const value = newPassword || ''
+      if (!this.passwordReset.verifiedToken) {
+        return { success: false, message: 'Completa primero la verificación del código.' }
+      }
+      if (value.length < 8) {
+        this.error = 'La contraseña debe tener al menos 8 caracteres.'
+        return { success: false, message: this.error }
+      }
+      this.isLoading = true
+      this.error = ''
+      try {
+        const { post } = usePlatformApi()
+        const response = await post(
+          'password-reset/confirm/',
+          { reset_verified_token: this.passwordReset.verifiedToken, new_password: value },
+          { skipAuth: true, skipRefresh: true },
+        )
+        const tokens = { access: response.data.access, refresh: response.data.refresh }
+        this.applyAuthenticatedSession(tokens, response.data.user)
+        this.clearPasswordReset()
+        return { success: true, user: response.data.user }
+      } catch (error) {
+        const data = error.response?.data || {}
+        const message = data.detail || 'No pudimos restablecer la contraseña.'
+        this.error = message
+        return {
+          success: false,
+          message,
+          code: data.detail,
+          errors: data.errors,
+        }
+      /* c8 ignore next 3 */
+      } finally {
+        this.isLoading = false
+      }
+    },
+
     async login(payload) {
       const email = (payload?.email || '').trim().toLowerCase()
       const password = payload?.password || ''
