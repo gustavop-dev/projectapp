@@ -263,23 +263,35 @@
 }
 
 /* ============================
-   Folder creation highlight — used by FolderTreeNode when folder.id matches
-   folderStore.newlyCreatedId. 2500 ms total so it fades naturally with the
-   store's auto-clear timer. Slower + more expressive than action-row-flash
-   because creation is a less-frequent, higher-signal event.
+   Folder creation highlight — used by FolderTreeNode and FolderManagerModal
+   when folder.id matches folderStore.newlyCreatedId. "Inner lamp" effect:
+   a radial soft glow rises from the row's center twice, with an off valley
+   between the two pulses. The row's own background is left untouched; the
+   glow lives on a ::after pseudo so text/icons remain on top.
    ============================ */
 @keyframes folder-highlight-flash {
-  /* First pulse: off -> fade-in -> halo -> fade-out (symmetric to second) */
-  0%   { background-color: transparent;               box-shadow: 0 0 0 0 transparent; }
-  6%   { background-color: var(--color-primary-soft); box-shadow: 0 0 0 0 var(--color-primary-soft); }
-  18%  { background-color: var(--color-primary-soft); box-shadow: 0 0 0 4px var(--color-primary-soft); }
-  30%  { background-color: transparent;               box-shadow: 0 0 0 0 transparent; }
-  /* Second pulse */
-  42%  { background-color: var(--color-primary-soft); box-shadow: 0 0 0 0 var(--color-primary-soft); }
-  54%  { background-color: var(--color-primary-soft); box-shadow: 0 0 0 4px var(--color-primary-soft); }
-  /* Fade out */
-  100% { background-color: transparent;               box-shadow: 0 0 0 0 transparent; }
+  0%   { opacity: 0; }
+  20%  { opacity: 0.8; }  /* lamp ON #1 */
+  40%  { opacity: 0; }    /* off valley */
+  60%  { opacity: 0.8; }  /* lamp ON #2 */
+  100% { opacity: 0; }
 }
 .folder-highlight-flash {
-  animation: folder-highlight-flash 2500ms ease-out;
+  position: relative;
+  isolation: isolate;
+}
+.folder-highlight-flash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(
+    ellipse at center,
+    var(--color-primary-soft) 0%,
+    transparent 70%
+  );
+  opacity: 0;
+  pointer-events: none;
+  animation: folder-highlight-flash 2200ms ease-out;
 }
