@@ -22,6 +22,11 @@ function initialState() {
     error: '',
     hasHydrated: false,
     hasValidatedSession: false,
+    passwordReset: {
+      email: null,
+      requestToken: null,
+      verifiedToken: null,
+    },
   }
 }
 
@@ -134,6 +139,29 @@ export const usePlatformAuthStore = defineStore('platformAuth', {
         refreshToken: '',
         user: null,
       })
+    },
+
+    startPasswordReset({ email, requestToken }) {
+      this.passwordReset = {
+        email: email || null,
+        requestToken: requestToken || null,
+        verifiedToken: null,
+      }
+    },
+
+    markCodeVerified({ verifiedToken }) {
+      this.passwordReset = {
+        ...this.passwordReset,
+        verifiedToken: verifiedToken || null,
+      }
+    },
+
+    clearPasswordReset() {
+      this.passwordReset = {
+        email: null,
+        requestToken: null,
+        verifiedToken: null,
+      }
     },
 
     async login(payload) {
