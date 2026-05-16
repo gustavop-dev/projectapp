@@ -32,9 +32,9 @@ class Command(BaseCommand):
             },
         )
         if created:
-            admin.set_password('admin')
+            admin.set_password('password')
             admin.save()
-            self.stdout.write(self.style.SUCCESS('Admin superuser created (username: admin / password: admin)'))
+            self.stdout.write(self.style.SUCCESS('Admin superuser created (username: admin / password: password)'))
         else:
             self.stdout.write(self.style.WARNING('Admin superuser already exists — skipped'))
 
