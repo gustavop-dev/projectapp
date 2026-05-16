@@ -9,6 +9,9 @@ from freezegun import freeze_time
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
+from django.core import mail
+
+from accounts.models import VerificationCode
 from accounts.services.tokens import (
     PASSWORD_RESET_REQUEST_PURPOSE,
     PASSWORD_RESET_VERIFIED_PURPOSE,
@@ -17,6 +20,7 @@ from accounts.services.tokens import (
     get_password_reset_request_token,
     get_password_reset_verified_token,
 )
+from accounts.services.verification import create_and_send_otp
 
 User = get_user_model()
 pytestmark = pytest.mark.django_db
@@ -78,3 +82,32 @@ def test_verified_token_expires_after_5_minutes(reset_user):
     with freeze_time('2026-05-16 10:06:00'):
         with pytest.raises(TokenError):
             decode_password_reset_token(raw, expected_purpose=PASSWORD_RESET_VERIFIED_PURPOSE)
+
+
+# ==========================================================================
+# verification.create_and_send_otp template routing
+# ==========================================================================
+
+
+def test_create_and_send_otp_uses_password_reset_template_for_reset_purpose(reset_user, settings):
+    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    mail.outbox = []
+    create_and_send_otp(reset_user, purpose=VerificationCode.PURPOSE_PASSWORD_RESET)
+    assert len(mail.outbox) == 1
+    sent = mail.outbox[0]
+    body_html = sent.alternatives[0][0] if sent.alternatives else ''
+    body_text = sent.body
+    assert 'restablec' in body_text.lower() or 'restablec' in body_html.lower()
+    assert reset_user.email in sent.to
+
+
+def test_create_and_send_otp_default_purpose_still_uses_onboarding_template(reset_user, settings):
+    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    mail.outbox = []
+    create_and_send_otp(reset_user)  # defaults to PURPOSE_ONBOARDING
+    assert len(mail.outbox) == 1
+    sent = mail.outbox[0]
+    body_html = sent.alternatives[0][0] if sent.alternatives else ''
+    # The onboarding email body should NOT contain password-reset copy.
+    assert 'restablecer' not in sent.body.lower()
+    assert 'restablecer' not in body_html.lower()
