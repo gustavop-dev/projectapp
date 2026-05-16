@@ -212,21 +212,10 @@ async function handleSubmit() {
 <style scoped>
 .grain-overlay {
   position: absolute;
-  inset: -50%;
-  width: 200%;
-  height: 200%;
+  inset: 0;
   z-index: 1;
   pointer-events: none;
   opacity: 0.3;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  animation: grainDrift 8s linear infinite;
-}
-
-@keyframes grainDrift {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(-5%, 5%); }
-  50% { transform: translate(5%, -3%); }
-  75% { transform: translate(-3%, -5%); }
-  100% { transform: translate(0, 0); }
 }
 </style>
