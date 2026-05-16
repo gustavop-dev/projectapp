@@ -73,6 +73,10 @@
             {{ authStore.isLoading ? 'Ingresando...' : 'Iniciar sesión' }}
           </button>
         </form>
+
+        <p class="mt-6 text-center text-sm text-green-light">
+          <NuxtLink :to="localePath('/platform/forgot-password')" class="underline">¿Olvidaste tu contraseña?</NuxtLink>
+        </p>
       </div>
 
       <p class="mt-8 text-center text-sm leading-6 text-white/40" data-enter>
@@ -142,6 +146,7 @@ usePageEntrance('#platform-login')
 
 const route = useRoute()
 const authStore = usePlatformAuthStore()
+const localePath = useLocalePath()
 const form = reactive({
   email: '',
   password: '',
@@ -185,8 +190,6 @@ async function handleSubmit() {
     }
     return
   }
-
-  const localePath = useLocalePath()
 
   if (result.requiresVerification) {
     await navigateTo(localePath('/platform/verify'))
