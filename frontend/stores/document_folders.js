@@ -107,7 +107,7 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
         if (this._newlyCreatedTimer) clearTimeout(this._newlyCreatedTimer);
         this._newlyCreatedTimer = setTimeout(() => {
           this.newlyCreatedId = null;
-        }, 2500);
+        }, 3200);
         return { success: true, data: response.data };
       } catch (error) {
         this.error = 'create_folder_failed';
