@@ -264,10 +264,11 @@
 
 /* ============================
    Folder creation highlight — used by FolderTreeNode and FolderManagerModal
-   when folder.id matches folderStore.newlyCreatedId. "Emerald glow" effect:
-   a soft emerald aura illuminates the row inside (bg tint + inset shadow)
-   and outside (layered drop-shadow), pulses ON twice with an off valley
-   between. Uses --color-focus-ring (#34D399) — invariant in light/dark.
+   when folder.id matches folderStore.newlyCreatedId. "Mustard glow" effect:
+   a warm mustard-yellow aura illuminates the row inside (bg tint + inset
+   shadow) and outside (layered drop-shadow), pulses ON twice with an off
+   valley between. Color is a one-off literal (#EAB308 / yellow-500) —
+   no semantic token fits "burnt yellow but not too much".
    ============================ */
 @keyframes folder-highlight-flash {
   0%, 40%, 100% {
@@ -278,11 +279,11 @@
       drop-shadow(0 0 0 transparent);
   }
   20%, 60% {
-    background-color: rgb(var(--color-focus-ring-rgb) / 0.13);
-    box-shadow: inset 0 0 14px rgb(var(--color-focus-ring-rgb) / 0.32);
+    background-color: rgb(234 179 8 / 0.13);
+    box-shadow: inset 0 0 14px rgb(234 179 8 / 0.32);
     filter:
-      drop-shadow(0 0 8px var(--color-focus-ring))
-      drop-shadow(0 0 22px rgb(var(--color-focus-ring-rgb) / 0.5));
+      drop-shadow(0 0 8px #EAB308)
+      drop-shadow(0 0 22px rgb(234 179 8 / 0.5));
   }
 }
 .folder-highlight-flash {
