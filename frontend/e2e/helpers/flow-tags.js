@@ -139,6 +139,7 @@ export const PROPOSAL_CALCULATOR_BIOMETRIC_MODULE = ['@flow:proposal-calculator-
 // ── Platform ──
 export const PLATFORM_LOGIN = ['@flow:platform-login', '@module:platform', '@priority:P1'];
 export const PLATFORM_VERIFY_ONBOARDING = ['@flow:platform-verify-onboarding', '@module:platform', '@priority:P1'];
+export const PLATFORM_PASSWORD_RESET = ['@flow:platform-password-reset', '@module:platform', '@priority:P1'];
 export const PLATFORM_COMPLETE_PROFILE = ['@flow:platform-complete-profile', '@module:platform', '@priority:P1'];
 export const PLATFORM_KANBAN_BOARD = ['@flow:platform-kanban-board', '@module:platform', '@priority:P1'];
 export const PLATFORM_DASHBOARD = ['@flow:platform-dashboard', '@module:platform', '@priority:P2'];
