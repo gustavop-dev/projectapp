@@ -4,5 +4,5 @@ definePageMeta({
   middleware: ['platform-auth'],
 })
 
-await navigateTo('/platform/dashboard')
+await navigateTo('/platform/projects')
 </script>
