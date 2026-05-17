@@ -116,7 +116,6 @@
           Subir primer archivo
         </button>
       </div>
-  </ProjectShell>
 </template>
 
     <!-- Create modal -->
@@ -338,6 +337,7 @@
       </Transition>
     </Teleport>
   </div>
+  </ProjectShell>
 </template>
 
 <script setup>

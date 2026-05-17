@@ -251,7 +251,6 @@
         <div v-else-if="payStore.payments.length === 0" class="py-8 text-center text-sm text-green-light" data-enter>
           No hay pagos registrados aún.
         </div>
-  </ProjectShell>
 </template>
     </template>
 
@@ -349,6 +348,7 @@
       </Transition>
     </Teleport>
   </div>
+  </ProjectShell>
 </template>
 
 <script setup>

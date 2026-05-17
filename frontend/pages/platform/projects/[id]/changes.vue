@@ -129,7 +129,6 @@
           Crear primera solicitud
         </button>
       </div>
-  </ProjectShell>
 </template>
 
     <!-- Create modal -->
@@ -408,6 +407,7 @@
       </Transition>
     </Teleport>
   </div>
+  </ProjectShell>
 </template>
 
 <script setup>

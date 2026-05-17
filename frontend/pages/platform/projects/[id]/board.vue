@@ -245,7 +245,6 @@
           </div>
         </Transition>
       </div>
-  </ProjectShell>
 </template>
 
     <!-- Move to column modal -->
@@ -469,6 +468,7 @@
       </Transition>
     </Teleport>
   </div>
+  </ProjectShell>
 </template>
 
 <script setup>
