@@ -158,12 +158,24 @@ class ClientListSerializer(serializers.ModelSerializer):
     is_active = serializers.BooleanField(source='user.is_active')
     avatar_display_url = serializers.SerializerMethodField()
 
+    # Platform IA aggregates (admin table) — added 2026-05-17
+    hosting_plan = serializers.SerializerMethodField()
+    hosting_renewal_at = serializers.SerializerMethodField()
+    hosting_renewal_value = serializers.SerializerMethodField()
+    active_projects_count = serializers.SerializerMethodField()
+    total_projects_count = serializers.SerializerMethodField()
+    last_activity_at = serializers.SerializerMethodField()
+    has_logged_in_once = serializers.SerializerMethodField()
+
     class Meta:
         model = UserProfile
         fields = [
             'user_id', 'email', 'first_name', 'last_name',
             'company_name', 'phone', 'is_onboarded', 'is_active',
             'profile_completed', 'avatar_display_url', 'created_at',
+            'hosting_plan', 'hosting_renewal_at', 'hosting_renewal_value',
+            'active_projects_count', 'total_projects_count',
+            'last_activity_at', 'has_logged_in_once',
         ]
 
     def get_avatar_display_url(self, obj):
@@ -172,6 +184,53 @@ class ClientListSerializer(serializers.ModelSerializer):
         if url and request and not url.startswith('http'):
             return request.build_absolute_uri(url)
         return url
+
+    def _active_subscription(self, obj):
+        from accounts.models import HostingSubscription
+        return (
+            HostingSubscription.objects
+            .filter(project__client=obj.user, status=HostingSubscription.STATUS_ACTIVE)
+            .order_by('next_billing_date')
+            .first()
+        )
+
+    def get_hosting_plan(self, obj):
+        sub = self._active_subscription(obj)
+        return sub.plan if sub else None
+
+    def get_hosting_renewal_at(self, obj):
+        sub = self._active_subscription(obj)
+        return sub.next_billing_date if sub else None
+
+    def get_hosting_renewal_value(self, obj):
+        sub = self._active_subscription(obj)
+        return sub.billing_amount if sub else None
+
+    def get_active_projects_count(self, obj):
+        from accounts.models import Project
+        return Project.objects.filter(
+            client=obj.user, status=Project.STATUS_ACTIVE,
+        ).count()
+
+    def get_total_projects_count(self, obj):
+        from accounts.models import Project
+        return Project.objects.filter(client=obj.user).exclude(
+            status=Project.STATUS_ARCHIVED,
+        ).count()
+
+    def get_last_activity_at(self, obj):
+        from django.db.models import Max
+        from accounts.models import Project
+        latest = Project.objects.filter(client=obj.user).aggregate(
+            m=Max('updated_at'),
+        )['m']
+        login = obj.user.last_login
+        if latest and login:
+            return max(latest, login)
+        return latest or login
+
+    def get_has_logged_in_once(self, obj):
+        return obj.user.last_login is not None
 
 
 # =========================================================================
