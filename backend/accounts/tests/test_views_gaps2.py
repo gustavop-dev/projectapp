@@ -18,8 +18,10 @@ from rest_framework.test import APIClient
 from accounts.models import (
     Deliverable,
     Project,
+    ProjectPhase,
     UserProfile,
 )
+from content.models.business_proposal import BusinessProposal
 
 User = get_user_model()
 
@@ -91,6 +93,12 @@ def deliverable(project, admin_user):
 
 
 @pytest.fixture
+def phase(project):
+    bp = BusinessProposal.objects.create(title='Gaps2 proposal', client_name='Carlos')
+    return ProjectPhase.objects.create(project=project, business_proposal=bp, order=1)
+
+
+@pytest.fixture
 def archived_deliverable(project, admin_user):
     d = Deliverable.objects.create(
         project=project,
@@ -108,13 +116,10 @@ def archived_deliverable(project, admin_user):
 
 class TestRequirementBulkUploadView:
     def test_admin_bulk_creates_requirements(
-        self, api_client, admin_headers, project, deliverable,
+        self, api_client, admin_headers, project, phase,
     ):
         """Admin can bulk-create requirements from a JSON array."""
-        url = (
-            f'/api/accounts/projects/{project.id}/deliverables/'
-            f'{deliverable.id}/requirements/bulk/'
-        )
+        url = f'/api/accounts/projects/{project.id}/requirements/bulk/?phase_id={phase.id}'
         payload = [
             {'title': 'Req 1', 'description': 'First requirement'},
             {'title': 'Req 2', 'priority': 'high'},
@@ -126,38 +131,29 @@ class TestRequirementBulkUploadView:
         assert resp.json()['created'] == 3
 
     def test_returns_400_when_payload_is_not_a_list(
-        self, api_client, admin_headers, project, deliverable,
+        self, api_client, admin_headers, project, phase,
     ):
         """Returns 400 when request body is not a JSON array."""
-        url = (
-            f'/api/accounts/projects/{project.id}/deliverables/'
-            f'{deliverable.id}/requirements/bulk/'
-        )
+        url = f'/api/accounts/projects/{project.id}/requirements/bulk/?phase_id={phase.id}'
         resp = api_client.post(url, {'title': 'bad'}, format='json', **admin_headers)
 
         assert resp.status_code == 400
 
     def test_returns_400_when_too_many_items(
-        self, api_client, admin_headers, project, deliverable,
+        self, api_client, admin_headers, project, phase,
     ):
         """Returns 400 when more than 500 items are submitted."""
-        url = (
-            f'/api/accounts/projects/{project.id}/deliverables/'
-            f'{deliverable.id}/requirements/bulk/'
-        )
+        url = f'/api/accounts/projects/{project.id}/requirements/bulk/?phase_id={phase.id}'
         payload = [{'title': f'Req {i}'} for i in range(501)]
         resp = api_client.post(url, payload, format='json', **admin_headers)
 
         assert resp.status_code == 400
 
-    def test_returns_400_when_deliverable_is_archived(
-        self, api_client, admin_headers, project, archived_deliverable,
+    def test_returns_400_when_phase_id_missing(
+        self, api_client, admin_headers, project,
     ):
-        """Returns 400 when target deliverable is archived."""
-        url = (
-            f'/api/accounts/projects/{project.id}/deliverables/'
-            f'{archived_deliverable.id}/requirements/bulk/'
-        )
+        """Returns 400 when phase_id query param is missing."""
+        url = f'/api/accounts/projects/{project.id}/requirements/bulk/'
         resp = api_client.post(url, [{'title': 'Req'}], format='json', **admin_headers)
 
         assert resp.status_code == 400

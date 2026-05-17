@@ -291,17 +291,20 @@ class TestGetPlanDiscountStoredTiers:
         project.hosting_tiers = [{'frequency': 'monthly', 'discount_percent': 0}]
         project.save(update_fields=['hosting_tiers'])
 
+        from accounts.models import ProjectPhase
         d = Deliverable.objects.create(
             project=project, title='BP Deliverable',
             category=Deliverable.CATEGORY_DOCUMENTS,
             uploaded_by=subscription.project.client,
         )
-        BusinessProposal.objects.create(
+        bp = BusinessProposal.objects.create(
             title='Test BP', client_name='Client',
             hosting_discount_quarterly=12,
             hosting_discount_semiannual=22,
             deliverable=d,
         )
+        # Project.linked_business_proposal() resolves through phases after the refactor.
+        ProjectPhase.objects.create(project=project, business_proposal=bp, order=1)
 
         result = _get_plan_discount(project, 'quarterly')
 

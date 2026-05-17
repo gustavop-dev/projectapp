@@ -171,7 +171,7 @@ class TestDeliverableCreate:
     def test_admin_uploads_deliverable(
         self, api_client, admin_headers, project,
     ):
-        f = _make_file('design-v1.pdf')
+        f = _make_file('design-v1.zip')
 
         resp = api_client.post(
             _url(project.id),
@@ -201,18 +201,32 @@ class TestDeliverableCreate:
         assert d.versions.count() == 1
         assert d.versions.first().version_number == 1
 
-    def test_client_cannot_upload_deliverable(
+    def test_client_cannot_upload_admin_only_category(
         self, api_client, client_headers, project,
     ):
         f = _make_file('hack.pdf')
 
         resp = api_client.post(
             _url(project.id),
-            {'title': 'Forbidden', 'category': 'other', 'file': f},
+            {'title': 'Forbidden', 'category': 'contract', 'file': f},
             format='multipart', **client_headers,
         )
 
         assert resp.status_code == 403
+
+    def test_client_can_upload_open_category(
+        self, api_client, client_headers, project,
+    ):
+        f = _make_file('mine.pdf')
+
+        resp = api_client.post(
+            _url(project.id),
+            {'title': 'Mi documento', 'category': 'other', 'file': f},
+            format='multipart', **client_headers,
+        )
+
+        assert resp.status_code == 201
+        assert resp.data['category'] == 'other'
 
     def test_create_without_file_fails(
         self, api_client, admin_headers, project,
@@ -348,7 +362,8 @@ class TestDeliverableUploadVersion:
         self, api_client, admin_headers, project, sample_deliverables,
     ):
         d = sample_deliverables[0]
-        new_file = _make_file('wireframes-v2.pdf', b'updated content')
+        # sample_deliverables[0] is a 'designs' fixture → uploads must be .zip
+        new_file = _make_file('wireframes-v2.zip', b'updated content')
 
         resp = api_client.post(
             _detail_url(project.id, d.id, 'upload-version/'),
@@ -364,16 +379,16 @@ class TestDeliverableUploadVersion:
     def test_version_number_increments_correctly(
         self, api_client, admin_headers, project, sample_deliverables,
     ):
-        d = sample_deliverables[0]
+        d = sample_deliverables[0]  # 'designs' fixture
 
         api_client.post(
             _detail_url(project.id, d.id, 'upload-version/'),
-            {'file': _make_file('v2.pdf')},
+            {'file': _make_file('v2.zip')},
             format='multipart', **admin_headers,
         )
         api_client.post(
             _detail_url(project.id, d.id, 'upload-version/'),
-            {'file': _make_file('v3.pdf')},
+            {'file': _make_file('v3.zip')},
             format='multipart', **admin_headers,
         )
 

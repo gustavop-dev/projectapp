@@ -42,16 +42,12 @@ def authed(admin_client_user):
 
 def test_project_list_includes_bugs_open_count(authed, client_user):
     p = Project.objects.create(name='P1', client=client_user)
-    deliverable = Deliverable.objects.create(
-        project=p, title='D1', category=Deliverable.CATEGORY_OTHER,
-        file=None, uploaded_by=client_user,
-    )
     BugReport.objects.create(
-        deliverable=deliverable, reported_by=client_user,
+        project=p, reported_by=client_user,
         title='B1', description='x', status=BugReport.STATUS_REPORTED,
     )
     BugReport.objects.create(
-        deliverable=deliverable, reported_by=client_user,
+        project=p, reported_by=client_user,
         title='B2', description='x', status=BugReport.STATUS_RESOLVED,
     )
     resp = authed.get('/api/accounts/projects/')

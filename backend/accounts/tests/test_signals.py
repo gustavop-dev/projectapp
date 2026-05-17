@@ -125,7 +125,7 @@ class TestDeleteBugReportSignal:
             file=None, uploaded_by=client,
         )
         bug = BugReport.objects.create(
-            deliverable=deliverable, reported_by=client, title='Bug Signal',
+            project=project, reported_by=client, title='Bug Signal',
             severity=BugReport.SEVERITY_MEDIUM,
         )
         bug_pk = bug.pk
@@ -145,7 +145,7 @@ class TestDeleteBugReportSignal:
             file=None, uploaded_by=client,
         )
         bug = BugReport.objects.create(
-            deliverable=deliverable, reported_by=client, title='Bug File',
+            project=project, reported_by=client, title='Bug File',
             severity=BugReport.SEVERITY_MEDIUM,
         )
 

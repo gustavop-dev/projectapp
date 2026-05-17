@@ -11,8 +11,11 @@ from accounts.models import (
     BugReport,
     Deliverable,
     Project,
+    ProjectPhase,
+    Requirement,
     UserProfile,
 )
+from content.models.business_proposal import BusinessProposal
 
 User = get_user_model()
 
@@ -84,10 +87,17 @@ def deliverable(project, client_user):
 
 
 @pytest.fixture
+def source_requirement(project):
+    bp = BusinessProposal.objects.create(title='Bug proposal', client_name='Carlos')
+    phase = ProjectPhase.objects.create(project=project, business_proposal=bp, order=1)
+    return Requirement.objects.create(phase=phase, title='Source req')
+
+
+@pytest.fixture
 def sample_bugs(project, client_user, deliverable):
     bugs = []
     bugs.append(BugReport.objects.create(
-        deliverable=deliverable, reported_by=client_user,
+        project=project, reported_by=client_user,
         title='Button does not work', description='Click does nothing.',
         severity=BugReport.SEVERITY_CRITICAL,
         steps_to_reproduce=['Open page', 'Click button', 'Nothing happens'],
@@ -98,13 +108,13 @@ def sample_bugs(project, client_user, deliverable):
         status=BugReport.STATUS_REPORTED,
     ))
     bugs.append(BugReport.objects.create(
-        deliverable=deliverable, reported_by=client_user,
+        project=project, reported_by=client_user,
         title='Slow page load', severity=BugReport.SEVERITY_HIGH,
         status=BugReport.STATUS_FIXING,
         admin_response='Working on optimization.',
     ))
     bugs.append(BugReport.objects.create(
-        deliverable=deliverable, reported_by=client_user,
+        project=project, reported_by=client_user,
         title='Typo in footer', severity=BugReport.SEVERITY_LOW,
         status=BugReport.STATUS_RESOLVED,
         admin_response='Fixed.',
@@ -201,10 +211,10 @@ class TestBugReportList:
 @pytest.mark.django_db
 class TestBugReportCreate:
     def test_client_creates_bug_report_with_steps(
-        self, api_client, client_headers, project, deliverable,
+        self, api_client, client_headers, project, source_requirement,
     ):
         resp = api_client.post(_url(project.id), {
-            'deliverable_id': deliverable.id,
+            'source_requirement_id': source_requirement.id,
             'title': 'Login fails',
             'description': 'Cannot login with valid creds.',
             'severity': 'high',
@@ -226,34 +236,34 @@ class TestBugReportCreate:
         assert len(data['steps_to_reproduce']) == 4
 
     def test_admin_creates_bug_report(
-        self, api_client, admin_headers, project, deliverable,
+        self, api_client, admin_headers, project, source_requirement,
     ):
         resp = api_client.post(_url(project.id), {
-            'deliverable_id': deliverable.id,
+            'source_requirement_id': source_requirement.id,
             'title': 'Admin-found bug',
         }, format='json', **admin_headers)
 
         assert resp.status_code == 201
 
     def test_create_without_title_fails(
-        self, api_client, client_headers, project, deliverable,
+        self, api_client, client_headers, project, source_requirement,
     ):
         resp = api_client.post(_url(project.id), {
-            'deliverable_id': deliverable.id,
+            'source_requirement_id': source_requirement.id,
             'description': 'No title.',
         }, format='json', **client_headers)
 
         assert resp.status_code == 400
 
     def test_create_with_screenshot_saves_optimized_image(
-        self, api_client, client_headers, project, deliverable,
+        self, api_client, client_headers, project, source_requirement,
     ):
         image = _make_test_image(2000, 1500)
 
         resp = api_client.post(
             _url(project.id),
             {
-                'deliverable_id': deliverable.id,
+                'source_requirement_id': source_requirement.id,
                 'title': 'With screenshot',
                 'severity': 'medium',
                 'environment': 'production',
@@ -268,27 +278,27 @@ class TestBugReportCreate:
         assert data['screenshot_url'] is not None
         assert data['screenshot_url'].endswith('.jpg')
 
-    def test_create_without_deliverable_id_fails(
+    def test_create_without_source_requirement_id_fails(
         self, api_client, client_headers, project,
     ):
         resp = api_client.post(_url(project.id), {
-            'title': 'Missing deliverable',
+            'title': 'Missing source',
         }, format='json', **client_headers)
 
         assert resp.status_code == 400
 
-    def test_create_with_deliverable_from_other_project_fails(
+    def test_create_with_source_requirement_from_other_project_fails(
         self, api_client, client_headers, project, admin_user,
     ):
         other = Project.objects.create(
             name='Other', client=admin_user, status=Project.STATUS_ACTIVE,
         )
-        other_d = Deliverable.objects.create(
-            project=other, title='Other D', category=Deliverable.CATEGORY_OTHER,
-            file=None, uploaded_by=admin_user,
-        )
+        bp = BusinessProposal.objects.create(title='Other proposal', client_name='c')
+        other_phase = ProjectPhase.objects.create(project=other, business_proposal=bp, order=1)
+        other_req = Requirement.objects.create(phase=other_phase, title='Foreign req')
+
         resp = api_client.post(_url(project.id), {
-            'deliverable_id': other_d.id,
+            'source_requirement_id': other_req.id,
             'title': 'Wrong scope',
         }, format='json', **client_headers)
 
@@ -463,19 +473,16 @@ class TestBugReportEvaluate:
         assert resp.json()['status'] == 'duplicate'
         assert resp.json()['linked_bug_id'] == original.id
 
-    def test_evaluate_rejects_linked_bug_from_other_deliverable(
-        self, api_client, admin_headers, project, client_user, deliverable,
+    def test_evaluate_rejects_linked_bug_from_other_project(
+        self, api_client, admin_headers, project, client_user,
     ):
-        other_d = Deliverable.objects.create(
-            project=project, title='Other epic', category=Deliverable.CATEGORY_OTHER,
-            file=None, uploaded_by=client_user,
-        )
+        other_project = Project.objects.create(name='Other', client=client_user)
         local = BugReport.objects.create(
-            deliverable=deliverable, reported_by=client_user,
+            project=project, reported_by=client_user,
             title='Here', severity=BugReport.SEVERITY_LOW,
         )
         foreign = BugReport.objects.create(
-            deliverable=other_d, reported_by=client_user,
+            project=other_project, reported_by=client_user,
             title='There', severity=BugReport.SEVERITY_LOW,
         )
 
@@ -605,12 +612,8 @@ class TestBugReportAllView:
         other_project = Project.objects.create(
             name='Other Project', client=client_user, status=Project.STATUS_ACTIVE,
         )
-        other_d = Deliverable.objects.create(
-            project=other_project, title='OD', category=Deliverable.CATEGORY_OTHER,
-            file=None, uploaded_by=client_user,
-        )
         BugReport.objects.create(
-            deliverable=other_d, reported_by=client_user,
+            project=other_project, reported_by=client_user,
             title='Other bug', severity='low',
         )
 
@@ -636,12 +639,8 @@ class TestBugReportAllView:
         other_project = Project.objects.create(
             name='Secret Project', client=other_client, status=Project.STATUS_ACTIVE,
         )
-        secret_d = Deliverable.objects.create(
-            project=other_project, title='SD', category=Deliverable.CATEGORY_OTHER,
-            file=None, uploaded_by=other_client,
-        )
         BugReport.objects.create(
-            deliverable=secret_d, reported_by=other_client,
+            project=other_project, reported_by=other_client,
             title='Secret bug', severity='low',
         )
 
@@ -690,7 +689,7 @@ class TestBugScreenshotOptimization:
         image = _make_test_image(800, 600)
 
         bug = BugReport(
-            deliverable=deliverable, reported_by=client_user,
+            project=project, reported_by=client_user,
             title='Screenshot test', severity='medium',
         )
         bug.screenshot = image
@@ -702,7 +701,7 @@ class TestBugScreenshotOptimization:
         image = _make_test_image(2400, 1800)
 
         bug = BugReport(
-            deliverable=deliverable, reported_by=client_user,
+            project=project, reported_by=client_user,
             title='Large image', severity='medium',
         )
         bug.screenshot = image
@@ -713,7 +712,7 @@ class TestBugScreenshotOptimization:
 
     def test_bug_without_screenshot_saves_normally(self, project, client_user, deliverable):
         bug = BugReport.objects.create(
-            deliverable=deliverable, reported_by=client_user,
+            project=project, reported_by=client_user,
             title='No screenshot', severity='medium',
         )
 

@@ -295,18 +295,18 @@ class TestProjectListViewAdminFilters:
 
 class TestBugReportAllViewSeverityFilter:
     def test_global_severity_filter_returns_matching_only(
-        self, api_client, admin_headers, project, admin_user, deliverable,
+        self, api_client, admin_headers, project, admin_user,
     ):
         """Global /bug-reports/ endpoint filters by severity query param."""
         BugReport.objects.create(
-            deliverable=deliverable,
+            project=project,
             reported_by=admin_user,
             title='Critical bug',
             severity=BugReport.SEVERITY_CRITICAL,
             status=BugReport.STATUS_REPORTED,
         )
         BugReport.objects.create(
-            deliverable=deliverable,
+            project=project,
             reported_by=admin_user,
             title='Low bug',
             severity=BugReport.SEVERITY_LOW,

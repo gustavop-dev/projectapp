@@ -15,9 +15,11 @@ from rest_framework.test import APIClient
 from accounts.models import (
     Deliverable,
     Project,
+    ProjectPhase,
     Requirement,
     UserProfile,
 )
+from content.models.business_proposal import BusinessProposal
 
 User = get_user_model()
 
@@ -91,9 +93,15 @@ def archived_deliverable(project, admin_user):
 
 
 @pytest.fixture
-def requirement(deliverable, admin_user):
+def phase(project):
+    bp = BusinessProposal.objects.create(title='Arch proposal', client_name='c')
+    return ProjectPhase.objects.create(project=project, business_proposal=bp, order=1)
+
+
+@pytest.fixture
+def requirement(phase):
     return Requirement.objects.create(
-        deliverable=deliverable,
+        phase=phase,
         title='Test Requirement',
         status=Requirement.STATUS_BACKLOG,
         priority=Requirement.PRIORITY_MEDIUM,
@@ -101,15 +109,14 @@ def requirement(deliverable, admin_user):
 
 
 @pytest.fixture
-def archived_requirement(deliverable, admin_user):
-    req = Requirement.objects.create(
-        deliverable=deliverable,
+def archived_requirement(phase):
+    return Requirement.objects.create(
+        phase=phase,
         title='Archived Requirement',
         status=Requirement.STATUS_BACKLOG,
         priority=Requirement.PRIORITY_MEDIUM,
         is_archived=True,
     )
-    return req
 
 
 def _detail_url(project_id, deliverable_id, suffix=''):
@@ -119,11 +126,8 @@ def _detail_url(project_id, deliverable_id, suffix=''):
     )
 
 
-def _req_url(project_id, deliverable_id, req_id):
-    return (
-        f'/api/accounts/projects/{project_id}/deliverables/'
-        f'{deliverable_id}/requirements/{req_id}/'
-    )
+def _req_url(project_id, req_id):
+    return f'/api/accounts/projects/{project_id}/requirements/{req_id}/'
 
 
 # ===========================================================================
@@ -182,10 +186,10 @@ class TestDeliverableUploadVersionArchived:
 
 class TestRequirementDetailPatchIsArchived:
     def test_admin_archives_requirement_via_patch(
-        self, api_client, admin_headers, project, deliverable, requirement,
+        self, api_client, admin_headers, project, requirement,
     ):
         """Admin can archive a requirement via PATCH is_archived=True."""
-        url = _req_url(project.id, deliverable.id, requirement.id)
+        url = _req_url(project.id, requirement.id)
         resp = api_client.patch(
             url, {'is_archived': True}, format='json', **admin_headers,
         )
@@ -195,10 +199,10 @@ class TestRequirementDetailPatchIsArchived:
         assert requirement.is_archived is True
 
     def test_admin_unarchives_requirement_via_patch(
-        self, api_client, admin_headers, project, deliverable, archived_requirement,
+        self, api_client, admin_headers, project, archived_requirement,
     ):
         """Admin can unarchive a requirement via PATCH is_archived=False."""
-        url = _req_url(project.id, deliverable.id, archived_requirement.id)
+        url = _req_url(project.id, archived_requirement.id)
         resp = api_client.patch(
             url, {'is_archived': False}, format='json', **admin_headers,
         )

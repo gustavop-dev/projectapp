@@ -76,19 +76,16 @@ def archived_deliverable(project, admin_user):
 
 
 # ===========================================================================
-# requirement_list_view POST — URL-scoped archived deliverable
+# requirement_list_view POST — missing phase_id (after Phase refactor)
 # ===========================================================================
 
-class TestRequirementListViewArchivedScopedDeliverable:
-    def test_post_to_archived_url_scoped_deliverable_returns_400(
-        self, api_client, admin_headers, project, archived_deliverable,
+class TestRequirementCreateMissingPhase:
+    def test_post_without_phase_returns_400(
+        self, api_client, admin_headers, project,
     ):
-        """POST to a URL-scoped archived deliverable returns 400."""
-        url = (
-            f'/api/accounts/projects/{project.id}/deliverables/'
-            f'{archived_deliverable.id}/requirements/'
-        )
-        resp = api_client.post(url, {'title': 'Blocked req'}, format='json', **admin_headers)
+        """POST create without phase_id returns 400."""
+        url = f'/api/accounts/projects/{project.id}/requirements/'
+        resp = api_client.post(url, {'title': 'No phase req'}, format='json', **admin_headers)
 
         assert resp.status_code == 400
 

@@ -19,12 +19,19 @@ from accounts.models import (
     Notification,
     Project,
     ProjectDataModelEntity,
+    ProjectPhase,
     Requirement,
     RequirementComment,
     RequirementHistory,
     UserProfile,
     VerificationCode,
 )
+from content.models.business_proposal import BusinessProposal
+
+
+def _phase_for(project):
+    bp = BusinessProposal.objects.create(title='M', client_name='c')
+    return ProjectPhase.objects.create(project=project, business_proposal=bp, order=1)
 
 User = get_user_model()
 
@@ -197,7 +204,7 @@ class TestRequirementModel:
             file=None, uploaded_by=user,
         )
         req = Requirement.objects.create(
-            deliverable=d, title='Login page', status=Requirement.STATUS_TODO,
+            phase=_phase_for(project), title='Login page', status=Requirement.STATUS_TODO,
         )
 
         assert str(req) == 'Login page [To do]'
@@ -212,7 +219,7 @@ class TestRequirementCommentModel:
             project=project, title='D', category=Deliverable.CATEGORY_OTHER,
             file=None, uploaded_by=user,
         )
-        req = Requirement.objects.create(deliverable=d, title='R')
+        req = Requirement.objects.create(phase=_phase_for(project), title='R')
         comment = RequirementComment.objects.create(requirement=req, user=user, content='Note')
 
         result = str(comment)
@@ -229,7 +236,7 @@ class TestRequirementHistoryModel:
             project=project, title='D', category=Deliverable.CATEGORY_OTHER,
             file=None, uploaded_by=user,
         )
-        req = Requirement.objects.create(deliverable=d, title='R')
+        req = Requirement.objects.create(phase=_phase_for(project), title='R')
         history = RequirementHistory.objects.create(
             requirement=req, from_status='todo', to_status='in_progress', changed_by=user,
         )
@@ -451,9 +458,8 @@ class TestUncoveredModelStrMethods:
     def test_bug_report_str(self):
         user = self._make_user('bug_str@test.com')
         project = self._make_project(user)
-        deliverable = self._make_deliverable(project, user)
         br = BugReport.objects.create(
-            deliverable=deliverable, reported_by=user, title='Crash on Login',
+            project=project, reported_by=user, title='Crash on Login',
         )
 
         assert 'Crash on Login' in str(br)
@@ -558,9 +564,8 @@ class TestUncoveredModelStrMethods:
     def test_requirement_project_property(self):
         user = self._make_user('req_proj@test.com')
         project = self._make_project(user)
-        d = self._make_deliverable(project, user)
         req = Requirement.objects.create(
-            deliverable=d, title='Feature X',
+            phase=_phase_for(project), title='Feature X',
         )
 
         assert req.project == project
