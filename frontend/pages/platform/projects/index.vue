@@ -60,70 +60,13 @@
       </p>
     </div>
 
-    <!-- Project cards grid -->
-    <div v-else class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      <NuxtLink
-        v-for="project in projectsStore.projects"
-        :key="project.id"
-        :to="localePath(`/platform/projects/${project.id}`)"
-        class="project-card group relative overflow-hidden rounded-3xl border border-border-default bg-surface p-6 shadow-sm transition-all duration-300 hover:border-border-default hover:shadow-md dark:hover:border-white/15"
-        data-enter
-      >
-        <!-- Status badge -->
-        <span
-          class="inline-flex rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
-          :class="statusBadgeClass(project.status)"
-        >
-          {{ statusLabel(project.status) }}
-        </span>
-
-        <!-- Project name -->
-        <h3 class="mt-4 text-lg font-semibold text-text-default transition group-hover:text-esmerald/80 dark:text-white dark:group-hover:text-accent">
-          {{ project.name }}
-        </h3>
-
-        <!-- Description (truncated) -->
-        <p class="mt-2 line-clamp-2 text-sm leading-relaxed text-green-light">
-          {{ project.description || 'Sin descripción.' }}
-        </p>
-
-        <!-- Progress bar -->
-        <div class="mt-5">
-          <div class="mb-1.5 flex items-center justify-between text-xs">
-            <span class="font-medium text-green-light/60">Progreso</span>
-            <span class="font-bold text-text-default">{{ project.progress }}%</span>
-          </div>
-          <div class="h-1.5 overflow-hidden rounded-full bg-primary/10 dark:bg-white/10">
-            <div
-              class="h-full rounded-full transition-all duration-700 ease-out"
-              :class="project.progress === 100 ? 'bg-emerald-500' : 'bg-primary dark:bg-accent'"
-              :style="{ width: `${project.progress}%` }"
-            />
-          </div>
-        </div>
-
-        <!-- Meta row -->
-        <div class="mt-5 flex items-center justify-between">
-          <div v-if="authStore.isAdmin" class="flex items-center gap-2">
-            <div class="flex h-6 w-6 items-center justify-center rounded-full bg-esmerald/10 text-[10px] font-bold text-text-default dark:bg-lemon/15 dark:text-accent">
-              {{ clientInitials(project) }}
-            </div>
-            <span class="text-xs text-green-light">{{ project.client_company || project.client_name }}</span>
-          </div>
-          <div v-else />
-
-          <div class="flex items-center gap-1 text-xs text-green-light/60">
-            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="1.5" /><path d="M16 2v4M8 2v4M3 10h18" stroke-width="1.5" /></svg>
-            {{ formatDate(project.estimated_end_date) }}
-          </div>
-        </div>
-
-        <!-- Hover arrow -->
-        <div class="absolute right-5 top-6 translate-x-2 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-          <svg class="h-5 w-5 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-        </div>
-      </NuxtLink>
-    </div>
+    <!-- Projects table -->
+    <ProjectsTable
+      v-else
+      :projects="projectsStore.projects"
+      :role="authStore.isAdmin ? 'admin' : 'client'"
+      @navigate="goToProject"
+    />
 
     <!-- Create project modal -->
     <Teleport to="body">
@@ -277,6 +220,7 @@ import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 import { usePlatformClientsStore } from '~/stores/platform-clients'
 import { usePlatformPaymentsStore } from '~/stores/platform-payments'
+import ProjectsTable from '~/components/platform/projects/ProjectsTable.vue'
 
 definePageMeta({
   layout: 'platform',
@@ -291,6 +235,10 @@ const authStore = usePlatformAuthStore()
 const projectsStore = usePlatformProjectsStore()
 const clientsStore = usePlatformClientsStore()
 const paymentsStore = usePlatformPaymentsStore()
+
+function goToProject(id) {
+  navigateTo(localePath(`/platform/projects/${id}`))
+}
 
 const activeFilter = ref('')
 const isCreateModalOpen = ref(false)
