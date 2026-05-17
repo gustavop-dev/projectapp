@@ -1,15 +1,15 @@
-{{ client_name }}, tu propuesta expira pronto.
+{{ greeting|default:"Hola" }}{% if not greeting %}, {{ client_name }}{% endif %},
+
+{{ body|default:"La propuesta que te enviamos vence pronto. Si te sirve seguir adelante, podemos coordinar el kickoff esta misma semana." }}
 
 {{ title }}
+{% if total_investment %}Inversión: $ {{ total_investment }} {{ currency|default:"COP" }}
+{% endif %}{% if days_remaining %}Vence en {{ days_remaining }} día{{ days_remaining|pluralize }}.{% endif %}
 
-No queremos que pierdas esta oportunidad de transformar tu presencia digital.
+{{ cta_text|default:"Ver propuesta" }}: {{ proposal_url }}
 
-{% if total_investment %}Inversión: ${{ total_investment }} {{ currency }}{% endif %}
+—
+{{ signature_name }}
+{{ signature_role }}
 
-{% if days_remaining is not None %}Tu propuesta expira en {{ days_remaining }} día{{ days_remaining|pluralize:"s" }}.{% endif %}
-
-Ver propuesta: {{ proposal_url }}
-
-¿Dudas? Escríbenos a team@projectapp.co o WhatsApp +57 323 812 2373
-
-— El equipo de ProjectApp.co
+projectapp.co · team@projectapp.co · WhatsApp +57 323 812 2373

@@ -41,6 +41,8 @@ class DiagnosticEmailService:
             )
             return False
 
+        from content.services.proposal_email_service import _build_design_context
+
         context = {
             'client_name': build_client_display_name(diagnostic.client),
             'diagnostic_url': diagnostic.public_url,
@@ -49,6 +51,8 @@ class DiagnosticEmailService:
             'currency': diagnostic.currency,
             'duration_label': diagnostic.duration_label,
         }
+        # Diagnostics no tienen Proposal asociada — usa firmante por defecto.
+        context.update(_build_design_context())
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'team@projectapp.co')
 
         try:
@@ -132,6 +136,8 @@ class DiagnosticEmailService:
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL',
                              'team@projectapp.co')
 
+        from content.services.proposal_email_service import _build_design_context
+
         try:
             context = {
                 'subject': subject,
@@ -140,6 +146,7 @@ class DiagnosticEmailService:
                 'footer': footer,
                 'attachment_names': attachment_names,
             }
+            context.update(_build_design_context())
             html_body = render_to_string('emails/branded_email.html', context)
             text_body = render_to_string('emails/branded_email.txt', context)
             email = EmailMultiAlternatives(

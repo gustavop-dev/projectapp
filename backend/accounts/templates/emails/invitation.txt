@@ -1,0 +1,16 @@
+Hola {{ user.first_name }},
+
+Tu cuenta de cliente en ProjectApp ya está lista.
+
+Email: {{ user.email }}
+Contraseña temporal: {{ temp_password }}
+
+Por seguridad, te pediremos cambiar la contraseña en el primer inicio de sesión y verificar tu email con un código.
+
+Iniciar sesión: {{ platform_url }}
+
+—
+{{ signature_name }}
+{{ signature_role }}
+
+projectapp.co · team@projectapp.co · WhatsApp +57 323 812 2373

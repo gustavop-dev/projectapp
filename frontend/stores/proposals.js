@@ -248,6 +248,25 @@ export const useProposalStore = defineStore('proposals', {
     },
 
     /**
+     * previewProposalEmail: Render an email template against this proposal.
+     * @param {number} id - Proposal ID.
+     * @param {object} payload - { template_key, email_features?, email_method_phases?, email_signed_by? }
+     * @returns {Promise<{success: boolean, html?: string, error?: string}>}
+     */
+    async previewProposalEmail(id, payload) {
+      try {
+        const response = await create_request(
+          `proposals/${id}/email-preview/`,
+          payload,
+        );
+        return { success: true, html: response.data };
+      } catch (error) {
+        console.error('Error previewing proposal email:', error);
+        return { success: false, error: error.response?.data?.error || 'Error generando preview' };
+      }
+    },
+
+    /**
      * deleteProposal: Delete a proposal.
      * @param {number} id - Proposal ID.
      */

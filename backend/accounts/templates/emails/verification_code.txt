@@ -1,0 +1,10 @@
+Hola {{ user.first_name }},
+
+Tu código de verificación: {{ code }}
+
+El código vence en {{ expiry_minutes }} minutos y solo puede usarse una vez.
+Si no solicitaste este código, puedes ignorar este correo.
+
+—
+Equipo de Seguridad
+ProjectApp · team@projectapp.co

@@ -1810,6 +1810,108 @@ def send_proposal(request, proposal_id):
     return _proposal_admin_response(request, proposal, delivery)
 
 
+# Templates exposed to the panel preview UI (client-facing only).
+PREVIEWABLE_TEMPLATE_KEYS = frozenset({
+    'proposal_sent_client',
+    'proposal_multi_sent_client',
+    'proposal_documents_sent',
+    'branded_email',
+    'proposal_accepted_client',
+    'proposal_finished_client',
+    'proposal_rejected_client',
+    'proposal_negotiation_confirmation',
+    'proposal_reminder',
+    'proposal_urgency',
+    'proposal_urgency_no_discount',
+    'proposal_reengagement',
+    'proposal_abandonment_followup',
+    'proposal_investment_interest_followup',
+    'proposal_scheduled_followup',
+})
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def preview_proposal_email(request, proposal_id):
+    """Render an email template against this proposal's context.
+
+    Body (all optional, overrides the saved proposal data for the preview only):
+        {
+            "template_key": "proposal_sent_client",
+            "email_features": ["...", ...],
+            "email_method_phases": [{...}, ...],
+            "email_signed_by": "gustavo" | "carlos"
+        }
+
+    Returns ``text/html`` with the fully rendered email so it can be iframe'd.
+    """
+    from django.http import HttpResponse
+    from django.template.loader import render_to_string
+    from content.services.proposal_email_service import (
+        ProposalEmailService,
+        _build_design_context,
+    )
+    from content.utils import format_cop_email
+
+    template_key = request.data.get('template_key') or 'proposal_sent_client'
+    if template_key not in PREVIEWABLE_TEMPLATE_KEYS:
+        return Response(
+            {'error': f'template_key inválido: {template_key}'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+
+    # Apply unsaved overrides in-memory so the preview matches the current panel state.
+    overrides = {}
+    if 'email_features' in request.data:
+        overrides['email_features'] = request.data.get('email_features') or []
+    if 'email_method_phases' in request.data:
+        overrides['email_method_phases'] = request.data.get('email_method_phases') or []
+    if 'email_signed_by' in request.data:
+        overrides['email_signed_by'] = request.data.get('email_signed_by') or 'gustavo'
+    for k, v in overrides.items():
+        setattr(proposal, k, v)
+
+    # Build a context dict that mirrors what each send_* method produces.
+    base_context = {
+        'client_name': proposal.client_name,
+        'proposal_url': proposal.public_url,
+        'days_remaining': proposal.days_remaining,
+        'expires_at': proposal.expires_at,
+        'total_investment': format_cop_email(proposal.total_investment),
+        'currency': proposal.currency,
+        'title': proposal.title,
+        'discount_percent': proposal.discount_percent,
+        'discounted_investment': format_cop_email(
+            proposal.total_investment * (Decimal(100 - proposal.discount_percent) / Decimal(100))
+        ) if proposal.discount_percent else '',
+    }
+    # Initial-email helpers (payment_options, total_duration, payment_summary, email_intro).
+    base_context.update(ProposalEmailService._build_initial_email_context(proposal))
+    # Design helpers (signature, features, phases, reference).
+    base_context.update(_build_design_context(proposal))
+    # EmailTemplateConfig overrides (greeting, body, cta_text, etc.).
+    resolved = ProposalEmailService._resolve_content(template_key, base_context)
+    base_context.update(resolved)
+
+    # Branded email expects sections/footer/attachment_names; supply placeholders so the
+    # preview shows the layout even if those weren't passed by the panel.
+    base_context.setdefault('greeting', f'Hola {proposal.client_name},')
+    base_context.setdefault('sections', ['Cuerpo de ejemplo para preview del correo libre.'])
+    base_context.setdefault('footer', '')
+    base_context.setdefault('attachment_names', [])
+    # Multi-proposal expects a list of "phases" with per-proposal urls.
+    base_context.setdefault('phases', [])
+    base_context.setdefault('phases_count', 0)
+    base_context.setdefault('document_descriptions', [])
+    # Acceptance/finished use these for the project card.
+    base_context.update(ProposalEmailService._build_platform_context(proposal))
+
+    html = render_to_string(f'emails/{template_key}.html', base_context)
+    return HttpResponse(html, content_type='text/html; charset=utf-8')
+
+
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def send_multi_proposal(request, proposal_id):

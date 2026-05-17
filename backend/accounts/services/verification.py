@@ -26,11 +26,15 @@ def create_and_send_otp(user, purpose=VerificationCode.PURPOSE_ONBOARDING):
     template_base, subject = _OTP_TEMPLATES.get(
         purpose, _OTP_TEMPLATES[VerificationCode.PURPOSE_ONBOARDING],
     )
+    from content.services.proposal_email_service import _build_design_context
+
     context = {
         'user': user,
         'code': otp.code,
+        'code_digits': list(str(otp.code)),
         'expiry_minutes': VerificationCode.EXPIRY_MINUTES,
     }
+    context.update(_build_design_context())
     html_message = render_to_string(f'{template_base}.html', context)
     try:
         plain_message = render_to_string(f'{template_base}.txt', context)

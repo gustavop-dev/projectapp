@@ -160,6 +160,13 @@ class BusinessProposalAdmin(admin.ModelAdmin):
                 'responded_at', 'revisit_alert_sent_at',
             ),
         }),
+        ('Email Template Metadata', {
+            'description': (
+                'Datos opcionales que se renderizan en los correos al cliente. '
+                'Si quedan vacíos, los bloques opcionales se omiten y la firma usa el default.'
+            ),
+            'fields': ('email_intro', 'email_features', 'email_method_phases', 'email_signed_by'),
+        }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
         }),

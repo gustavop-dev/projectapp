@@ -1,20 +1,17 @@
-{{ greeting }}
+{{ greeting|default:"Hola" }}{% if not greeting %}, {{ client_name }}{% endif %},
 
-{{ body }}
-
+{{ body|default:"Armamos varias opciones para que elijas la que mejor encaja con tu equipo, calendario y presupuesto." }}
 {% for phase in phases %}
-— {{ phase.title }} —
-{{ phase.email_intro }}
-
-Link: {{ phase.proposal_url }}
-
-{% if phase.total_investment %}Inversión: ${{ phase.total_investment }} {{ phase.currency }}{% endif %}{% if phase.total_duration %} · Duración: {{ phase.total_duration }}{% endif %}{% if phase.payment_summary %} · Pagos: {{ phase.payment_summary }}{% endif %}
-{% if phase.payment_options %}{% for opt in phase.payment_options %}- {{ opt.label }}: {{ opt.description }}
-{% endfor %}{% endif %}
+Propuesta {{ forloop.counter }} de {{ phases_count }} — {{ phase.title }}
+{% if phase.total_investment %}Inversión: $ {{ phase.total_investment }} {{ phase.currency }}
+{% endif %}{% if phase.total_duration %}Tiempo: {{ phase.total_duration }}
+{% endif %}{% if phase.payment_summary %}Pagos: {{ phase.payment_summary }}
+{% endif %}Link: {{ phase.proposal_url }}
 {% endfor %}
-{% if closing %}{{ closing }}
+{% if closing %}{{ closing }}{% endif %}
 
-{% endif %}Un saludo cordial,
-El equipo de Project App
-team@projectapp.co · +57 323 812 2373
-www.projectapp.co
+—
+{{ signature_name }}
+{{ signature_role }}
+
+projectapp.co · team@projectapp.co · WhatsApp +57 323 812 2373

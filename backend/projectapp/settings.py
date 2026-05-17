@@ -203,6 +203,14 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='team@projectapp.co')
 NOTIFICATION_EMAIL = config('NOTIFICATION_EMAIL', default='dev.gustavo.perezp@gmail.com')
 
+# Firmantes disponibles para los correos al cliente. La key se almacena en
+# BusinessProposal.email_signed_by; el template resuelve nombre + rol desde aquí.
+EMAIL_SIGNATURES = {
+    'gustavo': {'name': 'Gustavo Pérez', 'role': 'CEO · ProjectApp.'},
+    'carlos':  {'name': 'Carlos Blanco', 'role': 'CTO · ProjectApp.'},
+}
+EMAIL_DEFAULT_SIGNER = 'gustavo'
+
 # ==============================================================================
 # WHATSAPP — CallMeBot API
 # ==============================================================================

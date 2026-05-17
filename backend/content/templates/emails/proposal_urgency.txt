@@ -1,16 +1,17 @@
-{{ client_name }}, tu propuesta expira pronto.
+{{ greeting|default:"Hola" }}{% if not greeting %}, {{ client_name }}{% endif %},
 
-{{ title }}
+{{ body|default:"Tu propuesta está por vencer. Si confirmas esta semana aplicamos un descuento sobre la inversión original." }}
 
-Oferta especial: {{ discount_percent }}% de descuento si accedes hoy.
+Oferta especial · -{{ discount_percent }}%
+Original: $ {{ total_investment }} {{ currency|default:"COP" }}
+Con descuento: $ {{ discounted_investment }} {{ currency|default:"COP" }}
 
-Precio original: ${{ total_investment }} {{ currency }}
-Precio con descuento: ${{ discounted_investment }} {{ currency }}
+{% if days_remaining %}Esta propuesta expira en {{ days_remaining }} día{{ days_remaining|pluralize }}.{% endif %}
 
-{% if days_remaining is not None %}Solo quedan {{ days_remaining }} día{{ days_remaining|pluralize:"s" }}.{% endif %}
+{{ cta_text|default:"Aceptar la oferta" }}: {{ proposal_url }}
 
-Ver propuesta: {{ proposal_url }}
+—
+{{ signature_name }}
+{{ signature_role }}
 
-¿Dudas? Escríbenos a team@projectapp.co o WhatsApp +57 323 812 2373
-
-— El equipo de ProjectApp.co
+projectapp.co · team@projectapp.co · WhatsApp +57 323 812 2373

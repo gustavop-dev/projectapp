@@ -1,15 +1,15 @@
-¡Lo logramos, {{ client_name }}! 🎯
+{{ greeting|default:"🎯 Misión cumplida." }}
 
-Queremos confirmarte que el proyecto correspondiente a la propuesta "{{ title }}" ha sido finalizado exitosamente.
+{{ body|default:"Tu proyecto está en producción. Gracias por la claridad y la confianza." }}
 
+{% if total_duration %}Tiempo de entrega: {{ total_duration }}{% endif %}
 {% if project_name %}Proyecto: {{ project_name }}{% endif %}
-{% if deliverable_title %}Entregable principal: {{ deliverable_title }}{% endif %}
-Estado: Finalizado
+{% if deliverable_title %}Entregable: {{ deliverable_title }}{% endif %}
 
-Gracias por tu confianza y por permitirnos acompañarte en este proceso.
-{% if platform_login_url %}
-Puedes seguir consultando documentos, reportes y entregables en tu espacio de la plataforma:
-{{ platform_login_url }}
-{% endif %}
+{{ cta_text|default:"Ir a mi plataforma" }}: {{ platform_login_url|default:proposal_url }}
 
-¿Necesitas algo más? Escríbenos a team@projectapp.co o WhatsApp +57 323 812 2373
+—
+{{ signature_name }}
+{{ signature_role }}
+
+projectapp.co · team@projectapp.co · WhatsApp +57 323 812 2373

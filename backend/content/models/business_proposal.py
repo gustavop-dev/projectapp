@@ -184,6 +184,33 @@ class BusinessProposal(models.Model):
         ),
     )
 
+    class EmailSigner(models.TextChoices):
+        GUSTAVO = 'gustavo', 'Gustavo Pérez'
+        CARLOS = 'carlos', 'Carlos Blanco'
+
+    email_features = models.JSONField(
+        default=list, blank=True,
+        help_text=(
+            'Lista de bullets que se renderizan en el bloque "Qué incluye" del '
+            'correo de envío. Ejemplo: ["Dashboard tiempo real...", "App móvil...", "Integración ERP..."]. '
+            'Si queda vacío el bloque se omite.'
+        ),
+    )
+    email_method_phases = models.JSONField(
+        default=list, blank=True,
+        help_text=(
+            'Lista de 3 fases para el card "Método en 3 fases". Cada item: '
+            '{"number":"01","title":"Diagnóstico","duration":"5 días","description":"..."}. '
+            'Si queda vacío se usa el método estándar de marca.'
+        ),
+    )
+    email_signed_by = models.CharField(
+        max_length=20,
+        choices=EmailSigner.choices,
+        default=EmailSigner.GUSTAVO,
+        help_text='Firmante del correo (nombre + rol se resuelven desde settings.EMAIL_SIGNATURES).',
+    )
+
     # Tracking
     last_activity_at = models.DateTimeField(null=True, blank=True)
     view_count = models.PositiveIntegerField(default=0)

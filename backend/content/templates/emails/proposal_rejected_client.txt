@@ -1,14 +1,13 @@
-Gracias por tu tiempo, {{ client_name }} 🙏
+{{ greeting|default:"Gracias por tu tiempo." }}
 
-Lamentamos que la propuesta "{{ title }}" no se ajuste a lo que buscas en este momento.
-Tu opinión es muy valiosa para nosotros y nos ayuda a seguir mejorando.
+{{ body|default:"Las decisiones de software a la medida cargan tiempo, presupuesto y futuro. Si esta no era la oportunidad, está bien. Queremos que cuando vuelvas a evaluar tengas toda la información para decidir." }}
 
-En Project App creemos que cada proyecto tiene su momento perfecto.
-Cuando estés listo para dar el siguiente paso en tu transformación digital,
-estaremos aquí como tu aliado estratégico.
+{{ inspirational_text|default:"Las grandes oportunidades vienen a quienes se preparan para recibirlas — incluso cuando se trata de un 'todavía no'." }}
 
-"Las grandes oportunidades vienen a quienes se preparan para recibirlas."
+{{ cta_text|default:"Conversemos cuando estés listo" }}: https://wa.me/573238122373
 
-¿Tienes un nuevo proyecto en mente? Escríbenos:
-- WhatsApp: +57 323 812 2373
-- Email: team@projectapp.co
+—
+{{ signature_name }}
+{{ signature_role }}
+
+projectapp.co · team@projectapp.co · WhatsApp +57 323 812 2373
