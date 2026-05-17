@@ -59,6 +59,9 @@ from accounts.views import (
     complete_profile_view,
     login_view,
     me_view,
+    password_reset_confirm_view,
+    password_reset_request_view,
+    password_reset_verify_view,
     project_access_list_view,
     project_detail_view,
     project_list_view,
@@ -79,6 +82,9 @@ urlpatterns = [
     path('verify/', verify_view, name='platform-verify'),
     path('resend-code/', resend_code_view, name='platform-resend-code'),
     path('token/refresh/', token_refresh_view, name='platform-token-refresh'),
+    path('password-reset/request/', password_reset_request_view, name='platform-password-reset-request'),
+    path('password-reset/verify-code/', password_reset_verify_view, name='platform-password-reset-verify'),
+    path('password-reset/confirm/', password_reset_confirm_view, name='platform-password-reset-confirm'),
 
     # Profile
     path('me/', me_view, name='platform-me'),

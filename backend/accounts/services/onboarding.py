@@ -113,12 +113,16 @@ def _send_invitation_email(user, temp_password):
     """Send the invitation email with temporary credentials."""
     platform_url = f'{settings.FRONTEND_BASE_URL}/platform/login'
 
+    from content.services.proposal_email_service import _build_design_context
+
     subject = 'Bienvenido a ProjectApp — Tu acceso a la plataforma'
-    html_message = render_to_string('emails/invitation.html', {
+    invitation_context = {
         'user': user,
         'temp_password': temp_password,
         'platform_url': platform_url,
-    })
+    }
+    invitation_context.update(_build_design_context())
+    html_message = render_to_string('emails/invitation.html', invitation_context)
 
     send_mail(
         subject=subject,

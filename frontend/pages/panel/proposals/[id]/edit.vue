@@ -521,6 +521,123 @@
             />
           </div>
 
+          <div class="space-y-3 pt-2 border-t border-input-border">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h4 class="text-sm font-medium text-text-default">Configuración del correo (diseño nuevo)</h4>
+                <p class="text-xs text-text-muted mt-1">
+                  Estos campos llenan los bloques del correo comercial: lista "Qué incluye", card "Método en 3 fases" y firma. Si los dejas vacíos se omiten o se usa el método estándar de marca.
+                </p>
+              </div>
+              <button
+                type="button"
+                class="shrink-0 px-3 py-1.5 text-xs font-medium border border-input-border rounded-lg hover:bg-surface-raised transition-colors"
+                data-testid="edit-email-preview-btn"
+                @click="openEmailPreview"
+              >
+                👁 Vista previa
+              </button>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-text-default mb-1">Firmado por</label>
+              <BaseSelect v-model="form.email_signed_by" data-testid="edit-email-signed-by">
+                <option value="gustavo">Gustavo Pérez · CEO</option>
+                <option value="carlos">Carlos Blanco · CTO</option>
+              </BaseSelect>
+              <p class="text-xs text-text-subtle mt-1">Nombre y cargo que firman al pie del correo.</p>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label class="block text-sm font-medium text-text-default">Qué incluye (bullets)</label>
+                <button
+                  type="button"
+                  class="text-xs text-primary hover:underline disabled:opacity-50"
+                  :disabled="form.email_features.length >= MAX_EMAIL_FEATURES"
+                  data-testid="edit-add-feature"
+                  @click="addEmailFeature"
+                >
+                  + Agregar ítem
+                </button>
+              </div>
+              <p class="text-xs text-text-muted mb-2">
+                Hasta 8 ítems. Si queda vacío el bloque no se renderiza.
+              </p>
+              <div v-if="form.email_features.length === 0" class="text-xs text-text-subtle italic">
+                Sin ítems — el bloque no aparecerá en el correo.
+              </div>
+              <div
+                v-for="(_, idx) in form.email_features"
+                :key="`feature-${idx}`"
+                class="flex items-start gap-2 mb-2"
+              >
+                <span class="text-xs font-medium text-text-muted pt-2 w-6">
+                  {{ String(idx + 1).padStart(2, '0') }}
+                </span>
+                <BaseTextarea
+                  v-model="form.email_features[idx]"
+                  :rows="2"
+                  size="sm"
+                  class="flex-1"
+                  placeholder="Ej. Dashboard en tiempo real con filtros por ruta, conductor y estado."
+                />
+                <button
+                  type="button"
+                  class="text-xs text-danger-strong hover:underline pt-2"
+                  @click="removeEmailFeature(idx)"
+                >
+                  Quitar
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label class="block text-sm font-medium text-text-default">Método en 3 fases</label>
+                <button
+                  type="button"
+                  class="text-xs text-primary hover:underline"
+                  @click="ensureMethodPhases"
+                >
+                  Restaurar método estándar
+                </button>
+              </div>
+              <p class="text-xs text-text-muted mb-2">
+                Card oscura del correo. Si lo dejas con los valores estándar usa los textos de marca; puedes personalizarlos por propuesta.
+              </p>
+              <div
+                v-for="(phase, idx) in form.email_method_phases"
+                :key="`phase-${idx}`"
+                class="grid grid-cols-1 sm:grid-cols-[60px,1fr,90px,1fr] gap-2 mb-2 items-start"
+              >
+                <BaseInput
+                  v-model="form.email_method_phases[idx].number"
+                  size="sm"
+                  placeholder="01"
+                  class="text-center"
+                />
+                <BaseInput
+                  v-model="form.email_method_phases[idx].title"
+                  size="sm"
+                  placeholder="Diagnóstico"
+                />
+                <BaseInput
+                  v-model="form.email_method_phases[idx].duration"
+                  size="sm"
+                  placeholder="5 días"
+                />
+                <BaseTextarea
+                  v-model="form.email_method_phases[idx].description"
+                  :rows="2"
+                  size="sm"
+                  placeholder="Mapeo de procesos y alcance final."
+                />
+              </div>
+              <p class="text-xs text-text-subtle">Orden de columnas: número · título · duración · descripción.</p>
+            </div>
+          </div>
+
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-text-default mb-1">Tipo de proyecto</label>
@@ -1258,6 +1375,60 @@
         </BaseButton>
       </div>
     </BaseModal>
+
+    <BaseModal v-model="isPreviewOpen" size="5xl" padding="none">
+      <div class="flex flex-col h-[85vh]">
+        <div class="flex items-center justify-between gap-4 p-4 border-b border-input-border">
+          <div>
+            <h3 class="text-base font-medium text-text-default">Vista previa del correo</h3>
+            <p class="text-xs text-text-muted mt-0.5">
+              Render real usando los datos guardados de la propuesta + los cambios actuales de la sección de configuración de correo.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <select
+              v-model="previewTemplateKey"
+              class="px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+              data-testid="edit-email-preview-select"
+            >
+              <option v-for="tpl in PREVIEWABLE_EMAIL_TEMPLATES" :key="tpl.key" :value="tpl.key">
+                {{ tpl.label }}
+              </option>
+            </select>
+            <button
+              type="button"
+              class="px-3 py-2 text-sm font-medium border border-input-border rounded-lg hover:bg-surface-raised transition-colors"
+              :disabled="previewLoading"
+              @click="loadPreview"
+            >
+              {{ previewLoading ? 'Cargando…' : '↻ Recargar' }}
+            </button>
+            <button
+              type="button"
+              class="px-3 py-2 text-sm font-medium text-text-muted hover:text-text-default transition-colors"
+              @click="isPreviewOpen = false"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+        <div class="flex-1 overflow-hidden bg-[#f4f1ea]">
+          <div v-if="previewLoading" class="flex items-center justify-center h-full text-text-muted text-sm">
+            Generando vista previa…
+          </div>
+          <div v-else-if="previewError" class="flex items-center justify-center h-full text-danger-strong text-sm px-6 text-center">
+            {{ previewError }}
+          </div>
+          <iframe
+            v-else-if="previewHtml"
+            :srcdoc="previewHtml"
+            class="w-full h-full border-0"
+            sandbox="allow-same-origin"
+            title="Vista previa del correo"
+          ></iframe>
+        </div>
+      </div>
+    </BaseModal>
   </div>
 </template>
 
@@ -1785,6 +1956,88 @@ const form = reactive({
   discount_percent: 0,
   automations_paused: true,
   email_intro: '',
+  email_features: [],
+  email_method_phases: [],
+  email_signed_by: 'gustavo',
+});
+
+const DEFAULT_METHOD_PHASES = [
+  { number: '01', title: 'Diagnóstico', duration: '', description: 'Mapeo de procesos y alcance final.' },
+  { number: '02', title: 'Construcción', duration: '', description: 'Sprints con demo cada viernes.' },
+  { number: '03', title: 'Lanzamiento', duration: '', description: 'Deploy, capacitación y soporte.' },
+];
+
+const MAX_EMAIL_FEATURES = 8;
+function addEmailFeature() {
+  if (form.email_features.length >= MAX_EMAIL_FEATURES) return;
+  form.email_features = [...form.email_features, ''];
+}
+function removeEmailFeature(idx) {
+  form.email_features = form.email_features.filter((_, i) => i !== idx);
+}
+function ensureMethodPhases() {
+  if (!form.email_method_phases || form.email_method_phases.length === 0) {
+    form.email_method_phases = DEFAULT_METHOD_PHASES.map((p) => ({ ...p }));
+  }
+}
+
+// Preview modal state — see openEmailPreview() trigger in the email config section.
+const PREVIEWABLE_EMAIL_TEMPLATES = [
+  { key: 'proposal_sent_client', label: 'Propuesta enviada (master)' },
+  { key: 'proposal_reminder', label: 'Recordatorio' },
+  { key: 'proposal_urgency', label: 'Urgencia con descuento' },
+  { key: 'proposal_urgency_no_discount', label: 'Urgencia sin descuento' },
+  { key: 'proposal_accepted_client', label: 'Aceptación' },
+  { key: 'proposal_finished_client', label: 'Finalización' },
+  { key: 'proposal_rejected_client', label: 'Rechazo (agradecimiento)' },
+  { key: 'proposal_negotiation_confirmation', label: 'Negociación' },
+  { key: 'proposal_reengagement', label: 'Re-engagement post-rechazo' },
+  { key: 'proposal_abandonment_followup', label: 'Seguimiento por abandono' },
+  { key: 'proposal_investment_interest_followup', label: 'Seguimiento por inversión' },
+  { key: 'proposal_scheduled_followup', label: 'Seguimiento programado' },
+  { key: 'proposal_documents_sent', label: 'Documentos enviados' },
+  { key: 'branded_email', label: 'Correo libre branded' },
+];
+
+const isPreviewOpen = ref(false);
+const previewLoading = ref(false);
+const previewError = ref('');
+const previewHtml = ref('');
+const previewTemplateKey = ref('proposal_sent_client');
+
+async function loadPreview() {
+  if (!proposal.value?.id) return;
+  previewLoading.value = true;
+  previewError.value = '';
+  previewHtml.value = '';
+  const result = await proposalStore.previewProposalEmail(proposal.value.id, {
+    template_key: previewTemplateKey.value,
+    email_features: form.email_features
+      .map((f) => (typeof f === 'string' ? f.trim() : ''))
+      .filter(Boolean),
+    email_method_phases: form.email_method_phases.map((p) => ({
+      number: (p.number || '').trim(),
+      title: (p.title || '').trim(),
+      duration: (p.duration || '').trim(),
+      description: (p.description || '').trim(),
+    })),
+    email_signed_by: form.email_signed_by,
+  });
+  previewLoading.value = false;
+  if (result.success) {
+    previewHtml.value = result.html;
+  } else {
+    previewError.value = result.error;
+  }
+}
+
+async function openEmailPreview() {
+  isPreviewOpen.value = true;
+  await loadPreview();
+}
+
+watch(previewTemplateKey, () => {
+  if (isPreviewOpen.value) loadPreview();
 });
 
 // True when the admin chose "create a new client" from the autocomplete: the
@@ -1970,6 +2223,11 @@ function hydrateFormFromProposal() {
     discount_percent: proposal.value.discount_percent ?? 0,
     automations_paused: proposal.value.automations_paused ?? true,
     email_intro: proposal.value.email_intro || '',
+    email_features: Array.isArray(proposal.value.email_features) ? [...proposal.value.email_features] : [],
+    email_method_phases: Array.isArray(proposal.value.email_method_phases) && proposal.value.email_method_phases.length
+      ? proposal.value.email_method_phases.map((p) => ({ ...p }))
+      : DEFAULT_METHOD_PHASES.map((p) => ({ ...p })),
+    email_signed_by: proposal.value.email_signed_by || 'gustavo',
   });
   creatingNewClient.value = false;
 }
@@ -2011,8 +2269,21 @@ async function toggleAutomationsPaused() {
   }
 }
 
+function sanitizeEmailMetadata(payload) {
+  payload.email_features = (payload.email_features || [])
+    .map((f) => (typeof f === 'string' ? f.trim() : ''))
+    .filter(Boolean);
+  payload.email_method_phases = (payload.email_method_phases || []).map((p) => ({
+    number: (p.number || '').trim(),
+    title: (p.title || '').trim(),
+    duration: (p.duration || '').trim(),
+    description: (p.description || '').trim(),
+  }));
+  return payload;
+}
+
 async function handleUpdate() {
-  const payload = { ...form };
+  const payload = sanitizeEmailMetadata({ ...form });
   if (creatingNewClient.value) {
     payload.create_new_client = true;
     payload.propagate_client_updates = false;

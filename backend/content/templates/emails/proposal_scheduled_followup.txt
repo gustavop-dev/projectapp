@@ -1,11 +1,14 @@
-Hola {{ client_name }},
+{{ greeting|default:"Hola" }}{% if not greeting %}, {{ client_name }}{% endif %},
 
-Hace un tiempo nos pediste que te recordáramos sobre la propuesta "{{ title }}". ¡Aquí estamos!
+{{ body|default:"Nos quedó pendiente la conversación sobre tu proyecto. ¿Es buen momento para retomar?" }}
+{% if body_secondary %}
+{{ body_secondary }}{% endif %}
 
-Nos encantaría saber cómo va todo y si ahora es un buen momento para retomar el proyecto. La propuesta sigue disponible y podemos actualizarla según tus necesidades actuales.
+{{ cta_text|default:"Retomar el proyecto" }}: {{ proposal_url }}
+O escríbenos por WhatsApp: https://wa.me/573238122373
 
-👉 Revisar la propuesta: {{ proposal_url }}
-💬 Escribir por WhatsApp: https://wa.me/573238122373
+—
+{{ signature_name }}
+{{ signature_role }}
 
----
-© 2026 ProjectApp.co | Bogotá, Colombia
+projectapp.co · team@projectapp.co · WhatsApp +57 323 812 2373

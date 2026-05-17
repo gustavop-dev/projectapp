@@ -1,78 +1,125 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>Bienvenida a ProjectApp.</title>
+<!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+body,table,td,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%}
+table,td{mso-table-lspace:0;mso-table-rspace:0;border-collapse:collapse}
+img{-ms-interpolation-mode:bicubic;border:0;outline:none;text-decoration:none;display:block}
+body{margin:0;padding:0;width:100%!important;background:#f4f1ea}
+a{text-decoration:none}
+@media only screen and (max-width:520px){
+  .container{width:100%!important}
+  .px-40{padding-left:24px!important;padding-right:24px!important}
+  .display-xl{font-size:32px!important;line-height:38px!important}
+  .stack{display:block!important;width:100%!important}
+  .stack-pad{padding-top:16px!important}
+  .meta-row td{display:block!important;width:100%!important;padding:6px 0!important;border:0!important}
+}
+:root{color-scheme:light;supported-color-schemes:light}
+</style>
 </head>
-<body style="margin:0; padding:0; background:#0d0f14; font-family:'Helvetica Neue',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0f14; padding:40px 20px;">
-    <tr>
-      <td align="center">
-        <table width="520" cellpadding="0" cellspacing="0" style="background:#13161e; border:1px solid rgba(255,255,255,0.07); border-radius:12px; overflow:hidden;">
-          <!-- Header -->
-          <tr>
-            <td style="padding:28px 32px 20px; border-bottom:1px solid rgba(255,255,255,0.07);">
-              <table cellpadding="0" cellspacing="0">
-                <tr>
-                  <td style="width:32px; height:32px; background:#5b8af0; border-radius:8px; text-align:center; vertical-align:middle; color:#fff; font-weight:700; font-size:13px;">
-                    PA
-                  </td>
-                  <td style="padding-left:10px; font-size:17px; font-weight:600; color:#e8eaf0;">
-                    ProjectApp
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding:28px 32px;">
-              <h1 style="margin:0 0 8px; font-size:20px; font-weight:600; color:#e8eaf0;">
-                Bienvenido a tu portal, {{ user.first_name }}
-              </h1>
-              <p style="margin:0 0 24px; font-size:14px; color:#7c8197; line-height:1.6;">
-                Tu cuenta en ProjectApp ha sido creada. Usa las credenciales temporales de abajo para ingresar por primera vez.
-              </p>
+<body style="margin:0;padding:0;background:#f4f1ea;font-family:Ubuntu,Helvetica,Arial,sans-serif;">
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f4f1ea;opacity:0;">Tu acceso a ProjectApp ya está activo — entra y conoce tu portal.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f1ea;">
+<tr><td align="center" style="padding:32px 16px 48px 16px;">
+<table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#ffffff;border:1px solid #ece8db;border-radius:20px;overflow:hidden;">
+<tr><td class="px-40" style="padding:28px 40px 24px 40px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td align="left" valign="middle" style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:700;font-size:18px;line-height:20px;color:#001713;letter-spacing:-0.2px;">Project<br>App.</td>
+<td align="right" valign="middle" style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:11px;line-height:14px;letter-spacing:2px;color:#809490;text-transform:uppercase;">Acceso · Cliente</td>
+</tr></table>
+</td></tr>
+<tr><td style="padding:0 40px;"><div style="height:1px;background:#ece8db;line-height:1px;font-size:1px;">&nbsp;</div></td></tr>
 
-              <!-- Credentials box -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="background:#1a1e28; border:1px solid rgba(255,255,255,0.07); border-radius:8px; margin-bottom:24px;">
-                <tr>
-                  <td style="padding:16px 20px;">
-                    <p style="margin:0 0 8px; font-size:12px; color:#7c8197; text-transform:uppercase; letter-spacing:0.08em;">Email</p>
-                    <p style="margin:0 0 16px; font-size:15px; color:#e8eaf0; font-family:monospace;">{{ user.email }}</p>
-                    <p style="margin:0 0 8px; font-size:12px; color:#7c8197; text-transform:uppercase; letter-spacing:0.08em;">Contraseña temporal</p>
-                    <p style="margin:0; font-size:15px; color:#5b8af0; font-family:monospace; font-weight:600;">{{ temp_password }}</p>
-                  </td>
-                </tr>
-              </table>
 
-              <!-- CTA button -->
-              <table cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-                <tr>
-                  <td style="background:#5b8af0; border-radius:8px;">
-                    <a href="{{ platform_url }}" style="display:inline-block; padding:12px 28px; color:#fff; font-size:14px; font-weight:600; text-decoration:none;">
-                      Iniciar sesión →
-                    </a>
-                  </td>
-                </tr>
-              </table>
+<tr><td class="px-40" style="padding:40px 40px 8px 40px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;"><tr><td style="background:#F0FF3D;border-radius:999px;padding:8px 14px;font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:11px;line-height:14px;letter-spacing:1.8px;color:#001713;text-transform:uppercase;">◆ &nbsp;Tu acceso a la plataforma</td></tr></table>
+<div class="display-xl" style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:42px;line-height:48px;letter-spacing:-0.8px;color:#001713;">Bienvenido a tu<br>portal, {{ user.first_name }}<span style="color:#FF4D6A;">.</span></div>
+</td></tr>
 
-              <p style="margin:0; font-size:13px; color:#7c8197; line-height:1.6;">
-                Al iniciar sesión por primera vez, te pediremos verificar tu email con un código de 6 dígitos y configurar tu contraseña definitiva.
-              </p>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="padding:16px 32px; border-top:1px solid rgba(255,255,255,0.07);">
-              <p style="margin:0; font-size:12px; color:#7c8197;">
-                Este email fue enviado por ProjectApp. Si no solicitaste esta cuenta, puedes ignorar este mensaje.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
+<tr><td class="px-40" style="padding:32px 40px 8px 40px;">
+<p style="margin:0;font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:16px;line-height:26px;color:#001713;">Hola {{ user.first_name }},</p>
+<p style="margin:14px 0 0 0;font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:16px;line-height:26px;color:#5a6b67;">Tu cuenta de cliente ya está lista. Desde la plataforma vas a poder revisar propuestas, ver avances de cada sprint, descargar entregables y conversar con tu equipo en un solo lugar.</p>
+</td></tr>
+
+<tr><td class="px-40" style="padding:32px 40px 0 40px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#faf7ee;border:1px solid #ece8db;border-radius:14px;">
+<tr><td style="padding:24px 24px 8px 24px;">
+<div style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:10px;letter-spacing:1.5px;color:#809490;text-transform:uppercase;margin-bottom:14px;">Tus credenciales</div>
+</td></tr>
+<tr><td style="padding:0 24px;"><div style="height:1px;background:#ece8db;font-size:1px;line-height:1px;">&nbsp;</div></td></tr>
+<tr><td style="padding:14px 24px;">
+<table role="presentation" width="100%"><tr>
+<td width="120" style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:11px;letter-spacing:1px;color:#809490;text-transform:uppercase;">Email</td>
+<td style="font-family:'Ubuntu Mono',Menlo,monospace;font-weight:400;font-size:14px;color:#001713;word-break:break-all;">{{ user.email }}</td>
+</tr></table></td></tr>
+<tr><td style="padding:0 24px;"><div style="height:1px;background:#ece8db;font-size:1px;line-height:1px;">&nbsp;</div></td></tr>
+<tr><td style="padding:14px 24px 24px 24px;">
+<table role="presentation" width="100%"><tr>
+<td width="120" style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:11px;letter-spacing:1px;color:#809490;text-transform:uppercase;">Contraseña</td>
+<td style="font-family:'Ubuntu Mono',Menlo,monospace;font-weight:700;font-size:14px;color:#001713;">{{ temp_password }}</td>
+</tr></table></td></tr></table></td></tr>
+
+<tr><td class="px-40" style="padding:18px 40px 0 40px;">
+<p style="margin:0;font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:13px;line-height:20px;color:#5a6b67;">
+Por seguridad, te vamos a pedir cambiar la contraseña en el primer inicio de sesión y verificar tu email con un código.
+</p>
+</td></tr>
+
+<tr><td class="px-40" align="center" style="padding:40px 40px 12px 40px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+<td align="center" bgcolor="#F0FF3D" style="border-radius:999px;mso-padding-alt:18px 32px;">
+<a href="{{ platform_url }}" style="display:inline-block;padding:18px 32px;font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:14px;line-height:14px;letter-spacing:0.5px;color:#001713;background:#F0FF3D;border-radius:999px;">Iniciar sesión &nbsp;→</a>
+</td></tr></table>
+
+<div style="margin-top:14px;font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:12px;line-height:18px;color:#5a6b67;">O agenda 20 min con nosotros si prefieres una bienvenida guiada.</div>
+</td></tr>
+
+<tr><td class="px-40" style="padding:32px 40px 36px 40px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #ece8db;">
+<tr><td style="padding-top:24px;">
+<div style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:14px;line-height:20px;color:#001713;">{{ signature_name }}</div>
+<div style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:13px;line-height:20px;color:#5a6b67;">{{ signature_role }}</div>
+</td></tr></table></td></tr>
+<tr><td style="background:#001713;padding:28px 40px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+<td class="stack" valign="top" width="33%" style="padding-right:8px;">
+<div style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:10px;line-height:14px;letter-spacing:1.5px;color:#809490;text-transform:uppercase;margin-bottom:6px;">Web</div>
+<a href="https://projectapp.co" style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:14px;line-height:20px;color:#e6efef;">projectapp.co</a>
+</td>
+<td class="stack stack-pad" valign="top" width="33%" style="padding:0 8px;">
+<div style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:10px;line-height:14px;letter-spacing:1.5px;color:#809490;text-transform:uppercase;margin-bottom:6px;">Email</div>
+<a href="mailto:team@projectapp.co" style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:14px;line-height:20px;color:#e6efef;">team@projectapp.co</a>
+</td>
+<td class="stack stack-pad" valign="top" width="34%" style="padding-left:8px;">
+<div style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:10px;line-height:14px;letter-spacing:1.5px;color:#809490;text-transform:uppercase;margin-bottom:6px;">WhatsApp</div>
+<a href="https://wa.me/573238122373" style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:14px;line-height:20px;color:#e6efef;">+57 323 812 2373</a>
+</td>
+</tr></table></td></tr>
+
+
+</table>
+<table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;">
+<tr><td class="px-40" align="center" style="padding:28px 40px 8px 40px;">
+<a href="https://instagram.com/projectapp.co" style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:12px;color:#7a8e8a;padding:0 10px;">Instagram</a>
+<span style="color:#d9d3c0;">·</span>
+<a href="https://facebook.com/projectapp.co" style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:12px;color:#7a8e8a;padding:0 10px;">Facebook</a>
+<span style="color:#d9d3c0;">·</span>
+<a href="https://wa.me/573238122373" style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:12px;color:#7a8e8a;padding:0 10px;">WhatsApp</a>
+</td></tr>
+<tr><td class="px-40" align="center" style="padding:8px 40px 4px 40px;font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:11px;line-height:18px;color:#7a8e8a;">© 2026 ProjectApp · Desarrollo de software a la medida · Bogotá, Colombia</td></tr>
+<tr><td class="px-40" align="center" style="padding:4px 40px 24px 40px;font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:11px;line-height:18px;color:#7a8e8a;">Recibiste este correo porque tu equipo creó tu cuenta de cliente en ProjectApp. </td></tr>
+</table>
+</td></tr></table>
+</body></html>

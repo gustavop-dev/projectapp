@@ -248,22 +248,21 @@ class TestProjectLinkedBusinessProposal:
         project = Project.objects.create(name='P', client=user)
         assert project.linked_business_proposal() is None
 
-    def test_returns_proposal_when_deliverable_links_it(self):
+    def test_returns_proposal_when_phase_links_it(self):
+        """As of the platform IA refactor, linked_business_proposal() reads
+        from ProjectPhase instead of going through Deliverable.deliverable."""
+        from accounts.models import ProjectPhase
         from content.models import BusinessProposal
 
         user = User.objects.create_user(username='lbp2@test.com', email='lbp2@test.com', password='x')
         project = Project.objects.create(name='P2', client=user)
-        d = Deliverable.objects.create(
-            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
-            file=None, uploaded_by=user,
-        )
         proposal = BusinessProposal.objects.create(
             title='Linked',
             client_name='X',
             client_email='x@example.com',
             total_investment=1000,
-            deliverable=d,
         )
+        ProjectPhase.objects.create(project=project, business_proposal=proposal, order=1)
         result = project.linked_business_proposal()
         assert result.pk == proposal.pk
 

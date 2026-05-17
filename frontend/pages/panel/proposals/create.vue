@@ -363,6 +363,123 @@
           <p class="text-xs text-text-subtle mt-1">Si es mayor a 0, se enviará un email de urgencia con descuento 2 días antes de expirar. 0 = sin descuento.</p>
         </div>
 
+        <!-- Email design metadata -->
+        <div class="space-y-3 pt-4 border-t border-input-border">
+          <div>
+            <h3 class="text-sm font-medium text-text-default">Configuración del correo</h3>
+            <p class="text-xs text-text-muted mt-1">
+              Datos que llenan los bloques del correo comercial: lista "Qué incluye", card "Método en 3 fases" y firma. Si los dejas vacíos se omiten o se usa el método estándar de marca.
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-text-default mb-1">Firmado por</label>
+            <select
+              v-model="form.email_signed_by"
+              class="w-full px-4 py-2.5 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+              data-testid="create-email-signed-by"
+            >
+              <option value="gustavo">Gustavo Pérez · CEO</option>
+              <option value="carlos">Carlos Blanco · CTO</option>
+            </select>
+            <p class="text-xs text-text-subtle mt-1">Nombre y cargo que firman al pie del correo.</p>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-text-default">
+                Qué incluye (bullets)
+                <span class="text-xs text-text-subtle font-normal ml-1">{{ form.email_features.length }}/{{ MAX_EMAIL_FEATURES }}</span>
+              </label>
+              <button
+                type="button"
+                class="text-xs text-primary hover:underline disabled:opacity-50"
+                :disabled="form.email_features.length >= MAX_EMAIL_FEATURES"
+                data-testid="create-add-feature"
+                @click="addEmailFeature"
+              >
+                + Agregar ítem
+              </button>
+            </div>
+            <p class="text-xs text-text-muted mb-2">
+              Hasta {{ MAX_EMAIL_FEATURES }} ítems. Si queda vacío el bloque no se renderiza.
+            </p>
+            <div v-if="form.email_features.length === 0" class="text-xs text-text-subtle italic">
+              Sin ítems — el bloque no aparecerá en el correo.
+            </div>
+            <div
+              v-for="(_, idx) in form.email_features"
+              :key="`create-feature-${idx}`"
+              class="flex items-start gap-2 mb-2"
+            >
+              <span class="text-xs font-medium text-text-muted pt-2 w-6">
+                {{ String(idx + 1).padStart(2, '0') }}
+              </span>
+              <textarea
+                v-model="form.email_features[idx]"
+                rows="2"
+                class="flex-1 px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
+                placeholder="Ej. Dashboard en tiempo real con filtros por ruta, conductor y estado."
+              ></textarea>
+              <button
+                type="button"
+                class="text-xs text-danger-strong hover:underline pt-2"
+                @click="removeEmailFeature(idx)"
+              >
+                Quitar
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-text-default">Método en 3 fases</label>
+              <button
+                type="button"
+                class="text-xs text-primary hover:underline"
+                @click="resetEmailMethodPhases"
+              >
+                Restaurar método estándar
+              </button>
+            </div>
+            <p class="text-xs text-text-muted mb-2">
+              Card oscura del correo. Siempre 3 fases (es el layout del diseño).
+            </p>
+            <div
+              v-for="(phase, idx) in form.email_method_phases"
+              :key="`create-phase-${idx}`"
+              class="grid grid-cols-[60px,1fr,90px,1.5fr] gap-2 mb-2 items-start"
+            >
+              <input
+                v-model="form.email_method_phases[idx].number"
+                class="px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm text-center focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+                placeholder="01"
+                maxlength="3"
+              />
+              <input
+                v-model="form.email_method_phases[idx].title"
+                class="px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+                placeholder="Diagnóstico"
+                maxlength="40"
+              />
+              <input
+                v-model="form.email_method_phases[idx].duration"
+                class="px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+                placeholder="5 días"
+                maxlength="20"
+              />
+              <textarea
+                v-model="form.email_method_phases[idx].description"
+                rows="2"
+                class="px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
+                placeholder="Mapeo de procesos y alcance final."
+                maxlength="120"
+              ></textarea>
+            </div>
+            <p class="text-xs text-text-subtle">Columnas: número · título · duración · descripción.</p>
+          </div>
+        </div>
+
         <!-- Errors -->
         <div v-if="errorMsg" class="text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-500/10 px-4 py-3 rounded-xl">
           {{ errorMsg }}
@@ -1124,7 +1241,30 @@ const form = reactive({
   reminder_days: 10,
   urgency_reminder_days: 15,
   discount_percent: 0,
+  email_features: [],
+  email_method_phases: [
+    { number: '01', title: 'Diagnóstico', duration: '', description: 'Mapeo de procesos y alcance final.' },
+    { number: '02', title: 'Construcción', duration: '', description: 'Sprints con demo cada viernes.' },
+    { number: '03', title: 'Lanzamiento', duration: '', description: 'Deploy, capacitación y soporte.' },
+  ],
+  email_signed_by: 'gustavo',
 });
+
+const MAX_EMAIL_FEATURES = 8;
+function addEmailFeature() {
+  if (form.email_features.length >= MAX_EMAIL_FEATURES) return;
+  form.email_features = [...form.email_features, ''];
+}
+function removeEmailFeature(idx) {
+  form.email_features = form.email_features.filter((_, i) => i !== idx);
+}
+function resetEmailMethodPhases() {
+  form.email_method_phases = [
+    { number: '01', title: 'Diagnóstico', duration: '', description: 'Mapeo de procesos y alcance final.' },
+    { number: '02', title: 'Construcción', duration: '', description: 'Sprints con demo cada viernes.' },
+    { number: '03', title: 'Lanzamiento', duration: '', description: 'Deploy, capacitación y soporte.' },
+  ];
+}
 
 function onClientSelected(client) {
   if (!client) return;
@@ -1146,10 +1286,23 @@ const canSendDirectly = computed(() => {
   return !!(form.client_email && form.client_name && form.total_investment > 0);
 });
 
+function sanitizeEmailMetadata(payload) {
+  payload.email_features = (payload.email_features || [])
+    .map((f) => (typeof f === 'string' ? f.trim() : ''))
+    .filter(Boolean);
+  payload.email_method_phases = (payload.email_method_phases || []).map((p) => ({
+    number: (p.number || '').trim(),
+    title: (p.title || '').trim(),
+    duration: (p.duration || '').trim(),
+    description: (p.description || '').trim(),
+  }));
+  return payload;
+}
+
 async function handleSubmit() {
   errorMsg.value = '';
 
-  const payload = { ...form };
+  const payload = sanitizeEmailMetadata({ ...form });
   if (payload.expires_at) {
     payload.expires_at = new Date(payload.expires_at).toISOString();
   }
@@ -1166,7 +1319,7 @@ async function handleSubmit() {
 async function handleCreateAndSend() {
   errorMsg.value = '';
 
-  const payload = { ...form };
+  const payload = sanitizeEmailMetadata({ ...form });
   if (payload.expires_at) {
     payload.expires_at = new Date(payload.expires_at).toISOString();
   }

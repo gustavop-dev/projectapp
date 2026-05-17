@@ -17,16 +17,25 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const isLoginPage = rawPath === '/platform/login'
   const isVerifyPage = rawPath === '/platform/verify'
   const isCompleteProfilePage = rawPath === '/platform/complete-profile'
+  const isPasswordResetPage =
+    rawPath === '/platform/forgot-password'
+    || rawPath === '/platform/verify-code'
+    || rawPath === '/platform/reset-password'
   const redirectTarget = lp(`/platform/login?redirect=${encodeURIComponent(to.fullPath)}`)
 
   if (authStore.accessToken && !authStore.hasValidatedSession) {
     const result = await authStore.fetchMe()
     if (!result.success) {
       authStore.logout()
-      if (!isLoginPage && !isVerifyPage) {
+      if (!isLoginPage && !isVerifyPage && !isPasswordResetPage) {
         return navigateTo(redirectTarget)
       }
     }
+  }
+
+  // Password-recovery pages are public (no auth check, no redirect to login).
+  if (isPasswordResetPage) {
+    return
   }
 
   if (isLoginPage) {

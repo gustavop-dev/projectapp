@@ -1,14 +1,16 @@
-Recibimos tu solicitud de ajustes — Project App
+{{ greeting|default:"Hola" }}{% if not greeting %} {{ client_name }} 🤝{% endif %},
 
-Hola {{ client_name }},
+{{ body|default:"Recibimos tu solicitud de \"Aceptar con cambios\". Volvemos en menos de 48 horas con una propuesta ajustada." }}
+{% if body_secondary %}
+{{ body_secondary }}{% else %}
+Mientras tanto la propuesta original queda en pausa — no se vence.{% endif %}
 
-Recibimos tu solicitud para ajustar el alcance de la propuesta "{{ title }}".
-Nuestro equipo revisará tus notas y te contactará en las próximas horas
-para conversar sobre las opciones.
+{% if total_investment %}Propuesta original: $ {{ total_investment }} {{ currency|default:"COP" }} (pausada){% endif %}
 
-Mientras tanto, puedes seguir revisando la propuesta:
-{{ proposal_url }}
+{{ cta_text|default:"Ver propuesta actual" }}: {{ proposal_url }}
 
-¿Preguntas? Responde a este email o escríbenos por WhatsApp.
+—
+{{ signature_name }}
+{{ signature_role }}
 
-© 2026 ProjectApp.co
+projectapp.co · team@projectapp.co · WhatsApp +57 323 812 2373

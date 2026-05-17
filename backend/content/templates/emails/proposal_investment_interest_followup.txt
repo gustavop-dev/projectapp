@@ -1,13 +1,15 @@
-Hola {{ client_name }},
+{{ greeting|default:"Hola" }}{% if not greeting %}, {{ client_name }}{% endif %},
 
-Noté que estás evaluando la inversión de la propuesta "{{ title }}".
+{{ body|default:"Notamos que pasaste varios minutos en la sección de inversión. Podemos hablar opciones de pago." }}
+{% if body_secondary %}
+{{ body_secondary }}{% endif %}
 
-¿Qué tal si hablamos sobre opciones de pago flexibles? Podemos ajustar el plan de pagos a tu presupuesto y tiempos.
+{% if total_investment %}Inversión actual: $ {{ total_investment }} {{ currency|default:"COP" }}{% endif %}
 
-{% if total_investment %}Inversión actual: ${{ total_investment }} {{ currency }}{% endif %}
+{{ cta_text|default:"Hablar opciones de pago" }}: https://wa.me/573238122373?text=Hola%2C%20me%20interesa%20la%20propuesta
 
-💬 Hablar sobre opciones: https://wa.me/573238122373
-👉 Ver propuesta: {{ proposal_url }}
+—
+{{ signature_name }}
+{{ signature_role }}
 
----
-© 2026 ProjectApp.co | Bogotá, Colombia
+projectapp.co · team@projectapp.co · WhatsApp +57 323 812 2373

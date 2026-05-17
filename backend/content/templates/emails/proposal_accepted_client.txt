@@ -1,23 +1,18 @@
-¡Excelente, {{ client_name }}! 🎉
+{{ greeting|default:"¡Excelente! 🎯" }}
 
-Hemos recibido tu confirmación para la propuesta "{{ title }}".
-Estamos emocionados de comenzar este proyecto contigo.
+{{ body|default:"Gracias por la confianza. Tu propuesta quedó aceptada y arrancamos esta semana." }}
 
 Próximos pasos:
-1. Te enviaremos el borrador de contrato en las próximas 24 horas
-2. Agendaremos una reunión de kickoff para alinear detalles
-3. ¡Comenzamos a trabajar en tu proyecto!
+01. Contrato en 24 h — firmable digitalmente.
+02. Kickoff la próxima semana — sesión de 60 min con tu equipo y el nuestro.
+03. Primer sprint arranca — cada viernes ves una demo funcional con avance real.
 
-{% if total_investment %}Inversión acordada: ${{ total_investment }} {{ currency }}{% endif %}
-
-Ver propuesta: {{ proposal_url }}
-
-{% if platform_login_url %}
-Acceso a la plataforma (seguimiento del proyecto, documentos y tablero):
-{{ platform_login_url }}
-{% if project_name %}Proyecto: {{ project_name }}{% endif %}
-{% if deliverable_title %}Entregable principal: {{ deliverable_title }}{% endif %}
-Adjuntos: propuesta comercial (PDF), documento técnico (si aplica) y guía de uso de la plataforma.
+{% if total_investment %}Acordado: $ {{ total_investment }} {{ currency|default:"COP" }}
 {% endif %}
+{% if platform_login_url %}{{ cta_text|default:"Ir a la plataforma" }}: {{ platform_login_url }}{% else %}{{ cta_text|default:"Ver propuesta" }}: {{ proposal_url }}{% endif %}
 
-¿Dudas? Escríbenos a team@projectapp.co o WhatsApp +57 323 812 2373
+—
+{{ signature_name }}
+{{ signature_role }}
+
+projectapp.co · team@projectapp.co · WhatsApp +57 323 812 2373

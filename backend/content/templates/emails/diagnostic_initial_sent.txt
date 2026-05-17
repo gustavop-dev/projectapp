@@ -1,15 +1,13 @@
 Hola {{ client_name }},
 
-Te compartimos la propuesta inicial del diagnóstico técnico para tu aplicación.
-En este documento encontrarás el alcance, las categorías de evaluación y la estructura
-de la entrega.
+Recibimos tu solicitud para evaluar la plataforma actual. Antes de pasarte cualquier número, hacemos un diagnóstico técnico real.
 
-El costo y el cronograma definitivos se definen tras el análisis preliminar del
-repositorio, que ejecutamos sin costo una vez recibida tu autorización.
+Este primer paso no tiene costo. La cotización y el cronograma los definimos solo cuando tengamos data.
 
-Ver propuesta de diagnóstico:
-{{ diagnostic_url }}
+{{ cta_text|default:"Ver propuesta de diagnóstico" }}: {{ diagnostic_url }}
 
-Si tienes preguntas, simplemente responde a este correo.
+—
+{{ signature_name }}
+{{ signature_role }}
 
-— Equipo Project App
+projectapp.co · team@projectapp.co · WhatsApp +57 323 812 2373

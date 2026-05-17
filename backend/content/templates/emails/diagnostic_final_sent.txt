@@ -1,17 +1,14 @@
 Hola {{ client_name }},
 
-Tu diagnóstico técnico está completo. Encontrarás los tres documentos ahí:
-la propuesta de servicio, el detalle técnico por categoría y el anexo con la
-radiografía medida directamente en el repositorio.
+Terminamos el diagnóstico de tu plataforma. Entregamos tres documentos: propuesta comercial, detalle técnico ampliado y radiografía del repositorio.
 
-{% if investment_amount %}Inversión: ${{ investment_amount }} {{ currency }}
-{% if duration_label %}Duración estimada: {{ duration_label }}{% endif %}
-{% endif %}
+{% if investment_amount %}Inversión: $ {{ investment_amount }} {{ currency|default:"COP" }}
+{% endif %}{% if duration_label %}Tiempo estimado: {{ duration_label }}{% endif %}
 
-Revisar diagnóstico completo:
-{{ diagnostic_url }}
+{{ cta_text|default:"Revisar diagnóstico completo" }}: {{ diagnostic_url }}
 
-Desde el enlace puedes aceptar o rechazar la propuesta. Si quieres conversarla
-antes, responde este correo.
+—
+{{ signature_name }}
+{{ signature_role }}
 
-— Equipo Project App
+projectapp.co · team@projectapp.co · WhatsApp +57 323 812 2373

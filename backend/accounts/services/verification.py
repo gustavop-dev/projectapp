@@ -1,24 +1,49 @@
 from django.core.mail import send_mail
 from django.conf import settings
+from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
 
 from accounts.models import VerificationCode
+
+
+# Map OTP purpose -> (template_base, subject)
+_OTP_TEMPLATES = {
+    VerificationCode.PURPOSE_ONBOARDING: (
+        'emails/verification_code',
+        'Tu código de verificación — ProjectApp',
+    ),
+    VerificationCode.PURPOSE_PASSWORD_RESET: (
+        'emails/password_reset_code',
+        'Tu código para restablecer la contraseña — ProjectApp',
+    ),
+}
 
 
 def create_and_send_otp(user, purpose=VerificationCode.PURPOSE_ONBOARDING):
     """Create a new OTP for the user and send it via email."""
     otp = VerificationCode.create_for_user(user, purpose=purpose)
 
-    subject = 'Tu código de verificación — ProjectApp'
-    html_message = render_to_string('emails/verification_code.html', {
+    template_base, subject = _OTP_TEMPLATES.get(
+        purpose, _OTP_TEMPLATES[VerificationCode.PURPOSE_ONBOARDING],
+    )
+    from content.services.proposal_email_service import _build_design_context
+
+    context = {
         'user': user,
         'code': otp.code,
+        'code_digits': list(str(otp.code)),
         'expiry_minutes': VerificationCode.EXPIRY_MINUTES,
-    })
+    }
+    context.update(_build_design_context())
+    html_message = render_to_string(f'{template_base}.html', context)
+    try:
+        plain_message = render_to_string(f'{template_base}.txt', context)
+    except TemplateDoesNotExist:
+        plain_message = f'Tu código de verificación es: {otp.code}'
 
     send_mail(
         subject=subject,
-        message=f'Tu código de verificación es: {otp.code}',
+        message=plain_message,
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
         html_message=html_message,

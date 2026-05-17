@@ -1,22 +1,26 @@
-{{ greeting }}
+{{ greeting|default:"Hola" }}{% if not greeting %} {{ client_name }}{% endif %},
 
-{{ body }}
+{{ body|default:email_intro }}
 
-— {{ title }} —
-{{ email_intro }}
-
-Adjunto el link de la propuesta para que puedas verla con más detalle:
-{{ proposal_url }}
-
-{% if total_investment %}Inversión: ${{ total_investment }} {{ currency }}{% endif %}{% if total_duration %} · Duración: {{ total_duration }}{% endif %}{% if payment_summary %} · Pagos: {{ payment_summary }}{% endif %}
-{% if payment_options %}
-{% for opt in payment_options %}- {{ opt.label }}: {{ opt.description }}
+{{ title }}
+{% if total_investment %}Inversión: $ {{ total_investment }} {{ currency }}
+{% endif %}{% if total_duration %}Tiempo: {{ total_duration }}
+{% endif %}{% if payment_summary %}Pagos: {{ payment_summary }}
+{% endif %}
+{% if email_features %}Qué incluye:
+{% for feature in email_features %}{{ forloop.counter|stringformat:"02d" }}. {{ feature }}
 {% endfor %}{% endif %}
-{% if days_remaining is not None %}Esta propuesta es válida por {{ days_remaining }} día{{ days_remaining|pluralize:"s" }}.{% endif %}
+{% if email_method_phases %}Método:
+{% for phase in email_method_phases %}{{ phase.number|default:forloop.counter }}. {{ phase.title }}{% if phase.duration %} — {{ phase.duration }}{% endif %} · {{ phase.description }}
+{% endfor %}{% endif %}
+{{ cta_text|default:"Ver propuesta completa" }}: {{ proposal_url }}
+{% if days_remaining %}
+Válida por {{ days_remaining }} día{{ days_remaining|pluralize }} más.{% endif %}
+{% if closing %}
+{{ closing }}
+{% endif %}
+—
+{{ signature_name }}
+{{ signature_role }}
 
-{% if closing %}{{ closing }}
-
-{% endif %}Un saludo cordial,
-El equipo de Project App
-team@projectapp.co · +57 323 812 2373
-www.projectapp.co
+projectapp.co · team@projectapp.co · WhatsApp +57 323 812 2373

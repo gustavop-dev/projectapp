@@ -12,6 +12,63 @@ from content.utils import format_bogota_date, format_cop_email, safe_slug
 logger = logging.getLogger(__name__)
 
 
+# Fallback de marca cuando una propuesta no tiene email_method_phases diligenciado.
+# Renderiza el card oscuro "Método en 3 fases" del diseño nuevo.
+DEFAULT_METHOD_PHASES = [
+    {'number': '01', 'title': 'Diagnóstico', 'duration': '',
+     'description': 'Mapeo de procesos y alcance final.'},
+    {'number': '02', 'title': 'Construcción', 'duration': '',
+     'description': 'Sprints con demo cada viernes.'},
+    {'number': '03', 'title': 'Lanzamiento', 'duration': '',
+     'description': 'Deploy, capacitación y soporte.'},
+]
+
+
+def _resolve_signature(signer_key):
+    """Return ``{'name', 'role'}`` for ``signer_key`` (falls back to default)."""
+    signatures = getattr(settings, 'EMAIL_SIGNATURES', {}) or {}
+    default_key = getattr(settings, 'EMAIL_DEFAULT_SIGNER', 'gustavo')
+    return signatures.get(signer_key) or signatures.get(default_key) or {
+        'name': 'Equipo ProjectApp', 'role': 'ProjectApp.',
+    }
+
+
+def _build_design_context(proposal=None):
+    """Common context keys for the redesigned client-facing emails.
+
+    Provides:
+    - ``signature_name`` / ``signature_role`` — resolved from settings (always)
+    - ``email_features`` — bullets for "Qué incluye" (empty if proposal=None)
+    - ``email_method_phases`` — 3-phase card; falls back to brand default
+    - ``proposal_reference`` — display id like "PA-2026-0042" (if proposal)
+    """
+    if proposal is None:
+        sig = _resolve_signature(getattr(settings, 'EMAIL_DEFAULT_SIGNER', 'gustavo'))
+        return {
+            'signature_name': sig['name'],
+            'signature_role': sig['role'],
+            'email_features': [],
+            'email_method_phases': DEFAULT_METHOD_PHASES,
+            'proposal_reference': '',
+        }
+
+    sig = _resolve_signature(getattr(proposal, 'email_signed_by', None))
+    method_phases = list(getattr(proposal, 'email_method_phases', []) or [])
+    if not method_phases:
+        method_phases = DEFAULT_METHOD_PHASES
+
+    year = proposal.created_at.year if getattr(proposal, 'created_at', None) else timezone.now().year
+    reference = f'PA-{year}-{proposal.pk:04d}' if proposal.pk else ''
+
+    return {
+        'signature_name': sig['name'],
+        'signature_role': sig['role'],
+        'email_features': list(getattr(proposal, 'email_features', []) or []),
+        'email_method_phases': method_phases,
+        'proposal_reference': reference,
+    }
+
+
 def _is_unsendable_client_email(email):
     """Return True when ``email`` is empty or a generated placeholder."""
     if not email:
@@ -299,6 +356,7 @@ class ProposalEmailService:
         }
         context.update(cls._build_initial_email_context(proposal))
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_sent_client', context)
         context.update(resolved)
 
@@ -394,6 +452,7 @@ class ProposalEmailService:
             'phases_count': len(phases),
         }
 
+        context.update(_build_design_context(primary))
         resolved = cls._resolve_content('proposal_multi_sent_client', context)
         context.update(resolved)
 
@@ -493,6 +552,7 @@ class ProposalEmailService:
             'title': proposal.title,
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_reminder', context)
         context.update(resolved)
 
@@ -606,6 +666,7 @@ class ProposalEmailService:
             html_template = 'emails/proposal_urgency_no_discount.html'
             txt_template = 'emails/proposal_urgency_no_discount.txt'
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content(template_key, context)
         context.update(resolved)
         subject = resolved.get('subject', f'{proposal.client_name}, tu propuesta expira pronto')
@@ -681,6 +742,7 @@ class ProposalEmailService:
             'rejection_comment': getattr(proposal, 'rejection_comment', ''),
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_response_notification', context)
         context.update(resolved)
 
@@ -751,6 +813,7 @@ class ProposalEmailService:
             **platform_ctx,
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_accepted_client', context)
         context.update(resolved)
 
@@ -871,6 +934,7 @@ class ProposalEmailService:
             **cls._build_platform_context(proposal),
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_finished_client', context)
         context.update(resolved)
 
@@ -940,6 +1004,7 @@ class ProposalEmailService:
             'title': proposal.title,
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_rejected_client', context)
         context.update(resolved)
 
@@ -1018,6 +1083,7 @@ class ProposalEmailService:
             'client_email': proposal.client_email or '',
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_first_view_notification', context)
         context.update(resolved)
 
@@ -1077,6 +1143,7 @@ class ProposalEmailService:
             'proposal_uuid': str(proposal.uuid),
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_comment_notification', context)
         context.update(resolved)
 
@@ -1151,6 +1218,7 @@ class ProposalEmailService:
             )
             context['discount_percent'] = proposal.discount_percent
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_reengagement', context)
         context.update(resolved)
 
@@ -1215,6 +1283,7 @@ class ProposalEmailService:
             'proposal_uuid': str(proposal.uuid),
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_revisit_alert', context)
         context.update(resolved)
 
@@ -1282,6 +1351,7 @@ class ProposalEmailService:
             'title': proposal.title,
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_abandonment_followup', context)
         context.update(resolved)
 
@@ -1363,6 +1433,7 @@ class ProposalEmailService:
             'time_on_investment': time_display,
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_investment_interest_followup', context)
         context.update(resolved)
 
@@ -1432,6 +1503,7 @@ class ProposalEmailService:
             'proposal_uuid': str(proposal.uuid),
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_share_notification', context)
         context.update(resolved)
 
@@ -1493,6 +1565,7 @@ class ProposalEmailService:
             'title': proposal.title,
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_scheduled_followup', context)
         context.update(resolved)
 
@@ -1551,6 +1624,7 @@ class ProposalEmailService:
             'known_ips_count': known_ips_count,
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_stakeholder_detected', context)
         context.update(resolved)
 
@@ -1623,6 +1697,7 @@ class ProposalEmailService:
             'status': proposal.status,
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('seller_inactivity_escalation', context)
         context.update(resolved)
 
@@ -1687,6 +1762,7 @@ class ProposalEmailService:
             'proposal_uuid': str(proposal.uuid),
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_negotiation_notification', context)
         context.update(resolved)
 
@@ -1750,6 +1826,7 @@ class ProposalEmailService:
             'currency': proposal.currency,
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_negotiation_confirmation', context)
         context.update(resolved)
 
@@ -1827,6 +1904,7 @@ class ProposalEmailService:
             'days_since_rejection': days_since,
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('post_rejection_revisit_alert', context)
         context.update(resolved)
 
@@ -1884,6 +1962,7 @@ class ProposalEmailService:
 
         context = digest_data
 
+        context.update(_build_design_context())
         resolved = cls._resolve_content('daily_pipeline_digest', context)
         context.update(resolved)
 
@@ -1941,6 +2020,7 @@ class ProposalEmailService:
             'proposal_uuid': str(proposal.uuid),
         }
 
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content('proposal_post_expiration_visit', context)
         context.update(resolved)
 
@@ -2134,6 +2214,7 @@ class ProposalEmailService:
             'footer': footer or '',
             'document_descriptions': document_descriptions or [],
         }
+        context.update(_build_design_context(proposal))
 
         try:
             html_content = render_to_string(
@@ -2205,6 +2286,7 @@ class ProposalEmailService:
                 'footer': footer,
                 'attachment_names': attachment_names,
             }
+            context.update(_build_design_context(proposal))
 
             from content.services.email_template_registry import get_template_entry
             entry = get_template_entry(template_key)
@@ -2338,6 +2420,7 @@ class ProposalEmailService:
             'proposal_uuid': str(proposal.uuid),
             **context_extras,
         }
+        context.update(_build_design_context(proposal))
         resolved = cls._resolve_content(template_key, context)
         context.update(resolved)
         subject = resolved.get('subject') or fallback_subject
