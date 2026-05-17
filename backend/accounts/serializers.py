@@ -190,6 +190,12 @@ class ProjectListSerializer(serializers.ModelSerializer):
     proposal_id = serializers.SerializerMethodField()
     proposal_title = serializers.SerializerMethodField()
 
+    # Platform IA aggregates (admin tables) — added 2026-05-17
+    bugs_open_count = serializers.SerializerMethodField()
+    changes_pending_count = serializers.SerializerMethodField()
+    next_deliverable = serializers.SerializerMethodField()
+    last_activity_at = serializers.SerializerMethodField()
+
     class Meta:
         model = Project
         fields = [
@@ -198,6 +204,8 @@ class ProjectListSerializer(serializers.ModelSerializer):
             'client_id', 'client_name', 'client_email', 'client_company',
             'proposal_id', 'proposal_title',
             'hosting_start_date',
+            'bugs_open_count', 'changes_pending_count', 'next_deliverable',
+            'last_activity_at',
             'created_at', 'updated_at',
         ]
 
@@ -216,6 +224,31 @@ class ProjectListSerializer(serializers.ModelSerializer):
     def get_client_company(self, obj):
         profile = getattr(obj.client, 'profile', None)
         return profile.company_name if profile else ''
+
+    def get_bugs_open_count(self, obj):
+        from accounts.models import BugReport
+        open_statuses = [
+            BugReport.STATUS_REPORTED, BugReport.STATUS_CONFIRMED,
+            BugReport.STATUS_FIXING, BugReport.STATUS_QA,
+        ]
+        return BugReport.objects.filter(
+            deliverable__project=obj, status__in=open_statuses,
+        ).count()
+
+    def get_changes_pending_count(self, obj):
+        from accounts.models import ChangeRequest
+        return ChangeRequest.objects.filter(
+            project=obj, status=ChangeRequest.STATUS_PENDING,
+        ).count()
+
+    def get_next_deliverable(self, obj):
+        # Deliverable has no due_date field today; null until per-deliverable
+        # due dates are introduced. Field name stable for forward compat.
+        return None
+
+    def get_last_activity_at(self, obj):
+        # MVP: project's updated_at. Future: MAX across modules — contract stable.
+        return obj.updated_at
 
 
 class ProjectDetailSerializer(ProjectListSerializer):
