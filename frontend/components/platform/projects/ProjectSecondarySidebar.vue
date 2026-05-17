@@ -1,5 +1,5 @@
 <template>
-  <aside class="w-56 shrink-0 border-r border-border-muted bg-surface px-3 py-4">
+  <aside class="w-56 shrink-0 self-start rounded-3xl border border-border-default bg-surface px-3 py-4 shadow-sm">
     <NuxtLink
       v-for="item in items"
       :key="item.href"
@@ -33,7 +33,7 @@ const items = computed(() => {
     { label: 'Tablero',           href: localePath(`${base}/board`) },
     { label: 'Solicitudes',       href: localePath(`${base}/changes`) },
     { label: 'Bugs',              href: localePath(`${base}/bugs`) },
-    { label: 'Entregables',       href: localePath(`${base}/deliverables`) },
+    { label: 'Recursos',          href: localePath(`${base}/deliverables`) },
     { label: 'Pagos',             href: localePath(`${base}/payments`) },
     { label: 'Cuentas de cobro',  href: localePath(`${base}/collection-accounts`) },
     { label: 'Modelo de datos',   href: localePath(`${base}/data-model`) },

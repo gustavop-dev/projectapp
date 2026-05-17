@@ -8,7 +8,7 @@
           <th class="px-4 py-3">Progreso</th>
           <th class="px-4 py-3">Bugs abiertos</th>
           <th v-if="isAdmin" class="px-4 py-3">Solicitudes pendientes</th>
-          <th class="px-4 py-3">Próximo entregable</th>
+          <th class="px-4 py-3">Valor total</th>
           <th class="px-4 py-3">Última actividad</th>
           <th class="w-10 px-2"></th>
         </tr>
@@ -48,11 +48,9 @@
             </span>
           </td>
           <td class="px-4 py-3 text-sm">
-            <template v-if="p.next_deliverable">
-              {{ p.next_deliverable.title }}<br>
-              <span class="text-xs text-green-light/60">{{ formatDate(p.next_deliverable.due_date) }}</span>
-            </template>
-            <span v-else class="text-green-light/60">—</span>
+            <span :class="(Number(p.phases_total_amount) > 0) ? 'font-medium text-text-default' : 'text-green-light/60'">
+              {{ formatCurrency(p.phases_total_amount) }}
+            </span>
           </td>
           <td class="px-4 py-3 text-sm text-green-light/70">{{ relativeTime(p.last_activity_at) }}</td>
           <td class="px-2 py-3 text-right text-green-light/40">›</td>
@@ -95,9 +93,12 @@ function statusChipClass(s) {
   return `${base} ${map[s] || map.archived}`
 }
 
-function formatDate(iso) {
-  if (!iso) return ''
-  return new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
+function formatCurrency(value) {
+  const n = Number(value || 0)
+  if (!n) return '—'
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency', currency: 'COP', maximumFractionDigits: 0,
+  }).format(n)
 }
 
 function relativeTime(iso) {

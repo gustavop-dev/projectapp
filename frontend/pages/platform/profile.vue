@@ -1,5 +1,5 @@
 <template>
-  <div id="platform-profile">
+  <div id="platform-profile" class="mx-auto max-w-3xl">
     <h1 class="mb-1 text-xl font-bold text-text-default">Configuracion</h1>
     <p class="mb-8 text-sm text-green-light">Revisa y actualiza tu informacion personal.</p>
 

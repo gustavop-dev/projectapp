@@ -19,13 +19,6 @@
     <template v-else>
       <!-- Header -->
       <div class="mb-6" data-enter>
-        <NuxtLink
-          :to="localePath(`/platform/projects/${projectId}`)"
-          class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white"
-        >
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-          Proyecto
-        </NuxtLink>
         <div class="flex items-center gap-3">
           <h1 class="text-xl font-bold text-text-default sm:text-2xl">Modelo de datos</h1>
           <span

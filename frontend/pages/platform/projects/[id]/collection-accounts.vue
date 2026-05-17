@@ -1,16 +1,9 @@
 <template>
   <ProjectShell>
     <div id="platform-project-collection-accounts" class="space-y-6">
-    <NuxtLink
-      :to="localePath(`/platform/projects/${projectId}`)"
-      class="text-sm text-green-light hover:text-text-default dark:hover:text-white"
-    >
-      ← Back to project
-    </NuxtLink>
-
     <div data-enter>
-      <h1 class="text-2xl font-bold text-text-default">Collection accounts</h1>
-      <p class="mt-1 text-sm text-green-light">Documents for this project.</p>
+      <h1 class="text-2xl font-bold text-text-default">Cuentas de cobro</h1>
+      <p class="mt-1 text-sm text-green-light">Documentos de este proyecto.</p>
     </div>
 
     <div v-if="store.isLoading" class="py-20 text-center">

@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <header class="border-b border-border-muted bg-surface px-6 py-4">
+  <div class="space-y-4">
+    <header class="rounded-3xl border border-border-default bg-surface px-6 py-4 shadow-sm">
       <ProjectBreadcrumb :project-name="project?.name" />
       <div class="mt-2 flex items-center gap-3">
         <h1 class="text-xl font-semibold text-text-default">{{ project?.name || 'Proyecto' }}</h1>
@@ -12,9 +12,9 @@
         <template v-if="project.next_deliverable"> · Próx. entrega: {{ formatDate(project.next_deliverable.due_date) }}</template>
       </p>
     </header>
-    <div class="flex">
+    <div class="flex gap-4">
       <ProjectSecondarySidebar :project-id="projectId" />
-      <main class="flex-1 px-6 py-6">
+      <main class="flex-1 rounded-3xl border border-border-default bg-surface px-6 py-6 shadow-sm">
         <slot />
       </main>
     </div>

@@ -69,7 +69,7 @@
         isCollapsed ? 'md:ml-[64px]' : 'md:ml-[240px]',
       ]"
     >
-      <div class="mx-auto max-w-6xl">
+      <div class="mx-auto max-w-screen-2xl">
         <slot />
       </div>
     </main>
@@ -172,7 +172,7 @@ const _platformRouteMap = [
   { path: localePath('/platform/collection-accounts'), label: 'Cuentas cobro' },
   { path: localePath('/platform/complete-profile'), label: 'Completar perfil' },
   { path: localePath('/platform/notifications'), label: 'Notificaciones' },
-  { path: localePath('/platform/deliverables'), label: 'Entregables' },
+  { path: localePath('/platform/deliverables'), label: 'Recursos' },
   { path: localePath('/platform/dashboard'), label: 'Dashboard' },
   { path: localePath('/platform/payments'), label: 'Pagos' },
   { path: localePath('/platform/projects'), label: 'Proyectos' },
@@ -186,8 +186,8 @@ const _platformRouteMap = [
 const _platformDynamic = [
   { re: /\/platform\/projects\/[^/]+\/collection-accounts/, label: 'Cuentas cobro' },
   { re: /\/platform\/projects\/[^/]+\/data-model/, label: 'Modelo datos' },
-  { re: /\/platform\/projects\/[^/]+\/deliverables\/[^/]+/, label: 'Entregable' },
-  { re: /\/platform\/projects\/[^/]+\/deliverables/, label: 'Entregables' },
+  { re: /\/platform\/projects\/[^/]+\/deliverables\/[^/]+/, label: 'Recurso' },
+  { re: /\/platform\/projects\/[^/]+\/deliverables/, label: 'Recursos' },
   { re: /\/platform\/projects\/[^/]+\/payments/, label: 'Pagos' },
   { re: /\/platform\/projects\/[^/]+\/changes/, label: 'Cambios' },
   { re: /\/platform\/projects\/[^/]+\/board/, label: 'Tablero' },

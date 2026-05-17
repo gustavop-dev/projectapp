@@ -119,6 +119,27 @@ export const usePlatformProjectsStore = defineStore('platformProjects', {
       }
     },
 
+    async deleteProject(projectId) {
+      this.isUpdating = true
+      this.error = ''
+      try {
+        const { delete: destroy } = usePlatformApi()
+        await destroy(`projects/${projectId}/?force=true`)
+        this.projects = this.projects.filter((p) => p.id !== projectId)
+        if (this.currentProject?.id === projectId) {
+          this.currentProject = null
+        }
+        return { success: true }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No pudimos eliminar el proyecto.'
+        this.error = message
+        return { success: false, message }
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false
+      }
+    },
+
     async archiveProject(projectId) {
       this.isUpdating = true
       this.error = ''

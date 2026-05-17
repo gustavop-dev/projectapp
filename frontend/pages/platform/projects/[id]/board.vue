@@ -10,38 +10,24 @@
       <!-- Header -->
       <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" data-enter>
         <div>
-          <NuxtLink :to="localePath('/platform/board')" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-            Tablero
-          </NuxtLink>
           <h1 class="text-xl font-bold text-text-default sm:text-2xl">Tablero</h1>
-          <div v-if="deliverableFilterId" class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-            <span class="rounded-full border border-border-default bg-surface-muted/30 px-3 py-1 font-medium text-text-default dark:bg-white/10 dark:text-accent">
-              Solo este entregable
-            </span>
-            <NuxtLink
-              :to="localePath(`/platform/projects/${projectId}/deliverables/${deliverableFilterId}`)"
-              class="text-green-light underline decoration-green-light/30 transition hover:text-text-default dark:hover:text-white"
-            >
-              Ficha del entregable
-            </NuxtLink>
-            <NuxtLink
-              :to="localePath(`/platform/projects/${projectId}/board`)"
-              class="text-green-light/80 underline decoration-transparent transition hover:text-text-default dark:hover:text-white"
-            >
-              Ver todo el proyecto
-            </NuxtLink>
-          </div>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-          <label
-            v-if="authStore.isAdmin"
-            class="flex cursor-pointer items-center gap-2 rounded-full border border-border-default px-3 py-2 text-xs font-medium text-green-light"
-          >
-            <input v-model="includeArchived" type="checkbox" class="rounded border-border-default" />
-            Mostrar archivados
+          <!-- Phase selector (only when project has 2+ phases) -->
+          <label v-if="phaseOptions.length > 1" class="flex items-center gap-2 rounded-full border border-border-default px-3 py-2 text-xs font-medium text-green-light">
+            <span class="uppercase tracking-wider text-[10px] text-green-light/70">Fase</span>
+            <select
+              :value="activePhaseId ?? ''"
+              class="bg-transparent text-xs font-semibold text-text-default outline-none dark:text-white"
+              @change="onPhaseChange($event.target.value)"
+            >
+              <option v-for="opt in phaseOptions" :key="opt.id" :value="opt.id">
+                Fase {{ opt.order }} · {{ opt.title }}
+              </option>
+            </select>
           </label>
+
           <!-- Progress pill -->
           <div class="flex items-center gap-2 rounded-full border border-border-default px-4 py-2">
             <div class="h-2 w-16 overflow-hidden rounded-full bg-primary/10 dark:bg-white/10">
@@ -51,7 +37,7 @@
             <span class="text-xs text-green-light">{{ reqStore.doneCount }}/{{ reqStore.totalCount }}</span>
           </div>
 
-          <!-- Add card button (admin) -->
+          <!-- Admin actions -->
           <template v-if="authStore.isAdmin">
             <button
               type="button"
@@ -63,20 +49,11 @@
             </button>
             <button
               type="button"
-              class="flex items-center gap-1.5 rounded-xl border border-border-default px-3 py-2 text-xs font-medium text-green-light transition hover:border-border-default hover:text-text-default dark:hover:text-white"
-              @click="jsonUploadRef?.click()"
-            >
-              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-              Subir JSON
-            </button>
-            <input ref="jsonUploadRef" type="file" accept=".json" class="hidden" @change="handleJsonUpload" />
-            <button
-              type="button"
               class="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-text-default transition hover:brightness-105"
-              @click="openCreateModal()"
+              @click="openImportModal"
             >
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-              Card
+              Importar JSON
             </button>
           </template>
         </div>
@@ -121,7 +98,7 @@
       </div>
 
       <!-- Kanban columns (full width grid) -->
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3" data-enter>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" data-enter>
         <div
           v-for="col in reqStore.columns"
           :key="col.key"
@@ -202,49 +179,6 @@
         </div>
       </div>
 
-      <!-- Completados (collapsible checklist) -->
-      <div v-if="reqStore.doneCards.length" class="mt-6" data-enter>
-        <button
-          type="button"
-          class="flex w-full items-center gap-3 rounded-2xl border border-border-muted bg-surface-muted/20 px-5 py-4 text-left transition hover:bg-surface-muted/40 dark:hover:bg-white/5"
-          @click="showDone = !showDone"
-        >
-          <svg
-            class="h-4 w-4 shrink-0 text-emerald-500 transition-transform duration-200"
-            :class="showDone ? 'rotate-90' : ''"
-            fill="none" stroke="currentColor" viewBox="0 0 24 24"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-          <span class="text-sm font-semibold text-text-default">Completados</span>
-          <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500/15 px-1.5 text-[10px] font-bold text-text-brand">
-            {{ reqStore.doneCards.length }}
-          </span>
-          <div class="ml-auto h-1.5 w-20 overflow-hidden rounded-full bg-primary/10 dark:bg-white/10">
-            <div class="h-full rounded-full bg-emerald-500 transition-all duration-700" :style="{ width: `${reqStore.progressPercent}%` }" />
-          </div>
-          <span class="text-xs font-semibold text-text-brand">{{ reqStore.progressPercent }}%</span>
-        </button>
-
-        <Transition name="done-list">
-          <div v-if="showDone" class="mt-2 space-y-1.5 pl-1">
-            <div
-              v-for="card in reqStore.doneCards"
-              :key="card.id"
-              class="flex cursor-pointer items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-surface-muted/30 dark:hover:bg-white/5"
-              @click="openDetailModal(card)"
-            >
-              <svg class="h-5 w-5 shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span class="flex-1 text-sm text-green-light line-through decoration-green-light/30">
-                <span v-if="epicLabel(card)" class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-teal-600/70 dark:text-teal-300/70">{{ epicLabel(card) }}</span>
-                {{ card.title }}
-              </span>
-            </div>
-          </div>
-        </Transition>
-      </div>
 </template>
 
     <!-- Move to column modal -->
@@ -261,6 +195,7 @@
                     <option value="todo">Por hacer</option>
                     <option value="in_progress">En progreso</option>
                     <option value="in_review">En revisión</option>
+                    <option value="done">Aprobado</option>
                   </select>
                 </div>
                 <div>
@@ -285,60 +220,69 @@
       </Transition>
     </Teleport>
 
-    <!-- Create requirement modal -->
+    <!-- Import JSON modal (admin) -->
     <Teleport to="body">
       <Transition name="modal-overlay">
         <div
-          v-if="isCreateOpen"
+          v-if="isImportOpen"
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
-          @click.self="isCreateOpen = false"
+          @click.self="closeImportModal"
         >
           <Transition name="modal-content" appear>
-            <div v-if="isCreateOpen" class="w-full max-w-md rounded-3xl border border-border-default bg-surface p-6 shadow-2xl sm:p-8">
-              <h2 class="mb-5 text-lg font-bold text-text-default">Nuevo requerimiento</h2>
+            <div v-if="isImportOpen" class="w-full max-w-2xl rounded-3xl border border-border-default bg-surface p-6 shadow-2xl sm:p-8">
+              <div class="mb-5 flex items-start justify-between gap-4">
+                <div>
+                  <h2 class="text-lg font-bold text-text-default">Importar JSON</h2>
+                  <p class="mt-1 text-xs text-green-light/70">
+                    Pega un array JSON de requerimientos. Usá el botón <span class="font-semibold">Ejemplo</span> para descargar la plantilla.
+                  </p>
+                </div>
+                <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="closeImportModal">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
 
-              <form class="space-y-4" @submit.prevent="handleCreate">
+              <form class="space-y-4" @submit.prevent="handleImport">
+                <fieldset class="space-y-2">
+                  <legend class="mb-1 text-xs font-medium text-esmerald/70 dark:text-white/70">Modo de carga</legend>
+                  <label class="flex items-start gap-3 rounded-xl border border-border-default p-3 cursor-pointer transition hover:bg-surface-muted/30 dark:hover:bg-white/5" :class="importMode === 'append' ? 'border-accent/60 bg-accent/5' : ''">
+                    <input v-model="importMode" type="radio" value="append" class="mt-1" />
+                    <span class="flex-1">
+                      <span class="block text-sm font-medium text-text-default">Añadir a los existentes</span>
+                      <span class="block text-xs text-green-light/70">Los requerimientos actuales se mantienen. Los del JSON se agregan al final.</span>
+                    </span>
+                  </label>
+                  <label class="flex items-start gap-3 rounded-xl border border-border-default p-3 cursor-pointer transition hover:bg-surface-muted/30 dark:hover:bg-white/5" :class="importMode === 'replace' ? 'border-red-500/40 bg-red-500/5' : ''">
+                    <input v-model="importMode" type="radio" value="replace" class="mt-1" />
+                    <span class="flex-1">
+                      <span class="block text-sm font-medium text-text-default">Reemplazar todos</span>
+                      <span class="block text-xs text-red-600 dark:text-red-400">
+                        Borrará los {{ reqStore.totalCount }} requerimientos actuales (incluido historial y comentarios) y los reemplazará por los del JSON.
+                      </span>
+                    </span>
+                  </label>
+                </fieldset>
+
                 <div>
-                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Título <span class="text-red-400">*</span></label>
-                  <input v-model="createForm.title" type="text" required placeholder="Título del requerimiento" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">JSON (array de objetos)</label>
+                  <textarea
+                    v-model="importJson"
+                    rows="14"
+                    spellcheck="false"
+                    placeholder='[{"title": "Login de usuario", "description": "...", "configuration": "...", "flow": "...", "priority": "high"}]'
+                    class="w-full resize-y rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 font-mono text-xs text-text-default outline-none transition placeholder:text-green-light/40 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/20 dark:focus:border-lemon/40"
+                  />
+                  <p class="mt-1 text-[10px] text-green-light/50">Campos por ítem: title (obligatorio), description, configuration, flow, priority, status.</p>
                 </div>
-                <div>
-                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Descripción</label>
-                  <textarea v-model="createForm.description" rows="2" placeholder="Descripción del requerimiento..." class="w-full resize-none rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
-                </div>
-                <div>
-                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Configuración</label>
-                  <textarea v-model="createForm.configuration" rows="2" placeholder="Ej: Solo visible para rol Administrador..." class="w-full resize-none rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
-                  <p class="mt-1 text-[10px] text-green-light/50">Roles, permisos o privilegios que aplican a este requerimiento.</p>
-                </div>
-                <div>
-                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Flujo del usuario</label>
-                  <textarea v-model="createForm.flow" rows="2" placeholder="Ej: El usuario ingresa → selecciona producto → agrega al carrito..." class="w-full resize-none rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Prioridad</label>
-                    <select v-model="createForm.priority" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40">
-                      <option value="low">Baja</option>
-                      <option value="medium">Media</option>
-                      <option value="high">Alta</option>
-                      <option value="critical">Crítica</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Columna</label>
-                    <select v-model="createForm.status" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40">
-                      <option value="backlog">Backlog</option>
-                      <option value="todo">Por hacer</option>
-                      <option value="in_progress">En progreso</option>
-                      <option value="in_review">En revisión</option>
-                    </select>
-                  </div>
-                </div>
+
+                <p v-if="importError" class="rounded-xl border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-600 dark:text-red-400">
+                  {{ importError }}
+                </p>
+
                 <div class="flex justify-end gap-3 pt-2">
-                  <button type="button" class="rounded-xl border border-border-default px-5 py-2.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="isCreateOpen = false">Cancelar</button>
-                  <button type="submit" :disabled="!createForm.title.trim() || reqStore.isUpdating" class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50">
-                    {{ reqStore.isUpdating ? 'Creando...' : 'Crear' }}
+                  <button type="button" class="rounded-xl border border-border-default px-5 py-2.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="closeImportModal">Cancelar</button>
+                  <button type="submit" :disabled="!importJson.trim() || importLoading" class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50">
+                    {{ importLoading ? 'Cargando...' : (importMode === 'replace' ? 'Reemplazar' : 'Añadir') }}
                   </button>
                 </div>
               </form>
@@ -478,8 +422,6 @@ import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 import { usePlatformRequirementsStore } from '~/stores/platform-requirements'
 import { usePlatformApi } from '~/composables/usePlatformApi'
-import { buildPlatformListUrl } from '~/composables/useIncludeArchivedQuery'
-import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({
@@ -490,25 +432,20 @@ definePageMeta({
 usePageEntrance('#platform-board')
 
 const route = useRoute()
-const deliverableFilterId = computed(() => route.query.deliverable_id || null)
+const phaseFilterId = computed(() => route.query.phase_id || null)
 const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const projectsStore = usePlatformProjectsStore()
 const reqStore = usePlatformRequirementsStore()
-const includeArchived = usePlatformIncludeArchived()
 
 const projectId = computed(() => route.params.id)
-/** Resolved entregable for nested requirements API (query filter or default). */
-const activeDeliverableId = ref(null)
+/** Resolved phase id used to scope the board's requirements. */
+const activePhaseId = ref(null)
 const projectName = computed(() => projectsStore.currentProject?.name || 'Proyecto')
-
-const isCreateOpen = ref(false)
-const createForm = reactive({ title: '', description: '', configuration: '', flow: '', priority: 'medium', status: 'backlog' })
 
 const detailCard = ref(null)
 const newComment = ref('')
 const commentInternal = ref(false)
-const showDone = ref(false)
 const showBacklog = ref(false)
 
 const isMoveOpen = ref(false)
@@ -516,11 +453,25 @@ const moveSingleCard = ref(null)
 const isMoving = ref(false)
 const moveForm = reactive({ status: 'todo', priority: 'medium' })
 
-const jsonUploadRef = ref(null)
-const jsonUploadError = ref('')
+const isImportOpen = ref(false)
+const importMode = ref('append')
+const importJson = ref('')
+const importError = ref('')
+const importLoading = ref(false)
+
+const phases = ref([])
 
 const draggedCard = ref(null)
 const dragTarget = ref(null)
+
+const phaseOptions = computed(() => {
+  return phases.value
+    .map((p) => ({
+      id: p.id,
+      order: p.order,
+      title: p.proposal?.title || `Fase ${p.order}`,
+    }))
+})
 
 function colDotClass(color) {
   const map = { gray: 'bg-gray-400', blue: 'bg-blue-500', amber: 'bg-amber-500', purple: 'bg-purple-500', teal: 'bg-teal-500', green: 'bg-emerald-500' }
@@ -553,7 +504,7 @@ function epicLabel(card) {
 }
 
 function statusLabel(s) {
-  const map = { backlog: 'Backlog', todo: 'Por hacer', in_progress: 'En progreso', in_review: 'En revisión', approval: 'Aprobación', done: 'Completado' }
+  const map = { backlog: 'Backlog', todo: 'Por hacer', in_progress: 'En progreso', in_review: 'En revisión', approval: 'Aprobación', done: 'Aprobado' }
   return map[s] || s
 }
 
@@ -601,18 +552,16 @@ function openMoveItemModal(card) {
 }
 
 async function handleMoveSubmit() {
-  if (!moveSingleCard.value || !activeDeliverableId.value) return
+  if (!moveSingleCard.value) return
   isMoving.value = true
   try {
     await reqStore.updateRequirement(
       projectId.value,
-      activeDeliverableId.value,
       moveSingleCard.value.id,
       { priority: moveForm.priority },
     )
     await reqStore.moveRequirement(
       projectId.value,
-      activeDeliverableId.value,
       moveSingleCard.value.id,
       moveForm.status,
       0,
@@ -623,34 +572,72 @@ async function handleMoveSubmit() {
   }
 }
 
-async function handleJsonUpload(event) {
-  const file = event.target.files?.[0]
-  if (!file) return
-  jsonUploadError.value = ''
+function openImportModal() {
+  importJson.value = ''
+  importMode.value = 'append'
+  importError.value = ''
+  isImportOpen.value = true
+}
 
-  try {
-    const text = await file.text()
-    const items = JSON.parse(text)
-    if (!Array.isArray(items)) {
-      jsonUploadError.value = 'El JSON debe ser un array de objetos.'
-      return
-    }
-    if (!activeDeliverableId.value) {
-      jsonUploadError.value = 'No hay entregable seleccionado.'
-      return
-    }
-    const result = await reqStore.bulkUpload(projectId.value, activeDeliverableId.value, items)
-    if (result.success) {
-      jsonUploadError.value = ''
-      alert(`Se crearon ${result.data.created} requerimientos.`)
-    } else {
-      jsonUploadError.value = result.message
-    }
-  } catch {
-    jsonUploadError.value = 'Error leyendo el archivo JSON.'
-  } finally {
-    if (jsonUploadRef.value) jsonUploadRef.value.value = ''
+function closeImportModal() {
+  isImportOpen.value = false
+  importError.value = ''
+}
+
+async function handleImport() {
+  importError.value = ''
+  if (!activePhaseId.value) {
+    importError.value = 'El proyecto no tiene fases configuradas.'
+    return
   }
+
+  let items
+  try {
+    items = JSON.parse(importJson.value)
+  } catch {
+    importError.value = 'JSON inválido. Verificá la sintaxis.'
+    return
+  }
+  if (!Array.isArray(items)) {
+    importError.value = 'El JSON debe ser un array de objetos.'
+    return
+  }
+  if (items.length === 0) {
+    importError.value = 'El array está vacío.'
+    return
+  }
+  if (items.some((it) => !it || typeof it !== 'object' || !it.title)) {
+    importError.value = 'Cada ítem debe ser un objeto con al menos el campo "title".'
+    return
+  }
+
+  importLoading.value = true
+  try {
+    const result = await reqStore.bulkUpload(
+      projectId.value,
+      activePhaseId.value,
+      items,
+      importMode.value,
+    )
+    if (result.success) {
+      if (importMode.value === 'replace') {
+        await reqStore.fetchRequirements(projectId.value, activePhaseId.value)
+      }
+      closeImportModal()
+    } else {
+      importError.value = result.message
+    }
+  } finally {
+    importLoading.value = false
+  }
+}
+
+function onPhaseChange(phaseIdStr) {
+  const pid = Number(phaseIdStr)
+  if (!pid || pid === activePhaseId.value) return
+  const router = useRouter()
+  const route = useRoute()
+  router.replace({ query: { ...route.query, phase_id: pid } })
 }
 
 function handleDragStart(event, card) {
@@ -685,48 +672,25 @@ async function handleDrop(event, colKey) {
   draggedCard.value = null
 
   if (card.status === colKey) return
-
-  if (!activeDeliverableId.value) return
-  await reqStore.moveRequirement(projectId.value, activeDeliverableId.value, card.id, colKey, 0)
-}
-
-function openCreateModal() {
-  createForm.title = ''
-  createForm.description = ''
-  createForm.configuration = ''
-  createForm.flow = ''
-  createForm.priority = 'medium'
-  createForm.status = 'backlog'
-  isCreateOpen.value = true
+  await reqStore.moveRequirement(projectId.value, card.id, colKey, 0)
 }
 
 async function handleComplete(card) {
-  if (!activeDeliverableId.value) return
-  await reqStore.moveRequirement(projectId.value, activeDeliverableId.value, card.id, 'done', 0)
-}
-
-async function handleCreate() {
-  if (!createForm.title.trim()) return
-  if (!activeDeliverableId.value) return
-  const result = await reqStore.createRequirement(projectId.value, activeDeliverableId.value, { ...createForm })
-  if (result.success) isCreateOpen.value = false
+  await reqStore.moveRequirement(projectId.value, card.id, 'done', 0)
 }
 
 async function openDetailModal(card) {
   detailCard.value = card
   newComment.value = ''
   commentInternal.value = false
-  if (!activeDeliverableId.value) return
-  const result = await reqStore.fetchRequirement(projectId.value, activeDeliverableId.value, card.id)
+  const result = await reqStore.fetchRequirement(projectId.value, card.id)
   if (result.success) detailCard.value = result.data
 }
 
 async function handleAddComment() {
   if (!newComment.value.trim() || !detailCard.value) return
-  if (!activeDeliverableId.value) return
   const result = await reqStore.addComment(
     projectId.value,
-    activeDeliverableId.value,
     detailCard.value.id,
     newComment.value.trim(),
     commentInternal.value,
@@ -739,10 +703,8 @@ async function handleAddComment() {
 
 async function handleApprove() {
   if (!detailCard.value) return
-  if (!activeDeliverableId.value) return
   const result = await reqStore.moveRequirement(
     projectId.value,
-    activeDeliverableId.value,
     detailCard.value.id,
     'done',
     0,
@@ -752,43 +714,41 @@ async function handleApprove() {
   }
 }
 
-async function resolveBoardDeliverableId() {
-  if (deliverableFilterId.value) return Number(deliverableFilterId.value)
-  const { get } = usePlatformApi()
-  const url = buildPlatformListUrl(
-    `projects/${projectId.value}/deliverables/`,
-    {},
-    authStore.isAdmin && includeArchived.value,
-  )
-  const dres = await get(url)
-  const list = dres.data || []
-  const withBp = list.find((d) => d.has_business_proposal)
-  return (withBp || list[0])?.id ?? null
+async function loadPhases() {
+  try {
+    const list = await projectsStore.loadPhases(projectId.value)
+    phases.value = Array.isArray(list) ? list : []
+  } catch {
+    phases.value = []
+  }
 }
 
-async function refreshBoardDeliverable() {
-  const did = await resolveBoardDeliverableId()
-  activeDeliverableId.value = did
-  if (!did) {
+function resolveBoardPhaseId() {
+  if (phaseFilterId.value) return Number(phaseFilterId.value)
+  if (phaseOptions.value.length > 0) return phaseOptions.value[0].id
+  return null
+}
+
+async function refreshBoard() {
+  const pid = resolveBoardPhaseId()
+  activePhaseId.value = pid
+  if (!pid) {
     reqStore.requirements = []
     return
   }
-  await reqStore.fetchRequirements(projectId.value, did)
+  await reqStore.fetchRequirements(projectId.value, pid)
 }
 
 onMounted(async () => {
   if (projectsStore.currentProject?.id !== Number(projectId.value)) {
     await projectsStore.fetchProject(projectId.value)
   }
-  await refreshBoardDeliverable()
+  await loadPhases()
+  await refreshBoard()
 })
 
-watch(deliverableFilterId, () => {
-  refreshBoardDeliverable()
-})
-
-watch(includeArchived, () => {
-  if (authStore.isAdmin) refreshBoardDeliverable()
+watch(phaseFilterId, () => {
+  refreshBoard()
 })
 </script>
 

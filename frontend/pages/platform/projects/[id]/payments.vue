@@ -8,11 +8,6 @@
     <template v-else>
       <!-- Header -->
       <div class="mb-6" data-enter>
-        <NuxtLink :to="localePath('/platform/payments')" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white">
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-          Pagos
-        </NuxtLink>
-        <p class="mb-1 text-xs text-green-light/60">{{ projectName }}</p>
         <h1 class="text-xl font-bold text-text-default sm:text-2xl">Suscripción</h1>
       </div>
 
@@ -373,7 +368,6 @@ const payStore = usePlatformPaymentsStore()
 const projectsStore = usePlatformProjectsStore()
 
 const projectId = computed(() => route.params.id)
-const projectName = computed(() => projectsStore.currentProject?.name || 'Proyecto')
 const project = computed(() => projectsStore.currentProject)
 const sub = computed(() => payStore.currentSubscription)
 const currentPayment = computed(() => payStore.currentPeriodPayment)

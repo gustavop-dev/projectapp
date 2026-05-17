@@ -10,33 +10,35 @@
       <!-- Header -->
       <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" data-enter>
         <div>
-          <NuxtLink :to="localePath('/platform/bugs')" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-            Bugs
-          </NuxtLink>
           <h1 class="text-xl font-bold text-text-default sm:text-2xl">Reporte de bugs</h1>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-          <label
-            v-if="authStore.isAdmin"
-            class="flex cursor-pointer items-center gap-2 rounded-full border border-border-default px-3 py-1.5 text-xs font-medium text-green-light"
-          >
-            <input v-model="includeArchived" type="checkbox" class="rounded border-border-default" />
-            Mostrar archivados
-          </label>
-          <div class="hidden items-center gap-2 sm:flex">
-            <span class="rounded-full bg-red-500/15 px-2.5 py-1 text-[10px] font-semibold text-red-600 dark:text-red-400">
-              {{ bugStore.reportedCount }} reportados
-            </span>
-            <span class="rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-              {{ bugStore.fixingCount }} en corrección
-            </span>
-          </div>
-
+          <template v-if="authStore.isAdmin">
+            <button
+              type="button"
+              :disabled="!filteredBugs.length"
+              class="flex items-center gap-1.5 rounded-xl border border-border-default px-3 py-2 text-xs font-medium text-green-light transition hover:text-text-default disabled:opacity-40 dark:hover:text-white"
+              @click="exportResponsesJson"
+            >
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Exportar bugs
+            </button>
+            <button
+              type="button"
+              class="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-text-default transition hover:brightness-105"
+              @click="openImportModal"
+            >
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+              Importar respuestas
+            </button>
+          </template>
           <button
+            v-else
             type="button"
-            class="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-text-default transition hover:brightness-105"
+            :disabled="!projectRequirements.length"
+            :title="projectRequirements.length ? '' : 'El equipo aún no ha cargado el tablero del proyecto.'"
+            class="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
             @click="openCreateModal"
           >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
@@ -62,51 +64,78 @@
         </button>
       </div>
 
-      <!-- List -->
-      <div v-if="filteredBugs.length" class="space-y-3" data-enter>
-        <div
-          v-for="bug in filteredBugs"
-          :key="bug.id"
-          class="group cursor-pointer rounded-2xl border border-border-default bg-surface p-5 transition hover:border-border-default hover:shadow-md dark:hover:border-white/12"
-          @click="openDetailModal(bug)"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div class="flex-1">
-              <div class="mb-2 flex flex-wrap items-center gap-2">
-                <span class="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase" :class="statusBadgeClass(bug.status)">
+      <!-- Table -->
+      <div v-if="filteredBugs.length" class="overflow-hidden rounded-2xl border border-border-default bg-surface" data-enter>
+        <table class="min-w-full text-left text-sm">
+          <thead class="bg-surface-muted/40 text-xs font-medium uppercase tracking-wider text-green-light/70">
+            <tr>
+              <th class="px-4 py-3">Bug</th>
+              <th class="px-4 py-3">Estado</th>
+              <th class="px-4 py-3">Severidad</th>
+              <th class="px-4 py-3">Entorno</th>
+              <th class="px-4 py-3">Reportado por</th>
+              <th class="px-4 py-3">Fecha</th>
+              <th class="w-10 px-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="bug in filteredBugs"
+              :key="bug.id"
+              class="cursor-pointer border-t border-border-muted transition hover:bg-primary-soft/30"
+              :class="bug.is_archived ? 'opacity-70' : ''"
+              @click="openDetailModal(bug)"
+            >
+              <td class="px-4 py-3">
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    <p class="truncate font-medium text-text-default">{{ bug.title }}</p>
+                    <span v-if="bug.is_recurring" class="rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-purple-600 dark:text-purple-400">Recurrente</span>
+                    <span v-if="bug.is_archived" class="rounded-full bg-gray-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivado</span>
+                    <svg v-if="bug.screenshot_url" class="h-3 w-3 shrink-0 text-green-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  </div>
+                  <p v-if="bug.source_requirement" class="mt-0.5 line-clamp-1 text-[10px] text-teal-600 dark:text-teal-300">
+                    Sobre: {{ bug.source_requirement.title }}
+                  </p>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <select
+                  v-if="authStore.isAdmin && !bug.is_archived"
+                  :value="bug.status"
+                  class="rounded-full border border-border-default bg-surface-muted/40 px-2 py-1 text-[10px] font-medium text-text-default outline-none focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
+                  @click.stop
+                  @change="onQuickStatus(bug, $event.target.value)"
+                >
+                  <option value="reported">Reportado</option>
+                  <option value="confirmed">Confirmado</option>
+                  <option value="fixing">En corrección</option>
+                  <option value="qa">En QA</option>
+                  <option value="resolved">Resuelto</option>
+                  <option value="not_reproducible">No reproducible</option>
+                  <option value="wont_fix">No se corregirá</option>
+                  <option value="duplicate">Duplicado</option>
+                </select>
+                <span
+                  v-else
+                  class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase"
+                  :class="statusBadgeClass(bug.status)"
+                >
                   {{ statusLabel(bug.status) }}
                 </span>
+              </td>
+              <td class="px-4 py-3">
                 <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="severityBadgeClass(bug.severity)">
                   {{ severityLabel(bug.severity) }}
                 </span>
-                <span v-if="bug.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">
-                  Archivado
-                </span>
-                <span v-if="bug.is_recurring" class="rounded-full bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-purple-600 dark:text-purple-400">
-                  Recurrente
-                </span>
-                <span v-if="bug.screenshot_url" class="text-green-light/30">
-                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                </span>
-              </div>
-              <h3 class="text-sm font-semibold text-text-default">{{ bug.title }}</h3>
-              <p v-if="bug.description" class="mt-1 line-clamp-2 text-xs leading-relaxed text-green-light">{{ bug.description }}</p>
-            </div>
-            <svg class="h-4 w-4 shrink-0 text-green-light/30 transition group-hover:text-text-default dark:group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-          </div>
-
-          <div class="mt-3 flex flex-wrap items-center gap-4 text-[10px] text-green-light/60">
-            <span v-if="bug.deliverable_title" class="font-medium text-esmerald/80 dark:text-white/70">{{ bug.deliverable_title }}</span>
-            <span>{{ envLabel(bug.environment) }}</span>
-            <span v-if="bug.device_browser">{{ bug.device_browser }}</span>
-            <span>{{ bug.reported_by_name }}</span>
-            <span>{{ formatDate(bug.created_at) }}</span>
-            <span v-if="bug.comments_count" class="flex items-center gap-1">
-              <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-              {{ bug.comments_count }}
-            </span>
-          </div>
-        </div>
+              </td>
+              <td class="px-4 py-3 text-xs text-green-light/70">{{ envLabel(bug.environment) }}</td>
+              <td class="px-4 py-3 text-xs text-green-light">{{ bug.reported_by_name }}</td>
+              <td class="px-4 py-3 text-xs text-green-light/70">{{ formatDate(bug.created_at) }}</td>
+              <td class="px-2 py-3 text-right text-green-light/40">›</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <!-- Empty -->
@@ -117,40 +146,37 @@
         <p class="text-sm text-green-light">
           {{ activeFilter === 'all' ? 'No hay bugs reportados aún.' : 'No hay bugs con este estado.' }}
         </p>
-        <button type="button" class="mt-4 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105" @click="openCreateModal">
+        <button v-if="!authStore.isAdmin" type="button" class="mt-4 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105" @click="openCreateModal">
           Reportar primer bug
         </button>
       </div>
 </template>
 
-    <!-- Create modal -->
+    <!-- Create modal (client only) -->
     <Teleport to="body">
       <Transition name="modal-overlay">
-        <div v-if="isCreateOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm" @click.self="isCreateOpen = false">
+        <div v-if="isCreateOpen && !authStore.isAdmin" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm" @click.self="isCreateOpen = false">
           <Transition name="modal-content" appear>
             <div v-if="isCreateOpen" class="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-border-default bg-surface p-6 shadow-2xl sm:p-8">
               <h2 class="mb-5 text-lg font-bold text-text-default">Reportar bug</h2>
 
-              <p v-if="!deliverablesStore.deliverables.length && !deliverablesStore.isLoading" class="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-800 dark:text-amber-200">
-                No hay entregables en este proyecto. Un administrador debe crear al menos uno antes de reportar bugs.
-              </p>
-
               <form class="space-y-4" @submit.prevent="handleCreate">
                 <div>
-                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Entregable <span class="text-red-400">*</span></label>
+                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Requerimiento de origen <span class="text-red-400">*</span></label>
                   <select
-                    v-model.number="createForm.deliverable_id"
+                    v-model.number="createForm.source_requirement_id"
                     required
-                    class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
-                    :disabled="!deliverablesStore.deliverables.length"
+                    :disabled="!projectRequirements.length"
+                    class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none focus:border-border-default disabled:opacity-50 dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
                   >
-                    <option v-if="!deliverablesStore.deliverables.length" :value="null" disabled>
-                      Sin entregables
+                    <option :value="null" disabled>
+                      {{ projectRequirements.length ? 'Selecciona el requerimiento' : 'El proyecto no tiene requerimientos' }}
                     </option>
-                    <option v-for="d in deliverablesStore.deliverables" :key="d.id" :value="d.id">
-                      {{ d.title }}
+                    <option v-for="req in projectRequirements" :key="req.id" :value="req.id">
+                      {{ req.phase_title ? req.phase_title + ' — ' : '' }}{{ req.title }}
                     </option>
                   </select>
+                  <p class="mt-1 text-[10px] text-green-light/60">¿De qué requerimiento es este bug?</p>
                 </div>
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Título <span class="text-red-400">*</span></label>
@@ -254,6 +280,58 @@
       </Transition>
     </Teleport>
 
+    <!-- Import responses modal (admin) -->
+    <Teleport to="body">
+      <Transition name="modal-overlay">
+        <div
+          v-if="isImportOpen"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+          @click.self="closeImportModal"
+        >
+          <Transition name="modal-content" appear>
+            <div v-if="isImportOpen" class="w-full max-w-2xl rounded-3xl border border-border-default bg-surface p-6 shadow-2xl sm:p-8">
+              <div class="mb-5 flex items-start justify-between gap-4">
+                <div>
+                  <h2 class="text-lg font-bold text-text-default">Importar respuestas (JSON)</h2>
+                  <p class="mt-1 text-xs text-green-light/70">
+                    Pega un array con `id` + los campos a actualizar (`status`, `admin_response`, `linked_bug_id`).
+                    Los demás campos se ignoran.
+                  </p>
+                </div>
+                <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="closeImportModal">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              <form class="space-y-4" @submit.prevent="handleImportResponses">
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">JSON</label>
+                  <textarea
+                    v-model="importJson"
+                    rows="14"
+                    spellcheck="false"
+                    placeholder='[{"id": 1, "status": "fixing", "admin_response": "Reproducido, en corrección."}]'
+                    class="w-full resize-y rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 font-mono text-xs text-text-default outline-none transition placeholder:text-green-light/40 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/20 dark:focus:border-lemon/40"
+                  />
+                </div>
+
+                <p v-if="importError" class="rounded-xl border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-600 dark:text-red-400">
+                  {{ importError }}
+                </p>
+
+                <div class="flex justify-end gap-3 pt-2">
+                  <button type="button" class="rounded-xl border border-border-default px-5 py-2.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="closeImportModal">Cancelar</button>
+                  <button type="submit" :disabled="!importJson.trim() || importLoading" class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50">
+                    {{ importLoading ? 'Aplicando...' : 'Aplicar respuestas' }}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- Detail modal -->
     <Teleport to="body">
       <Transition name="modal-overlay">
@@ -272,14 +350,27 @@
                   <p v-if="detailBug.is_archived && detailBug.archived_at" class="mb-1 text-[10px] text-green-light/60">
                     Archivado el {{ formatDate(detailBug.archived_at) }}
                   </p>
-                  <p v-if="detailBug.deliverable_title" class="mb-1 text-xs font-medium text-green-light/70">
-                    Entregable: {{ detailBug.deliverable_title }}
-                  </p>
                   <h2 class="text-lg font-bold text-text-default">{{ detailBug.title }}</h2>
                 </div>
                 <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="detailBug = null">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
+              </div>
+
+              <!-- Source requirement -->
+              <div v-if="detailBug.source_requirement" class="mb-5 rounded-xl border border-teal-500/20 bg-teal-500/5 p-4">
+                <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-300">Sobre el requerimiento</p>
+                <p class="text-sm font-medium text-text-default">{{ detailBug.source_requirement.title }}</p>
+                <p v-if="detailBug.source_requirement.phase_title" class="mt-0.5 text-[11px] text-green-light/70">
+                  Fase: {{ detailBug.source_requirement.phase_title }}
+                </p>
+                <NuxtLink
+                  :to="localePath(`/platform/projects/${projectId}/board?phase_id=${detailBug.source_requirement.phase_id}`)"
+                  class="mt-2 inline-flex items-center gap-1 text-xs font-medium text-text-brand underline decoration-text-brand/30 transition hover:decoration-text-brand dark:text-accent dark:decoration-accent/30 dark:hover:decoration-accent"
+                >
+                  Ver en el tablero
+                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7-7 7M5 12h16" /></svg>
+                </NuxtLink>
               </div>
 
               <!-- Description -->
@@ -439,11 +530,10 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
-import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformBugReportsStore } from '~/stores/platform-bug-reports'
-import { usePlatformDeliverablesStore } from '~/stores/platform-deliverables'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
+import { usePlatformRequirementsStore } from '~/stores/platform-requirements'
 import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
@@ -453,9 +543,10 @@ const route = useRoute()
 const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const bugStore = usePlatformBugReportsStore()
-const deliverablesStore = usePlatformDeliverablesStore()
 const projectsStore = usePlatformProjectsStore()
-const includeArchived = usePlatformIncludeArchived()
+const requirementsStore = usePlatformRequirementsStore()
+
+const projectRequirements = ref([])
 
 const projectId = computed(() => route.params.id)
 const projectName = computed(() => projectsStore.currentProject?.name || 'Proyecto')
@@ -475,12 +566,17 @@ const statusTabs = computed(() => [
 
 const filteredBugs = computed(() => bugStore.filteredByStatus(activeFilter.value))
 
+const isImportOpen = ref(false)
+const importJson = ref('')
+const importError = ref('')
+const importLoading = ref(false)
+
 const isCreateOpen = ref(false)
 const createForm = reactive({
-  deliverable_id: null,
   title: '', description: '', severity: 'medium', environment: 'production',
   device_browser: '', is_recurring: false, steps_to_reproduce: [''],
   expected_behavior: '', actual_behavior: '',
+  source_requirement_id: null,
 })
 const screenshotFile = ref(null)
 const screenshotPreview = ref(null)
@@ -540,13 +636,22 @@ function formatDate(value) {
 }
 
 function openCreateModal() {
-  const firstD = deliverablesStore.deliverables[0]
-  createForm.deliverable_id = firstD ? firstD.id : null
+  if (!projectRequirements.value.length) return
+  createForm.source_requirement_id = null
   createForm.title = ''; createForm.description = ''; createForm.severity = 'medium'
   createForm.environment = 'production'; createForm.device_browser = ''
   createForm.is_recurring = false; createForm.steps_to_reproduce = ['']
   createForm.expected_behavior = ''; createForm.actual_behavior = ''
   screenshotFile.value = null; screenshotPreview.value = null
+  // Honor ?from_req=X&title=Y from board.vue deep-link
+  const fromReq = Number(route.query.from_req)
+  const req = projectRequirements.value.find((r) => r.id === fromReq)
+  if (req) {
+    createForm.source_requirement_id = req.id
+  }
+  if (typeof route.query.title === 'string') {
+    createForm.title = route.query.title
+  }
   isCreateOpen.value = true
 }
 
@@ -565,12 +670,12 @@ function removeScreenshot() {
 }
 
 async function handleCreate() {
-  if (!createForm.title.trim() || createForm.deliverable_id == null) return
+  if (!createForm.title.trim() || !createForm.source_requirement_id) return
   const steps = createForm.steps_to_reproduce.filter((s) => s.trim())
   let payload
   if (screenshotFile.value) {
     payload = new FormData()
-    payload.append('deliverable_id', String(createForm.deliverable_id))
+    payload.append('source_requirement_id', String(createForm.source_requirement_id))
     payload.append('title', createForm.title)
     payload.append('description', createForm.description)
     payload.append('severity', createForm.severity)
@@ -583,7 +688,7 @@ async function handleCreate() {
     payload.append('screenshot', screenshotFile.value)
   } else {
     payload = {
-      deliverable_id: createForm.deliverable_id,
+      source_requirement_id: createForm.source_requirement_id,
       title: createForm.title,
       description: createForm.description,
       severity: createForm.severity,
@@ -627,12 +732,91 @@ async function handleDelete() {
   if (result.success) detailBug.value = null
 }
 
+async function onQuickStatus(bug, newStatus) {
+  if (!newStatus || newStatus === bug.status) return
+  const result = await bugStore.evaluateBugReport(projectId.value, bug.id, { status: newStatus })
+  if (!result.success) {
+    window.alert(result.message || 'No pudimos actualizar el estado.')
+  }
+}
+
+function exportResponsesJson() {
+  const rows = filteredBugs.value.map((bug) => ({
+    id: bug.id,
+    title: bug.title,
+    status: bug.status,
+    admin_response: bug.admin_response || '',
+    linked_bug_id: bug.linked_bug_id ?? null,
+  }))
+  const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  const tab = activeFilter.value === 'all' ? 'todos' : activeFilter.value
+  a.download = `bugs-${projectId.value}-${tab}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function openImportModal() {
+  importJson.value = ''
+  importError.value = ''
+  isImportOpen.value = true
+}
+
+function closeImportModal() {
+  isImportOpen.value = false
+  importError.value = ''
+}
+
+async function handleImportResponses() {
+  importError.value = ''
+  let items
+  try {
+    items = JSON.parse(importJson.value)
+  } catch {
+    importError.value = 'JSON inválido. Verificá la sintaxis.'
+    return
+  }
+  if (!Array.isArray(items)) {
+    importError.value = 'El JSON debe ser un array de objetos.'
+    return
+  }
+  if (items.length === 0) {
+    importError.value = 'El array está vacío.'
+    return
+  }
+  if (items.some((it) => !it || typeof it !== 'object' || it.id == null)) {
+    importError.value = 'Cada ítem debe tener el campo "id".'
+    return
+  }
+
+  importLoading.value = true
+  try {
+    const result = await bugStore.bulkEvaluateBugReports(projectId.value, items)
+    if (result.success) {
+      await loadBugsAndDeliverables()
+      const { updated, errors } = result.data || {}
+      if (errors && errors.length) {
+        importError.value = `Se aplicaron ${updated || 0}. ${errors.length} con error: ${JSON.stringify(errors).slice(0, 200)}`
+      } else {
+        closeImportModal()
+      }
+    } else {
+      importError.value = result.message
+    }
+  } finally {
+    importLoading.value = false
+  }
+}
+
 async function loadBugsAndDeliverables() {
-  const arch = authStore.isAdmin && includeArchived.value
-  await Promise.all([
-    bugStore.fetchBugReports(projectId.value, null, arch),
-    deliverablesStore.fetchDeliverables(projectId.value, null, arch),
-  ])
+  await bugStore.fetchBugReports(projectId.value, null, false)
+}
+
+async function loadProjectRequirements() {
+  const r = await requirementsStore.fetchProjectRequirements(projectId.value)
+  projectRequirements.value = r.success ? (r.data || []) : []
 }
 
 async function handleAddComment() {
@@ -644,12 +828,17 @@ async function handleAddComment() {
 onMounted(async () => {
   await Promise.all([
     loadBugsAndDeliverables(),
+    loadProjectRequirements(),
     projectsStore.currentProject?.id !== Number(projectId.value) ? projectsStore.fetchProject(projectId.value) : Promise.resolve(),
   ])
+  if (!authStore.isAdmin && route.query.from_req && projectRequirements.value.length) {
+    openCreateModal()
+  }
 })
 
-watch([includeArchived, projectId], () => {
+watch(projectId, () => {
   loadBugsAndDeliverables()
+  loadProjectRequirements()
 })
 </script>
 
