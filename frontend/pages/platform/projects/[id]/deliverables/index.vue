@@ -116,10 +116,7 @@
           Subir primer archivo
         </button>
       </div>
-  </ProjectShell>
-</template>
-
-    <!-- Create modal -->
+      <!-- Create modal -->
     <Teleport to="body">
       <Transition name="modal-overlay">
         <div v-if="isCreateOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm" @click.self="isCreateOpen = false">
@@ -338,6 +335,7 @@
       </Transition>
     </Teleport>
   </div>
+  </ProjectShell>
 </template>
 
 <script setup>

@@ -245,10 +245,7 @@
           </div>
         </Transition>
       </div>
-  </ProjectShell>
-</template>
-
-    <!-- Move to column modal -->
+      <!-- Move to column modal -->
     <Teleport to="body">
       <Transition name="modal-overlay">
         <div v-if="isMoveOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm" @click.self="isMoveOpen = false">
@@ -469,6 +466,7 @@
       </Transition>
     </Teleport>
   </div>
+  </ProjectShell>
 </template>
 
 <script setup>

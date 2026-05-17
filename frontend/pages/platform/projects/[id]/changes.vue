@@ -129,10 +129,7 @@
           Crear primera solicitud
         </button>
       </div>
-  </ProjectShell>
-</template>
-
-    <!-- Create modal -->
+      <!-- Create modal -->
     <Teleport to="body">
       <Transition name="modal-overlay">
         <div
@@ -408,6 +405,7 @@
       </Transition>
     </Teleport>
   </div>
+  </ProjectShell>
 </template>
 
 <script setup>

@@ -167,9 +167,8 @@
         <p class="text-sm text-green-light">No hay modelo de datos definido para este proyecto.</p>
         <p v-if="authStore.isAdmin" class="mt-2 text-xs text-green-light/60">Sube un JSON con las entidades para empezar.</p>
       </div>
+    </div>
   </ProjectShell>
-</template>
-  </div>
 </template>
 
 <script setup>

@@ -208,13 +208,13 @@
           </div>
         </div>
       </div>
-  </ProjectShell>
-</template>
+    </template>
 
     <div v-else class="py-16 text-center text-sm text-green-light">
       Entregable no encontrado.
     </div>
   </div>
+  </ProjectShell>
 </template>
 
 <script setup>
