@@ -144,5 +144,41 @@ export const usePlatformProjectsStore = defineStore('platformProjects', {
         this.isUpdating = false
       }
     },
+
+    // ==========================================================================
+    // Project phases (platform IA refactor)
+    // ==========================================================================
+
+    async loadPhases(projectId) {
+      const { get } = usePlatformApi()
+      const r = await get(`projects/${projectId}/phases/`)
+      return r.data
+    },
+
+    async addPhase(projectId, proposalId, order = null) {
+      const { post } = usePlatformApi()
+      const body = { proposal_id: proposalId }
+      if (order !== null) body.order = order
+      const r = await post(`projects/${projectId}/phases/`, body)
+      return { success: true, phase: r.data }
+    },
+
+    async removePhase(projectId, phaseId) {
+      const { delete: del } = usePlatformApi()
+      await del(`projects/${projectId}/phases/${phaseId}/`)
+      return { success: true }
+    },
+
+    async reorderPhases(projectId, items) {
+      const { patch } = usePlatformApi()
+      const r = await patch(`projects/${projectId}/phases/reorder/`, items)
+      return { success: true, phases: r.data }
+    },
+
+    async loadEligibleProposals(clientId) {
+      const { get } = usePlatformApi()
+      const r = await get(`clients/${clientId}/eligible-proposals/`)
+      return r.data
+    },
   },
 })
