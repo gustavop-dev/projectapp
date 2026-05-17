@@ -3538,3 +3538,30 @@ def project_phases_reorder_view(request, project_id):
     except PhaseError as exc:
         return Response({'detail': exc.code, **exc.extra}, status=exc.http_status)
     return Response(ProjectPhaseSerializer(list_phases(project), many=True).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminRole])
+def client_eligible_proposals_view(request, user_id):
+    """Returns 'signed' BusinessProposals (status accepted/finished) for the
+    client that are not already attached to any project as a phase."""
+    user = User.objects.filter(id=user_id).first()
+    if user is None:
+        return Response({'detail': 'client_not_found'}, status=404)
+
+    from content.models import BusinessProposal
+    proposals = BusinessProposal.objects.filter(
+        client_email__iexact=user.email,
+        status__in=['accepted', 'finished'],
+    ).exclude(
+        project_phases__isnull=False,
+    ).order_by('-id')
+
+    data = [
+        {
+            'id': p.id, 'title': p.title, 'status': p.status,
+            'total_amount': getattr(p, 'total_investment', None) or 0,
+        }
+        for p in proposals
+    ]
+    return Response(data)

@@ -54,6 +54,7 @@ from accounts.views import (
     change_request_evaluate_view,
     change_request_list_view,
     client_detail_view,
+    client_eligible_proposals_view,
     client_list_view,
     client_resend_invite_view,
     complete_profile_view,
@@ -101,6 +102,7 @@ urlpatterns = [
     # Admin — client management
     path('clients/', client_list_view, name='platform-client-list'),
     path('clients/<int:user_id>/', client_detail_view, name='platform-client-detail'),
+    path('clients/<int:user_id>/eligible-proposals/', client_eligible_proposals_view, name='platform-client-eligible-proposals'),
     path('clients/<int:user_id>/resend-invite/', client_resend_invite_view, name='platform-client-resend-invite'),
 
     # Projects
