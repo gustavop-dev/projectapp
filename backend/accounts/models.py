@@ -318,15 +318,46 @@ class Project(models.Model):
         return dict(self.STATUS_CHOICES).get(self.status, self.status)
 
     def linked_business_proposal(self):
-        """First BusinessProposal linked via a deliverable on this project (hosting/PDFs)."""
-        from content.models import BusinessProposal
+        """Returns the first phase's BusinessProposal, or None.
 
-        return (
-            BusinessProposal.objects.filter(deliverable__project_id=self.id)
-            .select_related('deliverable')
-            .order_by('deliverable_id')
-            .first()
-        )
+        Kept for backwards compatibility with serializers and templates that
+        expect a single proposal per project. New code should iterate
+        ``self.phases.all()`` instead.
+        """
+        first = self.phases.select_related('business_proposal').first()
+        return first.business_proposal if first else None
+
+
+class ProjectPhase(models.Model):
+    """One phase of a Project, backed by a BusinessProposal from the panel.
+
+    A project can have multiple phases (e.g. discovery, design, build),
+    each corresponding to a separate signed proposal. Phases are ordered;
+    ``order=1`` is the first phase, ``order=2`` is the second, etc.
+    """
+
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, related_name='phases',
+    )
+    business_proposal = models.ForeignKey(
+        'content.BusinessProposal',
+        on_delete=models.PROTECT,
+        related_name='project_phases',
+    )
+    order = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['project', 'business_proposal'],
+                name='unique_proposal_per_project',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.project.name} — Fase {self.order}: {self.business_proposal.title}'
 
 
 class Requirement(models.Model):
