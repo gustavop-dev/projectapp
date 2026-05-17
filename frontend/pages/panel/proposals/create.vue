@@ -393,7 +393,7 @@
               </label>
               <button
                 type="button"
-                class="text-xs text-accent-default hover:underline disabled:opacity-50"
+                class="text-xs text-primary hover:underline disabled:opacity-50"
                 :disabled="form.email_features.length >= MAX_EMAIL_FEATURES"
                 data-testid="create-add-feature"
                 @click="addEmailFeature"
@@ -423,7 +423,7 @@
               ></textarea>
               <button
                 type="button"
-                class="text-xs text-state-error-text hover:underline pt-2"
+                class="text-xs text-danger-strong hover:underline pt-2"
                 @click="removeEmailFeature(idx)"
               >
                 Quitar
@@ -436,7 +436,7 @@
               <label class="block text-sm font-medium text-text-default">Método en 3 fases</label>
               <button
                 type="button"
-                class="text-xs text-accent-default hover:underline"
+                class="text-xs text-primary hover:underline"
                 @click="resetEmailMethodPhases"
               >
                 Restaurar método estándar

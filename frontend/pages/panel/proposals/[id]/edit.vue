@@ -531,7 +531,7 @@
               </div>
               <button
                 type="button"
-                class="shrink-0 px-3 py-1.5 text-xs font-medium border border-input-border rounded-lg hover:bg-surface-elevated transition-colors"
+                class="shrink-0 px-3 py-1.5 text-xs font-medium border border-input-border rounded-lg hover:bg-surface-raised transition-colors"
                 data-testid="edit-email-preview-btn"
                 @click="openEmailPreview"
               >
@@ -553,7 +553,7 @@
                 <label class="block text-sm font-medium text-text-default">Qué incluye (bullets)</label>
                 <button
                   type="button"
-                  class="text-xs text-accent-default hover:underline disabled:opacity-50"
+                  class="text-xs text-primary hover:underline disabled:opacity-50"
                   :disabled="form.email_features.length >= MAX_EMAIL_FEATURES"
                   data-testid="edit-add-feature"
                   @click="addEmailFeature"
@@ -584,7 +584,7 @@
                 />
                 <button
                   type="button"
-                  class="text-xs text-state-error-text hover:underline pt-2"
+                  class="text-xs text-danger-strong hover:underline pt-2"
                   @click="removeEmailFeature(idx)"
                 >
                   Quitar
@@ -597,7 +597,7 @@
                 <label class="block text-sm font-medium text-text-default">Método en 3 fases</label>
                 <button
                   type="button"
-                  class="text-xs text-accent-default hover:underline"
+                  class="text-xs text-primary hover:underline"
                   @click="ensureMethodPhases"
                 >
                   Restaurar método estándar
@@ -1397,7 +1397,7 @@
             </select>
             <button
               type="button"
-              class="px-3 py-2 text-sm font-medium border border-input-border rounded-lg hover:bg-surface-elevated transition-colors"
+              class="px-3 py-2 text-sm font-medium border border-input-border rounded-lg hover:bg-surface-raised transition-colors"
               :disabled="previewLoading"
               @click="loadPreview"
             >
@@ -1416,7 +1416,7 @@
           <div v-if="previewLoading" class="flex items-center justify-center h-full text-text-muted text-sm">
             Generando vista previa…
           </div>
-          <div v-else-if="previewError" class="flex items-center justify-center h-full text-state-error-text text-sm px-6 text-center">
+          <div v-else-if="previewError" class="flex items-center justify-center h-full text-danger-strong text-sm px-6 text-center">
             {{ previewError }}
           </div>
           <iframe
