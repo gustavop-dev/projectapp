@@ -50,7 +50,8 @@ a{text-decoration:none}
 
 <tr><td class="px-40" style="padding:32px 40px 8px 40px;">
 <p style="margin:0;font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:16px;line-height:26px;color:#001713;">{{ greeting|default:"Hola" }}{% if not greeting %}, {{ client_name }}{% endif %}</p>
-<p style="margin:14px 0 0 0;font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:16px;line-height:26px;color:#5a6b67;">{{ body|default:email_intro|linebreaksbr }}</p>
+{% if body %}<p style="margin:14px 0 0 0;font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:16px;line-height:26px;color:#5a6b67;">{{ body|linebreaksbr }}</p>{% endif %}
+{% if email_intro %}<p style="margin:14px 0 0 0;font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:300;font-size:16px;line-height:26px;color:#5a6b67;">{{ email_intro|linebreaksbr }}</p>{% endif %}
 </td></tr>
 
 {% if total_investment or total_duration or payment_summary %}
@@ -69,6 +70,18 @@ a{text-decoration:none}
 <div style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:18px;line-height:22px;color:#001713;">{{ payment_summary }}</div>
 </td>{% endif %}
 </tr></table></td></tr>
+{% endif %}
+
+{% if payment_options %}
+<tr><td class="px-40" style="padding:32px 40px 0 40px;">
+<div style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:11px;line-height:14px;letter-spacing:2px;color:#809490;text-transform:uppercase;margin-bottom:14px;">Plan de pagos</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+{% for option in payment_options %}<tr><td style="padding:12px 0;{% if not forloop.last %}border-bottom:1px solid #ece8db;{% endif %}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+<td valign="top" style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:14px;line-height:20px;color:#001713;">{{ option.label }}</td>
+{% if option.description %}<td valign="top" align="right" style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:14px;line-height:20px;color:#001713;">{{ option.description }}</td>{% endif %}
+</tr></table></td></tr>{% endfor %}
+</table></td></tr>
 {% endif %}
 
 {% if email_features %}

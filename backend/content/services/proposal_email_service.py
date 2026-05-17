@@ -1962,7 +1962,7 @@ class ProposalEmailService:
 
         context = digest_data
 
-        context.update(_build_design_context(proposal))
+        context.update(_build_design_context())
         resolved = cls._resolve_content('daily_pipeline_digest', context)
         context.update(resolved)
 
