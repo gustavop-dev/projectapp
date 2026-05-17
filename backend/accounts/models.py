@@ -391,8 +391,10 @@ class Requirement(models.Model):
         (PRIORITY_LOW, 'Baja'),
     ]
 
-    deliverable = models.ForeignKey(
-        'Deliverable', on_delete=models.CASCADE, related_name='requirements',
+    phase = models.ForeignKey(
+        'ProjectPhase', on_delete=models.CASCADE, related_name='requirements',
+        null=True, blank=True,
+        help_text='Phase of the project this requirement belongs to.',
     )
     title = models.CharField(max_length=300)
     description = models.TextField(blank=True, default='')
@@ -430,9 +432,9 @@ class Requirement(models.Model):
         ordering = ['order', '-created_at']
         constraints = [
             models.UniqueConstraint(
-                fields=['deliverable', 'source_flow_key'],
+                fields=['phase', 'source_flow_key'],
                 condition=~models.Q(source_flow_key=''),
-                name='uniq_requirement_deliverable_flow_key',
+                name='uniq_requirement_phase_flow_key',
             ),
         ]
 
@@ -441,11 +443,11 @@ class Requirement(models.Model):
 
     @property
     def project(self):
-        return self.deliverable.project
+        return self.phase.project if self.phase else None
 
     @property
     def project_id(self):
-        return self.deliverable.project_id
+        return self.phase.project_id if self.phase else None
 
 
 class RequirementComment(models.Model):
@@ -552,6 +554,11 @@ class ChangeRequest(models.Model):
         related_name='source_change_request',
         help_text='Requirement created from this change request.',
     )
+    source_requirement = models.ForeignKey(
+        Requirement, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='change_requests_about',
+        help_text='Requirement this change request is about (client picked when filing).',
+    )
     screenshot = models.ImageField(
         upload_to='change_requests/', null=True, blank=True,
         help_text='Optimized automatically on upload (WhatsApp-like compression).',
@@ -650,8 +657,9 @@ class BugReport(models.Model):
         (ENV_DEV, 'Desarrollo'),
     ]
 
-    deliverable = models.ForeignKey(
-        'Deliverable', on_delete=models.CASCADE, related_name='bug_reports',
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, related_name='bug_reports',
+        null=True, blank=True,
     )
     reported_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bug_reports',
@@ -680,6 +688,11 @@ class BugReport(models.Model):
         'self', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='duplicates',
         help_text='Original bug if this is a duplicate.',
+    )
+    source_requirement = models.ForeignKey(
+        Requirement, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='bug_reports_about',
+        help_text='Requirement this bug is about (client picked when filing).',
     )
     screenshot = models.ImageField(
         upload_to='bug_reports/', null=True, blank=True,
@@ -742,23 +755,23 @@ class Deliverable(models.Model):
     """
 
     CATEGORY_DESIGNS = 'designs'
-    CATEGORY_CREDENTIALS = 'credentials'
     CATEGORY_DOCUMENTS = 'documents'
-    CATEGORY_APKS = 'apks'
     CATEGORY_CONTRACT = 'contract'
     CATEGORY_AMENDMENT = 'amendment'
     CATEGORY_LEGAL_ANNEX = 'legal_annex'
     CATEGORY_OTHER = 'other'
     CATEGORY_CHOICES = [
         (CATEGORY_DESIGNS, 'Diseños'),
-        (CATEGORY_CREDENTIALS, 'Credenciales'),
         (CATEGORY_DOCUMENTS, 'Documentos'),
-        (CATEGORY_APKS, 'APKs / Builds'),
         (CATEGORY_CONTRACT, 'Contrato'),
         (CATEGORY_AMENDMENT, 'Otrosí'),
         (CATEGORY_LEGAL_ANNEX, 'Anexo legal'),
         (CATEGORY_OTHER, 'Otros'),
     ]
+
+    ADMIN_ONLY_CATEGORIES = (
+        CATEGORY_DESIGNS, CATEGORY_CONTRACT, CATEGORY_AMENDMENT, CATEGORY_LEGAL_ANNEX,
+    )
 
     project = models.ForeignKey(
         Project, on_delete=models.CASCADE, related_name='deliverables',

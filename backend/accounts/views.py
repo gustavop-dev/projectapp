@@ -731,7 +731,7 @@ def project_list_view(request):
     )
 
     if proposal:
-        from accounts.models import Deliverable
+        from accounts.models import Deliverable, ProjectPhase
 
         d = Deliverable.objects.create(
             project=project,
@@ -743,6 +743,7 @@ def project_list_view(request):
         )
         proposal.deliverable = d
         proposal.save(update_fields=['deliverable_id'])
+        ProjectPhase.objects.create(project=project, business_proposal=proposal, order=1)
 
     from accounts.models import Notification
     from accounts.services.notifications import notify
@@ -792,6 +793,10 @@ def project_detail_view(request, project_id):
         )
 
     if request.method == 'DELETE':
+        force = str(request.query_params.get('force', '')).lower() in ('1', 'true', 'yes')
+        if force:
+            project.delete()
+            return Response({'detail': 'Proyecto eliminado.'})
         project.status = Project.STATUS_ARCHIVED
         project.save(update_fields=['status', 'updated_at'])
         return Response({'detail': 'Proyecto archivado.'})
@@ -951,9 +956,8 @@ def _pick_default_deliverable_for_requirements(proj):
 def _recalculate_project_progress(project):
     """Auto-sync project.progress from done/total requirements."""
     scope = Requirement.objects.filter(
-        deliverable__project=project,
+        phase__project=project,
         is_archived=False,
-        deliverable__is_archived=False,
     )
     total = scope.count()
     if total == 0:
@@ -964,50 +968,38 @@ def _recalculate_project_progress(project):
     project.save(update_fields=['progress', 'updated_at'])
 
 
+def _resolve_phase_for_project(project, phase_id):
+    """Return ProjectPhase pk for the given project, or None."""
+    if not phase_id:
+        return None
+    from accounts.models import ProjectPhase
+    return ProjectPhase.objects.filter(pk=phase_id, project=project).first()
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-def requirement_list_view(request, project_id, deliverable_id=None):
+def requirement_list_view(request, project_id):
     """
-    GET  — All requirements for a project (both roles).
-    POST — Admin creates a new requirement.
-    When deliverable_id (URL) is set, scope list/create to that deliverable.
+    GET  — Requirements for a project; optional ?phase_id=X filter.
+    POST — Admin creates a new requirement (phase_id required).
     """
     proj, err = _get_project_or_403(request, project_id)
     if err:
         return err
 
-    from accounts.models import Deliverable
-
-    scoped_deliverable = None
-    if deliverable_id is not None:
-        scoped_deliverable = Deliverable.objects.filter(pk=deliverable_id, project=proj).first()
-        if not scoped_deliverable:
-            return Response(
-                {'detail': 'Entregable no encontrado en este proyecto.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        if not deliverable_visible_for_request(scoped_deliverable, request):
-            return Response(
-                {'detail': 'Entregable no encontrado en este proyecto.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
     profile = getattr(request.user, 'profile', None)
     is_admin = profile and profile.is_admin
 
     if request.method == 'GET':
-        qs = Requirement.objects.filter(deliverable__project=proj).select_related('deliverable')
+        qs = Requirement.objects.filter(phase__project=proj).select_related('phase')
         qs = filter_requirements_for_list(qs, request, is_admin=is_admin)
-        if scoped_deliverable is not None:
-            qs = qs.filter(deliverable_id=scoped_deliverable.id)
-        else:
-            did = request.query_params.get('deliverable_id')
-            if did:
-                qs = qs.filter(deliverable_id=did)
+        phase_id = request.query_params.get('phase_id')
+        if phase_id:
+            qs = qs.filter(phase_id=phase_id)
         serializer = RequirementListSerializer(qs, many=True)
         return Response(serializer.data)
 
-    if not profile or not profile.is_admin:
+    if not is_admin:
         return Response(
             {'detail': 'Solo los administradores pueden crear requerimientos.'},
             status=status.HTTP_403_FORBIDDEN,
@@ -1017,32 +1009,19 @@ def requirement_list_view(request, project_id, deliverable_id=None):
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
-    if scoped_deliverable is not None:
-        d = scoped_deliverable
-    else:
-        deliverable_id_body = data.get('deliverable_id')
-        if deliverable_id_body:
-            d = Deliverable.objects.filter(pk=deliverable_id_body, project=proj).first()
-            if not d:
-                return Response(
-                    {'detail': 'Entregable no encontrado en este proyecto.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-        else:
-            d = _pick_default_deliverable_for_requirements(proj)
-
-    if d.is_archived:
+    phase = _resolve_phase_for_project(proj, data.get('phase_id'))
+    if phase is None:
         return Response(
-            {'detail': 'El entregable está archivado.'},
+            {'detail': 'phase_id requerido (la fase debe pertenecer al proyecto).'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     max_order = Requirement.objects.filter(
-        deliverable=d, status=data.get('status', Requirement.STATUS_BACKLOG),
+        phase=phase, status=data.get('status', Requirement.STATUS_BACKLOG),
     ).count()
 
     req = Requirement.objects.create(
-        deliverable=d,
+        phase=phase,
         title=data['title'],
         description=data.get('description', ''),
         configuration=data.get('configuration', ''),
@@ -1058,30 +1037,23 @@ def requirement_list_view(request, project_id, deliverable_id=None):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsAdminRole])
-def requirement_bulk_upload_view(request, project_id, deliverable_id=None):
+def requirement_bulk_upload_view(request, project_id):
     """
-    Admin uploads a JSON array of requirements to create in bulk.
+    Admin uploads a JSON array of requirements to create in bulk under a project phase.
     Expected format: [{ title, description?, configuration?, flow?, priority?, status? }, ...]
+
+    Query params:
+      - ``phase_id`` (required): target phase.
+      - ``mode`` (optional): ``append`` (default) or ``replace`` (hard-deletes existing reqs of the phase first).
     """
     proj, err = _get_project_or_403(request, project_id)
     if err:
         return err
 
-    from accounts.models import Deliverable
-
-    if deliverable_id is not None:
-        d = Deliverable.objects.filter(pk=deliverable_id, project=proj).first()
-        if not d:
-            return Response(
-                {'detail': 'Entregable no encontrado en este proyecto.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-    else:
-        d = _pick_default_deliverable_for_requirements(proj)
-
-    if d.is_archived:
+    phase = _resolve_phase_for_project(proj, request.query_params.get('phase_id'))
+    if phase is None:
         return Response(
-            {'detail': 'El entregable está archivado.'},
+            {'detail': 'phase_id requerido (la fase debe pertenecer al proyecto).'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -1098,15 +1070,27 @@ def requirement_bulk_upload_view(request, project_id, deliverable_id=None):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    created = []
-    order_offset = Requirement.objects.filter(deliverable=d).count()
+    mode = (request.query_params.get('mode') or 'append').lower()
+    if mode not in ('append', 'replace'):
+        return Response(
+            {'detail': "Parámetro 'mode' inválido. Use 'append' o 'replace'."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
+    deleted_count = 0
+    if mode == 'replace':
+        deleted_count, _ = Requirement.objects.filter(phase=phase).delete()
+        order_offset = 0
+    else:
+        order_offset = Requirement.objects.filter(phase=phase).count()
+
+    created = []
     for idx, item in enumerate(items):
         if not isinstance(item, dict) or not item.get('title'):
             continue
 
         req = Requirement.objects.create(
-            deliverable=d,
+            phase=phase,
             title=item['title'][:300],
             description=item.get('description', ''),
             configuration=item.get('configuration', ''),
@@ -1119,14 +1103,19 @@ def requirement_bulk_upload_view(request, project_id, deliverable_id=None):
 
     _recalculate_project_progress(proj)
     return Response(
-        {'created': len(created), 'requirements': RequirementListSerializer(created, many=True).data},
+        {
+            'created': len(created),
+            'deleted': deleted_count,
+            'mode': mode,
+            'requirements': RequirementListSerializer(created, many=True).data,
+        },
         status=status.HTTP_201_CREATED,
     )
 
 
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
-def requirement_detail_view(request, project_id, req_id, deliverable_id=None):
+def requirement_detail_view(request, project_id, req_id):
     """GET detail, PATCH update (admin), DELETE remove (admin)."""
     proj, err = _get_project_or_403(request, project_id)
     if err:
@@ -1134,12 +1123,9 @@ def requirement_detail_view(request, project_id, req_id, deliverable_id=None):
 
     try:
         req = Requirement.objects.prefetch_related('comments__user', 'history__changed_by').get(
-            id=req_id, deliverable__project=proj,
+            id=req_id, phase__project=proj,
         )
     except Requirement.DoesNotExist:
-        return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
-
-    if deliverable_id is not None and req.deliverable_id != deliverable_id:
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
     if not requirement_visible_for_request(req, request):
@@ -1194,7 +1180,7 @@ def requirement_detail_view(request, project_id, req_id, deliverable_id=None):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def requirement_move_view(request, project_id, req_id, deliverable_id=None):
+def requirement_move_view(request, project_id, req_id):
     """
     Move a card to a new column/order.
     Admin can move to any column. Client can only approve (approval→done).
@@ -1204,11 +1190,8 @@ def requirement_move_view(request, project_id, req_id, deliverable_id=None):
         return err
 
     try:
-        req = Requirement.objects.get(id=req_id, deliverable__project=proj)
+        req = Requirement.objects.get(id=req_id, phase__project=proj)
     except Requirement.DoesNotExist:
-        return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
-
-    if deliverable_id is not None and req.deliverable_id != deliverable_id:
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
     if not requirement_visible_for_request(req, request):
@@ -1255,7 +1238,6 @@ def requirement_move_view(request, project_id, req_id, deliverable_id=None):
                 message=f'{request.user.first_name} aprobó "{req.title}" en {proj.name}.',
                 related_object_type='requirement', related_object_id=req.id,
                 exclude_user=request.user,
-                deliverable=req.deliverable,
             )
         elif is_admin:
             notify_project_client(
@@ -1264,7 +1246,6 @@ def requirement_move_view(request, project_id, req_id, deliverable_id=None):
                 message=f'"{req.title}" se movió a "{new_label}" en {proj.name}.',
                 related_object_type='requirement', related_object_id=req.id,
                 exclude_user=request.user,
-                deliverable=req.deliverable,
             )
 
     return Response(RequirementListSerializer(req).data)
@@ -1272,18 +1253,15 @@ def requirement_move_view(request, project_id, req_id, deliverable_id=None):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def requirement_comment_view(request, project_id, req_id, deliverable_id=None):
+def requirement_comment_view(request, project_id, req_id):
     """Add a comment to a requirement. Both roles can comment."""
     proj, err = _get_project_or_403(request, project_id)
     if err:
         return err
 
     try:
-        req = Requirement.objects.get(id=req_id, deliverable__project=proj)
+        req = Requirement.objects.get(id=req_id, phase__project=proj)
     except Requirement.DoesNotExist:
-        return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
-
-    if deliverable_id is not None and req.deliverable_id != deliverable_id:
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
     if not requirement_visible_for_request(req, request):
@@ -1378,7 +1356,7 @@ def change_request_list_view(request, project_id):
         serializer = ChangeRequestListSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
 
-    serializer = CreateChangeRequestSerializer(data=request.data)
+    serializer = CreateChangeRequestSerializer(data=request.data, context={'project': proj})
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
@@ -1391,6 +1369,8 @@ def change_request_list_view(request, project_id):
         suggested_priority=data.get('suggested_priority', ChangeRequest.PRIORITY_MEDIUM),
         is_urgent=data.get('is_urgent', False),
     )
+    if data.get('source_requirement_id'):
+        cr.source_requirement_id = data['source_requirement_id']
     if data.get('screenshot'):
         cr.screenshot = data['screenshot']
     cr.save()
@@ -1513,6 +1493,96 @@ def change_request_evaluate_view(request, project_id, cr_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+def change_request_bulk_evaluate_view(request, project_id):
+    """
+    Admin bulk-evaluates change requests of a project.
+    Body: array of {id, status?, admin_response?, estimated_time?, estimated_cost?}.
+    Each item is applied independently via the same EvaluateChangeRequestSerializer.
+    Items with unknown id or that don't belong to the project are skipped.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.is_admin:
+        return Response(
+            {'detail': 'Solo los administradores pueden evaluar solicitudes de cambio.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    items = request.data
+    if not isinstance(items, list):
+        return Response(
+            {'detail': 'Se espera un array JSON de evaluaciones.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if len(items) > 500:
+        return Response(
+            {'detail': 'Máximo 500 evaluaciones por carga.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    project_crs = {
+        cr.id: cr for cr in ChangeRequest.objects.filter(project=proj)
+    }
+
+    updated_ids = []
+    errors = []
+    for idx, item in enumerate(items):
+        if not isinstance(item, dict):
+            errors.append({'index': idx, 'detail': 'Item no es un objeto.'})
+            continue
+        cr_id = item.get('id')
+        if cr_id is None:
+            errors.append({'index': idx, 'detail': 'Falta el campo id.'})
+            continue
+        cr = project_crs.get(cr_id)
+        if cr is None:
+            errors.append({'index': idx, 'id': cr_id, 'detail': 'No encontrada en el proyecto.'})
+            continue
+
+        payload = {
+            k: v for k, v in item.items()
+            if k in ('status', 'admin_response', 'estimated_time', 'estimated_cost')
+        }
+        if not payload:
+            continue
+
+        serializer = EvaluateChangeRequestSerializer(data=payload, partial=True)
+        if not serializer.is_valid():
+            errors.append({'index': idx, 'id': cr_id, 'detail': serializer.errors})
+            continue
+
+        data = serializer.validated_data
+        upd_fields = ['updated_at']
+        new_status = data.get('status')
+        for field in ('status', 'admin_response', 'estimated_cost', 'estimated_time'):
+            if field in data:
+                setattr(cr, field, data[field])
+                upd_fields.append(field)
+        cr.save(update_fields=upd_fields)
+        updated_ids.append(cr.id)
+
+        if new_status is not None:
+            status_display = dict(ChangeRequest.STATUS_CHOICES).get(new_status, new_status)
+            notify_project_client(
+                proj, Notification.TYPE_CR_STATUS_CHANGED,
+                f'Solicitud actualizada: {cr.title}',
+                message=f'Estado cambiado a "{status_display}".',
+                related_object_type='change_request', related_object_id=cr.id,
+                exclude_user=request.user,
+            )
+
+    return Response({
+        'updated': len(updated_ids),
+        'updated_ids': updated_ids,
+        'errors': errors,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def change_request_comment_view(request, project_id, cr_id):
     """Add a comment to a change request. Both roles can comment."""
     proj, err = _get_project_or_403(request, project_id)
@@ -1598,13 +1668,24 @@ def change_request_convert_view(request, project_id, cr_id):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    d = _pick_default_deliverable_for_requirements(proj)
+    # Pick the same phase as the source requirement (if any), otherwise the project's first phase.
+    target_phase = None
+    if cr.source_requirement_id:
+        target_phase = cr.source_requirement.phase
+    if target_phase is None:
+        target_phase = proj.phases.order_by('order').first()
+    if target_phase is None:
+        return Response(
+            {'detail': 'El proyecto no tiene fases configuradas. Crea una fase antes de convertir solicitudes.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     max_order = Requirement.objects.filter(
-        deliverable=d, status=Requirement.STATUS_TODO,
+        phase=target_phase, status=Requirement.STATUS_TODO,
     ).count()
 
     req = Requirement.objects.create(
-        deliverable=d,
+        phase=target_phase,
         title=cr.title,
         description=cr.description,
         configuration=f'Originado de solicitud de cambio #{cr.id} — módulo: {cr.module_or_screen}',
@@ -1650,14 +1731,10 @@ def bug_report_all_view(request):
     is_admin = profile and profile.is_admin
 
     if is_admin:
-        qs = BugReport.objects.select_related(
-            'reported_by', 'deliverable', 'deliverable__project',
-        ).all()
+        qs = BugReport.objects.select_related('reported_by', 'project').all()
     else:
-        qs = BugReport.objects.select_related(
-            'reported_by', 'deliverable', 'deliverable__project',
-        ).filter(
-            deliverable__project__client=request.user,
+        qs = BugReport.objects.select_related('reported_by', 'project').filter(
+            project__client=request.user,
         )
 
     qs = filter_bug_reports_for_list(qs, request, is_admin=is_admin)
@@ -1673,8 +1750,8 @@ def bug_report_all_view(request):
 
     data = serializer.data
     for item, bug in zip(data, qs):
-        item['project_id'] = bug.deliverable.project_id
-        item['project_name'] = bug.deliverable.project.name
+        item['project_id'] = bug.project_id
+        item['project_name'] = bug.project.name if bug.project else ''
 
     return Response(data)
 
@@ -1694,9 +1771,7 @@ def bug_report_list_view(request, project_id):
     is_admin = profile and profile.is_admin
 
     if request.method == 'GET':
-        qs = BugReport.objects.filter(deliverable__project=proj).select_related(
-            'reported_by', 'deliverable',
-        )
+        qs = BugReport.objects.filter(project=proj).select_related('reported_by')
         qs = filter_bug_reports_for_list(qs, request, is_admin=is_admin)
         status_filter = request.query_params.get('status')
         if status_filter:
@@ -1712,7 +1787,7 @@ def bug_report_list_view(request, project_id):
     data = serializer.validated_data
 
     bug = BugReport(
-        deliverable_id=data['deliverable_id'],
+        project=proj,
         reported_by=request.user,
         title=data['title'],
         description=data.get('description', ''),
@@ -1724,18 +1799,17 @@ def bug_report_list_view(request, project_id):
         device_browser=data.get('device_browser', ''),
         is_recurring=data.get('is_recurring', False),
     )
+    bug.source_requirement_id = data['source_requirement_id']
     if data.get('screenshot'):
         bug.screenshot = data['screenshot']
     bug.save()
 
-    dlv = bug.deliverable
     if is_admin:
         notify_project_client(
             proj, Notification.TYPE_BUG_REPORTED, f'Bug reportado: {bug.title}',
             message=f'El equipo reportó un bug en {proj.name}.',
             related_object_type='bug_report', related_object_id=bug.id,
             exclude_user=request.user,
-            deliverable=dlv,
         )
     else:
         notify_project_admins(
@@ -1743,7 +1817,6 @@ def bug_report_list_view(request, project_id):
             message=f'{request.user.first_name} reportó un bug en {proj.name}.',
             related_object_type='bug_report', related_object_id=bug.id,
             exclude_user=request.user,
-            deliverable=dlv,
         )
 
     return Response(
@@ -1765,7 +1838,7 @@ def bug_report_detail_view(request, project_id, bug_id):
 
     try:
         bug = BugReport.objects.prefetch_related('comments__user').get(
-            id=bug_id, deliverable__project=proj,
+            id=bug_id, project=proj,
         )
     except BugReport.DoesNotExist:
         return Response(
@@ -1814,7 +1887,7 @@ def bug_report_evaluate_view(request, project_id, bug_id):
         )
 
     try:
-        bug = BugReport.objects.get(id=bug_id, deliverable__project=proj)
+        bug = BugReport.objects.get(id=bug_id, project=proj)
     except BugReport.DoesNotExist:
         return Response(
             {'detail': 'Bug no encontrado.'},
@@ -1843,12 +1916,105 @@ def bug_report_evaluate_view(request, project_id, bug_id):
             message=f'Estado cambiado a "{status_display}".',
             related_object_type='bug_report', related_object_id=bug.id,
             exclude_user=request.user,
-            deliverable=bug.deliverable,
         )
 
     return Response(
         BugReportDetailSerializer(bug, context={'request': request}).data,
     )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def bug_report_bulk_evaluate_view(request, project_id):
+    """
+    Admin bulk-evaluates bug reports of a project.
+    Body: array of {id, status?, admin_response?, linked_bug_id?}.
+    Each item is applied independently via EvaluateBugReportSerializer (partial).
+    Items with unknown id or that don't belong to the project are skipped.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.is_admin:
+        return Response(
+            {'detail': 'Solo los administradores pueden evaluar reportes de bugs.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    items = request.data
+    if not isinstance(items, list):
+        return Response(
+            {'detail': 'Se espera un array JSON de evaluaciones.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if len(items) > 500:
+        return Response(
+            {'detail': 'Máximo 500 evaluaciones por carga.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    project_bugs = {
+        b.id: b for b in BugReport.objects.filter(project=proj)
+    }
+
+    updated_ids = []
+    errors = []
+    for idx, item in enumerate(items):
+        if not isinstance(item, dict):
+            errors.append({'index': idx, 'detail': 'Item no es un objeto.'})
+            continue
+        bug_id = item.get('id')
+        if bug_id is None:
+            errors.append({'index': idx, 'detail': 'Falta el campo id.'})
+            continue
+        bug = project_bugs.get(bug_id)
+        if bug is None:
+            errors.append({'index': idx, 'id': bug_id, 'detail': 'No encontrado en el proyecto.'})
+            continue
+
+        payload = {
+            k: v for k, v in item.items()
+            if k in ('status', 'admin_response', 'linked_bug_id')
+        }
+        if not payload:
+            continue
+
+        serializer = EvaluateBugReportSerializer(data=payload, context={'bug': bug}, partial=True)
+        if not serializer.is_valid():
+            errors.append({'index': idx, 'id': bug_id, 'detail': serializer.errors})
+            continue
+
+        data = serializer.validated_data
+        upd_fields = ['updated_at']
+        new_status = data.get('status')
+        for field in ('status', 'admin_response'):
+            if field in data:
+                setattr(bug, field, data[field])
+                upd_fields.append(field)
+        if 'linked_bug_id' in data:
+            bug.linked_bug_id = data['linked_bug_id']
+            upd_fields.append('linked_bug_id')
+        bug.save(update_fields=upd_fields)
+        updated_ids.append(bug.id)
+
+        if new_status is not None:
+            status_display = dict(BugReport.STATUS_CHOICES).get(new_status, new_status)
+            notify_project_client(
+                proj, Notification.TYPE_BUG_STATUS_CHANGED,
+                f'Bug actualizado: {bug.title}',
+                message=f'Estado cambiado a "{status_display}".',
+                related_object_type='bug_report', related_object_id=bug.id,
+                exclude_user=request.user,
+                deliverable=bug.deliverable,
+            )
+
+    return Response({
+        'updated': len(updated_ids),
+        'updated_ids': updated_ids,
+        'errors': errors,
+    })
 
 
 @api_view(['POST'])
@@ -1860,7 +2026,7 @@ def bug_report_comment_view(request, project_id, bug_id):
         return err
 
     try:
-        bug = BugReport.objects.get(id=bug_id, deliverable__project=proj)
+        bug = BugReport.objects.get(id=bug_id, project=proj)
     except BugReport.DoesNotExist:
         return Response(
             {'detail': 'Bug no encontrado.'},
@@ -1964,15 +2130,16 @@ def deliverable_list_view(request, project_id):
         serializer = DeliverableListSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
 
-    if not profile or not profile.is_admin:
-        return Response(
-            {'detail': 'Solo los administradores pueden subir entregables.'},
-            status=status.HTTP_403_FORBIDDEN,
-        )
-
     serializer = CreateDeliverableSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
+
+    category = data.get('category', Deliverable.CATEGORY_OTHER)
+    if not is_admin and category in Deliverable.ADMIN_ONLY_CATEGORIES:
+        return Response(
+            {'detail': 'Esta categoría solo puede ser subida por el administrador.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
 
     upload_file = data.get('file')
     deliverable = Deliverable.objects.create(
@@ -1980,7 +2147,7 @@ def deliverable_list_view(request, project_id):
         uploaded_by=request.user,
         title=data['title'],
         description=data.get('description', ''),
-        category=data.get('category', Deliverable.CATEGORY_OTHER),
+        category=category,
         file=upload_file,
         current_version=1 if upload_file else 0,
     )
@@ -2108,7 +2275,7 @@ def deliverable_upload_version_view(request, project_id, deliverable_id):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    serializer = UploadNewVersionSerializer(data=request.data)
+    serializer = UploadNewVersionSerializer(data=request.data, context={'deliverable': deliverable})
     serializer.is_valid(raise_exception=True)
 
     new_version = deliverable.current_version + 1

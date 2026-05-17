@@ -1064,7 +1064,7 @@ class Command(BaseCommand):
             {
                 'title': 'Credenciales Wompi Sandbox',
                 'description': 'Llaves de API para pruebas en sandbox de Wompi: public key, events secret y URL de webhooks configurada.',
-                'category': Deliverable.CATEGORY_CREDENTIALS,
+                'category': Deliverable.CATEGORY_OTHER,
                 'filename': 'wompi-sandbox-keys.txt',
                 'epic_key': 'PAYMENTS',
             },
@@ -1133,7 +1133,7 @@ class Command(BaseCommand):
             {
                 'title': 'APK Android beta v0.1',
                 'description': 'Build de prueba para Android con autenticación, listado de inventario y escáner básico de código de barras.',
-                'category': Deliverable.CATEGORY_APKS,
+                'category': Deliverable.CATEGORY_OTHER,
                 'filename': 'inventarios-beta-v0.1.apk',
                 'epic_key': 'BARCODE',
             },

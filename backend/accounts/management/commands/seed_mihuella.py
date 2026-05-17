@@ -149,7 +149,7 @@ class Command(BaseCommand):
         self._create_subscription(project)
 
         # Compute progress from statuses
-        req_qs = Requirement.objects.filter(deliverable__project=project)
+        req_qs = Requirement.objects.filter(phase__project=project)
         total = req_qs.count()
         done = req_qs.filter(status=Requirement.STATUS_DONE).count()
         project.progress = round((done / total) * 100) if total else 0
@@ -167,7 +167,7 @@ class Command(BaseCommand):
 
         self.stdout.write(f'  Progress         → {project.progress}%')
         self.stdout.write(f'  Change requests  → {ChangeRequest.objects.filter(project=project).count()}')
-        self.stdout.write(f'  Bug reports      → {BugReport.objects.filter(deliverable__project=project).count()}')
+        self.stdout.write(f'  Bug reports      → {BugReport.objects.filter(project=project).count()}')
         self.stdout.write(f'  Deliverables     → {Deliverable.objects.filter(project=project).count()}')
         self.stdout.write(f'  Subscription     → {HostingSubscription.objects.filter(project=project).count()}')
         self.stdout.write('')
@@ -665,7 +665,7 @@ class Command(BaseCommand):
         return project
 
     def _create_requirements(self, project):
-        if Requirement.objects.filter(deliverable__project=project).exists():
+        if Requirement.objects.filter(phase__project=project).exists():
             self.stdout.write(f'  Requirements already exist for {project.name}')
             return
 
@@ -793,7 +793,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'  Created {len(crs)} change requests'))
 
     def _create_bug_reports(self, project, client, admin):
-        if BugReport.objects.filter(deliverable__project=project).exists():
+        if BugReport.objects.filter(project=project).exists():
             self.stdout.write(f'  Bug reports already exist for {project.name}')
             return
 
@@ -1033,7 +1033,7 @@ class Command(BaseCommand):
             {
                 'title': 'Credenciales Wompi Sandbox',
                 'description': 'Llaves de API para pruebas en sandbox de la pasarela Wompi. Incluye public key, events secret y URL de webhooks configurada en staging.',
-                'category': Deliverable.CATEGORY_CREDENTIALS,
+                'category': Deliverable.CATEGORY_OTHER,
                 'filename': 'wompi-sandbox-keys.txt',
                 'epic_key': 'CAMPAIGNS',
             },

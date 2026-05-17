@@ -1,5 +1,12 @@
 """
 Sync platform Kanban requirements from BusinessProposal technical_document JSON.
+
+NOTE (refactor 2026-05-17): Requirements moved from Deliverable to ProjectPhase.
+This service still wires Requirements via the legacy deliverable-per-epic structure
+in places — calls below currently no-op the Requirement.create path because the
+``deliverable`` FK no longer exists on Requirement. Sync of Deliverables (files)
+still works. A full redesign is pending so callers that depend on Requirement
+sync via proposal flow will be a no-op until rebuilt around phases.
 """
 
 from __future__ import annotations
@@ -54,7 +61,7 @@ def compute_sync_diff(project, new_content_json: dict) -> dict[str, Any]:
     current_requirements = {
         r.source_flow_key: r
         for r in Requirement.objects.filter(
-            deliverable__project=project,
+            phase__project=project,
             source_flow_key__isnull=False,
             is_archived=False,
         )
@@ -287,53 +294,14 @@ def _sync_technical_requirements_core(
 
             stats['epics_processed'] += 1
 
+            # Requirement sync via proposal flow is disabled after the
+            # Requirement→Phase refactor. Track skipped count for callers.
+            stats['requirements_skipped'] += len(reqs)
             for r in reqs:
-                if not isinstance(r, dict):
-                    stats['requirements_skipped'] += 1
-                    continue
-                flow_key = (r.get('flowKey') or '').strip()
-                t = (r.get('title') or '').strip()
-                if not t or not flow_key:
-                    stats['requirements_skipped'] += 1
-                    continue
-
-                seen_flow_keys.add(flow_key)
-                flow_text = (r.get('usageFlow') or r.get('flow') or '')[:5000]
-                conf = (r.get('configuration') or '')[:5000]
-                desc = (r.get('description') or '')[:5000]
-
-                existing = Requirement.objects.filter(
-                    deliverable=d, source_flow_key=flow_key,
-                ).first()
-                if existing:
-                    existing.title = t[:300]
-                    existing.description = desc
-                    existing.configuration = conf
-                    existing.flow = flow_text
-                    existing.source_epic_key = key[:200]
-                    existing.source_epic_title = title[:300]
-                    existing.synced_from_proposal = True
-                    existing.save()
-                    stats['requirements_updated'] += 1
-                else:
-                    max_order = Requirement.objects.filter(
-                        deliverable=d, status=Requirement.STATUS_BACKLOG,
-                    ).count()
-                    Requirement.objects.create(
-                        deliverable=d,
-                        title=t[:300],
-                        description=desc,
-                        configuration=conf,
-                        flow=flow_text,
-                        status=Requirement.STATUS_BACKLOG,
-                        priority=Requirement.PRIORITY_MEDIUM,
-                        order=max_order,
-                        source_epic_key=key[:200],
-                        source_epic_title=title[:300],
-                        source_flow_key=flow_key[:200],
-                        synced_from_proposal=True,
-                    )
-                    stats['requirements_created'] += 1
+                if isinstance(r, dict):
+                    flow_key = (r.get('flowKey') or '').strip()
+                    if flow_key:
+                        seen_flow_keys.add(flow_key)
 
         if delete_removed and seen_epic_keys:
             to_del_d = Deliverable.objects.filter(
@@ -347,7 +315,7 @@ def _sync_technical_requirements_core(
 
         if delete_removed and seen_flow_keys:
             to_del_r = Requirement.objects.filter(
-                deliverable__project=project,
+                phase__project=project,
                 source_flow_key__isnull=False,
                 is_archived=False,
             ).exclude(source_flow_key__in=seen_flow_keys)
@@ -429,13 +397,13 @@ def _sync_technical_requirements_core(
                 stats['entities_deleted'] += 1
 
         total = Requirement.objects.filter(
-            deliverable__project=project, is_archived=False,
+            phase__project=project, is_archived=False,
         ).count()
         if total == 0:
             project.progress = 0
         else:
             done = Requirement.objects.filter(
-                deliverable__project=project,
+                phase__project=project,
                 status=Requirement.STATUS_DONE,
                 is_archived=False,
             ).count()
