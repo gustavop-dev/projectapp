@@ -1,5 +1,6 @@
 <template>
-  <div id="platform-project-payments">
+  <ProjectShell>
+    <div id="platform-project-payments">
     <div v-if="payStore.isLoading" class="py-20 text-center">
       <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
     </div>
@@ -250,7 +251,8 @@
         <div v-else-if="payStore.payments.length === 0" class="py-8 text-center text-sm text-green-light" data-enter>
           No hay pagos registrados aún.
         </div>
-      </template>
+  </ProjectShell>
+</template>
     </template>
 
     <!-- Checkout modal -->
@@ -356,6 +358,7 @@ import { usePlatformApi } from '~/composables/usePlatformApi'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformPaymentsStore } from '~/stores/platform-payments'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
+import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
 useHead({

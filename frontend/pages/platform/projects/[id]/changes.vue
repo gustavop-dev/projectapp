@@ -1,5 +1,6 @@
 <template>
-  <div id="platform-changes">
+  <ProjectShell>
+    <div id="platform-changes">
     <!-- Loading -->
     <div v-if="crStore.isLoading && !crStore.changeRequests.length" class="py-20 text-center">
       <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
@@ -128,7 +129,8 @@
           Crear primera solicitud
         </button>
       </div>
-    </template>
+  </ProjectShell>
+</template>
 
     <!-- Create modal -->
     <Teleport to="body">
@@ -415,6 +417,7 @@ import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArch
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformChangeRequestsStore } from '~/stores/platform-change-requests'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
+import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({
   layout: 'platform',

@@ -1,5 +1,6 @@
 <template>
-  <div id="platform-board">
+  <ProjectShell>
+    <div id="platform-board">
     <!-- Loading -->
     <div v-if="reqStore.isLoading && !reqStore.requirements.length" class="py-20 text-center">
       <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
@@ -244,7 +245,8 @@
           </div>
         </Transition>
       </div>
-    </template>
+  </ProjectShell>
+</template>
 
     <!-- Move to column modal -->
     <Teleport to="body">
@@ -478,6 +480,7 @@ import { usePlatformRequirementsStore } from '~/stores/platform-requirements'
 import { usePlatformApi } from '~/composables/usePlatformApi'
 import { buildPlatformListUrl } from '~/composables/useIncludeArchivedQuery'
 import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
+import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({
   layout: 'platform',

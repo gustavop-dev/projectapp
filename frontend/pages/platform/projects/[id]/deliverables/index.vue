@@ -1,5 +1,6 @@
 <template>
-  <div id="platform-deliverables">
+  <ProjectShell>
+    <div id="platform-deliverables">
     <!-- Loading -->
     <div v-if="store.isLoading && !store.deliverables.length" class="py-20 text-center">
       <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
@@ -115,7 +116,8 @@
           Subir primer archivo
         </button>
       </div>
-    </template>
+  </ProjectShell>
+</template>
 
     <!-- Create modal -->
     <Teleport to="body">
@@ -345,6 +347,7 @@ import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArch
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformDeliverablesStore } from '~/stores/platform-deliverables'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
+import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
 usePageEntrance('#platform-deliverables')

@@ -1,5 +1,6 @@
 <template>
-  <div id="platform-data-model" class="pb-12">
+  <ProjectShell>
+    <div id="platform-data-model" class="pb-12">
     <div v-if="dataModelStore.isLoading" class="py-20 text-center">
       <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
     </div>
@@ -166,7 +167,8 @@
         <p class="text-sm text-green-light">No hay modelo de datos definido para este proyecto.</p>
         <p v-if="authStore.isAdmin" class="mt-2 text-xs text-green-light/60">Sube un JSON con las entidades para empezar.</p>
       </div>
-    </template>
+  </ProjectShell>
+</template>
   </div>
 </template>
 
@@ -176,6 +178,7 @@ import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformDataModelStore } from '~/stores/platform-data-model'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
+import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
 usePageEntrance('#platform-data-model')

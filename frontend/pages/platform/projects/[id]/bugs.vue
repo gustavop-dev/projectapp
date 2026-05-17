@@ -1,5 +1,6 @@
 <template>
-  <div id="platform-bugs">
+  <ProjectShell>
+    <div id="platform-bugs">
     <!-- Loading -->
     <div v-if="bugStore.isLoading && !bugStore.bugReports.length" class="py-20 text-center">
       <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
@@ -120,7 +121,8 @@
           Reportar primer bug
         </button>
       </div>
-    </template>
+  </ProjectShell>
+</template>
 
     <!-- Create modal -->
     <Teleport to="body">
@@ -442,6 +444,7 @@ import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformBugReportsStore } from '~/stores/platform-bug-reports'
 import { usePlatformDeliverablesStore } from '~/stores/platform-deliverables'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
+import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
 usePageEntrance('#platform-bugs')

@@ -1,5 +1,6 @@
 <template>
-  <div id="platform-project-collection-accounts" class="space-y-6">
+  <ProjectShell>
+    <div id="platform-project-collection-accounts" class="space-y-6">
     <NuxtLink
       :to="localePath(`/platform/projects/${projectId}`)"
       class="text-sm text-green-light hover:text-text-default dark:hover:text-white"
@@ -37,11 +38,13 @@
       </li>
     </ul>
   </div>
+  </ProjectShell>
 </template>
 
 <script setup>
 import { computed, onMounted } from 'vue'
 import { usePlatformCollectionAccountsStore } from '~/stores/platform-collection-accounts'
+import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 const route = useRoute()
 const localePath = useLocalePath()

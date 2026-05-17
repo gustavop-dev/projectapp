@@ -1,5 +1,6 @@
 <template>
-  <div id="platform-deliverable-detail" class="pb-12">
+  <ProjectShell>
+    <div id="platform-deliverable-detail" class="pb-12">
     <div v-if="isLoading" class="py-20 text-center">
       <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
     </div>
@@ -207,7 +208,8 @@
           </div>
         </div>
       </div>
-    </template>
+  </ProjectShell>
+</template>
 
     <div v-else class="py-16 text-center text-sm text-green-light">
       Entregable no encontrado.
@@ -221,6 +223,7 @@ import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformApi } from '~/composables/usePlatformApi'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
+import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
 usePageEntrance('#platform-deliverable-detail')
