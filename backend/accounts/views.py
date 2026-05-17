@@ -28,6 +28,7 @@ from accounts.serializers import (
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     PasswordResetVerifyCodeSerializer,
+    ProjectPhaseSerializer,
     ResendCodeSerializer,
     UpdateClientSerializer,
     UpdateProfileSerializer,
@@ -40,6 +41,13 @@ from accounts.services.password_reset import (
     confirm_password_reset,
     request_password_reset,
     verify_reset_code,
+)
+from accounts.services.project_phases import (
+    PhaseError,
+    add_phase,
+    list_phases,
+    remove_phase,
+    reorder_phases,
 )
 from accounts.services.proposal_client_service import update_client_profile
 from accounts.services.tokens import get_tokens_for_user, get_verification_token_for_user
@@ -3465,3 +3473,68 @@ def cover_gallery_view(request):
             })
 
     return Response(categories)
+
+
+# ==========================================================================
+# Project phases (platform IA refactor)
+# ==========================================================================
+
+
+def _get_project_or_404(project_id, user):
+    from accounts.models import Project
+    qs = Project.objects.filter(id=project_id)
+    profile = getattr(user, 'profile', None)
+    if profile and profile.role != 'admin':
+        qs = qs.filter(client=user)
+    return qs.first()
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def project_phases_view(request, project_id):
+    project = _get_project_or_404(project_id, request.user)
+    if project is None:
+        return Response({'detail': 'project_not_found'}, status=404)
+    if request.method == 'GET':
+        return Response(ProjectPhaseSerializer(list_phases(project), many=True).data)
+    proposal_id = request.data.get('proposal_id')
+    if not proposal_id:
+        return Response({'detail': 'proposal_id required'}, status=400)
+    from content.models import BusinessProposal
+    proposal = BusinessProposal.objects.filter(id=proposal_id).first()
+    if proposal is None:
+        return Response({'detail': 'proposal_not_found'}, status=404)
+    try:
+        phase = add_phase(project, proposal, order=request.data.get('order'))
+    except PhaseError as exc:
+        return Response({'detail': exc.code, **exc.extra}, status=exc.http_status)
+    return Response(ProjectPhaseSerializer(phase).data, status=201)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated, IsAdminRole])
+def project_phase_detail_view(request, project_id, phase_id):
+    project = _get_project_or_404(project_id, request.user)
+    if project is None:
+        return Response({'detail': 'project_not_found'}, status=404)
+    try:
+        remove_phase(project, phase_id)
+    except PhaseError as exc:
+        return Response({'detail': exc.code, **exc.extra}, status=exc.http_status)
+    return Response(status=204)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsAdminRole])
+def project_phases_reorder_view(request, project_id):
+    project = _get_project_or_404(project_id, request.user)
+    if project is None:
+        return Response({'detail': 'project_not_found'}, status=404)
+    items = request.data
+    if not isinstance(items, list):
+        return Response({'detail': 'expected_list'}, status=400)
+    try:
+        reorder_phases(project, items)
+    except PhaseError as exc:
+        return Response({'detail': exc.code, **exc.extra}, status=exc.http_status)
+    return Response(ProjectPhaseSerializer(list_phases(project), many=True).data)

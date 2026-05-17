@@ -1169,3 +1169,27 @@ class PasswordResetVerifyCodeSerializer(serializers.Serializer):
 class PasswordResetConfirmSerializer(serializers.Serializer):
     reset_verified_token = serializers.CharField()
     new_password = serializers.CharField(min_length=8, write_only=True)
+
+
+# =========================================================================
+# Project phases (platform IA refactor)
+# =========================================================================
+
+
+class _NestedProposalSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    title = serializers.CharField()
+    total_amount = serializers.SerializerMethodField()
+    status = serializers.CharField()
+
+    def get_total_amount(self, obj):
+        return getattr(obj, 'total_investment', None) or 0
+
+
+class ProjectPhaseSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    order = serializers.IntegerField()
+    proposal = serializers.SerializerMethodField()
+
+    def get_proposal(self, obj):
+        return _NestedProposalSerializer(obj.business_proposal).data

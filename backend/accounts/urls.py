@@ -65,6 +65,9 @@ from accounts.views import (
     project_access_list_view,
     project_detail_view,
     project_list_view,
+    project_phase_detail_view,
+    project_phases_reorder_view,
+    project_phases_view,
     requirement_bulk_upload_view,
     requirement_comment_view,
     requirement_detail_view,
@@ -104,6 +107,9 @@ urlpatterns = [
     path('projects/', project_list_view, name='platform-project-list'),
     path('projects/access/', project_access_list_view, name='platform-project-access-list'),
     path('projects/<int:project_id>/', project_detail_view, name='platform-project-detail'),
+    path('projects/<int:project_id>/phases/', project_phases_view, name='platform-project-phases'),
+    path('projects/<int:project_id>/phases/reorder/', project_phases_reorder_view, name='platform-project-phases-reorder'),
+    path('projects/<int:project_id>/phases/<int:phase_id>/', project_phase_detail_view, name='platform-project-phase-detail'),
 
     # Change Requests
     path('change-requests/', change_request_all_view, name='platform-change-request-all'),

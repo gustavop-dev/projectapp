@@ -135,3 +135,82 @@ def test_reorder_phases_rejects_phase_from_another_project(project, business_pro
             {'id': ph1.id, 'order': 2},
         ])
     assert exc.value.code == 'invalid_phase_id'
+
+
+# =========================================================================
+# HTTP-level endpoint tests
+# =========================================================================
+
+
+from rest_framework.test import APIClient  # noqa: E402
+
+from accounts.services.tokens import get_tokens_for_user  # noqa: E402
+
+
+@pytest.fixture
+def admin_user(db):
+    u = User.objects.create_user(
+        username='admin@example.com', email='admin@example.com', password='x',
+    )
+    UserProfile.objects.create(user=u, role='admin', is_onboarded=True, profile_completed=True)
+    return u
+
+
+@pytest.fixture
+def authed_client(admin_user):
+    tokens = get_tokens_for_user(admin_user)
+    c = APIClient()
+    c.credentials(HTTP_AUTHORIZATION=f'Bearer {tokens["access"]}')
+    return c
+
+
+def test_list_phases_endpoint_returns_ordered_phases(authed_client, project, business_proposal):
+    add_phase(project, business_proposal)
+    resp = authed_client.get(f'/api/accounts/projects/{project.id}/phases/')
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]['proposal']['title'] == 'Proposal A'
+
+
+def test_add_phase_endpoint(authed_client, project, business_proposal):
+    resp = authed_client.post(
+        f'/api/accounts/projects/{project.id}/phases/',
+        {'proposal_id': business_proposal.id},
+        format='json',
+    )
+    assert resp.status_code == 201
+    assert resp.json()['order'] == 1
+
+
+def test_add_phase_endpoint_rejects_duplicate(authed_client, project, business_proposal):
+    add_phase(project, business_proposal)
+    resp = authed_client.post(
+        f'/api/accounts/projects/{project.id}/phases/',
+        {'proposal_id': business_proposal.id},
+        format='json',
+    )
+    assert resp.status_code == 400
+    assert resp.json()['detail'] == 'duplicate_proposal'
+
+
+def test_remove_phase_endpoint(authed_client, project, business_proposal):
+    phase = add_phase(project, business_proposal)
+    resp = authed_client.delete(f'/api/accounts/projects/{project.id}/phases/{phase.id}/')
+    assert resp.status_code == 204
+    assert project.phases.count() == 0
+
+
+def test_reorder_phases_endpoint(authed_client, project, business_proposal):
+    from content.models import BusinessProposal
+    p2 = BusinessProposal.objects.create(title='P2', client_name='X')
+    ph1 = add_phase(project, business_proposal)
+    ph2 = add_phase(project, p2)
+    resp = authed_client.patch(
+        f'/api/accounts/projects/{project.id}/phases/reorder/',
+        [{'id': ph2.id, 'order': 1}, {'id': ph1.id, 'order': 2}],
+        format='json',
+    )
+    assert resp.status_code == 200
+    titles = [ph.business_proposal.title for ph in project.phases.all()]
+    assert titles == ['P2', 'Proposal A']
