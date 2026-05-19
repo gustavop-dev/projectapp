@@ -30,7 +30,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm text-white leading-relaxed">{{ reason }}</p>
+              <p class="text-sm text-white leading-relaxed" v-html="linkify(reason)" />
             </div>
           </div>
         </div>
@@ -301,8 +301,11 @@ import { ref, computed, toRef, onMounted, nextTick } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
 import { useExpirationTimer } from '~/composables/useExpirationTimer';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
+import { useLinkify } from '~/composables/useLinkify';
 import InvestmentCalculatorModal from './InvestmentCalculatorModal.vue';
 import InvestmentDetailedTeaser from './InvestmentDetailedTeaser.vue';
+
+const { linkify } = useLinkify();
 
 const emit = defineEmits(['navigateToRequirements', 'updateCalculatorModules', 'switchToDetailed', 'updateCustomTotal', 'selectionConfirmed']);
 
