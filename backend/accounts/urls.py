@@ -10,6 +10,10 @@ from accounts.collection_account_views import (
     project_collection_account_list_view,
 )
 from accounts.views_bridge import session_token_bridge
+from accounts.views_saved_filter_tabs import (
+    saved_filter_tab_detail,
+    saved_filter_tabs_collection,
+)
 from accounts.views import (
     admin_detail_view,
     admin_list_view,
@@ -89,6 +93,10 @@ urlpatterns = [
     # Profile
     path('me/', me_view, name='platform-me'),
     path('me/complete-profile/', complete_profile_view, name='platform-complete-profile'),
+
+    # Panel — saved filter tabs (per-user, per-view)
+    path('saved-filter-tabs/', saved_filter_tabs_collection, name='panel-saved-filter-tabs'),
+    path('saved-filter-tabs/<int:tab_id>/', saved_filter_tab_detail, name='panel-saved-filter-tab-detail'),
 
     # Super admin — platform admin management
     path('admins/', admin_list_view, name='panel-admin-list'),

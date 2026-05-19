@@ -1236,3 +1236,44 @@ class PaymentHistory(models.Model):
 
     def __str__(self):
         return f'{self.from_status} → {self.to_status} (payment {self.payment_id})'
+
+
+class SavedFilterTab(models.Model):
+    """
+    Pestañas de filtros guardados por admin del panel, persistidas en DB
+    (antes localStorage). Una entrada por (user, view, nombre arbitrario).
+    """
+
+    VIEW_PROPOSAL = 'proposal'
+    VIEW_CLIENT = 'client'
+    VIEW_DIAGNOSTIC = 'diagnostic'
+    VIEW_VIEW_MAP = 'view_map'
+    VIEW_CHOICES = [
+        (VIEW_PROPOSAL, 'Proposal'),
+        (VIEW_CLIENT, 'Client'),
+        (VIEW_DIAGNOSTIC, 'Diagnostic'),
+        (VIEW_VIEW_MAP, 'View Map'),
+    ]
+
+    MAX_TABS_PER_VIEW = 12
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='saved_filter_tabs',
+    )
+    view = models.CharField(max_length=20, choices=VIEW_CHOICES, db_index=True)
+    name = models.CharField(max_length=200)
+    filters = models.JSONField(default=dict, blank=True)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['view', 'order', 'created_at']
+        indexes = [
+            models.Index(fields=['user', 'view', 'order']),
+        ]
+
+    def __str__(self):
+        return f'{self.user_id}/{self.view}/{self.name}'
