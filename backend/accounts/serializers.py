@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework import serializers
 
-from accounts.models import UserProfile
+from accounts.models import SavedFilterTab, UserProfile
 
 User = get_user_model()
 
@@ -1169,3 +1169,29 @@ class PasswordResetVerifyCodeSerializer(serializers.Serializer):
 class PasswordResetConfirmSerializer(serializers.Serializer):
     reset_verified_token = serializers.CharField()
     new_password = serializers.CharField(min_length=8, write_only=True)
+
+
+# ==========================================================================
+# Saved filter tabs — pestañas de filtros guardados por usuario del panel
+# ==========================================================================
+
+
+class SavedFilterTabSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SavedFilterTab
+        fields = ['id', 'view', 'name', 'filters', 'order', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate(self, attrs):
+        if self.instance is None:
+            user = self.context['request'].user
+            view = attrs.get('view')
+            count = SavedFilterTab.objects.filter(user=user, view=view).count()
+            if count >= SavedFilterTab.MAX_TABS_PER_VIEW:
+                raise serializers.ValidationError({
+                    'view': (
+                        f'Límite de {SavedFilterTab.MAX_TABS_PER_VIEW} '
+                        f'pestañas alcanzado para esta vista.'
+                    ),
+                })
+        return attrs
