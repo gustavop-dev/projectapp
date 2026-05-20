@@ -54,10 +54,22 @@ const mockDiagnostics = [
 ];
 
 function setupMock(page) {
-  return mockApi(page, async ({ apiPath }) => {
+  return mockApi(page, async ({ apiPath, method, route }) => {
     if (apiPath === 'auth/check/') return authCheck;
     if (apiPath === 'diagnostics/') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDiagnostics) };
+    }
+    // Saved filter tabs migraron de localStorage al backend.
+    if (apiPath === 'accounts/saved-filter-tabs/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+    }
+    if (apiPath === 'accounts/saved-filter-tabs/' && method === 'POST') {
+      const payload = route.request().postDataJSON();
+      return {
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 1, view: payload.view, name: payload.name, filters: payload.filters }),
+      };
     }
     return null;
   });
@@ -70,10 +82,6 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
     await setAuthLocalStorage(page, {
       token: 'e2e-admin-token',
       userAuth: { id: 9100, role: 'admin', is_staff: true },
-    });
-    // Clear saved filter tabs so tests start from a clean state.
-    await page.addInitScript(() => {
-      localStorage.removeItem('diagnostic_filter_tabs');
     });
   });
 

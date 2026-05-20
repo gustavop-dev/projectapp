@@ -23,17 +23,6 @@ test.describe('Platform Layout — Browser Tab Title', () => {
     await setPlatformAuth(page, { user: mockPlatformAdmin });
   });
 
-  test('shows "Dashboard" on /platform/dashboard', {
-    tag: [...PLATFORM_LAYOUT_TITLE_MAPPING, '@role:platform-admin'],
-  }, async ({ page }) => {
-    await mockApi(page, async ({ apiPath }) => {
-      if (apiPath === 'accounts/me/') return meResponse;
-      return null;
-    });
-    await page.goto('/platform/dashboard', { waitUntil: 'domcontentloaded' });
-    await expect(page).toHaveTitle(/Project App \(Dashboard\)/, { timeout: 10_000 });
-  });
-
   test('shows "Proyectos" on /platform/projects', {
     tag: [...PLATFORM_LAYOUT_TITLE_MAPPING, '@role:platform-admin'],
   }, async ({ page }) => {

@@ -188,43 +188,18 @@ function setupUnifiedDeliverablesMocks(page, { user, deliverables = mockDelivera
   });
 }
 
-test.describe('Platform Deliverables — Unified /platform/deliverables', () => {
+// The standalone /platform/deliverables view was removed in the platform IA
+// refactor — deliverables are now project-scoped and the route redirects.
+test.describe('Platform Deliverables — /platform/deliverables redirect', () => {
   test.setTimeout(60_000);
 
-  test('client sees deliverables grouped by project', {
+  test('client visiting /platform/deliverables is redirected to projects', {
     tag: [...PLATFORM_DELIVERABLES, '@role:platform-client'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupUnifiedDeliverablesMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/deliverables', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /mis entregables/i }).waitFor({ state: 'visible', timeout: 30000 });
-
-    await expect(page.getByText('E-commerce Platform')).toBeVisible();
-    await expect(page.getByText('Wireframes página principal')).toBeVisible();
-    await expect(page.getByText('Mobile App')).toBeVisible();
-    await expect(page.getByText('iOS Prototype')).toBeVisible();
-  });
-
-  test('admin sees all deliverables with category summary pills', {
-    tag: [...PLATFORM_DELIVERABLES, '@role:platform-admin'],
-  }, async ({ page }) => {
-    await setPlatformAuth(page, { user: mockPlatformAdmin });
-    await setupUnifiedDeliverablesMocks(page, { user: mockPlatformAdmin });
-    await page.goto('/platform/deliverables', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /entregables/i }).waitFor({ state: 'visible', timeout: 30000 });
-
-    await expect(page.getByText('E-commerce Platform')).toBeVisible();
-    await expect(page.getByText('Mobile App')).toBeVisible();
-  });
-
-  test('shows empty state when no deliverables exist', {
-    tag: [...PLATFORM_DELIVERABLES, '@role:platform-client'],
-  }, async ({ page }) => {
-    await setPlatformAuth(page, { user: mockPlatformClient });
-    await setupUnifiedDeliverablesMocks(page, { user: mockPlatformClient, deliverables: [] });
-    await page.goto('/platform/deliverables', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /mis entregables/i }).waitFor({ state: 'visible', timeout: 30000 });
-
-    await expect(page.getByText('No hay entregables en este momento.')).toBeVisible();
+    await page.waitForURL('**/platform/projects**', { timeout: 30000 });
+    await expect(page).toHaveURL(/\/platform\/projects/);
   });
 });

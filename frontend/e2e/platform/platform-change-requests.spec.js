@@ -39,9 +39,18 @@ const mockChangeRequests = [
 
 const meResponse = (user) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(user) });
 
+// A change request now requires a source requirement; the create form
+// populates its select from this endpoint.
+const mockProjectRequirements = [
+  { id: 501, title: 'Checkout flow', phase_title: 'Fase 1', status: 'todo' },
+];
+
 function setupMocks(page, { user }) {
   return mockApi(page, async ({ apiPath, method }) => {
     if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(user);
+    if (apiPath === 'accounts/projects/1/requirements/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProjectRequirements) };
+    }
     if (apiPath === 'accounts/projects/1/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProject) };
     }
@@ -91,6 +100,8 @@ test.describe('Platform Change Requests — Client', () => {
 
     await page.getByRole('button', { name: /nueva solicitud/i }).click();
     await page.getByPlaceholder('¿Qué cambio necesitas?').fill('New change request');
+    // A change request now requires a source requirement — pick the first option.
+    await page.locator('select[required]').selectOption({ index: 1 });
     await page.getByRole('button', { name: /crear solicitud/i }).click();
   });
 });
@@ -147,45 +158,18 @@ function setupUnifiedChangesMocks(page, { user, crs = mockCRsCrossProject }) {
   });
 }
 
-test.describe('Platform Change Requests — Unified /platform/changes', () => {
+// The standalone /platform/changes view was removed in the platform IA
+// refactor — change requests are now project-scoped and the route redirects.
+test.describe('Platform Change Requests — /platform/changes redirect', () => {
   test.setTimeout(60_000);
 
-  test('client sees change requests grouped by project', {
+  test('client visiting /platform/changes is redirected to projects', {
     tag: [...PLATFORM_CHANGE_REQUESTS, '@role:platform-client'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupUnifiedChangesMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/changes', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /mis solicitudes/i }).waitFor({ state: 'visible', timeout: 30000 });
-
-    await expect(page.getByText('E-commerce Platform')).toBeVisible();
-    await expect(page.getByText('Agregar filtro de precio')).toBeVisible();
-    await expect(page.getByText('Mobile App')).toBeVisible();
-    await expect(page.getByText('Add dark mode')).toBeVisible();
-  });
-
-  test('admin sees all requests with archived toggle and summary pills', {
-    tag: [...PLATFORM_CHANGE_REQUESTS, '@role:platform-admin'],
-  }, async ({ page }) => {
-    await setPlatformAuth(page, { user: mockPlatformAdmin });
-    await setupUnifiedChangesMocks(page, { user: mockPlatformAdmin });
-    await page.goto('/platform/changes', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /solicitudes de cambio/i }).waitFor({ state: 'visible', timeout: 30000 });
-
-    await expect(page.getByText('Mostrar archivados')).toBeVisible();
-    await expect(page.getByText('Pendientes', { exact: true })).toBeVisible();
-    await expect(page.getByText('E-commerce Platform')).toBeVisible();
-    await expect(page.getByText('Mobile App')).toBeVisible();
-  });
-
-  test('shows empty state when no change requests exist', {
-    tag: [...PLATFORM_CHANGE_REQUESTS, '@role:platform-client'],
-  }, async ({ page }) => {
-    await setPlatformAuth(page, { user: mockPlatformClient });
-    await setupUnifiedChangesMocks(page, { user: mockPlatformClient, crs: [] });
-    await page.goto('/platform/changes', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /mis solicitudes/i }).waitFor({ state: 'visible', timeout: 30000 });
-
-    await expect(page.getByText('No hay solicitudes de cambio en este momento.')).toBeVisible();
+    await page.waitForURL('**/platform/projects**', { timeout: 30000 });
+    await expect(page).toHaveURL(/\/platform\/projects/);
   });
 });
