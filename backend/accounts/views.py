@@ -3091,6 +3091,30 @@ def _handle_payment_approved(payment, payment_history_source=''):
         logger.warning('Failed to create payment notifications for payment %s', payment.id)
 
 
+def _poll_transaction_status(transaction_id, attempts=5, delay=2):
+    """
+    Card transactions settle asynchronously — Wompi returns PENDING and
+    resolves seconds later. Poll the transaction a few times so an approved
+    charge resolves now instead of waiting on the webhook (which can't reach
+    localhost in development). Returns the settled transaction data, or None
+    if it is still pending after the polling window.
+    """
+    import time
+
+    from accounts.services.wompi import verify_transaction
+
+    for _ in range(attempts):
+        time.sleep(delay)
+        try:
+            data = verify_transaction(transaction_id)
+        except Exception as e:
+            logger.warning('Transaction poll error for %s: %s', transaction_id, e)
+            continue
+        if data.get('status') and data.get('status') != 'PENDING':
+            return data
+    return None
+
+
 def _charge_payment_with_source(payment, history_source=''):
     """
     Charge a Payment using its subscription's stored Wompi payment source.
@@ -3121,6 +3145,15 @@ def _charge_payment_with_source(payment, history_source=''):
     )
     txn_id = txn_data.get('id', '')
     txn_status = txn_data.get('status', '')
+
+    # The charge settles asynchronously — give Wompi a moment to resolve a
+    # PENDING transaction before falling back to the webhook.
+    if txn_status == 'PENDING' and txn_id:
+        settled = _poll_transaction_status(str(txn_id))
+        if settled:
+            txn_data = settled
+            txn_status = settled.get('status', txn_status)
+
     payment.wompi_transaction_id = str(txn_id)
     src = history_source or PaymentHistory.SOURCE_API
 
@@ -3650,10 +3683,12 @@ def payment_verify_transaction_view(request, project_id, payment_id):
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    transaction_id = request.data.get('transaction_id')
+    # Falls back to the transaction id already stored on the payment, so the
+    # client can re-verify a PROCESSING payment without re-supplying it.
+    transaction_id = request.data.get('transaction_id') or payment.wompi_transaction_id
     if not transaction_id:
         return Response(
-            {'detail': 'transaction_id es requerido.'},
+            {'detail': 'No hay una transacción asociada a este pago.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -3924,6 +3959,15 @@ def wompi_webhook_view(request):
     from django.utils import timezone as tz
 
     event = request.data
+
+    from accounts.services.wompi import validate_event_signature
+    if not validate_event_signature(event):
+        logger.warning('Wompi webhook rejected — invalid or missing event signature')
+        return Response(
+            {'status': 'invalid signature'},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
     event_type = event.get('event')
     data = event.get('data', {})
     transaction = data.get('transaction', {})

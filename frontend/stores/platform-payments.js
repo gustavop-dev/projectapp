@@ -216,12 +216,11 @@ export const usePlatformPaymentsStore = defineStore('platformPayments', {
       }
     },
 
-    async verifyTransaction(projectId, paymentId, transactionId) {
+    async verifyTransaction(projectId, paymentId, transactionId = null) {
       try {
         const { post } = usePlatformApi()
-        const response = await post(`projects/${projectId}/payments/${paymentId}/verify/`, {
-          transaction_id: transactionId,
-        })
+        const body = transactionId ? { transaction_id: transactionId } : {}
+        const response = await post(`projects/${projectId}/payments/${paymentId}/verify/`, body)
         return { success: true, data: response.data }
       } catch (error) {
         return { success: false, message: error.response?.data?.detail || 'Error verificando transacción.' }

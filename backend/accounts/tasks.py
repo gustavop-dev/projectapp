@@ -36,6 +36,8 @@ def auto_charge_due_subscriptions():
     # Incorporate phases whose hosting_start_date arrived (prorated) before
     # charging, so their catch-up payments are billed in the same run.
     _onboard_due_phases()
+    # Resolve charges left in PROCESSING by a missed settling webhook.
+    _reverify_processing_payments()
 
     today = timezone.now().date()
 
@@ -188,8 +190,9 @@ def _onboard_due_phases():
         phase.hosting_activated_at = today
         phase.save(update_fields=['hosting_activated_at'])
 
+        prorated_payment = None
         if prorated > 0:
-            Payment.objects.create(
+            prorated_payment = Payment.objects.create(
                 subscription=sub,
                 amount=prorated,
                 description=(
@@ -214,8 +217,99 @@ def _onboard_due_phases():
             billing_period_start__gte=sub.next_billing_date,
         ).update(amount=new_amount)
 
+        _notify_phase_onboarded(phase, sub, prorated_payment, new_amount)
         onboarded += 1
 
     if onboarded:
         logger.info('_onboard_due_phases: %s phase(s) onboarded', onboarded)
     return onboarded
+
+
+def _notify_phase_onboarded(phase, sub, prorated_payment, new_amount):
+    """Tell the client (and project admins) a phase joined the hosting billing."""
+    from accounts.models import Notification
+    from accounts.services.notifications import notify, notify_project_admins
+
+    project = sub.project
+    title = phase.business_proposal.title
+    period = sub.get_plan_display().lower()
+    related_type = 'payment' if prorated_payment else ''
+    related_id = prorated_payment.id if prorated_payment else None
+
+    if prorated_payment is not None:
+        charge_line = (
+            f' Se aplicó un cobro prorrateado de ${prorated_payment.amount:,.0f} COP '
+            f'por los días restantes del ciclo actual.'
+        )
+    else:
+        charge_line = ''
+
+    try:
+        notify(
+            user=project.client,
+            type=Notification.TYPE_GENERAL,
+            title='Nueva fase en tu hosting',
+            message=(
+                f'La fase "{title}" se incorporó a tu hosting.{charge_line} '
+                f'Desde la próxima renovación tu hosting será de '
+                f'${new_amount:,.0f} COP / {period}.'
+            ),
+            project=project,
+            related_object_type=related_type,
+            related_object_id=related_id,
+        )
+        notify_project_admins(
+            project, Notification.TYPE_GENERAL,
+            f'Fase incorporada al hosting: {project.name}',
+            message=(
+                f'La fase "{title}" entró a la facturación de "{project.name}". '
+                f'Nuevo cobro recurrente: ${new_amount:,.0f} COP / {period}.'
+            ),
+            related_object_type=related_type,
+            related_object_id=related_id,
+        )
+    except Exception:
+        logger.warning('Failed to send phase-onboarded notification for phase %s', phase.id)
+
+
+def _reverify_processing_payments():
+    """
+    Re-check payments stuck in PROCESSING by polling Wompi directly. Card
+    transactions settle asynchronously; this covers cases where the settling
+    webhook never arrived (always the case on localhost).
+    """
+    from accounts.models import Payment, PaymentHistory
+    from accounts.services.payment_history import record_payment_status_change
+    from accounts.services.wompi import verify_transaction
+    from accounts.views import _handle_payment_approved
+
+    stuck = (
+        Payment.objects.select_related('subscription__project__client')
+        .filter(status=Payment.STATUS_PROCESSING, is_archived=False)
+        .exclude(wompi_transaction_id='')
+    )
+
+    resolved = 0
+    for payment in stuck:
+        try:
+            data = verify_transaction(payment.wompi_transaction_id)
+        except Exception as e:
+            logger.warning('Re-verify error for payment %s: %s', payment.id, e)
+            continue
+
+        txn_status = data.get('status', '')
+        if txn_status == 'APPROVED':
+            _handle_payment_approved(payment, PaymentHistory.SOURCE_WOMPI_VERIFY)
+            resolved += 1
+        elif txn_status in ('DECLINED', 'ERROR', 'VOIDED'):
+            old_status = payment.status
+            payment.status = Payment.STATUS_FAILED
+            payment.save(update_fields=['status'])
+            record_payment_status_change(
+                payment, old_status, Payment.STATUS_FAILED, PaymentHistory.SOURCE_WOMPI_VERIFY,
+            )
+            resolved += 1
+
+    if resolved:
+        logger.info('_reverify_processing_payments: %s payment(s) resolved', resolved)
+    return resolved

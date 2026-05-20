@@ -20,6 +20,7 @@ from accounts.models import (
     Project,
     UserProfile,
 )
+from accounts.tests.wompi_event_helpers import signed_transaction_event
 
 User = get_user_model()
 
@@ -265,31 +266,29 @@ class TestPaymentVerifyTransactionView:
 class TestWompiWebhookAdditionalPaths:
     def test_missing_transaction_id_returns_400(self, api_client, subscription):
         """Missing transaction_id in webhook payload returns 400."""
-        resp = api_client.post('/api/accounts/webhooks/wompi/', {
-            'event': 'transaction.updated',
-            'data': {
-                'transaction': {
-                    'id': '',
-                    'status': 'APPROVED',
-                    'reference': 'some_ref',
-                },
-            },
-        }, format='json')
+        resp = api_client.post(
+            '/api/accounts/webhooks/wompi/',
+            signed_transaction_event({
+                'id': '',
+                'status': 'APPROVED',
+                'reference': 'some_ref',
+            }),
+            format='json',
+        )
 
         assert resp.status_code == 400
 
     def test_missing_reference_returns_400(self, api_client, subscription):
         """Missing reference in webhook payload returns 400."""
-        resp = api_client.post('/api/accounts/webhooks/wompi/', {
-            'event': 'transaction.updated',
-            'data': {
-                'transaction': {
-                    'id': 'txn_123',
-                    'status': 'APPROVED',
-                    'reference': '',
-                },
-            },
-        }, format='json')
+        resp = api_client.post(
+            '/api/accounts/webhooks/wompi/',
+            signed_transaction_event({
+                'id': 'txn_123',
+                'status': 'APPROVED',
+                'reference': '',
+            }),
+            format='json',
+        )
 
         assert resp.status_code == 400
 
@@ -298,16 +297,15 @@ class TestWompiWebhookAdditionalPaths:
     ):
         """Webhook with PA{id}P{proj}T{ts} reference finds payment via regex."""
         reference = f'PA{pending_payment.id}P{subscription.project.id}T1234567890'
-        resp = api_client.post('/api/accounts/webhooks/wompi/', {
-            'event': 'transaction.updated',
-            'data': {
-                'transaction': {
-                    'id': 'txn_pa_test',
-                    'status': 'DECLINED',
-                    'reference': reference,
-                },
-            },
-        }, format='json')
+        resp = api_client.post(
+            '/api/accounts/webhooks/wompi/',
+            signed_transaction_event({
+                'id': 'txn_pa_test',
+                'status': 'DECLINED',
+                'reference': reference,
+            }),
+            format='json',
+        )
 
         assert resp.status_code == 200
         pending_payment.refresh_from_db()
@@ -320,16 +318,15 @@ class TestWompiWebhookAdditionalPaths:
         pending_payment.wompi_payment_link_id = 'link_other_status'
         pending_payment.save(update_fields=['wompi_payment_link_id'])
 
-        resp = api_client.post('/api/accounts/webhooks/wompi/', {
-            'event': 'transaction.updated',
-            'data': {
-                'transaction': {
-                    'id': 'txn_processing',
-                    'status': 'PROCESSING',
-                    'reference': 'link_other_status',
-                },
-            },
-        }, format='json')
+        resp = api_client.post(
+            '/api/accounts/webhooks/wompi/',
+            signed_transaction_event({
+                'id': 'txn_processing',
+                'status': 'PROCESSING',
+                'reference': 'link_other_status',
+            }),
+            format='json',
+        )
 
         assert resp.status_code == 200
         pending_payment.refresh_from_db()

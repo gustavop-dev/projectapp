@@ -124,6 +124,10 @@
                   <td class="px-4 py-3 text-sm font-bold text-text-default">Total a pagar ahora</td>
                   <td class="px-4 py-3 text-right text-lg font-bold text-text-brand">${{ formatMoney(hostingTotal) }} COP</td>
                 </tr>
+                <tr v-if="hostingSavings > 0" class="bg-surface-muted/30">
+                  <td class="px-4 pb-3 text-xs font-medium text-text-brand">Ahorras con el plan {{ selectedFrequencyLabel.toLowerCase() }}</td>
+                  <td class="px-4 pb-3 text-right text-xs font-semibold text-text-brand">− ${{ formatMoney(hostingSavings) }} COP</td>
+                </tr>
               </tfoot>
             </table>
           </div>
@@ -250,6 +254,10 @@
                 <tr class="border-t-2 border-border-default">
                   <td class="py-2.5 text-sm font-bold text-text-default">Total {{ selectedFrequencyLabel.toLowerCase() }}</td>
                   <td class="py-2.5 text-right text-base font-bold text-text-brand">${{ formatMoney(hostingTotal) }} COP</td>
+                </tr>
+                <tr v-if="hostingSavings > 0">
+                  <td class="py-2 text-xs font-medium text-text-brand">Ahorras con el plan {{ selectedFrequencyLabel.toLowerCase() }}</td>
+                  <td class="py-2 text-right text-xs font-semibold text-text-brand">− ${{ formatMoney(hostingSavings) }} COP</td>
                 </tr>
               </tbody>
             </table>
@@ -703,28 +711,38 @@ async function selectPlan(value) {
   }
 }
 
-function tierAmount(phase, frequency) {
-  const tier = (phase.hosting_tiers || []).find((t) => t.frequency === frequency)
-  return tier ? tier.billing_amount : 0
+function phaseTier(phase, frequency) {
+  return (phase.hosting_tiers || []).find((t) => t.frequency === frequency) || null
 }
 
 const phaseRows = computed(() => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  return (payStore.phases || []).map((p) => ({
-    id: p.id,
-    order: p.order,
-    title: p.proposal?.title || `Fase ${p.order}`,
-    startDate: p.hosting_start_date,
-    active: sub.value
-      ? !!p.hosting_activated_at
-      : (!p.hosting_start_date || new Date(p.hosting_start_date) <= today),
-    amount: tierAmount(p, tableFrequency.value),
-  }))
+  return (payStore.phases || []).map((p) => {
+    const tier = phaseTier(p, tableFrequency.value)
+    const monthly = phaseTier(p, 'monthly')
+    const amount = tier ? tier.billing_amount : 0
+    // Undiscounted cost = paying month by month for the same span.
+    const fullPrice = tier && monthly ? monthly.billing_amount * tier.months : amount
+    return {
+      id: p.id,
+      order: p.order,
+      title: p.proposal?.title || `Fase ${p.order}`,
+      startDate: p.hosting_start_date,
+      active: sub.value
+        ? !!p.hosting_activated_at
+        : (!p.hosting_start_date || new Date(p.hosting_start_date) <= today),
+      amount,
+      savings: Math.max(fullPrice - amount, 0),
+    }
+  })
 })
 
 const hostingTotal = computed(
   () => phaseRows.value.filter((r) => r.active).reduce((sum, r) => sum + r.amount, 0),
+)
+const hostingSavings = computed(
+  () => phaseRows.value.filter((r) => r.active).reduce((sum, r) => sum + r.savings, 0),
 )
 const futurePhaseCount = computed(() => phaseRows.value.filter((r) => !r.active).length)
 
@@ -787,6 +805,26 @@ const threeDsMessage = computed(() => {
 // --- Manual retry of a charge using the stored card ---
 const retryingId = ref(null)
 const retryError = ref('')
+
+// Card transactions settle asynchronously. When a payment is left PROCESSING
+// (the webhook can't reach localhost in dev), poll the verify endpoint until
+// it resolves to paid/failed.
+const isPollingPayment = ref(false)
+async function pollProcessingPayment() {
+  if (isPollingPayment.value) return
+  isPollingPayment.value = true
+  try {
+    for (let i = 0; i < 12; i += 1) {
+      const p = payStore.currentPeriodPayment
+      if (!p || p.status !== 'processing') return
+      await sleep(3000)
+      await payStore.verifyTransaction(projectId.value, p.id)
+      await payStore.fetchProjectSubscription(projectId.value)
+    }
+  } finally {
+    isPollingPayment.value = false
+  }
+}
 
 const currentPeriodBorderClass = computed(() => {
   if (!currentPayment.value) return 'border-border-default'
@@ -1003,6 +1041,7 @@ async function confirmCard() {
   }
   cardStep.value = 'done'
   await payStore.fetchProjectSubscription(projectId.value)
+  pollProcessingPayment()
 }
 
 async function retryCharge(payment) {
@@ -1015,6 +1054,7 @@ async function retryCharge(payment) {
     return
   }
   await payStore.fetchProjectSubscription(projectId.value)
+  pollProcessingPayment()
 }
 
 async function handleCreateSubscription() {
@@ -1079,6 +1119,7 @@ onMounted(async () => {
   ])
   // Preselect the established frequency so the breakdown table values match.
   if (sub.value) selectedPlan.value = sub.value.plan
+  pollProcessingPayment()
 })
 </script>
 

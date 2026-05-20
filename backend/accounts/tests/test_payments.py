@@ -13,6 +13,7 @@ from accounts.models import (
     Requirement,
     UserProfile,
 )
+from accounts.tests.wompi_event_helpers import signed_transaction_event
 
 User = get_user_model()
 
@@ -379,16 +380,15 @@ class TestWompiWebhook:
         pending.wompi_payment_link_id = 'link_test_ref'
         pending.save(update_fields=['wompi_payment_link_id'])
 
-        resp = api_client.post('/api/accounts/webhooks/wompi/', {
-            'event': 'transaction.updated',
-            'data': {
-                'transaction': {
-                    'id': 'txn_123',
-                    'status': 'APPROVED',
-                    'reference': 'link_test_ref',
-                },
-            },
-        }, format='json')
+        resp = api_client.post(
+            '/api/accounts/webhooks/wompi/',
+            signed_transaction_event({
+                'id': 'txn_123',
+                'status': 'APPROVED',
+                'reference': 'link_test_ref',
+            }),
+            format='json',
+        )
 
         assert resp.status_code == 200
         pending.refresh_from_db()
@@ -403,41 +403,40 @@ class TestWompiWebhook:
         pending.wompi_payment_link_id = 'link_declined'
         pending.save(update_fields=['wompi_payment_link_id'])
 
-        resp = api_client.post('/api/accounts/webhooks/wompi/', {
-            'event': 'transaction.updated',
-            'data': {
-                'transaction': {
-                    'id': 'txn_456',
-                    'status': 'DECLINED',
-                    'reference': 'link_declined',
-                },
-            },
-        }, format='json')
+        resp = api_client.post(
+            '/api/accounts/webhooks/wompi/',
+            signed_transaction_event({
+                'id': 'txn_456',
+                'status': 'DECLINED',
+                'reference': 'link_declined',
+            }),
+            format='json',
+        )
 
         assert resp.status_code == 200
         pending.refresh_from_db()
         assert pending.status == Payment.STATUS_FAILED
 
     def test_non_transaction_event_ignored(self, api_client):
-        resp = api_client.post('/api/accounts/webhooks/wompi/', {
-            'event': 'nequi_token.updated',
-            'data': {},
-        }, format='json')
+        resp = api_client.post(
+            '/api/accounts/webhooks/wompi/',
+            signed_transaction_event({}, event='nequi_token.updated'),
+            format='json',
+        )
 
         assert resp.status_code == 200
         assert resp.json()['status'] == 'ignored'
 
     def test_unknown_reference_returns_404(self, api_client):
-        resp = api_client.post('/api/accounts/webhooks/wompi/', {
-            'event': 'transaction.updated',
-            'data': {
-                'transaction': {
-                    'id': 'txn_ghost',
-                    'status': 'APPROVED',
-                    'reference': 'nonexistent_ref',
-                },
-            },
-        }, format='json')
+        resp = api_client.post(
+            '/api/accounts/webhooks/wompi/',
+            signed_transaction_event({
+                'id': 'txn_ghost',
+                'status': 'APPROVED',
+                'reference': 'nonexistent_ref',
+            }),
+            format='json',
+        )
 
         assert resp.status_code == 404
 
@@ -458,16 +457,15 @@ class TestWompiWebhook:
             wompi_payment_link_id='link_activate',
         )
 
-        api_client.post('/api/accounts/webhooks/wompi/', {
-            'event': 'transaction.updated',
-            'data': {
-                'transaction': {
-                    'id': 'txn_activate',
-                    'status': 'APPROVED',
-                    'reference': 'link_activate',
-                },
-            },
-        }, format='json')
+        api_client.post(
+            '/api/accounts/webhooks/wompi/',
+            signed_transaction_event({
+                'id': 'txn_activate',
+                'status': 'APPROVED',
+                'reference': 'link_activate',
+            }),
+            format='json',
+        )
 
         sub.refresh_from_db()
         assert sub.status == HostingSubscription.STATUS_ACTIVE
@@ -807,16 +805,15 @@ class TestAutoRenewal:
             wompi_payment_link_id='link_renewal',
         )
 
-        api_client.post('/api/accounts/webhooks/wompi/', {
-            'event': 'transaction.updated',
-            'data': {
-                'transaction': {
-                    'id': 'txn_renewal',
-                    'status': 'APPROVED',
-                    'reference': 'link_renewal',
-                },
-            },
-        }, format='json')
+        api_client.post(
+            '/api/accounts/webhooks/wompi/',
+            signed_transaction_event({
+                'id': 'txn_renewal',
+                'status': 'APPROVED',
+                'reference': 'link_renewal',
+            }),
+            format='json',
+        )
 
         payment.refresh_from_db()
         assert payment.status == Payment.STATUS_PAID

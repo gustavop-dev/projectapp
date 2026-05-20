@@ -29,6 +29,7 @@ from accounts.models import (
     Project,
     UserProfile,
 )
+from accounts.tests.wompi_event_helpers import signed_transaction_event
 
 User = get_user_model()
 
@@ -294,16 +295,15 @@ class TestWompiWebhookPaPatternNotFound:
     def test_pa_pattern_with_nonexistent_payment_id_not_found(self, api_client):
         """PA-pattern reference with non-existent payment ID falls through to 404."""
         reference = 'PA99999P1T1234567890'
-        resp = api_client.post('/api/accounts/webhooks/wompi/', {
-            'event': 'transaction.updated',
-            'data': {
-                'transaction': {
-                    'id': 'txn_pa_miss',
-                    'status': 'APPROVED',
-                    'reference': reference,
-                },
-            },
-        }, format='json')
+        resp = api_client.post(
+            '/api/accounts/webhooks/wompi/',
+            signed_transaction_event({
+                'id': 'txn_pa_miss',
+                'status': 'APPROVED',
+                'reference': reference,
+            }),
+            format='json',
+        )
 
         assert resp.status_code == 404
 

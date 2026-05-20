@@ -103,18 +103,37 @@ def verify_transaction(transaction_id):
         raise
 
 
-def validate_webhook_signature(body_bytes, signature, timestamp):
+def validate_event_signature(event):
     """
-    Validate a Wompi webhook event signature.
-    Signature = SHA256(timestamp + '.' + body)
+    Validate a Wompi event signature per the official spec:
+
+        checksum = SHA256(concat(data values listed in signature.properties)
+                          + timestamp + WOMPI_EVENTS_SECRET)
+
+    The property list is read from the event itself — Wompi may change it, so
+    it must never be hard-coded. Returns True only when the recomputed checksum
+    matches event.signature.checksum.
+    Docs: https://docs.wompi.co/en/docs/colombia/eventos/
     """
-    message = f'{timestamp}.{body_bytes.decode("utf-8")}'
-    expected = hmac.new(
-        settings.WOMPI_EVENTS_SECRET.encode(),
-        message.encode(),
-        hashlib.sha256,
-    ).hexdigest()
-    return hmac.compare_digest(expected, signature)
+    signature = event.get('signature') or {}
+    properties = signature.get('properties') or []
+    received = signature.get('checksum') or ''
+    if not received or not properties:
+        return False
+
+    timestamp = event.get('timestamp') or signature.get('timestamp') or ''
+    data = event.get('data') or {}
+
+    parts = []
+    for path in properties:
+        value = data
+        for key in str(path).split('.'):
+            value = value.get(key) if isinstance(value, dict) else None
+        parts.append('' if value is None else str(value))
+
+    raw = ''.join(parts) + str(timestamp) + settings.WOMPI_EVENTS_SECRET
+    expected = hashlib.sha256(raw.encode()).hexdigest()
+    return hmac.compare_digest(expected.lower(), str(received).lower())
 
 
 def get_acceptance_token():

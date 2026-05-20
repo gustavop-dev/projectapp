@@ -265,6 +265,22 @@ class TestPaymentChargeStored:
         pending_payment.refresh_from_db()
         assert pending_payment.status == Payment.STATUS_PAID
 
+    def test_pending_charge_resolves_via_polling(
+        self, api_client, client_headers, project, subscription, pending_payment,
+    ):
+        """A PENDING card charge resolves to PAID once polling sees APPROVED."""
+        subscription.wompi_payment_source_id = '3891'
+        subscription.save(update_fields=['wompi_payment_source_id'])
+        with patch('accounts.services.wompi.charge_with_payment_source',
+                   return_value={'id': 'txnP', 'status': 'PENDING'}), \
+             patch('accounts.services.wompi.verify_transaction',
+                   return_value={'id': 'txnP', 'status': 'APPROVED'}), \
+             patch('time.sleep'):
+            resp = api_client.post(self._url(project, pending_payment), {}, **client_headers)
+        assert resp.status_code == 200
+        pending_payment.refresh_from_db()
+        assert pending_payment.status == Payment.STATUS_PAID
+
 
 # ===========================================================================
 # auto_charge_due_subscriptions Huey task
@@ -313,3 +329,42 @@ class TestAutoChargeTask:
         assert subscription.status == HostingSubscription.STATUS_ACTIVE
         assert pending_payment.charge_attempts == 1
         assert pending_payment.next_retry_at == date.today() + timedelta(days=2)
+
+
+# ===========================================================================
+# Re-verifying PROCESSING payments (async settlement / missed webhook)
+# ===========================================================================
+
+class TestPaymentReverify:
+    def test_verify_uses_stored_transaction_id(
+        self, api_client, client_headers, project, subscription, pending_payment,
+    ):
+        """A PROCESSING payment can be re-verified without re-supplying the txn id."""
+        pending_payment.status = Payment.STATUS_PROCESSING
+        pending_payment.wompi_transaction_id = 'txnStored'
+        pending_payment.save(update_fields=['status', 'wompi_transaction_id'])
+
+        url = f'/api/accounts/projects/{project.id}/payments/{pending_payment.id}/verify/'
+        with patch('accounts.services.wompi.verify_transaction',
+                   return_value={'id': 'txnStored', 'status': 'APPROVED'}):
+            resp = api_client.post(url, {}, **client_headers)
+
+        assert resp.status_code == 200
+        pending_payment.refresh_from_db()
+        assert pending_payment.status == Payment.STATUS_PAID
+
+    def test_cron_reverifies_stuck_processing_payment(self, subscription, pending_payment):
+        """The billing cron resolves a PROCESSING payment via direct verification."""
+        from accounts.tasks import _reverify_processing_payments
+
+        pending_payment.status = Payment.STATUS_PROCESSING
+        pending_payment.wompi_transaction_id = 'txnStuck'
+        pending_payment.save(update_fields=['status', 'wompi_transaction_id'])
+
+        with patch('accounts.services.wompi.verify_transaction',
+                   return_value={'id': 'txnStuck', 'status': 'APPROVED'}):
+            resolved = _reverify_processing_payments()
+
+        assert resolved == 1
+        pending_payment.refresh_from_db()
+        assert pending_payment.status == Payment.STATUS_PAID
