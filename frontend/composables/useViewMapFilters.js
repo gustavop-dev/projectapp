@@ -1,8 +1,9 @@
-import { computed, reactive, ref, toRaw, watch } from 'vue';
+import { computed, onMounted, reactive, ref, toRaw, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-const STORAGE_KEY = 'view_map_filter_tabs';
-const MAX_TABS = 12;
+import { useSavedFilterTabs } from '~/composables/useSavedFilterTabs';
+
+const VIEW_NAME = 'view_map';
 const DEFAULT_FILTERS = Object.freeze({
   categories: [],
   audiences: [],
@@ -13,19 +14,6 @@ function freshFilters() {
   return structuredClone(DEFAULT_FILTERS);
 }
 
-function loadTabs() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistTabs(tabs) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tabs));
-}
-
 function cloneFilters(filters) {
   return structuredClone(toRaw(filters));
 }
@@ -34,33 +22,21 @@ function loadTabFilters(target, tab) {
   Object.assign(target, freshFilters(), cloneFilters(tab.filters));
 }
 
-function spliceTab(tabs, idx, updated) {
-  const copy = [...tabs];
-  copy[idx] = updated;
-  return copy;
-}
-
 export function useViewMapFilters() {
   const route = useRoute();
   const router = useRouter();
 
   const currentFilters = reactive(freshFilters());
-  const savedTabs = ref(loadTabs());
   const isFilterPanelOpen = ref(false);
 
-  const initialTab = route.query.viewTab || 'all';
-  const activeTabId = ref(
-    initialTab === 'all' || savedTabs.value.some((t) => t.id === initialTab)
-      ? initialTab
-      : 'all',
-  );
+  const tabs = useSavedFilterTabs(VIEW_NAME);
+  const { savedTabs, isLoading, isReady, lastError, isTabLimitReached } = tabs;
 
-  if (activeTabId.value !== 'all') {
-    const tab = savedTabs.value.find((t) => t.id === activeTabId.value);
-    if (tab) {
-      loadTabFilters(currentFilters, tab);
-      isFilterPanelOpen.value = true;
-    }
+  const initialTab = route.query.viewTab || 'all';
+  const activeTabId = ref(initialTab);
+
+  function numericTabId(value) {
+    return typeof value === 'number' ? value : Number(value);
   }
 
   watch(activeTabId, (tabId) => {
@@ -68,24 +44,34 @@ export function useViewMapFilters() {
     if (tabId === 'all') {
       delete query.viewTab;
     } else {
-      query.viewTab = tabId;
+      query.viewTab = String(tabId);
     }
     router.replace({ query });
   });
-
-  watch(savedTabs, (val) => persistTabs(val));
 
   watch(
     currentFilters,
     () => {
       if (activeTabId.value !== 'all') {
-        updateTab(activeTabId.value);
+        tabs.updateTabFilters(numericTabId(activeTabId.value), cloneFilters(currentFilters));
       }
     },
     { deep: true },
   );
 
-  const isTabLimitReached = computed(() => savedTabs.value.length >= MAX_TABS);
+  onMounted(async () => {
+    await tabs.loadTabs();
+    if (activeTabId.value !== 'all') {
+      const tab = savedTabs.value.find((t) => String(t.id) === String(activeTabId.value));
+      if (tab) {
+        loadTabFilters(currentFilters, tab);
+        activeTabId.value = tab.id;
+        isFilterPanelOpen.value = true;
+      } else {
+        activeTabId.value = 'all';
+      }
+    }
+  });
 
   const activeFilterCount = computed(() => {
     let count = 0;
@@ -134,55 +120,27 @@ export function useViewMapFilters() {
       Object.assign(currentFilters, freshFilters());
       return;
     }
-    const tab = savedTabs.value.find((t) => t.id === tabId);
+    const tab = savedTabs.value.find((t) => String(t.id) === String(tabId));
     if (tab) {
       loadTabFilters(currentFilters, tab);
     }
   }
 
-  function saveTab(name) {
-    if (savedTabs.value.length >= MAX_TABS) return null;
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
-    const tab = {
-      id,
-      name,
-      filters: cloneFilters(currentFilters),
-      createdAt: now,
-      updatedAt: now,
-    };
-    savedTabs.value = [...savedTabs.value, tab];
-    activeTabId.value = id;
+  async function saveTab(name) {
+    const tab = await tabs.saveTab(name, cloneFilters(currentFilters));
+    if (tab) activeTabId.value = tab.id;
     return tab;
   }
 
-  function updateTab(tabId) {
-    const idx = savedTabs.value.findIndex((t) => t.id === tabId);
-    if (idx === -1) return;
-    const newFilters = cloneFilters(currentFilters);
-    if (JSON.stringify(newFilters) === JSON.stringify(savedTabs.value[idx].filters)) return;
-    savedTabs.value = spliceTab(savedTabs.value, idx, {
-      ...savedTabs.value[idx],
-      filters: newFilters,
-      updatedAt: new Date().toISOString(),
-    });
-  }
-
-  function deleteTab(tabId) {
-    savedTabs.value = savedTabs.value.filter((t) => t.id !== tabId);
-    if (activeTabId.value === tabId) {
+  async function deleteTab(tabId) {
+    await tabs.deleteTab(numericTabId(tabId));
+    if (String(activeTabId.value) === String(tabId)) {
       resetFilters();
     }
   }
 
-  function renameTab(tabId, newName) {
-    const idx = savedTabs.value.findIndex((t) => t.id === tabId);
-    if (idx === -1) return;
-    savedTabs.value = spliceTab(savedTabs.value, idx, {
-      ...savedTabs.value[idx],
-      name: newName,
-      updatedAt: new Date().toISOString(),
-    });
+  async function renameTab(tabId, newName) {
+    await tabs.renameTab(numericTabId(tabId), newName);
   }
 
   return {
@@ -190,6 +148,9 @@ export function useViewMapFilters() {
     savedTabs,
     activeTabId,
     isFilterPanelOpen,
+    isLoading,
+    isReady,
+    lastError,
     hasActiveFilters,
     activeFilterCount,
     isTabLimitReached,
