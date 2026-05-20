@@ -54,10 +54,30 @@ const mockDiagnostics = [
 ];
 
 function setupMock(page) {
-  return mockApi(page, async ({ apiPath }) => {
+  return mockApi(page, async ({ apiPath, method, route }) => {
     if (apiPath === 'auth/check/') return authCheck;
     if (apiPath === 'diagnostics/') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDiagnostics) };
+    }
+    // Pestañas de filtros guardados (persistidas en DB desde el PR #47).
+    if (apiPath === 'accounts/saved-filter-tabs/') {
+      if (method === 'POST') {
+        const payload = route.request().postDataJSON() || {};
+        return {
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            id: 501,
+            view: payload.view || 'diagnostic',
+            name: payload.name,
+            filters: payload.filters || {},
+            order: 0,
+            created_at: '2026-03-20T10:00:00Z',
+            updated_at: '2026-03-20T10:00:00Z',
+          }),
+        };
+      }
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
     }
     return null;
   });
@@ -70,10 +90,6 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
     await setAuthLocalStorage(page, {
       token: 'e2e-admin-token',
       userAuth: { id: 9100, role: 'admin', is_staff: true },
-    });
-    // Clear saved filter tabs so tests start from a clean state.
-    await page.addInitScript(() => {
-      localStorage.removeItem('diagnostic_filter_tabs');
     });
   });
 

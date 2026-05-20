@@ -15,8 +15,8 @@ const authCheck = {
   body: JSON.stringify({ user: { username: 'admin', is_staff: true } }),
 };
 
-const FOLDER_DISENO = { id: 10, name: 'Diseño', slug: 'diseno', order: 0, document_count: 1 };
-const FOLDER_DEV    = { id: 11, name: 'Dev', slug: 'dev', order: 1, document_count: 0 };
+const FOLDER_DISENO = { id: 10, name: 'Diseño', slug: 'diseno', parent: null, order: 0, document_count: 1, children_count: 0 };
+const FOLDER_DEV    = { id: 11, name: 'Dev', slug: 'dev', parent: null, order: 1, document_count: 0, children_count: 0 };
 
 const DOC = {
   id: 5, title: 'Brief de Proyecto', status: 'published',
