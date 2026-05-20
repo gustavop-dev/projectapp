@@ -153,9 +153,10 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
     await page.getByRole('heading', { name: /hosting/i }).first().waitFor({ state: 'visible', timeout: 30000 });
 
     await expect(page.getByRole('heading', { name: 'Activa tu plan de hosting' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Semestral' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Trimestral' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Mensual' })).toBeVisible();
+    // exact: true — the "Activar plan <freq>" CTA also contains the frequency label.
+    await expect(page.getByRole('button', { name: 'Semestral', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Trimestral', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mensual', exact: true })).toBeVisible();
   });
 
   test('client can select a plan and activate subscription', {

@@ -248,7 +248,7 @@ test.describe('Platform Kanban Board — Admin', () => {
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    const projectsLink = page.getByRole('link', { name: 'Proyectos' });
+    const projectsLink = page.locator('header').getByRole('link', { name: 'Proyectos' });
     await expect(projectsLink).toBeVisible();
     await expect(projectsLink).toHaveAttribute('href', /\/platform\/projects$/);
   });
