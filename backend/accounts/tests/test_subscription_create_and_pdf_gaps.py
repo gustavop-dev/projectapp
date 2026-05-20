@@ -96,6 +96,7 @@ def deliverable(project, admin_user):
 def deliverable_with_bp(project, admin_user):
     """Deliverable linked to an accepted BusinessProposal with hosting data."""
     from content.models import BusinessProposal
+    from accounts.models import ProjectPhase
     d = Deliverable.objects.create(
         project=project,
         title='Proposal Deliverable',
@@ -112,6 +113,10 @@ def deliverable_with_bp(project, admin_user):
         hosting_discount_semiannual=20,
         deliverable=d,
     )
+    # After the Phase refactor, Project.linked_business_proposal() reads through
+    # project.phases.first().business_proposal, so the test project needs a phase
+    # that references this proposal.
+    ProjectPhase.objects.create(project=project, business_proposal=bp, order=1)
     d._test_bp = bp
     return d
 

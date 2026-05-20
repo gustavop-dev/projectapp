@@ -3,13 +3,14 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
 from accounts.models import (
-    Deliverable,
     Project,
+    ProjectPhase,
     Requirement,
     RequirementComment,
     RequirementHistory,
     UserProfile,
 )
+from content.models.business_proposal import BusinessProposal
 
 User = get_user_model()
 
@@ -72,89 +73,80 @@ def project(client_user):
 
 
 @pytest.fixture
-def default_deliverable(project, client_user):
-    return Deliverable.objects.create(
-        project=project,
-        title='Board deliverable',
-        category=Deliverable.CATEGORY_OTHER,
-        file=None,
-        uploaded_by=client_user,
-    )
+def default_phase(project):
+    bp = BusinessProposal.objects.create(title='Board proposal', client_name='Carlos')
+    return ProjectPhase.objects.create(project=project, business_proposal=bp, order=1)
 
 
 @pytest.fixture
-def sample_requirements(project, default_deliverable):
+def sample_requirements(project, default_phase):
     reqs = []
     reqs.append(Requirement.objects.create(
-        deliverable=default_deliverable, title='Task A', status='todo', priority='high', order=0,
+        phase=default_phase, title='Task A', status='todo', priority='high', order=0,
     ))
     reqs.append(Requirement.objects.create(
-        deliverable=default_deliverable, title='Task B', status='in_progress', priority='medium', order=0,
+        phase=default_phase, title='Task B', status='in_progress', priority='medium', order=0,
     ))
     reqs.append(Requirement.objects.create(
-        deliverable=default_deliverable, title='Task C', status='done', priority='low', order=0,
+        phase=default_phase, title='Task C', status='done', priority='low', order=0,
     ))
     return reqs
 
 
-def _url(project_id, deliverable_id, suffix=''):
-    return (
-        f'/api/accounts/projects/{project_id}/deliverables/{deliverable_id}/requirements/{suffix}'
-    )
+def _url(project_id, suffix=''):
+    return f'/api/accounts/projects/{project_id}/requirements/{suffix}'
 
 
-def _detail_url(project_id, deliverable_id, req_id, suffix=''):
-    return (
-        f'/api/accounts/projects/{project_id}/deliverables/{deliverable_id}/'
-        f'requirements/{req_id}/{suffix}'
-    )
+def _detail_url(project_id, req_id, suffix=''):
+    return f'/api/accounts/projects/{project_id}/requirements/{req_id}/{suffix}'
 
 
 @pytest.mark.django_db
 class TestRequirementList:
     def test_admin_lists_requirements_for_project(
-        self, api_client, admin_headers, project, default_deliverable, sample_requirements,
+        self, api_client, admin_headers, project, default_phase, sample_requirements,
     ):
-        resp = api_client.get(_url(project.id, default_deliverable.id), **admin_headers)
+        resp = api_client.get(_url(project.id), **admin_headers)
 
         assert resp.status_code == 200
         assert len(resp.json()) == 3
 
     def test_client_lists_requirements_for_own_project(
-        self, api_client, client_headers, project, default_deliverable, sample_requirements,
+        self, api_client, client_headers, project, default_phase, sample_requirements,
     ):
-        resp = api_client.get(_url(project.id, default_deliverable.id), **client_headers)
+        resp = api_client.get(_url(project.id), **client_headers)
 
         assert resp.status_code == 200
         assert len(resp.json()) == 3
 
-    def test_unauthenticated_request_rejected(self, api_client, project, default_deliverable):
-        resp = api_client.get(_url(project.id, default_deliverable.id))
+    def test_unauthenticated_request_rejected(self, api_client, project, default_phase):
+        resp = api_client.get(_url(project.id))
 
         assert resp.status_code == 401
 
-    def test_other_client_cannot_list_requirements(self, api_client, project, default_deliverable):
+    def test_other_client_cannot_list_requirements(self, api_client, project, default_phase):
         other = User.objects.create_user(username='other@r.com', email='other@r.com', password='pass1234')
         UserProfile.objects.create(user=other, role=UserProfile.ROLE_CLIENT, is_onboarded=True, profile_completed=True)
         client = APIClient()
         resp = client.post('/api/accounts/login/', {'email': 'other@r.com', 'password': 'pass1234'})
         token = resp.json()['tokens']['access']
 
-        resp = client.get(_url(project.id, default_deliverable.id), HTTP_AUTHORIZATION=f'Bearer {token}')
+        resp = client.get(_url(project.id), HTTP_AUTHORIZATION=f'Bearer {token}')
 
         assert resp.status_code == 403
 
 
 @pytest.mark.django_db
 class TestRequirementCreate:
-    def test_admin_creates_requirement(self, api_client, admin_headers, project, default_deliverable):
-        resp = api_client.post(_url(project.id, default_deliverable.id), {
+    def test_admin_creates_requirement(self, api_client, admin_headers, project, default_phase):
+        resp = api_client.post(_url(project.id), {
             'title': 'New Task',
             'description': 'Do something.',
             'priority': 'high',
             'status': 'todo',
             'configuration': 'Solo rol: Admin',
             'flow': 'Admin abre panel → crea tarea.',
+            'phase_id': default_phase.id,
         }, format='json', **admin_headers)
 
         assert resp.status_code == 201
@@ -165,20 +157,20 @@ class TestRequirementCreate:
         assert data['flow'] == 'Admin abre panel → crea tarea.'
 
     def test_create_requirement_recalculates_project_progress(
-        self, api_client, admin_headers, project, default_deliverable,
+        self, api_client, admin_headers, project, default_phase,
     ):
-        Requirement.objects.create(deliverable=default_deliverable, title='Done', status='done', order=0)
+        Requirement.objects.create(phase=default_phase, title='Done', status='done', order=0)
 
-        api_client.post(_url(project.id, default_deliverable.id), {
-            'title': 'New Todo', 'status': 'todo',
+        api_client.post(_url(project.id), {
+            'title': 'New Todo', 'status': 'todo', 'phase_id': default_phase.id,
         }, format='json', **admin_headers)
 
         project.refresh_from_db()
         assert project.progress == 50
 
-    def test_client_cannot_create_requirement(self, api_client, client_headers, project, default_deliverable):
-        resp = api_client.post(_url(project.id, default_deliverable.id), {
-            'title': 'Forbidden',
+    def test_client_cannot_create_requirement(self, api_client, client_headers, project, default_phase):
+        resp = api_client.post(_url(project.id), {
+            'title': 'Forbidden', 'phase_id': default_phase.id,
         }, format='json', **client_headers)
 
         assert resp.status_code == 403
@@ -188,7 +180,7 @@ class TestRequirementCreate:
 class TestRequirementDetail:
     def test_admin_gets_requirement_detail_with_history(self, api_client, admin_headers, project, sample_requirements):
         req = sample_requirements[0]
-        resp = api_client.get(_detail_url(project.id, req.deliverable_id, req.id), **admin_headers)
+        resp = api_client.get(_detail_url(project.id, req.id), **admin_headers)
 
         assert resp.status_code == 200
         data = resp.json()
@@ -199,7 +191,7 @@ class TestRequirementDetail:
     def test_admin_updates_requirement(self, api_client, admin_headers, project, sample_requirements):
         req = sample_requirements[0]
         resp = api_client.patch(
-            _detail_url(project.id, req.deliverable_id, req.id),
+            _detail_url(project.id, req.id),
             {'title': 'Updated Task A', 'priority': 'critical'},
             format='json', **admin_headers,
         )
@@ -210,7 +202,7 @@ class TestRequirementDetail:
 
     def test_admin_deletes_requirement(self, api_client, admin_headers, project, sample_requirements):
         req = sample_requirements[0]
-        resp = api_client.delete(_detail_url(project.id, req.deliverable_id, req.id), **admin_headers)
+        resp = api_client.delete(_detail_url(project.id, req.id), **admin_headers)
 
         assert resp.status_code == 200
         assert resp.json()['detail'] == 'Requerimiento archivado.'
@@ -219,7 +211,7 @@ class TestRequirementDetail:
 
     def test_delete_requirement_recalculates_project_progress(self, api_client, admin_headers, project, sample_requirements):
         api_client.delete(
-            _detail_url(project.id, sample_requirements[0].deliverable_id, sample_requirements[0].id),
+            _detail_url(project.id, sample_requirements[0].id),
             **admin_headers,
         )
 
@@ -229,15 +221,15 @@ class TestRequirementDetail:
     def test_client_cannot_update_requirement(self, api_client, client_headers, project, sample_requirements):
         req = sample_requirements[0]
         resp = api_client.patch(
-            _detail_url(project.id, req.deliverable_id, req.id),
+            _detail_url(project.id, req.id),
             {'title': 'Hacked'},
             format='json', **client_headers,
         )
 
         assert resp.status_code == 403
 
-    def test_nonexistent_requirement_returns_404(self, api_client, admin_headers, project, default_deliverable):
-        resp = api_client.get(_detail_url(project.id, default_deliverable.id, 99999), **admin_headers)
+    def test_nonexistent_requirement_returns_404(self, api_client, admin_headers, project, default_phase):
+        resp = api_client.get(_detail_url(project.id, 99999), **admin_headers)
 
         assert resp.status_code == 404
 
@@ -248,7 +240,7 @@ class TestRequirementMove:
         req = sample_requirements[0]
 
         resp = api_client.post(
-            _detail_url(project.id, req.deliverable_id, req.id, 'move/'),
+            _detail_url(project.id, req.id, 'move/'),
             {'status': 'in_progress', 'order': 0},
             format='json', **admin_headers,
         )
@@ -260,7 +252,7 @@ class TestRequirementMove:
         req = sample_requirements[0]
 
         api_client.post(
-            _detail_url(project.id, req.deliverable_id, req.id, 'move/'),
+            _detail_url(project.id, req.id, 'move/'),
             {'status': 'in_review', 'order': 0},
             format='json', **admin_headers,
         )
@@ -275,7 +267,7 @@ class TestRequirementMove:
         req = sample_requirements[0]
 
         api_client.post(
-            _detail_url(project.id, req.deliverable_id, req.id, 'move/'),
+            _detail_url(project.id, req.id, 'move/'),
             {'status': 'done', 'order': 0},
             format='json', **admin_headers,
         )
@@ -287,7 +279,7 @@ class TestRequirementMove:
         req = sample_requirements[0]
 
         resp = api_client.post(
-            _detail_url(project.id, req.deliverable_id, req.id, 'move/'),
+            _detail_url(project.id, req.id, 'move/'),
             {'status': 'in_progress', 'order': 0},
             format='json', **client_headers,
         )
@@ -298,7 +290,7 @@ class TestRequirementMove:
         req = sample_requirements[0]
 
         api_client.post(
-            _detail_url(project.id, req.deliverable_id, req.id, 'move/'),
+            _detail_url(project.id, req.id, 'move/'),
             {'status': 'todo', 'order': 1},
             format='json', **admin_headers,
         )
@@ -312,7 +304,7 @@ class TestRequirementComments:
         req = sample_requirements[0]
 
         resp = api_client.post(
-            _detail_url(project.id, req.deliverable_id, req.id, 'comments/'),
+            _detail_url(project.id, req.id, 'comments/'),
             {'content': 'Looking good!', 'is_internal': False},
             format='json', **admin_headers,
         )
@@ -326,7 +318,7 @@ class TestRequirementComments:
         req = sample_requirements[0]
 
         resp = api_client.post(
-            _detail_url(project.id, req.deliverable_id, req.id, 'comments/'),
+            _detail_url(project.id, req.id, 'comments/'),
             {'content': 'Internal note', 'is_internal': True},
             format='json', **admin_headers,
         )
@@ -338,7 +330,7 @@ class TestRequirementComments:
         req = sample_requirements[0]
 
         resp = api_client.post(
-            _detail_url(project.id, req.deliverable_id, req.id, 'comments/'),
+            _detail_url(project.id, req.id, 'comments/'),
             {'content': 'Client feedback'},
             format='json', **client_headers,
         )
@@ -349,7 +341,7 @@ class TestRequirementComments:
         req = sample_requirements[0]
 
         api_client.post(
-            _detail_url(project.id, req.deliverable_id, req.id, 'comments/'),
+            _detail_url(project.id, req.id, 'comments/'),
             {'content': 'Trying internal', 'is_internal': True},
             format='json', **client_headers,
         )
@@ -366,7 +358,7 @@ class TestRequirementComments:
             requirement=req, user=admin_user, content='Public', is_internal=False,
         )
 
-        resp = api_client.get(_detail_url(project.id, req.deliverable_id, req.id), **client_headers)
+        resp = api_client.get(_detail_url(project.id, req.id), **client_headers)
 
         comments = resp.json()['comments']
         assert len(comments) == 1
@@ -381,7 +373,7 @@ class TestRequirementComments:
             requirement=req, user=admin_user, content='Public', is_internal=False,
         )
 
-        resp = api_client.get(_detail_url(project.id, req.deliverable_id, req.id), **admin_headers)
+        resp = api_client.get(_detail_url(project.id, req.id), **admin_headers)
 
         comments = resp.json()['comments']
         assert len(comments) == 2
@@ -393,7 +385,7 @@ class TestProgressSync:
         req = sample_requirements[0]
 
         api_client.patch(
-            _detail_url(project.id, req.deliverable_id, req.id),
+            _detail_url(project.id, req.id),
             {'status': 'done'},
             format='json', **admin_headers,
         )

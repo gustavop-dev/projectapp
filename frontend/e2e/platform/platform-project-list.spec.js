@@ -128,15 +128,18 @@ test.describe('Platform Project List — Admin', () => {
     await expect(page.getByText(/no hay proyectos creados/i)).toBeVisible();
   });
 
-  test('clicking a project card navigates to project detail', {
+  test('clicking a project row navigates to project detail', {
     tag: [...PLATFORM_PROJECT_LIST, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupProjectMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
 
-    const projectLink = page.getByRole('link', { name: /e-commerce platform/i });
-    // i18n prefix strategy adds locale prefix to all hrefs
-    await expect(projectLink).toHaveAttribute('href', /\/platform\/projects\/1$/);
+    const projectRow = page.getByTestId('project-row-1');
+    await expect(projectRow).toBeVisible();
+    await projectRow.click();
+
+    // i18n prefix strategy adds locale prefix to all routes
+    await expect(page).toHaveURL(/\/platform\/projects\/1$/);
   });
 });
 

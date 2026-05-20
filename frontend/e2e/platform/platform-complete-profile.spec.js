@@ -153,7 +153,7 @@ test.describe('Platform Complete Profile', () => {
     await expect(page).toHaveURL(/\/platform\/login/);
   });
 
-  test('user with completed profile is redirected to dashboard', {
+  test('user with completed profile is redirected away from complete-profile', {
     tag: [...PLATFORM_COMPLETE_PROFILE, '@role:platform-admin'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformAdmin });
@@ -165,11 +165,15 @@ test.describe('Platform Complete Profile', () => {
       if (apiPath === 'accounts/clients/') {
         return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
       }
+      if (apiPath === 'accounts/projects/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
       return null;
     });
 
+    // The /platform/dashboard route was removed — it redirects to projects.
     await page.goto('/platform/complete-profile', { waitUntil: 'domcontentloaded' });
-    await page.waitForURL('**/platform/dashboard', { timeout: 30000 });
-    await expect(page).toHaveURL(/\/platform\/dashboard/);
+    await page.waitForURL('**/platform/projects**', { timeout: 30000 });
+    await expect(page).toHaveURL(/\/platform\/projects/);
   });
 });

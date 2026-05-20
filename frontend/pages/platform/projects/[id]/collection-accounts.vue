@@ -1,15 +1,9 @@
 <template>
-  <div id="platform-project-collection-accounts" class="space-y-6">
-    <NuxtLink
-      :to="localePath(`/platform/projects/${projectId}`)"
-      class="text-sm text-green-light hover:text-text-default dark:hover:text-white"
-    >
-      ← Back to project
-    </NuxtLink>
-
+  <ProjectShell>
+    <div id="platform-project-collection-accounts" class="space-y-6">
     <div data-enter>
-      <h1 class="text-2xl font-bold text-text-default">Collection accounts</h1>
-      <p class="mt-1 text-sm text-green-light">Documents for this project.</p>
+      <h1 class="text-2xl font-bold text-text-default">Cuentas de cobro</h1>
+      <p class="mt-1 text-sm text-green-light">Documentos de este proyecto.</p>
     </div>
 
     <div v-if="store.isLoading" class="py-20 text-center">
@@ -28,23 +22,19 @@
           <p class="font-medium text-text-default">{{ row.title }}</p>
           <p class="text-xs text-green-light">{{ row.public_number || 'draft' }} · {{ row.commercial_status }}</p>
         </div>
-        <NuxtLink
-          :to="localePath(`/platform/collection-accounts/${row.id}`)"
-          class="text-sm font-medium text-text-brand"
-        >
-          Open
-        </NuxtLink>
+        <!-- Detalle de cuenta de cobro en pausa: la vista está deshabilitada hasta retomar la feature. -->
       </li>
     </ul>
   </div>
+  </ProjectShell>
 </template>
 
 <script setup>
 import { computed, onMounted } from 'vue'
 import { usePlatformCollectionAccountsStore } from '~/stores/platform-collection-accounts'
+import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 const route = useRoute()
-const localePath = useLocalePath()
 
 definePageMeta({
   layout: 'platform',

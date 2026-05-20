@@ -1,5 +1,6 @@
 <template>
-  <div id="platform-deliverables">
+  <ProjectShell>
+    <div id="platform-deliverables">
     <!-- Loading -->
     <div v-if="store.isLoading && !store.deliverables.length" class="py-20 text-center">
       <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
@@ -9,32 +10,21 @@
       <!-- Header -->
       <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" data-enter>
         <div>
-          <NuxtLink :to="localePath('/platform/deliverables')" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-            Entregables
-          </NuxtLink>
-          <h1 class="text-xl font-bold text-text-default sm:text-2xl">Entregables</h1>
+          <h1 class="text-xl font-bold text-text-default sm:text-2xl">Recursos</h1>
+          <p class="mt-1 text-xs text-green-light/70">Archivos compartidos del proyecto.</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-          <label
-            v-if="authStore.isAdmin"
-            class="flex cursor-pointer items-center gap-2 rounded-full border border-border-default px-3 py-1.5 text-xs font-medium text-green-light"
-          >
-            <input v-model="includeArchived" type="checkbox" class="rounded border-border-default" />
-            Mostrar archivados
-          </label>
           <span class="rounded-full border border-border-default px-3 py-1.5 text-xs font-semibold text-green-light">
             {{ store.totalCount }} archivos
           </span>
           <button
-            v-if="authStore.isAdmin"
             type="button"
             class="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-text-default transition hover:brightness-105"
             @click="openCreateModal"
           >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-            Subir archivo
+            Subir recurso
           </button>
         </div>
       </div>
@@ -55,54 +45,55 @@
         </button>
       </div>
 
-      <!-- Grouped by category -->
-      <div v-if="filteredGroups.length" class="space-y-8" data-enter>
-        <div v-for="group in filteredGroups" :key="group.category">
-          <div class="mb-3 flex items-center gap-2">
-            <span class="h-2 w-2 rounded-full" :class="categoryDotClass(group.category)" />
-            <span class="text-xs font-semibold uppercase tracking-wider text-text-default">{{ categoryLabel(group.category) }}</span>
-            <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-green-light dark:bg-white/10">
-              {{ group.items.length }}
-            </span>
-          </div>
-
-          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <div
-              v-for="d in group.items"
+      <!-- Table -->
+      <div v-if="filteredItems.length" class="overflow-hidden rounded-2xl border border-border-default bg-surface" data-enter>
+        <table class="min-w-full text-left text-sm">
+          <thead class="bg-surface-muted/40 text-xs font-medium uppercase tracking-wider text-green-light/70">
+            <tr>
+              <th class="px-4 py-3">Recurso</th>
+              <th class="px-4 py-3">Categoría</th>
+              <th class="px-4 py-3">Subido por</th>
+              <th class="px-4 py-3">Tamaño</th>
+              <th class="px-4 py-3">Versión</th>
+              <th class="px-4 py-3">Actualizado</th>
+              <th class="w-10 px-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="d in filteredItems"
               :key="d.id"
-              class="group cursor-pointer rounded-2xl border border-border-default bg-surface p-5 transition hover:border-border-default hover:shadow-md dark:hover:border-white/12"
-              :class="d.is_archived ? 'opacity-85' : ''"
+              class="cursor-pointer border-t border-border-muted transition hover:bg-primary-soft"
+              :class="d.is_archived ? 'opacity-70' : ''"
               @click="openDetailModal(d)"
             >
-              <div class="mb-3 flex items-start justify-between gap-2">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" :class="categoryIconBg(d.category)">
-                  <span class="text-lg">{{ categoryIcon(d.category) }}</span>
-                </div>
-                <div class="flex shrink-0 flex-col items-end gap-1">
-                  <span v-if="d.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[9px] font-semibold uppercase text-text-muted dark:text-text-subtle">
-                    Archivado
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" :class="categoryIconBg(d.category)">
+                    <span class="text-base">{{ categoryIcon(d.category) }}</span>
                   </span>
-                  <span class="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-green-light dark:bg-white/10">
-                    v{{ d.current_version }}
-                  </span>
+                  <div class="min-w-0">
+                    <p class="truncate font-medium text-text-default">{{ d.title }}</p>
+                    <p class="truncate text-[11px] text-green-light/60">{{ d.file_name || '—' }}</p>
+                  </div>
                 </div>
-              </div>
-              <h4 class="text-sm font-semibold text-text-default">{{ d.title }}</h4>
-              <p v-if="d.description" class="mt-1 line-clamp-2 text-xs text-green-light">{{ d.description }}</p>
-              <div class="mt-3 flex items-center justify-between text-[10px] text-green-light/60">
-                <span>{{ d.file_name || '—' }}</span>
-                <span>{{ formatDate(d.updated_at) }}</span>
-              </div>
-              <NuxtLink
-                :to="localePath(`/platform/projects/${projectId}/deliverables/${d.id}`)"
-                class="mt-3 inline-block text-xs font-medium text-text-brand"
-                @click.stop
-              >
-                Ficha: documentos y Kanban →
-              </NuxtLink>
-            </div>
-          </div>
-        </div>
+              </td>
+              <td class="px-4 py-3">
+                <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="categoryBadgeClass(d.category)">
+                  {{ categoryLabel(d.category) }}
+                </span>
+                <span v-if="d.is_archived" class="ml-1 rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">
+                  Archivado
+                </span>
+              </td>
+              <td class="px-4 py-3 text-xs text-green-light">{{ d.uploaded_by_name }}</td>
+              <td class="px-4 py-3 text-xs text-green-light/70">{{ formatBytes(d.file_size) }}</td>
+              <td class="px-4 py-3 text-xs text-green-light/70">v{{ d.current_version }}</td>
+              <td class="px-4 py-3 text-xs text-green-light/70">{{ formatDate(d.updated_at) }}</td>
+              <td class="px-2 py-3 text-right text-green-light/40">›</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <!-- Empty -->
@@ -110,12 +101,12 @@
         <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-muted/50 dark:bg-white/5">
           <svg class="h-8 w-8 text-green-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
         </div>
-        <p class="text-sm text-green-light">No hay entregables aún.</p>
-        <button v-if="authStore.isAdmin" type="button" class="mt-4 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105" @click="openCreateModal">
-          Subir primer archivo
+        <p class="text-sm text-green-light">No hay recursos aún.</p>
+        <button type="button" class="mt-4 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105" @click="openCreateModal">
+          Subir primer recurso
         </button>
       </div>
-    </template>
+</template>
 
     <!-- Create modal -->
     <Teleport to="body">
@@ -123,11 +114,11 @@
         <div v-if="isCreateOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm" @click.self="isCreateOpen = false">
           <Transition name="modal-content" appear>
             <div v-if="isCreateOpen" class="w-full max-w-md rounded-3xl border border-border-default bg-surface p-6 shadow-2xl sm:p-8">
-              <h2 class="mb-5 text-lg font-bold text-text-default">Subir entregable</h2>
+              <h2 class="mb-5 text-lg font-bold text-text-default">Subir recurso</h2>
               <form class="space-y-4" @submit.prevent="handleCreate">
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Título <span class="text-red-400">*</span></label>
-                  <input v-model="createForm.title" type="text" required placeholder="Nombre del entregable" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                  <input v-model="createForm.title" type="text" required placeholder="Nombre del recurso" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                 </div>
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Descripción</label>
@@ -135,30 +126,30 @@
                 </div>
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Categoría</label>
-                  <select v-model="createForm.category" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40">
-                    <option value="designs">Diseños</option>
-                    <option value="credentials">Credenciales</option>
-                    <option value="documents">Documentos</option>
-                    <option value="contract">Contrato</option>
-                    <option value="amendment">Otrosí</option>
-                    <option value="legal_annex">Anexo legal</option>
-                    <option value="apks">APKs / Builds</option>
-                    <option value="other">Otros</option>
+                  <select v-model="createForm.category" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40" @change="onCategoryChange">
+                    <option v-for="opt in uploadableCategories" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
                   </select>
+                  <p v-if="!authStore.isAdmin" class="mt-1 text-[10px] text-green-light/60">
+                    Contrato, otrosí, anexo legal y diseños los sube el equipo.
+                  </p>
                 </div>
                 <!-- File upload -->
                 <div>
-                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Archivo <span class="text-red-400">*</span></label>
+                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">
+                    Archivo <span class="text-red-400">*</span>
+                    <span class="ml-1 font-normal text-green-light/60">({{ acceptedExtensionLabel }})</span>
+                  </label>
                   <div
                     class="relative flex min-h-[80px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border-default bg-surface-muted/20 transition hover:border-border-default dark:hover:border-white/20"
                     @click="$refs.fileInput.click()"
                     @dragover.prevent
                     @drop.prevent="handleFileDrop"
                   >
-                    <input ref="fileInput" type="file" class="hidden" @change="handleFileSelect" />
+                    <input ref="fileInput" type="file" class="hidden" :accept="acceptedExtension" @change="handleFileSelect" />
                     <div v-if="!selectedFile" class="py-4 text-center">
                       <svg class="mx-auto mb-1.5 h-6 w-6 text-green-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                       <p class="text-[11px] text-green-light/50">Arrastra o haz clic para subir</p>
+                      <p class="mt-1 text-[10px] text-green-light/40">Se acepta {{ acceptedExtensionLabel }}</p>
                     </div>
                     <div v-else class="flex w-full items-center gap-3 px-4 py-3">
                       <svg class="h-5 w-5 shrink-0 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -169,6 +160,10 @@
                     </div>
                   </div>
                 </div>
+                <p v-if="createError" class="rounded-xl border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-600 dark:text-red-400">
+                  {{ createError }}
+                </p>
+
                 <div class="flex justify-end gap-3 pt-2">
                   <button type="button" class="rounded-xl border border-border-default px-5 py-2.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="isCreateOpen = false">Cancelar</button>
                   <button type="submit" :disabled="!createForm.title.trim() || !selectedFile || store.isUpdating" class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50">
@@ -264,32 +259,13 @@
               </div>
 
               <!-- Admin actions -->
-              <div v-if="authStore.isAdmin" class="flex flex-wrap gap-2">
+              <div v-if="authStore.isAdmin && !detailItem.is_archived" class="flex flex-wrap gap-2">
                 <button
-                  v-if="detailItem.is_archived"
-                  type="button"
-                  class="rounded-xl border border-emerald-500/30 px-4 py-2 text-xs font-medium text-text-brand transition hover:bg-emerald-500/10 dark:border-emerald-500/25"
-                  :disabled="store.isUpdating"
-                  @click="handleRestore"
-                >
-                  {{ store.isUpdating ? '…' : 'Restaurar' }}
-                </button>
-                <button
-                  v-else
                   type="button"
                   class="rounded-xl border border-border-default px-4 py-2 text-xs font-medium text-text-default transition hover:bg-surface-muted dark:text-white dark:hover:bg-white/10"
                   @click="openUploadVersion"
                 >
                   Subir nueva versión
-                </button>
-                <button
-                  v-if="!detailItem.is_archived"
-                  type="button"
-                  class="rounded-xl border border-red-200 px-4 py-2 text-xs font-medium text-red-500 transition hover:bg-red-50 dark:border-red-500/20 dark:hover:bg-red-500/10"
-                  :disabled="store.isUpdating"
-                  @click="handleDelete"
-                >
-                  Archivar
                 </button>
               </div>
             </div>
@@ -305,14 +281,15 @@
           <Transition name="modal-content" appear>
             <div v-if="isVersionUploadOpen" class="w-full max-w-sm rounded-3xl border border-border-default bg-surface p-6 shadow-2xl sm:p-8">
               <h2 class="mb-4 text-lg font-bold text-text-default">Nueva versión</h2>
-              <p class="mb-4 text-xs text-green-light">Será la versión {{ (detailItem?.current_version || 0) + 1 }} de "{{ detailItem?.title }}"</p>
+              <p class="mb-1 text-xs text-green-light">Será la versión {{ (detailItem?.current_version || 0) + 1 }} de "{{ detailItem?.title }}"</p>
+              <p class="mb-4 text-[11px] text-green-light/60">Se acepta {{ versionAcceptedExtensionLabel }}</p>
               <div
                 class="relative mb-4 flex min-h-[80px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border-default bg-surface-muted/20 transition hover:border-border-default dark:hover:border-white/20"
                 @click="$refs.versionFileInput.click()"
                 @dragover.prevent
                 @drop.prevent="handleVersionDrop"
               >
-                <input ref="versionFileInput" type="file" class="hidden" @change="handleVersionSelect" />
+                <input ref="versionFileInput" type="file" class="hidden" :accept="versionAcceptedExtension" @change="handleVersionSelect" />
                 <div v-if="!versionFile" class="py-4 text-center">
                   <svg class="mx-auto mb-1.5 h-6 w-6 text-green-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                   <p class="text-[11px] text-green-light/50">Selecciona el archivo</p>
@@ -336,15 +313,16 @@
       </Transition>
     </Teleport>
   </div>
+  </ProjectShell>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
-import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformDeliverablesStore } from '~/stores/platform-deliverables'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
+import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
 usePageEntrance('#platform-deliverables')
@@ -354,7 +332,6 @@ const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const store = usePlatformDeliverablesStore()
 const projectsStore = usePlatformProjectsStore()
-const includeArchived = usePlatformIncludeArchived()
 
 const projectId = computed(() => route.params.id)
 const projectName = computed(() => projectsStore.currentProject?.name || 'Proyecto')
@@ -367,19 +344,48 @@ const categoryTabs = [
   { value: 'contract', label: 'Contrato' },
   { value: 'amendment', label: 'Otrosí' },
   { value: 'legal_annex', label: 'Anexo legal' },
-  { value: 'credentials', label: 'Credenciales' },
-  { value: 'apks', label: 'APKs / Builds' },
   { value: 'other', label: 'Otros' },
 ]
 
-const filteredGroups = computed(() => {
-  if (activeCategory.value === 'all') return store.groupedByCategory
-  return store.groupedByCategory.filter((g) => g.category === activeCategory.value)
+const ADMIN_ONLY_CATEGORIES = ['designs', 'contract', 'amendment', 'legal_annex']
+
+const uploadableCategories = computed(() => {
+  const all = [
+    { value: 'documents', label: 'Documentos' },
+    { value: 'designs', label: 'Diseños' },
+    { value: 'contract', label: 'Contrato' },
+    { value: 'amendment', label: 'Otrosí' },
+    { value: 'legal_annex', label: 'Anexo legal' },
+    { value: 'other', label: 'Otros' },
+  ]
+  if (authStore.isAdmin) return all
+  return all.filter((c) => !ADMIN_ONLY_CATEGORIES.includes(c.value))
 })
+
+const filteredItems = computed(() => {
+  const groups = store.groupedByCategory || []
+  const flat = []
+  for (const g of groups) {
+    if (activeCategory.value !== 'all' && g.category !== activeCategory.value) continue
+    for (const d of g.items) flat.push(d)
+  }
+  return flat
+})
+
+function categoryAcceptInfo(cat) {
+  if (cat === 'designs') return { accept: '.zip,application/zip', label: '.zip' }
+  return { accept: '.pdf,application/pdf', label: '.pdf' }
+}
+
+const acceptedExtension = computed(() => categoryAcceptInfo(createForm.category).accept)
+const acceptedExtensionLabel = computed(() => categoryAcceptInfo(createForm.category).label)
+const versionAcceptedExtension = computed(() => categoryAcceptInfo(detailItem.value?.category).accept)
+const versionAcceptedExtensionLabel = computed(() => categoryAcceptInfo(detailItem.value?.category).label)
 
 const isCreateOpen = ref(false)
 const createForm = reactive({ title: '', description: '', category: 'other' })
 const selectedFile = ref(null)
+const createError = ref('')
 
 const detailItem = ref(null)
 const isVersionUploadOpen = ref(false)
@@ -387,44 +393,34 @@ const versionFile = ref(null)
 
 function categoryLabel(cat) {
   const map = {
-    designs: 'Diseños', credentials: 'Credenciales', documents: 'Documentos',
+    designs: 'Diseños', documents: 'Documentos',
     contract: 'Contrato', amendment: 'Otrosí', legal_annex: 'Anexo legal',
-    apks: 'APKs / Builds', other: 'Otros',
+    other: 'Otros',
   }
   return map[cat] || cat
 }
-function categoryDotClass(cat) {
-  const map = {
-    designs: 'bg-purple-500', credentials: 'bg-amber-500', documents: 'bg-blue-500',
-    contract: 'bg-teal-500', amendment: 'bg-orange-500', legal_annex: 'bg-indigo-500',
-    apks: 'bg-emerald-500', other: 'bg-gray-400',
-  }
-  return map[cat] || 'bg-gray-400'
-}
 function categoryIconBg(cat) {
   const map = {
-    designs: 'bg-purple-500/10', credentials: 'bg-amber-500/10', documents: 'bg-blue-500/10',
+    designs: 'bg-purple-500/10', documents: 'bg-blue-500/10',
     contract: 'bg-teal-500/10', amendment: 'bg-orange-500/10', legal_annex: 'bg-indigo-500/10',
-    apks: 'bg-emerald-500/10', other: 'bg-gray-500/10',
+    other: 'bg-gray-500/10',
   }
   return map[cat] || 'bg-gray-500/10'
 }
 function categoryIcon(cat) {
   const map = {
-    designs: '🎨', credentials: '🔑', documents: '📄', contract: '📜', amendment: '✏️',
-    legal_annex: '⚖️', apks: '📱', other: '📦',
+    designs: '🎨', documents: '📄', contract: '📜', amendment: '✏️',
+    legal_annex: '⚖️', other: '📦',
   }
   return map[cat] || '📦'
 }
 function categoryBadgeClass(cat) {
   const map = {
     designs: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
-    credentials: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     documents: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     contract: 'bg-teal-500/15 text-teal-600 dark:text-teal-400',
     amendment: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
     legal_annex: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400',
-    apks: 'bg-emerald-500/15 text-text-brand',
     other: 'bg-gray-500/15 text-text-muted',
   }
   return map[cat] || map.other
@@ -433,23 +429,43 @@ function formatDate(value) {
   if (!value) return '—'
   return new Date(value).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
 }
+function formatBytes(bytes) {
+  if (!bytes || bytes <= 0) return '—'
+  const units = ['B', 'KB', 'MB', 'GB']
+  let i = 0
+  let val = bytes
+  while (val >= 1024 && i < units.length - 1) {
+    val /= 1024
+    i++
+  }
+  return `${val.toFixed(val >= 10 || i === 0 ? 0 : 1)} ${units[i]}`
+}
 
 function openCreateModal() {
   createForm.title = ''; createForm.description = ''; createForm.category = 'other'
-  selectedFile.value = null; isCreateOpen.value = true
+  selectedFile.value = null; createError.value = ''; isCreateOpen.value = true
 }
-function handleFileSelect(event) { selectedFile.value = event.target.files?.[0] || null }
-function handleFileDrop(event) { selectedFile.value = event.dataTransfer.files?.[0] || null }
+function handleFileSelect(event) { selectedFile.value = event.target.files?.[0] || null; createError.value = '' }
+function handleFileDrop(event) { selectedFile.value = event.dataTransfer.files?.[0] || null; createError.value = '' }
+function onCategoryChange() {
+  selectedFile.value = null
+  createError.value = ''
+}
 
 async function handleCreate() {
   if (!createForm.title.trim() || !selectedFile.value) return
+  createError.value = ''
   const fd = new FormData()
   fd.append('title', createForm.title)
   fd.append('description', createForm.description)
   fd.append('category', createForm.category)
   fd.append('file', selectedFile.value)
   const result = await store.createDeliverable(projectId.value, fd)
-  if (result.success) isCreateOpen.value = false
+  if (result.success) {
+    isCreateOpen.value = false
+  } else {
+    createError.value = result.message
+  }
 }
 
 async function openDetailModal(d) {
@@ -471,23 +487,7 @@ async function handleUploadVersion() {
 }
 
 async function loadDeliverables() {
-  await store.fetchDeliverables(projectId.value, null, authStore.isAdmin && includeArchived.value)
-}
-
-async function handleDelete() {
-  if (!detailItem.value) return
-  if (!window.confirm('¿Archivar este entregable? Podrás verlo otra vez activando "Mostrar archivados".')) return
-  const result = await store.deleteDeliverable(projectId.value, detailItem.value.id)
-  if (result.success) detailItem.value = null
-}
-
-async function handleRestore() {
-  if (!detailItem.value?.is_archived) return
-  const result = await store.updateDeliverable(projectId.value, detailItem.value.id, { is_archived: false })
-  if (result.success) {
-    detailItem.value = result.data
-    await loadDeliverables()
-  }
+  await store.fetchDeliverables(projectId.value, null, false)
 }
 
 onMounted(async () => {
@@ -497,7 +497,7 @@ onMounted(async () => {
   ])
 })
 
-watch([includeArchived, projectId], () => {
+watch(projectId, () => {
   loadDeliverables()
 })
 </script>

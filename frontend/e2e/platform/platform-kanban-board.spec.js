@@ -30,6 +30,10 @@ const mockProject = {
   estimated_end_date: '2025-06-30',
 };
 
+const mockPhases = [
+  { id: 1, order: 1, proposal: { title: 'Fase inicial' } },
+];
+
 const mockRequirements = [
   {
     id: 101,
@@ -42,6 +46,20 @@ const mockRequirements = [
     order: 0,
     comments_count: 2,
     created_at: '2025-01-15T10:00:00Z',
+    history: [],
+    comments: [],
+  },
+  {
+    id: 100,
+    title: 'Notificaciones por correo',
+    description: 'Enviar correos transaccionales.',
+    configuration: '',
+    flow: '',
+    status: 'backlog',
+    priority: 'medium',
+    order: 0,
+    comments_count: 0,
+    created_at: '2025-01-09T10:00:00Z',
     history: [],
     comments: [],
   },
@@ -103,40 +121,39 @@ function setupPlatformMocks(page, { user }) {
     if (apiPath === 'accounts/projects/1/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProject) };
     }
-    if (apiPath === 'accounts/projects/1/deliverables/' && method === 'GET') {
-      return {
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([{ id: 1, title: 'Main', has_business_proposal: true }]),
-      };
-    }
-    if (apiPath === 'accounts/projects/1/deliverables/1/requirements/' && method === 'GET') {
-      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockRequirements) };
-    }
     if (apiPath === 'accounts/projects/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProject]) };
     }
-    if (apiPath.match(/accounts\/projects\/1\/deliverables\/1\/requirements\/\d+\/$/) && method === 'GET') {
+    if (apiPath === 'accounts/projects/1/phases/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockPhases) };
+    }
+    if (apiPath === 'accounts/projects/1/requirements/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockRequirements) };
+    }
+    if (apiPath === 'accounts/projects/1/requirements/bulk/' && method === 'POST') {
+      return { status: 201, contentType: 'application/json', body: JSON.stringify({ created: 0, requirements: [] }) };
+    }
+    if (apiPath.match(/accounts\/projects\/1\/requirements\/\d+\/move\/$/) && method === 'POST') {
       const id = parseInt(apiPath.match(/requirements\/(\d+)/)[1], 10);
-      const req = mockRequirements.find((r) => r.id === id);
-      return { status: 200, contentType: 'application/json', body: JSON.stringify(req || mockRequirements[0]) };
+      const req = mockRequirements.find((r) => r.id === id) || mockRequirements[0];
+      return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...req, status: 'done' }) };
     }
-    if (apiPath.match(/accounts\/projects\/1\/deliverables\/1\/requirements\/\d+\/move\/$/) && method === 'POST') {
-      return { status: 200, contentType: 'application/json', body: JSON.stringify({ detail: 'Movido.' }) };
-    }
-    if (apiPath === 'accounts/projects/1/deliverables/1/requirements/' && method === 'POST') {
-      return {
-        status: 201,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 200, title: 'New req', status: 'todo', priority: 'medium', comments_count: 0 }),
-      };
-    }
-    if (apiPath.match(/accounts\/projects\/1\/deliverables\/1\/requirements\/\d+\/comments\/$/) && method === 'POST') {
+    if (apiPath.match(/accounts\/projects\/1\/requirements\/\d+\/comments\/$/) && method === 'POST') {
       return {
         status: 201,
         contentType: 'application/json',
         body: JSON.stringify({ id: 50, user_name: user.first_name, content: 'Test comment', is_internal: false, created_at: new Date().toISOString() }),
       };
+    }
+    if (apiPath.match(/accounts\/projects\/1\/requirements\/\d+\/$/) && method === 'GET') {
+      const id = parseInt(apiPath.match(/requirements\/(\d+)/)[1], 10);
+      const req = mockRequirements.find((r) => r.id === id);
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(req || mockRequirements[0]) };
+    }
+    if (apiPath.match(/accounts\/projects\/1\/requirements\/\d+\/$/) && method === 'PATCH') {
+      const id = parseInt(apiPath.match(/requirements\/(\d+)/)[1], 10);
+      const req = mockRequirements.find((r) => r.id === id) || mockRequirements[0];
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(req) };
     }
     return null;
   });
@@ -150,7 +167,7 @@ test.describe('Platform Kanban Board — Admin', () => {
     await setPlatformAuth(page, { user: mockPlatformAdmin });
   });
 
-  test('renders board with three columns and cards distributed by status', {
+  test('renders board with the kanban columns and cards distributed by status', {
     tag: [...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupPlatformMocks(page, { user: mockPlatformAdmin });
@@ -160,6 +177,7 @@ test.describe('Platform Kanban Board — Admin', () => {
     await expect(page.getByText('Por hacer')).toBeVisible();
     await expect(page.getByText('En progreso')).toBeVisible();
     await expect(page.getByText('En revisión')).toBeVisible();
+    await expect(page.getByText('Aprobado')).toBeVisible();
 
     await expect(page.getByText('Diseño de landing page')).toBeVisible();
     await expect(page.getByText('API de autenticación')).toBeVisible();
@@ -173,23 +191,23 @@ test.describe('Platform Kanban Board — Admin', () => {
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await expect(page.getByText('1/4')).toBeVisible();
+    await expect(page.getByText('1/5')).toBeVisible();
+    await expect(page.getByText('20%')).toBeVisible();
   });
 
-  test('admin can open create requirement modal and submit new card', {
+  test('admin can open the import JSON modal and close it', {
     tag: [...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupPlatformMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await page.getByRole('button', { name: /card/i }).click();
-    await expect(page.getByText('Nuevo requerimiento')).toBeVisible();
+    await page.getByRole('button', { name: /importar json/i }).click();
+    const modalHeading = page.getByRole('heading', { name: 'Importar JSON' });
+    await expect(modalHeading).toBeVisible();
 
-    await page.getByPlaceholder('Título del requerimiento').fill('New E2E requirement');
-    await page.getByRole('button', { name: /crear/i }).click();
-
-    await expect(page.getByText('Nuevo requerimiento')).not.toBeVisible({ timeout: 5000 });
+    await page.getByRole('button', { name: /cancelar/i }).click();
+    await expect(modalHeading).not.toBeVisible({ timeout: 5000 });
   });
 
   test('clicking a card opens the detail modal with description and meta', {
@@ -199,48 +217,47 @@ test.describe('Platform Kanban Board — Admin', () => {
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await page.getByText('Diseño de landing page').click();
+    await page.getByRole('heading', { name: 'Diseño de landing page' }).click();
 
-    await expect(page.getByText('Crear wireframes y diseño final')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Crear wireframes y diseño final', { exact: false })).toBeVisible({ timeout: 10000 });
     await expect(page.getByText('Descripción', { exact: false })).toBeVisible();
-    await expect(page.getByText('Comentarios')).toBeVisible();
+    await expect(page.getByText('Comentarios', { exact: false })).toBeVisible();
   });
 
-  test('completed cards section toggles visibility', {
+  test('backlog section toggles visibility', {
     tag: [...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupPlatformMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    const completedBtn = page.getByRole('button', { name: /completados/i });
-    await expect(completedBtn).toBeVisible();
+    const backlogBtn = page.getByRole('button', { name: /backlog/i });
+    await expect(backlogBtn).toBeVisible();
 
-    await completedBtn.click();
-    await expect(page.getByText('Tests unitarios modelos')).toBeVisible();
+    await backlogBtn.click();
+    await expect(page.getByText('Notificaciones por correo')).toBeVisible();
 
-    await completedBtn.click();
-    await expect(page.getByText('Tests unitarios modelos')).not.toBeVisible();
+    await backlogBtn.click();
+    await expect(page.getByText('Notificaciones por correo')).not.toBeVisible();
   });
 
-  test('back link navigates to unified board', {
+  test('breadcrumb links back to the projects list', {
     tag: [...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupPlatformMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    const main = page.locator('main');
-    const backLink = main.getByRole('link', { name: 'Tablero' });
-    await expect(backLink).toBeVisible();
-    await expect(backLink).toHaveAttribute('href', /\/platform\/board$/);
+    const projectsLink = page.locator('header').getByRole('link', { name: 'Proyectos' });
+    await expect(projectsLink).toBeVisible();
+    await expect(projectsLink).toHaveAttribute('href', /\/platform\/projects$/);
   });
 });
 
 test.describe('Platform Kanban Board — Client', () => {
   test.setTimeout(60_000);
 
-  test('client sees board but cannot create cards', {
+  test('client sees board but no admin import actions', {
     tag: [...PLATFORM_KANBAN_BOARD, '@role:platform-client'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformClient });
@@ -250,6 +267,7 @@ test.describe('Platform Kanban Board — Client', () => {
 
     await expect(page.getByText('Diseño de landing page')).toBeVisible();
 
-    await expect(page.getByRole('button', { name: /card/i })).not.toBeVisible();
+    await expect(page.getByRole('button', { name: /importar json/i })).not.toBeVisible();
+    await expect(page.getByRole('button', { name: /ejemplo/i })).not.toBeVisible();
   });
 });

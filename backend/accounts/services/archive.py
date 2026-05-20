@@ -27,15 +27,11 @@ def filter_change_requests_for_list(qs, request, *, is_admin: bool):
 
 
 def filter_requirements_for_list(qs, request, *, is_admin: bool):
-    if is_admin and wants_include_archived(request):
-        return qs
-    return qs.filter(is_archived=False, deliverable__is_archived=False)
+    return filter_not_archived(qs, request, admin_may_include_archived=is_admin)
 
 
 def filter_bug_reports_for_list(qs, request, *, is_admin: bool):
-    if is_admin and wants_include_archived(request):
-        return qs
-    return qs.filter(is_archived=False, deliverable__is_archived=False)
+    return filter_not_archived(qs, request, admin_may_include_archived=is_admin)
 
 
 def filter_subscriptions_for_list(qs, request, *, is_admin: bool):
@@ -53,18 +49,14 @@ def requirement_visible_for_request(req, request) -> bool:
     profile = getattr(request.user, 'profile', None)
     if profile and profile.is_admin:
         return True
-    if req.is_archived or req.deliverable.is_archived:
-        return False
-    return True
+    return not req.is_archived
 
 
 def bug_visible_for_request(bug, request) -> bool:
     profile = getattr(request.user, 'profile', None)
     if profile and profile.is_admin:
         return True
-    if bug.is_archived or bug.deliverable.is_archived:
-        return False
-    return True
+    return not bug.is_archived
 
 
 def change_request_visible_for_request(cr, request) -> bool:

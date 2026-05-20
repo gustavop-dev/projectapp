@@ -110,7 +110,9 @@ export const usePlatformDeliverablesStore = defineStore('platformDeliverables', 
         this.deliverables.unshift(response.data)
         return { success: true, data: response.data }
       } catch (error) {
-        const message = error.response?.data?.detail || 'No pudimos subir el entregable.'
+        const data = error.response?.data || {}
+        const fieldMsg = Array.isArray(data.file) ? data.file[0] : data.file
+        const message = data.detail || fieldMsg || 'No pudimos subir el recurso.'
         this.error = message
         return { success: false, message }
       /* c8 ignore next 3 */

@@ -123,36 +123,41 @@ class TestPickDefaultDeliverableBPLinked:
 
 
 # ===========================================================================
-# requirement_bulk_upload_view — deliverable not found in project (line 963)
+# requirement_bulk_upload_view — phase not found in project
 # ===========================================================================
 
-class TestRequirementBulkUploadDeliverableNotFound:
-    def test_wrong_deliverable_returns_404(self, api_client, admin_headers, project):
-        """POST bulk upload to a deliverable_id not in the project → 404 (line 963)."""
-        url = f'/api/accounts/projects/{project.id}/deliverables/99999/requirements/bulk/'
+class TestRequirementBulkUploadPhaseNotFound:
+    def test_wrong_phase_returns_400(self, api_client, admin_headers, project):
+        """POST bulk upload with a phase_id not in the project → 400."""
+        url = f'/api/accounts/projects/{project.id}/requirements/bulk/?phase_id=99999'
         resp = api_client.post(url, [{'title': 'Test'}], format='json', **admin_headers)
 
-        assert resp.status_code == 404
+        assert resp.status_code == 400
 
 
 # ===========================================================================
-# requirement_bulk_upload_view — item without title is skipped (line 994)
+# requirement_bulk_upload_view — item without title is skipped
 # ===========================================================================
 
 class TestRequirementBulkUploadSkipsItemsWithoutTitle:
-    def test_items_without_title_are_skipped(self, api_client, admin_headers, project, deliverable):
-        """Items that lack 'title' are skipped via `continue`; items with title are created."""
-        url = f'/api/accounts/projects/{project.id}/deliverables/{deliverable.id}/requirements/bulk/'
+    def test_items_without_title_are_skipped(self, api_client, admin_headers, project):
+        """Items that lack 'title' are skipped; items with title are created."""
+        from accounts.models import ProjectPhase, Requirement
+        from content.models.business_proposal import BusinessProposal
+
+        bp = BusinessProposal.objects.create(title='Skip proposal', client_name='Carlos')
+        phase = ProjectPhase.objects.create(project=project, business_proposal=bp, order=1)
+
+        url = f'/api/accounts/projects/{project.id}/requirements/bulk/?phase_id={phase.id}'
         payload = [
-            {'no_title_here': 'ignored item'},  # triggers line 994 continue
-            'not a dict',                        # also triggers line 994 continue
-            {'title': 'Valid Requirement'},      # processed normally
+            {'no_title_here': 'ignored item'},
+            'not a dict',
+            {'title': 'Valid Requirement'},
         ]
         resp = api_client.post(url, payload, format='json', **admin_headers)
 
         assert resp.status_code in (200, 201)
-        from accounts.models import Requirement
-        assert Requirement.objects.filter(deliverable=deliverable, title='Valid Requirement').exists()
+        assert Requirement.objects.filter(phase=phase, title='Valid Requirement').exists()
 
 
 # ===========================================================================

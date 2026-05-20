@@ -141,6 +141,23 @@ export const usePlatformBugReportsStore = defineStore('platformBugReports', {
       }
     },
 
+    async bulkEvaluateBugReports(projectId, items) {
+      this.isUpdating = true
+      this.error = ''
+      try {
+        const { post } = usePlatformApi()
+        const response = await post(`projects/${projectId}/bug-reports/bulk-evaluate/`, items)
+        return { success: true, data: response.data }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No pudimos aplicar las respuestas masivas.'
+        this.error = message
+        return { success: false, message }
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false
+      }
+    },
+
     async deleteBugReport(projectId, bugId) {
       this.isUpdating = true
       this.error = ''

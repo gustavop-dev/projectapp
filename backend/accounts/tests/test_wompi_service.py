@@ -1,11 +1,10 @@
 """Tests for the Wompi payment gateway service.
 
-Covers: create_payment_link, verify_transaction, validate_webhook_signature,
+Covers: create_payment_link, verify_transaction, validate_event_signature,
 get_acceptance_token, tokenize_card, create_card_transaction.
 """
 import datetime
 import hashlib
-import hmac
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
@@ -19,7 +18,7 @@ from accounts.services.wompi import (
     create_payment_link,
     get_acceptance_token,
     tokenize_card,
-    validate_webhook_signature,
+    validate_event_signature,
     verify_transaction,
 )
 
@@ -186,31 +185,43 @@ class TestVerifyTransaction:
             verify_transaction('txn-bad')
 
 
-class TestValidateWebhookSignature:
+class TestValidateEventSignature:
+    @staticmethod
+    def _event(checksum=None):
+        timestamp = 1700000000
+        event = {
+            'event': 'transaction.updated',
+            'data': {'transaction': {
+                'id': 'txn_1', 'status': 'APPROVED', 'amount_in_cents': 4490000,
+            }},
+            'timestamp': timestamp,
+            'signature': {
+                'properties': [
+                    'transaction.id', 'transaction.status', 'transaction.amount_in_cents',
+                ],
+                'checksum': checksum,
+                'timestamp': timestamp,
+            },
+        }
+        if checksum is None:
+            raw = f'txn_1APPROVED4490000{timestamp}test-events-secret'
+            event['signature']['checksum'] = hashlib.sha256(raw.encode()).hexdigest()
+        return event
+
     @override_settings(**WOMPI_SETTINGS)
     def test_returns_true_for_valid_signature(self):
-        """Correctly computed HMAC-SHA256 signature is accepted."""
-        timestamp = '1700000000'
-        body = b'{"event": "transaction.updated"}'
-        message = f'{timestamp}.{body.decode("utf-8")}'
-        expected = hmac.new(
-            b'test-events-secret',
-            message.encode(),
-            hashlib.sha256,
-        ).hexdigest()
-
-        result = validate_webhook_signature(body, expected, timestamp)
-
-        assert result is True
+        """A checksum built with the official SHA256 scheme is accepted."""
+        assert validate_event_signature(self._event()) is True
 
     @override_settings(**WOMPI_SETTINGS)
     def test_returns_false_for_invalid_signature(self):
-        """Tampered or wrong signature is rejected."""
-        body = b'{"event": "transaction.updated"}'
+        """A tampered checksum is rejected."""
+        assert validate_event_signature(self._event(checksum='tampered')) is False
 
-        result = validate_webhook_signature(body, 'invalid-signature', '1700000000')
-
-        assert result is False
+    @override_settings(**WOMPI_SETTINGS)
+    def test_returns_false_when_signature_missing(self):
+        """An event with no signature block is rejected."""
+        assert validate_event_signature({'event': 'transaction.updated', 'data': {}}) is False
 
 
 class TestGetAcceptanceToken:
@@ -252,7 +263,7 @@ class TestTokenizeCard:
 
         token = tokenize_card('4111111111111111', '12', '28', '123', 'John Doe')
 
-        assert token == 'tok-card-abc'
+        assert token['id'] == 'tok-card-abc'
 
     @override_settings(**WOMPI_SETTINGS)
     @patch('requests.post')

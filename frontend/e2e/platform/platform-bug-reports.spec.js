@@ -41,6 +41,12 @@ const mockBugReports = [
   },
 ];
 
+// Bugs require a source requirement; the create form populates its
+// "Requerimiento de origen" select from this endpoint.
+const mockProjectRequirements = [
+  { id: 501, title: 'Checkout flow', phase_title: 'Fase 1', status: 'todo' },
+];
+
 const meResponse = (user) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(user) });
 
 function setupMocks(page, { user }) {
@@ -51,6 +57,9 @@ function setupMocks(page, { user }) {
     }
     if (apiPath === 'accounts/projects/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProject]) };
+    }
+    if (apiPath === 'accounts/projects/1/requirements/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProjectRequirements) };
     }
     if (apiPath === 'accounts/projects/1/bug-reports/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockBugReports) };
@@ -92,6 +101,8 @@ test.describe('Platform Bug Reports — Client', () => {
 
     await page.getByRole('button', { name: /reportar bug/i }).click();
     await page.getByPlaceholder('¿Qué está fallando?').fill('New bug report');
+    // A bug now requires a source requirement — pick the first real option.
+    await page.locator('select[required]').selectOption({ index: 1 });
     await page.getByRole('button', { name: /reportar bug/i }).last().click();
   });
 });
@@ -149,56 +160,18 @@ function setupUnifiedBugsMocks(page, { user, bugs = mockBugsCrossProject }) {
   });
 }
 
-test.describe('Platform Bug Reports — Unified /platform/bugs', () => {
+// The standalone /platform/bugs view was removed in the platform IA
+// refactor — bugs are now project-scoped and the route redirects.
+test.describe('Platform Bug Reports — /platform/bugs redirect', () => {
   test.setTimeout(60_000);
 
-  test('client sees bugs grouped by project', {
+  test('client visiting /platform/bugs is redirected to projects', {
     tag: [...PLATFORM_BUG_REPORTS, '@role:platform-client'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupUnifiedBugsMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/bugs', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /mis bugs reportados/i }).waitFor({ state: 'visible', timeout: 30000 });
-
-    await expect(page.getByText('E-commerce Platform')).toBeVisible();
-    await expect(page.getByText('Botón no responde en móvil')).toBeVisible();
-    await expect(page.getByText('Mobile App')).toBeVisible();
-    await expect(page.getByText('App crashes on login')).toBeVisible();
-  });
-
-  test('admin sees all bugs with archived toggle', {
-    tag: [...PLATFORM_BUG_REPORTS, '@role:platform-admin'],
-  }, async ({ page }) => {
-    await setPlatformAuth(page, { user: mockPlatformAdmin });
-    await setupUnifiedBugsMocks(page, { user: mockPlatformAdmin });
-    await page.goto('/platform/bugs', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /reporte de bugs/i }).waitFor({ state: 'visible', timeout: 30000 });
-
-    await expect(page.getByText('Mostrar archivados')).toBeVisible();
-    await expect(page.getByText('E-commerce Platform')).toBeVisible();
-    await expect(page.getByText('Mobile App')).toBeVisible();
-  });
-
-  test('shows summary pills with status counts', {
-    tag: [...PLATFORM_BUG_REPORTS, '@role:platform-client'],
-  }, async ({ page }) => {
-    await setPlatformAuth(page, { user: mockPlatformClient });
-    await setupUnifiedBugsMocks(page, { user: mockPlatformClient });
-    await page.goto('/platform/bugs', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /mis bugs reportados/i }).waitFor({ state: 'visible', timeout: 30000 });
-
-    await expect(page.getByText('Reportados', { exact: true })).toBeVisible();
-    await expect(page.getByText('Confirmados', { exact: true })).toBeVisible();
-  });
-
-  test('shows empty state when no bugs exist', {
-    tag: [...PLATFORM_BUG_REPORTS, '@role:platform-client'],
-  }, async ({ page }) => {
-    await setPlatformAuth(page, { user: mockPlatformClient });
-    await setupUnifiedBugsMocks(page, { user: mockPlatformClient, bugs: [] });
-    await page.goto('/platform/bugs', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /mis bugs reportados/i }).waitFor({ state: 'visible', timeout: 30000 });
-
-    await expect(page.getByText('No hay bugs reportados en este momento.')).toBeVisible();
+    await page.waitForURL('**/platform/projects**', { timeout: 30000 });
+    await expect(page).toHaveURL(/\/platform\/projects/);
   });
 });

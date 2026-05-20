@@ -13,11 +13,18 @@ from accounts.models import (
     DeliverableFile,
     DeliverableVersion,
     Project,
+    ProjectPhase,
     Requirement,
     RequirementComment,
     RequirementHistory,
     UserProfile,
 )
+from content.models.business_proposal import BusinessProposal
+
+
+def _make_phase(project):
+    bp = BusinessProposal.objects.create(title='P', client_name='c')
+    return ProjectPhase.objects.create(project=project, business_proposal=bp, order=1)
 from accounts.serializers import (
     BugReportDetailSerializer,
     BugReportListSerializer,
@@ -520,7 +527,7 @@ class TestRequirementDetailSerializer:
             project=project, title='D', category=Deliverable.CATEGORY_OTHER,
             file=None, uploaded_by=client,
         )
-        req = Requirement.objects.create(deliverable=d, title='Card')
+        req = Requirement.objects.create(phase=_make_phase(project), title='Card')
         RequirementComment.objects.create(
             requirement=req, user=admin, content='Public', is_internal=False,
         )
@@ -568,7 +575,7 @@ class TestRequirementCommentSerializer:
             project=project, title='D', category=Deliverable.CATEGORY_OTHER,
             file=None, uploaded_by=client,
         )
-        req = Requirement.objects.create(deliverable=d, title='R')
+        req = Requirement.objects.create(phase=_make_phase(project), title='R')
         comment = RequirementComment.objects.create(
             requirement=req, user=user, content='Note',
         )
@@ -591,7 +598,7 @@ class TestRequirementCommentSerializer:
             project=project, title='D', category=Deliverable.CATEGORY_OTHER,
             file=None, uploaded_by=client,
         )
-        req = Requirement.objects.create(deliverable=d, title='R')
+        req = Requirement.objects.create(phase=_make_phase(project), title='R')
         comment = RequirementComment.objects.create(
             requirement=req, user=user, content='Note',
         )
@@ -681,7 +688,7 @@ class TestRequirementHistorySerializer:
             project=project, title='D', category=Deliverable.CATEGORY_OTHER,
             file=None, uploaded_by=client,
         )
-        req = Requirement.objects.create(deliverable=d, title='R')
+        req = Requirement.objects.create(phase=_make_phase(project), title='R')
         history = RequirementHistory.objects.create(
             requirement=req, from_status='todo',
             to_status='in_progress', changed_by=admin,
@@ -711,7 +718,7 @@ class TestRequirementListSerializerCommentsCount:
             project=project, title='D', category=Deliverable.CATEGORY_OTHER,
             file=None, uploaded_by=user,
         )
-        req = Requirement.objects.create(deliverable=d, title='R')
+        req = Requirement.objects.create(phase=_make_phase(project), title='R')
         RequirementComment.objects.create(requirement=req, user=user, content='A')
         RequirementComment.objects.create(requirement=req, user=user, content='B')
 
@@ -729,7 +736,7 @@ class TestRequirementListSerializerCommentsCount:
             project=project, title='D', category=Deliverable.CATEGORY_OTHER,
             file=None, uploaded_by=user,
         )
-        req = Requirement.objects.create(deliverable=d, title='R')
+        req = Requirement.objects.create(phase=_make_phase(project), title='R')
 
         data = RequirementListSerializer(req).data
 
@@ -959,39 +966,37 @@ class TestBugReportSerializerScreenshotUrl:
 
 
 # =========================================================================
-# CreateBugReportSerializer.validate_deliverable_id — no project context (line 634)
+# CreateBugReportSerializer.validate_source_requirement_id
 # =========================================================================
 
 @pytest.mark.django_db
 class TestCreateBugReportSerializerValidation:
     def test_no_project_context_raises_validation_error(self):
         serializer = CreateBugReportSerializer(
-            data={'deliverable_id': 1, 'title': 'Bug'},
+            data={'source_requirement_id': 1, 'title': 'Bug'},
             context={},  # no 'project' key
         )
 
         assert serializer.is_valid() is False
-        assert 'deliverable_id' in serializer.errors
+        assert 'source_requirement_id' in serializer.errors
 
-    def test_deliverable_not_in_project_fails(self):
+    def test_source_requirement_not_in_project_fails(self):
         client = User.objects.create_user(
             username='bugcli@test.com', email='bugcli@test.com', password='pass',
         )
         UserProfile.objects.create(user=client, role=UserProfile.ROLE_CLIENT)
         project = Project.objects.create(name='P', client=client)
         other_project = Project.objects.create(name='Other', client=client)
-        deliverable = Deliverable.objects.create(
-            project=other_project, title='D',
-            category=Deliverable.CATEGORY_OTHER, file=None, uploaded_by=client,
-        )
+        other_phase = _make_phase(other_project)
+        foreign_req = Requirement.objects.create(phase=other_phase, title='Foreign')
 
         serializer = CreateBugReportSerializer(
-            data={'deliverable_id': deliverable.id, 'title': 'Bug'},
+            data={'source_requirement_id': foreign_req.id, 'title': 'Bug'},
             context={'project': project},
         )
 
         assert serializer.is_valid() is False
-        assert 'deliverable_id' in serializer.errors
+        assert 'source_requirement_id' in serializer.errors
 
 
 # =========================================================================
@@ -1002,24 +1007,20 @@ class TestCreateBugReportSerializerValidation:
 @pytest.mark.django_db
 class TestEvaluateBugReportSerializerValidation:
     @pytest.fixture
-    def deliverable_with_bug(self):
+    def project_with_bug(self):
         client = User.objects.create_user(
             username='evbug@test.com', email='evbug@test.com', password='pass',
         )
         UserProfile.objects.create(user=client, role=UserProfile.ROLE_CLIENT)
         project = Project.objects.create(name='P', client=client)
-        deliverable = Deliverable.objects.create(
-            project=project, title='D',
-            category=Deliverable.CATEGORY_OTHER, file=None, uploaded_by=client,
-        )
         bug = BugReport.objects.create(
-            deliverable=deliverable, reported_by=client,
+            project=project, reported_by=client,
             title='Main bug', severity=BugReport.SEVERITY_MEDIUM,
         )
-        return deliverable, bug
+        return project, bug
 
-    def test_nonexistent_linked_bug_fails(self, deliverable_with_bug):
-        _, bug = deliverable_with_bug
+    def test_nonexistent_linked_bug_fails(self, project_with_bug):
+        _, bug = project_with_bug
         serializer = EvaluateBugReportSerializer(
             data={'status': BugReport.STATUS_REPORTED, 'linked_bug_id': 99999},
             context={'bug': bug},
@@ -1028,10 +1029,10 @@ class TestEvaluateBugReportSerializerValidation:
         assert serializer.is_valid() is False
         assert 'linked_bug_id' in serializer.errors
 
-    def test_archived_linked_bug_fails(self, deliverable_with_bug):
-        deliverable, bug = deliverable_with_bug
+    def test_archived_linked_bug_fails(self, project_with_bug):
+        project, bug = project_with_bug
         archived_bug = BugReport.objects.create(
-            deliverable=deliverable, reported_by=bug.reported_by,
+            project=project, reported_by=bug.reported_by,
             title='Archived bug', severity=BugReport.SEVERITY_MEDIUM,
             is_archived=True,
         )
@@ -1043,10 +1044,10 @@ class TestEvaluateBugReportSerializerValidation:
         assert serializer.is_valid() is False
         assert 'linked_bug_id' in serializer.errors
 
-    def test_valid_linked_bug_passes(self, deliverable_with_bug):
-        deliverable, bug = deliverable_with_bug
+    def test_valid_linked_bug_passes(self, project_with_bug):
+        project, bug = project_with_bug
         other_bug = BugReport.objects.create(
-            deliverable=deliverable, reported_by=bug.reported_by,
+            project=project, reported_by=bug.reported_by,
             title='Other bug', severity=BugReport.SEVERITY_MEDIUM,
         )
         serializer = EvaluateBugReportSerializer(

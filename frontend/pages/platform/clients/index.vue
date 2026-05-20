@@ -60,64 +60,58 @@
             <tr class="border-b border-border-default text-xs uppercase tracking-[0.16em] text-green-light/60">
               <th class="px-6 py-4 font-medium">Cliente</th>
               <th class="px-6 py-4 font-medium">Empresa</th>
-              <th class="px-6 py-4 font-medium">Estado</th>
-              <th class="px-6 py-4 font-medium">Creado</th>
-              <th class="px-6 py-4 font-medium">Acciones</th>
+              <th class="px-6 py-4 font-medium">Proyectos</th>
+              <th class="px-6 py-4 font-medium">Plan hosting</th>
+              <th class="px-6 py-4 font-medium">Próx. renovación</th>
+              <th class="px-6 py-4 font-medium">Valor renovación</th>
+              <th class="px-6 py-4 font-medium">Última actividad</th>
+              <th class="w-10 px-2"></th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="client in filteredClients" :key="client.user_id" class="border-b border-border-muted last:border-b-0">
+            <tr
+              v-for="client in filteredClients"
+              :key="client.user_id"
+              class="cursor-pointer border-b border-border-muted transition hover:bg-primary-soft last:border-b-0"
+              @click="goToClient(client.user_id)"
+            >
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
                   <div class="h-9 w-9 shrink-0 overflow-hidden rounded-full">
-                    <img
-                      v-if="client.avatar_display_url"
-                      :src="client.avatar_display_url"
-                      alt="Avatar"
-                      class="h-full w-full object-cover"
-                    />
+                    <img v-if="client.avatar_display_url" :src="client.avatar_display_url" alt="Avatar" class="h-full w-full object-cover" />
                     <div v-else class="flex h-full w-full items-center justify-center bg-surface-muted text-xs font-semibold text-text-default dark:bg-white/10 dark:text-white">
                       {{ initials(client) }}
                     </div>
                   </div>
                   <div>
-                    <p class="font-medium text-text-default">{{ client.first_name }} {{ client.last_name }}</p>
-                    <p class="mt-0.5 text-xs text-green-light/60">{{ client.email }}</p>
+                    <div class="flex items-center gap-2">
+                      <p class="font-medium text-text-default">{{ client.first_name }} {{ client.last_name }}</p>
+                      <span v-if="!client.is_active" class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-white/10 dark:text-green-light/70">Inactivo</span>
+                    </div>
+                    <div class="mt-0.5 flex items-center gap-1 text-xs text-green-light/60">
+                      <span>{{ client.email }}</span>
+                      <svg v-if="!client.has_logged_in_once" class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-label="Sin acceso aún">
+                        <title>Sin acceso aún</title>
+                        <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
               </td>
               <td class="px-6 py-4 text-green-light">{{ client.company_name || '—' }}</td>
+              <td class="px-6 py-4 text-green-light">{{ client.active_projects_count ?? 0 }} / {{ client.total_projects_count ?? 0 }}</td>
               <td class="px-6 py-4">
-                <span class="inline-flex rounded-full px-3 py-1 text-xs font-medium" :class="statusClass(client)">
-                  {{ statusLabel(client) }}
+                <span v-if="client.hosting_plan" class="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-medium text-text-brand dark:bg-lemon/10 dark:text-accent">
+                  {{ planLabel(client.hosting_plan) }}
                 </span>
+                <span v-else class="text-green-light/60">—</span>
               </td>
-              <td class="px-6 py-4 text-green-light/60">{{ formatDate(client.created_at) }}</td>
-              <td class="px-6 py-4">
-                <div class="flex flex-wrap gap-2">
-                  <NuxtLink
-                    :to="localePath(`/platform/clients/${client.user_id}`)"
-                    class="rounded-full border border-border-default px-3 py-1.5 text-xs text-green-light transition hover:text-text-default dark:hover:text-white"
-                  >
-                    Detalle
-                  </NuxtLink>
-                  <button
-                    type="button"
-                    class="rounded-full border border-border-default px-3 py-1.5 text-xs text-green-light transition hover:text-text-default dark:hover:text-white"
-                    @click="handleResendInvite(client)"
-                  >
-                    Reenviar
-                  </button>
-                  <button
-                    v-if="client.is_active"
-                    type="button"
-                    class="rounded-full border border-red-500/20 px-3 py-1.5 text-xs text-red-500 transition hover:bg-red-500/10 dark:text-red-300"
-                    @click="requestDeactivate(client)"
-                  >
-                    Desactivar
-                  </button>
-                </div>
+              <td class="px-6 py-4" :class="renewalClass(client.hosting_renewal_at)">
+                {{ formatDate(client.hosting_renewal_at) }}
               </td>
+              <td class="px-6 py-4 text-green-light">{{ formatMoney(client.hosting_renewal_value) }}</td>
+              <td class="px-6 py-4 text-sm text-green-light/70">{{ relativeTime(client.last_activity_at) }}</td>
+              <td class="px-2 py-4 text-right text-green-light/40">›</td>
             </tr>
           </tbody>
         </table>
@@ -222,7 +216,7 @@ definePageMeta({
 usePageEntrance('#platform-clients')
 
 const platformClientsStore = usePlatformClientsStore()
-const activeFilter = ref('all')
+const activeFilter = ref('active')
 const search = ref('')
 const isInviteModalOpen = ref(false)
 const inviteError = ref('')
@@ -237,19 +231,24 @@ const inviteForm = reactive({
 })
 
 const filters = [
-  { label: 'Todos', value: 'all' },
-  { label: 'Onboarded', value: 'onboarded' },
-  { label: 'Pendientes', value: 'pending' },
+  { label: 'Activos', value: 'active' },
   { label: 'Inactivos', value: 'inactive' },
+  { label: 'Todos', value: 'all' },
 ]
 
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal()
 
 const filteredClients = computed(() => {
-  if (!search.value.trim()) return platformClientsStore.clients
-
+  const all = platformClientsStore.clients
+  // Status filter: Activos (default) / Inactivos / Todos
+  const byStatus = all.filter((client) => {
+    if (activeFilter.value === 'all') return true
+    if (activeFilter.value === 'inactive') return !client.is_active
+    return client.is_active  // 'active' (default)
+  })
+  if (!search.value.trim()) return byStatus
   const query = search.value.trim().toLowerCase()
-  return platformClientsStore.clients.filter((client) => {
+  return byStatus.filter((client) => {
     const fullName = `${client.first_name} ${client.last_name}`.toLowerCase()
     const company = `${client.company_name || ''}`.toLowerCase()
     return fullName.includes(query) || client.email.toLowerCase().includes(query) || company.includes(query)
@@ -305,6 +304,34 @@ function statusClass(client) {
   return 'bg-emerald-500/15 text-emerald-400'
 }
 
+const PLAN_LABELS = { monthly: 'Mensual', quarterly: 'Trimestral', semiannual: 'Semestral' }
+function planLabel(p) { return PLAN_LABELS[p] || p }
+
+function formatMoney(v) {
+  if (v === null || v === undefined) return '—'
+  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v)
+}
+
+function relativeTime(iso) {
+  if (!iso) return '—'
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24))
+  if (days < 1) return 'Hoy'
+  if (days === 1) return 'Ayer'
+  if (days < 30) return `Hace ${days} días`
+  if (days < 365) return `Hace ${Math.floor(days / 30)} meses`
+  return `Hace ${Math.floor(days / 365)} años`
+}
+
+function renewalClass(iso) {
+  if (!iso) return 'text-green-light/60'
+  const days = Math.floor((new Date(iso).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  return days <= 30 ? 'text-amber-700 dark:text-amber-300 font-medium' : 'text-green-light'
+}
+
+function goToClient(id) {
+  navigateTo(localePath(`/platform/clients/${id}`))
+}
+
 async function loadClients() {
   pageMessage.value = ''
   await platformClientsStore.fetchClients(activeFilter.value)
@@ -334,7 +361,7 @@ async function handleCreateClient() {
   pageMessage.value = 'Cliente creado e invitación enviada correctamente.'
   closeInviteModal()
 
-  if (!['all', 'pending'].includes(activeFilter.value)) {
+  if (activeFilter.value === 'inactive') {
     await loadClients()
   }
 }
@@ -351,7 +378,7 @@ async function handleResendInvite(client) {
   pageMessageVariant.value = 'success'
   pageMessage.value = result.message
 
-  if (!['all', 'pending'].includes(activeFilter.value)) {
+  if (activeFilter.value === 'inactive') {
     await loadClients()
   }
 }

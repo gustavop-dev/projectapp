@@ -88,6 +88,19 @@ def default_deliverable(project, client_user):
 
 
 @pytest.fixture
+def default_phase(project):
+    from content.models.business_proposal import BusinessProposal
+    from accounts.models import ProjectPhase
+    bp = BusinessProposal.objects.create(title='CR proposal', client_name='Carlos')
+    return ProjectPhase.objects.create(project=project, business_proposal=bp, order=1)
+
+
+@pytest.fixture
+def source_requirement(default_phase):
+    return Requirement.objects.create(phase=default_phase, title='Source req')
+
+
+@pytest.fixture
 def sample_change_requests(project, client_user, admin_user):
     crs = []
     crs.append(ChangeRequest.objects.create(
@@ -192,7 +205,7 @@ class TestChangeRequestList:
 @pytest.mark.django_db
 class TestChangeRequestCreate:
     def test_client_creates_change_request(
-        self, api_client, client_headers, project,
+        self, api_client, client_headers, project, source_requirement,
     ):
         resp = api_client.post(_url(project.id), {
             'title': 'New feature request',
@@ -200,6 +213,7 @@ class TestChangeRequestCreate:
             'module_or_screen': 'Dashboard',
             'suggested_priority': 'high',
             'is_urgent': True,
+            'source_requirement_id': source_requirement.id,
         }, format='json', **client_headers)
 
         assert resp.status_code == 201
@@ -211,26 +225,28 @@ class TestChangeRequestCreate:
         assert data['created_by_name'] == 'Carlos López'
 
     def test_admin_creates_change_request(
-        self, api_client, admin_headers, project,
+        self, api_client, admin_headers, project, source_requirement,
     ):
         resp = api_client.post(_url(project.id), {
             'title': 'Admin-initiated change',
+            'source_requirement_id': source_requirement.id,
         }, format='json', **admin_headers)
 
         assert resp.status_code == 201
         assert resp.json()['title'] == 'Admin-initiated change'
 
     def test_create_without_title_fails(
-        self, api_client, client_headers, project,
+        self, api_client, client_headers, project, source_requirement,
     ):
         resp = api_client.post(_url(project.id), {
             'description': 'No title provided.',
+            'source_requirement_id': source_requirement.id,
         }, format='json', **client_headers)
 
         assert resp.status_code == 400
 
     def test_create_with_screenshot_saves_optimized_image(
-        self, api_client, client_headers, project,
+        self, api_client, client_headers, project, source_requirement,
     ):
         image = _make_test_image(2000, 1500)
 
@@ -242,6 +258,7 @@ class TestChangeRequestCreate:
                 'suggested_priority': 'medium',
                 'is_urgent': 'false',
                 'screenshot': image,
+                'source_requirement_id': source_requirement.id,
             },
             format='multipart', **client_headers,
         )
@@ -255,7 +272,7 @@ class TestChangeRequestCreate:
         assert cr.screenshot is not None
 
     def test_create_with_large_screenshot_resizes_below_max_dimension(
-        self, api_client, client_headers, project,
+        self, api_client, client_headers, project, source_requirement,
     ):
         image = _make_test_image(3000, 2000)
 
@@ -266,6 +283,7 @@ class TestChangeRequestCreate:
                 'suggested_priority': 'medium',
                 'is_urgent': 'false',
                 'screenshot': image,
+                'source_requirement_id': source_requirement.id,
             },
             format='multipart', **client_headers,
         )
@@ -568,7 +586,7 @@ class TestChangeRequestComments:
 @pytest.mark.django_db
 class TestChangeRequestConvert:
     def test_admin_converts_approved_cr_to_requirement(
-        self, api_client, admin_headers, project, sample_change_requests,
+        self, api_client, admin_headers, project, sample_change_requests, default_phase,
     ):
         approved_cr = sample_change_requests[1]
         assert approved_cr.status == ChangeRequest.STATUS_APPROVED
@@ -589,10 +607,10 @@ class TestChangeRequestConvert:
         assert approved_cr.module_or_screen in req.configuration
 
     def test_convert_recalculates_project_progress(
-        self, api_client, admin_headers, project, sample_change_requests, default_deliverable,
+        self, api_client, admin_headers, project, sample_change_requests, default_phase,
     ):
         Requirement.objects.create(
-            deliverable=default_deliverable, title='Existing Done', status='done', order=0,
+            phase=default_phase, title='Existing Done', status='done', order=0,
         )
         approved_cr = sample_change_requests[1]
 

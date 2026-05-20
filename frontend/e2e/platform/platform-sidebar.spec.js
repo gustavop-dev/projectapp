@@ -46,9 +46,9 @@ test.describe('Platform Sidebar — Admin', () => {
     tag: [...PLATFORM_SIDEBAR_NAVIGATION, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupSidebarMocks(page, mockPlatformAdmin);
-    await page.goto('/platform/dashboard', { waitUntil: 'domcontentloaded' });
+    await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByRole('link', { name: /dashboard/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /notificaciones/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /proyectos/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /clientes/i })).toBeVisible();
   });
@@ -57,9 +57,9 @@ test.describe('Platform Sidebar — Admin', () => {
     tag: [...PLATFORM_SIDEBAR_NAVIGATION, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupSidebarMocks(page, mockPlatformAdmin);
-    await page.goto('/platform/dashboard', { waitUntil: 'domcontentloaded' });
+    await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
 
-    // 'Admin E2E' appears in sidebar + dashboard welcome; use exact match scoped to sidebar
+    // Exact match avoids partial-text hits elsewhere on the page.
     await expect(page.getByText('Admin E2E', { exact: true })).toBeVisible();
   });
 
@@ -67,7 +67,7 @@ test.describe('Platform Sidebar — Admin', () => {
     tag: [...PLATFORM_SIDEBAR_NAVIGATION, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupSidebarMocks(page, mockPlatformAdmin);
-    await page.goto('/platform/dashboard', { waitUntil: 'domcontentloaded' });
+    await page.goto('/platform/clients', { waitUntil: 'domcontentloaded' });
 
     await page.getByRole('link', { name: /proyectos/i }).click();
     await page.waitForURL('**/platform/projects', { timeout: 30000 });
@@ -84,9 +84,9 @@ test.describe('Platform Sidebar — Client', () => {
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupSidebarMocks(page, mockPlatformClient);
-    await page.goto('/platform/dashboard', { waitUntil: 'domcontentloaded' });
+    await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByRole('link', { name: /dashboard/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /proyectos/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /clientes/i })).not.toBeVisible();
   });
 });

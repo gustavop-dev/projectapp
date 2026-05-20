@@ -29,34 +29,16 @@
 
     <!-- Navigation -->
     <nav class="flex-1 overflow-y-auto px-3 py-4">
-      <!-- Primary section -->
+      <!-- Navegación -->
       <div class="mb-5">
         <p
           v-if="!isCollapsed"
           class="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-green-light/60"
         >
-          Principal
+          Navegación
         </p>
         <SidebarItem
           v-for="item in primaryItems"
-          :key="item.href"
-          :item="item"
-          :is-collapsed="isCollapsed"
-          :is-active="isActive(item.href)"
-          :disabled="item.disabled"
-        />
-      </div>
-
-      <!-- Projects section (placeholder) -->
-      <div class="mb-5">
-        <p
-          v-if="!isCollapsed"
-          class="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-green-light/60"
-        >
-          Proyectos
-        </p>
-        <SidebarItem
-          v-for="item in projectItems"
           :key="item.href"
           :item="item"
           :is-collapsed="isCollapsed"
@@ -235,78 +217,32 @@ const sidebarActionClass = computed(() => [
 
 const lp = (path) => localePath(path)
 
-const primaryItems = computed(() => [
-  {
-    label: 'Dashboard',
-    href: lp('/platform/dashboard'),
-    icon: 'dashboard',
-  },
-  {
-    label: 'Notificaciones',
-    href: lp('/platform/notifications'),
-    icon: 'bell',
-    badge: notifStore.unreadCount,
-  },
-])
-
-const projectItems = computed(() => {
-  if (authStore.isAdmin) {
-    return [
-      { label: 'Proyectos', href: lp('/platform/projects'), icon: 'folder' },
-      { label: 'Tablero', href: lp('/platform/board'), icon: 'board' },
-      { label: 'Solicitudes', href: lp('/platform/changes'), icon: 'refresh' },
-      { label: 'Bugs', href: lp('/platform/bugs'), icon: 'bug' },
-      { label: 'Entregables', href: lp('/platform/deliverables'), icon: 'file' },
-      { label: 'Pagos', href: lp('/platform/payments'), icon: 'credit-card' },
-      { label: 'Collection accounts', href: lp('/platform/collection-accounts'), icon: 'file' },
-    ]
-  }
-  return [
-    { label: 'Mis proyectos', href: lp('/platform/projects'), icon: 'folder' },
-    { label: 'Tablero', href: lp('/platform/board'), icon: 'board' },
-    { label: 'Solicitudes', href: lp('/platform/changes'), icon: 'refresh' },
-    { label: 'Bugs', href: lp('/platform/bugs'), icon: 'bug' },
-    { label: 'Entregables', href: lp('/platform/deliverables'), icon: 'file' },
-    { label: 'Pagos', href: lp('/platform/payments'), icon: 'credit-card' },
-    { label: 'Collection accounts', href: lp('/platform/collection-accounts'), icon: 'file' },
+const primaryItems = computed(() => {
+  const items = [
+    { label: 'Notificaciones', href: lp('/platform/notifications'), icon: 'bell', badge: notifStore.unreadCount },
+    { label: 'Proyectos',      href: lp('/platform/projects'),      icon: 'folder' },
   ]
+  if (authStore.isAdmin) {
+    items.push({ label: 'Clientes', href: lp('/platform/clients'), icon: 'users' })
+  }
+  return items
 })
+
+// Kept for backwards compatibility with the template's section structure;
+// always empty after the IA refactor (modules now live inside each project).
+const projectItems = computed(() => [])
 
 const accountItems = computed(() => [
   { label: 'Configuración', href: lp('/platform/profile'), icon: 'settings' },
 ])
 
 const adminItems = computed(() => [
-  { label: 'Clientes', href: lp('/platform/clients'), icon: 'users' },
-  { label: 'Accesos', href: lp('/platform/access'), icon: 'key' },
   { label: 'Panel admin', href: '/panel', icon: 'external', external: true },
 ])
-
-const projectSubModules = {
-  board: '/platform/board',
-  changes: '/platform/changes',
-  bugs: '/platform/bugs',
-  deliverables: '/platform/deliverables',
-  payments: '/platform/payments',
-  'collection-accounts': '/platform/collection-accounts',
-}
 
 function isActive(href) {
   const cleanPath = route.path.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
   const cleanHref = href.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
-
-  // Check if we're on a project sub-route (e.g. /platform/projects/5/payments)
-  const projectSubMatch = cleanPath.match(/^\/platform\/projects\/\d+\/([^/]+)/)
-  if (projectSubMatch) {
-    const subSection = projectSubMatch[1]
-    const mappedModule = projectSubModules[subSection]
-    if (mappedModule) {
-      // Only highlight the specific module, NOT "Proyectos"
-      return cleanHref === mappedModule
-    }
-  }
-
-  // Direct match or child route match
   return cleanPath === cleanHref || cleanPath.startsWith(`${cleanHref}/`)
 }
 </script>

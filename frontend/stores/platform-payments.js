@@ -8,6 +8,7 @@ export const usePlatformPaymentsStore = defineStore('platformPayments', {
     currentSubscription: null,
     payments: [],
     proposals: [],
+    phases: [],
     isLoading: false,
     isUpdating: false,
     error: '',
@@ -151,6 +152,7 @@ export const usePlatformPaymentsStore = defineStore('platformPayments', {
         const { patch } = usePlatformApi()
         const response = await patch(`projects/${projectId}/subscription/`, payload)
         this.currentSubscription = response.data
+        this.payments = response.data.payments || []
         return { success: true, data: response.data }
       } catch (error) {
         const message = error.response?.data?.detail || 'Error actualizando suscripción.'
@@ -162,16 +164,50 @@ export const usePlatformPaymentsStore = defineStore('platformPayments', {
       }
     },
 
-    async payWithCard(projectId, paymentId, cardData) {
-      this.isUpdating = true
+    async startCardSetup(projectId, cardData) {
       this.error = ''
-
       try {
         const { post } = usePlatformApi()
-        const response = await post(`projects/${projectId}/payments/${paymentId}/card-pay/`, cardData)
+        const response = await post(`projects/${projectId}/subscription/card/`, cardData)
         return { success: true, data: response.data }
       } catch (error) {
-        const message = error.response?.data?.detail || 'Error procesando el pago con tarjeta.'
+        return { success: false, message: error.response?.data?.detail || 'No se pudo registrar la tarjeta.' }
+      }
+    },
+
+    async getCardSetupStatus(projectId, paymentSourceId) {
+      try {
+        const { get } = usePlatformApi()
+        const response = await get(`projects/${projectId}/subscription/card/${paymentSourceId}/status/`)
+        return { success: true, data: response.data }
+      } catch (error) {
+        return { success: false, message: error.response?.data?.detail || 'Error consultando el estado de la tarjeta.' }
+      }
+    },
+
+    async confirmCardSetup(projectId, paymentSourceId, cardMeta) {
+      try {
+        const { post } = usePlatformApi()
+        const response = await post(`projects/${projectId}/subscription/card/${paymentSourceId}/confirm/`, cardMeta)
+        if (response.data.subscription) {
+          this.currentSubscription = response.data.subscription
+          this.payments = response.data.subscription.payments || []
+        }
+        return { success: true, data: response.data }
+      } catch (error) {
+        return { success: false, message: error.response?.data?.detail || 'No se pudo confirmar la tarjeta.' }
+      }
+    },
+
+    async chargeStored(projectId, paymentId) {
+      this.isUpdating = true
+      this.error = ''
+      try {
+        const { post } = usePlatformApi()
+        const response = await post(`projects/${projectId}/payments/${paymentId}/charge/`, {})
+        return { success: true, data: response.data }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'Error procesando el cobro.'
         this.error = message
         return { success: false, message }
       /* c8 ignore next 3 */
@@ -180,25 +216,14 @@ export const usePlatformPaymentsStore = defineStore('platformPayments', {
       }
     },
 
-    async verifyTransaction(projectId, paymentId, transactionId) {
+    async verifyTransaction(projectId, paymentId, transactionId = null) {
       try {
         const { post } = usePlatformApi()
-        const response = await post(`projects/${projectId}/payments/${paymentId}/verify/`, {
-          transaction_id: transactionId,
-        })
+        const body = transactionId ? { transaction_id: transactionId } : {}
+        const response = await post(`projects/${projectId}/payments/${paymentId}/verify/`, body)
         return { success: true, data: response.data }
       } catch (error) {
         return { success: false, message: error.response?.data?.detail || 'Error verificando transacción.' }
-      }
-    },
-
-    async fetchWidgetData(projectId, paymentId) {
-      try {
-        const { get } = usePlatformApi()
-        const response = await get(`projects/${projectId}/payments/${paymentId}/widget-data/`)
-        return { success: true, data: response.data }
-      } catch (error) {
-        return { success: false, message: error.response?.data?.detail || 'Error obteniendo datos de pago.' }
       }
     },
 
@@ -225,6 +250,56 @@ export const usePlatformPaymentsStore = defineStore('platformPayments', {
         this.error = message
         return { success: false, message }
       /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false
+      }
+    },
+
+    async fetchProjectPhases(projectId) {
+      try {
+        const { get } = usePlatformApi()
+        const response = await get(`projects/${projectId}/phases/`)
+        this.phases = response.data
+        return { success: true, data: response.data }
+      } catch (error) {
+        return { success: false, message: error.response?.data?.detail || 'Error cargando fases.' }
+      }
+    },
+
+    async patchPhaseHostingDate(projectId, phaseId, hostingStartDate) {
+      this.isUpdating = true
+      try {
+        const { patch } = usePlatformApi()
+        const response = await patch(`projects/${projectId}/phases/${phaseId}/`, {
+          hosting_start_date: hostingStartDate,
+        })
+        const idx = this.phases.findIndex((p) => p.id === phaseId)
+        if (idx !== -1) this.phases[idx] = response.data
+        return { success: true, data: response.data }
+      } catch (error) {
+        return { success: false, message: error.response?.data?.detail || 'Error guardando fecha.' }
+      } finally {
+        this.isUpdating = false
+      }
+    },
+
+    async registerManualPayment(projectId, { frequency, amount, billing_period_start, description }) {
+      this.isUpdating = true
+      this.error = ''
+      try {
+        const { post } = usePlatformApi()
+        const response = await post(`projects/${projectId}/payments/manual/`, {
+          frequency,
+          amount,
+          billing_period_start,
+          description,
+        })
+        this.payments.unshift(response.data)
+        return { success: true, data: response.data }
+      } catch (error) {
+        const message = error.response?.data?.detail || JSON.stringify(error.response?.data) || 'Error registrando el pago.'
+        this.error = message
+        return { success: false, message }
       } finally {
         this.isUpdating = false
       }

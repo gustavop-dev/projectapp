@@ -22,6 +22,10 @@ const mockProject = {
 
 const meResponse = (user) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(user) });
 
+const mockPhases = [
+  { id: 1, order: 1, proposal: { title: 'Fase inicial' } },
+];
+
 function setupMocks(page, { user, existingReqs = [] }) {
   return mockApi(page, async ({ apiPath, method }) => {
     if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(user);
@@ -31,17 +35,13 @@ function setupMocks(page, { user, existingReqs = [] }) {
     if (apiPath === 'accounts/projects/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProject]) };
     }
-    if (apiPath === 'accounts/projects/1/deliverables/' && method === 'GET') {
-      return {
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([{ id: 1, title: 'Main', has_business_proposal: true }]),
-      };
+    if (apiPath === 'accounts/projects/1/phases/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockPhases) };
     }
-    if (apiPath === 'accounts/projects/1/deliverables/1/requirements/' && method === 'GET') {
+    if (apiPath === 'accounts/projects/1/requirements/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(existingReqs) };
     }
-    if (apiPath === 'accounts/projects/1/deliverables/1/requirements/bulk/' && method === 'POST') {
+    if (apiPath === 'accounts/projects/1/requirements/bulk/' && method === 'POST') {
       return {
         status: 201,
         contentType: 'application/json',
@@ -69,7 +69,7 @@ test.describe('Platform Kanban JSON Upload — Admin', () => {
     await setPlatformAuth(page, { user: mockPlatformAdmin });
   });
 
-  test('admin sees Ejemplo and Subir JSON buttons on the board', {
+  test('admin sees Ejemplo and Importar JSON buttons on the board', {
     tag: [...PLATFORM_KANBAN_JSON_UPLOAD, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformAdmin });
@@ -77,7 +77,7 @@ test.describe('Platform Kanban JSON Upload — Admin', () => {
     await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
     await expect(page.getByRole('button', { name: /ejemplo/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /subir json/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /importar json/i })).toBeVisible();
   });
 
   test('clicking Ejemplo triggers a file download', {

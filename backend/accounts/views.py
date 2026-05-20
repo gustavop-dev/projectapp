@@ -28,6 +28,7 @@ from accounts.serializers import (
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     PasswordResetVerifyCodeSerializer,
+    ProjectPhaseSerializer,
     ResendCodeSerializer,
     UpdateClientSerializer,
     UpdateProfileSerializer,
@@ -40,6 +41,13 @@ from accounts.services.password_reset import (
     confirm_password_reset,
     request_password_reset,
     verify_reset_code,
+)
+from accounts.services.project_phases import (
+    PhaseError,
+    add_phase,
+    list_phases,
+    remove_phase,
+    reorder_phases,
 )
 from accounts.services.proposal_client_service import update_client_profile
 from accounts.services.tokens import get_tokens_for_user, get_verification_token_for_user
@@ -723,7 +731,7 @@ def project_list_view(request):
     )
 
     if proposal:
-        from accounts.models import Deliverable
+        from accounts.models import Deliverable, ProjectPhase
 
         d = Deliverable.objects.create(
             project=project,
@@ -735,6 +743,12 @@ def project_list_view(request):
         )
         proposal.deliverable = d
         proposal.save(update_fields=['deliverable_id'])
+        ProjectPhase.objects.create(
+            project=project,
+            business_proposal=proposal,
+            order=1,
+            hosting_start_date=project.hosting_start_date,
+        )
 
     from accounts.models import Notification
     from accounts.services.notifications import notify
@@ -784,6 +798,10 @@ def project_detail_view(request, project_id):
         )
 
     if request.method == 'DELETE':
+        force = str(request.query_params.get('force', '')).lower() in ('1', 'true', 'yes')
+        if force:
+            project.delete()
+            return Response({'detail': 'Proyecto eliminado.'})
         project.status = Project.STATUS_ARCHIVED
         project.save(update_fields=['status', 'updated_at'])
         return Response({'detail': 'Proyecto archivado.'})
@@ -943,9 +961,8 @@ def _pick_default_deliverable_for_requirements(proj):
 def _recalculate_project_progress(project):
     """Auto-sync project.progress from done/total requirements."""
     scope = Requirement.objects.filter(
-        deliverable__project=project,
+        phase__project=project,
         is_archived=False,
-        deliverable__is_archived=False,
     )
     total = scope.count()
     if total == 0:
@@ -956,50 +973,38 @@ def _recalculate_project_progress(project):
     project.save(update_fields=['progress', 'updated_at'])
 
 
+def _resolve_phase_for_project(project, phase_id):
+    """Return ProjectPhase pk for the given project, or None."""
+    if not phase_id:
+        return None
+    from accounts.models import ProjectPhase
+    return ProjectPhase.objects.filter(pk=phase_id, project=project).first()
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-def requirement_list_view(request, project_id, deliverable_id=None):
+def requirement_list_view(request, project_id):
     """
-    GET  — All requirements for a project (both roles).
-    POST — Admin creates a new requirement.
-    When deliverable_id (URL) is set, scope list/create to that deliverable.
+    GET  — Requirements for a project; optional ?phase_id=X filter.
+    POST — Admin creates a new requirement (phase_id required).
     """
     proj, err = _get_project_or_403(request, project_id)
     if err:
         return err
 
-    from accounts.models import Deliverable
-
-    scoped_deliverable = None
-    if deliverable_id is not None:
-        scoped_deliverable = Deliverable.objects.filter(pk=deliverable_id, project=proj).first()
-        if not scoped_deliverable:
-            return Response(
-                {'detail': 'Entregable no encontrado en este proyecto.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        if not deliverable_visible_for_request(scoped_deliverable, request):
-            return Response(
-                {'detail': 'Entregable no encontrado en este proyecto.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
     profile = getattr(request.user, 'profile', None)
     is_admin = profile and profile.is_admin
 
     if request.method == 'GET':
-        qs = Requirement.objects.filter(deliverable__project=proj).select_related('deliverable')
+        qs = Requirement.objects.filter(phase__project=proj).select_related('phase')
         qs = filter_requirements_for_list(qs, request, is_admin=is_admin)
-        if scoped_deliverable is not None:
-            qs = qs.filter(deliverable_id=scoped_deliverable.id)
-        else:
-            did = request.query_params.get('deliverable_id')
-            if did:
-                qs = qs.filter(deliverable_id=did)
+        phase_id = request.query_params.get('phase_id')
+        if phase_id:
+            qs = qs.filter(phase_id=phase_id)
         serializer = RequirementListSerializer(qs, many=True)
         return Response(serializer.data)
 
-    if not profile or not profile.is_admin:
+    if not is_admin:
         return Response(
             {'detail': 'Solo los administradores pueden crear requerimientos.'},
             status=status.HTTP_403_FORBIDDEN,
@@ -1009,32 +1014,19 @@ def requirement_list_view(request, project_id, deliverable_id=None):
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
-    if scoped_deliverable is not None:
-        d = scoped_deliverable
-    else:
-        deliverable_id_body = data.get('deliverable_id')
-        if deliverable_id_body:
-            d = Deliverable.objects.filter(pk=deliverable_id_body, project=proj).first()
-            if not d:
-                return Response(
-                    {'detail': 'Entregable no encontrado en este proyecto.'},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-        else:
-            d = _pick_default_deliverable_for_requirements(proj)
-
-    if d.is_archived:
+    phase = _resolve_phase_for_project(proj, data.get('phase_id'))
+    if phase is None:
         return Response(
-            {'detail': 'El entregable está archivado.'},
+            {'detail': 'phase_id requerido (la fase debe pertenecer al proyecto).'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     max_order = Requirement.objects.filter(
-        deliverable=d, status=data.get('status', Requirement.STATUS_BACKLOG),
+        phase=phase, status=data.get('status', Requirement.STATUS_BACKLOG),
     ).count()
 
     req = Requirement.objects.create(
-        deliverable=d,
+        phase=phase,
         title=data['title'],
         description=data.get('description', ''),
         configuration=data.get('configuration', ''),
@@ -1050,30 +1042,23 @@ def requirement_list_view(request, project_id, deliverable_id=None):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsAdminRole])
-def requirement_bulk_upload_view(request, project_id, deliverable_id=None):
+def requirement_bulk_upload_view(request, project_id):
     """
-    Admin uploads a JSON array of requirements to create in bulk.
+    Admin uploads a JSON array of requirements to create in bulk under a project phase.
     Expected format: [{ title, description?, configuration?, flow?, priority?, status? }, ...]
+
+    Query params:
+      - ``phase_id`` (required): target phase.
+      - ``mode`` (optional): ``append`` (default) or ``replace`` (hard-deletes existing reqs of the phase first).
     """
     proj, err = _get_project_or_403(request, project_id)
     if err:
         return err
 
-    from accounts.models import Deliverable
-
-    if deliverable_id is not None:
-        d = Deliverable.objects.filter(pk=deliverable_id, project=proj).first()
-        if not d:
-            return Response(
-                {'detail': 'Entregable no encontrado en este proyecto.'},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-    else:
-        d = _pick_default_deliverable_for_requirements(proj)
-
-    if d.is_archived:
+    phase = _resolve_phase_for_project(proj, request.query_params.get('phase_id'))
+    if phase is None:
         return Response(
-            {'detail': 'El entregable está archivado.'},
+            {'detail': 'phase_id requerido (la fase debe pertenecer al proyecto).'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -1090,15 +1075,27 @@ def requirement_bulk_upload_view(request, project_id, deliverable_id=None):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    created = []
-    order_offset = Requirement.objects.filter(deliverable=d).count()
+    mode = (request.query_params.get('mode') or 'append').lower()
+    if mode not in ('append', 'replace'):
+        return Response(
+            {'detail': "Parámetro 'mode' inválido. Use 'append' o 'replace'."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
+    deleted_count = 0
+    if mode == 'replace':
+        deleted_count, _ = Requirement.objects.filter(phase=phase).delete()
+        order_offset = 0
+    else:
+        order_offset = Requirement.objects.filter(phase=phase).count()
+
+    created = []
     for idx, item in enumerate(items):
         if not isinstance(item, dict) or not item.get('title'):
             continue
 
         req = Requirement.objects.create(
-            deliverable=d,
+            phase=phase,
             title=item['title'][:300],
             description=item.get('description', ''),
             configuration=item.get('configuration', ''),
@@ -1111,14 +1108,19 @@ def requirement_bulk_upload_view(request, project_id, deliverable_id=None):
 
     _recalculate_project_progress(proj)
     return Response(
-        {'created': len(created), 'requirements': RequirementListSerializer(created, many=True).data},
+        {
+            'created': len(created),
+            'deleted': deleted_count,
+            'mode': mode,
+            'requirements': RequirementListSerializer(created, many=True).data,
+        },
         status=status.HTTP_201_CREATED,
     )
 
 
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
-def requirement_detail_view(request, project_id, req_id, deliverable_id=None):
+def requirement_detail_view(request, project_id, req_id):
     """GET detail, PATCH update (admin), DELETE remove (admin)."""
     proj, err = _get_project_or_403(request, project_id)
     if err:
@@ -1126,12 +1128,9 @@ def requirement_detail_view(request, project_id, req_id, deliverable_id=None):
 
     try:
         req = Requirement.objects.prefetch_related('comments__user', 'history__changed_by').get(
-            id=req_id, deliverable__project=proj,
+            id=req_id, phase__project=proj,
         )
     except Requirement.DoesNotExist:
-        return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
-
-    if deliverable_id is not None and req.deliverable_id != deliverable_id:
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
     if not requirement_visible_for_request(req, request):
@@ -1186,7 +1185,7 @@ def requirement_detail_view(request, project_id, req_id, deliverable_id=None):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def requirement_move_view(request, project_id, req_id, deliverable_id=None):
+def requirement_move_view(request, project_id, req_id):
     """
     Move a card to a new column/order.
     Admin can move to any column. Client can only approve (approval→done).
@@ -1196,11 +1195,8 @@ def requirement_move_view(request, project_id, req_id, deliverable_id=None):
         return err
 
     try:
-        req = Requirement.objects.get(id=req_id, deliverable__project=proj)
+        req = Requirement.objects.get(id=req_id, phase__project=proj)
     except Requirement.DoesNotExist:
-        return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
-
-    if deliverable_id is not None and req.deliverable_id != deliverable_id:
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
     if not requirement_visible_for_request(req, request):
@@ -1247,7 +1243,6 @@ def requirement_move_view(request, project_id, req_id, deliverable_id=None):
                 message=f'{request.user.first_name} aprobó "{req.title}" en {proj.name}.',
                 related_object_type='requirement', related_object_id=req.id,
                 exclude_user=request.user,
-                deliverable=req.deliverable,
             )
         elif is_admin:
             notify_project_client(
@@ -1256,7 +1251,6 @@ def requirement_move_view(request, project_id, req_id, deliverable_id=None):
                 message=f'"{req.title}" se movió a "{new_label}" en {proj.name}.',
                 related_object_type='requirement', related_object_id=req.id,
                 exclude_user=request.user,
-                deliverable=req.deliverable,
             )
 
     return Response(RequirementListSerializer(req).data)
@@ -1264,18 +1258,15 @@ def requirement_move_view(request, project_id, req_id, deliverable_id=None):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def requirement_comment_view(request, project_id, req_id, deliverable_id=None):
+def requirement_comment_view(request, project_id, req_id):
     """Add a comment to a requirement. Both roles can comment."""
     proj, err = _get_project_or_403(request, project_id)
     if err:
         return err
 
     try:
-        req = Requirement.objects.get(id=req_id, deliverable__project=proj)
+        req = Requirement.objects.get(id=req_id, phase__project=proj)
     except Requirement.DoesNotExist:
-        return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
-
-    if deliverable_id is not None and req.deliverable_id != deliverable_id:
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
     if not requirement_visible_for_request(req, request):
@@ -1367,10 +1358,13 @@ def change_request_list_view(request, project_id):
         status_filter = request.query_params.get('status')
         if status_filter:
             qs = qs.filter(status=status_filter)
+        phase_id_filter = request.query_params.get('phase_id')
+        if phase_id_filter:
+            qs = qs.filter(phase_id=phase_id_filter)
         serializer = ChangeRequestListSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
 
-    serializer = CreateChangeRequestSerializer(data=request.data)
+    serializer = CreateChangeRequestSerializer(data=request.data, context={'project': proj})
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
@@ -1383,6 +1377,11 @@ def change_request_list_view(request, project_id):
         suggested_priority=data.get('suggested_priority', ChangeRequest.PRIORITY_MEDIUM),
         is_urgent=data.get('is_urgent', False),
     )
+    if data.get('source_requirement_id'):
+        cr.source_requirement_id = data['source_requirement_id']
+        req = Requirement.objects.filter(pk=data['source_requirement_id']).select_related('phase').first()
+        if req and req.phase_id:
+            cr.phase_id = req.phase_id
     if data.get('screenshot'):
         cr.screenshot = data['screenshot']
     cr.save()
@@ -1505,6 +1504,96 @@ def change_request_evaluate_view(request, project_id, cr_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+def change_request_bulk_evaluate_view(request, project_id):
+    """
+    Admin bulk-evaluates change requests of a project.
+    Body: array of {id, status?, admin_response?, estimated_time?, estimated_cost?}.
+    Each item is applied independently via the same EvaluateChangeRequestSerializer.
+    Items with unknown id or that don't belong to the project are skipped.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.is_admin:
+        return Response(
+            {'detail': 'Solo los administradores pueden evaluar solicitudes de cambio.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    items = request.data
+    if not isinstance(items, list):
+        return Response(
+            {'detail': 'Se espera un array JSON de evaluaciones.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if len(items) > 500:
+        return Response(
+            {'detail': 'Máximo 500 evaluaciones por carga.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    project_crs = {
+        cr.id: cr for cr in ChangeRequest.objects.filter(project=proj)
+    }
+
+    updated_ids = []
+    errors = []
+    for idx, item in enumerate(items):
+        if not isinstance(item, dict):
+            errors.append({'index': idx, 'detail': 'Item no es un objeto.'})
+            continue
+        cr_id = item.get('id')
+        if cr_id is None:
+            errors.append({'index': idx, 'detail': 'Falta el campo id.'})
+            continue
+        cr = project_crs.get(cr_id)
+        if cr is None:
+            errors.append({'index': idx, 'id': cr_id, 'detail': 'No encontrada en el proyecto.'})
+            continue
+
+        payload = {
+            k: v for k, v in item.items()
+            if k in ('status', 'admin_response', 'estimated_time', 'estimated_cost')
+        }
+        if not payload:
+            continue
+
+        serializer = EvaluateChangeRequestSerializer(data=payload, partial=True)
+        if not serializer.is_valid():
+            errors.append({'index': idx, 'id': cr_id, 'detail': serializer.errors})
+            continue
+
+        data = serializer.validated_data
+        upd_fields = ['updated_at']
+        new_status = data.get('status')
+        for field in ('status', 'admin_response', 'estimated_cost', 'estimated_time'):
+            if field in data:
+                setattr(cr, field, data[field])
+                upd_fields.append(field)
+        cr.save(update_fields=upd_fields)
+        updated_ids.append(cr.id)
+
+        if new_status is not None:
+            status_display = dict(ChangeRequest.STATUS_CHOICES).get(new_status, new_status)
+            notify_project_client(
+                proj, Notification.TYPE_CR_STATUS_CHANGED,
+                f'Solicitud actualizada: {cr.title}',
+                message=f'Estado cambiado a "{status_display}".',
+                related_object_type='change_request', related_object_id=cr.id,
+                exclude_user=request.user,
+            )
+
+    return Response({
+        'updated': len(updated_ids),
+        'updated_ids': updated_ids,
+        'errors': errors,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def change_request_comment_view(request, project_id, cr_id):
     """Add a comment to a change request. Both roles can comment."""
     proj, err = _get_project_or_403(request, project_id)
@@ -1590,13 +1679,24 @@ def change_request_convert_view(request, project_id, cr_id):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    d = _pick_default_deliverable_for_requirements(proj)
+    # Pick the same phase as the source requirement (if any), otherwise the project's first phase.
+    target_phase = None
+    if cr.source_requirement_id:
+        target_phase = cr.source_requirement.phase
+    if target_phase is None:
+        target_phase = proj.phases.order_by('order').first()
+    if target_phase is None:
+        return Response(
+            {'detail': 'El proyecto no tiene fases configuradas. Crea una fase antes de convertir solicitudes.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     max_order = Requirement.objects.filter(
-        deliverable=d, status=Requirement.STATUS_TODO,
+        phase=target_phase, status=Requirement.STATUS_TODO,
     ).count()
 
     req = Requirement.objects.create(
-        deliverable=d,
+        phase=target_phase,
         title=cr.title,
         description=cr.description,
         configuration=f'Originado de solicitud de cambio #{cr.id} — módulo: {cr.module_or_screen}',
@@ -1642,14 +1742,10 @@ def bug_report_all_view(request):
     is_admin = profile and profile.is_admin
 
     if is_admin:
-        qs = BugReport.objects.select_related(
-            'reported_by', 'deliverable', 'deliverable__project',
-        ).all()
+        qs = BugReport.objects.select_related('reported_by', 'project').all()
     else:
-        qs = BugReport.objects.select_related(
-            'reported_by', 'deliverable', 'deliverable__project',
-        ).filter(
-            deliverable__project__client=request.user,
+        qs = BugReport.objects.select_related('reported_by', 'project').filter(
+            project__client=request.user,
         )
 
     qs = filter_bug_reports_for_list(qs, request, is_admin=is_admin)
@@ -1665,8 +1761,8 @@ def bug_report_all_view(request):
 
     data = serializer.data
     for item, bug in zip(data, qs):
-        item['project_id'] = bug.deliverable.project_id
-        item['project_name'] = bug.deliverable.project.name
+        item['project_id'] = bug.project_id
+        item['project_name'] = bug.project.name if bug.project else ''
 
     return Response(data)
 
@@ -1686,9 +1782,7 @@ def bug_report_list_view(request, project_id):
     is_admin = profile and profile.is_admin
 
     if request.method == 'GET':
-        qs = BugReport.objects.filter(deliverable__project=proj).select_related(
-            'reported_by', 'deliverable',
-        )
+        qs = BugReport.objects.filter(project=proj).select_related('reported_by')
         qs = filter_bug_reports_for_list(qs, request, is_admin=is_admin)
         status_filter = request.query_params.get('status')
         if status_filter:
@@ -1696,6 +1790,9 @@ def bug_report_list_view(request, project_id):
         severity_filter = request.query_params.get('severity')
         if severity_filter:
             qs = qs.filter(severity=severity_filter)
+        phase_id_filter = request.query_params.get('phase_id')
+        if phase_id_filter:
+            qs = qs.filter(phase_id=phase_id_filter)
         serializer = BugReportListSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -1704,7 +1801,7 @@ def bug_report_list_view(request, project_id):
     data = serializer.validated_data
 
     bug = BugReport(
-        deliverable_id=data['deliverable_id'],
+        project=proj,
         reported_by=request.user,
         title=data['title'],
         description=data.get('description', ''),
@@ -1716,18 +1813,20 @@ def bug_report_list_view(request, project_id):
         device_browser=data.get('device_browser', ''),
         is_recurring=data.get('is_recurring', False),
     )
+    bug.source_requirement_id = data['source_requirement_id']
+    req = Requirement.objects.filter(pk=data['source_requirement_id']).select_related('phase').first()
+    if req and req.phase_id:
+        bug.phase_id = req.phase_id
     if data.get('screenshot'):
         bug.screenshot = data['screenshot']
     bug.save()
 
-    dlv = bug.deliverable
     if is_admin:
         notify_project_client(
             proj, Notification.TYPE_BUG_REPORTED, f'Bug reportado: {bug.title}',
             message=f'El equipo reportó un bug en {proj.name}.',
             related_object_type='bug_report', related_object_id=bug.id,
             exclude_user=request.user,
-            deliverable=dlv,
         )
     else:
         notify_project_admins(
@@ -1735,7 +1834,6 @@ def bug_report_list_view(request, project_id):
             message=f'{request.user.first_name} reportó un bug en {proj.name}.',
             related_object_type='bug_report', related_object_id=bug.id,
             exclude_user=request.user,
-            deliverable=dlv,
         )
 
     return Response(
@@ -1757,7 +1855,7 @@ def bug_report_detail_view(request, project_id, bug_id):
 
     try:
         bug = BugReport.objects.prefetch_related('comments__user').get(
-            id=bug_id, deliverable__project=proj,
+            id=bug_id, project=proj,
         )
     except BugReport.DoesNotExist:
         return Response(
@@ -1806,7 +1904,7 @@ def bug_report_evaluate_view(request, project_id, bug_id):
         )
 
     try:
-        bug = BugReport.objects.get(id=bug_id, deliverable__project=proj)
+        bug = BugReport.objects.get(id=bug_id, project=proj)
     except BugReport.DoesNotExist:
         return Response(
             {'detail': 'Bug no encontrado.'},
@@ -1835,12 +1933,105 @@ def bug_report_evaluate_view(request, project_id, bug_id):
             message=f'Estado cambiado a "{status_display}".',
             related_object_type='bug_report', related_object_id=bug.id,
             exclude_user=request.user,
-            deliverable=bug.deliverable,
         )
 
     return Response(
         BugReportDetailSerializer(bug, context={'request': request}).data,
     )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def bug_report_bulk_evaluate_view(request, project_id):
+    """
+    Admin bulk-evaluates bug reports of a project.
+    Body: array of {id, status?, admin_response?, linked_bug_id?}.
+    Each item is applied independently via EvaluateBugReportSerializer (partial).
+    Items with unknown id or that don't belong to the project are skipped.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.is_admin:
+        return Response(
+            {'detail': 'Solo los administradores pueden evaluar reportes de bugs.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    items = request.data
+    if not isinstance(items, list):
+        return Response(
+            {'detail': 'Se espera un array JSON de evaluaciones.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if len(items) > 500:
+        return Response(
+            {'detail': 'Máximo 500 evaluaciones por carga.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    project_bugs = {
+        b.id: b for b in BugReport.objects.filter(project=proj)
+    }
+
+    updated_ids = []
+    errors = []
+    for idx, item in enumerate(items):
+        if not isinstance(item, dict):
+            errors.append({'index': idx, 'detail': 'Item no es un objeto.'})
+            continue
+        bug_id = item.get('id')
+        if bug_id is None:
+            errors.append({'index': idx, 'detail': 'Falta el campo id.'})
+            continue
+        bug = project_bugs.get(bug_id)
+        if bug is None:
+            errors.append({'index': idx, 'id': bug_id, 'detail': 'No encontrado en el proyecto.'})
+            continue
+
+        payload = {
+            k: v for k, v in item.items()
+            if k in ('status', 'admin_response', 'linked_bug_id')
+        }
+        if not payload:
+            continue
+
+        serializer = EvaluateBugReportSerializer(data=payload, context={'bug': bug}, partial=True)
+        if not serializer.is_valid():
+            errors.append({'index': idx, 'id': bug_id, 'detail': serializer.errors})
+            continue
+
+        data = serializer.validated_data
+        upd_fields = ['updated_at']
+        new_status = data.get('status')
+        for field in ('status', 'admin_response'):
+            if field in data:
+                setattr(bug, field, data[field])
+                upd_fields.append(field)
+        if 'linked_bug_id' in data:
+            bug.linked_bug_id = data['linked_bug_id']
+            upd_fields.append('linked_bug_id')
+        bug.save(update_fields=upd_fields)
+        updated_ids.append(bug.id)
+
+        if new_status is not None:
+            status_display = dict(BugReport.STATUS_CHOICES).get(new_status, new_status)
+            notify_project_client(
+                proj, Notification.TYPE_BUG_STATUS_CHANGED,
+                f'Bug actualizado: {bug.title}',
+                message=f'Estado cambiado a "{status_display}".',
+                related_object_type='bug_report', related_object_id=bug.id,
+                exclude_user=request.user,
+                deliverable=bug.deliverable,
+            )
+
+    return Response({
+        'updated': len(updated_ids),
+        'updated_ids': updated_ids,
+        'errors': errors,
+    })
 
 
 @api_view(['POST'])
@@ -1852,7 +2043,7 @@ def bug_report_comment_view(request, project_id, bug_id):
         return err
 
     try:
-        bug = BugReport.objects.get(id=bug_id, deliverable__project=proj)
+        bug = BugReport.objects.get(id=bug_id, project=proj)
     except BugReport.DoesNotExist:
         return Response(
             {'detail': 'Bug no encontrado.'},
@@ -1956,15 +2147,16 @@ def deliverable_list_view(request, project_id):
         serializer = DeliverableListSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
 
-    if not profile or not profile.is_admin:
-        return Response(
-            {'detail': 'Solo los administradores pueden subir entregables.'},
-            status=status.HTTP_403_FORBIDDEN,
-        )
-
     serializer = CreateDeliverableSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
+
+    category = data.get('category', Deliverable.CATEGORY_OTHER)
+    if not is_admin and category in Deliverable.ADMIN_ONLY_CATEGORIES:
+        return Response(
+            {'detail': 'Esta categoría solo puede ser subida por el administrador.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
 
     upload_file = data.get('file')
     deliverable = Deliverable.objects.create(
@@ -1972,7 +2164,7 @@ def deliverable_list_view(request, project_id):
         uploaded_by=request.user,
         title=data['title'],
         description=data.get('description', ''),
-        category=data.get('category', Deliverable.CATEGORY_OTHER),
+        category=category,
         file=upload_file,
         current_version=1 if upload_file else 0,
     )
@@ -2100,7 +2292,7 @@ def deliverable_upload_version_view(request, project_id, deliverable_id):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    serializer = UploadNewVersionSerializer(data=request.data)
+    serializer = UploadNewVersionSerializer(data=request.data, context={'deliverable': deliverable})
     serializer.is_valid(raise_exception=True)
 
     new_version = deliverable.current_version + 1
@@ -2664,7 +2856,7 @@ def notification_mark_all_read_view(request):
 # Payments & Subscriptions
 # ==========================================================================
 
-from accounts.models import HostingSubscription, Payment  # noqa: E402
+from accounts.models import HostingSubscription, Payment, PaymentHistory  # noqa: E402
 from accounts.serializers import (  # noqa: E402
     HostingSubscriptionListSerializer,
     HostingSubscriptionSerializer,
@@ -2743,38 +2935,56 @@ def _extract_proposal_financial_data(proposal):
     return payment_milestones, hosting_tiers
 
 
-def _create_subscription_from_proposal(project, proposal, plan, start_date):
-    """Create a HostingSubscription from a BusinessProposal's hosting pricing."""
+def _create_subscription_multi_phase(project, plan):
+    """
+    Create a HostingSubscription billing the sum of the project's started
+    phases at the given plan. A phase counts as started when its
+    hosting_start_date is unset or already reached; future-dated phases are
+    left for the billing cron to onboard (prorated) when their date arrives.
+    Returns None when no phase has started yet.
+    """
+    from datetime import date
     from decimal import Decimal
 
-    hosting_annual = proposal.total_investment * Decimal(proposal.hosting_percent) / Decimal(100)
-    base_monthly = round(hosting_annual / Decimal(12), 2)
-
-    discount_map = {
-        HostingSubscription.PLAN_MONTHLY: 0,
-        HostingSubscription.PLAN_QUARTERLY: proposal.hosting_discount_quarterly,
-        HostingSubscription.PLAN_SEMIANNUAL: proposal.hosting_discount_semiannual,
-    }
-    discount = discount_map.get(plan, 0)
-
     from dateutil.relativedelta import relativedelta
+
+    from accounts.services.hosting_billing import phase_monthly_base, project_billing_amount
+
+    today = date.today()
+    phases = list(project.phases.select_related('business_proposal').all())
+    started = [p for p in phases if p.hosting_start_date is None or p.hosting_start_date <= today]
+    if not started:
+        return None
+
+    start_dates = [p.hosting_start_date for p in started if p.hosting_start_date]
+    start_date = min(start_dates) if start_dates else today
+
+    for p in started:
+        p.hosting_activated_at = p.hosting_start_date or today
+        p.save(update_fields=['hosting_activated_at'])
 
     sub = HostingSubscription(
         project=project,
         plan=plan,
-        base_monthly_amount=base_monthly,
-        discount_percent=discount,
+        base_monthly_amount=Decimal('0'),
+        discount_percent=0,
+        effective_monthly_amount=Decimal('0'),
+        billing_amount=Decimal('0'),
+        status=HostingSubscription.STATUS_PENDING,
         start_date=start_date,
         next_billing_date=start_date,
-        status=HostingSubscription.STATUS_PENDING,
     )
-    sub.calculate_amounts()
     sub.save()
 
-    # Create the first payment record
     months = sub.billing_months
-    billing_end = start_date + relativedelta(months=months) - relativedelta(days=1)
+    sub.billing_amount = project_billing_amount(project, plan)
+    sub.effective_monthly_amount = round(sub.billing_amount / Decimal(months), 2)
+    sub.base_monthly_amount = sum((phase_monthly_base(p) for p in started), Decimal('0'))
+    sub.save(update_fields=[
+        'billing_amount', 'effective_monthly_amount', 'base_monthly_amount',
+    ])
 
+    billing_end = start_date + relativedelta(months=months) - relativedelta(days=1)
     Payment.objects.create(
         subscription=sub,
         amount=sub.billing_amount,
@@ -2784,8 +2994,6 @@ def _create_subscription_from_proposal(project, proposal, plan, start_date):
         due_date=start_date,
         status=Payment.STATUS_PENDING,
     )
-
-    # Update next_billing_date to the start of the NEXT cycle
     sub.next_billing_date = billing_end + relativedelta(days=1)
     sub.save(update_fields=['next_billing_date'])
 
@@ -2883,6 +3091,91 @@ def _handle_payment_approved(payment, payment_history_source=''):
         logger.warning('Failed to create payment notifications for payment %s', payment.id)
 
 
+def _poll_transaction_status(transaction_id, attempts=5, delay=2):
+    """
+    Card transactions settle asynchronously — Wompi returns PENDING and
+    resolves seconds later. Poll the transaction a few times so an approved
+    charge resolves now instead of waiting on the webhook (which can't reach
+    localhost in development). Returns the settled transaction data, or None
+    if it is still pending after the polling window.
+    """
+    import time
+
+    from accounts.services.wompi import verify_transaction
+
+    for _ in range(attempts):
+        time.sleep(delay)
+        try:
+            data = verify_transaction(transaction_id)
+        except Exception as e:
+            logger.warning('Transaction poll error for %s: %s', transaction_id, e)
+            continue
+        if data.get('status') and data.get('status') != 'PENDING':
+            return data
+    return None
+
+
+def _charge_payment_with_source(payment, history_source=''):
+    """
+    Charge a Payment using its subscription's stored Wompi payment source.
+    Updates the Payment status from the transaction result and returns the
+    Wompi transaction data dict. Raises ValueError if no stored card exists.
+    """
+    import hashlib
+    import time
+
+    from django.conf import settings as dj_settings
+
+    from accounts.models import PaymentHistory
+    from accounts.services.payment_history import record_payment_status_change
+    from accounts.services.wompi import charge_with_payment_source
+
+    sub = payment.subscription
+    if not sub.wompi_payment_source_id:
+        raise ValueError('La suscripción no tiene una tarjeta guardada.')
+
+    ts = int(time.time())
+    reference = f'PA{payment.id}P{sub.project_id}T{ts}'
+    amount_in_cents = int(payment.amount * 100)
+    integrity_str = f'{reference}{amount_in_cents}COP{dj_settings.WOMPI_INTEGRITY_SECRET}'
+    signature = hashlib.sha256(integrity_str.encode()).hexdigest()
+
+    txn_data = charge_with_payment_source(
+        payment, sub.wompi_payment_source_id, reference, signature,
+    )
+    txn_id = txn_data.get('id', '')
+    txn_status = txn_data.get('status', '')
+
+    # The charge settles asynchronously — give Wompi a moment to resolve a
+    # PENDING transaction before falling back to the webhook.
+    if txn_status == 'PENDING' and txn_id:
+        settled = _poll_transaction_status(str(txn_id))
+        if settled:
+            txn_data = settled
+            txn_status = settled.get('status', txn_status)
+
+    payment.wompi_transaction_id = str(txn_id)
+    src = history_source or PaymentHistory.SOURCE_API
+
+    if txn_status == 'APPROVED':
+        _handle_payment_approved(payment, src)
+    elif txn_status == 'PENDING':
+        old_status = payment.status
+        payment.status = Payment.STATUS_PROCESSING
+        payment.save(update_fields=['wompi_transaction_id', 'status'])
+        record_payment_status_change(payment, old_status, Payment.STATUS_PROCESSING, src)
+    else:  # DECLINED, ERROR, VOIDED
+        old_status = payment.status
+        payment.status = Payment.STATUS_FAILED
+        payment.last_charge_error = (
+            txn_data.get('status_message') or txn_status or 'Pago rechazado'
+        )[:300]
+        payment.save(update_fields=['wompi_transaction_id', 'status', 'last_charge_error'])
+        record_payment_status_change(payment, old_status, Payment.STATUS_FAILED, src)
+
+    return txn_data
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdminRole])
 def proposal_list_for_selector_view(request):
@@ -2928,7 +3221,8 @@ def project_subscription_view(request, project_id):
            Returns 404 if no subscription exists yet.
     POST — Client (or admin) creates subscription by choosing a hosting plan.
            Required: { plan: 'monthly'|'quarterly'|'semiannual' }
-           Only works if no subscription exists yet and project has a linked proposal.
+           Only works if no subscription exists yet and the project has phases
+           with at least one already started.
     PATCH — Change hosting plan (admin or client) or status (admin only).
     """
     proj, err = _get_project_or_403(request, project_id)
@@ -2943,10 +3237,9 @@ def project_subscription_view(request, project_id):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        bp = proj.linked_business_proposal()
-        if not bp:
+        if not proj.phases.exists():
             return Response(
-                {'detail': 'El proyecto no tiene una propuesta vinculada para calcular el hosting.'},
+                {'detail': 'El proyecto no tiene fases para calcular el hosting.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -2957,9 +3250,12 @@ def project_subscription_view(request, project_id):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        from datetime import date
-        start_date = proj.hosting_start_date or date.today()
-        sub = _create_subscription_from_proposal(proj, bp, plan, start_date)
+        sub = _create_subscription_multi_phase(proj, plan)
+        if sub is None:
+            return Response(
+                {'detail': 'Ninguna fase tiene su hosting iniciado todavía.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         sub = HostingSubscription.objects.prefetch_related(_subscription_payment_prefetch()).get(pk=sub.pk)
         return Response(
             HostingSubscriptionSerializer(sub).data,
@@ -3010,11 +3306,45 @@ def project_subscription_view(request, project_id):
         else:
             unarchive_record(sub, extra_update_fields=('updated_at',))
 
-    if 'plan' in data:
+    if 'plan' in data and data['plan'] != sub.plan:
+        # The frequency is locked once the first payment is settled; until
+        # then (status pending) the client may still change it.
+        if not is_admin and sub.status != HostingSubscription.STATUS_PENDING:
+            return Response(
+                {'detail': 'La frecuencia ya no se puede cambiar. Escríbenos para ajustarla.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        from decimal import Decimal
+
+        from dateutil.relativedelta import relativedelta
+
+        from accounts.services.hosting_billing import project_billing_amount
+
         sub.plan = data['plan']
-        discount = _get_plan_discount(proj, data['plan'])
-        sub.discount_percent = discount
-        sub.calculate_amounts()
+        sub.billing_amount = project_billing_amount(proj, data['plan'])
+        months = sub.billing_months
+        sub.effective_monthly_amount = round(sub.billing_amount / Decimal(months), 2)
+
+        # While still pending, realign the unpaid first payment + cycle.
+        if sub.status == HostingSubscription.STATUS_PENDING:
+            first = (
+                sub.payments.filter(status=Payment.STATUS_PENDING)
+                .order_by('billing_period_start').first()
+            )
+            if first:
+                billing_end = (
+                    first.billing_period_start
+                    + relativedelta(months=months) - relativedelta(days=1)
+                )
+                first.amount = sub.billing_amount
+                first.billing_period_end = billing_end
+                first.description = (
+                    f'Hosting {sub.get_plan_display()} — '
+                    f'{first.billing_period_start} a {billing_end}'
+                )
+                first.save(update_fields=['amount', 'billing_period_end', 'description'])
+                sub.next_billing_date = billing_end + relativedelta(days=1)
     if 'status' in data:
         sub.status = data['status']
     sub.save()
@@ -3032,29 +3362,6 @@ def _subscription_payment_prefetch():
         'payments',
         queryset=Payment.objects.filter(is_archived=False).prefetch_related('history'),
     )
-
-
-def _get_plan_discount(project, plan):
-    """Get the discount % for a hosting plan from project.hosting_tiers or proposal defaults."""
-    # Try to find discount from stored hosting_tiers
-    for tier in (project.hosting_tiers or []):
-        if tier.get('frequency') == plan:
-            return tier.get('discount_percent', 0)
-    # Fallback to proposal if linked
-    bp = project.linked_business_proposal()
-    if bp:
-        discount_map = {
-            HostingSubscription.PLAN_MONTHLY: 0,
-            HostingSubscription.PLAN_QUARTERLY: bp.hosting_discount_quarterly,
-            HostingSubscription.PLAN_SEMIANNUAL: bp.hosting_discount_semiannual,
-        }
-        return discount_map.get(plan, 0)
-    # Hardcoded fallback
-    return {
-        HostingSubscription.PLAN_MONTHLY: 0,
-        HostingSubscription.PLAN_QUARTERLY: 10,
-        HostingSubscription.PLAN_SEMIANNUAL: 20,
-    }.get(plan, 0)
 
 
 @api_view(['GET'])
@@ -3079,6 +3386,82 @@ def project_payments_view(request, project_id):
     payments = payments.select_related('subscription__project').prefetch_related('history')
     serializer = PaymentSerializer(payments, many=True)
     return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminRole])
+def register_manual_payment_view(request, project_id):
+    """Admin registers a manual (off-platform) hosting payment for a project."""
+    from decimal import Decimal
+
+    from dateutil.relativedelta import relativedelta
+    from django.utils import timezone
+
+    from accounts.serializers import ManualPaymentSerializer as _ManualSer
+
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    ser = _ManualSer(data=request.data)
+    if not ser.is_valid():
+        return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    data = ser.validated_data
+    frequency = data['frequency']
+    amount = data['amount']
+    billing_period_start = data['billing_period_start']
+    description = data.get('description') or 'Pago manual registrado por administrador'
+
+    months_map = {
+        HostingSubscription.PLAN_MONTHLY: 1,
+        HostingSubscription.PLAN_QUARTERLY: 3,
+        HostingSubscription.PLAN_SEMIANNUAL: 6,
+    }
+    billing_months = months_map[frequency]
+    billing_period_end = billing_period_start + relativedelta(months=billing_months) - relativedelta(days=1)
+    next_billing = billing_period_end + relativedelta(days=1)
+
+    try:
+        sub = HostingSubscription.objects.get(project=proj)
+        if not sub.next_billing_date or next_billing > sub.next_billing_date:
+            sub.next_billing_date = next_billing
+            sub.status = HostingSubscription.STATUS_ACTIVE
+            sub.save(update_fields=['next_billing_date', 'status'])
+    except HostingSubscription.DoesNotExist:
+        base_monthly = round(Decimal(str(amount)) / billing_months, 2)
+        sub = HostingSubscription.objects.create(
+            project=proj,
+            plan=frequency,
+            base_monthly_amount=base_monthly,
+            discount_percent=0,
+            effective_monthly_amount=base_monthly,
+            billing_amount=amount,
+            status=HostingSubscription.STATUS_ACTIVE,
+            start_date=billing_period_start,
+            next_billing_date=next_billing,
+        )
+
+    payment = Payment.objects.create(
+        subscription=sub,
+        amount=amount,
+        description=description,
+        billing_period_start=billing_period_start,
+        billing_period_end=billing_period_end,
+        due_date=billing_period_start,
+        status=Payment.STATUS_PAID,
+        paid_at=timezone.now(),
+    )
+
+    PaymentHistory.objects.create(
+        payment=payment,
+        from_status=Payment.STATUS_PENDING,
+        to_status=Payment.STATUS_PAID,
+        source=PaymentHistory.SOURCE_MANUAL,
+        metadata={'registered_by': request.user.email},
+    )
+
+    return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])
@@ -3225,7 +3608,7 @@ def payment_card_pay_view(request, project_id, payment_id):
     try:
         from accounts.services.wompi import tokenize_card, get_acceptance_token, create_card_transaction
 
-        card_token = tokenize_card(card_number, exp_month, exp_year, cvc, card_holder)
+        card_token = tokenize_card(card_number, exp_month, exp_year, cvc, card_holder)['id']
         acceptance_token = get_acceptance_token()
 
         ts = int(time.time())
@@ -3300,10 +3683,12 @@ def payment_verify_transaction_view(request, project_id, payment_id):
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    transaction_id = request.data.get('transaction_id')
+    # Falls back to the transaction id already stored on the payment, so the
+    # client can re-verify a PROCESSING payment without re-supplying it.
+    transaction_id = request.data.get('transaction_id') or payment.wompi_transaction_id
     if not transaction_id:
         return Response(
-            {'detail': 'transaction_id es requerido.'},
+            {'detail': 'No hay una transacción asociada a este pago.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -3345,6 +3730,224 @@ def payment_verify_transaction_view(request, project_id, payment_id):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def card_setup_start_view(request, project_id):
+    """
+    Start stored-card setup for a subscription: tokenize the card and create
+    a Wompi payment source. When the merchant has 3DS enabled, the response
+    carries the three_ds_auth flow the frontend completes by polling
+    card_setup_status_view until the source becomes AVAILABLE.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        sub = HostingSubscription.objects.select_related('project__client').get(project=proj)
+    except HostingSubscription.DoesNotExist:
+        return Response(
+            {'detail': 'Este proyecto no tiene una suscripción de hosting.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    card_number = request.data.get('card_number', '')
+    exp_month = request.data.get('exp_month', '')
+    exp_year = request.data.get('exp_year', '')
+    cvc = request.data.get('cvc', '')
+    card_holder = request.data.get('card_holder', '')
+    if not all([card_number, exp_month, exp_year, cvc, card_holder]):
+        return Response(
+            {'detail': 'Todos los campos de la tarjeta son requeridos.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        from accounts.services.wompi import (
+            create_payment_source, get_acceptance_tokens, tokenize_card,
+        )
+        token_data = tokenize_card(card_number, exp_month, exp_year, cvc, card_holder)
+        tokens = get_acceptance_tokens()
+        source = create_payment_source(
+            token_data['id'], sub.project.client.email,
+            tokens['acceptance_token'], tokens['accept_personal_auth'],
+        )
+    except Exception as e:
+        logger.error('Card setup start error for project %s: %s', proj.id, e)
+        return Response(
+            {'detail': f'No se pudo registrar la tarjeta: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    extra = source.get('extra', {}) or {}
+    return Response({
+        'payment_source_id': source.get('id'),
+        'status': source.get('status'),
+        'is_three_ds': bool(extra.get('is_three_ds')),
+        'three_ds_auth': extra.get('three_ds_auth', {}),
+        'card_brand': token_data.get('brand', ''),
+        'card_last_four': token_data.get('last_four', ''),
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def card_setup_status_view(request, project_id, payment_source_id):
+    """Poll a payment source's state while the 3DS auth flow runs."""
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        from accounts.services.wompi import get_payment_source
+        source = get_payment_source(payment_source_id)
+    except Exception as e:
+        logger.error('Card setup status error (source %s): %s', payment_source_id, e)
+        return Response(
+            {'detail': 'No se pudo consultar el estado de la tarjeta.'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    if (source.get('customer_email') or '').lower() != (proj.client.email or '').lower():
+        return Response({'detail': 'forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
+    extra = source.get('extra', {}) or {}
+    return Response({
+        'payment_source_id': source.get('id'),
+        'status': source.get('status'),
+        'is_three_ds': bool(extra.get('is_three_ds')),
+        'three_ds_auth': extra.get('three_ds_auth', {}),
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def card_setup_confirm_view(request, project_id, payment_source_id):
+    """
+    Finalize stored-card setup: verify the payment source is AVAILABLE,
+    persist it on the subscription, and charge the oldest open payment
+    (the initial billing cycle).
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        sub = HostingSubscription.objects.select_related('project__client').get(project=proj)
+    except HostingSubscription.DoesNotExist:
+        return Response(
+            {'detail': 'Este proyecto no tiene una suscripción de hosting.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        from accounts.services.wompi import get_payment_source
+        source = get_payment_source(payment_source_id)
+    except Exception as e:
+        logger.error('Card setup confirm error (source %s): %s', payment_source_id, e)
+        return Response(
+            {'detail': 'No se pudo verificar la tarjeta con Wompi.'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    if (source.get('customer_email') or '').lower() != (sub.project.client.email or '').lower():
+        return Response(
+            {'detail': 'La tarjeta no corresponde a esta cuenta.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if source.get('status') != 'AVAILABLE':
+        return Response(
+            {
+                'detail': 'La tarjeta no quedó autorizada. Intenta de nuevo o usa otra tarjeta.',
+                'status': source.get('status'),
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    public_data = source.get('public_data', {}) or {}
+    sub.wompi_payment_source_id = str(source.get('id'))
+    sub.card_brand = (request.data.get('card_brand') or public_data.get('brand') or '')[:20]
+    sub.card_last_four = (request.data.get('card_last_four') or public_data.get('last_four') or '')[:4]
+    sub.card_exp_month = str(request.data.get('exp_month') or public_data.get('exp_month') or '')[:2]
+    sub.card_exp_year = str(request.data.get('exp_year') or public_data.get('exp_year') or '')[:4]
+    sub.save(update_fields=[
+        'wompi_payment_source_id', 'card_brand', 'card_last_four',
+        'card_exp_month', 'card_exp_year', 'updated_at',
+    ])
+
+    payment = Payment.objects.filter(
+        subscription=sub,
+        status__in=[Payment.STATUS_PENDING, Payment.STATUS_OVERDUE, Payment.STATUS_FAILED],
+        is_archived=False,
+    ).order_by('due_date').first()
+
+    charge_result = None
+    if payment is not None:
+        try:
+            txn_data = _charge_payment_with_source(payment)
+            charge_result = {
+                'payment_id': payment.id,
+                'payment_status': payment.status,
+                'transaction_status': txn_data.get('status', ''),
+            }
+        except Exception as e:
+            logger.error('Initial charge error for payment %s: %s', payment.id, e)
+            charge_result = {'payment_id': payment.id, 'error': str(e)}
+
+    sub = HostingSubscription.objects.prefetch_related(
+        _subscription_payment_prefetch(),
+    ).get(pk=sub.pk)
+    return Response({
+        'subscription': HostingSubscriptionSerializer(sub).data,
+        'charge': charge_result,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def payment_charge_stored_view(request, project_id, payment_id):
+    """Charge a single open payment using the subscription's stored card."""
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        payment = Payment.objects.select_related('subscription__project__client').get(
+            id=payment_id, subscription__project=proj,
+        )
+    except Payment.DoesNotExist:
+        return Response({'detail': 'Pago no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if payment.status not in (Payment.STATUS_PENDING, Payment.STATUS_OVERDUE, Payment.STATUS_FAILED):
+        return Response(
+            {'detail': 'Este pago no está disponible para cobro.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not payment.subscription.wompi_payment_source_id:
+        return Response(
+            {'detail': 'No hay una tarjeta guardada. Registra una tarjeta primero.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        txn_data = _charge_payment_with_source(payment)
+    except Exception as e:
+        logger.error('Stored-card charge error for payment %s: %s', payment.id, e)
+        return Response(
+            {'detail': f'Error procesando el pago: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    return Response({
+        'payment_id': payment.id,
+        'payment_status': payment.status,
+        'transaction_id': txn_data.get('id', ''),
+        'transaction_status': txn_data.get('status', ''),
+    })
+
+
+@api_view(['POST'])
 @authentication_classes([])
 @permission_classes([AllowAny])
 def wompi_webhook_view(request):
@@ -3356,6 +3959,15 @@ def wompi_webhook_view(request):
     from django.utils import timezone as tz
 
     event = request.data
+
+    from accounts.services.wompi import validate_event_signature
+    if not validate_event_signature(event):
+        logger.warning('Wompi webhook rejected — invalid or missing event signature')
+        return Response(
+            {'status': 'invalid signature'},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
     event_type = event.get('event')
     data = event.get('data', {})
     transaction = data.get('transaction', {})
@@ -3465,3 +4077,119 @@ def cover_gallery_view(request):
             })
 
     return Response(categories)
+
+
+# ==========================================================================
+# Project phases (platform IA refactor)
+# ==========================================================================
+
+
+def _get_project_or_404(project_id, user):
+    from accounts.models import Project
+    qs = Project.objects.filter(id=project_id)
+    profile = getattr(user, 'profile', None)
+    if profile and profile.role != 'admin':
+        qs = qs.filter(client=user)
+    return qs.first()
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def project_phases_view(request, project_id):
+    project = _get_project_or_404(project_id, request.user)
+    if project is None:
+        return Response({'detail': 'project_not_found'}, status=404)
+    if request.method == 'GET':
+        return Response(ProjectPhaseSerializer(list_phases(project), many=True).data)
+    profile = getattr(request.user, 'profile', None)
+    if not (profile and profile.is_admin):
+        return Response({'detail': 'forbidden'}, status=403)
+    proposal_id = request.data.get('proposal_id')
+    if not proposal_id:
+        return Response({'detail': 'proposal_id required'}, status=400)
+    from content.models import BusinessProposal
+    proposal = BusinessProposal.objects.filter(id=proposal_id).first()
+    if proposal is None:
+        return Response({'detail': 'proposal_not_found'}, status=404)
+    try:
+        phase = add_phase(project, proposal, order=request.data.get('order'))
+    except PhaseError as exc:
+        return Response({'detail': exc.code, **exc.extra}, status=exc.http_status)
+    return Response(ProjectPhaseSerializer(phase).data, status=201)
+
+
+@api_view(['DELETE', 'PATCH'])
+@permission_classes([IsAuthenticated, IsAdminRole])
+def project_phase_detail_view(request, project_id, phase_id):
+    project = _get_project_or_404(project_id, request.user)
+    if project is None:
+        return Response({'detail': 'project_not_found'}, status=404)
+
+    if request.method == 'DELETE':
+        try:
+            remove_phase(project, phase_id)
+        except PhaseError as exc:
+            return Response({'detail': exc.code, **exc.extra}, status=exc.http_status)
+        return Response(status=204)
+
+    # PATCH — update hosting_start_date
+    from accounts.models import ProjectPhase
+    from accounts.serializers import UpdateProjectPhaseSerializer
+    phase = ProjectPhase.objects.filter(pk=phase_id, project=project).first()
+    if phase is None:
+        return Response({'detail': 'phase_not_found'}, status=404)
+    serializer = UpdateProjectPhaseSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    phase.hosting_start_date = serializer.validated_data['hosting_start_date']
+    phase.save(update_fields=['hosting_start_date'])
+
+    # Keep Project.hosting_start_date in sync with Phase 1 (used by subscription creation)
+    if phase.order == 1:
+        project.hosting_start_date = phase.hosting_start_date
+        project.save(update_fields=['hosting_start_date'])
+
+    from accounts.serializers import ProjectPhaseSerializer as PhaseSerializer
+    return Response(PhaseSerializer(phase).data)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsAdminRole])
+def project_phases_reorder_view(request, project_id):
+    project = _get_project_or_404(project_id, request.user)
+    if project is None:
+        return Response({'detail': 'project_not_found'}, status=404)
+    items = request.data
+    if not isinstance(items, list):
+        return Response({'detail': 'expected_list'}, status=400)
+    try:
+        reorder_phases(project, items)
+    except PhaseError as exc:
+        return Response({'detail': exc.code, **exc.extra}, status=exc.http_status)
+    return Response(ProjectPhaseSerializer(list_phases(project), many=True).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminRole])
+def client_eligible_proposals_view(request, user_id):
+    """Returns 'signed' BusinessProposals (status accepted/finished) for the
+    client that are not already attached to any project as a phase."""
+    user = User.objects.filter(id=user_id).first()
+    if user is None:
+        return Response({'detail': 'client_not_found'}, status=404)
+
+    from content.models import BusinessProposal
+    proposals = BusinessProposal.objects.filter(
+        client_email__iexact=user.email,
+        status__in=['accepted', 'finished'],
+    ).exclude(
+        project_phases__isnull=False,
+    ).order_by('-id')
+
+    data = [
+        {
+            'id': p.id, 'title': p.title, 'status': p.status,
+            'total_amount': getattr(p, 'total_investment', None) or 0,
+        }
+        for p in proposals
+    ]
+    return Response(data)

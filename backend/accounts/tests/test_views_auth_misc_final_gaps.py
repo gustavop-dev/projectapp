@@ -9,7 +9,6 @@ Covers:
 - admin_detail_view: non-staff user rejected (line 504)
 - _generate_next_payment: nil billing_start (line 2718)
 - _handle_payment_approved: notification exception silenced (lines 2786-2787)
-- _get_plan_discount: stored hosting_tiers match (lines 2945-2946) and linked BP fallback (2950, 2955)
 - payment_card_pay_view: invalid project_id (line 3106)
 - payment_verify_transaction_view: invalid project_id (line 3195)
 - wompi_webhook_view: PA-pattern matches but payment not found (lines 3293-3294)
@@ -30,6 +29,7 @@ from accounts.models import (
     Project,
     UserProfile,
 )
+from accounts.tests.wompi_event_helpers import signed_transaction_event
 
 User = get_user_model()
 
@@ -262,53 +262,6 @@ class TestHandlePaymentApprovedNotificationException:
 
 
 # ===========================================================================
-# _get_plan_discount — stored hosting_tiers match (lines 2945-2946)
-# ===========================================================================
-
-class TestGetPlanDiscountStoredTiers:
-    def test_returns_discount_from_matching_tier(self, project):
-        """When project.hosting_tiers has a matching frequency, its discount_percent is returned."""
-        from accounts.views import _get_plan_discount
-
-        project.hosting_tiers = [
-            {'frequency': 'monthly', 'discount_percent': 0},
-            {'frequency': 'quarterly', 'discount_percent': 15},
-        ]
-        project.save(update_fields=['hosting_tiers'])
-
-        result = _get_plan_discount(project, 'quarterly')
-
-        assert result == 15
-
-    def test_returns_discount_from_linked_bp_when_no_tier_match(
-        self, project, subscription,
-    ):
-        """Falls back to linked BusinessProposal when no matching tier in project.hosting_tiers."""
-        from content.models import BusinessProposal
-        from accounts.models import Deliverable
-        from accounts.views import _get_plan_discount
-
-        project.hosting_tiers = [{'frequency': 'monthly', 'discount_percent': 0}]
-        project.save(update_fields=['hosting_tiers'])
-
-        d = Deliverable.objects.create(
-            project=project, title='BP Deliverable',
-            category=Deliverable.CATEGORY_DOCUMENTS,
-            uploaded_by=subscription.project.client,
-        )
-        BusinessProposal.objects.create(
-            title='Test BP', client_name='Client',
-            hosting_discount_quarterly=12,
-            hosting_discount_semiannual=22,
-            deliverable=d,
-        )
-
-        result = _get_plan_discount(project, 'quarterly')
-
-        assert result == 12
-
-
-# ===========================================================================
 # payment_card_pay_view — invalid project_id returns 404 (line 3106)
 # ===========================================================================
 
@@ -342,16 +295,15 @@ class TestWompiWebhookPaPatternNotFound:
     def test_pa_pattern_with_nonexistent_payment_id_not_found(self, api_client):
         """PA-pattern reference with non-existent payment ID falls through to 404."""
         reference = 'PA99999P1T1234567890'
-        resp = api_client.post('/api/accounts/webhooks/wompi/', {
-            'event': 'transaction.updated',
-            'data': {
-                'transaction': {
-                    'id': 'txn_pa_miss',
-                    'status': 'APPROVED',
-                    'reference': reference,
-                },
-            },
-        }, format='json')
+        resp = api_client.post(
+            '/api/accounts/webhooks/wompi/',
+            signed_transaction_event({
+                'id': 'txn_pa_miss',
+                'status': 'APPROVED',
+                'reference': reference,
+            }),
+            format='json',
+        )
 
         assert resp.status_code == 404
 

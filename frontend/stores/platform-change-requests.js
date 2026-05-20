@@ -141,6 +141,23 @@ export const usePlatformChangeRequestsStore = defineStore('platformChangeRequest
       }
     },
 
+    async bulkEvaluateChangeRequests(projectId, items) {
+      this.isUpdating = true
+      this.error = ''
+      try {
+        const { post } = usePlatformApi()
+        const response = await post(`projects/${projectId}/change-requests/bulk-evaluate/`, items)
+        return { success: true, data: response.data }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No pudimos aplicar las respuestas masivas.'
+        this.error = message
+        return { success: false, message }
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false
+      }
+    },
+
     async deleteChangeRequest(projectId, crId) {
       this.isUpdating = true
       this.error = ''

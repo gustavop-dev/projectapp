@@ -7,8 +7,11 @@ from accounts.models import (
     Deliverable,
     Notification,
     Project,
+    ProjectPhase,
+    Requirement,
     UserProfile,
 )
+from content.models.business_proposal import BusinessProposal
 from accounts.services.notifications import notify, notify_project_admins, notify_project_client
 
 User = get_user_model()
@@ -78,6 +81,13 @@ def deliverable(project, client_user):
         project=project, title='Notif D', category=Deliverable.CATEGORY_OTHER,
         file=None, uploaded_by=client_user,
     )
+
+
+@pytest.fixture
+def source_requirement(project):
+    bp = BusinessProposal.objects.create(title='Notif proposal', client_name='c')
+    phase = ProjectPhase.objects.create(project=project, business_proposal=bp, order=1)
+    return Requirement.objects.create(phase=phase, title='Notif req')
 
 
 @pytest.fixture
@@ -374,11 +384,12 @@ class TestNotificationMarkAllRead:
 @pytest.mark.django_db
 class TestNotificationIntegration:
     def test_cr_create_by_client_notifies_admins(
-        self, api_client, client_headers, project, admin_user,
+        self, api_client, client_headers, project, admin_user, source_requirement,
     ):
+        # CR create requires source_requirement_id after the Phase refactor.
         api_client.post(
             f'/api/accounts/projects/{project.id}/change-requests/',
-            {'title': 'New feature'},
+            {'title': 'New feature', 'source_requirement_id': source_requirement.id},
             format='json', **client_headers,
         )
 
@@ -389,11 +400,11 @@ class TestNotificationIntegration:
         assert 'New feature' in admin_notifs.first().title
 
     def test_cr_evaluate_notifies_client(
-        self, api_client, admin_headers, client_headers, project, client_user,
+        self, api_client, admin_headers, client_headers, project, client_user, source_requirement,
     ):
         resp = api_client.post(
             f'/api/accounts/projects/{project.id}/change-requests/',
-            {'title': 'Client request'},
+            {'title': 'Client request', 'source_requirement_id': source_requirement.id},
             format='json', **client_headers,
         )
         cr_id = resp.json()['id']
@@ -410,11 +421,11 @@ class TestNotificationIntegration:
         assert client_notifs.count() == 1
 
     def test_bug_report_by_client_notifies_admins(
-        self, api_client, client_headers, project, admin_user, deliverable,
+        self, api_client, client_headers, project, admin_user, source_requirement,
     ):
         api_client.post(
             f'/api/accounts/projects/{project.id}/bug-reports/',
-            {'deliverable_id': deliverable.id, 'title': 'Button broken', 'severity': 'high'},
+            {'source_requirement_id': source_requirement.id, 'title': 'Button broken', 'severity': 'high'},
             format='json', **client_headers,
         )
 
@@ -422,14 +433,13 @@ class TestNotificationIntegration:
             user=admin_user, type=Notification.TYPE_BUG_REPORTED,
         )
         assert admin_notifs.count() == 1
-        assert admin_notifs.first().deliverable_id == deliverable.id
 
     def test_bug_evaluate_notifies_client(
-        self, api_client, admin_headers, client_headers, project, client_user, deliverable,
+        self, api_client, admin_headers, client_headers, project, client_user, source_requirement,
     ):
         resp = api_client.post(
             f'/api/accounts/projects/{project.id}/bug-reports/',
-            {'deliverable_id': deliverable.id, 'title': 'Some bug', 'severity': 'medium'},
+            {'source_requirement_id': source_requirement.id, 'title': 'Some bug', 'severity': 'medium'},
             format='json', **client_headers,
         )
         bug_id = resp.json()['id']
@@ -444,18 +454,17 @@ class TestNotificationIntegration:
             user=client_user, type=Notification.TYPE_BUG_STATUS_CHANGED,
         )
         assert client_notifs.count() == 1
-        assert client_notifs.first().deliverable_id == deliverable.id
 
     def test_deliverable_upload_notifies_client(
         self, api_client, admin_headers, project, client_user,
     ):
         from django.core.files.base import ContentFile
 
-        f = ContentFile(b'test content', name='design.pdf')
+        f = ContentFile(b'test content', name='doc.pdf')
 
         api_client.post(
             f'/api/accounts/projects/{project.id}/deliverables/',
-            {'title': 'Design file', 'category': 'designs', 'file': f},
+            {'title': 'Doc file', 'category': 'documents', 'file': f},
             format='multipart', **admin_headers,
         )
 

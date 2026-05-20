@@ -38,6 +38,10 @@ const mockRequirements = [
 
 const meResponse = (user) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(user) });
 
+const mockPhases = [
+  { id: 1, order: 1, proposal: { title: 'Fase inicial' } },
+];
+
 function setupMocks(page, { user }) {
   return mockApi(page, async ({ apiPath, method }) => {
     if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(user);
@@ -47,23 +51,19 @@ function setupMocks(page, { user }) {
     if (apiPath === 'accounts/projects/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProject]) };
     }
-    if (apiPath === 'accounts/projects/1/deliverables/' && method === 'GET') {
-      return {
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([{ id: 1, title: 'Main', has_business_proposal: true }]),
-      };
+    if (apiPath === 'accounts/projects/1/phases/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockPhases) };
     }
-    if (apiPath === 'accounts/projects/1/deliverables/1/requirements/' && method === 'GET') {
+    if (apiPath === 'accounts/projects/1/requirements/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockRequirements) };
     }
-    if (apiPath.match(/accounts\/projects\/1\/deliverables\/1\/requirements\/\d+\/$/) && method === 'GET') {
+    if (apiPath.match(/accounts\/projects\/1\/requirements\/\d+\/move\/$/) && method === 'POST') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockRequirements[0], status: 'done' }) };
+    }
+    if (apiPath.match(/accounts\/projects\/1\/requirements\/\d+\/$/) && method === 'GET') {
       const id = parseInt(apiPath.match(/requirements\/(\d+)/)[1], 10);
       const req = mockRequirements.find((r) => r.id === id);
       return { status: 200, contentType: 'application/json', body: JSON.stringify(req || mockRequirements[0]) };
-    }
-    if (apiPath.match(/accounts\/projects\/1\/deliverables\/1\/requirements\/\d+\/move\/$/) && method === 'POST') {
-      return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockRequirements[0], status: 'done' }) };
     }
     if (apiPath === 'accounts/notifications/unread-count/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify({ unread_count: 0 }) };
@@ -79,18 +79,15 @@ test.describe('Platform Requirement Client Review', () => {
     await setPlatformAuth(page, { user: mockPlatformClient });
   });
 
-  test('client sees completed requirements in the Completados section', {
+  test('client sees completed requirements in the Aprobado column', {
     tag: [...PLATFORM_REQUIREMENT_CLIENT_REVIEW, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    const completedBtn = page.getByRole('button', { name: /completados/i });
-    await expect(completedBtn).toBeVisible();
-    await completedBtn.click();
-
-    await expect(page.getByText('Login de usuario')).toBeVisible();
+    await expect(page.getByText('Aprobado')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Login de usuario' })).toBeVisible();
   });
 
   test('clicking a completed card shows review actions (approve, change, bug)', {
@@ -100,8 +97,7 @@ test.describe('Platform Requirement Client Review', () => {
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await page.getByRole('button', { name: /completados/i }).click();
-    await page.getByText('Login de usuario').click();
+    await page.getByRole('heading', { name: 'Login de usuario' }).click();
 
     await expect(page.getByText(/cumple con lo esperado/i)).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole('button', { name: /aprobar/i })).toBeVisible();
@@ -116,12 +112,11 @@ test.describe('Platform Requirement Client Review', () => {
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await page.getByRole('button', { name: /completados/i }).click();
-    await page.getByText('Login de usuario').click();
+    await page.getByRole('heading', { name: 'Login de usuario' }).click();
     await page.getByText(/cumple con lo esperado/i).waitFor({ state: 'visible', timeout: 10000 });
 
     const changeLink = page.getByRole('link', { name: /solicitar cambio/i });
-    await expect(changeLink).toHaveAttribute('href', /\/changes\?from_req=101/);
+    await expect(changeLink).toHaveAttribute('href', /\/projects\/1\/changes\?from_req=101/);
   });
 
   test('reportar bug link navigates to bugs with pre-filled data', {
@@ -131,11 +126,10 @@ test.describe('Platform Requirement Client Review', () => {
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await page.getByRole('button', { name: /completados/i }).click();
-    await page.getByText('Login de usuario').click();
+    await page.getByRole('heading', { name: 'Login de usuario' }).click();
     await page.getByText(/cumple con lo esperado/i).waitFor({ state: 'visible', timeout: 10000 });
 
     const bugLink = page.getByRole('link', { name: /reportar bug/i });
-    await expect(bugLink).toHaveAttribute('href', /\/bugs\?from_req=101/);
+    await expect(bugLink).toHaveAttribute('href', /\/projects\/1\/bugs\?from_req=101/);
   });
 });

@@ -120,9 +120,9 @@ def change_request(project, client_user):
 
 
 @pytest.fixture
-def bug_report(project, deliverable, client_user):
+def bug_report(project, client_user):
     return BugReport.objects.create(
-        deliverable=deliverable,
+        project=project,
         reported_by=client_user,
         title='Test Bug',
         description='Something broken',
@@ -147,56 +147,45 @@ class TestSyncTechnicalRequirementsInvalidProject:
 
 class TestRequirementBulkUploadInvalidProject:
     def test_invalid_project_returns_404(self, api_client, admin_headers):
-        url = '/api/accounts/projects/99999/deliverables/1/requirements/bulk/'
+        url = '/api/accounts/projects/99999/requirements/bulk/'
         resp = api_client.post(url, [], format='json', **admin_headers)
 
         assert resp.status_code == 404
 
 
 # ===========================================================================
-# requirement_detail_view — invalid project (1021) + deliverable mismatch (1031) + not visible (1034)
+# requirement_detail_view — invalid project + archived not visible
 # ===========================================================================
 
 class TestRequirementDetailGaps:
     def test_invalid_project_returns_404(self, api_client, client_headers):
         """_get_project_or_403 returns error for non-existent project."""
-        url = '/api/accounts/projects/99999/deliverables/1/requirements/1/'
+        url = '/api/accounts/projects/99999/requirements/1/'
         resp = api_client.get(url, **client_headers)
 
         assert resp.status_code == 404
 
-    def test_deliverable_id_mismatch_returns_404(self, api_client, client_headers, project, deliverable):
-        """Requirement belongs to a different deliverable → 404."""
-        from accounts.models import Deliverable, Requirement
-        other_dlv = Deliverable.objects.create(
-            project=project, title='Other', category=Deliverable.CATEGORY_OTHER,
-            uploaded_by=User.objects.get(profile__role=UserProfile.ROLE_ADMIN),
-        )
-        req = Requirement.objects.create(deliverable=deliverable, title='My Req')
-
-        url = f'/api/accounts/projects/{project.id}/deliverables/{other_dlv.id}/requirements/{req.id}/'
-        resp = api_client.get(url, **client_headers)
-
-        assert resp.status_code == 404
-
-    def test_archived_requirement_not_visible_to_client(self, api_client, client_headers, project, deliverable):
+    def test_archived_requirement_not_visible_to_client(self, api_client, client_headers, project):
         """Archived requirement returns 404 for client (not visible)."""
-        from accounts.models import Requirement
-        req = Requirement.objects.create(deliverable=deliverable, title='Archived Req', is_archived=True)
+        from accounts.models import ProjectPhase, Requirement
+        from content.models.business_proposal import BusinessProposal
+        bp = BusinessProposal.objects.create(title='Gap', client_name='c')
+        phase = ProjectPhase.objects.create(project=project, business_proposal=bp, order=1)
+        req = Requirement.objects.create(phase=phase, title='Archived Req', is_archived=True)
 
-        url = f'/api/accounts/projects/{project.id}/deliverables/{deliverable.id}/requirements/{req.id}/'
+        url = f'/api/accounts/projects/{project.id}/requirements/{req.id}/'
         resp = api_client.get(url, **client_headers)
 
         assert resp.status_code == 404
 
 
 # ===========================================================================
-# requirement_comment_view — invalid project (1167)
+# requirement_comment_view — invalid project
 # ===========================================================================
 
 class TestRequirementCommentInvalidProject:
     def test_invalid_project_returns_404(self, api_client, client_headers):
-        url = '/api/accounts/projects/99999/deliverables/1/requirements/1/comments/'
+        url = '/api/accounts/projects/99999/requirements/1/comments/'
         resp = api_client.post(url, {'text': 'hi'}, format='json', **client_headers)
 
         assert resp.status_code == 404

@@ -1,5 +1,6 @@
 <template>
-  <div id="platform-changes">
+  <ProjectShell>
+    <div id="platform-changes">
     <!-- Loading -->
     <div v-if="crStore.isLoading && !crStore.changeRequests.length" class="py-20 text-center">
       <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
@@ -9,35 +10,61 @@
       <!-- Header -->
       <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" data-enter>
         <div>
-          <NuxtLink :to="localePath('/platform/changes')" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-            Solicitudes
-          </NuxtLink>
           <h1 class="text-xl font-bold text-text-default sm:text-2xl">Solicitudes de cambio</h1>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-          <label
-            v-if="authStore.isAdmin"
-            class="flex cursor-pointer items-center gap-2 rounded-full border border-border-default px-3 py-1.5 text-xs font-medium text-green-light"
+          <!-- Phase selector -->
+          <BaseDropdown
+            v-if="phaseOptions.length > 0"
+            :items="phaseDropdownItems"
+            align="left"
+            width="w-56"
           >
-            <input v-model="includeArchived" type="checkbox" class="rounded border-border-default" />
-            Mostrar archivados
-          </label>
-          <!-- Stats pills -->
-          <div class="hidden items-center gap-2 sm:flex">
-            <span class="rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-              {{ crStore.pendingCount }} pendientes
-            </span>
-            <span class="rounded-full bg-blue-500/15 px-2.5 py-1 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
-              {{ crStore.evaluatingCount }} en evaluación
-            </span>
-          </div>
-
-          <!-- Create button -->
+            <template #trigger>
+              <button
+                type="button"
+                :class="[
+                  'flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-medium transition',
+                  selectedPhaseId
+                    ? 'border-primary/40 bg-primary/5 text-text-brand dark:border-lemon/30 dark:bg-lemon/5 dark:text-accent'
+                    : 'border-border-default bg-surface text-green-light hover:text-text-default hover:bg-surface-raised',
+                ]"
+              >
+                <span class="max-w-[140px] truncate">{{ selectedPhaseLabel }}</span>
+                <svg class="h-3 w-3 shrink-0 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </template>
+          </BaseDropdown>
+          <!-- Admin bulk tools -->
+          <template v-if="authStore.isAdmin">
+            <button
+              type="button"
+              :disabled="!filteredRequests.length"
+              class="flex items-center gap-1.5 rounded-xl border border-border-default px-3 py-2 text-xs font-medium text-green-light transition hover:text-text-default disabled:opacity-40 dark:hover:text-white"
+              @click="exportResponsesJson"
+            >
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Exportar solicitudes
+            </button>
+            <button
+              type="button"
+              class="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-text-default transition hover:brightness-105"
+              @click="openImportModal"
+            >
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+              Importar respuestas
+            </button>
+          </template>
+          <!-- Client create button -->
           <button
+            v-else
             type="button"
-            class="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-text-default transition hover:brightness-105"
+            :disabled="!projectRequirements.length"
+            :title="projectRequirements.length ? '' : 'El equipo aún no ha cargado el tablero del proyecto.'"
+            class="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
             @click="openCreateModal"
           >
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
@@ -63,53 +90,77 @@
         </button>
       </div>
 
-      <!-- List -->
-      <div v-if="filteredRequests.length" class="space-y-3" data-enter>
-        <div
-          v-for="cr in filteredRequests"
-          :key="cr.id"
-          class="group cursor-pointer rounded-2xl border border-border-default bg-surface p-5 transition hover:border-border-default hover:shadow-md dark:hover:border-white/12"
-          @click="openDetailModal(cr)"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div class="flex-1">
-              <div class="mb-2 flex flex-wrap items-center gap-2">
-                <span class="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase" :class="statusBadgeClass(cr.status)">
+      <!-- Table -->
+      <div v-if="filteredRequests.length" class="overflow-hidden rounded-2xl border border-border-default bg-surface" data-enter>
+        <table class="min-w-full text-left text-sm">
+          <thead class="bg-surface-muted/40 text-xs font-medium uppercase tracking-wider text-green-light/70">
+            <tr>
+              <th class="px-4 py-3">Solicitud</th>
+              <th class="px-4 py-3">Estado</th>
+              <th class="px-4 py-3">Prioridad</th>
+              <th class="px-4 py-3">Solicitado por</th>
+              <th class="px-4 py-3">Fecha</th>
+              <th class="w-10 px-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="cr in filteredRequests"
+              :key="cr.id"
+              class="cursor-pointer border-t border-border-muted transition hover:bg-primary-soft"
+              :class="cr.is_archived ? 'opacity-70' : ''"
+              @click="openDetailModal(cr)"
+            >
+              <td class="px-4 py-3">
+                <div class="flex items-start gap-2">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <p class="truncate font-medium text-text-default">{{ cr.title }}</p>
+                      <span v-if="cr.is_urgent" class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-600 dark:text-red-400">Urgente</span>
+                      <span v-if="cr.is_archived" class="rounded-full bg-gray-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivada</span>
+                      <span v-if="cr.linked_requirement_id" class="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-text-brand">Convertida</span>
+                    </div>
+                    <p v-if="cr.source_requirement" class="mt-0.5 line-clamp-1 text-[10px] text-teal-600 dark:text-teal-300">
+                      Sobre: {{ cr.source_requirement.title }}
+                    </p>
+                    <p v-else-if="cr.module_or_screen" class="mt-0.5 line-clamp-1 text-[10px] text-green-light/60">{{ cr.module_or_screen }}</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <select
+                  v-if="authStore.isAdmin && !cr.is_archived"
+                  :value="cr.status"
+                  class="rounded-full border border-border-default bg-surface-muted/40 px-2 py-1 text-[10px] font-medium text-text-default outline-none focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
+                  @click.stop
+                  @change="onQuickStatus(cr, $event.target.value)"
+                >
+                  <option value="pending">Pendiente</option>
+                  <option value="evaluating">En evaluación</option>
+                  <option value="approved">Aprobada</option>
+                  <option value="rejected">Rechazada</option>
+                  <option value="needs_clarification">Requiere aclaración</option>
+                  <option value="out_of_scope">Fuera de alcance</option>
+                </select>
+                <span
+                  v-else
+                  class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase"
+                  :class="statusBadgeClass(cr.status)"
+                >
                   {{ statusLabel(cr.status) }}
                 </span>
+              </td>
+              <td class="px-4 py-3">
                 <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="priorityBadgeClass(cr.suggested_priority)">
                   {{ priorityLabel(cr.suggested_priority) }}
                 </span>
-                <span v-if="cr.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">
-                  Archivado
-                </span>
-                <span v-if="cr.is_urgent" class="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-red-600 dark:text-red-400">
-                  Urgente
-                </span>
-                <span v-if="cr.linked_requirement_id" class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-text-brand">
-                  Convertida
-                </span>
-              </div>
-              <h3 class="text-sm font-semibold text-text-default">{{ cr.title }}</h3>
-              <p v-if="cr.description" class="mt-1 line-clamp-2 text-xs leading-relaxed text-green-light">{{ cr.description }}</p>
-            </div>
-            <svg class="h-4 w-4 shrink-0 text-green-light/30 transition group-hover:text-text-default dark:group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-          </div>
-
-          <div class="mt-3 flex items-center gap-4 text-[10px] text-green-light/60">
-            <span v-if="cr.module_or_screen">{{ cr.module_or_screen }}</span>
-            <span>{{ cr.created_by_name }}</span>
-            <span>{{ formatDate(cr.created_at) }}</span>
-            <span v-if="cr.comments_count" class="flex items-center gap-1">
-              <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-              {{ cr.comments_count }}
-            </span>
-            <span v-if="cr.estimated_time" class="flex items-center gap-1">
-              <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="1.5" /><path d="M12 6v6l4 2" stroke-width="1.5" /></svg>
-              {{ cr.estimated_time }}
-            </span>
-          </div>
-        </div>
+              </td>
+              <td class="px-4 py-3 text-xs text-green-light">{{ cr.created_by_name }}</td>
+              <td class="px-4 py-3 text-xs text-green-light/70">{{ formatDate(cr.created_at) }}</td>
+              <td class="px-2 py-3 text-right text-green-light/40">›</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <!-- Empty state -->
@@ -121,6 +172,7 @@
           {{ activeFilter === 'all' ? 'No hay solicitudes de cambio aún.' : 'No hay solicitudes con este estado.' }}
         </p>
         <button
+          v-if="!authStore.isAdmin"
           type="button"
           class="mt-4 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105"
           @click="openCreateModal"
@@ -128,13 +180,13 @@
           Crear primera solicitud
         </button>
       </div>
-    </template>
+</template>
 
-    <!-- Create modal -->
+    <!-- Create modal (client only) -->
     <Teleport to="body">
       <Transition name="modal-overlay">
         <div
-          v-if="isCreateOpen"
+          v-if="isCreateOpen && !authStore.isAdmin"
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
           @click.self="isCreateOpen = false"
         >
@@ -143,6 +195,20 @@
               <h2 class="mb-5 text-lg font-bold text-text-default">Nueva solicitud de cambio</h2>
 
               <form class="space-y-4" @submit.prevent="handleCreate">
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Requerimiento de origen <span class="text-red-400">*</span></label>
+                  <select
+                    v-model.number="createForm.source_requirement_id"
+                    required
+                    class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
+                  >
+                    <option :value="null" disabled>Selecciona el requerimiento</option>
+                    <option v-for="req in projectRequirements" :key="req.id" :value="req.id">
+                      {{ req.phase_title ? req.phase_title + ' — ' : '' }}{{ req.title }}
+                    </option>
+                  </select>
+                  <p class="mt-1 text-[10px] text-green-light/60">¿De qué requerimiento es este cambio?</p>
+                </div>
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Título <span class="text-red-400">*</span></label>
                   <input v-model="createForm.title" type="text" required placeholder="¿Qué cambio necesitas?" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
@@ -207,6 +273,58 @@
       </Transition>
     </Teleport>
 
+    <!-- Import responses modal (admin) -->
+    <Teleport to="body">
+      <Transition name="modal-overlay">
+        <div
+          v-if="isImportOpen"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+          @click.self="closeImportModal"
+        >
+          <Transition name="modal-content" appear>
+            <div v-if="isImportOpen" class="w-full max-w-2xl rounded-3xl border border-border-default bg-surface p-6 shadow-2xl sm:p-8">
+              <div class="mb-5 flex items-start justify-between gap-4">
+                <div>
+                  <h2 class="text-lg font-bold text-text-default">Importar respuestas (JSON)</h2>
+                  <p class="mt-1 text-xs text-green-light/70">
+                    Pega un array con `id` + los campos a actualizar (`status`, `admin_response`, `estimated_time`, `estimated_cost`).
+                    Los ítems se aplican por id, los demás se ignoran.
+                  </p>
+                </div>
+                <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="closeImportModal">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              <form class="space-y-4" @submit.prevent="handleImportResponses">
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">JSON</label>
+                  <textarea
+                    v-model="importJson"
+                    rows="14"
+                    spellcheck="false"
+                    placeholder='[{"id": 1, "status": "approved", "admin_response": "...", "estimated_time": "2 semanas", "estimated_cost": 500000}]'
+                    class="w-full resize-y rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 font-mono text-xs text-text-default outline-none transition placeholder:text-green-light/40 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/20 dark:focus:border-lemon/40"
+                  />
+                </div>
+
+                <p v-if="importError" class="rounded-xl border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-600 dark:text-red-400">
+                  {{ importError }}
+                </p>
+
+                <div class="flex justify-end gap-3 pt-2">
+                  <button type="button" class="rounded-xl border border-border-default px-5 py-2.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="closeImportModal">Cancelar</button>
+                  <button type="submit" :disabled="!importJson.trim() || importLoading" class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50">
+                    {{ importLoading ? 'Aplicando...' : 'Aplicar respuestas' }}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- Detail modal -->
     <Teleport to="body">
       <Transition name="modal-overlay">
@@ -234,6 +352,22 @@
                 <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-surface-muted hover:text-text-default dark:hover:bg-white/10 dark:hover:text-white" @click="detailCR = null">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
+              </div>
+
+              <!-- Source requirement -->
+              <div v-if="detailCR.source_requirement" class="mb-5 rounded-xl border border-teal-500/20 bg-teal-500/5 p-4">
+                <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-300">Sobre el requerimiento</p>
+                <p class="text-sm font-medium text-text-default">{{ detailCR.source_requirement.title }}</p>
+                <p v-if="detailCR.source_requirement.phase_title" class="mt-0.5 text-[11px] text-green-light/70">
+                  Fase: {{ detailCR.source_requirement.phase_title }}
+                </p>
+                <NuxtLink
+                  :to="localePath(`/platform/projects/${projectId}/board?phase_id=${detailCR.source_requirement.phase_id}`)"
+                  class="mt-2 inline-flex items-center gap-1 text-xs font-medium text-text-brand underline decoration-text-brand/30 transition hover:decoration-text-brand dark:text-accent dark:decoration-accent/30 dark:hover:decoration-accent"
+                >
+                  Ver en el tablero
+                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7-7 7M5 12h16" /></svg>
+                </NuxtLink>
               </div>
 
               <!-- Description -->
@@ -406,15 +540,17 @@
       </Transition>
     </Teleport>
   </div>
+  </ProjectShell>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
-import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformChangeRequestsStore } from '~/stores/platform-change-requests'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
+import { usePlatformRequirementsStore } from '~/stores/platform-requirements'
+import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({
   layout: 'platform',
@@ -428,7 +564,9 @@ const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const crStore = usePlatformChangeRequestsStore()
 const projectsStore = usePlatformProjectsStore()
-const includeArchived = usePlatformIncludeArchived()
+const requirementsStore = usePlatformRequirementsStore()
+
+const projectRequirements = ref([])
 
 const projectId = computed(() => route.params.id)
 const projectName = computed(() => projectsStore.currentProject?.name || 'Proyecto')
@@ -445,7 +583,36 @@ const statusTabs = computed(() => [
   { value: 'out_of_scope', label: 'Fuera de alcance' },
 ])
 
-const filteredRequests = computed(() => crStore.filteredByStatus(activeFilter.value))
+const phases = ref([])
+const selectedPhaseId = ref(null)
+const phaseOptions = computed(() =>
+  phases.value.map((p) => ({ id: p.id, order: p.order, title: p.proposal?.title || `Fase ${p.order}` }))
+)
+const selectedPhaseLabel = computed(() => {
+  if (!selectedPhaseId.value) return 'Todas las fases'
+  const found = phaseOptions.value.find((p) => p.id === selectedPhaseId.value)
+  return found ? `Fase ${found.order} · ${found.title}` : 'Todas las fases'
+})
+const phaseDropdownItems = computed(() => [
+  { label: 'Todas las fases', onClick: () => { selectedPhaseId.value = null } },
+  ...phaseOptions.value.map((opt) => ({
+    label: `Fase ${opt.order} · ${opt.title}`,
+    onClick: () => { selectedPhaseId.value = opt.id },
+  })),
+])
+
+const filteredRequests = computed(() => {
+  let list = crStore.filteredByStatus(activeFilter.value)
+  if (selectedPhaseId.value) {
+    list = list.filter((cr) => cr.phase_id === selectedPhaseId.value)
+  }
+  return list
+})
+
+const isImportOpen = ref(false)
+const importJson = ref('')
+const importError = ref('')
+const importLoading = ref(false)
 
 const isCreateOpen = ref(false)
 const createForm = reactive({
@@ -454,6 +621,7 @@ const createForm = reactive({
   module_or_screen: '',
   suggested_priority: 'medium',
   is_urgent: false,
+  source_requirement_id: null,
 })
 
 const screenshotFile = ref(null)
@@ -515,13 +683,23 @@ function formatDate(value) {
 }
 
 function openCreateModal() {
+  if (!projectRequirements.value.length) return
   createForm.title = ''
   createForm.description = ''
   createForm.module_or_screen = ''
   createForm.suggested_priority = 'medium'
   createForm.is_urgent = false
+  createForm.source_requirement_id = null
   screenshotFile.value = null
   screenshotPreview.value = null
+  // Honor ?from_req=X&title=Y from board.vue deep-link
+  const fromReq = Number(route.query.from_req)
+  if (fromReq && projectRequirements.value.some((r) => r.id === fromReq)) {
+    createForm.source_requirement_id = fromReq
+  }
+  if (typeof route.query.title === 'string') {
+    createForm.title = route.query.title
+  }
   isCreateOpen.value = true
 }
 
@@ -549,7 +727,7 @@ function removeScreenshot() {
 }
 
 async function handleCreate() {
-  if (!createForm.title.trim()) return
+  if (!createForm.title.trim() || !createForm.source_requirement_id) return
   let payload
   if (screenshotFile.value) {
     payload = new FormData()
@@ -558,6 +736,7 @@ async function handleCreate() {
     payload.append('module_or_screen', createForm.module_or_screen)
     payload.append('suggested_priority', createForm.suggested_priority)
     payload.append('is_urgent', createForm.is_urgent)
+    payload.append('source_requirement_id', String(createForm.source_requirement_id))
     payload.append('screenshot', screenshotFile.value)
   } else {
     payload = { ...createForm }
@@ -614,8 +793,101 @@ async function handleDelete() {
   }
 }
 
+async function loadPhases() {
+  try {
+    const list = await projectsStore.loadPhases(projectId.value)
+    phases.value = Array.isArray(list) ? list : []
+  } catch {
+    phases.value = []
+  }
+}
+
 async function loadChangeRequests() {
-  await crStore.fetchChangeRequests(projectId.value, null, authStore.isAdmin && includeArchived.value)
+  await crStore.fetchChangeRequests(projectId.value, null, false)
+}
+
+async function loadProjectRequirements() {
+  const r = await requirementsStore.fetchProjectRequirements(projectId.value)
+  projectRequirements.value = r.success ? (r.data || []) : []
+}
+
+async function onQuickStatus(cr, newStatus) {
+  if (!newStatus || newStatus === cr.status) return
+  const result = await crStore.evaluateChangeRequest(projectId.value, cr.id, { status: newStatus })
+  if (!result.success) {
+    window.alert(result.message || 'No pudimos actualizar el estado.')
+  }
+}
+
+function exportResponsesJson() {
+  const rows = filteredRequests.value.map((cr) => ({
+    id: cr.id,
+    title: cr.title,
+    status: cr.status,
+    admin_response: cr.admin_response || '',
+    estimated_time: cr.estimated_time || '',
+    estimated_cost: cr.estimated_cost ?? null,
+  }))
+  const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  const tab = activeFilter.value === 'all' ? 'todas' : activeFilter.value
+  a.download = `solicitudes-${projectId.value}-${tab}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function openImportModal() {
+  importJson.value = ''
+  importError.value = ''
+  isImportOpen.value = true
+}
+
+function closeImportModal() {
+  isImportOpen.value = false
+  importError.value = ''
+}
+
+async function handleImportResponses() {
+  importError.value = ''
+  let items
+  try {
+    items = JSON.parse(importJson.value)
+  } catch {
+    importError.value = 'JSON inválido. Verificá la sintaxis.'
+    return
+  }
+  if (!Array.isArray(items)) {
+    importError.value = 'El JSON debe ser un array de objetos.'
+    return
+  }
+  if (items.length === 0) {
+    importError.value = 'El array está vacío.'
+    return
+  }
+  if (items.some((it) => !it || typeof it !== 'object' || it.id == null)) {
+    importError.value = 'Cada ítem debe tener el campo "id".'
+    return
+  }
+
+  importLoading.value = true
+  try {
+    const result = await crStore.bulkEvaluateChangeRequests(projectId.value, items)
+    if (result.success) {
+      await loadChangeRequests()
+      const { updated, errors } = result.data || {}
+      if (errors && errors.length) {
+        importError.value = `Se aplicaron ${updated || 0}. ${errors.length} con error: ${JSON.stringify(errors).slice(0, 200)}`
+      } else {
+        closeImportModal()
+      }
+    } else {
+      importError.value = result.message
+    }
+  } finally {
+    importLoading.value = false
+  }
 }
 
 async function handleAddComment() {
@@ -630,14 +902,22 @@ async function handleAddComment() {
 onMounted(async () => {
   await Promise.all([
     loadChangeRequests(),
+    loadProjectRequirements(),
+    loadPhases(),
     projectsStore.currentProject?.id !== Number(projectId.value)
       ? projectsStore.fetchProject(projectId.value)
       : Promise.resolve(),
   ])
+  // Deep-link from board: ?from_req=X&title=Y → auto-open create modal (client only)
+  if (!authStore.isAdmin && route.query.from_req && projectRequirements.value.length) {
+    openCreateModal()
+  }
 })
 
-watch([includeArchived, projectId], () => {
+watch(projectId, () => {
   loadChangeRequests()
+  loadProjectRequirements()
+  loadPhases()
 })
 </script>
 

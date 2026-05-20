@@ -68,10 +68,17 @@ const mockCreatedDetail = {
 const meResponse = (user) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(user) });
 
 function setupCollectionAccountsMocks(page, { user, withCreateFlow = false }) {
+  const project = { id: 1, name: 'E2E Project', status: 'active', progress: 50 };
   return mockApi(page, async ({ apiPath, method }) => {
     if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(user);
     if (apiPath === 'accounts/notifications/unread-count/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify({ unread_count: 0 }) };
+    }
+    if (apiPath === 'accounts/projects/1/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(project) };
+    }
+    if (apiPath === 'accounts/projects/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([project]) };
     }
     if (withCreateFlow && apiPath === 'accounts/collection-accounts/' && method === 'POST') {
       return {
@@ -109,47 +116,17 @@ function setupCollectionAccountsMocks(page, { user, withCreateFlow = false }) {
 test.describe('Platform collection accounts', () => {
   test.setTimeout(60_000);
 
-  test('client sees global list with Open link to detail', {
+  // The standalone /platform/collection-accounts list and detail views were
+  // removed in the platform IA refactor — they now redirect to projects, and
+  // collection accounts are reached project-scoped.
+  test('client visiting /platform/collection-accounts is redirected to projects', {
     tag: [...PLATFORM_COLLECTION_ACCOUNTS_LIST, '@role:platform-client'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupCollectionAccountsMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/collection-accounts', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: /my collection accounts/i })).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText('Invoice Q1')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Open' }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /new collection account/i })).not.toBeVisible();
-  });
-
-  test('admin sees global list and new collection account control', {
-    tag: [...PLATFORM_COLLECTION_ACCOUNTS_LIST, '@role:platform-admin'],
-  }, async ({ page }) => {
-    await setPlatformAuth(page, { user: mockPlatformAdmin });
-    await setupCollectionAccountsMocks(page, { user: mockPlatformAdmin });
-    await page.goto('/platform/collection-accounts', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: /^collection accounts$/i })).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByRole('button', { name: /new collection account/i })).toBeVisible();
-  });
-
-  test('admin submits new collection account form and navigates to new detail', {
-    tag: [...PLATFORM_COLLECTION_ACCOUNTS_LIST, '@role:platform-admin'],
-  }, async ({ page }) => {
-    await setPlatformAuth(page, { user: mockPlatformAdmin });
-    await setupCollectionAccountsMocks(page, { user: mockPlatformAdmin, withCreateFlow: true });
-    await page.goto('/platform/collection-accounts', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: /^collection accounts$/i })).toBeVisible({ timeout: 30_000 });
-    await page.getByRole('button', { name: /new collection account/i }).click();
-    const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByRole('heading', { name: 'New collection account' }) });
-    await expect(modal).toBeVisible();
-    await modal.getByTestId('new-account-title').fill('E2E New Account');
-    await modal.getByTestId('new-account-project-id').fill('1');
-    const postWait = page.waitForResponse(
-      (res) => res.request().method() === 'POST' && res.url().includes('collection-accounts/') && !res.url().includes('/pdf/'),
-    );
-    await modal.getByRole('button', { name: 'Create' }).click();
-    await postWait;
-    await expect(page).toHaveURL(new RegExp(`collection-accounts/${CREATED_ACCOUNT_ID}`));
-    await expect(page.getByRole('heading', { name: 'E2E New Account' })).toBeVisible({ timeout: 30_000 });
+    await page.waitForURL('**/platform/projects**', { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/platform\/projects/);
   });
 
   test('user sees project-scoped collection account list', {
@@ -158,23 +135,17 @@ test.describe('Platform collection accounts', () => {
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupCollectionAccountsMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/collection-accounts', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: /^collection accounts$/i })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: /cuentas de cobro/i })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText('Invoice Q1')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Open' })).toBeVisible();
   });
 
-  test('detail page shows totals and download PDF triggers request', {
+  test('visiting a collection account detail is redirected to projects', {
     tag: [...PLATFORM_COLLECTION_ACCOUNT_DETAIL, '@role:platform-client'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupCollectionAccountsMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/collection-accounts/42', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: 'Invoice Q1' })).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText('Total COP 100000.00')).toBeVisible();
-    const pdfWait = page.waitForResponse(
-      (res) => res.url().includes('collection-accounts/42/pdf/') && res.status() === 200,
-    );
-    await page.getByRole('button', { name: /download pdf/i }).click();
-    await pdfWait;
+    await page.waitForURL('**/platform/projects**', { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/platform\/projects/);
   });
 });

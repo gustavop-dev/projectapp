@@ -1,5 +1,6 @@
 <template>
-  <div id="platform-data-model" class="pb-12">
+  <ProjectShell>
+    <div id="platform-data-model" class="pb-12">
     <div v-if="dataModelStore.isLoading" class="py-20 text-center">
       <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-esmerald dark:border-t-lemon" />
     </div>
@@ -18,13 +19,6 @@
     <template v-else>
       <!-- Header -->
       <div class="mb-6" data-enter>
-        <NuxtLink
-          :to="localePath(`/platform/projects/${projectId}`)"
-          class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white"
-        >
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-          Proyecto
-        </NuxtLink>
         <div class="flex items-center gap-3">
           <h1 class="text-xl font-bold text-text-default sm:text-2xl">Modelo de datos</h1>
           <span
@@ -166,8 +160,9 @@
         <p class="text-sm text-green-light">No hay modelo de datos definido para este proyecto.</p>
         <p v-if="authStore.isAdmin" class="mt-2 text-xs text-green-light/60">Sube un JSON con las entidades para empezar.</p>
       </div>
-    </template>
+</template>
   </div>
+  </ProjectShell>
 </template>
 
 <script setup>
@@ -176,6 +171,7 @@ import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformDataModelStore } from '~/stores/platform-data-model'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
+import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
 usePageEntrance('#platform-data-model')
