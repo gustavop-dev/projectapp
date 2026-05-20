@@ -1388,7 +1388,17 @@
         "platform-client"
       ],
       "priority": "P1",
-      "description": "Client selects hosting plan (semiannual/quarterly/monthly) from project payments page, activates subscription, and pays via Wompi (card or widget). Admin sees subscription status. Netflix-style active state with next renewal date. Per-project view at /platform/projects/:id/payments and unified view at /platform/payments.",
+      "description": "Client selects a hosting plan (semiannual/quarterly/monthly) from the project payments page and activates the subscription. Card is the only payment method. After activation the client must register a card (see platform-hosting-card-setup) for automatic recurring billing. Admin sees subscription status and stored-card info. Netflix-style active state shows the next automatic renewal date. Per-project view at /platform/projects/:id/payments and unified view at /platform/payments.",
+      "expectedSpecs": 1
+    },
+    "platform-hosting-card-setup": {
+      "name": "Platform Hosting Card Setup (3DS)",
+      "module": "platform",
+      "roles": [
+        "platform-client"
+      ],
+      "priority": "P1",
+      "description": "Client registers a card once for automatic hosting billing. From the project payments page the client opens the card modal, enters card data, and the card is tokenized into a Wompi payment source. When the card requires 3D Secure, an authentication flow runs (browser-info/fingerprint hidden iframes, then a visible bank challenge iframe) polled every 2s until the source is AVAILABLE. On success the card is stored on the subscription and the first open payment is charged. The same flow handles 'Cambiar tarjeta'. A failed payment can be retried manually with the stored card.",
       "expectedSpecs": 1
     },
     "platform-notifications": {

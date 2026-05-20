@@ -252,7 +252,7 @@ class TestTokenizeCard:
 
         token = tokenize_card('4111111111111111', '12', '28', '123', 'John Doe')
 
-        assert token == 'tok-card-abc'
+        assert token['id'] == 'tok-card-abc'
 
     @override_settings(**WOMPI_SETTINGS)
     @patch('requests.post')

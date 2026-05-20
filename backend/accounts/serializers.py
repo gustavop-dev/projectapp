@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from rest_framework import serializers
@@ -345,7 +347,7 @@ class ProjectDetailSerializer(ProjectListSerializer):
         'admin_username', 'admin_password',
     )
 
-    hosting_tiers = serializers.JSONField(read_only=True)
+    hosting_tiers = serializers.SerializerMethodField()
     has_subscription = serializers.SerializerMethodField()
     production_url = serializers.URLField(read_only=True)
     staging_url = serializers.URLField(read_only=True)
@@ -359,6 +361,55 @@ class ProjectDetailSerializer(ProjectListSerializer):
             'payment_milestones', 'hosting_tiers', 'has_subscription',
             'production_url', 'staging_url', 'admin_url', 'repository_url',
             'admin_username', 'admin_password',
+        ]
+
+    def get_hosting_tiers(self, obj):
+        """
+        Combined hosting tiers computed from all project phases.
+        Falls back to the legacy project.hosting_tiers snapshot when no phases exist.
+        Discounts come from Phase 1's proposal (the primary subscription basis).
+        """
+        from decimal import Decimal, ROUND_HALF_UP
+
+        phases = list(obj.phases.select_related('business_proposal').order_by('order'))
+        if not phases:
+            return obj.hosting_tiers or []
+
+        # Sum monthly amounts from all phases
+        total_monthly = Decimal('0')
+        for phase in phases:
+            bp = phase.business_proposal
+            total_inv = Decimal(str(getattr(bp, 'total_investment', 0) or 0))
+            hosting_pct = Decimal(str(getattr(bp, 'hosting_percent', 40)))
+            total_monthly += (total_inv * hosting_pct / Decimal('100') / Decimal('12'))
+        total_monthly = total_monthly.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+
+        # Discounts from Phase 1
+        bp1 = phases[0].business_proposal
+        disc_q = getattr(bp1, 'hosting_discount_quarterly', 10)
+        disc_s = getattr(bp1, 'hosting_discount_semiannual', 20)
+        currency = str(getattr(bp1, 'currency', 'COP'))
+
+        def _tier(frequency, months, label, badge, discount):
+            factor = (Decimal('100') - Decimal(str(discount))) / Decimal('100')
+            eff_monthly = (total_monthly * factor).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+            billing = (eff_monthly * months).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+            return {
+                'frequency': frequency,
+                'months': months,
+                'label': label,
+                'badge': badge,
+                'discount_percent': discount,
+                'base_monthly': int(total_monthly),
+                'effective_monthly': int(eff_monthly),
+                'billing_amount': int(billing),
+                'currency': currency,
+            }
+
+        return [
+            _tier('semiannual', 6, 'Semestral', 'Mejor precio', disc_s),
+            _tier('quarterly', 3, 'Trimestral', f'{disc_q}% dcto' if disc_q else '', disc_q),
+            _tier('monthly', 1, 'Mensual', '', 0),
         ]
 
     def get_has_subscription(self, obj):
@@ -593,7 +644,7 @@ class ChangeRequestListSerializer(serializers.ModelSerializer):
             'suggested_priority', 'is_urgent', 'status',
             'admin_response', 'estimated_cost', 'estimated_time',
             'linked_requirement_id', 'screenshot_url',
-            'source_requirement',
+            'source_requirement', 'phase_id',
             'is_archived', 'archived_at',
             'created_by_name', 'created_by_email',
             'comments_count', 'created_at', 'updated_at',
@@ -729,7 +780,7 @@ class BugReportListSerializer(serializers.ModelSerializer):
             'environment', 'device_browser', 'is_recurring',
             'steps_to_reproduce', 'expected_behavior', 'actual_behavior',
             'admin_response', 'linked_bug_id', 'screenshot_url',
-            'source_requirement',
+            'source_requirement', 'phase_id',
             'is_archived', 'archived_at',
             'reported_by_name', 'reported_by_email',
             'comments_count', 'created_at', 'updated_at',
@@ -1244,6 +1295,13 @@ class PaymentHistorySerializer(serializers.ModelSerializer):
         fields = ['id', 'from_status', 'to_status', 'source', 'metadata', 'created_at']
 
 
+class ManualPaymentSerializer(serializers.Serializer):
+    frequency = serializers.ChoiceField(choices=['monthly', 'quarterly', 'semiannual'])
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal('1'))
+    billing_period_start = serializers.DateField()
+    description = serializers.CharField(max_length=300, required=False, default='', allow_blank=True)
+
+
 class PaymentSerializer(serializers.ModelSerializer):
     project_id = serializers.IntegerField(source='subscription.project_id', read_only=True)
     project_name = serializers.SerializerMethodField()
@@ -1256,6 +1314,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             'billing_period_start', 'billing_period_end', 'due_date',
             'status', 'paid_at',
             'wompi_payment_link_url',
+            'charge_attempts', 'last_charge_error', 'next_retry_at',
             'is_archived', 'archived_at',
             'project_id', 'project_name',
             'history',
@@ -1272,6 +1331,7 @@ class HostingSubscriptionSerializer(serializers.ModelSerializer):
     plan_display = serializers.CharField(source='get_plan_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payments = PaymentSerializer(many=True, read_only=True)
+    has_payment_source = serializers.SerializerMethodField()
 
     class Meta:
         model = HostingSubscription
@@ -1281,6 +1341,8 @@ class HostingSubscriptionSerializer(serializers.ModelSerializer):
             'effective_monthly_amount', 'billing_amount',
             'status', 'status_display',
             'start_date', 'next_billing_date',
+            'has_payment_source',
+            'card_brand', 'card_last_four', 'card_exp_month', 'card_exp_year',
             'is_archived', 'archived_at',
             'project_id', 'project_name',
             'payments', 'created_at', 'updated_at',
@@ -1289,6 +1351,9 @@ class HostingSubscriptionSerializer(serializers.ModelSerializer):
     def get_project_name(self, obj):
         return obj.project.name
 
+    def get_has_payment_source(self, obj):
+        return bool(obj.wompi_payment_source_id)
+
 
 class HostingSubscriptionListSerializer(serializers.ModelSerializer):
     project_name = serializers.SerializerMethodField()
@@ -1296,6 +1361,7 @@ class HostingSubscriptionListSerializer(serializers.ModelSerializer):
     plan_display = serializers.CharField(source='get_plan_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     pending_payments = serializers.SerializerMethodField()
+    has_payment_source = serializers.SerializerMethodField()
 
     class Meta:
         model = HostingSubscription
@@ -1305,10 +1371,15 @@ class HostingSubscriptionListSerializer(serializers.ModelSerializer):
             'effective_monthly_amount', 'billing_amount',
             'status', 'status_display',
             'start_date', 'next_billing_date',
+            'has_payment_source',
+            'card_brand', 'card_last_four', 'card_exp_month', 'card_exp_year',
             'is_archived', 'archived_at',
             'project_id', 'project_name',
             'pending_payments', 'created_at',
         ]
+
+    def get_has_payment_source(self, obj):
+        return bool(obj.wompi_payment_source_id)
 
     def get_project_name(self, obj):
         return obj.project.name
@@ -1390,7 +1461,61 @@ class _NestedProposalSerializer(serializers.Serializer):
 class ProjectPhaseSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     order = serializers.IntegerField()
+    hosting_start_date = serializers.DateField(allow_null=True, required=False)
     proposal = serializers.SerializerMethodField()
+    hosting_tiers = serializers.SerializerMethodField()
 
     def get_proposal(self, obj):
         return _NestedProposalSerializer(obj.business_proposal).data
+
+    def get_hosting_tiers(self, obj):
+        """Calculated hosting tiers for this phase from its proposal."""
+        from decimal import Decimal, ROUND_HALF_UP
+        bp = obj.business_proposal
+        total = getattr(bp, 'total_investment', None) or Decimal('0')
+        percent = getattr(bp, 'hosting_percent', 40)
+        disc_q = getattr(bp, 'hosting_discount_quarterly', 10)
+        disc_s = getattr(bp, 'hosting_discount_semiannual', 20)
+
+        monthly_base = (Decimal(str(total)) * Decimal(str(percent)) / Decimal('100') / Decimal('12')).quantize(
+            Decimal('1'), rounding=ROUND_HALF_UP
+        )
+
+        def tier_amount(months, discount):
+            factor = (Decimal('100') - Decimal(str(discount))) / Decimal('100')
+            return (monthly_base * months * factor).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+
+        return [
+            {
+                'frequency': 'monthly',
+                'label': 'Mensual',
+                'months': 1,
+                'discount_percent': 0,
+                'monthly_equivalent': int(monthly_base),
+                'billing_amount': int(monthly_base),
+            },
+            {
+                'frequency': 'quarterly',
+                'label': 'Trimestral',
+                'months': 3,
+                'discount_percent': disc_q,
+                'monthly_equivalent': int(
+                    (tier_amount(3, disc_q) / Decimal('3')).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+                ),
+                'billing_amount': int(tier_amount(3, disc_q)),
+            },
+            {
+                'frequency': 'semiannual',
+                'label': 'Semestral',
+                'months': 6,
+                'discount_percent': disc_s,
+                'monthly_equivalent': int(
+                    (tier_amount(6, disc_s) / Decimal('6')).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+                ),
+                'billing_amount': int(tier_amount(6, disc_s)),
+            },
+        ]
+
+
+class UpdateProjectPhaseSerializer(serializers.Serializer):
+    hosting_start_date = serializers.DateField(allow_null=True, required=True)

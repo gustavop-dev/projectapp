@@ -2374,6 +2374,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `platform-admin-client-detail` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-admin-client-detail.spec.js` |
 | `platform-profile-edit` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-profile.spec.js` |
 | `platform-hosting-subscription` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-hosting-subscription.spec.js` |
+| `platform-hosting-card-setup` | platform | platform-client | P1 | ❌ Missing | _none_ |
 | `platform-change-requests` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-change-requests.spec.js` |
 | `platform-bug-reports` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-bug-reports.spec.js` |
 | `platform-deliverables` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-deliverables.spec.js` |
@@ -2797,22 +2798,46 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** platform-admin / platform-client
 - **Priority:** P1
 - **Routes:** `/platform/projects/:id/payments`, `/platform/payments`
-- **API:** `GET /api/accounts/subscriptions/` (unified `/platform/payments` list), `GET/POST/PATCH /api/accounts/projects/:id/subscription/`, `GET /api/accounts/projects/:id/payments/`, `POST .../card-pay/`, `POST .../verify/`, `GET .../widget-data/`
-- **Description:** Client selects hosting plan (semiannual/quarterly/monthly), activates subscription, and pays via Wompi (card or widget). Admin sees subscription status. Netflix-style active state with next renewal date.
+- **API:** `GET /api/accounts/subscriptions/` (unified `/platform/payments` list), `GET/POST/PATCH /api/accounts/projects/:id/subscription/`, `GET /api/accounts/projects/:id/payments/`
+- **Description:** Client selects a hosting plan (semiannual/quarterly/monthly) and activates the subscription. Card is the only payment method; after activation the client registers a card (see `platform-hosting-card-setup`) for automatic recurring billing. Admin sees subscription status and stored-card info. Netflix-style active state shows the next automatic renewal date.
 - **Steps:**
   1. Client navigates to `/platform/projects/:id/payments`.
   2. If no subscription: hosting tier cards render (semiannual/quarterly/monthly with pricing).
   3. Client selects plan and clicks "Activar plan de hosting" → `POST .../subscription/`.
-  4. Subscription created with first payment → payment action card appears.
-  5. Client pays via card form or Wompi widget.
-  6. After payment: Netflix-style "Suscripción activa" card with next renewal date.
+  4. Subscription created with first payment → "Activa el cobro automático" card prompts to register a card.
+  5. Client registers a card (`platform-hosting-card-setup`); the first payment is charged on confirm.
+  6. After payment: Netflix-style "Suscripción activa" card with the next automatic renewal date.
 - **Branches:**
-  - [Branch A — Admin view] Admin sees subscription status (not plan selector).
-  - [Branch B — Up to date] Active subscription with no urgent payments shows clean green card.
-  - [Branch C — Payment due] Shows payment action 7 days before billing date.
+  - [Branch A — Admin view] Admin sees subscription status + stored-card info (not the plan selector).
+  - [Branch B — Up to date] Active subscription with a stored card and no urgent payment shows the green card + "Se renueva y cobra automáticamente el {date}".
+  - [Branch C — Payment due] Shows the payment action card; with a stored card the cron charges it on the due date.
   - [Branch D — Unified view] `/platform/payments` shows all subscriptions across projects.
+  - [Branch E — Cancellation] No in-app cancel; the card panel tells the client to contact support by email.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/platform/platform-hosting-subscription.spec.js`
+
+#### FLOW: `platform-hosting-card-setup`
+
+- **Module:** platform
+- **Role:** platform-client
+- **Priority:** P1
+- **Routes:** `/platform/projects/:id/payments`
+- **API:** `POST /api/accounts/projects/:id/subscription/card/`, `GET .../subscription/card/:psId/status/`, `POST .../subscription/card/:psId/confirm/`, `POST /api/accounts/projects/:id/payments/:pid/charge/`
+- **Description:** Client registers a card once for automatic hosting billing. The card is tokenized into a Wompi payment source; when 3D Secure applies, an authentication flow runs in iframes (hidden for browser-info/fingerprint, visible for the bank challenge) polled every 2s until the source is AVAILABLE. On success the card is stored on the subscription and the first open payment is charged.
+- **Steps:**
+  1. On the payments page the client clicks "Registrar tarjeta" (or "Cambiar tarjeta" if a card exists).
+  2. Card modal opens; client enters number, holder, expiry and CVC, then submits → `POST .../subscription/card/`.
+  3. If the payment source needs 3DS: the modal renders the 3DS iframe and polls `.../card/:psId/status/` every 2s.
+  4. For `CHALLENGE` the iframe is visible and the client confirms with the bank; browser-info/fingerprint steps run hidden.
+  5. When the source is `AVAILABLE`: `POST .../card/:psId/confirm/` stores the card and charges the first open payment.
+  6. Modal shows "Tarjeta registrada"; the stored-card panel renders with brand · •••• last4 · expiry.
+- **Branches:**
+  - [Branch A — No 3DS] Source returns `AVAILABLE` immediately; flow skips the iframe and goes straight to confirm.
+  - [Branch B — Declined/Error] Source returns `DECLINED`/`ERROR`; modal shows an error with "Intentar de nuevo".
+  - [Branch C — Change card] An existing stored card is replaced; the new payment source overwrites the old one.
+  - [Branch D — Manual retry] A `failed` payment shows "Reintentar cobro" → `POST .../payments/:pid/charge/` with the stored card.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** _none — needs `e2e/platform/platform-hosting-card-setup.spec.js`_
 
 ### 8.9 Notifications
 
@@ -2997,6 +3022,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `platform-complete-profile` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-complete-profile.spec.js` |
 | `platform-kanban-board` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-kanban-board.spec.js` |
 | `platform-hosting-subscription` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-hosting-subscription.spec.js` |
+| `platform-hosting-card-setup` | platform | platform-client | P1 | ❌ Missing | _none_ |
 | `platform-dashboard` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-dashboard.spec.js` |
 | `platform-sidebar-navigation` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-sidebar.spec.js` |
 | `platform-project-list` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-project-list.spec.js` |

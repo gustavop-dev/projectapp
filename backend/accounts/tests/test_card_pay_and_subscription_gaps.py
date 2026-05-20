@@ -172,7 +172,7 @@ class TestPaymentCardPayView:
         self, api_client, client_headers, project, pending_payment,
     ):
         """APPROVED card transaction marks payment as paid."""
-        with patch('accounts.services.wompi.tokenize_card', return_value='tok_test'), \
+        with patch('accounts.services.wompi.tokenize_card', return_value={'id': 'tok_test', 'brand': 'VISA', 'last_four': '4242'}), \
              patch('accounts.services.wompi.get_acceptance_token', return_value='acc_tok'), \
              patch('accounts.services.wompi.create_card_transaction',
                    return_value={'id': 'txn_card_ok', 'status': 'APPROVED'}):
@@ -190,7 +190,7 @@ class TestPaymentCardPayView:
         self, api_client, client_headers, project, pending_payment,
     ):
         """PENDING transaction sets payment to PROCESSING status."""
-        with patch('accounts.services.wompi.tokenize_card', return_value='tok_test'), \
+        with patch('accounts.services.wompi.tokenize_card', return_value={'id': 'tok_test', 'brand': 'VISA', 'last_four': '4242'}), \
              patch('accounts.services.wompi.get_acceptance_token', return_value='acc_tok'), \
              patch('accounts.services.wompi.create_card_transaction',
                    return_value={'id': 'txn_card_wait', 'status': 'PENDING'}):
@@ -207,7 +207,7 @@ class TestPaymentCardPayView:
         self, api_client, client_headers, project, pending_payment,
     ):
         """DECLINED transaction marks payment as failed."""
-        with patch('accounts.services.wompi.tokenize_card', return_value='tok_test'), \
+        with patch('accounts.services.wompi.tokenize_card', return_value={'id': 'tok_test', 'brand': 'VISA', 'last_four': '4242'}), \
              patch('accounts.services.wompi.get_acceptance_token', return_value='acc_tok'), \
              patch('accounts.services.wompi.create_card_transaction',
                    return_value={'id': 'txn_card_no', 'status': 'DECLINED'}):
@@ -224,7 +224,7 @@ class TestPaymentCardPayView:
         self, api_client, client_headers, project, pending_payment,
     ):
         """ERROR transaction status marks payment as failed."""
-        with patch('accounts.services.wompi.tokenize_card', return_value='tok_test'), \
+        with patch('accounts.services.wompi.tokenize_card', return_value={'id': 'tok_test', 'brand': 'VISA', 'last_four': '4242'}), \
              patch('accounts.services.wompi.get_acceptance_token', return_value='acc_tok'), \
              patch('accounts.services.wompi.create_card_transaction',
                    return_value={'id': 'txn_err', 'status': 'ERROR'}):

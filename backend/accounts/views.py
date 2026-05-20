@@ -743,7 +743,12 @@ def project_list_view(request):
         )
         proposal.deliverable = d
         proposal.save(update_fields=['deliverable_id'])
-        ProjectPhase.objects.create(project=project, business_proposal=proposal, order=1)
+        ProjectPhase.objects.create(
+            project=project,
+            business_proposal=proposal,
+            order=1,
+            hosting_start_date=project.hosting_start_date,
+        )
 
     from accounts.models import Notification
     from accounts.services.notifications import notify
@@ -1353,6 +1358,9 @@ def change_request_list_view(request, project_id):
         status_filter = request.query_params.get('status')
         if status_filter:
             qs = qs.filter(status=status_filter)
+        phase_id_filter = request.query_params.get('phase_id')
+        if phase_id_filter:
+            qs = qs.filter(phase_id=phase_id_filter)
         serializer = ChangeRequestListSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -1371,6 +1379,9 @@ def change_request_list_view(request, project_id):
     )
     if data.get('source_requirement_id'):
         cr.source_requirement_id = data['source_requirement_id']
+        req = Requirement.objects.filter(pk=data['source_requirement_id']).select_related('phase').first()
+        if req and req.phase_id:
+            cr.phase_id = req.phase_id
     if data.get('screenshot'):
         cr.screenshot = data['screenshot']
     cr.save()
@@ -1779,6 +1790,9 @@ def bug_report_list_view(request, project_id):
         severity_filter = request.query_params.get('severity')
         if severity_filter:
             qs = qs.filter(severity=severity_filter)
+        phase_id_filter = request.query_params.get('phase_id')
+        if phase_id_filter:
+            qs = qs.filter(phase_id=phase_id_filter)
         serializer = BugReportListSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -1800,6 +1814,9 @@ def bug_report_list_view(request, project_id):
         is_recurring=data.get('is_recurring', False),
     )
     bug.source_requirement_id = data['source_requirement_id']
+    req = Requirement.objects.filter(pk=data['source_requirement_id']).select_related('phase').first()
+    if req and req.phase_id:
+        bug.phase_id = req.phase_id
     if data.get('screenshot'):
         bug.screenshot = data['screenshot']
     bug.save()
@@ -2839,7 +2856,7 @@ def notification_mark_all_read_view(request):
 # Payments & Subscriptions
 # ==========================================================================
 
-from accounts.models import HostingSubscription, Payment  # noqa: E402
+from accounts.models import HostingSubscription, Payment, PaymentHistory  # noqa: E402
 from accounts.serializers import (  # noqa: E402
     HostingSubscriptionListSerializer,
     HostingSubscriptionSerializer,
@@ -3058,6 +3075,58 @@ def _handle_payment_approved(payment, payment_history_source=''):
         logger.warning('Failed to create payment notifications for payment %s', payment.id)
 
 
+def _charge_payment_with_source(payment, history_source=''):
+    """
+    Charge a Payment using its subscription's stored Wompi payment source.
+    Updates the Payment status from the transaction result and returns the
+    Wompi transaction data dict. Raises ValueError if no stored card exists.
+    """
+    import hashlib
+    import time
+
+    from django.conf import settings as dj_settings
+
+    from accounts.models import PaymentHistory
+    from accounts.services.payment_history import record_payment_status_change
+    from accounts.services.wompi import charge_with_payment_source
+
+    sub = payment.subscription
+    if not sub.wompi_payment_source_id:
+        raise ValueError('La suscripción no tiene una tarjeta guardada.')
+
+    ts = int(time.time())
+    reference = f'PA{payment.id}P{sub.project_id}T{ts}'
+    amount_in_cents = int(payment.amount * 100)
+    integrity_str = f'{reference}{amount_in_cents}COP{dj_settings.WOMPI_INTEGRITY_SECRET}'
+    signature = hashlib.sha256(integrity_str.encode()).hexdigest()
+
+    txn_data = charge_with_payment_source(
+        payment, sub.wompi_payment_source_id, reference, signature,
+    )
+    txn_id = txn_data.get('id', '')
+    txn_status = txn_data.get('status', '')
+    payment.wompi_transaction_id = str(txn_id)
+    src = history_source or PaymentHistory.SOURCE_API
+
+    if txn_status == 'APPROVED':
+        _handle_payment_approved(payment, src)
+    elif txn_status == 'PENDING':
+        old_status = payment.status
+        payment.status = Payment.STATUS_PROCESSING
+        payment.save(update_fields=['wompi_transaction_id', 'status'])
+        record_payment_status_change(payment, old_status, Payment.STATUS_PROCESSING, src)
+    else:  # DECLINED, ERROR, VOIDED
+        old_status = payment.status
+        payment.status = Payment.STATUS_FAILED
+        payment.last_charge_error = (
+            txn_data.get('status_message') or txn_status or 'Pago rechazado'
+        )[:300]
+        payment.save(update_fields=['wompi_transaction_id', 'status', 'last_charge_error'])
+        record_payment_status_change(payment, old_status, Payment.STATUS_FAILED, src)
+
+    return txn_data
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdminRole])
 def proposal_list_for_selector_view(request):
@@ -3210,12 +3279,8 @@ def _subscription_payment_prefetch():
 
 
 def _get_plan_discount(project, plan):
-    """Get the discount % for a hosting plan from project.hosting_tiers or proposal defaults."""
-    # Try to find discount from stored hosting_tiers
-    for tier in (project.hosting_tiers or []):
-        if tier.get('frequency') == plan:
-            return tier.get('discount_percent', 0)
-    # Fallback to proposal if linked
+    """Get the discount % for a plan using Phase 1's proposal discounts (authoritative source).
+    Falls back to the legacy hosting_tiers snapshot, then to hardcoded defaults."""
     bp = project.linked_business_proposal()
     if bp:
         discount_map = {
@@ -3224,7 +3289,11 @@ def _get_plan_discount(project, plan):
             HostingSubscription.PLAN_SEMIANNUAL: bp.hosting_discount_semiannual,
         }
         return discount_map.get(plan, 0)
-    # Hardcoded fallback
+    # Fallback: legacy snapshot
+    for tier in (project.hosting_tiers or []):
+        if tier.get('frequency') == plan:
+            return tier.get('discount_percent', 0)
+    # Hardcoded last-resort
     return {
         HostingSubscription.PLAN_MONTHLY: 0,
         HostingSubscription.PLAN_QUARTERLY: 10,
@@ -3254,6 +3323,82 @@ def project_payments_view(request, project_id):
     payments = payments.select_related('subscription__project').prefetch_related('history')
     serializer = PaymentSerializer(payments, many=True)
     return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminRole])
+def register_manual_payment_view(request, project_id):
+    """Admin registers a manual (off-platform) hosting payment for a project."""
+    from decimal import Decimal
+
+    from dateutil.relativedelta import relativedelta
+    from django.utils import timezone
+
+    from accounts.serializers import ManualPaymentSerializer as _ManualSer
+
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    ser = _ManualSer(data=request.data)
+    if not ser.is_valid():
+        return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    data = ser.validated_data
+    frequency = data['frequency']
+    amount = data['amount']
+    billing_period_start = data['billing_period_start']
+    description = data.get('description') or 'Pago manual registrado por administrador'
+
+    months_map = {
+        HostingSubscription.PLAN_MONTHLY: 1,
+        HostingSubscription.PLAN_QUARTERLY: 3,
+        HostingSubscription.PLAN_SEMIANNUAL: 6,
+    }
+    billing_months = months_map[frequency]
+    billing_period_end = billing_period_start + relativedelta(months=billing_months) - relativedelta(days=1)
+    next_billing = billing_period_end + relativedelta(days=1)
+
+    try:
+        sub = HostingSubscription.objects.get(project=proj)
+        if not sub.next_billing_date or next_billing > sub.next_billing_date:
+            sub.next_billing_date = next_billing
+            sub.status = HostingSubscription.STATUS_ACTIVE
+            sub.save(update_fields=['next_billing_date', 'status'])
+    except HostingSubscription.DoesNotExist:
+        base_monthly = round(Decimal(str(amount)) / billing_months, 2)
+        sub = HostingSubscription.objects.create(
+            project=proj,
+            plan=frequency,
+            base_monthly_amount=base_monthly,
+            discount_percent=0,
+            effective_monthly_amount=base_monthly,
+            billing_amount=amount,
+            status=HostingSubscription.STATUS_ACTIVE,
+            start_date=billing_period_start,
+            next_billing_date=next_billing,
+        )
+
+    payment = Payment.objects.create(
+        subscription=sub,
+        amount=amount,
+        description=description,
+        billing_period_start=billing_period_start,
+        billing_period_end=billing_period_end,
+        due_date=billing_period_start,
+        status=Payment.STATUS_PAID,
+        paid_at=timezone.now(),
+    )
+
+    PaymentHistory.objects.create(
+        payment=payment,
+        from_status=Payment.STATUS_PENDING,
+        to_status=Payment.STATUS_PAID,
+        source=PaymentHistory.SOURCE_MANUAL,
+        metadata={'registered_by': request.user.email},
+    )
+
+    return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])
@@ -3400,7 +3545,7 @@ def payment_card_pay_view(request, project_id, payment_id):
     try:
         from accounts.services.wompi import tokenize_card, get_acceptance_token, create_card_transaction
 
-        card_token = tokenize_card(card_number, exp_month, exp_year, cvc, card_holder)
+        card_token = tokenize_card(card_number, exp_month, exp_year, cvc, card_holder)['id']
         acceptance_token = get_acceptance_token()
 
         ts = int(time.time())
@@ -3516,6 +3661,224 @@ def payment_verify_transaction_view(request, project_id, payment_id):
         'payment_id': payment.id,
         'payment_status': payment.status,
         'transaction_status': txn_status,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def card_setup_start_view(request, project_id):
+    """
+    Start stored-card setup for a subscription: tokenize the card and create
+    a Wompi payment source. When the merchant has 3DS enabled, the response
+    carries the three_ds_auth flow the frontend completes by polling
+    card_setup_status_view until the source becomes AVAILABLE.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        sub = HostingSubscription.objects.select_related('project__client').get(project=proj)
+    except HostingSubscription.DoesNotExist:
+        return Response(
+            {'detail': 'Este proyecto no tiene una suscripción de hosting.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    card_number = request.data.get('card_number', '')
+    exp_month = request.data.get('exp_month', '')
+    exp_year = request.data.get('exp_year', '')
+    cvc = request.data.get('cvc', '')
+    card_holder = request.data.get('card_holder', '')
+    if not all([card_number, exp_month, exp_year, cvc, card_holder]):
+        return Response(
+            {'detail': 'Todos los campos de la tarjeta son requeridos.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        from accounts.services.wompi import (
+            create_payment_source, get_acceptance_tokens, tokenize_card,
+        )
+        token_data = tokenize_card(card_number, exp_month, exp_year, cvc, card_holder)
+        tokens = get_acceptance_tokens()
+        source = create_payment_source(
+            token_data['id'], sub.project.client.email,
+            tokens['acceptance_token'], tokens['accept_personal_auth'],
+        )
+    except Exception as e:
+        logger.error('Card setup start error for project %s: %s', proj.id, e)
+        return Response(
+            {'detail': f'No se pudo registrar la tarjeta: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    extra = source.get('extra', {}) or {}
+    return Response({
+        'payment_source_id': source.get('id'),
+        'status': source.get('status'),
+        'is_three_ds': bool(extra.get('is_three_ds')),
+        'three_ds_auth': extra.get('three_ds_auth', {}),
+        'card_brand': token_data.get('brand', ''),
+        'card_last_four': token_data.get('last_four', ''),
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def card_setup_status_view(request, project_id, payment_source_id):
+    """Poll a payment source's state while the 3DS auth flow runs."""
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        from accounts.services.wompi import get_payment_source
+        source = get_payment_source(payment_source_id)
+    except Exception as e:
+        logger.error('Card setup status error (source %s): %s', payment_source_id, e)
+        return Response(
+            {'detail': 'No se pudo consultar el estado de la tarjeta.'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    if (source.get('customer_email') or '').lower() != (proj.client.email or '').lower():
+        return Response({'detail': 'forbidden'}, status=status.HTTP_403_FORBIDDEN)
+
+    extra = source.get('extra', {}) or {}
+    return Response({
+        'payment_source_id': source.get('id'),
+        'status': source.get('status'),
+        'is_three_ds': bool(extra.get('is_three_ds')),
+        'three_ds_auth': extra.get('three_ds_auth', {}),
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def card_setup_confirm_view(request, project_id, payment_source_id):
+    """
+    Finalize stored-card setup: verify the payment source is AVAILABLE,
+    persist it on the subscription, and charge the oldest open payment
+    (the initial billing cycle).
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        sub = HostingSubscription.objects.select_related('project__client').get(project=proj)
+    except HostingSubscription.DoesNotExist:
+        return Response(
+            {'detail': 'Este proyecto no tiene una suscripción de hosting.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        from accounts.services.wompi import get_payment_source
+        source = get_payment_source(payment_source_id)
+    except Exception as e:
+        logger.error('Card setup confirm error (source %s): %s', payment_source_id, e)
+        return Response(
+            {'detail': 'No se pudo verificar la tarjeta con Wompi.'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    if (source.get('customer_email') or '').lower() != (sub.project.client.email or '').lower():
+        return Response(
+            {'detail': 'La tarjeta no corresponde a esta cuenta.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if source.get('status') != 'AVAILABLE':
+        return Response(
+            {
+                'detail': 'La tarjeta no quedó autorizada. Intenta de nuevo o usa otra tarjeta.',
+                'status': source.get('status'),
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    public_data = source.get('public_data', {}) or {}
+    sub.wompi_payment_source_id = str(source.get('id'))
+    sub.card_brand = (request.data.get('card_brand') or public_data.get('brand') or '')[:20]
+    sub.card_last_four = (request.data.get('card_last_four') or public_data.get('last_four') or '')[:4]
+    sub.card_exp_month = str(request.data.get('exp_month') or public_data.get('exp_month') or '')[:2]
+    sub.card_exp_year = str(request.data.get('exp_year') or public_data.get('exp_year') or '')[:4]
+    sub.save(update_fields=[
+        'wompi_payment_source_id', 'card_brand', 'card_last_four',
+        'card_exp_month', 'card_exp_year', 'updated_at',
+    ])
+
+    payment = Payment.objects.filter(
+        subscription=sub,
+        status__in=[Payment.STATUS_PENDING, Payment.STATUS_OVERDUE, Payment.STATUS_FAILED],
+        is_archived=False,
+    ).order_by('due_date').first()
+
+    charge_result = None
+    if payment is not None:
+        try:
+            txn_data = _charge_payment_with_source(payment)
+            charge_result = {
+                'payment_id': payment.id,
+                'payment_status': payment.status,
+                'transaction_status': txn_data.get('status', ''),
+            }
+        except Exception as e:
+            logger.error('Initial charge error for payment %s: %s', payment.id, e)
+            charge_result = {'payment_id': payment.id, 'error': str(e)}
+
+    sub = HostingSubscription.objects.prefetch_related(
+        _subscription_payment_prefetch(),
+    ).get(pk=sub.pk)
+    return Response({
+        'subscription': HostingSubscriptionSerializer(sub).data,
+        'charge': charge_result,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def payment_charge_stored_view(request, project_id, payment_id):
+    """Charge a single open payment using the subscription's stored card."""
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        payment = Payment.objects.select_related('subscription__project__client').get(
+            id=payment_id, subscription__project=proj,
+        )
+    except Payment.DoesNotExist:
+        return Response({'detail': 'Pago no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if payment.status not in (Payment.STATUS_PENDING, Payment.STATUS_OVERDUE, Payment.STATUS_FAILED):
+        return Response(
+            {'detail': 'Este pago no está disponible para cobro.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not payment.subscription.wompi_payment_source_id:
+        return Response(
+            {'detail': 'No hay una tarjeta guardada. Registra una tarjeta primero.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        txn_data = _charge_payment_with_source(payment)
+    except Exception as e:
+        logger.error('Stored-card charge error for payment %s: %s', payment.id, e)
+        return Response(
+            {'detail': f'Error procesando el pago: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    return Response({
+        'payment_id': payment.id,
+        'payment_status': payment.status,
+        'transaction_id': txn_data.get('id', ''),
+        'transaction_status': txn_data.get('status', ''),
     })
 
 
@@ -3664,6 +4027,9 @@ def project_phases_view(request, project_id):
         return Response({'detail': 'project_not_found'}, status=404)
     if request.method == 'GET':
         return Response(ProjectPhaseSerializer(list_phases(project), many=True).data)
+    profile = getattr(request.user, 'profile', None)
+    if not (profile and profile.is_admin):
+        return Response({'detail': 'forbidden'}, status=403)
     proposal_id = request.data.get('proposal_id')
     if not proposal_id:
         return Response({'detail': 'proposal_id required'}, status=400)
@@ -3678,17 +4044,38 @@ def project_phases_view(request, project_id):
     return Response(ProjectPhaseSerializer(phase).data, status=201)
 
 
-@api_view(['DELETE'])
+@api_view(['DELETE', 'PATCH'])
 @permission_classes([IsAuthenticated, IsAdminRole])
 def project_phase_detail_view(request, project_id, phase_id):
     project = _get_project_or_404(project_id, request.user)
     if project is None:
         return Response({'detail': 'project_not_found'}, status=404)
-    try:
-        remove_phase(project, phase_id)
-    except PhaseError as exc:
-        return Response({'detail': exc.code, **exc.extra}, status=exc.http_status)
-    return Response(status=204)
+
+    if request.method == 'DELETE':
+        try:
+            remove_phase(project, phase_id)
+        except PhaseError as exc:
+            return Response({'detail': exc.code, **exc.extra}, status=exc.http_status)
+        return Response(status=204)
+
+    # PATCH — update hosting_start_date
+    from accounts.models import ProjectPhase
+    from accounts.serializers import UpdateProjectPhaseSerializer
+    phase = ProjectPhase.objects.filter(pk=phase_id, project=project).first()
+    if phase is None:
+        return Response({'detail': 'phase_not_found'}, status=404)
+    serializer = UpdateProjectPhaseSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    phase.hosting_start_date = serializer.validated_data['hosting_start_date']
+    phase.save(update_fields=['hosting_start_date'])
+
+    # Keep Project.hosting_start_date in sync with Phase 1 (used by subscription creation)
+    if phase.order == 1:
+        project.hosting_start_date = phase.hosting_start_date
+        project.save(update_fields=['hosting_start_date'])
+
+    from accounts.serializers import ProjectPhaseSerializer as PhaseSerializer
+    return Response(PhaseSerializer(phase).data)
 
 
 @api_view(['PATCH'])

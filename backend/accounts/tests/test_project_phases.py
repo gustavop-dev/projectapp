@@ -214,3 +214,73 @@ def test_reorder_phases_endpoint(authed_client, project, business_proposal):
     assert resp.status_code == 200
     titles = [ph.business_proposal.title for ph in project.phases.all()]
     assert titles == ['P2', 'Proposal A']
+
+
+def test_patch_phase_sets_hosting_start_date(authed_client, project, business_proposal):
+    phase = add_phase(project, business_proposal)
+    resp = authed_client.patch(
+        f'/api/accounts/projects/{project.id}/phases/{phase.id}/',
+        {'hosting_start_date': '2026-06-01'},
+        format='json',
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data['hosting_start_date'] == '2026-06-01'
+    phase.refresh_from_db()
+    assert str(phase.hosting_start_date) == '2026-06-01'
+
+
+def test_patch_phase_clears_hosting_start_date(authed_client, project, business_proposal):
+    phase = add_phase(project, business_proposal)
+    phase.hosting_start_date = '2026-06-01'
+    phase.save()
+    resp = authed_client.patch(
+        f'/api/accounts/projects/{project.id}/phases/{phase.id}/',
+        {'hosting_start_date': None},
+        format='json',
+    )
+    assert resp.status_code == 200
+    phase.refresh_from_db()
+    assert phase.hosting_start_date is None
+
+
+def test_patch_phase_returns_hosting_tiers(authed_client, project, business_proposal):
+    """hosting_tiers are returned in the phase response."""
+    phase = add_phase(project, business_proposal)
+    resp = authed_client.patch(
+        f'/api/accounts/projects/{project.id}/phases/{phase.id}/',
+        {'hosting_start_date': '2026-07-01'},
+        format='json',
+    )
+    assert resp.status_code == 200
+    tiers = resp.json().get('hosting_tiers', [])
+    assert len(tiers) == 3
+    frequencies = [t['frequency'] for t in tiers]
+    assert frequencies == ['monthly', 'quarterly', 'semiannual']
+
+
+def test_patch_phase_rejects_non_admin(project, business_proposal, client_user):
+    """Client user cannot PATCH a phase."""
+    from accounts.services.tokens import get_tokens_for_user
+    phase = add_phase(project, business_proposal)
+    tokens = get_tokens_for_user(client_user)
+    c = APIClient()
+    c.credentials(HTTP_AUTHORIZATION=f'Bearer {tokens["access"]}')
+    resp = c.patch(
+        f'/api/accounts/projects/{project.id}/phases/{phase.id}/',
+        {'hosting_start_date': '2026-06-01'},
+        format='json',
+    )
+    assert resp.status_code == 403
+
+
+def test_list_phases_includes_hosting_tiers_and_start_date(authed_client, project, business_proposal):
+    phase = add_phase(project, business_proposal)
+    phase.hosting_start_date = '2026-05-01'
+    phase.save()
+    resp = authed_client.get(f'/api/accounts/projects/{project.id}/phases/')
+    assert resp.status_code == 200
+    data = resp.json()[0]
+    assert data['hosting_start_date'] == '2026-05-01'
+    assert 'hosting_tiers' in data
+    assert len(data['hosting_tiers']) == 3

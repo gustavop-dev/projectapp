@@ -14,6 +14,30 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
+          <!-- Phase selector -->
+          <BaseDropdown
+            v-if="phaseOptions.length > 0"
+            :items="phaseDropdownItems"
+            align="left"
+            width="w-56"
+          >
+            <template #trigger>
+              <button
+                type="button"
+                :class="[
+                  'flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-medium transition',
+                  selectedPhaseId
+                    ? 'border-primary/40 bg-primary/5 text-text-brand dark:border-lemon/30 dark:bg-lemon/5 dark:text-accent'
+                    : 'border-border-default bg-surface text-green-light hover:text-text-default hover:bg-surface-raised',
+                ]"
+              >
+                <span class="max-w-[140px] truncate">{{ selectedPhaseLabel }}</span>
+                <svg class="h-3 w-3 shrink-0 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </template>
+          </BaseDropdown>
           <!-- Admin bulk tools -->
           <template v-if="authStore.isAdmin">
             <button
@@ -559,7 +583,31 @@ const statusTabs = computed(() => [
   { value: 'out_of_scope', label: 'Fuera de alcance' },
 ])
 
-const filteredRequests = computed(() => crStore.filteredByStatus(activeFilter.value))
+const phases = ref([])
+const selectedPhaseId = ref(null)
+const phaseOptions = computed(() =>
+  phases.value.map((p) => ({ id: p.id, order: p.order, title: p.proposal?.title || `Fase ${p.order}` }))
+)
+const selectedPhaseLabel = computed(() => {
+  if (!selectedPhaseId.value) return 'Todas las fases'
+  const found = phaseOptions.value.find((p) => p.id === selectedPhaseId.value)
+  return found ? `Fase ${found.order} · ${found.title}` : 'Todas las fases'
+})
+const phaseDropdownItems = computed(() => [
+  { label: 'Todas las fases', onClick: () => { selectedPhaseId.value = null } },
+  ...phaseOptions.value.map((opt) => ({
+    label: `Fase ${opt.order} · ${opt.title}`,
+    onClick: () => { selectedPhaseId.value = opt.id },
+  })),
+])
+
+const filteredRequests = computed(() => {
+  let list = crStore.filteredByStatus(activeFilter.value)
+  if (selectedPhaseId.value) {
+    list = list.filter((cr) => cr.phase_id === selectedPhaseId.value)
+  }
+  return list
+})
 
 const isImportOpen = ref(false)
 const importJson = ref('')
@@ -745,6 +793,15 @@ async function handleDelete() {
   }
 }
 
+async function loadPhases() {
+  try {
+    const list = await projectsStore.loadPhases(projectId.value)
+    phases.value = Array.isArray(list) ? list : []
+  } catch {
+    phases.value = []
+  }
+}
+
 async function loadChangeRequests() {
   await crStore.fetchChangeRequests(projectId.value, null, false)
 }
@@ -846,6 +903,7 @@ onMounted(async () => {
   await Promise.all([
     loadChangeRequests(),
     loadProjectRequirements(),
+    loadPhases(),
     projectsStore.currentProject?.id !== Number(projectId.value)
       ? projectsStore.fetchProject(projectId.value)
       : Promise.resolve(),
@@ -859,6 +917,7 @@ onMounted(async () => {
 watch(projectId, () => {
   loadChangeRequests()
   loadProjectRequirements()
+  loadPhases()
 })
 </script>
 

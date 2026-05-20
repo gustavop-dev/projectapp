@@ -345,6 +345,10 @@ class ProjectPhase(models.Model):
         related_name='project_phases',
     )
     order = models.PositiveIntegerField()
+    hosting_start_date = models.DateField(
+        null=True, blank=True,
+        help_text='Date when this phase\'s hosting billing begins (set by admin).',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -559,6 +563,11 @@ class ChangeRequest(models.Model):
         related_name='change_requests_about',
         help_text='Requirement this change request is about (client picked when filing).',
     )
+    phase = models.ForeignKey(
+        'ProjectPhase', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='phase_change_requests',
+        help_text='Phase this change request belongs to (auto-assigned from source_requirement).',
+    )
     screenshot = models.ImageField(
         upload_to='change_requests/', null=True, blank=True,
         help_text='Optimized automatically on upload (WhatsApp-like compression).',
@@ -693,6 +702,11 @@ class BugReport(models.Model):
         Requirement, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='bug_reports_about',
         help_text='Requirement this bug is about (client picked when filing).',
+    )
+    phase = models.ForeignKey(
+        'ProjectPhase', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='phase_bug_reports',
+        help_text='Phase this bug report belongs to (auto-assigned from source_requirement).',
     )
     screenshot = models.ImageField(
         upload_to='bug_reports/', null=True, blank=True,
@@ -1138,6 +1152,14 @@ class HostingSubscription(models.Model):
         null=True, blank=True,
         help_text='Next date a payment is due.',
     )
+    wompi_payment_source_id = models.CharField(
+        max_length=50, blank=True, default='',
+        help_text='Wompi payment source ID for stored-card recurring billing.',
+    )
+    card_brand = models.CharField(max_length=20, blank=True, default='')
+    card_last_four = models.CharField(max_length=4, blank=True, default='')
+    card_exp_month = models.CharField(max_length=2, blank=True, default='')
+    card_exp_year = models.CharField(max_length=4, blank=True, default='')
     is_archived = models.BooleanField(
         default=False,
         db_index=True,
@@ -1199,6 +1221,15 @@ class Payment(models.Model):
     wompi_transaction_id = models.CharField(max_length=100, blank=True, default='')
     wompi_payment_link_id = models.CharField(max_length=100, blank=True, default='')
     wompi_payment_link_url = models.URLField(max_length=500, blank=True, default='')
+    charge_attempts = models.PositiveSmallIntegerField(
+        default=0,
+        help_text='Number of automatic charge attempts made for this payment.',
+    )
+    last_charge_error = models.CharField(max_length=300, blank=True, default='')
+    next_retry_at = models.DateField(
+        null=True, blank=True,
+        help_text='Earliest date the auto-billing task may retry this payment.',
+    )
     is_archived = models.BooleanField(
         default=False,
         db_index=True,
@@ -1222,12 +1253,14 @@ class PaymentHistory(models.Model):
     SOURCE_WEBHOOK = 'webhook'
     SOURCE_WOMPI_VERIFY = 'wompi_verify'
     SOURCE_SYSTEM = 'system'
+    SOURCE_MANUAL = 'manual'
     SOURCE_CHOICES = [
         (SOURCE_API, 'API'),
         (SOURCE_WOMPI_LINK, 'Wompi payment link'),
         (SOURCE_WEBHOOK, 'Wompi webhook'),
         (SOURCE_WOMPI_VERIFY, 'Wompi verify'),
         (SOURCE_SYSTEM, 'System'),
+        (SOURCE_MANUAL, 'Manual (admin)'),
     ]
 
     payment = models.ForeignKey(
