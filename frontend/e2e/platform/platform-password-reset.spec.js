@@ -72,21 +72,24 @@ test.describe('Platform password recovery', () => {
       await waitForForm(page, 'a:has-text("Olvidaste tu contraseña")');
       await page.getByRole('link', { name: /Olvidaste tu contraseña/i }).click();
 
+      // Page-specific selectors per step: login and forgot-password both expose
+      // input[type=email] / button[type=submit], so generic selectors can race
+      // the SPA transition and act on the wrong page.
       await page.waitForURL(/\/platform\/forgot-password/, { waitUntil: 'domcontentloaded' });
-      await waitForForm(page, 'input[type="email"]');
-      await page.locator('input[type="email"]').fill('user@example.com');
-      await page.locator('button[type="submit"]').click();
+      await waitForForm(page, '#forgot-email');
+      await page.locator('#forgot-email').fill('user@example.com');
+      await page.getByRole('button', { name: 'Enviar código' }).click();
 
       await page.waitForURL(/\/platform\/verify-code/, { waitUntil: 'domcontentloaded' });
       await waitForForm(page, 'input[name="otp"]');
       await page.locator('input[name="otp"]').fill('123456');
-      await page.locator('button[type="submit"]').click();
+      await page.getByRole('button', { name: 'Verificar' }).click();
 
       await page.waitForURL(/\/platform\/reset-password/, { waitUntil: 'domcontentloaded' });
       await waitForForm(page, '#new-pass');
       await page.locator('#new-pass').fill('NewStrongPass456!');
       await page.locator('#confirm-pass').fill('NewStrongPass456!');
-      await page.locator('button[type="submit"]').click();
+      await page.getByRole('button', { name: 'Guardar contraseña' }).click();
 
       // Successful confirm: store applies auth + navigates to /platform.
       await page.waitForURL(/\/platform(\?|$|\/(?!forgot|verify|reset))/, {

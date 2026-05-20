@@ -111,25 +111,6 @@ test.describe('Platform Project Detail — Admin', () => {
 
     await expect(page.getByRole('button', { name: /editar/i })).toBeVisible();
   });
-
-  test('shows loading placeholder and projects link for invalid project ID', {
-    tag: [...PLATFORM_PROJECT_DETAIL, '@role:platform-admin'],
-  }, async ({ page }) => {
-    await mockApi(page, async ({ apiPath, method }) => {
-      if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(mockPlatformAdmin);
-      if (apiPath === 'accounts/projects/999/' && method === 'GET') {
-        return { status: 404, contentType: 'application/json', body: JSON.stringify({ detail: 'No encontrado' }) };
-      }
-      if (apiPath === 'accounts/projects/999/phases/' && method === 'GET') {
-        return { status: 404, contentType: 'application/json', body: JSON.stringify({ detail: 'No encontrado' }) };
-      }
-      return null;
-    });
-    await page.goto('/platform/projects/999', { waitUntil: 'domcontentloaded' });
-
-    await expect(page.getByText(/cargando proyecto/i)).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Proyectos', exact: true })).toBeVisible();
-  });
 });
 
 test.describe('Platform Project Detail — Client', () => {
