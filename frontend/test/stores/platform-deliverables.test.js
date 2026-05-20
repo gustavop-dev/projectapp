@@ -205,7 +205,7 @@ describe('usePlatformDeliverablesStore', () => {
       mockPost.mockRejectedValueOnce(new Error('network'))
       const result = await store.createDeliverable(1, new FormData())
       expect(result.success).toBe(false)
-      expect(result.message).toBe('No pudimos subir el entregable.')
+      expect(result.message).toBe('No pudimos subir el recurso.')
     })
 
     it('updateDeliverable uses fallback when detail is absent', async () => {
@@ -308,7 +308,7 @@ describe('usePlatformDeliverablesStore', () => {
   it('createDeliverable uses fallback message when error has no detail', async () => {
     mockPost.mockRejectedValueOnce({})
     const result = await store.createDeliverable(1, new FormData())
-    expect(result.message).toBe('No pudimos subir el entregable.')
+    expect(result.message).toBe('No pudimos subir el recurso.')
   })
 
   it('updateDeliverable leaves list intact when deliverable not in list', async () => {

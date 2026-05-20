@@ -15,7 +15,7 @@
       :style="coverBgStyle"
     />
     <!-- Default solid background when no cover -->
-    <div v-if="!hasCover && !hasTheme" class="fixed inset-0 z-0 bg-gray-50 dark:bg-primary-strong" />
+    <div v-if="!hasCover && !hasTheme" class="fixed inset-0 z-0 bg-surface-muted" />
 
     <!-- Desktop sidebar (hidden on mobile) -->
     <div class="hidden md:block">

@@ -15,7 +15,7 @@
           'mb-1 flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition',
           isActive(item.href)
             ? 'bg-primary-soft text-text-brand dark:bg-lemon/10 dark:text-accent'
-            : 'text-green-light hover:bg-primary-soft/50 hover:text-text-brand dark:hover:text-accent',
+            : 'text-green-light hover:bg-primary-soft hover:text-text-brand dark:hover:text-accent',
         ]"
       >
         {{ item.label }}

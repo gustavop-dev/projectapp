@@ -41,6 +41,12 @@ const mockBugReports = [
   },
 ];
 
+// Bugs require a source requirement; the create form populates its
+// "Requerimiento de origen" select from this endpoint.
+const mockProjectRequirements = [
+  { id: 501, title: 'Checkout flow', phase_title: 'Fase 1', status: 'todo' },
+];
+
 const meResponse = (user) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(user) });
 
 function setupMocks(page, { user }) {
@@ -51,6 +57,9 @@ function setupMocks(page, { user }) {
     }
     if (apiPath === 'accounts/projects/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProject]) };
+    }
+    if (apiPath === 'accounts/projects/1/requirements/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProjectRequirements) };
     }
     if (apiPath === 'accounts/projects/1/bug-reports/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockBugReports) };
@@ -92,6 +101,8 @@ test.describe('Platform Bug Reports — Client', () => {
 
     await page.getByRole('button', { name: /reportar bug/i }).click();
     await page.getByPlaceholder('¿Qué está fallando?').fill('New bug report');
+    // A bug now requires a source requirement — pick the first real option.
+    await page.locator('select[required]').selectOption({ index: 1 });
     await page.getByRole('button', { name: /reportar bug/i }).last().click();
   });
 });

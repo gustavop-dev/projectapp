@@ -1,10 +1,10 @@
 /**
- * E2E tests for platform unified board flow.
+ * E2E tests for the /platform/board route.
  *
  * @flow:platform-unified-board
- * Covers: unified board render at /platform/board,
- *         aggregated view of all project requirements,
- *         unauthenticated redirect.
+ * The standalone unified board was removed in the platform IA refactor:
+ * /platform/board now redirects authenticated users to /platform/projects
+ * and unauthenticated users to the login page.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -26,28 +26,11 @@ const mockProjects = [
   { id: 2, name: 'Project Beta', status: 'active', progress: 30 },
 ];
 
-const mockRequirements = [
-  { id: 101, title: 'Task Alpha-1', status: 'todo', priority: 'high', module: 'Frontend', estimated_hours: 8, comments_count: 0 },
-  { id: 201, title: 'Task Beta-1', status: 'in_progress', priority: 'medium', module: 'Backend', estimated_hours: 12, comments_count: 1 },
-];
-
-function setupUnifiedBoardMocks(page, user) {
+function setupBoardRedirectMocks(page, user) {
   return mockApi(page, async ({ apiPath, method }) => {
     if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(user);
     if (apiPath === 'accounts/projects/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProjects) };
-    }
-    if (apiPath === 'accounts/projects/1/deliverables/' && method === 'GET') {
-      return { status: 200, contentType: 'application/json', body: JSON.stringify([{ id: 1, title: 'Main' }]) };
-    }
-    if (apiPath === 'accounts/projects/2/deliverables/' && method === 'GET') {
-      return { status: 200, contentType: 'application/json', body: JSON.stringify([{ id: 2, title: 'Main' }]) };
-    }
-    if (apiPath === 'accounts/projects/1/deliverables/1/requirements/' && method === 'GET') {
-      return { status: 200, contentType: 'application/json', body: JSON.stringify([mockRequirements[0]]) };
-    }
-    if (apiPath === 'accounts/projects/2/deliverables/2/requirements/' && method === 'GET') {
-      return { status: 200, contentType: 'application/json', body: JSON.stringify([mockRequirements[1]]) };
     }
     if (apiPath.startsWith('accounts/clients/')) {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
@@ -56,30 +39,30 @@ function setupUnifiedBoardMocks(page, user) {
   });
 }
 
-test.describe('Platform Unified Board', () => {
+test.describe('Platform Board Route', () => {
   // SPA routes need longer timeout for Vite on-demand compilation on dev server
   test.setTimeout(60_000);
 
-  test('admin can access unified board at /platform/board', {
+  test('admin visiting /platform/board is redirected to projects', {
     tag: [...PLATFORM_UNIFIED_BOARD, '@role:platform-admin'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformAdmin });
-    await setupUnifiedBoardMocks(page, mockPlatformAdmin);
+    await setupBoardRedirectMocks(page, mockPlatformAdmin);
     await page.goto('/platform/board', { waitUntil: 'domcontentloaded' });
 
-    // Admin sees 'Actividad general' heading in the unified board
-    await expect(page.locator('main').getByRole('heading', { name: /actividad general/i })).toBeVisible();
+    await page.waitForURL('**/platform/projects**', { timeout: 30000 });
+    await expect(page).toHaveURL(/\/platform\/projects/);
   });
 
-  test('client can access unified board at /platform/board', {
+  test('client visiting /platform/board is redirected to projects', {
     tag: [...PLATFORM_UNIFIED_BOARD, '@role:platform-client'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformClient });
-    await setupUnifiedBoardMocks(page, mockPlatformClient);
+    await setupBoardRedirectMocks(page, mockPlatformClient);
     await page.goto('/platform/board', { waitUntil: 'domcontentloaded' });
 
-    // Client sees 'Mi tablero' heading
-    await expect(page.locator('main').getByRole('heading', { name: /tablero/i })).toBeVisible();
+    await page.waitForURL('**/platform/projects**', { timeout: 30000 });
+    await expect(page).toHaveURL(/\/platform\/projects/);
   });
 
   test('unauthenticated user is redirected to login', {

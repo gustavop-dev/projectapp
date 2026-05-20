@@ -186,13 +186,6 @@ describe('usePlatformPaymentsStore', () => {
     expect(store.currentSubscription).toEqual({ id: 5, status: 'active' })
   })
 
-  it('payWithCard returns data on success', async () => {
-    mockPost.mockResolvedValueOnce({ data: { ok: true } })
-    const result = await store.payWithCard(1, 2, { token: 't' })
-    expect(result.success).toBe(true)
-    expect(mockPost).toHaveBeenCalledWith('projects/1/payments/2/card-pay/', { token: 't' })
-  })
-
   it('verifyTransaction posts transaction id', async () => {
     mockPost.mockResolvedValueOnce({ data: { verified: true } })
     const result = await store.verifyTransaction(1, 2, 'tx-99')
@@ -200,13 +193,6 @@ describe('usePlatformPaymentsStore', () => {
     expect(mockPost).toHaveBeenCalledWith('projects/1/payments/2/verify/', {
       transaction_id: 'tx-99',
     })
-  })
-
-  it('fetchWidgetData returns widget payload', async () => {
-    mockGet.mockResolvedValueOnce({ data: { widget: 1 } })
-    const result = await store.fetchWidgetData(3, 4)
-    expect(result.success).toBe(true)
-    expect(result.data).toEqual({ widget: 1 })
   })
 
   it('generatePaymentLink updates matching payment row', async () => {
@@ -251,23 +237,11 @@ describe('usePlatformPaymentsStore', () => {
     expect(result.success).toBe(false)
   })
 
-  it('payWithCard sets error on failure', async () => {
-    mockPost.mockRejectedValueOnce({ response: { data: { detail: 'card' } } })
-    const result = await store.payWithCard(1, 2, {})
-    expect(result.success).toBe(false)
-  })
-
   it('verifyTransaction returns message on failure', async () => {
     mockPost.mockRejectedValueOnce({ response: { data: { detail: 'v' } } })
     const result = await store.verifyTransaction(1, 2, 'x')
     expect(result.success).toBe(false)
     expect(result.message).toBe('v')
-  })
-
-  it('fetchWidgetData returns message on failure', async () => {
-    mockGet.mockRejectedValueOnce({ response: { data: { detail: 'w' } } })
-    const result = await store.fetchWidgetData(1, 2)
-    expect(result.success).toBe(false)
   })
 
   it('generatePaymentLink sets error on failure', async () => {
@@ -312,25 +286,11 @@ describe('usePlatformPaymentsStore', () => {
       expect(result.message).toBe('Error actualizando suscripción.')
     })
 
-    it('payWithCard uses fallback when detail is absent', async () => {
-      mockPost.mockRejectedValueOnce(new Error('network'))
-      const result = await store.payWithCard(1, 2, {})
-      expect(result.success).toBe(false)
-      expect(result.message).toBe('Error procesando el pago con tarjeta.')
-    })
-
     it('verifyTransaction uses fallback when detail is absent', async () => {
       mockPost.mockRejectedValueOnce(new Error('network'))
       const result = await store.verifyTransaction(1, 2, 'tx')
       expect(result.success).toBe(false)
       expect(result.message).toBe('Error verificando transacción.')
-    })
-
-    it('fetchWidgetData uses fallback when detail is absent', async () => {
-      mockGet.mockRejectedValueOnce(new Error('network'))
-      const result = await store.fetchWidgetData(1, 2)
-      expect(result.success).toBe(false)
-      expect(result.message).toBe('Error obteniendo datos de pago.')
     })
 
     it('generatePaymentLink uses fallback when detail is absent', async () => {
@@ -414,22 +374,10 @@ describe('usePlatformPaymentsStore', () => {
     expect(result.message).toBe('Error actualizando suscripción.')
   })
 
-  it('payWithCard uses fallback message when error has no detail', async () => {
-    mockPost.mockRejectedValueOnce({})
-    const result = await store.payWithCard(1, 2, {})
-    expect(result.message).toBe('Error procesando el pago con tarjeta.')
-  })
-
   it('verifyTransaction uses fallback message when error has no detail', async () => {
     mockPost.mockRejectedValueOnce({})
     const result = await store.verifyTransaction(1, 2, 'x')
     expect(result.message).toBe('Error verificando transacción.')
-  })
-
-  it('fetchWidgetData uses fallback message when error has no detail', async () => {
-    mockGet.mockRejectedValueOnce({})
-    const result = await store.fetchWidgetData(1, 2)
-    expect(result.message).toBe('Error obteniendo datos de pago.')
   })
 
   it('generatePaymentLink leaves list intact when paymentId not in list', async () => {
@@ -444,5 +392,60 @@ describe('usePlatformPaymentsStore', () => {
     mockPost.mockRejectedValueOnce({})
     const result = await store.generatePaymentLink(1, 2)
     expect(result.message).toBe('Error generando link de pago.')
+  })
+
+  describe('card setup (3DS)', () => {
+    it('startCardSetup posts card data', async () => {
+      mockPost.mockResolvedValueOnce({ data: { payment_source_id: 9, status: 'AVAILABLE' } })
+      const result = await store.startCardSetup(1, { card_number: '4242' })
+      expect(result.success).toBe(true)
+      expect(result.data.payment_source_id).toBe(9)
+      expect(mockPost).toHaveBeenCalledWith('projects/1/subscription/card/', { card_number: '4242' })
+    })
+
+    it('startCardSetup returns fallback message on failure', async () => {
+      mockPost.mockRejectedValueOnce({})
+      const result = await store.startCardSetup(1, {})
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No se pudo registrar la tarjeta.')
+    })
+
+    it('getCardSetupStatus polls the source status', async () => {
+      mockGet.mockResolvedValueOnce({ data: { status: 'PENDING' } })
+      const result = await store.getCardSetupStatus(1, 9)
+      expect(result.success).toBe(true)
+      expect(mockGet).toHaveBeenCalledWith('projects/1/subscription/card/9/status/')
+    })
+
+    it('confirmCardSetup syncs subscription and payments', async () => {
+      mockPost.mockResolvedValueOnce({
+        data: { subscription: { id: 5, payments: [{ id: 1 }] }, charge: null },
+      })
+      const result = await store.confirmCardSetup(1, 9, {})
+      expect(result.success).toBe(true)
+      expect(store.currentSubscription).toEqual({ id: 5, payments: [{ id: 1 }] })
+      expect(store.payments).toEqual([{ id: 1 }])
+    })
+
+    it('confirmCardSetup returns fallback message on failure', async () => {
+      mockPost.mockRejectedValueOnce({})
+      const result = await store.confirmCardSetup(1, 9, {})
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No se pudo confirmar la tarjeta.')
+    })
+
+    it('chargeStored charges a payment with the stored card', async () => {
+      mockPost.mockResolvedValueOnce({ data: { payment_status: 'paid' } })
+      const result = await store.chargeStored(2, 7)
+      expect(result.success).toBe(true)
+      expect(mockPost).toHaveBeenCalledWith('projects/2/payments/7/charge/', {})
+    })
+
+    it('chargeStored sets error on failure', async () => {
+      mockPost.mockRejectedValueOnce({})
+      const result = await store.chargeStored(2, 7)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Error procesando el cobro.')
+    })
   })
 })

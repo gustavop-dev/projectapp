@@ -72,7 +72,7 @@
             <tr
               v-for="client in filteredClients"
               :key="client.user_id"
-              class="cursor-pointer border-b border-border-muted transition hover:bg-primary-soft/30 last:border-b-0"
+              class="cursor-pointer border-b border-border-muted transition hover:bg-primary-soft last:border-b-0"
               @click="goToClient(client.user_id)"
             >
               <td class="px-6 py-4">

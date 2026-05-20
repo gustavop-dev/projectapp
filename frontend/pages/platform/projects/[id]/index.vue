@@ -66,7 +66,7 @@
             v-else
             type="button"
             :disabled="projectsStore.isUpdating"
-            class="rounded-xl border border-emerald-500/30 px-3 py-2 text-sm text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
+            class="rounded-xl border border-emerald-500/30 px-3 py-2 text-sm text-text-brand transition hover:bg-success-soft disabled:opacity-50"
             @click="handleUnarchive"
           >
             {{ projectsStore.isUpdating ? '…' : 'Reactivar' }}

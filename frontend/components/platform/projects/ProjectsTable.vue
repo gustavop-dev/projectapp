@@ -18,7 +18,7 @@
           v-for="p in projects"
           :key="p.id"
           :data-testid="`project-row-${p.id}`"
-          class="cursor-pointer border-t border-border-muted transition hover:bg-primary-soft/30"
+          class="cursor-pointer border-t border-border-muted transition hover:bg-primary-soft"
           @click="$emit('navigate', p.id)"
         >
           <td class="px-4 py-3">

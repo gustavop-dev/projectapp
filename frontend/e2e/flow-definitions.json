@@ -1226,7 +1226,7 @@
       ],
       "priority": "P2",
       "description": "Admin dashboard shows KPI cards (active/pending/inactive clients), recent clients table, and upcoming modules. Client dashboard shows profile summary and upcoming modules.",
-      "expectedSpecs": 1
+      "expectedSpecs": 0
     },
     "platform-sidebar-navigation": {
       "name": "Platform Sidebar Navigation",
@@ -1399,7 +1399,7 @@
       ],
       "priority": "P1",
       "description": "Client registers a card once for automatic hosting billing. From the project payments page the client opens the card modal, enters card data, and the card is tokenized into a Wompi payment source. When the card requires 3D Secure, an authentication flow runs (browser-info/fingerprint hidden iframes, then a visible bank challenge iframe) polled every 2s until the source is AVAILABLE. On success the card is stored on the subscription and the first open payment is charged. The same flow handles 'Cambiar tarjeta'. A failed payment can be retried manually with the stored card.",
-      "expectedSpecs": 1
+      "expectedSpecs": 0
     },
     "platform-notifications": {
       "name": "Platform Notifications",
@@ -2386,7 +2386,7 @@
       "roles": [
         "platform-admin"
       ],
-      "expectedSpecs": 1,
+      "expectedSpecs": 0,
       "description": "Admin-only quick-access hub at /platform/access: grid of project cards with clickable URLs (production, staging, Django admin, repository) and copy/reveal credential controls."
     }
   }

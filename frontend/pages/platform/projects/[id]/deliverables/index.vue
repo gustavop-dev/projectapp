@@ -63,7 +63,7 @@
             <tr
               v-for="d in filteredItems"
               :key="d.id"
-              class="cursor-pointer border-t border-border-muted transition hover:bg-primary-soft/30"
+              class="cursor-pointer border-t border-border-muted transition hover:bg-primary-soft"
               :class="d.is_archived ? 'opacity-70' : ''"
               @click="openDetailModal(d)"
             >
