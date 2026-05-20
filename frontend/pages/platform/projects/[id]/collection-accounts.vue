@@ -22,12 +22,7 @@
           <p class="font-medium text-text-default">{{ row.title }}</p>
           <p class="text-xs text-green-light">{{ row.public_number || 'draft' }} · {{ row.commercial_status }}</p>
         </div>
-        <NuxtLink
-          :to="localePath(`/platform/collection-accounts/${row.id}`)"
-          class="text-sm font-medium text-text-brand"
-        >
-          Open
-        </NuxtLink>
+        <!-- Detalle de cuenta de cobro en pausa: la vista está deshabilitada hasta retomar la feature. -->
       </li>
     </ul>
   </div>
@@ -40,7 +35,6 @@ import { usePlatformCollectionAccountsStore } from '~/stores/platform-collection
 import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 const route = useRoute()
-const localePath = useLocalePath()
 
 definePageMeta({
   layout: 'platform',
