@@ -2798,21 +2798,22 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** platform-admin / platform-client
 - **Priority:** P1
 - **Routes:** `/platform/projects/:id/payments`, `/platform/payments`
-- **API:** `GET /api/accounts/subscriptions/` (unified `/platform/payments` list), `GET/POST/PATCH /api/accounts/projects/:id/subscription/`, `GET /api/accounts/projects/:id/payments/`
-- **Description:** Client selects a hosting plan (semiannual/quarterly/monthly) and activates the subscription. Card is the only payment method; after activation the client registers a card (see `platform-hosting-card-setup`) for automatic recurring billing. Admin sees subscription status and stored-card info. Netflix-style active state shows the next automatic renewal date.
+- **API:** `GET /api/accounts/subscriptions/` (unified `/platform/payments` list), `GET/POST/PATCH /api/accounts/projects/:id/subscription/`, `GET /api/accounts/projects/:id/payments/`, `GET /api/accounts/projects/:id/phases/` (per-phase hosting tiers)
+- **Description:** The client sees a per-phase hosting cost table and activates a subscription that bills the sum of all started phases at one frequency. Card is the only payment method; after activation the client registers a card (see `platform-hosting-card-setup`) for automatic recurring billing. Admin sees subscription status and stored-card info. Netflix-style active state shows the next automatic renewal date.
 - **Steps:**
   1. Client navigates to `/platform/projects/:id/payments`.
-  2. If no subscription: hosting tier cards render (semiannual/quarterly/monthly with pricing).
-  3. Client selects plan and clicks "Activar plan de hosting" → `POST .../subscription/`.
-  4. Subscription created with first payment → "Activa el cobro automático" card prompts to register a card.
+  2. If no subscription: a per-phase cost table renders (one row per phase + total) with frequency pills (mensual/trimestral/semestral).
+  3. Client toggles a pill → the table total recomputes live; clicks "Activar plan {frecuencia}" → `POST .../subscription/`.
+  4. Subscription created billing the sum of started phases, with a first payment → "Activa el cobro automático" card prompts to register a card.
   5. Client registers a card (`platform-hosting-card-setup`); the first payment is charged on confirm.
-  6. After payment: Netflix-style "Suscripción activa" card with the next automatic renewal date.
+  6. After payment: Netflix-style "Suscripción activa" card with the next automatic renewal date; the per-phase table becomes display-only at the fixed frequency.
 - **Branches:**
-  - [Branch A — Admin view] Admin sees subscription status + stored-card info (not the plan selector).
+  - [Branch A — Admin view] Admin sees per-phase tier tables with editable `hosting_start_date` per phase (not the client plan selector).
   - [Branch B — Up to date] Active subscription with a stored card and no urgent payment shows the green card + "Se renueva y cobra automáticamente el {date}".
   - [Branch C — Payment due] Shows the payment action card; with a stored card the cron charges it on the due date.
   - [Branch D — Unified view] `/platform/payments` shows all subscriptions across projects.
   - [Branch E — Cancellation] No in-app cancel; the card panel tells the client to contact support by email.
+  - [Branch F — Multi-phase proration] A phase with a future `hosting_start_date` shows in the table as reference; when its date arrives the billing cron charges a prorated catch-up for the remaining cycle days and the phase joins the recurring total.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/platform/platform-hosting-subscription.spec.js`
 

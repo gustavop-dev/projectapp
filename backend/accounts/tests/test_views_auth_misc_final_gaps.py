@@ -9,7 +9,6 @@ Covers:
 - admin_detail_view: non-staff user rejected (line 504)
 - _generate_next_payment: nil billing_start (line 2718)
 - _handle_payment_approved: notification exception silenced (lines 2786-2787)
-- _get_plan_discount: stored hosting_tiers match (lines 2945-2946) and linked BP fallback (2950, 2955)
 - payment_card_pay_view: invalid project_id (line 3106)
 - payment_verify_transaction_view: invalid project_id (line 3195)
 - wompi_webhook_view: PA-pattern matches but payment not found (lines 3293-3294)
@@ -259,56 +258,6 @@ class TestHandlePaymentApprovedNotificationException:
 
         pending_payment.refresh_from_db()
         assert pending_payment.status == Payment.STATUS_PAID
-
-
-# ===========================================================================
-# _get_plan_discount — stored hosting_tiers match (lines 2945-2946)
-# ===========================================================================
-
-class TestGetPlanDiscountStoredTiers:
-    def test_returns_discount_from_matching_tier(self, project):
-        """When project.hosting_tiers has a matching frequency, its discount_percent is returned."""
-        from accounts.views import _get_plan_discount
-
-        project.hosting_tiers = [
-            {'frequency': 'monthly', 'discount_percent': 0},
-            {'frequency': 'quarterly', 'discount_percent': 15},
-        ]
-        project.save(update_fields=['hosting_tiers'])
-
-        result = _get_plan_discount(project, 'quarterly')
-
-        assert result == 15
-
-    def test_returns_discount_from_linked_bp_when_no_tier_match(
-        self, project, subscription,
-    ):
-        """Falls back to linked BusinessProposal when no matching tier in project.hosting_tiers."""
-        from content.models import BusinessProposal
-        from accounts.models import Deliverable
-        from accounts.views import _get_plan_discount
-
-        project.hosting_tiers = [{'frequency': 'monthly', 'discount_percent': 0}]
-        project.save(update_fields=['hosting_tiers'])
-
-        from accounts.models import ProjectPhase
-        d = Deliverable.objects.create(
-            project=project, title='BP Deliverable',
-            category=Deliverable.CATEGORY_DOCUMENTS,
-            uploaded_by=subscription.project.client,
-        )
-        bp = BusinessProposal.objects.create(
-            title='Test BP', client_name='Client',
-            hosting_discount_quarterly=12,
-            hosting_discount_semiannual=22,
-            deliverable=d,
-        )
-        # Project.linked_business_proposal() resolves through phases after the refactor.
-        ProjectPhase.objects.create(project=project, business_proposal=bp, order=1)
-
-        result = _get_plan_discount(project, 'quarterly')
-
-        assert result == 12
 
 
 # ===========================================================================

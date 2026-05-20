@@ -349,6 +349,12 @@ class ProjectPhase(models.Model):
         null=True, blank=True,
         help_text='Date when this phase\'s hosting billing begins (set by admin).',
     )
+    hosting_activated_at = models.DateField(
+        null=True, blank=True,
+        help_text='Date this phase was incorporated into the recurring '
+                  'subscription billing. Null = not yet billed (the billing '
+                  'cron will onboard it once hosting_start_date arrives).',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

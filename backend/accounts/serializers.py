@@ -1462,6 +1462,7 @@ class ProjectPhaseSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     order = serializers.IntegerField()
     hosting_start_date = serializers.DateField(allow_null=True, required=False)
+    hosting_activated_at = serializers.DateField(allow_null=True, required=False, read_only=True)
     proposal = serializers.SerializerMethodField()
     hosting_tiers = serializers.SerializerMethodField()
 
@@ -1470,51 +1471,8 @@ class ProjectPhaseSerializer(serializers.Serializer):
 
     def get_hosting_tiers(self, obj):
         """Calculated hosting tiers for this phase from its proposal."""
-        from decimal import Decimal, ROUND_HALF_UP
-        bp = obj.business_proposal
-        total = getattr(bp, 'total_investment', None) or Decimal('0')
-        percent = getattr(bp, 'hosting_percent', 40)
-        disc_q = getattr(bp, 'hosting_discount_quarterly', 10)
-        disc_s = getattr(bp, 'hosting_discount_semiannual', 20)
-
-        monthly_base = (Decimal(str(total)) * Decimal(str(percent)) / Decimal('100') / Decimal('12')).quantize(
-            Decimal('1'), rounding=ROUND_HALF_UP
-        )
-
-        def tier_amount(months, discount):
-            factor = (Decimal('100') - Decimal(str(discount))) / Decimal('100')
-            return (monthly_base * months * factor).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
-
-        return [
-            {
-                'frequency': 'monthly',
-                'label': 'Mensual',
-                'months': 1,
-                'discount_percent': 0,
-                'monthly_equivalent': int(monthly_base),
-                'billing_amount': int(monthly_base),
-            },
-            {
-                'frequency': 'quarterly',
-                'label': 'Trimestral',
-                'months': 3,
-                'discount_percent': disc_q,
-                'monthly_equivalent': int(
-                    (tier_amount(3, disc_q) / Decimal('3')).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
-                ),
-                'billing_amount': int(tier_amount(3, disc_q)),
-            },
-            {
-                'frequency': 'semiannual',
-                'label': 'Semestral',
-                'months': 6,
-                'discount_percent': disc_s,
-                'monthly_equivalent': int(
-                    (tier_amount(6, disc_s) / Decimal('6')).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
-                ),
-                'billing_amount': int(tier_amount(6, disc_s)),
-            },
-        ]
+        from accounts.services.hosting_billing import phase_tiers
+        return phase_tiers(obj)
 
 
 class UpdateProjectPhaseSerializer(serializers.Serializer):

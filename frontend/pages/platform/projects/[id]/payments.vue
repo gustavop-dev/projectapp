@@ -76,43 +76,78 @@
 
           <p class="text-center text-xs text-text-muted">El cliente aún no ha activado su plan de hosting.</p>
         </div>
-        <div v-else-if="project?.hosting_tiers?.length" class="rounded-2xl border border-border-default bg-surface p-6">
-          <h2 class="mb-1 text-lg font-bold text-text-default">Elige tu plan de hosting</h2>
-          <p class="mb-5 text-xs text-green-light">Selecciona la frecuencia de pago que prefieras. Puedes cambiarla después.</p>
+        <div v-else-if="payStore.phases.length" class="rounded-2xl border border-border-default bg-surface p-6">
+          <h2 class="mb-1 text-lg font-bold text-text-default">Activa tu plan de hosting</h2>
+          <p class="mb-4 text-xs text-green-light">
+            El costo se calcula sumando el hosting de cada fase de tu proyecto. Elige con qué frecuencia quieres pagar.
+          </p>
 
-          <div class="mb-5 grid gap-3 sm:grid-cols-3">
+          <!-- Frequency pills -->
+          <div class="mb-5 flex flex-wrap gap-2">
             <button
-              v-for="tier in project.hosting_tiers"
-              :key="tier.frequency"
+              v-for="opt in frequencyOptions"
+              :key="opt.value"
               type="button"
-              class="relative rounded-xl border p-5 text-center transition"
-              :class="selectedPlan === tier.frequency
-                ? 'border-border-default bg-esmerald/5 shadow-sm dark:border-lemon dark:bg-lemon/10'
-                : 'border-border-default hover:border-border-default dark:hover:border-white/15'"
-              @click="selectedPlan = tier.frequency"
-            >
-              <span v-if="tier.badge" class="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent px-2.5 py-0.5 text-[9px] font-bold text-text-default">{{ tier.badge }}</span>
-              <p class="text-xs font-bold uppercase tracking-wider text-text-default">{{ tier.label }}</p>
-              <p class="mt-2 text-2xl font-bold text-text-brand">${{ formatMoney(tier.billing_amount) }}</p>
-              <p class="text-[11px] text-green-light">{{ tier.currency }} / {{ tier.months === 1 ? 'mes' : `${tier.months} meses` }}</p>
-              <p v-if="tier.discount_percent" class="mt-1 text-[10px] font-semibold text-text-brand">{{ tier.discount_percent }}% descuento</p>
-              <p class="mt-1 text-[10px] text-green-light/50">${{ formatMoney(tier.effective_monthly) }}/mes</p>
-            </button>
+              class="rounded-full border px-4 py-2 text-xs font-semibold transition"
+              :class="selectedPlan === opt.value
+                ? 'border-accent bg-accent text-text-default'
+                : 'border-border-default bg-surface text-green-light hover:text-text-default'"
+              @click="selectedPlan = opt.value"
+            >{{ opt.label }}</button>
           </div>
 
-          <div v-if="planError" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+          <!-- Per-phase breakdown table -->
+          <div class="overflow-x-auto rounded-xl border border-border-default">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-border-default bg-surface-muted/30">
+                  <th class="px-4 py-2.5 text-left text-xs font-medium text-text-muted">Fase</th>
+                  <th class="px-4 py-2.5 text-right text-xs font-medium text-text-muted">Costo {{ selectedFrequencyLabel.toLowerCase() }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in phaseRows" :key="row.id" class="border-b border-border-default/40 last:border-0">
+                  <td class="px-4 py-3">
+                    <p class="font-medium text-text-default">Fase {{ row.order }} · {{ row.title }}</p>
+                    <p v-if="!row.active" class="mt-0.5 text-[11px] text-amber-600 dark:text-amber-400">
+                      Inicia el {{ formatDate(row.startDate) }} — se sumará entonces
+                    </p>
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <span v-if="row.active" class="font-semibold text-text-default">${{ formatMoney(row.amount) }}</span>
+                    <span v-else class="text-xs text-green-light/50">—</span>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr class="border-t-2 border-border-default bg-surface-muted/30">
+                  <td class="px-4 py-3 text-sm font-bold text-text-default">Total a pagar ahora</td>
+                  <td class="px-4 py-3 text-right text-lg font-bold text-text-brand">${{ formatMoney(hostingTotal) }} COP</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <p v-if="futurePhaseCount > 0" class="mt-3 text-[11px] text-green-light/60">
+            Las fases con inicio futuro se cobrarán prorrateadas (solo los días que falten del ciclo) cuando llegue su fecha.
+          </p>
+
+          <div v-if="planError" class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
             {{ planError }}
           </div>
 
           <button
             type="button"
-            :disabled="!selectedPlan || isCreatingSub"
-            class="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50"
+            :disabled="!selectedPlan || isCreatingSub || hostingTotal <= 0"
+            class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50"
             @click="handleCreateSubscription"
           >
             <svg v-if="isCreatingSub" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-            {{ isCreatingSub ? 'Activando...' : 'Activar plan de hosting' }}
+            {{ isCreatingSub ? 'Activando...' : `Activar plan ${selectedFrequencyLabel.toLowerCase()}` }}
           </button>
+          <p v-if="hostingTotal <= 0" class="mt-2 text-center text-[11px] text-amber-600 dark:text-amber-400">
+            Ninguna fase tiene su hosting iniciado todavía. Espera a que el equipo configure las fechas de inicio.
+          </p>
         </div>
 
         <div v-else class="rounded-3xl border border-dashed border-border-default py-16 text-center">
@@ -173,6 +208,31 @@
             <p class="text-sm text-text-brand">
               Se renueva y cobra automáticamente el <strong>{{ formatDate(payStore.nextRenewalDate) }}</strong>
             </p>
+          </div>
+        </div>
+
+        <!-- Per-phase cost breakdown (display only) -->
+        <div v-if="phaseRows.length" class="mb-4 rounded-2xl border border-border-default bg-surface p-5" data-enter>
+          <h3 class="mb-3 text-sm font-medium text-text-default">Desglose por fase · {{ sub.plan_display }}</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <tbody>
+                <tr v-for="row in phaseRows" :key="row.id" class="border-b border-border-default/40 last:border-0">
+                  <td class="py-2.5">
+                    <span class="text-text-default">Fase {{ row.order }} · {{ row.title }}</span>
+                    <span v-if="!row.active" class="ml-2 text-[11px] text-amber-600 dark:text-amber-400">inicia el {{ formatDate(row.startDate) }}</span>
+                  </td>
+                  <td class="py-2.5 text-right">
+                    <span v-if="row.active" class="font-medium text-text-default">${{ formatMoney(row.amount) }}</span>
+                    <span v-else class="text-xs text-green-light/50">—</span>
+                  </td>
+                </tr>
+                <tr class="border-t-2 border-border-default">
+                  <td class="py-2.5 text-sm font-bold text-text-default">Total {{ sub.plan_display.toLowerCase() }}</td>
+                  <td class="py-2.5 text-right text-base font-bold text-text-brand">${{ formatMoney(hostingTotal) }} COP</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -595,9 +655,47 @@ const sub = computed(() => payStore.currentSubscription)
 const currentPayment = computed(() => payStore.currentPeriodPayment)
 const showHistory = ref(false)
 
-const selectedPlan = ref(null)
+const selectedPlan = ref('semiannual')
 const isCreatingSub = ref(false)
 const planError = ref('')
+
+const frequencyOptions = [
+  { value: 'monthly', label: 'Mensual' },
+  { value: 'quarterly', label: 'Trimestral' },
+  { value: 'semiannual', label: 'Semestral' },
+]
+const selectedFrequencyLabel = computed(
+  () => frequencyOptions.find((o) => o.value === selectedPlan.value)?.label || '',
+)
+
+// Frequency used to value the breakdown table: the established plan once a
+// subscription exists, otherwise the pill the client is previewing.
+const tableFrequency = computed(() => (sub.value ? sub.value.plan : selectedPlan.value))
+
+function tierAmount(phase, frequency) {
+  const tier = (phase.hosting_tiers || []).find((t) => t.frequency === frequency)
+  return tier ? tier.billing_amount : 0
+}
+
+const phaseRows = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return (payStore.phases || []).map((p) => ({
+    id: p.id,
+    order: p.order,
+    title: p.proposal?.title || `Fase ${p.order}`,
+    startDate: p.hosting_start_date,
+    active: sub.value
+      ? !!p.hosting_activated_at
+      : (!p.hosting_start_date || new Date(p.hosting_start_date) <= today),
+    amount: tierAmount(p, tableFrequency.value),
+  }))
+})
+
+const hostingTotal = computed(
+  () => phaseRows.value.filter((r) => r.active).reduce((sum, r) => sum + r.amount, 0),
+)
+const futurePhaseCount = computed(() => phaseRows.value.filter((r) => !r.active).length)
 
 // Phase hosting-date editing (admin only)
 const phaseEditDates = reactive({})
@@ -944,7 +1042,7 @@ onMounted(async () => {
   await Promise.all([
     payStore.fetchProjectSubscription(projectId.value),
     projectsStore.currentProject?.id !== Number(projectId.value) ? projectsStore.fetchProject(projectId.value) : Promise.resolve(),
-    authStore.isAdmin ? payStore.fetchProjectPhases(projectId.value) : Promise.resolve(),
+    payStore.fetchProjectPhases(projectId.value),
   ])
 })
 </script>

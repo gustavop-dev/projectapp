@@ -33,6 +33,10 @@ def auto_charge_due_subscriptions():
     from accounts.models import HostingSubscription, Payment, PaymentHistory
     from accounts.views import _charge_payment_with_source
 
+    # Incorporate phases whose hosting_start_date arrived (prorated) before
+    # charging, so their catch-up payments are billed in the same run.
+    _onboard_due_phases()
+
     today = timezone.now().date()
 
     due = Payment.objects.select_related('subscription__project__client').filter(
@@ -141,3 +145,77 @@ def _notify_charge_retry(payment):
         )
     except Exception:
         logger.warning('Failed to send retry notification for payment %s', payment.id)
+
+
+def _onboard_due_phases():
+    """
+    Incorporate phases whose hosting_start_date has arrived into their
+    project's active subscription. A phase joining mid-cycle is charged a
+    prorated amount for the remaining days of the current billing cycle; the
+    recurring billing_amount and the next-cycle pending payment are updated to
+    include the new phase from the following cycle onward.
+    """
+    from datetime import date
+    from decimal import Decimal
+
+    from dateutil.relativedelta import relativedelta
+
+    from accounts.models import HostingSubscription, Payment, ProjectPhase
+    from accounts.services.hosting_billing import prorated_amount, project_billing_amount
+
+    today = date.today()
+    due_phases = ProjectPhase.objects.select_related(
+        'project', 'business_proposal', 'project__hosting_subscription',
+    ).filter(
+        hosting_start_date__lte=today,
+        hosting_activated_at__isnull=True,
+        project__hosting_subscription__status=HostingSubscription.STATUS_ACTIVE,
+    )
+
+    onboarded = 0
+    for phase in due_phases:
+        sub = phase.project.hosting_subscription
+        if not sub.next_billing_date:
+            continue
+
+        months = sub.billing_months
+        cycle_end = sub.next_billing_date - relativedelta(days=1)
+        cycle_start = sub.next_billing_date - relativedelta(months=months)
+        join_date = max(phase.hosting_start_date, cycle_start)
+
+        prorated = prorated_amount(phase, sub.plan, join_date, cycle_start, cycle_end)
+
+        phase.hosting_activated_at = today
+        phase.save(update_fields=['hosting_activated_at'])
+
+        if prorated > 0:
+            Payment.objects.create(
+                subscription=sub,
+                amount=prorated,
+                description=(
+                    f'Hosting fase {phase.order} (prorrateado) — '
+                    f'{join_date} a {cycle_end}'
+                ),
+                billing_period_start=join_date,
+                billing_period_end=cycle_end,
+                due_date=today,
+                status=Payment.STATUS_PENDING,
+            )
+
+        new_amount = project_billing_amount(phase.project, sub.plan)
+        sub.billing_amount = new_amount
+        sub.effective_monthly_amount = round(new_amount / Decimal(months), 2)
+        sub.save(update_fields=['billing_amount', 'effective_monthly_amount', 'updated_at'])
+
+        # Recurring payments for the next cycle onward grow to the new total.
+        Payment.objects.filter(
+            subscription=sub,
+            status=Payment.STATUS_PENDING,
+            billing_period_start__gte=sub.next_billing_date,
+        ).update(amount=new_amount)
+
+        onboarded += 1
+
+    if onboarded:
+        logger.info('_onboard_due_phases: %s phase(s) onboarded', onboarded)
+    return onboarded

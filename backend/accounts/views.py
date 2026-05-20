@@ -2935,38 +2935,56 @@ def _extract_proposal_financial_data(proposal):
     return payment_milestones, hosting_tiers
 
 
-def _create_subscription_from_proposal(project, proposal, plan, start_date):
-    """Create a HostingSubscription from a BusinessProposal's hosting pricing."""
+def _create_subscription_multi_phase(project, plan):
+    """
+    Create a HostingSubscription billing the sum of the project's started
+    phases at the given plan. A phase counts as started when its
+    hosting_start_date is unset or already reached; future-dated phases are
+    left for the billing cron to onboard (prorated) when their date arrives.
+    Returns None when no phase has started yet.
+    """
+    from datetime import date
     from decimal import Decimal
 
-    hosting_annual = proposal.total_investment * Decimal(proposal.hosting_percent) / Decimal(100)
-    base_monthly = round(hosting_annual / Decimal(12), 2)
-
-    discount_map = {
-        HostingSubscription.PLAN_MONTHLY: 0,
-        HostingSubscription.PLAN_QUARTERLY: proposal.hosting_discount_quarterly,
-        HostingSubscription.PLAN_SEMIANNUAL: proposal.hosting_discount_semiannual,
-    }
-    discount = discount_map.get(plan, 0)
-
     from dateutil.relativedelta import relativedelta
+
+    from accounts.services.hosting_billing import phase_monthly_base, project_billing_amount
+
+    today = date.today()
+    phases = list(project.phases.select_related('business_proposal').all())
+    started = [p for p in phases if p.hosting_start_date is None or p.hosting_start_date <= today]
+    if not started:
+        return None
+
+    start_dates = [p.hosting_start_date for p in started if p.hosting_start_date]
+    start_date = min(start_dates) if start_dates else today
+
+    for p in started:
+        p.hosting_activated_at = p.hosting_start_date or today
+        p.save(update_fields=['hosting_activated_at'])
 
     sub = HostingSubscription(
         project=project,
         plan=plan,
-        base_monthly_amount=base_monthly,
-        discount_percent=discount,
+        base_monthly_amount=Decimal('0'),
+        discount_percent=0,
+        effective_monthly_amount=Decimal('0'),
+        billing_amount=Decimal('0'),
+        status=HostingSubscription.STATUS_PENDING,
         start_date=start_date,
         next_billing_date=start_date,
-        status=HostingSubscription.STATUS_PENDING,
     )
-    sub.calculate_amounts()
     sub.save()
 
-    # Create the first payment record
     months = sub.billing_months
-    billing_end = start_date + relativedelta(months=months) - relativedelta(days=1)
+    sub.billing_amount = project_billing_amount(project, plan)
+    sub.effective_monthly_amount = round(sub.billing_amount / Decimal(months), 2)
+    sub.base_monthly_amount = sum((phase_monthly_base(p) for p in started), Decimal('0'))
+    sub.save(update_fields=[
+        'billing_amount', 'effective_monthly_amount', 'base_monthly_amount',
+    ])
 
+    billing_end = start_date + relativedelta(months=months) - relativedelta(days=1)
     Payment.objects.create(
         subscription=sub,
         amount=sub.billing_amount,
@@ -2976,8 +2994,6 @@ def _create_subscription_from_proposal(project, proposal, plan, start_date):
         due_date=start_date,
         status=Payment.STATUS_PENDING,
     )
-
-    # Update next_billing_date to the start of the NEXT cycle
     sub.next_billing_date = billing_end + relativedelta(days=1)
     sub.save(update_fields=['next_billing_date'])
 
@@ -3172,7 +3188,8 @@ def project_subscription_view(request, project_id):
            Returns 404 if no subscription exists yet.
     POST — Client (or admin) creates subscription by choosing a hosting plan.
            Required: { plan: 'monthly'|'quarterly'|'semiannual' }
-           Only works if no subscription exists yet and project has a linked proposal.
+           Only works if no subscription exists yet and the project has phases
+           with at least one already started.
     PATCH — Change hosting plan (admin or client) or status (admin only).
     """
     proj, err = _get_project_or_403(request, project_id)
@@ -3187,10 +3204,9 @@ def project_subscription_view(request, project_id):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        bp = proj.linked_business_proposal()
-        if not bp:
+        if not proj.phases.exists():
             return Response(
-                {'detail': 'El proyecto no tiene una propuesta vinculada para calcular el hosting.'},
+                {'detail': 'El proyecto no tiene fases para calcular el hosting.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -3201,9 +3217,12 @@ def project_subscription_view(request, project_id):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        from datetime import date
-        start_date = proj.hosting_start_date or date.today()
-        sub = _create_subscription_from_proposal(proj, bp, plan, start_date)
+        sub = _create_subscription_multi_phase(proj, plan)
+        if sub is None:
+            return Response(
+                {'detail': 'Ninguna fase tiene su hosting iniciado todavía.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         sub = HostingSubscription.objects.prefetch_related(_subscription_payment_prefetch()).get(pk=sub.pk)
         return Response(
             HostingSubscriptionSerializer(sub).data,
@@ -3255,10 +3274,14 @@ def project_subscription_view(request, project_id):
             unarchive_record(sub, extra_update_fields=('updated_at',))
 
     if 'plan' in data:
+        from decimal import Decimal
+
+        from accounts.services.hosting_billing import project_billing_amount
+
         sub.plan = data['plan']
-        discount = _get_plan_discount(proj, data['plan'])
-        sub.discount_percent = discount
-        sub.calculate_amounts()
+        sub.billing_amount = project_billing_amount(proj, data['plan'])
+        months = sub.billing_months
+        sub.effective_monthly_amount = round(sub.billing_amount / Decimal(months), 2)
     if 'status' in data:
         sub.status = data['status']
     sub.save()
@@ -3276,29 +3299,6 @@ def _subscription_payment_prefetch():
         'payments',
         queryset=Payment.objects.filter(is_archived=False).prefetch_related('history'),
     )
-
-
-def _get_plan_discount(project, plan):
-    """Get the discount % for a plan using Phase 1's proposal discounts (authoritative source).
-    Falls back to the legacy hosting_tiers snapshot, then to hardcoded defaults."""
-    bp = project.linked_business_proposal()
-    if bp:
-        discount_map = {
-            HostingSubscription.PLAN_MONTHLY: 0,
-            HostingSubscription.PLAN_QUARTERLY: bp.hosting_discount_quarterly,
-            HostingSubscription.PLAN_SEMIANNUAL: bp.hosting_discount_semiannual,
-        }
-        return discount_map.get(plan, 0)
-    # Fallback: legacy snapshot
-    for tier in (project.hosting_tiers or []):
-        if tier.get('frequency') == plan:
-            return tier.get('discount_percent', 0)
-    # Hardcoded last-resort
-    return {
-        HostingSubscription.PLAN_MONTHLY: 0,
-        HostingSubscription.PLAN_QUARTERLY: 10,
-        HostingSubscription.PLAN_SEMIANNUAL: 20,
-    }.get(plan, 0)
 
 
 @api_view(['GET'])

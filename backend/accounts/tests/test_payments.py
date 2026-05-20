@@ -244,7 +244,6 @@ class TestProjectSubscription:
         assert resp.status_code == 200
         data = resp.json()
         assert data['plan'] == 'semiannual'
-        assert data['discount_percent'] == 20
 
     def test_client_can_change_plan(
         self, api_client, client_headers, project, subscription,
@@ -785,7 +784,6 @@ class TestAutoRenewal:
         first = payments.first()
         assert first.status == Payment.STATUS_PENDING
         assert sub.plan == 'quarterly'
-        assert sub.discount_percent == 10
 
     def test_next_payment_generated_after_webhook_approval(
         self, api_client, project,
@@ -880,7 +878,6 @@ class TestClientCreateSubscription:
         assert sub_resp.status_code == 201
         data = sub_resp.json()
         assert data['plan'] == 'semiannual'
-        assert data['discount_percent'] == 20
 
     def test_duplicate_subscription_rejected(
         self, api_client, admin_headers, client_headers, client_user, proposal_with_sections,
@@ -893,11 +890,12 @@ class TestClientCreateSubscription:
 
         project_id = resp.json()['id']
 
-        api_client.post(
+        first = api_client.post(
             f'/api/accounts/projects/{project_id}/subscription/',
             {'plan': 'monthly'},
             format='json', **client_headers,
         )
+        assert first.status_code == 201
 
         second = api_client.post(
             f'/api/accounts/projects/{project_id}/subscription/',
