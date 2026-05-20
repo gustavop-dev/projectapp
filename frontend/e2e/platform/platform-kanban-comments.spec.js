@@ -61,32 +61,32 @@ const mockRequirementNoComments = {
 
 const mockRequirements = [mockRequirementWithComments, mockRequirementNoComments];
 
+const mockPhases = [
+  { id: 1, order: 1, proposal: { title: 'Fase inicial' } },
+];
+
 function setupCommentMocks(page, { user }) {
   return mockApi(page, async ({ apiPath, method }) => {
     if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(user);
     if (apiPath === 'accounts/projects/1/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProject) };
     }
-    if (apiPath === 'accounts/projects/1/deliverables/' && method === 'GET') {
-      return {
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([{ id: 1, title: 'Main', has_business_proposal: true }]),
-      };
+    if (apiPath === 'accounts/projects/1/phases/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockPhases) };
     }
-    if (apiPath === 'accounts/projects/1/deliverables/1/requirements/' && method === 'GET') {
+    if (apiPath === 'accounts/projects/1/requirements/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockRequirements) };
     }
     if (apiPath === 'accounts/projects/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProject]) };
     }
-    if (apiPath.match(/accounts\/projects\/1\/deliverables\/1\/requirements\/101\/$/) && method === 'GET') {
+    if (apiPath.match(/accounts\/projects\/1\/requirements\/101\/$/) && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockRequirementWithComments) };
     }
-    if (apiPath.match(/accounts\/projects\/1\/deliverables\/1\/requirements\/102\/$/) && method === 'GET') {
+    if (apiPath.match(/accounts\/projects\/1\/requirements\/102\/$/) && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockRequirementNoComments) };
     }
-    if (apiPath.match(/accounts\/projects\/1\/deliverables\/1\/requirements\/\d+\/comments\/$/) && method === 'POST') {
+    if (apiPath.match(/accounts\/projects\/1\/requirements\/\d+\/comments\/$/) && method === 'POST') {
       return {
         status: 201,
         contentType: 'application/json',
@@ -116,10 +116,10 @@ test.describe('Platform Kanban Card Comments — Admin', () => {
   }, async ({ page }) => {
     await setupCommentMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await page.getByText('Diseño de landing page').click();
+    await page.getByRole('heading', { name: 'Diseño de landing page' }).click();
     await expect(page.getByText('Revisando avances del diseño.')).toBeVisible({ timeout: 10000 });
-    // 'Admin E2E' appears in sidebar + comment authors; verify at least one comment author visible
     await expect(page.getByText('Admin E2E').first()).toBeVisible();
     await expect(page.getByText('Comentarios (2)')).toBeVisible();
   });
@@ -129,8 +129,9 @@ test.describe('Platform Kanban Card Comments — Admin', () => {
   }, async ({ page }) => {
     await setupCommentMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await page.getByText('Diseño de landing page').click();
+    await page.getByRole('heading', { name: 'Diseño de landing page' }).click();
     // 'Interno' matches badge + checkbox label; use exact match for the badge
     await expect(page.getByText('Interno', { exact: true })).toBeVisible({ timeout: 10000 });
   });
@@ -140,12 +141,15 @@ test.describe('Platform Kanban Card Comments — Admin', () => {
   }, async ({ page }) => {
     await setupCommentMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await page.getByText('Diseño de landing page').click();
-    await expect(page.getByPlaceholder('Escribe un comentario...')).toBeVisible({ timeout: 10000 });
+    await page.getByRole('heading', { name: 'Diseño de landing page' }).click();
+    const commentInput = page.getByPlaceholder('Escribe un comentario...');
+    await expect(commentInput).toBeVisible({ timeout: 10000 });
 
-    await page.getByPlaceholder('Escribe un comentario...').fill('New test comment');
+    await commentInput.fill('New test comment');
     await page.getByRole('button', { name: /enviar/i }).click();
+    await expect(commentInput).toHaveValue('');
   });
 
   test('admin sees internal comment checkbox', {
@@ -153,8 +157,9 @@ test.describe('Platform Kanban Card Comments — Admin', () => {
   }, async ({ page }) => {
     await setupCommentMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await page.getByText('Diseño de landing page').click();
+    await page.getByRole('heading', { name: 'Diseño de landing page' }).click();
     await expect(page.getByText(/comentario interno/i)).toBeVisible({ timeout: 10000 });
   });
 });
@@ -169,8 +174,9 @@ test.describe('Platform Kanban Card Comments — Client', () => {
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupCommentMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await page.getByText('Diseño de landing page').click();
+    await page.getByRole('heading', { name: 'Diseño de landing page' }).click();
     await expect(page.getByPlaceholder('Escribe un comentario...')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/comentario interno/i)).not.toBeVisible();
   });

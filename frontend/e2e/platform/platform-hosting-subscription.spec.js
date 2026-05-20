@@ -58,6 +58,20 @@ const mockSubscription = {
   created_at: pastDate(30) + 'T10:00:00Z', updated_at: pastDate(30) + 'T10:00:00Z',
 };
 
+// The hosting payments page builds its plan breakdown from project phases
+// (GET projects/:id/phases/). Each phase carries its own hosting_tiers.
+const mockPhases = [
+  {
+    id: 11, order: 1, hosting_start_date: pastDate(60), hosting_activated_at: pastDate(30) + 'T10:00:00Z',
+    proposal: { id: 1, title: 'Fase 1 — Sitio base' },
+    hosting_tiers: [
+      { frequency: 'semiannual', months: 6, label: 'Semestral', discount_percent: 20, monthly_equivalent: 200000, billing_amount: 1200000 },
+      { frequency: 'quarterly', months: 3, label: 'Trimestral', discount_percent: 10, monthly_equivalent: 225000, billing_amount: 675000 },
+      { frequency: 'monthly', months: 1, label: 'Mensual', discount_percent: 0, monthly_equivalent: 250000, billing_amount: 250000 },
+    ],
+  },
+];
+
 const meResponse = (user) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(user) });
 
 function setupMocksNoSubscription(page, { user }) {
@@ -68,6 +82,9 @@ function setupMocksNoSubscription(page, { user }) {
     }
     if (apiPath === 'accounts/projects/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProject]) };
+    }
+    if (apiPath === 'accounts/projects/1/phases/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockPhases) };
     }
     if (apiPath === 'accounts/projects/1/subscription/' && method === 'GET') {
       return { status: 404, contentType: 'application/json', body: JSON.stringify({ detail: 'No hay suscripción.' }) };
@@ -90,6 +107,9 @@ function setupMocksWithSubscription(page, { user }) {
     }
     if (apiPath === 'accounts/projects/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([{ ...mockProject, has_subscription: true }]) };
+    }
+    if (apiPath === 'accounts/projects/1/phases/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockPhases) };
     }
     if (apiPath === 'accounts/projects/1/subscription/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockSubscription) };
@@ -125,18 +145,17 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
     await setPlatformAuth(page, { user: mockPlatformClient });
   });
 
-  test('client sees hosting tier cards when no subscription exists', {
+  test('client sees hosting plan selection when no subscription exists', {
     tag: [...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocksNoSubscription(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /suscripción/i }).waitFor({ state: 'visible', timeout: 30000 });
+    await page.getByRole('heading', { name: /hosting/i }).first().waitFor({ state: 'visible', timeout: 30000 });
 
-    await expect(page.getByText('Elige tu plan de hosting')).toBeVisible();
-    await expect(page.getByText('Semestral')).toBeVisible();
-    await expect(page.getByText('Trimestral')).toBeVisible();
-    await expect(page.getByText('Mensual')).toBeVisible();
-    await expect(page.getByText('Mejor precio')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Activa tu plan de hosting' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Semestral' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Trimestral' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mensual' })).toBeVisible();
   });
 
   test('client can select a plan and activate subscription', {
@@ -144,23 +163,24 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
   }, async ({ page }) => {
     await setupMocksNoSubscription(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /suscripción/i }).waitFor({ state: 'visible', timeout: 30000 });
+    await page.getByRole('heading', { name: 'Activa tu plan de hosting' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await page.getByText('Trimestral').click();
+    await page.getByRole('button', { name: 'Trimestral' }).click();
     const activateBtn = page.getByRole('button', { name: /activar plan/i });
     await expect(activateBtn).toBeEnabled();
     await activateBtn.click();
   });
 
-  test('active subscription shows Netflix-style up-to-date card', {
+  test('active subscription shows auto-renewal up-to-date card', {
     tag: [...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocksWithSubscription(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /suscripción/i }).waitFor({ state: 'visible', timeout: 30000 });
+    await page.getByRole('heading', { name: /hosting/i }).first().waitFor({ state: 'visible', timeout: 30000 });
 
-    await expect(page.getByText(/suscripción activa/i)).toBeVisible();
-    await expect(page.getByText(/renueva automáticamente/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /hosting trimestral/i })).toBeVisible();
+    await expect(page.getByText('Activa', { exact: true })).toBeVisible();
+    await expect(page.getByText(/se renueva y cobra automáticamente/i)).toBeVisible();
   });
 });
 
@@ -173,10 +193,10 @@ test.describe('Platform Hosting Subscription — Admin view', () => {
     await setPlatformAuth(page, { user: mockPlatformAdmin });
     await setupMocksNoSubscription(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /suscripción/i }).waitFor({ state: 'visible', timeout: 30000 });
+    await page.getByRole('heading', { name: /hosting/i }).first().waitFor({ state: 'visible', timeout: 30000 });
 
-    await expect(page.getByText(/no ha activado/i)).toBeVisible();
-    await expect(page.getByText('Elige tu plan')).not.toBeVisible();
+    await expect(page.getByText(/no ha activado su plan de hosting/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /activar plan/i })).not.toBeVisible();
   });
 
   test('admin sees subscription status when active', {
@@ -185,9 +205,10 @@ test.describe('Platform Hosting Subscription — Admin view', () => {
     await setPlatformAuth(page, { user: mockPlatformAdmin });
     await setupMocksWithSubscription(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /suscripción/i }).waitFor({ state: 'visible', timeout: 30000 });
+    await page.getByRole('heading', { name: /hosting/i }).first().waitFor({ state: 'visible', timeout: 30000 });
 
-    await expect(page.getByText(/suscripción activa/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /hosting trimestral/i })).toBeVisible();
+    await expect(page.getByText('Activa', { exact: true })).toBeVisible();
   });
 });
 

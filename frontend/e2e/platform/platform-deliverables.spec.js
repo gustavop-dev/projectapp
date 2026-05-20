@@ -99,20 +99,20 @@ test.describe('Platform Deliverables — Client', () => {
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/deliverables', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /entregables/i }).waitFor({ state: 'visible', timeout: 30000 });
+    await page.getByRole('heading', { name: /recursos/i }).waitFor({ state: 'visible', timeout: 30000 });
 
     await expect(page.getByText('Wireframes página principal')).toBeVisible();
     await expect(page.getByText('Credenciales Wompi Sandbox')).toBeVisible();
   });
 
-  test('client cannot see upload button', {
+  test('client can upload a resource', {
     tag: [...PLATFORM_DELIVERABLES, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/deliverables', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /entregables/i }).waitFor({ state: 'visible', timeout: 30000 });
+    await page.getByRole('heading', { name: /recursos/i }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await expect(page.getByRole('button', { name: /subir|upload/i })).not.toBeVisible();
+    await expect(page.getByRole('button', { name: /subir recurso/i })).toBeVisible();
   });
 });
 
@@ -125,30 +125,27 @@ test.describe('Platform Deliverables — Admin', () => {
     await setPlatformAuth(page, { user: mockPlatformAdmin });
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/deliverables', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /entregables/i }).waitFor({ state: 'visible', timeout: 30000 });
+    await page.getByRole('heading', { name: /recursos/i }).waitFor({ state: 'visible', timeout: 30000 });
 
     await expect(page.getByText('Wireframes página principal')).toBeVisible();
-    await expect(page.getByRole('button', { name: /subir/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /subir recurso/i })).toBeVisible();
   });
 });
 
+// The standalone deliverable detail page was removed in the platform IA
+// refactor — deliverable detail now opens as a modal inside the project
+// deliverables list, and the /deliverables/:id route redirects to the list.
 test.describe('Platform Deliverable detail', () => {
   test.setTimeout(60_000);
 
-  test('renders detail with proposal PDF actions and downloads commercial PDF', {
+  test('visiting a deliverable detail URL redirects to the project resources list', {
     tag: [...PLATFORM_DELIVERABLE_DETAIL, '@role:platform-client'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/deliverables/1', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: 'Wireframes página principal' })).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByRole('button', { name: /pdf comercial/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /abrir tablero/i })).toBeVisible();
-    const pdfWait = page.waitForResponse(
-      (res) => res.url().includes('deliverables/1/pdf/commercial/') && res.status() === 200,
-    );
-    await page.getByRole('button', { name: /pdf comercial/i }).click();
-    await pdfWait;
+    await page.waitForURL('**/platform/projects/1/deliverables', { timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: /recursos/i })).toBeVisible({ timeout: 30_000 });
   });
 });
 
