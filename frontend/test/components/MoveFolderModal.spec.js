@@ -11,6 +11,7 @@ const mockDocumentStore = {
 
 const mockFolderStore = {
   folders: [],
+  childrenOf: (id) => mockFolderStore.folders.filter((f) => f.parent === id),
 };
 
 // Nuxt auto-imports — must be set before the component is required
@@ -26,7 +27,7 @@ async function flushPromises() {
 }
 
 const baseDocument = { id: 10, title: 'Especificaciones técnicas', folder_id: null };
-const baseFolder = { id: 3, name: 'Propuestas', document_count: 5 };
+const baseFolder = { id: 3, name: 'Propuestas', parent: null, document_count: 5 };
 
 function mountModal(props = {}) {
   return mount(MoveFolderModal, {

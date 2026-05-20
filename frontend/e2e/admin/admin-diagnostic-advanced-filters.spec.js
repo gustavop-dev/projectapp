@@ -59,17 +59,25 @@ function setupMock(page) {
     if (apiPath === 'diagnostics/') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDiagnostics) };
     }
-    // Saved filter tabs migraron de localStorage al backend.
-    if (apiPath === 'accounts/saved-filter-tabs/' && method === 'GET') {
+    // Pestañas de filtros guardados (persistidas en DB desde el PR #47).
+    if (apiPath === 'accounts/saved-filter-tabs/') {
+      if (method === 'POST') {
+        const payload = route.request().postDataJSON() || {};
+        return {
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            id: 501,
+            view: payload.view || 'diagnostic',
+            name: payload.name,
+            filters: payload.filters || {},
+            order: 0,
+            created_at: '2026-03-20T10:00:00Z',
+            updated_at: '2026-03-20T10:00:00Z',
+          }),
+        };
+      }
       return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
-    }
-    if (apiPath === 'accounts/saved-filter-tabs/' && method === 'POST') {
-      const payload = route.request().postDataJSON();
-      return {
-        status: 201,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 1, view: payload.view, name: payload.name, filters: payload.filters }),
-      };
     }
     return null;
   });

@@ -41,10 +41,11 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 items-stretch flex-1">
       <FolderSidebar
-        :folders="folderStore.folders"
+        :folders="folderStore.rootFolders"
         :active-id="documentStore.activeFolderId"
         :total-count="documentStore.documents.length + otherFoldersCount"
         :is-dragging="!!draggingDoc"
+        :dragging-folder-id="draggingFolder?.id ?? null"
         @select="handleSelectFolder"
         @create="openFolderManager"
         @manage="openFolderManager"
@@ -52,6 +53,14 @@
       />
 
       <section class="min-w-0 flex flex-col">
+        <FolderBreadcrumb
+          v-if="documentStore.activeFolderId !== 'all'"
+          :active-id="documentStore.activeFolderId"
+          :dragging-folder-id="draggingFolder?.id ?? null"
+          @select="handleSelectFolder"
+          @nest="handleNestFolder"
+        />
+
         <!-- Tag filter chips -->
         <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-3 mb-4  " data-testid="doc-tag-filters">
           <TagFilterChips
@@ -68,7 +77,7 @@
           Cargando...
         </div>
 
-        <div v-else-if="filteredDocuments.length === 0" class="text-center py-16 dark:text-text-subtle">
+        <div v-else-if="!hasContent" class="text-center py-16 dark:text-text-subtle">
           <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-raised  flex items-center justify-center">
             <svg v-if="searchQuery" class="w-8 h-8 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -102,7 +111,7 @@
         </div>
 
         <!-- Desktop table -->
-        <div v-if="!documentStore.isLoading && filteredDocuments.length > 0" class="hidden sm:block bg-surface rounded-xl shadow-sm border border-border-muted overflow-x-auto  ">
+        <div v-if="!documentStore.isLoading && hasContent" class="hidden sm:block bg-surface rounded-xl shadow-sm border border-border-muted overflow-x-auto  ">
           <table class="w-full">
             <thead>
               <tr class="border-b border-border-muted text-left">
@@ -114,6 +123,37 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
+              <!-- Filas de subcarpeta — fijas arriba, fuera de la paginación -->
+              <tr
+                v-for="sub in currentSubfolders"
+                :key="`folder-${sub.id}`"
+                class="transition-colors cursor-pointer select-none hover:bg-surface-muted dark:hover:bg-gray-700/50"
+                :class="{ 'ring-2 ring-inset ring-emerald-400': dragOverFolderId === sub.id }"
+                draggable="true"
+                @click="handleSelectFolder(sub.id)"
+                @dragstart="handleFolderDragStart($event, sub)"
+                @dragend="handleFolderDragEnd"
+                @dragover="onFolderRowDragOver($event, sub.id)"
+                @dragleave="dragOverFolderId = null"
+                @drop.prevent="handleDropOnFolder(sub.id)"
+              >
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-amber-500 dark:text-amber-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                    </svg>
+                    <span class="text-sm font-medium text-text-default truncate">{{ sub.name }}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 text-sm text-text-subtle" colspan="3">
+                  {{ folderRowSummary(sub) }}
+                </td>
+                <td class="px-6 py-4">
+                  <svg class="w-4 h-4 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </td>
+              </tr>
               <tr
                 v-for="doc in pagedDocuments"
                 :key="doc.id"
@@ -269,7 +309,25 @@
         </div>
 
         <!-- Mobile cards -->
-        <div v-if="!documentStore.isLoading && filteredDocuments.length > 0" class="sm:hidden space-y-3">
+        <div v-if="!documentStore.isLoading && hasContent" class="sm:hidden space-y-3">
+          <!-- Tarjetas de subcarpeta -->
+          <div
+            v-for="sub in currentSubfolders"
+            :key="`mobile-folder-${sub.id}`"
+            class="bg-surface rounded-xl shadow-sm border border-border-muted p-4 flex items-center gap-3"
+            @click="handleSelectFolder(sub.id)"
+          >
+            <svg class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+            </svg>
+            <div class="flex-1 min-w-0">
+              <h3 class="text-sm font-medium text-text-default truncate">{{ sub.name }}</h3>
+              <p class="text-xs text-text-subtle mt-0.5">{{ folderRowSummary(sub) }}</p>
+            </div>
+            <svg class="w-4 h-4 text-text-subtle flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
           <div
             v-for="doc in pagedDocuments"
             :key="`mobile-${doc.id}`"
@@ -382,6 +440,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import FolderSidebar from '~/components/panel/documents/FolderSidebar.vue';
+import FolderBreadcrumb from '~/components/panel/documents/FolderBreadcrumb.vue';
 import TagFilterChips from '~/components/panel/documents/TagFilterChips.vue';
 import FolderManagerModal from '~/components/panel/documents/FolderManagerModal.vue';
 import TagManagerModal from '~/components/panel/documents/TagManagerModal.vue';
@@ -414,6 +473,19 @@ const filteredDocuments = computed(() => {
   );
 });
 
+// Subcarpetas de la carpeta activa — solo cuando se navega dentro de una
+// carpeta concreta y no hay búsqueda activa (la búsqueda aplica a documentos).
+const currentSubfolders = computed(() => {
+  const id = documentStore.activeFolderId;
+  if (typeof id !== 'number') return [];
+  if (searchQuery.value.trim()) return [];
+  return folderStore.childrenOf(id);
+});
+
+const hasContent = computed(
+  () => filteredDocuments.value.length > 0 || currentSubfolders.value.length > 0,
+);
+
 const {
   currentPage: docPage,
   totalPages: docTotalPages,
@@ -439,6 +511,8 @@ const renamingDoc = ref(null);
 const emailingDoc = ref(null);
 const actionDoc = ref(null);
 const draggingDoc = ref(null);
+const draggingFolder = ref(null);
+const dragOverFolderId = ref(null);
 const showMoveModal = computed({
   get: () => !!movingDoc.value,
   set: (v) => { if (!v) movingDoc.value = null; },
@@ -538,13 +612,73 @@ function handleDragEnd() {
   draggingDoc.value = null;
 }
 
+function handleFolderDragStart(event, folder) {
+  draggingFolder.value = folder;
+  event.dataTransfer.effectAllowed = 'move';
+}
+
+function handleFolderDragEnd() {
+  draggingFolder.value = null;
+  dragOverFolderId.value = null;
+}
+
+// ¿La carpeta en arrastre puede soltarse sobre este destino sin crear un ciclo?
+function canDropFolderOn(destId) {
+  const folder = draggingFolder.value;
+  if (!folder) return false;
+  if (destId === folder.id) return false;
+  if (destId != null && folderStore.descendantIdsOf(folder.id).has(destId)) return false;
+  return true;
+}
+
+function onFolderRowDragOver(event, folderId) {
+  if (draggingDoc.value || canDropFolderOn(folderId)) {
+    event.preventDefault();
+    dragOverFolderId.value = folderId;
+  }
+}
+
+// Reasigna el padre de una carpeta (drag-to-nest). destId null = carpeta raíz.
+async function reparentFolder(folder, destId) {
+  if (!folder) return;
+  if (destId === folder.id) return;
+  if (destId != null && folderStore.descendantIdsOf(folder.id).has(destId)) return;
+  if ((folder.parent ?? null) === (destId ?? null)) return;
+  const result = await folderStore.updateFolder(folder.id, { parent: destId });
+  if (result.success) {
+    await Promise.all([documentStore.fetchDocuments(), folderStore.fetchFolders()]);
+  }
+}
+
+function handleNestFolder({ destId, draggedFolderId }) {
+  draggingFolder.value = null;
+  dragOverFolderId.value = null;
+  return reparentFolder(folderStore.folderById(draggedFolderId), destId);
+}
+
 async function handleDropOnFolder(folderId) {
+  dragOverFolderId.value = null;
+  const folder = draggingFolder.value;
+  if (folder) {
+    draggingFolder.value = null;
+    await reparentFolder(folder, folderId);
+    return;
+  }
   if (!draggingDoc.value) return;
   const doc = draggingDoc.value;
   draggingDoc.value = null;
   if (doc.folder_id === folderId) return;
   await documentStore.updateDocument(doc.id, { folder_id: folderId });
   await Promise.all([documentStore.fetchDocuments(), folderStore.fetchFolders()]);
+}
+
+function folderRowSummary(folder) {
+  const parts = [];
+  const docs = folder.document_count || 0;
+  const subs = folder.children_count || 0;
+  if (docs) parts.push(`${docs} documento${docs !== 1 ? 's' : ''}`);
+  if (subs) parts.push(`${subs} subcarpeta${subs !== 1 ? 's' : ''}`);
+  return parts.length ? parts.join(' · ') : 'Vacía';
 }
 
 function statusBadgeClass(status) {

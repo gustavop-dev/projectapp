@@ -141,3 +141,81 @@ class TestListDocumentsFolderFilter:
         response = admin_client.get(url, {'folder': 'abc'})
 
         assert response.status_code == 400
+
+
+class TestFolderHierarchy:
+    def test_creates_folder_with_parent(self, admin_client, folder):
+        url = reverse('create-document-folder')
+        response = admin_client.post(
+            url, {'name': 'Sub', 'parent': folder.id}, format='json',
+        )
+
+        assert response.status_code == 201
+        assert response.json()['parent'] == folder.id
+
+    def test_updates_parent(self, admin_client, folder):
+        child = DocumentFolder.objects.create(name='Sub')
+
+        url = reverse('update-document-folder', kwargs={'folder_id': child.id})
+        response = admin_client.patch(url, {'parent': folder.id}, format='json')
+
+        assert response.status_code == 200
+        child.refresh_from_db()
+        assert child.parent_id == folder.id
+
+    def test_rejects_self_as_parent(self, admin_client, folder):
+        url = reverse('update-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.patch(url, {'parent': folder.id}, format='json')
+
+        assert response.status_code == 400
+        assert 'parent' in response.json()
+
+    def test_rejects_descendant_as_parent(self, admin_client, folder):
+        # folder -> child -> grandchild; mover folder bajo grandchild = ciclo.
+        child = DocumentFolder.objects.create(name='Child', parent=folder)
+        grandchild = DocumentFolder.objects.create(name='Grandchild', parent=child)
+
+        url = reverse('update-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.patch(
+            url, {'parent': grandchild.id}, format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'parent' in response.json()
+
+    def test_blocks_deletion_when_folder_has_children(self, admin_client, folder):
+        DocumentFolder.objects.create(name='Sub', parent=folder)
+
+        url = reverse('delete-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.delete(url)
+
+        assert response.status_code == 409
+        assert response.json()['children_count'] == 1
+        assert DocumentFolder.objects.filter(pk=folder.id).exists()
+
+    def test_allows_deletion_of_empty_leaf_folder(self, admin_client, folder):
+        child = DocumentFolder.objects.create(name='Sub', parent=folder)
+
+        url = reverse('delete-document-folder', kwargs={'folder_id': child.id})
+        response = admin_client.delete(url)
+
+        assert response.status_code == 204
+        assert not DocumentFolder.objects.filter(pk=child.id).exists()
+
+    def test_list_includes_parent_and_children_count_without_multiplying(
+        self, admin_client, folder,
+    ):
+        DocumentFolder.objects.create(name='Sub A', parent=folder)
+        DocumentFolder.objects.create(name='Sub B', parent=folder)
+        Document.objects.create(title='Doc 1', folder=folder)
+        Document.objects.create(title='Doc 2', folder=folder)
+
+        url = reverse('list-document-folders')
+        response = admin_client.get(url)
+
+        assert response.status_code == 200
+        entry = next(f for f in response.json() if f['id'] == folder.id)
+        assert entry['parent'] is None
+        # Sin distinct=True el JOIN cruzado daría 4 en ambos campos.
+        assert entry['document_count'] == 2
+        assert entry['children_count'] == 2
