@@ -14,6 +14,30 @@ DEFAULT_LOCALE = 'en-us'
 # instead of returning 404 when no pre-rendered file exists.
 SPA_ROUTE_PREFIXES = ('panel', 'proposal')
 
+VALID_LOCALES = ('en-us', 'es-co')
+
+# Códigos ISO-3166 alpha-2 de países hispanohablantes → locale es-co.
+SPANISH_COUNTRIES = frozenset({
+    'CO', 'MX', 'AR', 'PE', 'CL', 'EC', 'VE', 'BO', 'PY', 'UY',
+    'CR', 'PA', 'DO', 'GT', 'HN', 'NI', 'SV', 'CU', 'PR', 'ES', 'GQ',
+})
+
+
+def _resolve_locale(request):
+    """Elige el locale para el redirect de la raíz.
+
+    Prioriza la elección manual guardada en la cookie `preferred_locale`; si no
+    hay, decide por el país del visitante (header `X-Country` que nginx inyecta
+    desde geoip2). País hispanohablante → es-co; cualquier otro → en-us.
+    """
+    preferred = request.COOKIES.get('preferred_locale')
+    if preferred in VALID_LOCALES:
+        return preferred
+    country = (request.headers.get('X-Country') or '').strip().upper()
+    if country in SPANISH_COUNTRIES:
+        return 'es-co'
+    return DEFAULT_LOCALE
+
 
 def serve_nuxt(request, path=''):
     """
@@ -27,9 +51,11 @@ def serve_nuxt(request, path=''):
     """
     clean_path = path.strip('/')
 
-    # Redirect bare root to default locale
+    # Redirect bare root to the locale that fits the visitor (país / cookie).
     if not clean_path:
-        return HttpResponseRedirect(f'/{DEFAULT_LOCALE}/')
+        response = HttpResponseRedirect(f'/{_resolve_locale(request)}/')
+        response['Cache-Control'] = 'no-store'
+        return response
 
     # Security: prevent path traversal
     resolved = os.path.realpath(os.path.join(FRONTEND_DIR, clean_path))

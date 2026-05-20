@@ -200,6 +200,37 @@ class TestServeNuxtRootRedirect:
         finally:
             views_mod.FRONTEND_DIR = original
 
+    def test_root_redirects_to_es_co_for_spanish_country(self, rf):
+        request = rf.get('/', HTTP_X_COUNTRY='CO')
+        response = serve_nuxt(request, path='')
+        assert response.status_code == 302
+        assert response['Location'] == '/es-co/'
+
+    def test_root_redirects_to_en_us_for_non_spanish_country(self, rf):
+        request = rf.get('/', HTTP_X_COUNTRY='US')
+        response = serve_nuxt(request, path='')
+        assert response.status_code == 302
+        assert response['Location'] == '/en-us/'
+
+    def test_root_redirect_is_not_cached(self, rf):
+        request = rf.get('/', HTTP_X_COUNTRY='CO')
+        response = serve_nuxt(request, path='')
+        assert response['Cache-Control'] == 'no-store'
+
+    def test_preferred_locale_cookie_overrides_country(self, rf):
+        request = rf.get('/', HTTP_X_COUNTRY='CO')
+        request.COOKIES['preferred_locale'] = 'en-us'
+        response = serve_nuxt(request, path='')
+        assert response.status_code == 302
+        assert response['Location'] == '/en-us/'
+
+    def test_invalid_cookie_falls_back_to_country(self, rf):
+        request = rf.get('/', HTTP_X_COUNTRY='CO')
+        request.COOKIES['preferred_locale'] = 'fr-fr'
+        response = serve_nuxt(request, path='')
+        assert response.status_code == 302
+        assert response['Location'] == '/es-co/'
+
 
 class TestServeNuxtPathSecurity:
     def test_path_traversal_raises_404(self, rf, frontend_dir):

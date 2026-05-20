@@ -1459,7 +1459,17 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Organize admin documents with folders and tags: sidebar folder navigation, tag filter chips, and folder/tag management modals.",
+      "description": "Organize admin documents with folders and tags: root-folder sidebar navigation, tag filter chips, and folder/tag management modals.",
+      "expectedSpecs": 1
+    },
+    "admin-document-folder-hierarchy": {
+      "name": "Admin Document Folder Hierarchy",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Navigate nested document folders: root-only sidebar, subfolder rows inside the table, breadcrumb navigation above the table, and drag-to-nest re-parenting of folders.",
       "expectedSpecs": 1
     },
     "admin-admin-management": {

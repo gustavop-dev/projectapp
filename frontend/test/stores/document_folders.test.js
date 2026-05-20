@@ -109,4 +109,49 @@ describe('useDocumentFolderStore', () => {
     })
     expect(store.folders).toEqual([{ id: 1, name: 'A' }, { id: 2, name: 'B' }])
   })
+
+  describe('hierarchy getters', () => {
+    // Árbol: 1 (raíz) -> 2 -> 4 ; 1 -> 3 ; 5 (raíz)
+    beforeEach(() => {
+      store.folders = [
+        { id: 1, name: 'Root A', parent: null },
+        { id: 2, name: 'Child', parent: 1 },
+        { id: 3, name: 'Child 2', parent: 1 },
+        { id: 4, name: 'Grandchild', parent: 2 },
+        { id: 5, name: 'Root B', parent: null },
+      ]
+    })
+
+    it('rootFolders returns only folders without a parent', () => {
+      expect(store.rootFolders.map((f) => f.id)).toEqual([1, 5])
+    })
+
+    it('folderById finds a folder or returns null', () => {
+      expect(store.folderById(4).name).toBe('Grandchild')
+      expect(store.folderById(999)).toBeNull()
+    })
+
+    it('childrenOf returns direct children only', () => {
+      expect(store.childrenOf(1).map((f) => f.id)).toEqual([2, 3])
+      expect(store.childrenOf(4)).toEqual([])
+    })
+
+    it('ancestorsOf returns the chain from root to the folder', () => {
+      expect(store.ancestorsOf(4).map((f) => f.id)).toEqual([1, 2, 4])
+      expect(store.ancestorsOf(1).map((f) => f.id)).toEqual([1])
+    })
+
+    it('ancestorsOf does not loop forever on cyclic data', () => {
+      store.folders = [
+        { id: 10, name: 'X', parent: 11 },
+        { id: 11, name: 'Y', parent: 10 },
+      ]
+      expect(store.ancestorsOf(10).length).toBeLessThanOrEqual(2)
+    })
+
+    it('descendantIdsOf collects all nested subfolder ids', () => {
+      expect([...store.descendantIdsOf(1)].sort()).toEqual([2, 3, 4])
+      expect([...store.descendantIdsOf(4)]).toEqual([])
+    })
+  })
 })

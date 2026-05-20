@@ -14,6 +14,26 @@ const mockFolderStore = {
   updateFolder: jest.fn(),
   deleteFolder: jest.fn(),
   reorderFolders: jest.fn(),
+  // Getters de jerarquía, espejo de los del store real document_folders.js.
+  get rootFolders() {
+    return mockFolderStore.folders.filter((f) => f.parent == null);
+  },
+  childrenOf: (id) => mockFolderStore.folders.filter((f) => f.parent === id),
+  descendantIdsOf: (id) => {
+    const result = new Set();
+    const pending = mockFolderStore.folders
+      .filter((f) => f.parent === id)
+      .map((f) => f.id);
+    while (pending.length) {
+      const current = pending.pop();
+      if (result.has(current)) continue;
+      result.add(current);
+      mockFolderStore.folders
+        .filter((f) => f.parent === current)
+        .forEach((f) => pending.push(f.id));
+    }
+    return result;
+  },
 };
 
 // Nuxt auto-import — must be set before the component is required
@@ -21,6 +41,7 @@ global.useDocumentFolderStore = jest.fn(() => mockFolderStore);
 
 import { mount } from '@vue/test-utils';
 import FolderManagerModal from '../../components/panel/documents/FolderManagerModal.vue';
+import FolderManagerTree from '../../components/panel/documents/FolderManagerTree.vue';
 
 async function flushPromises() {
   await Promise.resolve();
@@ -34,8 +55,8 @@ const DraggableStub = {
   template: '<div data-testid="folder-draggable"><slot name="item" v-for="(el, i) in modelValue" :key="i" :element="el" /></div>',
 };
 
-const baseFolder = { id: 1, name: 'Design', document_count: 3 };
-const emptyFolder = { id: 9, name: 'Empty', document_count: 0 };
+const baseFolder = { id: 1, name: 'Design', parent: null, document_count: 3 };
+const emptyFolder = { id: 9, name: 'Empty', parent: null, document_count: 0 };
 
 function mountModal(props = {}) {
   return mount(FolderManagerModal, {
@@ -106,7 +127,7 @@ describe('FolderManagerModal', () => {
       await wrapper.find('form').trigger('submit');
       await flushPromises();
 
-      expect(mockFolderStore.createFolder).toHaveBeenCalledWith({ name: 'My Folder' });
+      expect(mockFolderStore.createFolder).toHaveBeenCalledWith({ name: 'My Folder', parent: null });
     });
 
     it('disables the Crear button when the input is empty', () => {
@@ -145,7 +166,7 @@ describe('FolderManagerModal', () => {
     it('shows the edit input when the rename button is clicked', async () => {
       mockFolderStore.folders = [baseFolder];
       const wrapper = mountModal();
-      await wrapper.find('[title="Renombrar"]').trigger('click');
+      await wrapper.find('[title="Editar carpeta"]').trigger('click');
 
       expect(wrapper.findAll('input[type="text"]').length).toBe(2);
     });
@@ -153,7 +174,7 @@ describe('FolderManagerModal', () => {
     it('hides the edit input when Cancelar is clicked during rename', async () => {
       mockFolderStore.folders = [baseFolder];
       const wrapper = mountModal();
-      await wrapper.find('[title="Renombrar"]').trigger('click');
+      await wrapper.find('[title="Editar carpeta"]').trigger('click');
       await wrapper.findAll('button').find((btn) => btn.text() === 'Cancelar').trigger('click');
 
       expect(wrapper.findAll('input[type="text"]').length).toBe(1);
@@ -162,18 +183,18 @@ describe('FolderManagerModal', () => {
     it('calls updateFolder with the new name when Guardar is clicked', async () => {
       mockFolderStore.folders = [baseFolder];
       const wrapper = mountModal();
-      await wrapper.find('[title="Renombrar"]').trigger('click');
+      await wrapper.find('[title="Editar carpeta"]').trigger('click');
       await wrapper.findAll('input[type="text"]').at(1).setValue('Renamed Folder');
       await wrapper.findAll('button').find((btn) => btn.text() === 'Guardar').trigger('click');
       await flushPromises();
 
-      expect(mockFolderStore.updateFolder).toHaveBeenCalledWith(1, { name: 'Renamed Folder' });
+      expect(mockFolderStore.updateFolder).toHaveBeenCalledWith(1, { name: 'Renamed Folder', parent: null });
     });
 
     it('cancels rename when Esc is pressed in the edit input', async () => {
       mockFolderStore.folders = [baseFolder];
       const wrapper = mountModal();
-      await wrapper.find('[title="Renombrar"]').trigger('click');
+      await wrapper.find('[title="Editar carpeta"]').trigger('click');
       await wrapper.findAll('input[type="text"]').at(1).trigger('keyup', { key: 'Escape' });
 
       expect(wrapper.findAll('input[type="text"]').length).toBe(1);
@@ -257,23 +278,23 @@ describe('FolderManagerModal', () => {
   // ── handleReorder ─────────────────────────────────────────────────────────
 
   describe('handleReorder', () => {
-    it('calls reorderFolders with the folder id order when a drag ends', async () => {
+    it('calls reorderFolders with the folder id order when the tree reorders', async () => {
       mockFolderStore.folders = [
-        { id: 1, name: 'A', document_count: 0 },
-        { id: 2, name: 'B', document_count: 0 },
+        { id: 1, name: 'A', parent: null, document_count: 0 },
+        { id: 2, name: 'B', parent: null, document_count: 0 },
       ];
       const wrapper = mountModal();
-      wrapper.findComponent(DraggableStub).vm.$emit('end');
+      wrapper.findComponent(FolderManagerTree).vm.$emit('reorder', { orderedIds: [1, 2] });
       await flushPromises();
 
       expect(mockFolderStore.reorderFolders).toHaveBeenCalledWith([1, 2]);
     });
 
     it('shows an error message when reorderFolders fails', async () => {
-      mockFolderStore.folders = [{ id: 1, name: 'A', document_count: 0 }];
+      mockFolderStore.folders = [{ id: 1, name: 'A', parent: null, document_count: 0 }];
       mockFolderStore.reorderFolders.mockResolvedValue({ success: false });
       const wrapper = mountModal();
-      wrapper.findComponent(DraggableStub).vm.$emit('end');
+      wrapper.findComponent(FolderManagerTree).vm.$emit('reorder', { orderedIds: [1] });
       await flushPromises();
 
       expect(wrapper.text()).toContain('Error al reordenar');

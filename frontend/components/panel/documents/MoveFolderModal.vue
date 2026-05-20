@@ -62,7 +62,7 @@
 
             <!-- Folder entries -->
             <button
-              v-for="folder in folderStore.folders"
+              v-for="folder in orderedFolders"
               :key="folder.id"
               type="button"
               :disabled="isMoving"
@@ -70,6 +70,7 @@
               :class="document.folder_id === folder.id
                 ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
                 : 'border-border-muted hover:border-border-default dark:hover:border-gray-600 hover:bg-surface-muted dark:hover:bg-gray-700/50'"
+              :style="{ paddingLeft: `${12 + folder.depth * 18}px` }"
               @click="moveToFolder(folder.id)"
             >
               <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0">
@@ -117,7 +118,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -129,6 +130,19 @@ const documentStore = useDocumentStore();
 const folderStore = useDocumentFolderStore();
 const isMoving = ref(false);
 const errorMsg = ref('');
+
+// Carpetas aplanadas en orden depth-first, con su nivel de profundidad.
+const orderedFolders = computed(() => {
+  const result = [];
+  const walk = (parentId, depth) => {
+    folderStore.childrenOf(parentId).forEach((f) => {
+      result.push({ ...f, depth });
+      walk(f.id, depth + 1);
+    });
+  };
+  walk(null, 0);
+  return result;
+});
 
 function close() {
   emit('update:modelValue', false);

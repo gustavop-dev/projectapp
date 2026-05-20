@@ -4,20 +4,27 @@ from content.models import DocumentFolder
 
 
 class DocumentFolderSerializer(serializers.ModelSerializer):
-    """Serializer for document folders (flat, inline-managed).
+    """Serializer para carpetas de documentos (jerárquicas).
 
-    `document_count` is read from a queryset annotation when provided by the
-    caller; otherwise it falls back to a per-folder COUNT query so single-object
-    responses (create/update) still include the field.
+    `document_count` y `children_count` se leen de annotations del queryset
+    cuando el caller las provee; de lo contrario caen a un COUNT por carpeta
+    para que las respuestas single-object (create/update) sigan incluyendo los
+    campos.
     """
 
     document_count = serializers.SerializerMethodField()
+    children_count = serializers.SerializerMethodField()
+    parent = serializers.PrimaryKeyRelatedField(
+        queryset=DocumentFolder.objects.all(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = DocumentFolder
         fields = (
-            'id', 'name', 'slug', 'order',
-            'document_count', 'created_at', 'updated_at',
+            'id', 'name', 'slug', 'parent', 'order',
+            'document_count', 'children_count', 'created_at', 'updated_at',
         )
         read_only_fields = ('slug', 'created_at', 'updated_at')
 
@@ -26,3 +33,25 @@ class DocumentFolderSerializer(serializers.ModelSerializer):
         if isinstance(value, int):
             return value
         return obj.documents.count()
+
+    def get_children_count(self, obj):
+        value = getattr(obj, 'children_count', None)
+        if isinstance(value, int):
+            return value
+        return obj.children.count()
+
+    def validate_parent(self, value):
+        """Impide que una carpeta sea su propio padre o descienda de sí misma."""
+        if value is None:
+            return value
+        instance = self.instance
+        if instance is not None:
+            if value.pk == instance.pk:
+                raise serializers.ValidationError(
+                    'Una carpeta no puede ser su propio padre.'
+                )
+            if value.pk in instance.get_descendant_ids():
+                raise serializers.ValidationError(
+                    'No se puede mover una carpeta dentro de una de sus subcarpetas.'
+                )
+        return value

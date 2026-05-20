@@ -320,12 +320,24 @@ class Project(models.Model):
     def linked_business_proposal(self):
         """Returns the first phase's BusinessProposal, or None.
 
+        Lee desde ProjectPhase; si el proyecto todavía no tiene phase, cae al
+        vínculo legacy por deliverable para que las propuestas adjuntadas antes
+        de completar el cableado de phases sigan resolviéndose.
+
         Kept for backwards compatibility with serializers and templates that
         expect a single proposal per project. New code should iterate
         ``self.phases.all()`` instead.
         """
         first = self.phases.select_related('business_proposal').first()
-        return first.business_proposal if first else None
+        if first:
+            return first.business_proposal
+        from content.models import BusinessProposal
+        return (
+            BusinessProposal.objects.filter(deliverable__project_id=self.id)
+            .select_related('deliverable')
+            .order_by('deliverable_id')
+            .first()
+        )
 
 
 class ProjectPhase(models.Model):

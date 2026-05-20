@@ -12,7 +12,12 @@ from content.serializers.document_folder import DocumentFolderSerializer
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def list_document_folders(request):
-    folders = DocumentFolder.objects.annotate(document_count=Count('documents'))
+    # distinct=True evita que el JOIN cruzado de las dos relaciones inversas
+    # (documents + children) multiplique ambos conteos entre sí.
+    folders = DocumentFolder.objects.annotate(
+        document_count=Count('documents', distinct=True),
+        children_count=Count('children', distinct=True),
+    )
     serializer = DocumentFolderSerializer(folders, many=True)
     return Response(serializer.data)
 
@@ -51,6 +56,18 @@ def delete_document_folder(request, folder_id):
                     'Muévelos o elimínalos antes de borrarla.'
                 ),
                 'document_count': document_count,
+            },
+            status=status.HTTP_409_CONFLICT,
+        )
+    children_count = folder.children.count()
+    if children_count:
+        return Response(
+            {
+                'detail': (
+                    f'La carpeta tiene {children_count} subcarpeta(s). '
+                    'Muévelas o elimínalas antes de borrarla.'
+                ),
+                'children_count': children_count,
             },
             status=status.HTTP_409_CONFLICT,
         )
