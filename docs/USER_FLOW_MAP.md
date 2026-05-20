@@ -3107,9 +3107,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents`
-- **Description:** Organize admin documents with a folder sidebar and tag filter chips. Admin selects a folder to filter the list, toggles tag chips for multi-tag OR filtering, opens the FolderManagerModal to create/rename/delete folders, and opens the TagManagerModal to create/rename/delete tags with color coding.
+- **Description:** Organize admin documents with a folder sidebar and tag filter chips. Admin selects a folder to filter the list, toggles tag chips for multi-tag OR filtering, opens the FolderManagerModal to create/rename/delete folders, and opens the TagManagerModal to create/rename/delete tags with color coding. The sidebar shows only **root folders**; subfolders are reached by navigating inside a folder (see `admin-document-folder-hierarchy`).
 - **Steps:**
-  1. Admin loads `/panel/documents` — left sidebar renders all folders; tag chips appear above the table.
+  1. Admin loads `/panel/documents` — left sidebar renders root folders only; tag chips appear above the table.
   2. Admin clicks a folder entry (e.g., "Cuentas de cobro") → list refreshes with `?folder=<id>`.
   3. Admin clicks "Sin carpeta" → list refreshes with `?folder=none`.
   4. Admin clicks "Todos" → list refreshes without folder param.
@@ -3119,11 +3119,33 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   8. Admin creates, renames, or deletes a folder/tag → modal emits `@changed` → document list refreshes.
 - **Branches:**
   - [Branch A — Empty folders] No folders yet → "Sin carpeta" and "Todos" entries only; "Crear la primera →" prompt for tags.
-  - [Branch B — Create folder] Admin fills name + submits in FolderManagerModal → folder added to sidebar.
-  - [Branch C — Delete folder with SET_NULL] Deleting a folder leaves documents with `folder = null` (not deleted).
+  - [Branch B — Create folder] Admin fills name + submits in FolderManagerModal → folder added to sidebar. An optional "Dentro de" parent selector creates it as a subfolder.
+  - [Branch C — Delete folder] Deleting a folder is blocked with HTTP 409 if it still holds documents or subfolders; documents themselves use `folder = SET_NULL`.
   - [Branch D — Assign on create] Creating a document from `?folder=<id>` pre-selects that folder.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-folders.spec.js`
+
+#### FLOW: `admin-document-folder-hierarchy`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **API:** `GET /api/content/documents/document-folders/`, `PATCH /api/content/documents/document-folders/<id>/update/`
+- **Description:** Navigate the nested folder hierarchy in the documents view. The sidebar lists only root folders; entering a folder shows its subfolders as navigable rows above its documents, and a breadcrumb above the table tracks the current path. Folders can be re-parented by dragging a subfolder row onto another folder, the sidebar, or a breadcrumb segment.
+- **Steps:**
+  1. Admin loads `/panel/documents` — sidebar shows root folders only (a chevron marks folders that contain subfolders).
+  2. Admin clicks a root folder → table shows that folder's subfolder rows on top, then its documents; a breadcrumb `Todos › <Folder>` appears above the table.
+  3. Admin clicks a subfolder row → navigates into it; breadcrumb grows (`Todos › <Folder> › <Subfolder>`).
+  4. Admin clicks a breadcrumb segment (or "Todos") → navigates back to that level.
+  5. Admin drags a subfolder row onto another folder → the dragged folder is re-parented (`PATCH parent`).
+- **Branches:**
+  - [Branch A — Only subfolders] A folder with subfolders but no documents still renders the subfolder rows (no empty state).
+  - [Branch B — Cycle prevented] Dropping a folder onto itself or one of its descendants is rejected client-side and by the backend serializer.
+  - [Branch C — Drop on "Sin carpeta"] Dragging a subfolder onto "Sin carpeta" promotes it to a root folder (`parent = null`).
+  - [Branch D — Search active] While a search query is active, subfolder rows are hidden and the search applies to documents only.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-document-folder-hierarchy.spec.js`
 
 #### FLOW: `admin-document-pdf-download`
 
@@ -3256,6 +3278,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-folders` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folders.spec.js` |
+| `admin-document-folder-hierarchy` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-hierarchy.spec.js` |
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
 | `admin-document-move-folder` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-move-folder.spec.js` |
 | `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |

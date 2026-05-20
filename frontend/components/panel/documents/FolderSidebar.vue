@@ -80,6 +80,16 @@
                 @click="$emit('select', folder.id)"
               >
                 <span class="truncate flex-1">{{ folder.name }}</span>
+                <svg
+                  v-if="folder.children_count > 0"
+                  class="w-3 h-3 text-text-subtle flex-shrink-0 ml-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <title>Tiene subcarpetas</title>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
                 <span v-if="!isDragging || dragOverId !== folder.id" class="text-xs text-text-subtle ml-1 flex-shrink-0">{{ folder.document_count }}</span>
                 <svg v-else class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
@@ -116,6 +126,7 @@ const props = defineProps({
   activeId: { type: [String, Number], default: 'all' },
   totalCount: { type: Number, default: 0 },
   isDragging: { type: Boolean, default: false },
+  draggingFolderId: { type: [String, Number], default: null },
 });
 
 const emit = defineEmits(['select', 'manage', 'folder-drop']);
@@ -137,7 +148,9 @@ function entryClass(id) {
 }
 
 function dropZoneClass(id) {
-  if (!props.isDragging || isFolderDragging.value) return '';
+  // Acepta documentos (props.isDragging) o carpetas en arrastre para anidar.
+  const anyDrag = props.isDragging || props.draggingFolderId != null;
+  if (!anyDrag || isFolderDragging.value) return '';
   if (dragOverId.value === id) {
     return 'ring-2 ring-emerald-400 bg-primary-soft !text-text-brand dark:!text-emerald-300';
   }
