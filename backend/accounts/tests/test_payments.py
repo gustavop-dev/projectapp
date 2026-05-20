@@ -248,6 +248,11 @@ class TestProjectSubscription:
     def test_client_can_change_plan(
         self, api_client, client_headers, project, subscription,
     ):
+        # The client may change the frequency only while the subscription is
+        # still pending (the first payment has not settled yet).
+        subscription.status = HostingSubscription.STATUS_PENDING
+        subscription.save(update_fields=['status'])
+
         resp = api_client.patch(
             f'/api/accounts/projects/{project.id}/subscription/',
             {'plan': 'monthly'},

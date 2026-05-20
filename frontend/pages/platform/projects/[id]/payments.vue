@@ -92,7 +92,7 @@
               :class="selectedPlan === opt.value
                 ? 'border-accent bg-accent text-text-default'
                 : 'border-border-default bg-surface text-green-light hover:text-text-default'"
-              @click="selectedPlan = opt.value"
+              @click="selectPlan(opt.value)"
             >{{ opt.label }}</button>
           </div>
 
@@ -211,9 +211,29 @@
           </div>
         </div>
 
-        <!-- Per-phase cost breakdown (display only) -->
+        <!-- Per-phase cost breakdown -->
         <div v-if="phaseRows.length" class="mb-4 rounded-2xl border border-border-default bg-surface p-5" data-enter>
-          <h3 class="mb-3 text-sm font-medium text-text-default">Desglose por fase · {{ sub.plan_display }}</h3>
+          <h3 class="mb-3 text-sm font-medium text-text-default">Desglose por fase · {{ selectedFrequencyLabel }}</h3>
+
+          <!-- Frequency still changeable while the subscription is pending -->
+          <div v-if="frequencyEditable" class="mb-3">
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="opt in frequencyOptions"
+                :key="opt.value"
+                type="button"
+                class="rounded-full border px-4 py-2 text-xs font-semibold transition"
+                :class="selectedPlan === opt.value
+                  ? 'border-accent bg-accent text-text-default'
+                  : 'border-border-default bg-surface text-green-light hover:text-text-default'"
+                @click="selectPlan(opt.value)"
+              >{{ opt.label }}</button>
+            </div>
+            <p class="mt-2 text-[11px] text-green-light/60">
+              Aún puedes cambiar la frecuencia. Quedará fija cuando registres tu tarjeta y se concrete el primer pago.
+            </p>
+          </div>
+
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <tbody>
@@ -228,7 +248,7 @@
                   </td>
                 </tr>
                 <tr class="border-t-2 border-border-default">
-                  <td class="py-2.5 text-sm font-bold text-text-default">Total {{ sub.plan_display.toLowerCase() }}</td>
+                  <td class="py-2.5 text-sm font-bold text-text-default">Total {{ selectedFrequencyLabel.toLowerCase() }}</td>
                   <td class="py-2.5 text-right text-base font-bold text-text-brand">${{ formatMoney(hostingTotal) }} COP</td>
                 </tr>
               </tbody>
@@ -668,9 +688,20 @@ const selectedFrequencyLabel = computed(
   () => frequencyOptions.find((o) => o.value === selectedPlan.value)?.label || '',
 )
 
-// Frequency used to value the breakdown table: the established plan once a
-// subscription exists, otherwise the pill the client is previewing.
-const tableFrequency = computed(() => (sub.value ? sub.value.plan : selectedPlan.value))
+// The frequency stays editable until the first payment settles (the
+// subscription leaves 'pending'); the breakdown table values it by selectedPlan.
+const frequencyEditable = computed(() => !sub.value || sub.value.status === 'pending')
+const tableFrequency = computed(
+  () => (frequencyEditable.value ? selectedPlan.value : sub.value.plan),
+)
+
+async function selectPlan(value) {
+  selectedPlan.value = value
+  // A pending subscription already exists — persist the new frequency.
+  if (sub.value && sub.value.status === 'pending') {
+    await payStore.updateSubscription(projectId.value, { plan: value })
+  }
+}
 
 function tierAmount(phase, frequency) {
   const tier = (phase.hosting_tiers || []).find((t) => t.frequency === frequency)
@@ -994,8 +1025,10 @@ async function handleCreateSubscription() {
   try {
     const { post } = usePlatformApi()
     await post(`projects/${projectId.value}/subscription/`, { plan: selectedPlan.value })
-    await payStore.fetchProjectSubscription(projectId.value)
-    selectedPlan.value = null
+    await Promise.all([
+      payStore.fetchProjectSubscription(projectId.value),
+      payStore.fetchProjectPhases(projectId.value),
+    ])
   } catch (error) {
     planError.value = error.response?.data?.detail || 'Error activando el plan de hosting.'
   } finally {
@@ -1044,6 +1077,8 @@ onMounted(async () => {
     projectsStore.currentProject?.id !== Number(projectId.value) ? projectsStore.fetchProject(projectId.value) : Promise.resolve(),
     payStore.fetchProjectPhases(projectId.value),
   ])
+  // Preselect the established frequency so the breakdown table values match.
+  if (sub.value) selectedPlan.value = sub.value.plan
 })
 </script>
 

@@ -3273,8 +3273,18 @@ def project_subscription_view(request, project_id):
         else:
             unarchive_record(sub, extra_update_fields=('updated_at',))
 
-    if 'plan' in data:
+    if 'plan' in data and data['plan'] != sub.plan:
+        # The frequency is locked once the first payment is settled; until
+        # then (status pending) the client may still change it.
+        if not is_admin and sub.status != HostingSubscription.STATUS_PENDING:
+            return Response(
+                {'detail': 'La frecuencia ya no se puede cambiar. Escríbenos para ajustarla.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         from decimal import Decimal
+
+        from dateutil.relativedelta import relativedelta
 
         from accounts.services.hosting_billing import project_billing_amount
 
@@ -3282,6 +3292,26 @@ def project_subscription_view(request, project_id):
         sub.billing_amount = project_billing_amount(proj, data['plan'])
         months = sub.billing_months
         sub.effective_monthly_amount = round(sub.billing_amount / Decimal(months), 2)
+
+        # While still pending, realign the unpaid first payment + cycle.
+        if sub.status == HostingSubscription.STATUS_PENDING:
+            first = (
+                sub.payments.filter(status=Payment.STATUS_PENDING)
+                .order_by('billing_period_start').first()
+            )
+            if first:
+                billing_end = (
+                    first.billing_period_start
+                    + relativedelta(months=months) - relativedelta(days=1)
+                )
+                first.amount = sub.billing_amount
+                first.billing_period_end = billing_end
+                first.description = (
+                    f'Hosting {sub.get_plan_display()} — '
+                    f'{first.billing_period_start} a {billing_end}'
+                )
+                first.save(update_fields=['amount', 'billing_period_end', 'description'])
+                sub.next_billing_date = billing_end + relativedelta(days=1)
     if 'status' in data:
         sub.status = data['status']
     sub.save()

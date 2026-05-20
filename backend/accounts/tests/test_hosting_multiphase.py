@@ -201,3 +201,46 @@ class TestPhaseOnboarding:
         assert count == 0
         phase.refresh_from_db()
         assert phase.hosting_activated_at is None
+
+
+# ===========================================================================
+# Frequency change while the subscription is still pending
+# ===========================================================================
+
+class TestFrequencyChangeWhilePending:
+    def _activate(self, api_client, headers, project, plan='monthly'):
+        return api_client.post(
+            f'/api/accounts/projects/{project.id}/subscription/', {'plan': plan}, **headers,
+        )
+
+    def test_client_changes_plan_while_pending_realigns_first_payment(
+        self, api_client, client_headers, project,
+    ):
+        _phase(project, 12_000_000, order=1)
+        assert self._activate(api_client, client_headers, project, 'monthly').status_code == 201
+
+        resp = api_client.patch(
+            f'/api/accounts/projects/{project.id}/subscription/',
+            {'plan': 'semiannual'}, format='json', **client_headers,
+        )
+        assert resp.status_code == 200
+        assert Decimal(resp.json()['billing_amount']) == Decimal('1920000')
+        # the unpaid first payment is realigned to the new frequency
+        sub = HostingSubscription.objects.get(project=project)
+        first = Payment.objects.filter(subscription=sub).order_by('billing_period_start').first()
+        assert first.amount == Decimal('1920000')
+
+    def test_client_cannot_change_plan_after_active(
+        self, api_client, client_headers, project,
+    ):
+        _phase(project, 12_000_000, order=1)
+        self._activate(api_client, client_headers, project, 'monthly')
+        sub = HostingSubscription.objects.get(project=project)
+        sub.status = HostingSubscription.STATUS_ACTIVE
+        sub.save(update_fields=['status'])
+
+        resp = api_client.patch(
+            f'/api/accounts/projects/{project.id}/subscription/',
+            {'plan': 'semiannual'}, format='json', **client_headers,
+        )
+        assert resp.status_code == 403

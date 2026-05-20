@@ -152,6 +152,7 @@ export const usePlatformPaymentsStore = defineStore('platformPayments', {
         const { patch } = usePlatformApi()
         const response = await patch(`projects/${projectId}/subscription/`, payload)
         this.currentSubscription = response.data
+        this.payments = response.data.payments || []
         return { success: true, data: response.data }
       } catch (error) {
         const message = error.response?.data?.detail || 'Error actualizando suscripción.'
