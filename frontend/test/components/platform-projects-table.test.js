@@ -33,4 +33,12 @@ describe('ProjectsTable', () => {
     const w = mount(ProjectsTable, { props: { projects: rows, role: 'client' } })
     expect(w.text()).not.toContain('Ada Lovelace')
   })
+
+  it('renders a mobile card per project that emits navigate on click', async () => {
+    const w = mount(ProjectsTable, { props: { projects: rows, role: 'admin' } })
+    const card = w.find('[data-testid="project-card-1"]')
+    expect(card.exists()).toBe(true)
+    await card.trigger('click')
+    expect(w.emitted('navigate')[0]).toEqual([1])
+  })
 })
