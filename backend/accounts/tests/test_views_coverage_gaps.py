@@ -271,6 +271,22 @@ class TestProposalListForSelectorView:
         assert len(data) == 1
         assert data[0]['title'] == 'Open Proposal'
 
+    def test_includes_finished_proposals_without_deliverable(
+        self, api_client, admin_headers,
+    ):
+        from content.models import BusinessProposal
+
+        BusinessProposal.objects.create(
+            title='Finished Proposal', status='finished', slug='finished-prop',
+        )
+
+        resp = api_client.get('/api/accounts/proposals/', **admin_headers)
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]['title'] == 'Finished Proposal'
+
     def test_excludes_proposals_with_deliverable_linked(
         self, api_client, admin_headers, admin_user, client_user,
     ):

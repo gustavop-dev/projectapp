@@ -19,7 +19,7 @@
       No encontramos el cliente solicitado.
     </div>
 
-    <div v-else class="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+    <div v-else class="grid grid-cols-1 gap-6 xl:grid-cols-[0.85fr_1.15fr]">
       <section class="space-y-6" data-enter>
         <article class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
           <div class="flex items-center gap-4">
@@ -34,9 +34,9 @@
                 {{ clientInitials }}
               </div>
             </div>
-            <div>
-              <h2 class="text-lg font-medium text-text-default">{{ form.first_name }} {{ form.last_name }}</h2>
-              <p class="mt-0.5 text-sm text-green-light">{{ platformClientsStore.currentClient.email }}</p>
+            <div class="min-w-0">
+              <h2 class="truncate text-lg font-medium text-text-default">{{ form.first_name }} {{ form.last_name }}</h2>
+              <p class="mt-0.5 truncate text-sm text-green-light">{{ platformClientsStore.currentClient.email }}</p>
             </div>
           </div>
 

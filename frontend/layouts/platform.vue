@@ -40,7 +40,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
-      <NuxtLink :to="localePath('/platform/dashboard')" class="text-base font-bold tracking-tight text-text-brand dark:text-white">
+      <NuxtLink :to="localePath('/platform/projects')" class="text-base font-bold tracking-tight text-text-brand dark:text-white">
         Project<span class="text-green-light dark:text-accent">App.</span>
       </NuxtLink>
       <div class="h-8 w-8 shrink-0 overflow-hidden rounded-full">

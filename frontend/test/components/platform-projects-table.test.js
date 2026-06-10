@@ -2,8 +2,18 @@ import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import ProjectsTable from '../../components/platform/projects/ProjectsTable.vue'
 
+// Fuerza el breakpoint móvil (useIsMobile usa window.matchMedia).
+function mockViewport({ mobile }) {
+  window.matchMedia = jest.fn().mockReturnValue({
+    matches: mobile,
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+  })
+}
+
 describe('ProjectsTable', () => {
   beforeEach(() => { setActivePinia(createPinia()) })
+  afterEach(() => { delete window.matchMedia })
 
   const rows = [
     {
@@ -32,5 +42,15 @@ describe('ProjectsTable', () => {
   it('hides admin-only columns when role is client', () => {
     const w = mount(ProjectsTable, { props: { projects: rows, role: 'client' } })
     expect(w.text()).not.toContain('Ada Lovelace')
+  })
+
+  it('renders a mobile card per project that emits navigate on click', async () => {
+    mockViewport({ mobile: true })
+    const w = mount(ProjectsTable, { props: { projects: rows, role: 'admin' } })
+    await w.vm.$nextTick()
+    const card = w.find('[data-testid="project-card-1"]')
+    expect(card.exists()).toBe(true)
+    await card.trigger('click')
+    expect(w.emitted('navigate')[0]).toEqual([1])
   })
 })

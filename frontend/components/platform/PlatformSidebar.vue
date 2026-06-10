@@ -184,8 +184,7 @@ import { computed, inject, onMounted, onUnmounted } from 'vue'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformNotificationsStore } from '~/stores/platform-notifications'
 import SidebarItem from '~/components/platform/SidebarItem.vue'
-
-const localePath = useLocalePath()
+import { usePlatformNav } from '~/composables/usePlatformNav'
 
 defineEmits(['logout'])
 
@@ -198,9 +197,10 @@ const toggleSidebar = inject('toggleSidebar')
 const toggleTheme = inject('toggleTheme')
 const showThemePicker = inject('showThemePicker')
 
-const route = useRoute()
 const authStore = usePlatformAuthStore()
 const notifStore = usePlatformNotificationsStore()
+
+const { primaryItems, accountItems, adminItems, isActive } = usePlatformNav()
 
 onMounted(() => { notifStore.startPolling(30000) })
 onUnmounted(() => { notifStore.stopPolling() })
@@ -215,34 +215,4 @@ const sidebarActionClass = computed(() => [
   'dark:hover:bg-surface/[0.06] dark:hover:text-white',
 ])
 
-const lp = (path) => localePath(path)
-
-const primaryItems = computed(() => {
-  const items = [
-    { label: 'Notificaciones', href: lp('/platform/notifications'), icon: 'bell', badge: notifStore.unreadCount },
-    { label: 'Proyectos',      href: lp('/platform/projects'),      icon: 'folder' },
-  ]
-  if (authStore.isAdmin) {
-    items.push({ label: 'Clientes', href: lp('/platform/clients'), icon: 'users' })
-  }
-  return items
-})
-
-// Kept for backwards compatibility with the template's section structure;
-// always empty after the IA refactor (modules now live inside each project).
-const projectItems = computed(() => [])
-
-const accountItems = computed(() => [
-  { label: 'Configuración', href: lp('/platform/profile'), icon: 'settings' },
-])
-
-const adminItems = computed(() => [
-  { label: 'Panel admin', href: '/panel', icon: 'external', external: true },
-])
-
-function isActive(href) {
-  const cleanPath = route.path.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
-  const cleanHref = href.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
-  return cleanPath === cleanHref || cleanPath.startsWith(`${cleanHref}/`)
-}
 </script>

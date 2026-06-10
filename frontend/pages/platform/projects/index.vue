@@ -141,19 +141,59 @@
 
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Propuesta de negocio</label>
-                  <select
-                    v-model="createForm.proposal_id"
-                    class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"
-                  >
-                    <option :value="null">Sin propuesta vinculada</option>
-                    <option
-                      v-for="p in paymentsStore.proposals"
-                      :key="p.id"
-                      :value="p.id"
+                  <div ref="proposalSelectRef" class="relative">
+                    <button
+                      type="button"
+                      class="flex w-full items-center justify-between gap-2 rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-left text-sm outline-none transition focus:border-border-default dark:bg-primary-strong dark:focus:border-lemon/40"
+                      @click="toggleProposalDropdown"
                     >
-                      {{ p.title }} — {{ formatCurrency(p.total_investment, p.currency) }}
-                    </option>
-                  </select>
+                      <span class="truncate" :class="createForm.proposal_id ? 'text-text-default' : 'text-green-light/60'">
+                        {{ selectedProposalLabel || 'Sin propuesta vinculada' }}
+                      </span>
+                      <svg class="h-4 w-4 shrink-0 text-green-light/50 transition-transform" :class="proposalDropdownOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    <div
+                      v-if="proposalDropdownOpen"
+                      class="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-border-default bg-surface shadow-lg"
+                    >
+                      <div class="border-b border-border-muted p-2">
+                        <input
+                          ref="proposalSearchInput"
+                          v-model="proposalSearch"
+                          type="text"
+                          placeholder="Buscar propuesta por nombre..."
+                          class="w-full rounded-lg border border-border-default bg-surface-muted/40 px-3 py-2 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+                          @keydown.esc.stop.prevent="closeProposalDropdown"
+                        />
+                      </div>
+                      <ul class="max-h-56 overflow-y-auto py-1">
+                        <li>
+                          <button
+                            type="button"
+                            class="w-full px-3 py-2 text-left text-sm transition hover:bg-primary-soft dark:hover:bg-white/5"
+                            :class="!createForm.proposal_id ? 'text-text-brand dark:text-accent' : 'text-green-light'"
+                            @click="selectProposal(null)"
+                          >
+                            Sin propuesta vinculada
+                          </button>
+                        </li>
+                        <li v-for="p in filteredProposals" :key="p.id">
+                          <button
+                            type="button"
+                            class="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition hover:bg-primary-soft dark:hover:bg-white/5"
+                            :class="createForm.proposal_id === p.id ? 'bg-primary-soft dark:bg-white/5' : ''"
+                            @click="selectProposal(p)"
+                          >
+                            <span class="truncate text-text-default">{{ p.title }}</span>
+                            <span class="shrink-0 text-xs text-green-light/60">{{ formatCurrency(p.total_investment, p.currency) }}</span>
+                          </button>
+                        </li>
+                        <li v-if="!filteredProposals.length" class="px-3 py-4 text-center text-xs text-green-light/60">
+                          No hay propuestas que coincidan.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
                   <p class="mt-1 text-[11px] text-green-light/60">
                     Al vincular una propuesta, se crean automáticamente los requerimientos del tablero Kanban.
                   </p>
@@ -214,7 +254,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
@@ -265,6 +305,51 @@ const clientsForSelect = computed(() =>
   clientsStore.clients.filter((c) => c.is_active && c.is_onboarded),
 )
 
+// --- Selector de propuesta con buscador ---
+const proposalSearch = ref('')
+const proposalDropdownOpen = ref(false)
+const proposalSelectRef = ref(null)
+const proposalSearchInput = ref(null)
+
+const filteredProposals = computed(() => {
+  const list = paymentsStore.proposals || []
+  const q = proposalSearch.value.trim().toLowerCase()
+  if (!q) return list
+  return list.filter((p) => (p.title || '').toLowerCase().includes(q))
+})
+
+const selectedProposalLabel = computed(() => {
+  if (!createForm.proposal_id) return ''
+  const p = (paymentsStore.proposals || []).find((x) => x.id === createForm.proposal_id)
+  return p ? `${p.title} — ${formatCurrency(p.total_investment, p.currency)}` : ''
+})
+
+function toggleProposalDropdown() {
+  proposalDropdownOpen.value = !proposalDropdownOpen.value
+  if (proposalDropdownOpen.value) {
+    proposalSearch.value = ''
+    nextTick(() => proposalSearchInput.value?.focus())
+  }
+}
+
+function closeProposalDropdown() {
+  proposalDropdownOpen.value = false
+}
+
+function selectProposal(proposal) {
+  createForm.proposal_id = proposal ? proposal.id : null
+  closeProposalDropdown()
+}
+
+function onClickOutsideProposal(event) {
+  if (proposalSelectRef.value && !proposalSelectRef.value.contains(event.target)) {
+    closeProposalDropdown()
+  }
+}
+
+onMounted(() => document.addEventListener('mousedown', onClickOutsideProposal))
+onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutsideProposal))
+
 const canCreate = computed(() => Boolean(createForm.name.trim()) && Boolean(createForm.client_id))
 
 function statusBadgeClass(status) {
@@ -310,6 +395,8 @@ function formatCurrency(amount, currency) {
 function closeCreateModal() {
   isCreateModalOpen.value = false
   createError.value = ''
+  proposalDropdownOpen.value = false
+  proposalSearch.value = ''
   createForm.name = ''
   createForm.description = ''
   createForm.client_id = ''

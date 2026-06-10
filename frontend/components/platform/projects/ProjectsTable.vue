@@ -1,5 +1,7 @@
 <template>
-  <div class="overflow-hidden rounded-2xl border border-border-default bg-surface">
+  <div>
+    <!-- Desktop / tablet (>=md): tabla con scroll horizontal como red de seguridad -->
+    <div v-if="!isMobile" class="overflow-x-auto rounded-2xl border border-border-default bg-surface">
     <table class="min-w-full text-left text-sm">
       <thead class="bg-surface-muted/40 text-xs font-medium uppercase tracking-wider text-green-light/70">
         <tr>
@@ -62,11 +64,72 @@
         </tr>
       </tbody>
     </table>
+    </div>
+
+    <!-- Móvil (<md): cada proyecto como tarjeta apilada -->
+    <div v-else class="space-y-3">
+      <button
+        v-for="p in projects"
+        :key="p.id"
+        type="button"
+        :data-testid="`project-card-${p.id}`"
+        class="block w-full rounded-2xl border border-border-default bg-surface p-4 text-left transition hover:bg-primary-soft"
+        @click="$emit('navigate', p.id)"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="truncate font-medium text-text-default">{{ p.name }}</div>
+            <span :class="statusChipClass(p.status)">{{ statusLabel(p.status) }}</span>
+          </div>
+          <span class="shrink-0 text-green-light/40">›</span>
+        </div>
+
+        <div v-if="isAdmin" class="mt-3 text-sm text-green-light">
+          {{ p.client_name }}
+          <span class="block truncate text-xs text-green-light/60">{{ p.client_email }}</span>
+        </div>
+
+        <div class="mt-3 flex items-center gap-2">
+          <div class="h-1.5 w-full max-w-[8rem] overflow-hidden rounded-full bg-surface-muted">
+            <div class="h-full bg-primary" :style="{ width: `${p.progress || 0}%` }"></div>
+          </div>
+          <span class="text-xs text-green-light/70">{{ p.progress || 0 }}%</span>
+        </div>
+
+        <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          <div class="flex items-center justify-between gap-2">
+            <dt class="text-xs uppercase tracking-wide text-green-light/60">Bugs</dt>
+            <dd>
+              <span :class="(p.bugs_open_count || 0) > 0 ? 'rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700' : 'text-green-light/60'">{{ p.bugs_open_count || 0 }}</span>
+            </dd>
+          </div>
+          <div v-if="isAdmin" class="flex items-center justify-between gap-2">
+            <dt class="text-xs uppercase tracking-wide text-green-light/60">Solicitudes</dt>
+            <dd>
+              <span :class="(p.changes_pending_count || 0) > 0 ? 'rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700' : 'text-green-light/60'">{{ p.changes_pending_count || 0 }}</span>
+            </dd>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <dt class="text-xs uppercase tracking-wide text-green-light/60">Valor</dt>
+            <dd :class="(Number(p.phases_total_amount) > 0) ? 'font-medium text-text-default' : 'text-green-light/60'">{{ formatCurrency(p.phases_total_amount) }}</dd>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <dt class="text-xs uppercase tracking-wide text-green-light/60">Actividad</dt>
+            <dd class="text-green-light/70">{{ relativeTime(p.last_activity_at) }}</dd>
+          </div>
+        </dl>
+      </button>
+
+      <div v-if="!projects.length" class="rounded-2xl border border-border-default bg-surface px-4 py-12 text-center text-green-light/60">
+        No hay proyectos para mostrar.
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import { useIsMobile } from '~/composables/useIsMobile'
 
 const props = defineProps({
   projects: { type: Array, required: true },
@@ -74,6 +137,8 @@ const props = defineProps({
 })
 
 defineEmits(['navigate'])
+
+const { isMobile } = useIsMobile()
 
 const isAdmin = computed(() => props.role === 'admin')
 

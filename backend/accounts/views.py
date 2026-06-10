@@ -3183,7 +3183,7 @@ def proposal_list_for_selector_view(request):
     from content.models import BusinessProposal
 
     qs = BusinessProposal.objects.filter(
-        status__in=['accepted', 'sent', 'viewed', 'negotiating'],
+        status__in=['accepted', 'finished', 'sent', 'viewed', 'negotiating'],
         deliverable__isnull=True,
     ).order_by('-created_at')
 

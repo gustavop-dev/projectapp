@@ -89,7 +89,8 @@
       </div>
 
       <!-- Table -->
-      <div v-if="filteredBugs.length" class="overflow-hidden rounded-2xl border border-border-default bg-surface" data-enter>
+      <template v-if="filteredBugs.length">
+      <div v-if="!isMobile" class="overflow-x-auto rounded-2xl border border-border-default bg-surface" data-enter>
         <table class="min-w-full text-left text-sm">
           <thead class="bg-surface-muted/40 text-xs font-medium uppercase tracking-wider text-green-light/70">
             <tr>
@@ -161,6 +162,41 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Cards (mobile) -->
+      <div v-else class="space-y-3" data-enter>
+        <button
+          v-for="bug in filteredBugs"
+          :key="bug.id"
+          type="button"
+          class="block w-full rounded-2xl border border-border-default bg-surface p-4 text-left transition hover:bg-primary-soft"
+          :class="bug.is_archived ? 'opacity-70' : ''"
+          @click="openDetailModal(bug)"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <p class="font-medium text-text-default">{{ bug.title }}</p>
+                <span v-if="bug.is_recurring" class="rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-purple-600 dark:text-purple-400">Recurrente</span>
+                <span v-if="bug.is_archived" class="rounded-full bg-gray-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivado</span>
+                <svg v-if="bug.screenshot_url" class="h-3 w-3 shrink-0 text-green-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              </div>
+              <p v-if="bug.source_requirement" class="mt-0.5 line-clamp-1 text-[10px] text-teal-600 dark:text-teal-300">Sobre: {{ bug.source_requirement.title }}</p>
+            </div>
+            <span class="shrink-0 text-green-light/40">›</span>
+          </div>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="statusBadgeClass(bug.status)">{{ statusLabel(bug.status) }}</span>
+            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="severityBadgeClass(bug.severity)">{{ severityLabel(bug.severity) }}</span>
+            <span class="text-[10px] text-green-light/60">{{ envLabel(bug.environment) }}</span>
+          </div>
+          <div class="mt-2 flex items-center justify-between gap-2 text-xs text-green-light/70">
+            <span class="truncate">{{ bug.reported_by_name }}</span>
+            <span class="shrink-0">{{ formatDate(bug.created_at) }}</span>
+          </div>
+        </button>
+      </div>
+      </template>
 
       <!-- Empty -->
       <div v-else class="py-16 text-center" data-enter>
@@ -554,6 +590,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
+import { useIsMobile } from '~/composables/useIsMobile'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformBugReportsStore } from '~/stores/platform-bug-reports'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
@@ -569,6 +606,8 @@ const authStore = usePlatformAuthStore()
 const bugStore = usePlatformBugReportsStore()
 const projectsStore = usePlatformProjectsStore()
 const requirementsStore = usePlatformRequirementsStore()
+
+const { isMobile } = useIsMobile()
 
 const projectRequirements = ref([])
 

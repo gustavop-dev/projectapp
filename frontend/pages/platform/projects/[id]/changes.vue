@@ -90,8 +90,9 @@
         </button>
       </div>
 
-      <!-- Table -->
-      <div v-if="filteredRequests.length" class="overflow-hidden rounded-2xl border border-border-default bg-surface" data-enter>
+      <!-- Table (md+) / Cards (mobile) -->
+      <template v-if="filteredRequests.length">
+      <div v-if="!isMobile" class="overflow-x-auto rounded-2xl border border-border-default bg-surface" data-enter>
         <table class="min-w-full text-left text-sm">
           <thead class="bg-surface-muted/40 text-xs font-medium uppercase tracking-wider text-green-light/70">
             <tr>
@@ -162,6 +163,41 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Cards (mobile) -->
+      <div v-else class="space-y-3" data-enter>
+        <button
+          v-for="cr in filteredRequests"
+          :key="cr.id"
+          type="button"
+          class="block w-full rounded-2xl border border-border-default bg-surface p-4 text-left transition hover:bg-primary-soft"
+          :class="cr.is_archived ? 'opacity-70' : ''"
+          @click="openDetailModal(cr)"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <p class="font-medium text-text-default">{{ cr.title }}</p>
+                <span v-if="cr.is_urgent" class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-600 dark:text-red-400">Urgente</span>
+                <span v-if="cr.is_archived" class="rounded-full bg-gray-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivada</span>
+                <span v-if="cr.linked_requirement_id" class="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-text-brand">Convertida</span>
+              </div>
+              <p v-if="cr.source_requirement" class="mt-0.5 line-clamp-1 text-[10px] text-teal-600 dark:text-teal-300">Sobre: {{ cr.source_requirement.title }}</p>
+              <p v-else-if="cr.module_or_screen" class="mt-0.5 line-clamp-1 text-[10px] text-green-light/60">{{ cr.module_or_screen }}</p>
+            </div>
+            <span class="shrink-0 text-green-light/40">›</span>
+          </div>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="statusBadgeClass(cr.status)">{{ statusLabel(cr.status) }}</span>
+            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="priorityBadgeClass(cr.suggested_priority)">{{ priorityLabel(cr.suggested_priority) }}</span>
+          </div>
+          <div class="mt-2 flex items-center justify-between gap-2 text-xs text-green-light/70">
+            <span class="truncate">{{ cr.created_by_name }}</span>
+            <span class="shrink-0">{{ formatDate(cr.created_at) }}</span>
+          </div>
+        </button>
+      </div>
+      </template>
 
       <!-- Empty state -->
       <div v-else class="py-16 text-center" data-enter>
@@ -546,6 +582,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
+import { useIsMobile } from '~/composables/useIsMobile'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformChangeRequestsStore } from '~/stores/platform-change-requests'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
@@ -565,6 +602,8 @@ const authStore = usePlatformAuthStore()
 const crStore = usePlatformChangeRequestsStore()
 const projectsStore = usePlatformProjectsStore()
 const requirementsStore = usePlatformRequirementsStore()
+
+const { isMobile } = useIsMobile()
 
 const projectRequirements = ref([])
 

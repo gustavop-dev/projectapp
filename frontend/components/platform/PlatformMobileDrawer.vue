@@ -36,22 +36,9 @@
         <!-- Navigation (reuse sidebar items) -->
         <nav class="flex-1 overflow-y-auto px-3 py-4">
           <div class="mb-5">
-            <p class="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-green-light/60">Principal</p>
+            <p class="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-green-light/60">Navegación</p>
             <SidebarItem
               v-for="item in primaryItems"
-              :key="item.href"
-              :item="item"
-              :is-collapsed="false"
-              :is-active="isActive(item.href)"
-              :disabled="item.disabled"
-              @click="$emit('close')"
-            />
-          </div>
-
-          <div class="mb-5">
-            <p class="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-green-light/60">Proyectos</p>
-            <SidebarItem
-              v-for="item in projectItems"
               :key="item.href"
               :item="item"
               :is-collapsed="false"
@@ -137,7 +124,7 @@
 
             <button
               type="button"
-              class="ml-auto rounded-full border border-input-border/10 px-4 py-2 text-sm text-green-light transition hover:text-text-brand dark:border-white/10 dark:hover:text-white"
+              class="ml-auto rounded-full border border-input-border px-4 py-2 text-sm text-green-light transition hover:text-text-brand dark:border-white/10 dark:hover:text-white"
               @click="$emit('logout')"
             >
               Salir
@@ -152,11 +139,8 @@
 <script setup>
 import { computed } from 'vue'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
-import { usePlatformNotificationsStore } from '~/stores/platform-notifications'
 import SidebarItem from '~/components/platform/SidebarItem.vue'
-
-const localePath = useLocalePath()
-const lp = (path) => localePath(path)
+import { usePlatformNav } from '~/composables/usePlatformNav'
 
 defineEmits(['close', 'logout', 'toggleTheme', 'openThemePicker'])
 
@@ -165,71 +149,13 @@ const props = defineProps({
   isDark: { type: Boolean, default: true },
 })
 
-const route = useRoute()
 const authStore = usePlatformAuthStore()
-const notifStore = usePlatformNotificationsStore()
+
+const { primaryItems, accountItems, adminItems, isActive } = usePlatformNav()
 
 const userSubtitle = computed(() =>
   authStore.user?.company_name || authStore.user?.email || 'Portal ProjectApp',
 )
-
-const primaryItems = computed(() => [
-  { label: 'Dashboard', href: lp('/platform/dashboard'), icon: 'dashboard' },
-  { label: 'Notificaciones', href: lp('/platform/notifications'), icon: 'bell', badge: notifStore.unreadCount },
-])
-
-const projectItems = computed(() => {
-  if (authStore.isAdmin) {
-    return [
-      { label: 'Proyectos', href: lp('/platform/projects'), icon: 'folder' },
-      { label: 'Tablero', href: lp('/platform/board'), icon: 'board' },
-      { label: 'Solicitudes', href: lp('/platform/changes'), icon: 'refresh' },
-      { label: 'Bugs', href: lp('/platform/bugs'), icon: 'bug' },
-      { label: 'Entregables', href: lp('/platform/deliverables'), icon: 'file' },
-      { label: 'Pagos', href: lp('/platform/payments'), icon: 'credit-card' },
-    ]
-  }
-  return [
-    { label: 'Mis proyectos', href: lp('/platform/projects'), icon: 'folder' },
-    { label: 'Tablero', href: lp('/platform/board'), icon: 'board' },
-    { label: 'Solicitudes', href: lp('/platform/changes'), icon: 'refresh' },
-    { label: 'Bugs', href: lp('/platform/bugs'), icon: 'bug' },
-    { label: 'Entregables', href: lp('/platform/deliverables'), icon: 'file' },
-      { label: 'Pagos', href: lp('/platform/payments'), icon: 'credit-card' },
-  ]
-})
-
-const accountItems = computed(() => [
-  { label: 'Configuración', href: lp('/platform/profile'), icon: 'settings' },
-])
-
-const adminItems = computed(() => [
-  { label: 'Clientes', href: lp('/platform/clients'), icon: 'users' },
-])
-
-const projectSubModules = {
-  board: '/platform/board',
-  changes: '/platform/changes',
-  bugs: '/platform/bugs',
-  deliverables: '/platform/deliverables',
-  payments: '/platform/payments',
-}
-
-function isActive(href) {
-  const cleanPath = route.path.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
-  const cleanHref = href.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
-
-  const projectSubMatch = cleanPath.match(/^\/platform\/projects\/\d+\/([^/]+)/)
-  if (projectSubMatch) {
-    const subSection = projectSubMatch[1]
-    const mappedModule = projectSubModules[subSection]
-    if (mappedModule) {
-      return cleanHref === mappedModule
-    }
-  }
-
-  return cleanPath === cleanHref || cleanPath.startsWith(`${cleanHref}/`)
-}
 </script>
 
 <style scoped>

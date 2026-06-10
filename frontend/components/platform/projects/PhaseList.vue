@@ -16,15 +16,15 @@
       @end="onReorderEnd"
     >
       <template #item="{ element }">
-        <div class="flex items-center gap-3 rounded-xl border border-border-muted bg-surface-muted/30 px-4 py-3">
-          <span v-if="authStore.isAdmin" class="drag-handle cursor-grab select-none text-green-light/40" aria-label="Arrastrar">⠿</span>
-          <span class="font-medium text-text-default">{{ element.order }}. {{ element.proposal.title }}</span>
-          <span class="ml-auto text-sm text-green-light/60">${{ element.proposal.total_amount }}</span>
+        <div class="flex items-center gap-2 rounded-xl border border-border-muted bg-surface-muted/30 px-3 py-3 sm:gap-3 sm:px-4">
+          <span v-if="authStore.isAdmin" class="drag-handle shrink-0 cursor-grab select-none text-green-light/40" aria-label="Arrastrar">⠿</span>
+          <span class="min-w-0 flex-1 truncate font-medium text-text-default">{{ element.order }}. {{ element.proposal.title }}</span>
+          <span class="shrink-0 text-sm text-green-light/60">${{ element.proposal.total_amount }}</span>
           <template v-if="authStore.isAdmin">
-            <button class="rounded-lg border border-border-default px-2 py-1 text-xs text-green-light" @click="onEditProposal(element.proposal.id)">Editar</button>
+            <button class="shrink-0 rounded-lg border border-border-default px-2 py-1 text-xs text-green-light" @click="onEditProposal(element.proposal.id)">Editar</button>
             <button
               :data-testid="`remove-phase-${element.id}`"
-              class="rounded-lg border border-red-500/30 px-2 py-1 text-xs text-red-600"
+              class="shrink-0 rounded-lg border border-red-500/30 px-2 py-1 text-xs text-red-600"
               @click="onRemove(element.id)"
             >×</button>
           </template>
