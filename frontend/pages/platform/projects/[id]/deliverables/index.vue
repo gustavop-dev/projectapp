@@ -47,7 +47,7 @@
 
       <!-- Table -->
       <template v-if="filteredItems.length">
-      <div class="hidden overflow-x-auto rounded-2xl border border-border-default bg-surface md:block" data-enter>
+      <div v-if="!isMobile" class="overflow-x-auto rounded-2xl border border-border-default bg-surface" data-enter>
         <table class="min-w-full text-left text-sm">
           <thead class="bg-surface-muted/40 text-xs font-medium uppercase tracking-wider text-green-light/70">
             <tr>
@@ -98,7 +98,7 @@
       </div>
 
       <!-- Cards (mobile) -->
-      <div class="space-y-3 md:hidden" data-enter>
+      <div v-else class="space-y-3" data-enter>
         <button
           v-for="d in filteredItems"
           :key="d.id"
@@ -353,6 +353,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
+import { useIsMobile } from '~/composables/useIsMobile'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformDeliverablesStore } from '~/stores/platform-deliverables'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
@@ -366,6 +367,8 @@ const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const store = usePlatformDeliverablesStore()
 const projectsStore = usePlatformProjectsStore()
+
+const { isMobile } = useIsMobile()
 
 const projectId = computed(() => route.params.id)
 const projectName = computed(() => projectsStore.currentProject?.name || 'Proyecto')

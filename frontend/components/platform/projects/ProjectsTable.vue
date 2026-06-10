@@ -1,7 +1,7 @@
 <template>
   <div>
-    <!-- Desktop / tablet: tabla con scroll horizontal como red de seguridad (>=md) -->
-    <div class="hidden overflow-x-auto rounded-2xl border border-border-default bg-surface md:block">
+    <!-- Desktop / tablet (>=md): tabla con scroll horizontal como red de seguridad -->
+    <div v-if="!isMobile" class="overflow-x-auto rounded-2xl border border-border-default bg-surface">
     <table class="min-w-full text-left text-sm">
       <thead class="bg-surface-muted/40 text-xs font-medium uppercase tracking-wider text-green-light/70">
         <tr>
@@ -67,7 +67,7 @@
     </div>
 
     <!-- Móvil (<md): cada proyecto como tarjeta apilada -->
-    <div class="space-y-3 md:hidden">
+    <div v-else class="space-y-3">
       <button
         v-for="p in projects"
         :key="p.id"
@@ -129,6 +129,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useIsMobile } from '~/composables/useIsMobile'
 
 const props = defineProps({
   projects: { type: Array, required: true },
@@ -136,6 +137,8 @@ const props = defineProps({
 })
 
 defineEmits(['navigate'])
+
+const { isMobile } = useIsMobile()
 
 const isAdmin = computed(() => props.role === 'admin')
 

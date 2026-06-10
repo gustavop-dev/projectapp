@@ -90,7 +90,7 @@
 
       <!-- Table -->
       <template v-if="filteredBugs.length">
-      <div class="hidden overflow-x-auto rounded-2xl border border-border-default bg-surface md:block" data-enter>
+      <div v-if="!isMobile" class="overflow-x-auto rounded-2xl border border-border-default bg-surface" data-enter>
         <table class="min-w-full text-left text-sm">
           <thead class="bg-surface-muted/40 text-xs font-medium uppercase tracking-wider text-green-light/70">
             <tr>
@@ -164,7 +164,7 @@
       </div>
 
       <!-- Cards (mobile) -->
-      <div class="space-y-3 md:hidden" data-enter>
+      <div v-else class="space-y-3" data-enter>
         <button
           v-for="bug in filteredBugs"
           :key="bug.id"
@@ -590,6 +590,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
+import { useIsMobile } from '~/composables/useIsMobile'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformBugReportsStore } from '~/stores/platform-bug-reports'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
@@ -605,6 +606,8 @@ const authStore = usePlatformAuthStore()
 const bugStore = usePlatformBugReportsStore()
 const projectsStore = usePlatformProjectsStore()
 const requirementsStore = usePlatformRequirementsStore()
+
+const { isMobile } = useIsMobile()
 
 const projectRequirements = ref([])
 
