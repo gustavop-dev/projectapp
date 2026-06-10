@@ -54,6 +54,61 @@
         {{ search.trim() ? 'No encontramos clientes con ese criterio.' : 'Todavía no hay clientes en esta vista.' }}
       </div>
 
+      <!-- Móvil: lista de filas-tarjeta -->
+      <div v-else-if="isMobile" class="divide-y divide-border-muted">
+        <button
+          v-for="client in filteredClients"
+          :key="client.user_id"
+          type="button"
+          class="flex w-full items-start gap-3 p-4 text-left transition hover:bg-primary-soft"
+          @click="goToClient(client.user_id)"
+        >
+          <div class="h-9 w-9 shrink-0 overflow-hidden rounded-full">
+            <img v-if="client.avatar_display_url" :src="client.avatar_display_url" alt="Avatar" class="h-full w-full object-cover" />
+            <div v-else class="flex h-full w-full items-center justify-center bg-surface-muted text-xs font-semibold text-text-default dark:bg-white/10 dark:text-white">
+              {{ initials(client) }}
+            </div>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2">
+              <p class="truncate font-medium text-text-default">{{ client.first_name }} {{ client.last_name }}</p>
+              <span v-if="!client.is_active" class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-white/10 dark:text-green-light/70">Inactivo</span>
+            </div>
+            <p class="truncate text-xs text-green-light/60">{{ client.email }}</p>
+            <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+              <div>
+                <dt class="text-green-light/50">Empresa</dt>
+                <dd class="truncate text-green-light">{{ client.company_name || '—' }}</dd>
+              </div>
+              <div>
+                <dt class="text-green-light/50">Proyectos</dt>
+                <dd class="text-green-light">{{ client.active_projects_count ?? 0 }} / {{ client.total_projects_count ?? 0 }}</dd>
+              </div>
+              <div>
+                <dt class="text-green-light/50">Plan hosting</dt>
+                <dd>
+                  <span v-if="client.hosting_plan" class="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-medium text-text-brand dark:bg-lemon/10 dark:text-accent">{{ planLabel(client.hosting_plan) }}</span>
+                  <span v-else class="text-green-light/60">—</span>
+                </dd>
+              </div>
+              <div>
+                <dt class="text-green-light/50">Próx. renovación</dt>
+                <dd :class="renewalClass(client.hosting_renewal_at)">{{ formatDate(client.hosting_renewal_at) }}</dd>
+              </div>
+              <div>
+                <dt class="text-green-light/50">Valor renovación</dt>
+                <dd class="text-green-light">{{ formatMoney(client.hosting_renewal_value) }}</dd>
+              </div>
+              <div>
+                <dt class="text-green-light/50">Última actividad</dt>
+                <dd class="text-green-light/70">{{ relativeTime(client.last_activity_at) }}</dd>
+              </div>
+            </dl>
+          </div>
+          <span class="shrink-0 self-center text-green-light/40">›</span>
+        </button>
+      </div>
+
       <div v-else class="overflow-x-auto">
         <table class="min-w-full text-left text-sm">
           <thead>
@@ -202,6 +257,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import ConfirmModal from '~/components/ConfirmModal.vue'
 import { useConfirmModal } from '~/composables/useConfirmModal'
+import { useIsMobile } from '~/composables/useIsMobile'
 
 const localePath = useLocalePath()
 import { usePageEntrance } from '~/composables/usePageEntrance'
@@ -216,6 +272,7 @@ definePageMeta({
 usePageEntrance('#platform-clients')
 
 const platformClientsStore = usePlatformClientsStore()
+const { isMobile } = useIsMobile()
 const activeFilter = ref('active')
 const search = ref('')
 const isInviteModalOpen = ref(false)
