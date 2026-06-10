@@ -12,9 +12,9 @@
         <template v-if="project.next_deliverable"> · Próx. entrega: {{ formatDate(project.next_deliverable.due_date) }}</template>
       </p>
     </header>
-    <div class="flex gap-4">
+    <div class="flex flex-col gap-4 lg:flex-row">
       <ProjectSecondarySidebar :project-id="projectId" />
-      <main class="flex-1 rounded-3xl border border-border-default bg-surface px-6 py-6 shadow-sm">
+      <main class="min-w-0 flex-1 rounded-3xl border border-border-default bg-surface px-4 py-6 shadow-sm sm:px-6">
         <slot />
       </main>
     </div>

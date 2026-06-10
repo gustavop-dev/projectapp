@@ -46,7 +46,8 @@
       </div>
 
       <!-- Table -->
-      <div v-if="filteredItems.length" class="overflow-hidden rounded-2xl border border-border-default bg-surface" data-enter>
+      <template v-if="filteredItems.length">
+      <div class="hidden overflow-x-auto rounded-2xl border border-border-default bg-surface md:block" data-enter>
         <table class="min-w-full text-left text-sm">
           <thead class="bg-surface-muted/40 text-xs font-medium uppercase tracking-wider text-green-light/70">
             <tr>
@@ -95,6 +96,39 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Cards (mobile) -->
+      <div class="space-y-3 md:hidden" data-enter>
+        <button
+          v-for="d in filteredItems"
+          :key="d.id"
+          type="button"
+          class="block w-full rounded-2xl border border-border-default bg-surface p-4 text-left transition hover:bg-primary-soft"
+          :class="d.is_archived ? 'opacity-70' : ''"
+          @click="openDetailModal(d)"
+        >
+          <div class="flex items-center gap-3">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" :class="categoryIconBg(d.category)">
+              <span class="text-base">{{ categoryIcon(d.category) }}</span>
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="truncate font-medium text-text-default">{{ d.title }}</p>
+              <p class="truncate text-[11px] text-green-light/60">{{ d.file_name || '—' }}</p>
+            </div>
+            <span class="shrink-0 text-green-light/40">›</span>
+          </div>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="categoryBadgeClass(d.category)">{{ categoryLabel(d.category) }}</span>
+            <span v-if="d.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivado</span>
+            <span class="text-[10px] text-green-light/60">{{ formatBytes(d.file_size) }} · v{{ d.current_version }}</span>
+          </div>
+          <div class="mt-2 flex items-center justify-between gap-2 text-xs text-green-light/70">
+            <span class="truncate">{{ d.uploaded_by_name }}</span>
+            <span class="shrink-0">{{ formatDate(d.updated_at) }}</span>
+          </div>
+        </button>
+      </div>
+      </template>
 
       <!-- Empty -->
       <div v-else class="py-16 text-center" data-enter>
