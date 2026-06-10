@@ -1,44 +1,32 @@
 <template>
   <aside class="w-full shrink-0 self-start rounded-3xl border border-border-default bg-surface px-3 py-3 shadow-sm lg:w-56 lg:py-4">
-    <div class="relative">
-      <!-- Edge fades (móvil): insinúan que hay más tabs ocultos -->
-      <div
-        v-show="showLeftFade"
-        class="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-surface to-transparent lg:hidden"
-      ></div>
-      <div
-        v-show="showRightFade"
-        class="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-surface to-transparent lg:hidden"
-      ></div>
-
-      <div
-        ref="scrollerRef"
-        class="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible"
-        @scroll="updateScrollState"
-      >
-        <template v-for="item in items" :key="item.disabled ? item.label : item.href">
-          <span
-            v-if="item.disabled"
-            class="flex shrink-0 cursor-not-allowed items-center justify-between gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium opacity-40"
-          >
-            {{ item.label }}
-            <span class="rounded-full bg-surface-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-text-muted">Pronto</span>
-          </span>
-          <NuxtLink
-            v-else
-            :to="item.href"
-            :data-active="isActive(item.href)"
-            :class="[
-              'flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition',
-              isActive(item.href)
-                ? 'bg-primary-soft text-text-brand dark:bg-lemon/10 dark:text-accent'
-                : 'text-green-light hover:bg-primary-soft hover:text-text-brand dark:hover:text-accent',
-            ]"
-          >
-            {{ item.label }}
-          </NuxtLink>
-        </template>
-      </div>
+    <div
+      ref="scrollerRef"
+      class="scrollbar-hide flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible"
+      @scroll="updateScrollState"
+    >
+      <template v-for="item in items" :key="item.disabled ? item.label : item.href">
+        <span
+          v-if="item.disabled"
+          class="flex shrink-0 cursor-not-allowed items-center justify-between gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium opacity-40"
+        >
+          {{ item.label }}
+          <span class="rounded-full bg-surface-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-text-muted">Pronto</span>
+        </span>
+        <NuxtLink
+          v-else
+          :to="item.href"
+          :data-active="isActive(item.href)"
+          :class="[
+            'flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition',
+            isActive(item.href)
+              ? 'bg-primary-soft text-text-brand dark:bg-lemon/10 dark:text-accent'
+              : 'text-green-light hover:bg-primary-soft hover:text-text-brand dark:hover:text-accent',
+          ]"
+        >
+          {{ item.label }}
+        </NuxtLink>
+      </template>
     </div>
 
     <!-- Barrita indicadora de scroll (solo móvil, solo si hay overflow) -->
@@ -85,8 +73,6 @@ function isActive(href) {
 // --- Indicadores de scroll horizontal (móvil) ---
 const scrollerRef = ref(null)
 const hasOverflow = ref(false)
-const showLeftFade = ref(false)
-const showRightFade = ref(false)
 const thumbWidthPct = ref(100)
 const thumbLeftPct = ref(0)
 
@@ -101,8 +87,6 @@ function updateScrollState() {
   const { scrollLeft, scrollWidth, clientWidth } = el
   const max = scrollWidth - clientWidth
   hasOverflow.value = max > 2
-  showLeftFade.value = scrollLeft > 2
-  showRightFade.value = scrollLeft < max - 2
   thumbWidthPct.value = scrollWidth > 0 ? Math.min(100, (clientWidth / scrollWidth) * 100) : 100
   thumbLeftPct.value = scrollWidth > 0 ? (scrollLeft / scrollWidth) * 100 : 0
 }
@@ -141,3 +125,9 @@ watch(() => route.path, () => {
   })
 })
 </script>
+
+<style scoped>
+/* Oculta la scrollbar nativa: dejamos solo la barrita indicadora propia. */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
