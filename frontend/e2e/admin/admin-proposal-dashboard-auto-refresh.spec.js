@@ -85,8 +85,10 @@ test.describe('Admin Proposal Dashboard Auto-Refresh', () => {
     // Click refresh
     await page.getByRole('button', { name: 'Actualizar', exact: true }).click();
 
-    // Updated data should appear
-    await expect(page.getByText('15')).toBeVisible({ timeout: 5000 });
+    // Updated data should appear. Use exact match: a non-exact '15' also
+    // matches the "151d sin actividad" inactivity badge in the proposals
+    // table (date-dependent), which caused a strict-mode violation.
+    await expect(page.getByText('15', { exact: true })).toBeVisible({ timeout: 5000 });
     await expect(page.getByText('50%')).toBeVisible();
     expect(dashboardCalls).toBeGreaterThan(1);
   });
