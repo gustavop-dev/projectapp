@@ -11,7 +11,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 from huey import crontab
-from huey.contrib.djhuey import periodic_task, task
+from huey.contrib.djhuey import lock_task, periodic_task, task
 
 from accounts.models import UserProfile
 from content.services.proposal_email_service import _is_unsendable_client_email
@@ -527,6 +527,8 @@ def publish_single_scheduled_blog(post_id):
         logger.info('[Sched-ETA] post %s marcado is_published=True, lanzando LinkedIn', post_id)
         auto_publish_blog_to_linkedin(post)
         logger.info('[Sched-ETA] post %s publicado ok (slug=%s)', post.id, post.slug)
+        from content.services.frontend_build import schedule_rebuild_after_publish
+        schedule_rebuild_after_publish()
     except Exception:
         logger.exception('[Sched-ETA] error publicando post %s', post_id)
 
@@ -581,6 +583,46 @@ def publish_scheduled_blog_posts():
 
     if count > 0:
         logger.info('[Sched-Sweep] publicados %d post(s)', count)
+        from content.services.frontend_build import schedule_rebuild_after_publish
+        schedule_rebuild_after_publish()
+
+
+@task(retries=2, retry_delay=600)
+@lock_task('frontend-rebuild')
+def rebuild_frontend_prerender():
+    """
+    Rebuild the prerendered frontend so published blog changes reach the
+    static HTML that crawlers and link previews read.
+
+    Enqueued (with a coalescing delay) whenever a post is published, edited
+    while published, or deleted. The service skips the build when nothing
+    changed since the last one. The Redis lock serializes builds; a locked
+    attempt fails and Huey retries it in 10 minutes.
+    """
+    from content.services.frontend_build import run_frontend_rebuild
+
+    result = run_frontend_rebuild()
+    logger.info(
+        '[FrontendRebuild] %s — %s',
+        result['status'], (result['detail'] or '')[:300],
+    )
+
+
+@periodic_task(crontab(hour='2', minute='30'))
+@lock_task('frontend-rebuild')
+def nightly_frontend_rebuild():
+    """
+    Nightly safety net: rebuild if published blog content changed and no
+    on-publish trigger picked it up (Huey down at publish time, manual DB
+    edits, etc.). Skips via the marker check when there is nothing new.
+    """
+    from content.services.frontend_build import run_frontend_rebuild
+
+    result = run_frontend_rebuild()
+    logger.info(
+        '[FrontendRebuild nightly] %s — %s',
+        result['status'], (result['detail'] or '')[:300],
+    )
 
 
 def _suggest_action_for_proposal(proposal, now):

@@ -14,6 +14,7 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
 from content.models import BlogPost, PortfolioWork
+from content.services.frontend_build import schedule_rebuild_after_publish
 from content.serializers.blog import (
     BlogPostAdminDetailSerializer,
     BlogPostAdminListSerializer,
@@ -28,7 +29,8 @@ from content.serializers.blog import (
 logger = logging.getLogger(__name__)
 
 BASE_URL = 'https://projectapp.co'
-BLOG_PUBLIC_BASE = f'{BASE_URL}/blog'
+# Canonical public URL for posts (i18n strategy 'prefix': /blog/* only 301s here)
+BLOG_PUBLIC_BASE = f'{BASE_URL}/es-co/blog'
 
 
 def auto_publish_blog_to_linkedin(post):
@@ -156,29 +158,39 @@ def serve_sitemap_xml(request):
         lines.append(f'    <priority>{priority}</priority>')
         lines.append('  </url>')
 
-    # Blog index
+    # Blog index (bilingual — i18n strategy is 'prefix', unprefixed /blog is not a route)
     lines.append('')
     lines.append('  <!-- Blog -->')
-    lines.append('  <url>')
-    lines.append(f'    <loc>{BASE_URL}/blog</loc>')
-    lines.append('    <changefreq>daily</changefreq>')
-    lines.append('    <priority>0.8</priority>')
-    lines.append('  </url>')
+    for idx_path, idx_alt in (('/es-co/blog', '/en-us/blog'), ('/en-us/blog', '/es-co/blog')):
+        hl_self = 'es-co' if idx_path.startswith('/es-co') else 'en-us'
+        hl_alt = 'en-us' if hl_self == 'es-co' else 'es-co'
+        lines.append('  <url>')
+        lines.append(f'    <loc>{BASE_URL}{idx_path}</loc>')
+        lines.append(f'    <xhtml:link rel="alternate" hreflang="{hl_self}" href="{BASE_URL}{idx_path}" />')
+        lines.append(f'    <xhtml:link rel="alternate" hreflang="{hl_alt}" href="{BASE_URL}{idx_alt}" />')
+        lines.append('    <changefreq>daily</changefreq>')
+        lines.append('    <priority>0.8</priority>')
+        lines.append('  </url>')
 
-    # Blog posts (dynamic)
+    # Blog posts (dynamic, bilingual)
     posts = BlogPost.objects.filter(is_published=True).values('slug', 'updated_at')
     if posts.exists():
         lines.append('')
         lines.append('  <!-- Blog Posts -->')
         for post in posts:
             lastmod = post['updated_at'].strftime('%Y-%m-%d') if post['updated_at'] else ''
-            lines.append('  <url>')
-            lines.append(f'    <loc>{BASE_URL}/blog/{xml_escape(post["slug"])}</loc>')
-            if lastmod:
-                lines.append(f'    <lastmod>{lastmod}</lastmod>')
-            lines.append('    <changefreq>weekly</changefreq>')
-            lines.append('    <priority>0.7</priority>')
-            lines.append('  </url>')
+            es_url = f'{BASE_URL}/es-co/blog/{xml_escape(post["slug"])}'
+            en_url = f'{BASE_URL}/en-us/blog/{xml_escape(post["slug"])}'
+            for loc_url in (es_url, en_url):
+                lines.append('  <url>')
+                lines.append(f'    <loc>{loc_url}</loc>')
+                lines.append(f'    <xhtml:link rel="alternate" hreflang="es-co" href="{es_url}" />')
+                lines.append(f'    <xhtml:link rel="alternate" hreflang="en-us" href="{en_url}" />')
+                if lastmod:
+                    lines.append(f'    <lastmod>{lastmod}</lastmod>')
+                lines.append('    <changefreq>weekly</changefreq>')
+                lines.append('    <priority>0.7</priority>')
+                lines.append('  </url>')
 
     # Portfolio works (dynamic, bilingual)
     works = PortfolioWork.objects.filter(is_published=True).values('slug', 'updated_at')
@@ -330,6 +342,8 @@ def create_blog_post(request):
     )
     auto_publish_blog_to_linkedin(post)
     _enqueue_scheduled_publish_if_future(post)
+    if post.is_published:
+        schedule_rebuild_after_publish()
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_201_CREATED)
 
@@ -370,6 +384,10 @@ def update_blog_post(request, post_id):
         logger.info('[Blog] publish transition detected for post %s — triggering LinkedIn', post.id)
         auto_publish_blog_to_linkedin(post)
     _enqueue_scheduled_publish_if_future(post)
+    # Any save of a live post changes content baked into the static build
+    # (publish transition, content edit, or unpublish).
+    if post.is_published or was_published:
+        schedule_rebuild_after_publish()
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_200_OK)
 
@@ -381,7 +399,10 @@ def delete_blog_post(request, post_id):
     Delete a blog post.
     """
     post = get_object_or_404(BlogPost, pk=post_id)
+    was_published = post.is_published
     post.delete()
+    if was_published:
+        schedule_rebuild_after_publish()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -428,6 +449,8 @@ def create_blog_post_from_json(request):
 
     auto_publish_blog_to_linkedin(post)
     _enqueue_scheduled_publish_if_future(post)
+    if post.is_published:
+        schedule_rebuild_after_publish()
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_201_CREATED)
 

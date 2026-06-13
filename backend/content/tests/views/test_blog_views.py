@@ -427,11 +427,34 @@ class TestServeSitemapXml:
         assert 'https://projectapp.co/en-us' in content
 
     def test_includes_published_blog_posts(self, client, blog_post):
-        """Sitemap XML includes published blog post URLs with lastmod."""
+        """Sitemap XML includes locale-prefixed blog post URLs with lastmod."""
         response = client.get('/sitemap.xml')
         content = response.content.decode()
-        assert f'/blog/{blog_post.slug}' in content
+        assert f'<loc>https://projectapp.co/es-co/blog/{blog_post.slug}</loc>' in content
+        assert f'<loc>https://projectapp.co/en-us/blog/{blog_post.slug}</loc>' in content
         assert '<lastmod>' in content
+
+    def test_blog_posts_have_hreflang_alternates(self, client, blog_post):
+        """Each blog post entry carries es-co and en-us hreflang alternates."""
+        response = client.get('/sitemap.xml')
+        content = response.content.decode()
+        assert (
+            f'hreflang="es-co" href="https://projectapp.co/es-co/blog/{blog_post.slug}"'
+            in content
+        )
+        assert (
+            f'hreflang="en-us" href="https://projectapp.co/en-us/blog/{blog_post.slug}"'
+            in content
+        )
+
+    def test_blog_index_is_bilingual_with_no_unprefixed_urls(self, client):
+        """Blog index appears per locale; unprefixed /blog URLs are gone."""
+        response = client.get('/sitemap.xml')
+        content = response.content.decode()
+        assert '<loc>https://projectapp.co/es-co/blog</loc>' in content
+        assert '<loc>https://projectapp.co/en-us/blog</loc>' in content
+        assert '<loc>https://projectapp.co/blog</loc>' not in content
+        assert '<loc>https://projectapp.co/blog/' not in content
 
     def test_excludes_draft_blog_posts(self, client, draft_blog_post):
         """Sitemap XML excludes unpublished blog posts."""
@@ -448,7 +471,7 @@ class TestServeSitemapXml:
         )
         response = client.get('/sitemap.xml')
         content = response.content.decode()
-        assert f'/blog/{post.slug}' in content
+        assert f'/es-co/blog/{post.slug}' in content
 
 
     def test_includes_published_portfolio_works(self, client, published_portfolio_work):

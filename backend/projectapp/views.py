@@ -3,7 +3,9 @@ import mimetypes
 import os
 
 from django.conf import settings
-from django.http import FileResponse, Http404, HttpResponseRedirect
+from django.http import (
+    FileResponse, Http404, HttpResponseRedirect, HttpResponsePermanentRedirect,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +58,13 @@ def serve_nuxt(request, path=''):
         response = HttpResponseRedirect(f'/{_resolve_locale(request)}/')
         response['Cache-Control'] = 'no-store'
         return response
+
+    # Legacy unprefixed blog URLs: the i18n router uses strategy 'prefix', so
+    # /blog/<slug> was never a real route (old sitemaps and shared links point
+    # there). 301 to the es-co variant — posts are Spanish-first content — so
+    # crawlers consolidate signals on the canonical URL.
+    if clean_path == 'blog' or clean_path.startswith('blog/'):
+        return HttpResponsePermanentRedirect(f'/es-co/{clean_path}')
 
     # Security: prevent path traversal
     resolved = os.path.realpath(os.path.join(FRONTEND_DIR, clean_path))

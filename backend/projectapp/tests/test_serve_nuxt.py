@@ -185,6 +185,44 @@ class TestServeNuxtMissingFallback:
             views_mod.FRONTEND_DIR = original
 
 
+class TestServeNuxtLegacyBlogRedirect:
+    """Unprefixed /blog URLs 301 to the es-co canonical (i18n strategy 'prefix')."""
+
+    def test_blog_post_redirects_permanently_to_es_co(self, rf):
+        request = rf.get('/blog/my-post-slug')
+        response = serve_nuxt(request, path='blog/my-post-slug')
+        assert response.status_code == 301
+        assert response['Location'] == '/es-co/blog/my-post-slug'
+
+    def test_blog_index_redirects_permanently_to_es_co(self, rf):
+        request = rf.get('/blog')
+        response = serve_nuxt(request, path='blog')
+        assert response.status_code == 301
+        assert response['Location'] == '/es-co/blog'
+
+    def test_prefixed_blog_path_is_not_redirected(self, rf, frontend_dir):
+        import projectapp.views as views_mod
+        original = views_mod.FRONTEND_DIR
+        views_mod.FRONTEND_DIR = frontend_dir
+        try:
+            request = rf.get('/es-co/blog/my-post-slug')
+            response = serve_nuxt(request, path='es-co/blog/my-post-slug')
+            assert response.status_code == 200  # SPA fallback, not a redirect
+        finally:
+            views_mod.FRONTEND_DIR = original
+
+    def test_blog_prefix_of_longer_word_is_not_redirected(self, rf, frontend_dir):
+        import projectapp.views as views_mod
+        original = views_mod.FRONTEND_DIR
+        views_mod.FRONTEND_DIR = frontend_dir
+        try:
+            request = rf.get('/blogging-tips')
+            response = serve_nuxt(request, path='blogging-tips')
+            assert response.status_code == 200  # falls through to SPA fallback
+        finally:
+            views_mod.FRONTEND_DIR = original
+
+
 class TestServeNuxtRootRedirect:
     """Tests root path redirect behavior."""
 

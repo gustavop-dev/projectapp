@@ -184,6 +184,15 @@ STORAGES = {
 
 FRONTEND_BASE_URL = config('FRONTEND_BASE_URL', default='http://localhost:3000')
 
+# Frontend prerender rebuild (blog SEO). The static build bakes blog posts
+# into HTML, so publishing content triggers a rebuild (content/tasks.py).
+# Disabled by default in dev so local publishes don't spawn npm builds.
+FRONTEND_REBUILD_ENABLED = config('FRONTEND_REBUILD_ENABLED', default=not DEBUG, cast=bool)
+FRONTEND_BUILD_COMMAND = config('FRONTEND_BUILD_COMMAND', default='npm run build:django')
+# API origin the build fetches slugs/content from. In production gunicorn
+# listens on a unix socket, so the public domain is the reachable origin.
+PRERENDER_API_ORIGIN = config('PRERENDER_API_ORIGIN', default='http://127.0.0.1:8000')
+
 # When True, accepting a proposal without a linked deliverable creates a platform client
 # (if missing) + project + deliverable from proposal.client_email / client_name.
 AUTO_PROVISION_CLIENT_FROM_PROPOSAL = config(
