@@ -237,7 +237,7 @@
 
               <div class="p-6">
                 <h3 class="text-xl font-light mb-4 group-hover:text-green-light transition-colors leading-tight text-text-brand">
-                  {{ relPost.title }}
+                  <NuxtLink :to="localePath(`/blog/${relPost.slug}`)" @click.stop>{{ relPost.title }}</NuxtLink>
                 </h3>
                 <div v-if="relPost.read_time_minutes" class="flex items-center gap-2 text-sm text-green-light">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -298,6 +298,28 @@ const post = computed(() => blogStore.currentPost);
 const isEnglish = computed(() => locale.value.startsWith('en'));
 const blogLang = computed(() => isEnglish.value ? 'en' : 'es');
 
+// Fetch the post during SSR/prerender so the generated HTML carries the full
+// article + metas (crawlers and link previews never run onMounted). On the
+// server, relative /api URLs have no origin, so we hit Django directly.
+const runtimeConfig = useRuntimeConfig();
+const { data: ssrPost, error: ssrError } = await useAsyncData(
+  `blog-post-${route.params.slug}-${locale.value}`,
+  () => {
+    const base = import.meta.server ? runtimeConfig.apiInternalOrigin : '';
+    return $fetch(`${base}/api/blog/${route.params.slug}/?lang=${isEnglish.value ? 'en' : 'es'}`);
+  },
+);
+
+if (ssrPost.value) {
+  blogStore.currentPost = ssrPost.value;
+  blogStore.error = null;
+} else if (ssrError.value) {
+  blogStore.error = ssrError.value.statusCode === 404 ? 'not_found' : 'fetch_failed';
+  if (import.meta.server) {
+    setResponseStatus(useRequestEvent(), ssrError.value.statusCode === 404 ? 404 : 500);
+  }
+}
+
 const authorProfile = computed(() => {
   const slug = post.value?.author || 'projectapp-team';
   return AUTHOR_PROFILES[slug] || AUTHOR_PROFILES['projectapp-team'];
@@ -337,6 +359,7 @@ const articleTitle = computed(() => {
 const articleDescription = computed(() => post.value?.meta_description || post.value?.excerpt || '');
 
 useHead({
+  title: articleTitle,
   meta: [
     { name: 'description', content: articleDescription },
     { name: 'keywords', content: computed(() => post.value?.meta_keywords || '') },
@@ -410,7 +433,10 @@ function runArticleAnimations() {
 }
 
 onMounted(async () => {
-  await blogStore.fetchPost(route.params.slug, blogLang.value);
+  // The post itself is hydrated from the SSR payload; only refetch if missing.
+  if (!post.value) {
+    await blogStore.fetchPost(route.params.slug, blogLang.value);
+  }
   if (!blogStore.error && !blogStore.posts.length) {
     blogStore.fetchPosts(blogLang.value);
   }

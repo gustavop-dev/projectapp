@@ -120,7 +120,7 @@
                 </div>
 
                 <h2 class="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-light mb-4 sm:mb-6 max-w-4xl text-white leading-[1.1]" itemprop="headline">
-                  {{ featured.title }}
+                  <NuxtLink :to="localePath(`/blog/${featured.slug}`)" @click.stop>{{ featured.title }}</NuxtLink>
                 </h2>
 
                 <p class="text-sm sm:text-lg md:text-xl mb-4 sm:mb-8 max-w-3xl text-white/80 leading-relaxed hidden sm:block font-regular" itemprop="description">
@@ -176,7 +176,7 @@
                 </div>
                 <div class="flex-1 min-w-0 py-0.5 flex flex-col">
                   <h3 class="text-sm font-medium text-text-brand mb-1 leading-tight line-clamp-2" itemprop="headline">
-                    {{ post.title }}
+                    <NuxtLink :to="localePath(`/blog/${post.slug}`)" @click.stop>{{ post.title }}</NuxtLink>
                   </h3>
                   <p class="text-xs text-green-light line-clamp-2 mb-1.5 flex-1 font-regular" itemprop="description">{{ post.excerpt }}</p>
                   <div class="flex items-center gap-3 text-[10px] text-green-light">
@@ -236,7 +236,7 @@
                 </div>
 
                 <h3 class="text-xl font-light mb-3 group-hover:text-green-light transition-colors leading-tight text-text-brand" itemprop="headline">
-                  {{ post.title }}
+                  <NuxtLink :to="localePath(`/blog/${post.slug}`)" @click.stop>{{ post.title }}</NuxtLink>
                 </h3>
 
                 <p class="text-base mb-6 flex-1 text-green-light leading-relaxed font-regular" itemprop="description">
@@ -356,7 +356,29 @@ const blogDescription = computed(() => isEnglish.value
   : 'Novedades y tendencias en IA, desarrollo de software y transformación digital.'
 );
 
+// Fetch the first page during SSR/prerender so the generated index carries the
+// post list (real internal links for crawlers, not an empty client-side shell).
+const runtimeConfig = useRuntimeConfig();
+const { data: ssrPosts } = await useAsyncData(
+  `blog-posts-${locale.value}`,
+  () => {
+    const base = import.meta.server ? runtimeConfig.apiInternalOrigin : '';
+    return $fetch(`${base}/api/blog/?lang=${isEnglish.value ? 'en' : 'es'}&page=1&page_size=6`);
+  },
+);
+
+if (ssrPosts.value && !blogStore.posts.length) {
+  blogStore.posts = ssrPosts.value.results || ssrPosts.value;
+  blogStore.pagination = {
+    count: ssrPosts.value.count || blogStore.posts.length,
+    page: ssrPosts.value.page || 1,
+    pageSize: ssrPosts.value.page_size || 6,
+    totalPages: ssrPosts.value.total_pages || 1,
+  };
+}
+
 useHead({
+  title: blogTitle,
   meta: [
     { name: 'description', content: blogDescription },
     { name: 'keywords', content: computed(() => isEnglish.value
@@ -479,6 +501,8 @@ function runPostAnimations() {
 }
 
 onMounted(() => {
+  // The SSR payload covers first paint and crawlers; refetch unconditionally
+  // so visitors see posts published after the last prerender snapshot.
   blogStore.fetchPosts(blogLang.value);
   runHeroAnimations();
 });
