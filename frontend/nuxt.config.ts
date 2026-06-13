@@ -1,4 +1,34 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+// Django dev server target for the dev proxy; override with DJANGO_DEV_TARGET
+// when port 8000 is taken (e.g. DJANGO_DEV_TARGET=http://127.0.0.1:8001)
+const djangoDevTarget = process.env.DJANGO_DEV_TARGET || 'http://127.0.0.1:8000'
+
+// API origin used for server-side fetches during SSR/prerender, where relative
+// /api URLs have no origin to resolve against.
+const apiInternalOrigin = process.env.PRERENDER_API_ORIGIN || djangoDevTarget
+
+// Blog post routes to prerender, fetched from the Django API at build time.
+// Gated by PRERENDER_BLOG=1 (set by update-django-template.js) so `nuxi dev`
+// and CI builds without a backend are unaffected. PRERENDER_REQUIRE_BLOG=1
+// (set by the production rebuild task) turns a missing API into a hard build
+// failure — a deploy that silently drops 62 prerendered posts is a regression.
+async function blogPrerenderRoutes(): Promise<string[]> {
+  if (process.env.PRERENDER_BLOG !== '1') return []
+  try {
+    const res = await fetch(`${apiInternalOrigin}/api/blog/sitemap-data/`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const posts: Array<{ slug: string }> = await res.json()
+    const routes = posts.flatMap((p) => [`/es-co/blog/${p.slug}`, `/en-us/blog/${p.slug}`])
+    console.log(`[blog-prerender] ${routes.length} routes (${posts.length} posts) from ${apiInternalOrigin}`)
+    return routes
+  } catch (err) {
+    const msg = `[blog-prerender] Could not fetch slugs from ${apiInternalOrigin}: ${err}`
+    if (process.env.PRERENDER_REQUIRE_BLOG === '1') throw new Error(msg)
+    console.warn(`${msg} — building WITHOUT blog post prerender`)
+    return []
+  }
+}
+
 export default defineNuxtConfig({
   devtools: { enabled: true },
 
@@ -45,19 +75,19 @@ export default defineNuxtConfig({
   nitro: {
     devProxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000/api',
+        target: `${djangoDevTarget}/api`,
         changeOrigin: true,
       },
       '/admin': {
-        target: 'http://127.0.0.1:8000/admin',
+        target: `${djangoDevTarget}/admin`,
         changeOrigin: true,
       },
       '/static': {
-        target: 'http://127.0.0.1:8000/static',
+        target: `${djangoDevTarget}/static`,
         changeOrigin: true,
       },
       '/media': {
-        target: 'http://127.0.0.1:8000/media',
+        target: `${djangoDevTarget}/media`,
         changeOrigin: true,
       },
     },
@@ -71,11 +101,14 @@ export default defineNuxtConfig({
         '/en-us/portfolio-works',
         '/en-us/contact',
         '/en-us/contact-success',
+        '/en-us/blog',
         '/es-co',
         '/es-co/about-us',
         '/es-co/portfolio-works',
         '/es-co/contact',
         '/es-co/contact-success',
+        '/es-co/blog',
+        ...(await blogPrerenderRoutes()),
       ],
     },
   },
@@ -171,6 +204,8 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    // Server-only: origin for SSR/prerender fetches against the Django API.
+    apiInternalOrigin,
     public: {
       recaptchaSiteKey: process.env.NUXT_PUBLIC_RECAPTCHA_SITE_KEY || '',
     },

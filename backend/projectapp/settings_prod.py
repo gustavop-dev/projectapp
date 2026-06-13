@@ -15,6 +15,11 @@ from .settings import *  # noqa: F401, F403
 
 DEBUG = False  # Hardcoded, never from environment
 
+# Frontend prerender rebuild — explicit prod values (the base-settings default
+# derives from DEBUG at import time, before the hardcoded override above).
+FRONTEND_REBUILD_ENABLED = _config('FRONTEND_REBUILD_ENABLED', default=True, cast=bool)
+PRERENDER_API_ORIGIN = _config('PRERENDER_API_ORIGIN', default='https://projectapp.co')
+
 # Required in production
 if not _config('DJANGO_SECRET_KEY', default=''):
     raise ValueError("DJANGO_SECRET_KEY is required in production")
