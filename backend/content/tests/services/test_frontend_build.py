@@ -96,6 +96,7 @@ class TestRunFrontendRebuild:
         result = frontend_build.run_frontend_rebuild()
 
         assert result['status'] == 'success'
+        assert mock_run.call_count == 1
         mock_collectstatic.assert_not_called()
 
     @patch.object(frontend_build.subprocess, 'run')
@@ -129,16 +130,18 @@ class TestScheduleRebuildAfterPublish:
         settings.FRONTEND_REBUILD_ENABLED = True
         with patch('content.tasks.rebuild_frontend_prerender') as mock_task:
             frontend_build.schedule_rebuild_after_publish()
-        mock_task.schedule.assert_called_once_with(delay=120)
+        assert mock_task.schedule.call_count == 1
+        assert mock_task.schedule.call_args.kwargs == {'delay': 120}
 
     def test_noop_when_disabled(self, settings):
         settings.FRONTEND_REBUILD_ENABLED = False
         with patch('content.tasks.rebuild_frontend_prerender') as mock_task:
             frontend_build.schedule_rebuild_after_publish()
-        mock_task.schedule.assert_not_called()
+        assert mock_task.schedule.call_count == 0
 
-    def test_enqueue_failure_does_not_raise(self, settings):
+    def test_enqueue_failure_does_not_raise(self, settings, caplog):
         settings.FRONTEND_REBUILD_ENABLED = True
         with patch('content.tasks.rebuild_frontend_prerender') as mock_task:
             mock_task.schedule.side_effect = RuntimeError('redis down')
             frontend_build.schedule_rebuild_after_publish()  # must not raise
+        assert 'failed to enqueue rebuild' in caplog.text
