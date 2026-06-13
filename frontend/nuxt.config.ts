@@ -1,4 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+// Django dev server target for the dev proxy; override with DJANGO_DEV_TARGET
+// when port 8000 is taken (e.g. DJANGO_DEV_TARGET=http://127.0.0.1:8001)
+const djangoDevTarget = process.env.DJANGO_DEV_TARGET || 'http://127.0.0.1:8000'
+
 export default defineNuxtConfig({
   devtools: { enabled: true },
 
@@ -45,19 +49,19 @@ export default defineNuxtConfig({
   nitro: {
     devProxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000/api',
+        target: `${djangoDevTarget}/api`,
         changeOrigin: true,
       },
       '/admin': {
-        target: 'http://127.0.0.1:8000/admin',
+        target: `${djangoDevTarget}/admin`,
         changeOrigin: true,
       },
       '/static': {
-        target: 'http://127.0.0.1:8000/static',
+        target: `${djangoDevTarget}/static`,
         changeOrigin: true,
       },
       '/media': {
-        target: 'http://127.0.0.1:8000/media',
+        target: `${djangoDevTarget}/media`,
         changeOrigin: true,
       },
     },
