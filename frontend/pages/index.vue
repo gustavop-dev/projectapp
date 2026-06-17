@@ -1,5 +1,8 @@
 <template>
-  <div class="overflow-x-hidden bg-primary-soft" itemscope itemtype="https://schema.org/WebPage">
+  <div class="relative overflow-x-hidden" itemscope itemtype="https://schema.org/WebPage">
+    <!-- Animated mesh-gradient background (fixed, behind everything) -->
+    <AnimatedBackground />
+
     <!-- S1: Hero + CTA WhatsApp -->
     <Hero />
 
@@ -51,6 +54,7 @@ import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useFreeResources } from '~/composables/useFreeResources'
 import FooterSection from '~/components/sections/FooterSection.vue'
 import Hero from '~/components/home/Hero.vue'
+import AnimatedBackground from '~/components/home/AnimatedBackground.vue'
 import TechStack from '~/components/home/TechStack.vue'
 import ServicesCards from '~/components/home/ServicesCards.vue'
 import UnrepeatableSection from '~/components/home/UnrepeatableSection.vue'

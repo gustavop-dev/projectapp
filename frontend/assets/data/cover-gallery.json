@@ -1,0 +1,912 @@
+{
+  "generatedBy": "frontend/scripts/classify-gallery-brightness.py",
+  "metric": "perceptual luminance (0.299R+0.587G+0.114B) on 64x64 resize; matches frontend/utils/colorUtils.js measureBrightness",
+  "threshold": 120.0,
+  "counts": {
+    "total": 100,
+    "light": 48,
+    "dark": 52
+  },
+  "images": [
+    {
+      "category": "Colors and Gradients",
+      "filename": "imgi_10_gradients_8.png",
+      "name": "Gradients 8",
+      "path": "Colors and Gradients/imgi_10_gradients_8.png",
+      "url": "/static/cover_gallery/Colors%20and%20Gradients/imgi_10_gradients_8.png",
+      "brightness": 163.7,
+      "tone": "light"
+    },
+    {
+      "category": "Colors and Gradients",
+      "filename": "imgi_11_gradients_4.png",
+      "name": "Gradients 4",
+      "path": "Colors and Gradients/imgi_11_gradients_4.png",
+      "url": "/static/cover_gallery/Colors%20and%20Gradients/imgi_11_gradients_4.png",
+      "brightness": 122.1,
+      "tone": "light"
+    },
+    {
+      "category": "Colors and Gradients",
+      "filename": "imgi_12_gradients_2.png",
+      "name": "Gradients 2",
+      "path": "Colors and Gradients/imgi_12_gradients_2.png",
+      "url": "/static/cover_gallery/Colors%20and%20Gradients/imgi_12_gradients_2.png",
+      "brightness": 126.9,
+      "tone": "light"
+    },
+    {
+      "category": "Colors and Gradients",
+      "filename": "imgi_13_gradients_11.jpg",
+      "name": "Gradients 11",
+      "path": "Colors and Gradients/imgi_13_gradients_11.jpg",
+      "url": "/static/cover_gallery/Colors%20and%20Gradients/imgi_13_gradients_11.jpg",
+      "brightness": 171.0,
+      "tone": "light"
+    },
+    {
+      "category": "Colors and Gradients",
+      "filename": "imgi_14_gradients_10.jpg",
+      "name": "Gradients 10",
+      "path": "Colors and Gradients/imgi_14_gradients_10.jpg",
+      "url": "/static/cover_gallery/Colors%20and%20Gradients/imgi_14_gradients_10.jpg",
+      "brightness": 108.9,
+      "tone": "dark"
+    },
+    {
+      "category": "Colors and Gradients",
+      "filename": "imgi_15_gradients_5.png",
+      "name": "Gradients 5",
+      "path": "Colors and Gradients/imgi_15_gradients_5.png",
+      "url": "/static/cover_gallery/Colors%20and%20Gradients/imgi_15_gradients_5.png",
+      "brightness": 116.1,
+      "tone": "dark"
+    },
+    {
+      "category": "Colors and Gradients",
+      "filename": "imgi_16_gradients_3.png",
+      "name": "Gradients 3",
+      "path": "Colors and Gradients/imgi_16_gradients_3.png",
+      "url": "/static/cover_gallery/Colors%20and%20Gradients/imgi_16_gradients_3.png",
+      "brightness": 124.8,
+      "tone": "light"
+    },
+    {
+      "category": "Colors and Gradients",
+      "filename": "imgi_6_solid_red.png",
+      "name": "Solid Red",
+      "path": "Colors and Gradients/imgi_6_solid_red.png",
+      "url": "/static/cover_gallery/Colors%20and%20Gradients/imgi_6_solid_red.png",
+      "brightness": 131.3,
+      "tone": "light"
+    },
+    {
+      "category": "Colors and Gradients",
+      "filename": "imgi_7_solid_yellow.png",
+      "name": "Solid Yellow",
+      "path": "Colors and Gradients/imgi_7_solid_yellow.png",
+      "url": "/static/cover_gallery/Colors%20and%20Gradients/imgi_7_solid_yellow.png",
+      "brightness": 195.9,
+      "tone": "light"
+    },
+    {
+      "category": "Colors and Gradients",
+      "filename": "imgi_8_solid_blue.png",
+      "name": "Solid Blue",
+      "path": "Colors and Gradients/imgi_8_solid_blue.png",
+      "url": "/static/cover_gallery/Colors%20and%20Gradients/imgi_8_solid_blue.png",
+      "brightness": 122.3,
+      "tone": "light"
+    },
+    {
+      "category": "Colors and Gradients",
+      "filename": "imgi_9_solid_beige.png",
+      "name": "Solid Beige",
+      "path": "Colors and Gradients/imgi_9_solid_beige.png",
+      "url": "/static/cover_gallery/Colors%20and%20Gradients/imgi_9_solid_beige.png",
+      "brightness": 242.4,
+      "tone": "light"
+    },
+    {
+      "category": "James Webb Space Telescope",
+      "filename": "imgi_17_webb1.jpg",
+      "name": "Webb1",
+      "path": "James Webb Space Telescope/imgi_17_webb1.jpg",
+      "url": "/static/cover_gallery/James%20Webb%20Space%20Telescope/imgi_17_webb1.jpg",
+      "brightness": 79.2,
+      "tone": "dark"
+    },
+    {
+      "category": "James Webb Space Telescope",
+      "filename": "imgi_18_webb2.jpg",
+      "name": "Webb2",
+      "path": "James Webb Space Telescope/imgi_18_webb2.jpg",
+      "url": "/static/cover_gallery/James%20Webb%20Space%20Telescope/imgi_18_webb2.jpg",
+      "brightness": 30.6,
+      "tone": "dark"
+    },
+    {
+      "category": "James Webb Space Telescope",
+      "filename": "imgi_19_webb3.jpg",
+      "name": "Webb3",
+      "path": "James Webb Space Telescope/imgi_19_webb3.jpg",
+      "url": "/static/cover_gallery/James%20Webb%20Space%20Telescope/imgi_19_webb3.jpg",
+      "brightness": 33.1,
+      "tone": "dark"
+    },
+    {
+      "category": "James Webb Space Telescope",
+      "filename": "imgi_20_webb4.jpg",
+      "name": "Webb4",
+      "path": "James Webb Space Telescope/imgi_20_webb4.jpg",
+      "url": "/static/cover_gallery/James%20Webb%20Space%20Telescope/imgi_20_webb4.jpg",
+      "brightness": 32.1,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_100_met_the_unicorn_in_captivity.jpg",
+      "name": "Met The Unicorn In Captivity",
+      "path": "Met Museum/imgi_100_met_the_unicorn_in_captivity.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_100_met_the_unicorn_in_captivity.jpg",
+      "brightness": 85.9,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_101_met_goya_1789.jpg",
+      "name": "Met Goya 1789",
+      "path": "Met Museum/imgi_101_met_goya_1789.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_101_met_goya_1789.jpg",
+      "brightness": 72.7,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_102_met_bruegel_1565.jpg",
+      "name": "Met Bruegel 1565",
+      "path": "Met Museum/imgi_102_met_bruegel_1565.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_102_met_bruegel_1565.jpg",
+      "brightness": 114.3,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_103_met_canaletto_1720.jpg",
+      "name": "Met Canaletto 1720",
+      "path": "Met Museum/imgi_103_met_canaletto_1720.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_103_met_canaletto_1720.jpg",
+      "brightness": 130.7,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_104_met_klimt_1912.jpg",
+      "name": "Met Klimt 1912",
+      "path": "Met Museum/imgi_104_met_klimt_1912.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_104_met_klimt_1912.jpg",
+      "brightness": 164.8,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_75_met_vincent_van_gogh_ginoux.jpg",
+      "name": "Met Vincent Van Gogh Ginoux",
+      "path": "Met Museum/imgi_75_met_vincent_van_gogh_ginoux.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_75_met_vincent_van_gogh_ginoux.jpg",
+      "brightness": 131.0,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_76_met_winslow_homer_maine_coast.jpg",
+      "name": "Met Winslow Homer Maine Coast",
+      "path": "Met Museum/imgi_76_met_winslow_homer_maine_coast.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_76_met_winslow_homer_maine_coast.jpg",
+      "brightness": 116.0,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_77_met_frederic_edwin_church_1871.jpg",
+      "name": "Met Frederic Edwin Church 1871",
+      "path": "Met Museum/imgi_77_met_frederic_edwin_church_1871.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_77_met_frederic_edwin_church_1871.jpg",
+      "brightness": 100.7,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_78_met_joseph_hidley_1870.jpg",
+      "name": "Met Joseph Hidley 1870",
+      "path": "Met Museum/imgi_78_met_joseph_hidley_1870.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_78_met_joseph_hidley_1870.jpg",
+      "brightness": 122.5,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_79_met_jules_tavernier_1878.jpg",
+      "name": "Met Jules Tavernier 1878",
+      "path": "Met Museum/imgi_79_met_jules_tavernier_1878.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_79_met_jules_tavernier_1878.jpg",
+      "brightness": 25.8,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_80_met_henry_lerolle_1885.jpg",
+      "name": "Met Henry Lerolle 1885",
+      "path": "Met Museum/imgi_80_met_henry_lerolle_1885.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_80_met_henry_lerolle_1885.jpg",
+      "brightness": 99.9,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_81_met_georges_seurat_1884.jpg",
+      "name": "Met Georges Seurat 1884",
+      "path": "Met Museum/imgi_81_met_georges_seurat_1884.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_81_met_georges_seurat_1884.jpg",
+      "brightness": 105.8,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_82_met_john_singer_sargent_morocco.jpg",
+      "name": "Met John Singer Sargent Morocco",
+      "path": "Met Museum/imgi_82_met_john_singer_sargent_morocco.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_82_met_john_singer_sargent_morocco.jpg",
+      "brightness": 137.6,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_83_met_paul_signac.jpg",
+      "name": "Met Paul Signac",
+      "path": "Met Museum/imgi_83_met_paul_signac.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_83_met_paul_signac.jpg",
+      "brightness": 165.1,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_84_met_vincent_van_gogh_oleanders.jpg",
+      "name": "Met Vincent Van Gogh Oleanders",
+      "path": "Met Museum/imgi_84_met_vincent_van_gogh_oleanders.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_84_met_vincent_van_gogh_oleanders.jpg",
+      "brightness": 123.8,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_85_met_emanuel_leutze.jpg",
+      "name": "Met Emanuel Leutze",
+      "path": "Met Museum/imgi_85_met_emanuel_leutze.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_85_met_emanuel_leutze.jpg",
+      "brightness": 103.3,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_86_met_fitz_henry_lane.jpg",
+      "name": "Met Fitz Henry Lane",
+      "path": "Met Museum/imgi_86_met_fitz_henry_lane.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_86_met_fitz_henry_lane.jpg",
+      "brightness": 136.1,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_87_met_vincent_van_gogh_cradle.jpg",
+      "name": "Met Vincent Van Gogh Cradle",
+      "path": "Met Museum/imgi_87_met_vincent_van_gogh_cradle.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_87_met_vincent_van_gogh_cradle.jpg",
+      "brightness": 65.7,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_88_met_camille_pissarro_1896.jpg",
+      "name": "Met Camille Pissarro 1896",
+      "path": "Met Museum/imgi_88_met_camille_pissarro_1896.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_88_met_camille_pissarro_1896.jpg",
+      "brightness": 168.2,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_89_met_gerome_1890.jpg",
+      "name": "Met Gerome 1890",
+      "path": "Met Museum/imgi_89_met_gerome_1890.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_89_met_gerome_1890.jpg",
+      "brightness": 61.6,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_90_met_arnold_bocklin_1880.jpg",
+      "name": "Met Arnold Bocklin 1880",
+      "path": "Met Museum/imgi_90_met_arnold_bocklin_1880.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_90_met_arnold_bocklin_1880.jpg",
+      "brightness": 43.6,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_91_met_henri_tl_1892.jpg",
+      "name": "Met Henri Tl 1892",
+      "path": "Met Museum/imgi_91_met_henri_tl_1892.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_91_met_henri_tl_1892.jpg",
+      "brightness": 100.6,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_92_met_horace_pippin.jpg",
+      "name": "Met Horace Pippin",
+      "path": "Met Museum/imgi_92_met_horace_pippin.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_92_met_horace_pippin.jpg",
+      "brightness": 96.5,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_93_met_jean_beraud.jpg",
+      "name": "Met Jean Beraud",
+      "path": "Met Museum/imgi_93_met_jean_beraud.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_93_met_jean_beraud.jpg",
+      "brightness": 102.9,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_94_met_cezanne_1890.jpg",
+      "name": "Met Cezanne 1890",
+      "path": "Met Museum/imgi_94_met_cezanne_1890.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_94_met_cezanne_1890.jpg",
+      "brightness": 116.2,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_95_met_edgar_degas_1874.jpg",
+      "name": "Met Edgar Degas 1874",
+      "path": "Met Museum/imgi_95_met_edgar_degas_1874.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_95_met_edgar_degas_1874.jpg",
+      "brightness": 101.5,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_96_met_henri_rousseau_1907.jpg",
+      "name": "Met Henri Rousseau 1907",
+      "path": "Met Museum/imgi_96_met_henri_rousseau_1907.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_96_met_henri_rousseau_1907.jpg",
+      "brightness": 83.1,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_97_met_vincent_van_gogh_irises.jpg",
+      "name": "Met Vincent Van Gogh Irises",
+      "path": "Met Museum/imgi_97_met_vincent_van_gogh_irises.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_97_met_vincent_van_gogh_irises.jpg",
+      "brightness": 169.5,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_98_met_terracotta_funerary_plaque.jpg",
+      "name": "Met Terracotta Funerary Plaque",
+      "path": "Met Museum/imgi_98_met_terracotta_funerary_plaque.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_98_met_terracotta_funerary_plaque.jpg",
+      "brightness": 103.1,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum",
+      "filename": "imgi_99_met_william_turner_1835.jpg",
+      "name": "Met William Turner 1835",
+      "path": "Met Museum/imgi_99_met_william_turner_1835.jpg",
+      "url": "/static/cover_gallery/Met%20Museum/imgi_99_met_william_turner_1835.jpg",
+      "brightness": 173.6,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_2_woodcuts_4.jpg",
+      "name": "Woodcuts 4",
+      "path": "Met Museum Japanese Prints/imgi_2_woodcuts_4.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_2_woodcuts_4.jpg",
+      "brightness": 132.8,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_58_woodcuts_1.jpg",
+      "name": "Woodcuts 1",
+      "path": "Met Museum Japanese Prints/imgi_58_woodcuts_1.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_58_woodcuts_1.jpg",
+      "brightness": 179.2,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_59_woodcuts_2.jpg",
+      "name": "Woodcuts 2",
+      "path": "Met Museum Japanese Prints/imgi_59_woodcuts_2.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_59_woodcuts_2.jpg",
+      "brightness": 119.7,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_60_woodcuts_3.jpg",
+      "name": "Woodcuts 3",
+      "path": "Met Museum Japanese Prints/imgi_60_woodcuts_3.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_60_woodcuts_3.jpg",
+      "brightness": 145.3,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_61_woodcuts_5.jpg",
+      "name": "Woodcuts 5",
+      "path": "Met Museum Japanese Prints/imgi_61_woodcuts_5.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_61_woodcuts_5.jpg",
+      "brightness": 134.0,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_62_woodcuts_6.jpg",
+      "name": "Woodcuts 6",
+      "path": "Met Museum Japanese Prints/imgi_62_woodcuts_6.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_62_woodcuts_6.jpg",
+      "brightness": 154.4,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_63_woodcuts_7.jpg",
+      "name": "Woodcuts 7",
+      "path": "Met Museum Japanese Prints/imgi_63_woodcuts_7.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_63_woodcuts_7.jpg",
+      "brightness": 144.0,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_64_woodcuts_8.jpg",
+      "name": "Woodcuts 8",
+      "path": "Met Museum Japanese Prints/imgi_64_woodcuts_8.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_64_woodcuts_8.jpg",
+      "brightness": 168.0,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_65_woodcuts_9.jpg",
+      "name": "Woodcuts 9",
+      "path": "Met Museum Japanese Prints/imgi_65_woodcuts_9.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_65_woodcuts_9.jpg",
+      "brightness": 182.0,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_66_woodcuts_10.jpg",
+      "name": "Woodcuts 10",
+      "path": "Met Museum Japanese Prints/imgi_66_woodcuts_10.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_66_woodcuts_10.jpg",
+      "brightness": 177.0,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_67_woodcuts_11.jpg",
+      "name": "Woodcuts 11",
+      "path": "Met Museum Japanese Prints/imgi_67_woodcuts_11.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_67_woodcuts_11.jpg",
+      "brightness": 79.0,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_68_woodcuts_13.jpg",
+      "name": "Woodcuts 13",
+      "path": "Met Museum Japanese Prints/imgi_68_woodcuts_13.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_68_woodcuts_13.jpg",
+      "brightness": 175.9,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_69_woodcuts_14.jpg",
+      "name": "Woodcuts 14",
+      "path": "Met Museum Japanese Prints/imgi_69_woodcuts_14.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_69_woodcuts_14.jpg",
+      "brightness": 181.4,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_70_woodcuts_15.jpg",
+      "name": "Woodcuts 15",
+      "path": "Met Museum Japanese Prints/imgi_70_woodcuts_15.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_70_woodcuts_15.jpg",
+      "brightness": 161.8,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_71_woodcuts_16.jpg",
+      "name": "Woodcuts 16",
+      "path": "Met Museum Japanese Prints/imgi_71_woodcuts_16.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_71_woodcuts_16.jpg",
+      "brightness": 170.7,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_72_woodcuts_sekka_1.jpg",
+      "name": "Woodcuts Sekka 1",
+      "path": "Met Museum Japanese Prints/imgi_72_woodcuts_sekka_1.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_72_woodcuts_sekka_1.jpg",
+      "brightness": 177.4,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_73_woodcuts_sekka_2.jpg",
+      "name": "Woodcuts Sekka 2",
+      "path": "Met Museum Japanese Prints/imgi_73_woodcuts_sekka_2.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_73_woodcuts_sekka_2.jpg",
+      "brightness": 196.0,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Japanese Prints",
+      "filename": "imgi_74_woodcuts_sekka_3.jpg",
+      "name": "Woodcuts Sekka 3",
+      "path": "Met Museum Japanese Prints/imgi_74_woodcuts_sekka_3.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Japanese%20Prints/imgi_74_woodcuts_sekka_3.jpg",
+      "brightness": 195.1,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Patterns",
+      "filename": "imgi_43_met_william_morris_1877_willow.jpg",
+      "name": "Met William Morris 1877 Willow",
+      "path": "Met Museum Patterns/imgi_43_met_william_morris_1877_willow.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Patterns/imgi_43_met_william_morris_1877_willow.jpg",
+      "brightness": 192.8,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Patterns",
+      "filename": "imgi_44_met_william_morris_1875.jpg",
+      "name": "Met William Morris 1875",
+      "path": "Met Museum Patterns/imgi_44_met_william_morris_1875.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Patterns/imgi_44_met_william_morris_1875.jpg",
+      "brightness": 165.3,
+      "tone": "light"
+    },
+    {
+      "category": "Met Museum Patterns",
+      "filename": "imgi_45_met_william_morris_1878.jpg",
+      "name": "Met William Morris 1878",
+      "path": "Met Museum Patterns/imgi_45_met_william_morris_1878.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Patterns/imgi_45_met_william_morris_1878.jpg",
+      "brightness": 65.5,
+      "tone": "dark"
+    },
+    {
+      "category": "Met Museum Patterns",
+      "filename": "imgi_46_met_silk_kashan_carpet.jpg",
+      "name": "Met Silk Kashan Carpet",
+      "path": "Met Museum Patterns/imgi_46_met_silk_kashan_carpet.jpg",
+      "url": "/static/cover_gallery/Met%20Museum%20Patterns/imgi_46_met_silk_kashan_carpet.jpg",
+      "brightness": 128.2,
+      "tone": "light"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_21_nasa_the_blue_marble.jpg",
+      "name": "Nasa The Blue Marble",
+      "path": "NASA Archive/imgi_21_nasa_the_blue_marble.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_21_nasa_the_blue_marble.jpg",
+      "brightness": 64.4,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_22_nasa_transonic_tunnel.jpg",
+      "name": "Nasa Transonic Tunnel",
+      "path": "NASA Archive/imgi_22_nasa_transonic_tunnel.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_22_nasa_transonic_tunnel.jpg",
+      "brightness": 77.1,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_23_nasa_multi-axis_gimbal_rig.jpg",
+      "name": "Nasa Multi-Axis Gimbal Rig",
+      "path": "NASA Archive/imgi_23_nasa_multi-axis_gimbal_rig.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_23_nasa_multi-axis_gimbal_rig.jpg",
+      "brightness": 103.5,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_24_nasa_eva_during_skylab_3.jpg",
+      "name": "Nasa Eva During Skylab 3",
+      "path": "NASA Archive/imgi_24_nasa_eva_during_skylab_3.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_24_nasa_eva_during_skylab_3.jpg",
+      "brightness": 85.0,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_25_nasa_eagle_in_lunar_orbit.jpg",
+      "name": "Nasa Eagle In Lunar Orbit",
+      "path": "NASA Archive/imgi_25_nasa_eagle_in_lunar_orbit.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_25_nasa_eagle_in_lunar_orbit.jpg",
+      "brightness": 25.8,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_26_nasa_buzz_aldrin_on_the_moon.jpg",
+      "name": "Nasa Buzz Aldrin On The Moon",
+      "path": "NASA Archive/imgi_26_nasa_buzz_aldrin_on_the_moon.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_26_nasa_buzz_aldrin_on_the_moon.jpg",
+      "brightness": 76.7,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_27_nasa_ibm_type_704.jpg",
+      "name": "Nasa Ibm Type 704",
+      "path": "NASA Archive/imgi_27_nasa_ibm_type_704.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_27_nasa_ibm_type_704.jpg",
+      "brightness": 92.2,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_28_nasa_wrights_first_flight.jpg",
+      "name": "Nasa Wrights First Flight",
+      "path": "NASA Archive/imgi_28_nasa_wrights_first_flight.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_28_nasa_wrights_first_flight.jpg",
+      "brightness": 168.3,
+      "tone": "light"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_29_nasa_great_sandy_desert_australia.jpg",
+      "name": "Nasa Great Sandy Desert Australia",
+      "path": "NASA Archive/imgi_29_nasa_great_sandy_desert_australia.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_29_nasa_great_sandy_desert_australia.jpg",
+      "brightness": 181.1,
+      "tone": "light"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_30_nasa_space_shuttle_columbia.jpg",
+      "name": "Nasa Space Shuttle Columbia",
+      "path": "NASA Archive/imgi_30_nasa_space_shuttle_columbia.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_30_nasa_space_shuttle_columbia.jpg",
+      "brightness": 24.7,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_31_nasa_robert_stewart_spacewalk.jpg",
+      "name": "Nasa Robert Stewart Spacewalk",
+      "path": "NASA Archive/imgi_31_nasa_robert_stewart_spacewalk.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_31_nasa_robert_stewart_spacewalk.jpg",
+      "brightness": 110.7,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_32_nasa_space_shuttle_challenger.jpg",
+      "name": "Nasa Space Shuttle Challenger",
+      "path": "NASA Archive/imgi_32_nasa_space_shuttle_challenger.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_32_nasa_space_shuttle_challenger.jpg",
+      "brightness": 135.2,
+      "tone": "light"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_33_nasa_robert_stewart_spacewalk_2.jpg",
+      "name": "Nasa Robert Stewart Spacewalk 2",
+      "path": "NASA Archive/imgi_33_nasa_robert_stewart_spacewalk_2.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_33_nasa_robert_stewart_spacewalk_2.jpg",
+      "brightness": 124.1,
+      "tone": "light"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_34_nasa_space_shuttle_columbia_and_sunrise.jpg",
+      "name": "Nasa Space Shuttle Columbia And Sunrise",
+      "path": "NASA Archive/imgi_34_nasa_space_shuttle_columbia_and_sunrise.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_34_nasa_space_shuttle_columbia_and_sunrise.jpg",
+      "brightness": 24.1,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_35_nasa_tim_peake_spacewalk.jpg",
+      "name": "Nasa Tim Peake Spacewalk",
+      "path": "NASA Archive/imgi_35_nasa_tim_peake_spacewalk.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_35_nasa_tim_peake_spacewalk.jpg",
+      "brightness": 67.8,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_36_nasa_bruce_mccandless_spacewalk.jpg",
+      "name": "Nasa Bruce Mccandless Spacewalk",
+      "path": "NASA Archive/imgi_36_nasa_bruce_mccandless_spacewalk.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_36_nasa_bruce_mccandless_spacewalk.jpg",
+      "brightness": 48.5,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_37_nasa_new_york_city_grid.jpg",
+      "name": "Nasa New York City Grid",
+      "path": "NASA Archive/imgi_37_nasa_new_york_city_grid.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_37_nasa_new_york_city_grid.jpg",
+      "brightness": 63.4,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_38_nasa_fingerprints_of_water_on_the_sand.jpg",
+      "name": "Nasa Fingerprints Of Water On The Sand",
+      "path": "NASA Archive/imgi_38_nasa_fingerprints_of_water_on_the_sand.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_38_nasa_fingerprints_of_water_on_the_sand.jpg",
+      "brightness": 141.7,
+      "tone": "light"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_39_nasa_carina_nebula.jpg",
+      "name": "Nasa Carina Nebula",
+      "path": "NASA Archive/imgi_39_nasa_carina_nebula.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_39_nasa_carina_nebula.jpg",
+      "brightness": 117.8,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_40_nasa_orion_nebula.jpg",
+      "name": "Nasa Orion Nebula",
+      "path": "NASA Archive/imgi_40_nasa_orion_nebula.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_40_nasa_orion_nebula.jpg",
+      "brightness": 73.9,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_41_nasa_reduced_gravity_walking_simulator.jpg",
+      "name": "Nasa Reduced Gravity Walking Simulator",
+      "path": "NASA Archive/imgi_41_nasa_reduced_gravity_walking_simulator.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_41_nasa_reduced_gravity_walking_simulator.jpg",
+      "brightness": 75.6,
+      "tone": "dark"
+    },
+    {
+      "category": "NASA Archive",
+      "filename": "imgi_42_nasa_earth_grid.jpg",
+      "name": "Nasa Earth Grid",
+      "path": "NASA Archive/imgi_42_nasa_earth_grid.jpg",
+      "url": "/static/cover_gallery/NASA%20Archive/imgi_42_nasa_earth_grid.jpg",
+      "brightness": 22.1,
+      "tone": "dark"
+    },
+    {
+      "category": "Rijksmuseum",
+      "filename": "imgi_47_rijksmuseum_vermeer_the_milkmaid.jpg",
+      "name": "Rijksmuseum Vermeer The Milkmaid",
+      "path": "Rijksmuseum/imgi_47_rijksmuseum_vermeer_the_milkmaid.jpg",
+      "url": "/static/cover_gallery/Rijksmuseum/imgi_47_rijksmuseum_vermeer_the_milkmaid.jpg",
+      "brightness": 100.8,
+      "tone": "dark"
+    },
+    {
+      "category": "Rijksmuseum",
+      "filename": "imgi_48_rijksmuseum_jansz_1649.jpg",
+      "name": "Rijksmuseum Jansz 1649",
+      "path": "Rijksmuseum/imgi_48_rijksmuseum_jansz_1649.jpg",
+      "url": "/static/cover_gallery/Rijksmuseum/imgi_48_rijksmuseum_jansz_1649.jpg",
+      "brightness": 133.3,
+      "tone": "light"
+    },
+    {
+      "category": "Rijksmuseum",
+      "filename": "imgi_49_rijksmuseum_rembrandt_1642.jpg",
+      "name": "Rijksmuseum Rembrandt 1642",
+      "path": "Rijksmuseum/imgi_49_rijksmuseum_rembrandt_1642.jpg",
+      "url": "/static/cover_gallery/Rijksmuseum/imgi_49_rijksmuseum_rembrandt_1642.jpg",
+      "brightness": 36.9,
+      "tone": "dark"
+    },
+    {
+      "category": "Rijksmuseum",
+      "filename": "imgi_50_rijksmuseum_jansz_1636.jpg",
+      "name": "Rijksmuseum Jansz 1636",
+      "path": "Rijksmuseum/imgi_50_rijksmuseum_jansz_1636.jpg",
+      "url": "/static/cover_gallery/Rijksmuseum/imgi_50_rijksmuseum_jansz_1636.jpg",
+      "brightness": 120.8,
+      "tone": "light"
+    },
+    {
+      "category": "Rijksmuseum",
+      "filename": "imgi_51_rijksmuseum_jansz_1641.jpg",
+      "name": "Rijksmuseum Jansz 1641",
+      "path": "Rijksmuseum/imgi_51_rijksmuseum_jansz_1641.jpg",
+      "url": "/static/cover_gallery/Rijksmuseum/imgi_51_rijksmuseum_jansz_1641.jpg",
+      "brightness": 82.2,
+      "tone": "dark"
+    },
+    {
+      "category": "Rijksmuseum",
+      "filename": "imgi_52_rijksmuseum_jan_lievens_1627.jpg",
+      "name": "Rijksmuseum Jan Lievens 1627",
+      "path": "Rijksmuseum/imgi_52_rijksmuseum_jan_lievens_1627.jpg",
+      "url": "/static/cover_gallery/Rijksmuseum/imgi_52_rijksmuseum_jan_lievens_1627.jpg",
+      "brightness": 41.8,
+      "tone": "dark"
+    },
+    {
+      "category": "Rijksmuseum",
+      "filename": "imgi_53_rijksmuseum_jansz_1637.jpg",
+      "name": "Rijksmuseum Jansz 1637",
+      "path": "Rijksmuseum/imgi_53_rijksmuseum_jansz_1637.jpg",
+      "url": "/static/cover_gallery/Rijksmuseum/imgi_53_rijksmuseum_jansz_1637.jpg",
+      "brightness": 100.7,
+      "tone": "dark"
+    },
+    {
+      "category": "Rijksmuseum",
+      "filename": "imgi_54_rijksmuseum_mignons_1660.jpg",
+      "name": "Rijksmuseum Mignons 1660",
+      "path": "Rijksmuseum/imgi_54_rijksmuseum_mignons_1660.jpg",
+      "url": "/static/cover_gallery/Rijksmuseum/imgi_54_rijksmuseum_mignons_1660.jpg",
+      "brightness": 51.8,
+      "tone": "dark"
+    },
+    {
+      "category": "Rijksmuseum",
+      "filename": "imgi_55_rijksmuseum_avercamp_1620.jpg",
+      "name": "Rijksmuseum Avercamp 1620",
+      "path": "Rijksmuseum/imgi_55_rijksmuseum_avercamp_1620.jpg",
+      "url": "/static/cover_gallery/Rijksmuseum/imgi_55_rijksmuseum_avercamp_1620.jpg",
+      "brightness": 164.1,
+      "tone": "light"
+    },
+    {
+      "category": "Rijksmuseum",
+      "filename": "imgi_56_rijksmuseum_avercamp_1608.jpg",
+      "name": "Rijksmuseum Avercamp 1608",
+      "path": "Rijksmuseum/imgi_56_rijksmuseum_avercamp_1608.jpg",
+      "url": "/static/cover_gallery/Rijksmuseum/imgi_56_rijksmuseum_avercamp_1608.jpg",
+      "brightness": 147.5,
+      "tone": "light"
+    },
+    {
+      "category": "Rijksmuseum",
+      "filename": "imgi_57_rijksmuseum_claesz_1628.jpg",
+      "name": "Rijksmuseum Claesz 1628",
+      "path": "Rijksmuseum/imgi_57_rijksmuseum_claesz_1628.jpg",
+      "url": "/static/cover_gallery/Rijksmuseum/imgi_57_rijksmuseum_claesz_1628.jpg",
+      "brightness": 45.5,
+      "tone": "dark"
+    }
+  ]
+}

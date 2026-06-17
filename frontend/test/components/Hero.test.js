@@ -12,8 +12,11 @@ jest.mock('../../composables/useMessages', () => ({
         subtitle: 'We design high-converting websites.',
         cta_primary: 'Get In Touch',
         cta_book_call: 'Book a Call',
-        benefit1_title: 'Conversion-Optimized Design',
-        benefit1_text: 'Turn visitors into customers',
+        benefit2_title: 'A real advisor replies',
+        benefit2_text: 'A senior specialist replies the same day.',
+        benefit4_title: '+50 companies trust us',
+        benefit4_text: 'Companies already transformed their operations with us.',
+        nda_note: 'We sign an NDA so your project stays confidential.',
       },
     },
   })),
@@ -59,9 +62,16 @@ describe('Hero', () => {
     expect(wrapper.text()).toContain('Book a Call');
   });
 
-  it('renders the benefits grid items', () => {
+  it('renders the two feature cards', () => {
     const wrapper = mountHero();
 
-    expect(wrapper.text()).toContain('Conversion-Optimized Design');
+    expect(wrapper.text()).toContain('+50 companies trust us');
+    expect(wrapper.text()).toContain('A real advisor replies');
+  });
+
+  it('renders the NDA confidentiality note', () => {
+    const wrapper = mountHero();
+
+    expect(wrapper.text()).toContain('We sign an NDA so your project stays 100% confidential.');
   });
 });
