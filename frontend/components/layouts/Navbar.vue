@@ -7,7 +7,7 @@
     <!-- Logo -->
     <NuxtLink
       :to="localePath('/')"
-      class="flex items-center pr-4 mr-2 text-text-brand font-bold text-xl tracking-tight hover:opacity-80 transition-opacity flex-shrink-0 border-r border-input-border/10"
+      class="flex items-center pr-4 mr-2 text-text-brand font-bold text-xl tracking-tight hover:opacity-80 transition-opacity flex-shrink-0 border-r border-input-border"
       aria-label="Project App. - Homepage"
     >
       Project<span class="text-text-brand">App.</span>
@@ -18,7 +18,7 @@
       <!-- Sliding lemon pill indicator -->
       <div
         ref="lemonPill"
-        class="absolute top-0 left-0 h-full rounded-full bg-accent-mid pointer-events-none will-change-transform"
+        class="absolute top-0 left-0 h-full rounded-full bg-accent pointer-events-none will-change-transform"
         style="width: 0; opacity: 0;"
       />
 
@@ -109,7 +109,7 @@
       <!-- Menu panel -->
       <div
         ref="menuBox"
-        class="absolute inset-0 flex flex-col bg-primary-soft/95 backdrop-blur-md"
+        class="absolute inset-0 flex flex-col bg-primary-soft backdrop-blur-md"
         style="opacity: 0;"
       >
         <!-- Top bar: logo + close -->
@@ -138,7 +138,7 @@
             :to="item.external ? item.href : localePath(item.href)"
             :target="item.external ? '_blank' : undefined"
             :ref="el => { if (el) mobileNavRefs[index] = el.$el || el; }"
-            class="mobile-nav-item text-text-brand font-light text-5xl py-3 border-b border-input-border/10 transition-colors hover:text-green-light"
+            class="mobile-nav-item text-text-brand font-light text-5xl py-3 border-b border-input-border transition-colors hover:text-green-light"
             style="opacity: 0; transform: translateY(20px);"
             @click="closeMenu"
           >

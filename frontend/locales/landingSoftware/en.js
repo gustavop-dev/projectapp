@@ -4,16 +4,19 @@ export default {
         title_part1: 'We Build the Software Your Business Needs.',
         title_part2: 'Ready in 30 Days.',
         subtitle: 'We are the custom software development company that turns your manual processes into <strong>intelligent systems</strong>. No templates. No generic solutions. 100% tailored to your operation.',
-        cta_primary: 'Quote your project',
+        cta_primary: 'Contact us on WhatsApp',
         cta_whatsapp_url: 'https://wa.me/573238122373?text=Hi%2C%20I%20want%20to%20quote%20my%20software%20project',
+        cta_book_call: 'Book a meeting',
         benefit1_title: 'No commitment',
         benefit1_text: 'Free consultation before any commitment. You decide if we move forward.',
-        benefit2_title: 'We respond in less than 2 hours',
-        benefit2_text: 'Your inquiry goes directly to a senior specialist, not a chatbot.',
+        benefit2_title: 'A real advisor replies',
+        benefit2_text: 'No bots, no queues — a senior specialist gets back to you the same day.',
         benefit3_title: '100% confidential',
         benefit3_text: 'Your information and processes are protected from the first conversation.',
         benefit4_title: '+50 companies trust us',
-        benefit4_text: 'Logistics, health, legal, e-commerce and more companies already transformed their operations with us.'
+        benefit4_text: 'Logistics, health, legal, e-commerce and more companies already transformed their operations with us.',
+        nda_note: 'We sign an NDA so your project stays 100% confidential.',
+        art_phrase: 'We are the artisans of code.'
     },
     whatWeBuild: {
         title: 'What do we build?',

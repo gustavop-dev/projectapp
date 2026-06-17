@@ -4,16 +4,19 @@ export default {
         title_part1: 'Desarrollamos el Software que tu empresa necesita.',
         title_part2: 'Listo en 30 Días.',
         subtitle: 'Somos la empresa de desarrollo de software a la medida que convierte tus procesos manuales en <strong>sistemas inteligentes</strong>. Sin plantillas. Sin soluciones genéricas. 100% adaptado a tu operación.',
-        cta_primary: 'Cotiza tu desarrollo',
+        cta_primary: 'Contáctanos por WhatsApp',
         cta_whatsapp_url: 'https://wa.me/573238122373?text=Hola%2C%20quiero%20cotizar%20mi%20proyecto%20de%20software',
+        cta_book_call: 'Agenda una reunión',
         benefit1_title: 'Sin compromiso',
         benefit1_text: 'Asesoría sin costo antes de cualquier compromiso. Tú decides si avanzamos.',
-        benefit2_title: 'Respondemos en menos de 2 horas',
-        benefit2_text: 'Tu consulta llega directo a un especialista senior, no a un chatbot.',
+        benefit2_title: 'Te responde un asesor real',
+        benefit2_text: 'Sin bots ni filas: un especialista senior te atiende el mismo día.',
         benefit3_title: '100% confidencial',
         benefit3_text: 'Tu información y procesos están protegidos desde la primera conversación.',
         benefit4_title: '+50 empresas confían en nosotros',
-        benefit4_text: 'Empresas de logística, salud, legal, e-commerce y más ya transformaron su operación con nosotros.'
+        benefit4_text: 'Empresas de logística, salud, legal, e-commerce y más ya transformaron su operación con nosotros.',
+        nda_note: 'Firmamos un NDA para que tu proyecto sea 100% confidencial.',
+        art_phrase: 'Somos los artesanos del código.'
     },
     whatWeBuild: {
         title: '¿Qué desarrollamos?',
