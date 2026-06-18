@@ -15,13 +15,11 @@
         v-for="(col, i) in loopColumns"
         :key="i"
         class="mosaic__col"
-        :style="{ transform: `translateY(${col.offset})` }"
       >
         <div
           v-for="(tile, j) in col.tiles"
           :key="j"
           class="mosaic__tile"
-          :style="{ aspectRatio: tile.ar }"
         >
           <img
             :src="tile.src"
@@ -57,26 +55,24 @@ import m09 from '~/assets/images/hero/mosaic/mosaic-09.webp'
 // while the variety + per-column vertical offset gives the staggered
 // Pinterest feel.
 const SRCS = [m01, m02, m03, m04, m05, m06, m07, m08, m09]
-const ASPECTS = ['3 / 2', '4 / 3', '5 / 4']
 
-// 3 columns × 3 tiles = 9 slots = the 9 images, no repeats. Big tiles keep the
-// backdrop calm so the glass copy stays comfortable to read. Aspect ratios are
-// rotated per column ((c + r) % n) so the columns stagger like a Pinterest grid.
-const COLS_PER_SET = 3
-const TILES_PER_COL = 3
-const OFFSETS = ['0%', '6%', '-4%']
+// Few BIG tiles: wide columns with exactly 2 equal-height rows each, so the
+// mosaic reads as two clean rows (no vertical stagger) and only ~2-3 columns
+// are ever on screen — calm enough not to compete with the copy.
+// 5 columns × 2 tiles cycles the 9 images (one repeats).
+const COLS_PER_SET = 5
+const TILES_PER_COL = 2
 
 const columns = Array.from({ length: COLS_PER_SET }, (_, c) => ({
-  offset: OFFSETS[c % OFFSETS.length],
   tiles: Array.from({ length: TILES_PER_COL }, (_, r) => {
     const idx = c * TILES_PER_COL + r
-    return { src: SRCS[idx % SRCS.length], ar: ASPECTS[(c + r) % ASPECTS.length] }
+    return { src: SRCS[idx % SRCS.length] }
   }),
 }))
 
 // Repeat the set so that, after wrapping, the remaining columns always span
 // wider than any realistic viewport (no blank gap on the leading edge).
-const LOOP_TIMES = 4
+const LOOP_TIMES = 3
 const loopColumns = computed(() =>
   Array.from({ length: LOOP_TIMES }, () => columns).flat(),
 )
@@ -206,13 +202,15 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
-  width: clamp(16rem, 28vw, 30rem);
+  width: clamp(19rem, 40vw, 42rem);
   height: 100%;
   gap: 0.85rem;
 }
 
 .mosaic__tile {
-  flex: 0 0 auto;
+  /* Two equal rows that fill the column height — clean, aligned, no stagger. */
+  flex: 1 1 0;
+  min-height: 0;
   width: 100%;
   overflow: hidden;
   border-radius: 1.25rem;
