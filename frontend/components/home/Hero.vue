@@ -4,18 +4,15 @@
     <div
       class="relative flex min-h-[80vh] items-center overflow-hidden rounded-[2rem] bg-slate-100 lg:min-h-[85vh]"
     >
-      <!-- Background image (random, fades in on mount) -->
-      <div
-        class="absolute inset-0 bg-cover bg-center transition-opacity duration-700 ease-out"
-        :class="bgUrl ? 'opacity-100' : 'opacity-0'"
-        :style="bgStyle"
-      />
-      <!-- Soft depth: keeps the glass edge readable over any of the 48 images -->
-      <div class="absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/10" />
+      <!-- Background: draggable, auto-panning artwork mosaic -->
+      <HeroMosaicCarousel />
+      <!-- Soft depth: keeps the glass edge readable over the mosaic.
+           pointer-events-none so drags pass through to the mosaic underneath. -->
+      <div class="pointer-events-none absolute inset-0 bg-gradient-to-tr from-black/20 via-transparent to-white/10" />
 
       <!-- Content: main copy (left) + benefit bubbles (bottom-right) -->
-      <div class="relative z-10 flex w-full flex-col gap-8 px-5 py-10 sm:px-8 lg:min-h-[85vh] lg:justify-end lg:px-14 lg:pt-16 lg:pb-10">
-        <div class="hero-glass max-w-2xl rounded-3xl px-6 py-8 sm:px-10 sm:py-12 lg:px-12 lg:py-14">
+      <div class="pointer-events-none relative z-10 flex w-full flex-col gap-8 px-5 py-10 sm:px-8 lg:min-h-[85vh] lg:justify-end lg:px-14 lg:pt-16 lg:pb-10">
+        <div class="hero-glass pointer-events-auto max-w-2xl rounded-3xl px-6 py-8 sm:px-10 sm:py-12 lg:px-12 lg:py-14">
           <div class="space-y-8 lg:space-y-10">
             <!-- Main Headline -->
             <h1 class="text-4xl font-bold leading-tight text-slate-900 sm:text-5xl xl:text-6xl">
@@ -93,7 +90,7 @@
           <div
             v-for="(c, i) in cards"
             :key="i"
-            class="hero-bubble rounded-3xl p-6 lg:p-7"
+            class="hero-bubble pointer-events-auto rounded-3xl p-6 lg:p-7"
             :class="i === 0 ? 'lg:col-start-1 lg:row-start-1' : 'lg:col-start-2 lg:row-start-2'"
           >
             <svg class="mb-3 h-7 w-7 text-text-brand" fill="currentColor" viewBox="0 0 20 20">
@@ -105,7 +102,7 @@
 
           <!-- 2x1 cell (top-right): the lemon dot itself morphs into the "art" card -->
           <div class="relative hidden lg:col-start-2 lg:row-start-1 lg:block">
-            <div class="art-blob" tabindex="0" role="button" :aria-label="artPhrase">
+            <div class="art-blob pointer-events-auto" tabindex="0" role="button" :aria-label="artPhrase">
               <div class="art-blob__content">
                 <svg class="mb-2 h-6 w-6 text-primary/70" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M7.17 6A5.17 5.17 0 002 11.17V18h6.83v-6.83H5.6A3.6 3.6 0 019.2 7.6V6H7.17zm9 0A5.17 5.17 0 0011 11.17V18h6.83v-6.83H14.6A3.6 3.6 0 0118.2 7.6V6h-2.03z" />
@@ -122,31 +119,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed } from 'vue'
+import HeroMosaicCarousel from '~/components/home/HeroMosaicCarousel.vue'
 import { useMessages } from '~/composables/useMessages'
 import { useGtagConversions } from '~/composables/useGtagConversions'
-import gallery from '~/assets/data/cover-gallery.json'
 
 const { messages } = useMessages()
 const router = useRouter()
 const localePath = useLocalePath()
 const { trackWhatsAppClick } = useGtagConversions()
-
-// Random background: only these collections, and only the light ones
-// (legible behind the white glass). Add categories here to widen the pool.
-const HERO_CATEGORIES = ['Met Museum Japanese Prints', 'Met Museum']
-const lightImages = gallery.images.filter(
-  (img) => HERO_CATEGORIES.includes(img.category) && img.tone === 'light',
-)
-const bgUrl = ref('')
-const bgStyle = computed(() => (bgUrl.value ? { backgroundImage: `url('${bgUrl.value}')` } : {}))
-
-// Pick on the client to avoid an SSR/client hydration mismatch.
-onMounted(() => {
-  if (!lightImages.length) return
-  const pick = lightImages[Math.floor(Math.random() * lightImages.length)]
-  bgUrl.value = pick.url
-})
 
 // Two prominent cards: social proof (+50) and real-advisor response.
 const cards = computed(() => [
