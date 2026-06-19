@@ -8,15 +8,15 @@
           alt="Figma"
           class="tech-icon transition-transform hover:scale-110"
         />
-        <img 
-          src="~/assets/images/icons/webflow.svg" 
+        <img
+          src="~/assets/images/icons/webflow.svg"
           alt="Webflow"
-          class="tech-icon transition-transform hover:scale-110"
+          class="tech-icon tech-icon--webflow transition-transform hover:scale-110"
         />
-        <img 
-          src="~/assets/images/icons/astro.svg" 
+        <img
+          src="~/assets/images/icons/astro.svg"
           alt="Astro"
-          class="tech-icon transition-transform hover:scale-110"
+          class="tech-icon tech-icon--astro transition-transform hover:scale-110"
         />
         <img 
           src="~/assets/images/icons/stripe.svg" 
@@ -28,15 +28,15 @@
           alt="Framer"
           class="tech-icon transition-transform hover:scale-110"
         />
-        <img 
-          src="~/assets/images/icons/vuejs_logo_icon_169247.svg" 
+        <img
+          src="~/assets/images/icons/vuejs_logo_icon_169247.svg"
           alt="Vue.js"
-          class="tech-icon transition-transform hover:scale-110"
+          class="tech-icon tech-icon--vue transition-transform hover:scale-110"
         />
-        <img 
-          src="~/assets/images/icons/pngwing.com.png" 
-          alt="Technology"
-          class="tech-icon transition-transform hover:scale-110"
+        <img
+          src="~/assets/images/icons/pngwing.com.png"
+          alt="Django"
+          class="tech-icon tech-icon--django transition-transform hover:scale-110"
         />
       </div>
     </div>
@@ -51,25 +51,31 @@ const { messages } = useMessages()
 
 <style scoped>
 .tech-icon {
-  height: 28px;
+  /* Base height is a variable (set responsively on .tech-bubble) so per-logo
+     modifiers can scale relative to it and stay responsive. */
+  height: var(--tech-icon-h, 28px);
   width: auto;
   object-fit: contain;
   flex-shrink: 0;
 }
 
-@media (min-width: 640px) {
-  .tech-icon {
-    height: 32px;
-  }
+/* Per-logo size tweaks — logos have different artwork/whitespace, so a uniform
+   height reads unevenly. Multipliers normalise the optical sizes. */
+.tech-icon--webflow {
+  height: calc(var(--tech-icon-h, 28px) * 0.85);
 }
-
-@media (min-width: 1024px) {
-  .tech-icon {
-    height: 36px;
-  }
+.tech-icon--astro {
+  height: calc(var(--tech-icon-h, 28px) * 1.3);
+}
+.tech-icon--vue {
+  height: calc(var(--tech-icon-h, 28px) * 1.25);
+}
+.tech-icon--django {
+  height: calc(var(--tech-icon-h, 28px) * 2);
 }
 
 .tech-bubble {
+  --tech-icon-h: 28px;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -88,6 +94,7 @@ const { messages } = useMessages()
 
 @media (min-width: 640px) {
   .tech-bubble {
+    --tech-icon-h: 32px;
     gap: 16px 28px;
     padding: 20px 32px;
     border-radius: 28px;
@@ -96,6 +103,7 @@ const { messages } = useMessages()
 
 @media (min-width: 1024px) {
   .tech-bubble {
+    --tech-icon-h: 36px;
     flex-wrap: nowrap;
     gap: 32px;
     padding: 20px 48px;

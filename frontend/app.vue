@@ -1,6 +1,7 @@
 <template>
-  <!-- Google Tag Manager (noscript) -->
-  <noscript>
+  <!-- Google Tag Manager (noscript) — public routes only, mirrors the
+       JS loader in plugins/analytics.client.js -->
+  <noscript v-if="isPublicRoute">
     <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-564CMQCG"
       height="0" width="0" style="display:none;visibility:hidden"></iframe>
   </noscript>
@@ -77,6 +78,13 @@ const { trackWhatsAppClick } = useGtagConversions()
 const showNavbar = computed(() => {
   const path = route.path
   return !path.includes('/panel') && !path.includes('/proposal') && !path.includes('/platform') && !path.includes('/diagnostic')
+})
+
+// Public marketing routes only — gates the GTM noscript fallback to match the
+// analytics loader (plugins/analytics.client.js).
+const isPublicRoute = computed(() => {
+  const path = route.path
+  return !path.includes('/panel') && !path.includes('/platform') && !path.includes('/proposal') && !path.includes('/diagnostic')
 })
 
 const showWhatsApp = computed(() => {

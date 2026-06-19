@@ -174,30 +174,13 @@ export default defineNuxtConfig({
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap' },
       ],
       script: [
-        // Google Tag Manager
-        {
-          children: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-564CMQCG');`,
-        },
-        {
-          children: `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script","vm01q8i9wc");`,
-        },
-        {
-          src: 'https://www.googletagmanager.com/gtag/js?id=AW-16942315762',
-          async: true,
-        },
-        {
-          children: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','AW-16942315762');`,
-        },
-        {
-          children: `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','1870177640258815');fbq('track','PageView');`,
-        },
+        // Analytics & marketing tags (GTM, Clarity, Google Ads, Facebook Pixel)
+        // are NOT injected here. They load lazily, public-routes-only, via
+        // plugins/analytics.client.js so private areas (panel/platform/
+        // proposal/diagnostic) are never reported. Cal.com below is a
+        // functional booking widget (not analytics) and stays global.
         {
           children: `(function(C,A,L){let p=function(a,ar){a.q.push(ar)};let d=C.document;C.Cal=C.Cal||function(){let cal=C.Cal;let ar=arguments;if(!cal.loaded){cal.ns={};cal.q=cal.q||[];d.head.appendChild(d.createElement("script")).src=A;cal.loaded=true}if(ar[0]===L){const api=function(){p(api,arguments)};const namespace=ar[1];api.q=api.q||[];if(typeof namespace==="string"){cal.ns[namespace]=cal.ns[namespace]||api;p(cal.ns[namespace],ar);p(cal,["initNamespace",namespace])}else{p(cal,ar)}return}p(cal,ar)}})(window,"https://app.cal.com/embed/embed.js","init");Cal("init","discovery-call-projectapp",{origin:"https://app.cal.com"});Cal.ns["discovery-call-projectapp"]("ui",{theme:"dark",hideEventTypeDetails:false,layout:"week_view"});`,
-        },
-      ],
-      noscript: [
-        {
-          children: '<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1870177640258815&ev=PageView&noscript=1" />',
         },
       ],
     },
