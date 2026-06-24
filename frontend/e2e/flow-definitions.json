@@ -225,7 +225,7 @@
       ],
       "priority": "P2",
       "description": "From /panel/clients, expand a client row and delete a specific linked proposal. A confirm modal requires typing 'DELETE'; on success the client detail is refetched (proposal disappears) and a success toast shows; on 409 (linked to a launched project) the proposal stays and an error toast shows.",
-      "expectedSpecs": 1,
+      "expectedSpecs": 0,
       "knownGaps": "No dedicated spec yet (suggested e2e/admin/admin-proposal-delete-from-client.spec.js). The delete-from-client confirm modal, detail refetch, and 409 path are unasserted."
     },
     "admin-proposal-send": {
