@@ -41,7 +41,7 @@ def test_notify_first_view_task_skips_closed_proposal():
     ) as mock_send:
         from content.tasks import notify_first_view
         notify_first_view.call_local(proposal.id)
-    mock_send.assert_not_called()
+    assert mock_send.call_count == 0
 
 
 def test_notify_first_view_task_runs_for_open_proposal():
@@ -52,7 +52,7 @@ def test_notify_first_view_task_runs_for_open_proposal():
     ) as mock_send:
         from content.tasks import notify_first_view
         notify_first_view.call_local(proposal.id)
-    mock_send.assert_called_once()
+    assert mock_send.call_count == 1
 
 
 def test_send_first_view_notification_returns_false_for_closed():
