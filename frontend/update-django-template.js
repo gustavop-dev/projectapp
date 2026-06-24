@@ -1,7 +1,8 @@
 import fs from 'fs';
+import net from 'net';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,15 +12,106 @@ const targetDir = path.resolve(__dirname, '../backend/static/frontend');
 const stagingDir = `${targetDir}.new`;
 const retiredDir = `${targetDir}.old`;
 
-// 1. Run nuxt generate with cdnURL set for Django static serving.
-// PRERENDER_BLOG=1 enables blog post prerendering (slugs fetched from the API;
-// see blogPrerenderRoutes in nuxt.config.ts). PRERENDER_API_ORIGIN /
-// PRERENDER_REQUIRE_BLOG are inherited from the caller's environment.
-console.log('Running nuxt generate...');
-execSync('NUXT_APP_CDN_URL=/static/frontend/ PRERENDER_BLOG=1 npx nuxi generate', {
-  cwd: __dirname,
-  stdio: 'inherit',
-});
+const backendDir = path.resolve(__dirname, '../backend');
+const venvPython = path.resolve(backendDir, 'venv/bin/python');
+const managePy = path.resolve(backendDir, 'manage.py');
+
+// ---------------------------------------------------------------------------
+// Blog prerender against a throwaway local Django server.
+//
+// Blog post pages fetch their content from the API during prerender. Pointing
+// that at the public domain routes every request through nginx, whose `api`
+// rate-limit zone (5 r/s) trips 429s once there are more than a handful of
+// posts — silently dropping most prerendered pages. Instead we spin up Django
+// on loopback, prerender against it (no nginx, no rate limit, real DB data),
+// and tear it down. This is the single chokepoint for every build path
+// (deploy and the on-publish rebuild task), so the fix is global.
+//
+// If the backend (venv + manage.py) isn't present — e.g. a pure-frontend CI or
+// dev build — we skip the local server and fall back to PRERENDER_API_ORIGIN
+// from the environment (or no blog prerender), exactly as before.
+// ---------------------------------------------------------------------------
+
+function findFreePort() {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.unref();
+    srv.on('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const { port } = srv.address();
+      srv.close(() => resolve(port));
+    });
+  });
+}
+
+async function waitForApi(origin, timeoutMs = 60000) {
+  const deadline = Date.now() + timeoutMs;
+  const url = `${origin}/api/blog/sitemap-data/`;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return true;
+    } catch {
+      // server not up yet
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return false;
+}
+
+async function startLocalDjango() {
+  const port = await findFreePort();
+  const origin = `http://127.0.0.1:${port}`;
+  const env = {
+    ...process.env,
+    // Dedicated build settings: production DB + data, but no HTTPS enforcement
+    // (production's SECURE_SSL_REDIRECT would 301 the loopback prerender fetches
+    // to https and break them). See backend/projectapp/settings_build.py.
+    DJANGO_SETTINGS_MODULE: 'projectapp.settings_build',
+    // Loopback-only server; allow the host it will actually be reached on.
+    DJANGO_ALLOWED_HOSTS: '127.0.0.1,localhost',
+  };
+  console.log(`[blog-prerender] starting local Django on ${origin} (settings=${env.DJANGO_SETTINGS_MODULE})`);
+  const proc = spawn(
+    venvPython,
+    ['manage.py', 'runserver', `127.0.0.1:${port}`, '--noreload', '--skip-checks'],
+    { cwd: backendDir, env, stdio: ['ignore', 'inherit', 'inherit'] },
+  );
+  const ready = await waitForApi(origin);
+  if (!ready) {
+    try { proc.kill('SIGKILL'); } catch { /* noop */ }
+    throw new Error(`local Django did not become ready on ${origin} within timeout`);
+  }
+  console.log(`[blog-prerender] local Django ready on ${origin}`);
+  return { origin, proc };
+}
+
+// 1. Run nuxt generate with cdnURL set for Django static serving, prerendering
+//    blog posts against a local backend when one is available.
+const baseEnv = { ...process.env, NUXT_APP_CDN_URL: '/static/frontend/' };
+let server = null;
+
+const backendAvailable = fs.existsSync(venvPython) && fs.existsSync(managePy);
+if (backendAvailable) {
+  server = await startLocalDjango();
+}
+
+try {
+  const generateEnv = { ...baseEnv, PRERENDER_BLOG: '1' };
+  if (server) {
+    generateEnv.PRERENDER_API_ORIGIN = server.origin;
+    // The local server removes the rate-limit excuse: a dropped prerender is
+    // now a real regression, so fail the build instead of shipping silently.
+    generateEnv.PRERENDER_REQUIRE_BLOG = '1';
+  }
+  console.log('Running nuxt generate...');
+  execSync('npx nuxi generate', { cwd: __dirname, stdio: 'inherit', env: generateEnv });
+} finally {
+  if (server) {
+    console.log('[blog-prerender] stopping local Django');
+    try { server.proc.kill('SIGTERM'); } catch { /* noop */ }
+  }
+}
 
 // 2. Verify output exists
 if (!fs.existsSync(sourceDir)) {
