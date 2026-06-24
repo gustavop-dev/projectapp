@@ -34,6 +34,8 @@ test.describe('Admin Document List', () => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDocuments) };
+      if (apiPath === 'document-folders/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      if (apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
       return null;
     });
     await page.goto('/panel/documents');
@@ -62,6 +64,8 @@ test.describe('Admin Document List', () => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDocuments) };
+      if (apiPath === 'document-folders/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      if (apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
       return null;
     });
     await page.goto('/panel/documents');
@@ -76,6 +80,8 @@ test.describe('Admin Document List', () => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDocuments) };
+      if (apiPath === 'document-folders/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      if (apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
       return null;
     });
     await page.goto('/panel/documents');
@@ -96,6 +102,8 @@ test.describe('Admin Document List', () => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDocuments) };
+      if (apiPath === 'document-folders/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      if (apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
       return null;
     });
     await page.goto('/panel/documents');

@@ -18,8 +18,8 @@ const authCheck = {
   body: JSON.stringify({ user: { username: 'admin', is_staff: true } }),
 };
 
-const FOLDER_CUENTAS = { id: 11, name: 'Cuentas de cobro', slug: 'cuentas-de-cobro', order: 0, document_count: 1 };
-const FOLDER_CONTRATOS = { id: 12, name: 'Contratos', slug: 'contratos', order: 0, document_count: 0 };
+const FOLDER_CUENTAS = { id: 11, name: 'Cuentas de cobro', slug: 'cuentas-de-cobro', parent: null, order: 0, document_count: 1 };
+const FOLDER_CONTRATOS = { id: 12, name: 'Contratos', slug: 'contratos', parent: null, order: 0, document_count: 0 };
 
 const TAG_URGENTE = { id: 21, name: 'Urgente', slug: 'urgente', color: 'red' };
 const TAG_FIRMADO = { id: 22, name: 'Firmado', slug: 'firmado', color: 'emerald' };
@@ -181,9 +181,6 @@ test.describe('Admin Document Folders and Tags', () => {
     const parentSelect = page.locator('label', { hasText: 'Dentro de:' }).locator('select');
     await expect(parentSelect).toBeVisible();
 
-    const selectedText = await parentSelect.evaluate(
-      (el) => el.options[el.selectedIndex].textContent.trim(),
-    );
-    expect(selectedText).toBe('Cuentas de cobro');
+    await expect(parentSelect.locator('option:checked')).toHaveText('Cuentas de cobro');
   });
 });
