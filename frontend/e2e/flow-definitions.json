@@ -1439,7 +1439,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "View the list of admin documents with title, status, client association, and actions (edit, download PDF, duplicate, delete). Navigate to create or edit pages.",
+      "description": "View the list of admin documents with title, status, client association. Per-row actions are collapsed into a single 'Acciones' (kebab) icon that opens the DocumentActionsSheet modal listing each action with its own icon: edit content, rename, move to folder, send by email, download PDF, copy markdown, duplicate, delete. The same single-icon + modal pattern is used on every breakpoint (centered modal on desktop, bottom-sheet on mobile). Navigate to create or edit pages.",
       "expectedSpecs": 1
     },
     "admin-document-create": {
@@ -1469,7 +1469,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Organize admin documents with folders and tags: root-folder sidebar navigation, tag filter chips, and folder/tag management modals.",
+      "description": "Organize admin documents with folders and tags: root-folder sidebar navigation, tag filter chips, and folder/tag management modals. In the folder manager modal, the 'Nueva carpeta' form's 'Dentro de:' parent selector defaults to the currently active folder, so creating a folder while standing inside a child folder pre-selects that folder as the parent (still changeable to any folder or root).",
       "expectedSpecs": 1
     },
     "admin-document-folder-hierarchy": {

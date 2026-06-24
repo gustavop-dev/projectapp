@@ -41,6 +41,8 @@ from accounts.models import (
     UserProfile,
 )
 
+from accounts.management.commands._seed_helpers import ensure_phase
+
 User = get_user_model()
 
 ADMIN_EMAIL = 'admin@projectapp.dev'
@@ -219,13 +221,17 @@ class Command(BaseCommand):
             last_name='Pérez',
             is_staff=True,
         )
-        UserProfile.objects.create(
+        # update_or_create coexists with the post_save signal that auto-creates a
+        # bare UserProfile (fires immediately on commit in autocommit mode).
+        UserProfile.objects.update_or_create(
             user=user,
-            role=UserProfile.ROLE_ADMIN,
-            is_onboarded=True,
-            profile_completed=True,
-            company_name='ProjectApp',
-            phone='+57 310 555 0001',
+            defaults={
+                'role': UserProfile.ROLE_ADMIN,
+                'is_onboarded': True,
+                'profile_completed': True,
+                'company_name': 'ProjectApp',
+                'phone': '+57 310 555 0001',
+            },
         )
         self.stdout.write(self.style.SUCCESS(f'  Created admin: {ADMIN_EMAIL}'))
         return user
@@ -242,18 +248,20 @@ class Command(BaseCommand):
             first_name='María',
             last_name='Torres',
         )
-        UserProfile.objects.create(
+        UserProfile.objects.update_or_create(
             user=user,
-            role=UserProfile.ROLE_CLIENT,
-            is_onboarded=True,
-            profile_completed=True,
-            company_name='TechStartup Co.',
-            phone='+57 300 123 4567',
-            cedula='1020304050',
-            date_of_birth='1992-06-15',
-            gender=UserProfile.GENDER_FEMALE,
-            education_level=UserProfile.EDUCATION_UNIVERSITY,
-            created_by=created_by,
+            defaults={
+                'role': UserProfile.ROLE_CLIENT,
+                'is_onboarded': True,
+                'profile_completed': True,
+                'company_name': 'TechStartup Co.',
+                'phone': '+57 300 123 4567',
+                'cedula': '1020304050',
+                'date_of_birth': '1992-06-15',
+                'gender': UserProfile.GENDER_FEMALE,
+                'education_level': UserProfile.EDUCATION_UNIVERSITY,
+                'created_by': created_by,
+            },
         )
         self.stdout.write(self.style.SUCCESS(f'  Created client: {CLIENT_EMAIL}'))
         return user
@@ -392,7 +400,7 @@ class Command(BaseCommand):
             return
 
         deliverable = Deliverable.objects.filter(project=project).first()
-        bug = BugReport.objects.filter(deliverable__project=project).first()
+        bug = BugReport.objects.filter(project=project).first()
         cr = ChangeRequest.objects.filter(project=project).first()
 
         Notification.objects.create(
@@ -430,7 +438,7 @@ class Command(BaseCommand):
             title=f'{SEED_PREFIX} Bug status changed',
             message='Synthetic row tied to a bug report.',
             project=project,
-            deliverable=bug.deliverable if bug else None,
+            deliverable=deliverable,
             related_object_type='bug_report',
             related_object_id=bug.id if bug else None,
             is_read=False,
@@ -442,7 +450,7 @@ class Command(BaseCommand):
             title=f'{SEED_PREFIX} Client reported a bug (sample)',
             message='Synthetic row for admin notification list.',
             project=project,
-            deliverable=bug.deliverable if bug else None,
+            deliverable=deliverable,
             related_object_type='bug_report',
             related_object_id=bug.id if bug else None,
             is_read=False,
@@ -462,7 +470,7 @@ class Command(BaseCommand):
     def _create_seed_comments(self, project, admin_user, client_user):
         if not RequirementComment.objects.filter(content__startswith=SEED_PREFIX).exists():
             req = Requirement.objects.filter(
-                deliverable__project=project, status=Requirement.STATUS_IN_PROGRESS,
+                phase__project=project, status=Requirement.STATUS_IN_PROGRESS,
             ).first()
             if req:
                 RequirementComment.objects.create(
@@ -479,7 +487,7 @@ class Command(BaseCommand):
                 )
                 self.stdout.write(self.style.SUCCESS('  Created seed requirement comments'))
 
-        first_bug = BugReport.objects.filter(deliverable__project=project).order_by('id').first()
+        first_bug = BugReport.objects.filter(project=project).order_by('id').first()
         if first_bug and not BugComment.objects.filter(
             bug_report=first_bug,
             content__startswith=SEED_PREFIX,
@@ -663,26 +671,11 @@ class Command(BaseCommand):
         return proposal
 
     def _create_requirements(self, project):
-        if Requirement.objects.filter(deliverable__project=project).exists():
+        if Requirement.objects.filter(phase__project=project).exists():
             self.stdout.write(f'  Requirements already exist for {project.name}')
             return
 
-        default_deliverable = (
-            Deliverable.objects.filter(project=project)
-            .filter(business_proposal__isnull=False)
-            .order_by('id')
-            .first()
-        ) or Deliverable.objects.filter(project=project).order_by('id').first()
-
-        if not default_deliverable:
-            default_deliverable = Deliverable.objects.create(
-                project=project,
-                category=Deliverable.CATEGORY_OTHER,
-                title='Alcance inicial',
-                description='',
-                file=None,
-                uploaded_by=project.client,
-            )
+        phase = ensure_phase(project)
 
         order_counters = {}
         objs = []
@@ -691,7 +684,7 @@ class Command(BaseCommand):
             order_counters.setdefault(status, 0)
             epic_key = req.get('epic', '')
             objs.append(Requirement(
-                deliverable=default_deliverable,
+                phase=phase,
                 title=req['title'],
                 description=req.get('description', ''),
                 configuration=req.get('configuration', ''),
@@ -710,20 +703,11 @@ class Command(BaseCommand):
         ))
 
     def _create_inventory_requirements(self, project):
-        if Requirement.objects.filter(deliverable__project=project).exists():
+        if Requirement.objects.filter(phase__project=project).exists():
             self.stdout.write(f'  Requirements already exist for {project.name}')
             return
 
-        default_deliverable = Deliverable.objects.filter(project=project).order_by('id').first()
-        if not default_deliverable:
-            default_deliverable = Deliverable.objects.create(
-                project=project,
-                category=Deliverable.CATEGORY_OTHER,
-                title='Alcance App Inventarios',
-                description='',
-                file=None,
-                uploaded_by=project.client,
-            )
+        phase = ensure_phase(project)
 
         order_counters = {}
         objs = []
@@ -732,7 +716,7 @@ class Command(BaseCommand):
             order_counters.setdefault(status, 0)
             epic_key = req.get('epic', '')
             objs.append(Requirement(
-                deliverable=default_deliverable,
+                phase=phase,
                 title=req['title'],
                 description=req.get('description', ''),
                 configuration=req.get('configuration', ''),
@@ -839,16 +823,11 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'  Created {len(crs)} change requests for {project.name}'))
 
     def _create_bug_reports(self, project, client_user, admin_user):
-        if BugReport.objects.filter(deliverable__project=project).exists():
+        if BugReport.objects.filter(project=project).exists():
             self.stdout.write(f'  Bug reports already exist for {project.name}')
             return
 
-        deliverable_list = list(
-            Deliverable.objects.filter(project=project).order_by('id'),
-        )
-        if not deliverable_list:
-            self.stdout.write(self.style.WARNING(f'  Skipping bug reports — no deliverables for {project.name}'))
-            return
+        phase = ensure_phase(project)
 
         bugs = [
             {
@@ -941,10 +920,10 @@ class Command(BaseCommand):
             },
         ]
 
-        for i, bug_data in enumerate(bugs):
-            dlv = deliverable_list[i % len(deliverable_list)]
+        for bug_data in bugs:
             bug = BugReport.objects.create(
-                deliverable=dlv,
+                project=project,
+                phase=phase,
                 reported_by=client_user,
                 title=bug_data['title'],
                 description=bug_data['description'],
@@ -1017,7 +996,6 @@ class Command(BaseCommand):
                 source_entity_name=e_data['source_entity_name'],
                 description=e_data['description'],
                 key_fields=e_data['key_fields'],
-                relationship=e_data.get('relationship', ''),
             )
 
         # Also seed ProjectDataModelEntity rows for the project
@@ -1544,16 +1522,11 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'  Created {len(crs)} change requests for {project.name}'))
 
     def _create_inventory_bug_reports(self, project, client_user, admin_user):
-        if BugReport.objects.filter(deliverable__project=project).exists():
+        if BugReport.objects.filter(project=project).exists():
             self.stdout.write(f'  Bug reports already exist for {project.name}')
             return
 
-        deliverable_list = list(
-            Deliverable.objects.filter(project=project).order_by('id'),
-        )
-        if not deliverable_list:
-            self.stdout.write(self.style.WARNING(f'  Skipping bug reports — no deliverables for {project.name}'))
-            return
+        phase = ensure_phase(project)
 
         bugs = [
             {
@@ -1649,10 +1622,10 @@ class Command(BaseCommand):
             },
         ]
 
-        for i, bug_data in enumerate(bugs):
-            dlv = deliverable_list[i % len(deliverable_list)]
+        for bug_data in bugs:
             bug = BugReport.objects.create(
-                deliverable=dlv,
+                project=project,
+                phase=phase,
                 reported_by=client_user,
                 title=bug_data['title'],
                 description=bug_data['description'],

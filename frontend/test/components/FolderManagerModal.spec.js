@@ -275,6 +275,45 @@ describe('FolderManagerModal', () => {
     });
   });
 
+  // ── initialParent prop ──────────────────────────────────────────────────────
+
+  describe('initialParent prop', () => {
+    const parentFolder = { id: 5, name: 'Mis Documentos', parent: null, document_count: 0 };
+
+    function optionByText(wrapper, text) {
+      return wrapper.findAll('option').find((opt) => opt.text().trim() === text);
+    }
+
+    async function openWith(props) {
+      mockFolderStore.folders = [parentFolder];
+      const wrapper = mountModal({ modelValue: false, ...props });
+      await wrapper.setProps({ modelValue: true });
+      await flushPromises();
+      return wrapper;
+    }
+
+    it('pre-selects the initialParent folder in the "Dentro de:" select when opened', async () => {
+      const wrapper = await openWith({ initialParent: 5 });
+
+      expect(optionByText(wrapper, 'Mis Documentos').element.selected).toBe(true);
+    });
+
+    it('selects the root option when no initialParent is provided', async () => {
+      const wrapper = await openWith({});
+
+      expect(optionByText(wrapper, 'Ninguna (carpeta raíz)').element.selected).toBe(true);
+    });
+
+    it('resets the select back to initialParent after a successful create', async () => {
+      const wrapper = await openWith({ initialParent: 5 });
+      await wrapper.find('input[placeholder]').setValue('Nueva');
+      await wrapper.find('form').trigger('submit');
+      await flushPromises();
+
+      expect(optionByText(wrapper, 'Mis Documentos').element.selected).toBe(true);
+    });
+  });
+
   // ── handleReorder ─────────────────────────────────────────────────────────
 
   describe('handleReorder', () => {

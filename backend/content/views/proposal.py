@@ -1221,7 +1221,9 @@ def get_proposal_json_template(request):
             'contextDiagnostic (paragraphs, issues, opportunity), '
             'conversionStrategy (intro, bullets, result), '
             'designUX (paragraphs, focusItems, objective), '
-            'creativeSupport (paragraphs, includes, closing).'
+            'creativeSupport (paragraphs, includes, closing), '
+            'and the item descriptions of functionalRequirements (see '
+            'CRITICAL_functionalRequirements_itemDetail).'
         ),
         'CRITICAL_metadata': (
             'Do NOT add any keys to "_meta.optional_metadata" beyond the ones already '
@@ -1238,6 +1240,23 @@ def get_proposal_json_template(request):
             'You may modify content (title, description, items) and add new entries, '
             'but NEVER delete or relocate existing ones. The seller will remove them manually '
             'after the proposal is created if needed.'
+        ),
+        'CRITICAL_functionalRequirements_itemDetail': (
+            'Each item in every functionalRequirements group (and in every SELECTED additional '
+            'module) must have a RICH "description" written as TWO paragraphs separated by '
+            '"<br><br>": '
+            '(1) the first paragraph DESCRIBES the element in detail (what it is, what it shows, '
+            'what it is for) — not telegraphic; '
+            '(2) the second paragraph STARTS with "El usuario podrá …" (or "The user will be able '
+            'to …" in EN) and lists what the user can do there, WITHOUT repeating verbatim what the '
+            'first paragraph already said (add, do not duplicate). '
+            'Highlight 1-3 key words/phrases per paragraph with <b>…</b> (never whole paragraphs). '
+            'Keep "name" as plain text (no HTML). Use <b> and <br><br> only — do NOT use markdown '
+            '("**") or <p> tags (they are not rendered). '
+            'Where it applies, write a narrative that helps the client imagine the product is '
+            'SCALABLE and what they will be able to do with it — but anchor everything to the real '
+            'scope: never invent features, metrics, integrations or case studies; if something is '
+            'future work, say so explicitly.'
         ),
         'CRITICAL_roiProjection': (
             'The roiProjection section anchors the investment in business value '

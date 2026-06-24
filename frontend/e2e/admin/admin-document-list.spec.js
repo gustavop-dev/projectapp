@@ -69,4 +69,40 @@ test.describe('Admin Document List', () => {
     const createLink = page.getByRole('link', { name: /Nuevo Documento/i });
     await expect(createLink).toHaveAttribute('href', /\/panel\/documents\/create/);
   });
+
+  test('row actions collapse into a single icon that opens the actions modal', {
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDocuments) };
+      return null;
+    });
+    await page.goto('/panel/documents');
+
+    const row = page.getByRole('row', { name: /Contrato de Servicios/i });
+    await expect(row.locator('button[title="Acciones"]')).toHaveCount(1);
+
+    await row.locator('button[title="Acciones"]').click();
+
+    await expect(page.getByRole('button', { name: /Editar contenido/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Renombrar/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Eliminar/i })).toBeVisible();
+  });
+
+  test('edit action from the actions modal navigates to the editor', {
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDocuments) };
+      return null;
+    });
+    await page.goto('/panel/documents');
+
+    await page.getByRole('row', { name: /Contrato de Servicios/i }).locator('button[title="Acciones"]').click();
+    await page.getByRole('button', { name: /Editar contenido/i }).click();
+
+    await expect(page).toHaveURL(/\/panel\/documents\/1\/edit/);
+  });
 });
