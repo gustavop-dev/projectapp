@@ -206,94 +206,10 @@
                   {{ formatDate(doc.created_at) }}
                 </td>
                 <td class="px-6 py-4" @click.stop>
-                  <!-- md+ icons inline -->
-                  <div class="hidden md:flex items-center gap-1">
-                    <NuxtLink
-                      :to="localePath(`/panel/documents/${doc.id}/edit`)"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-text-brand"
-                      title="Editar contenido"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </NuxtLink>
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-amber-600 dark:hover:text-amber-400"
-                      title="Renombrar"
-                      @click="handleRenameDoc(doc)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-violet-600 dark:hover:text-violet-400"
-                      title="Mover a carpeta"
-                      @click="handleMoveDoc(doc)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm13 1l3 3-3 3" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-text-brand"
-                      title="Enviar por correo"
-                      @click="handleSendEmail(doc)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-blue-600 dark:hover:text-blue-400"
-                      title="Descargar PDF"
-                      @click="handleDownloadPdf(doc)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-teal-600 dark:hover:text-teal-400"
-                      :class="{ 'text-teal-600 dark:text-teal-400': copiedMarkdownId === doc.id }"
-                      title="Copiar markdown"
-                      @click="handleCopyMarkdown(doc.id)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-purple-600 dark:hover:text-purple-400"
-                      title="Duplicar"
-                      @click="handleDuplicate(doc.id)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-all hover:scale-110 active:scale-95 text-text-subtle hover:text-red-600 dark:hover:text-red-400"
-                      title="Eliminar"
-                      @click="handleDelete(doc)"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                  <!-- <md kebab -->
                   <button
                     type="button"
-                    class="md:hidden p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-text-default"
-                    title="Más acciones"
+                    class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-text-default"
+                    title="Acciones"
                     @click="actionDoc = doc"
                   >
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -384,7 +300,11 @@
       </section>
     </div>
 
-    <FolderManagerModal v-model="showFolderManager" @changed="handleFoldersChanged" />
+    <FolderManagerModal
+      v-model="showFolderManager"
+      :initial-parent="typeof documentStore.activeFolderId === 'number' ? documentStore.activeFolderId : null"
+      @changed="handleFoldersChanged"
+    />
     <TagManagerModal v-model="showTagManager" @changed="handleTagsChanged" />
     <MoveFolderModal v-model="showMoveModal" :document="movingDoc" @changed="handleMoved" />
     <RenameDocumentModal v-model="showRenameModal" :document="renamingDoc" @changed="handleRenamed" />
@@ -392,6 +312,7 @@
     <DocumentActionsSheet
       v-model="showActionsSheet"
       :document="actionDoc"
+      @edit="handleEditDoc(actionDoc)"
       @rename="handleRenameDoc(actionDoc)"
       @move="handleMoveDoc(actionDoc)"
       @download-pdf="handleDownloadPdf(actionDoc)"
@@ -462,9 +383,7 @@ const tagStore = useDocumentTagStore();
 
 const searchQuery = ref('');
 const newlyCreatedId = ref(null);
-const copiedMarkdownId = ref(null);
 let newlyCreatedTimer = null;
-let copiedMarkdownTimer = null;
 const filteredDocuments = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
   if (!q) return documentStore.documents;
@@ -589,6 +508,11 @@ async function handleMoved() {
     documentStore.fetchDocuments(),
     folderStore.fetchFolders(),
   ]);
+}
+
+function handleEditDoc(doc) {
+  if (!doc) return;
+  navigateTo(localePath(`/panel/documents/${doc.id}/edit`));
 }
 
 function handleRenameDoc(doc) {
@@ -720,9 +644,6 @@ async function handleCopyMarkdown(id) {
   if (!result.success) return;
   try {
     await navigator.clipboard.writeText(result.markdown);
-    clearTimeout(copiedMarkdownTimer);
-    copiedMarkdownId.value = id;
-    copiedMarkdownTimer = setTimeout(() => { copiedMarkdownId.value = null; }, 1500);
   } catch {
     // clipboard unavailable or denied — no false feedback
   }

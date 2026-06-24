@@ -1,3 +1,5 @@
+import traceback
+
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
@@ -7,22 +9,40 @@ User = get_user_model()
 
 class Command(BaseCommand):
     help = (
-        'Create all fake data (contacts, proposals, blog posts). '
-        'Business proposals include all default sections plus a populated technical_document '
-        '(modo técnico / panel Det. técnico). '
-        'Recommended order for a full local demo: (1) create_fake_data, (2) seed_platform_data — '
-        'or pass --with-platform to run seed_platform_data after this command.'
+        'Create fake data across ALL features so the dev environment is playable: '
+        'contacts, business proposals (with all sections + technical_document), blog posts, '
+        'portfolio works, Kanban tasks, web-app diagnostics, the platform graph '
+        '(projects, requirements, deliverables, change requests, bugs, hosting/payments, '
+        'notifications) and the commercial documents graph (issuer, folders, tags, '
+        'markdown docs + collection accounts). '
+        'Use --count to control volume (default 40) and --skip-* to omit a feature.'
     )
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--count', type=int, default=10,
-            help='Number of records to create per entity (default: 10)',
+            '--count', type=int, default=40,
+            help='Number of records to create per entity (default: 40).',
         )
-    def handle(self, *args, **options):
-        number_of_records = options['count']
+        # Optional positional for compatibility with the fake-data-refresh skill,
+        # which invokes `manage.py create_fake_data <N>`.
+        parser.add_argument(
+            'count_pos', nargs='?', type=int, default=None,
+            help='Positional alias for --count (used by the fake-data-refresh skill).',
+        )
+        parser.add_argument('--skip-contacts', action='store_true')
+        parser.add_argument('--skip-proposals', action='store_true')
+        parser.add_argument('--skip-blog', action='store_true')
+        parser.add_argument('--skip-portfolio', action='store_true')
+        parser.add_argument('--skip-tasks', action='store_true')
+        parser.add_argument('--skip-diagnostics', action='store_true')
+        parser.add_argument('--skip-platform', action='store_true')
+        parser.add_argument('--skip-documents', action='store_true')
 
-        # Create admin superuser if not already present
+    def handle(self, *args, **options):
+        count = options['count_pos'] if options['count_pos'] is not None else options['count']
+        n = str(count)
+
+        # Admin superuser (kept for legacy quick-login: admin / admin).
         admin, created = User.objects.get_or_create(
             username='admin',
             defaults={
@@ -34,28 +54,55 @@ class Command(BaseCommand):
         if created:
             admin.set_password('admin')
             admin.save()
-            self.stdout.write(self.style.SUCCESS('Admin superuser created (username: admin / password: admin)'))
+            self.stdout.write(self.style.SUCCESS(
+                'Admin superuser created (username: admin / password: admin)'))
         else:
             self.stdout.write(self.style.WARNING('Admin superuser already exists — skipped'))
 
-        # Create fake data for contacts
-        self.stdout.write(self.style.SUCCESS('Creating fake contacts...'))
-        call_command('create_contacts', number_of_records)
+        # Each feature is run in isolation: one failing seeder must not abort the
+        # whole run, so the dev DB still ends up populated for every other feature.
+        self._ok = []
+        self._failed = []
 
-        # Create fake data for business proposals
-        self.stdout.write(self.style.SUCCESS('Creating fake business proposals...'))
-        call_command('create_fake_proposals', '--count', str(number_of_records))
+        if not options['skip_contacts']:
+            self._run('contacts', 'create_contacts', n)
+        if not options['skip_proposals']:
+            self._run('proposals', 'create_fake_proposals', '--count', n)
+        if not options['skip_blog']:
+            self._run('blog', 'create_fake_blog_posts', '--count', n)
+        if not options['skip_portfolio']:
+            self._run('portfolio', 'create_fake_portfolio', '--count', n)
+        if not options['skip_tasks']:
+            self._run('tasks', 'create_fake_tasks', '--count', n)
+        if not options['skip_diagnostics']:
+            self._run(
+                'diagnostics', 'create_fake_diagnostics', '--count', n,
+                '--with-pricing', '--with-states', '--with-views',
+            )
 
-        # Create fake data for blog posts
-        self.stdout.write(self.style.SUCCESS('Creating fake blog posts...'))
-        call_command('create_fake_blog_posts', '--count', str(number_of_records))
+        # Platform graph must run before documents: collection accounts need clients/projects.
+        if not options['skip_platform']:
+            self._run('platform', 'seed_platform_data')
+            self._run('demo-clients', 'seed_demo_clients')
+            self._run('platform-enrich', 'enrich_platform_data')
 
-        # Seed Kanban tasks
-        self.stdout.write(self.style.SUCCESS('Seeding Kanban tasks...'))
-        call_command('create_fake_tasks')
+        if not options['skip_documents']:
+            self._run('documents', 'create_fake_documents', '--count', n)
 
-        self.stdout.write(self.style.SUCCESS('All fake data has been created'))
+        # Summary.
+        self.stdout.write('')
+        self.stdout.write(self.style.SUCCESS(f'Done. Populated: {", ".join(self._ok) or "none"}'))
+        if self._failed:
+            self.stdout.write(self.style.ERROR(
+                f'Failed features: {", ".join(self._failed)} '
+                '(see traceback above; other features were still populated).'))
 
-        self.stdout.write(self.style.SUCCESS('Running seed_platform_data (platform graph)...'))
-        call_command('seed_platform_data')
-        self.stdout.write(self.style.SUCCESS('Platform seed finished.'))
+    def _run(self, label, command, *args):
+        self.stdout.write(self.style.SUCCESS(f'→ {label} ({command})...'))
+        try:
+            call_command(command, *args)
+            self._ok.append(label)
+        except Exception:  # noqa: BLE001 — keep going so other features still seed
+            self._failed.append(label)
+            self.stdout.write(self.style.ERROR(f'✗ {label} failed:'))
+            self.stdout.write(traceback.format_exc())

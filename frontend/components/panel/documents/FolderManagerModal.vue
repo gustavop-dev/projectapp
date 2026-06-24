@@ -233,6 +233,7 @@ import FolderManagerTree from '~/components/panel/documents/FolderManagerTree.vu
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
+  initialParent: { type: Number, default: null },
 });
 const emit = defineEmits(['update:modelValue', 'changed']);
 
@@ -251,7 +252,7 @@ watch(() => props.modelValue, async (open) => {
     deletingFolder.value = null;
     editingFolder.value = null;
     newName.value = '';
-    newParent.value = null;
+    newParent.value = props.initialParent ?? null;
     await folderStore.fetchFolders();
   }
 });
@@ -292,7 +293,7 @@ async function handleCreate() {
   const result = await folderStore.createFolder({ name, parent: newParent.value });
   if (result.success) {
     newName.value = '';
-    newParent.value = null;
+    newParent.value = props.initialParent ?? null;
     emit('changed');
   } else {
     errorMsg.value = formatErr(result.errors) || 'No se pudo crear la carpeta.';

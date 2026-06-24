@@ -18,8 +18,8 @@ const authCheck = {
   body: JSON.stringify({ user: { username: 'admin', is_staff: true } }),
 };
 
-const FOLDER_CUENTAS = { id: 11, name: 'Cuentas de cobro', slug: 'cuentas-de-cobro', order: 0, document_count: 1 };
-const FOLDER_CONTRATOS = { id: 12, name: 'Contratos', slug: 'contratos', order: 0, document_count: 0 };
+const FOLDER_CUENTAS = { id: 11, name: 'Cuentas de cobro', slug: 'cuentas-de-cobro', parent: null, order: 0, document_count: 1 };
+const FOLDER_CONTRATOS = { id: 12, name: 'Contratos', slug: 'contratos', parent: null, order: 0, document_count: 0 };
 
 const TAG_URGENTE = { id: 21, name: 'Urgente', slug: 'urgente', color: 'red' };
 const TAG_FIRMADO = { id: 22, name: 'Firmado', slug: 'firmado', color: 'emerald' };
@@ -154,5 +154,33 @@ test.describe('Admin Document Folders and Tags', () => {
 
     await expect(page.getByRole('table').getByText('Borrador sin carpeta')).toBeVisible();
     await expect(page.getByRole('table').getByText('Factura ACME')).toBeHidden();
+  });
+
+  test('new folder form pre-selects the active folder as parent', {
+    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, route }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'document-folders/') return jsonOk([FOLDER_CUENTAS]);
+      if (apiPath === 'document-tags/') return jsonOk([]);
+      if (apiPath.startsWith('documents/')) {
+        const u = new URL(route.request().url());
+        if (u.searchParams.get('folder') === String(FOLDER_CUENTAS.id)) return jsonOk([DOC_IN_FOLDER]);
+        return jsonOk([DOC_IN_FOLDER, DOC_ORPHAN]);
+      }
+      return null;
+    });
+
+    await page.goto('/panel/documents');
+    await page.waitForLoadState('domcontentloaded');
+
+    // Pararse dentro de la carpeta antes de abrir el gestor.
+    await page.getByRole('button', { name: 'Cuentas de cobro' }).click();
+    await page.getByRole('button', { name: 'Nueva carpeta' }).click();
+
+    const parentSelect = page.locator('label', { hasText: 'Dentro de:' }).locator('select');
+    await expect(parentSelect).toBeVisible();
+
+    await expect(parentSelect.locator('option:checked')).toHaveText('Cuentas de cobro');
   });
 });

@@ -56,10 +56,14 @@ class Command(BaseCommand):
             is_staff=True,
         )
 
-        UserProfile.objects.create(
+        # update_or_create coexists with the post_save signal that auto-creates a
+        # bare UserProfile (fires immediately on commit in autocommit mode).
+        UserProfile.objects.update_or_create(
             user=user,
-            role=UserProfile.ROLE_ADMIN,
-            is_onboarded=True,
+            defaults={
+                'role': UserProfile.ROLE_ADMIN,
+                'is_onboarded': True,
+            },
         )
 
         self.stdout.write(self.style.SUCCESS(

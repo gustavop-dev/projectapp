@@ -3071,18 +3071,20 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents`
-- **Description:** View the list of admin documents with title, status, client association, and row actions (edit, download PDF, duplicate, delete).
+- **Description:** View the list of admin documents with title, status and client association. Per-row actions are collapsed into a single "Acciones" (kebab) icon that opens the `DocumentActionsSheet` modal listing each action with its own icon (edit content, rename, move to folder, send by email, download PDF, copy markdown, duplicate, delete). The same single-icon + modal pattern is used on every breakpoint.
 - **Steps:**
   1. Admin navigates to `/panel/documents`.
   2. Document list loads from API (`GET /api/content/documents/`).
   3. Table renders with columns: title, client name, status badge, created date, actions.
-  4. Admin clicks a row or the edit icon → navigates to `/panel/documents/:id/edit`.
-  5. "Nuevo Documento" button navigates to `/panel/documents/create`.
+  4. Admin clicks a row → navigates to `/panel/documents/:id/edit`.
+  5. Admin clicks the single "Acciones" icon → `DocumentActionsSheet` opens; choosing "Editar contenido" navigates to `/panel/documents/:id/edit`.
+  6. "Nuevo Documento" button navigates to `/panel/documents/create`.
 - **Branches:**
   - [Branch A — Empty state] No documents → "No hay documentos todavía." with create link.
-  - [Branch B — Download PDF] Admin clicks download icon → PDF generated and downloaded.
-  - [Branch C — Duplicate] Admin clicks duplicate icon → document cloned and list refreshes.
-  - [Branch D — Delete] Admin clicks delete icon → confirm modal → document removed from list.
+  - [Branch B — Actions modal] Admin clicks the "Acciones" icon → modal lists every action (edit/rename/move/send-email/download-pdf/copy-markdown/duplicate/delete); selecting one triggers it and closes the modal.
+  - [Branch C — Download PDF] From the actions modal → PDF generated and downloaded.
+  - [Branch D — Duplicate] From the actions modal → document cloned and list refreshes.
+  - [Branch E — Delete] From the actions modal → confirm modal → document removed from list.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-list.spec.js`
 
@@ -3146,7 +3148,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   8. Admin creates, renames, or deletes a folder/tag → modal emits `@changed` → document list refreshes.
 - **Branches:**
   - [Branch A — Empty folders] No folders yet → "Sin carpeta" and "Todos" entries only; "Crear la primera →" prompt for tags.
-  - [Branch B — Create folder] Admin fills name + submits in FolderManagerModal → folder added to sidebar. An optional "Dentro de" parent selector creates it as a subfolder.
+  - [Branch B — Create folder] Admin fills name + submits in FolderManagerModal → folder added to sidebar. The "Dentro de:" parent selector defaults to the currently active folder, so creating a folder while standing inside a child folder pre-selects that folder as the parent (still changeable to any folder or root).
   - [Branch C — Delete folder] Deleting a folder is blocked with HTTP 409 if it still holds documents or subfolders; documents themselves use `folder = SET_NULL`.
   - [Branch D — Assign on create] Creating a document from `?folder=<id>` pre-selects that folder.
 - **Coverage:** ✅ Covered

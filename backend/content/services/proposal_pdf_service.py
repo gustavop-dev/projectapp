@@ -88,6 +88,8 @@ from content.services.pdf_utils import (  # noqa: F401 — re-exported
     # Markdown helpers
     _parse_markdown_lines,
     _clean_inline_bold,
+    _BR_TAG_RE,
+    _HTML_TAG_RE,
 )
 
 logger = logging.getLogger(__name__)
@@ -583,6 +585,66 @@ def _render_development_stages(c, data, _proposal, ps=None, y=None):
     return y
 
 
+_FR_BOLD_SPAN_RE = re.compile(r'<(?:b|strong)>(.*?)</(?:b|strong)>',
+                              re.IGNORECASE | re.DOTALL)
+
+
+def _desc_to_segmented_lines(desc, width):
+    """Convert an HTML item description into wrapped lines of ``[text, is_bold]`` segments.
+
+    Honors ``<br>``/``<br><br>`` (line/paragraph breaks) and
+    ``<b>``/``<strong>``/``**bold**`` (bold); strips any other tags and emojis.
+
+    Returns a list of lines; each line is a list of ``[text, is_bold]`` segments. An
+    empty list as a line marks a blank line (paragraph separator). This lets the PDF
+    render rich two-paragraph, bold-highlighted item descriptions instead of showing
+    literal ``<b>``/``<br>`` tags, matching the web proposal.
+    """
+    if not desc:
+        return []
+    text = _BR_TAG_RE.sub('\n', str(desc))
+    text = _FR_BOLD_SPAN_RE.sub(r'**\1**', text)   # <b>/<strong> -> **..**
+    text = _HTML_TAG_RE.sub('', text)              # strip any remaining tags
+    text = _strip_emoji(text)
+
+    lines = []
+    first_para = True
+    for para in text.split('\n'):
+        para = para.strip()
+        if not para:
+            continue
+        if not first_para:
+            lines.append([])  # blank line between paragraphs
+        first_para = False
+
+        # Split the paragraph into (text, is_bold) segments on ** delimiters.
+        segments = []
+        is_bold = False
+        for piece in para.split('**'):
+            if piece:
+                segments.append((piece, is_bold))
+            is_bold = not is_bold
+
+        # Greedy char-based word wrap that preserves bold per segment.
+        cur, cur_len = [], 0
+        for seg_text, seg_bold in segments:
+            for word in seg_text.split():
+                extra = (1 if cur_len else 0) + len(word)
+                if cur_len and cur_len + extra > width:
+                    lines.append(cur)
+                    cur, cur_len = [], 0
+                    extra = len(word)
+                chunk = (' ' if cur_len else '') + word
+                if cur and cur[-1][1] == seg_bold:
+                    cur[-1][0] += chunk
+                else:
+                    cur.append([chunk, seg_bold])
+                cur_len += extra
+        if cur:
+            lines.append(cur)
+    return lines
+
+
 def _render_functional_requirements(c, data, proposal, ps=None, y=None):
     """Render functional requirements overview page."""
     if y is None:
@@ -799,12 +861,14 @@ def _render_requirement_group_page(c, grp, ps=None, y=None,
     # ── Item rows ─────────────────────────────────────────────
     for idx, item in enumerate(items):
         name = _strip_emoji(_safe(item, 'name') or '')
-        item_desc = _strip_emoji(_safe(item, 'description') or '')
+        # Rich description: honor <br><br> (paragraphs) and <b>/<strong>/**bold** so the
+        # PDF matches the web instead of showing literal tags. Each line is a list of
+        # [text, is_bold] segments; an empty list is a blank line between paragraphs.
+        desc_seg_lines = _desc_to_segmented_lines(_safe(item, 'description') or '', desc_chars)
         name_lines = textwrap.wrap(name, width=name_chars) or [name]
-        desc_lines = textwrap.wrap(item_desc, width=desc_chars) if item_desc else []
 
         line_h = 11
-        n_lines = max(len(name_lines), len(desc_lines) if desc_lines else 1)
+        n_lines = max(len(name_lines), len(desc_seg_lines) if desc_seg_lines else 1)
         row_h = n_lines * line_h + 14
         row_h = max(row_h, 28)
 
@@ -839,13 +903,18 @@ def _render_requirement_group_page(c, grp, ps=None, y=None,
             c.drawString(MARGIN_L + num_col_w + 6, text_y, nl)
             text_y -= line_h
 
-        # Item description (top-aligned, regular)
-        if desc_lines:
+        # Item description (top-aligned) — draws bold/regular segments per line
+        if desc_seg_lines:
             text_y = row_y - 9
-            c.setFont(_font('regular'), 8)
             c.setFillColor(ESMERALD_80)
-            for dl in desc_lines:
-                c.drawString(MARGIN_L + num_col_w + name_col_w + 6, text_y, dl)
+            desc_x0 = MARGIN_L + num_col_w + name_col_w + 6
+            for seg_line in desc_seg_lines:
+                x = desc_x0
+                for seg_text, seg_bold in seg_line:
+                    fnt = _font('bold') if seg_bold else _font('regular')
+                    c.setFont(fnt, 8)
+                    c.drawString(x, text_y, seg_text)
+                    x += c.stringWidth(seg_text, fnt, 8)
                 text_y -= line_h
 
         row_y = row_bottom

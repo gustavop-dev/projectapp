@@ -114,15 +114,19 @@ class Command(BaseCommand):
                 is_active=client_data['is_active'],
             )
 
-            UserProfile.objects.create(
+            # update_or_create coexists with the post_save signal that auto-creates
+            # a bare UserProfile (it fires on commit, immediately in autocommit mode).
+            UserProfile.objects.update_or_create(
                 user=user,
-                role=UserProfile.ROLE_CLIENT,
-                is_onboarded=client_data['is_onboarded'],
-                profile_completed=client_data['profile_completed'],
-                company_name=client_data['company_name'],
-                phone=client_data['phone'],
-                cedula=client_data.get('cedula', ''),
-                created_by=admin,
+                defaults={
+                    'role': UserProfile.ROLE_CLIENT,
+                    'is_onboarded': client_data['is_onboarded'],
+                    'profile_completed': client_data['profile_completed'],
+                    'company_name': client_data['company_name'],
+                    'phone': client_data['phone'],
+                    'cedula': client_data.get('cedula', ''),
+                    'created_by': admin,
+                },
             )
 
             if not client_data['is_active']:

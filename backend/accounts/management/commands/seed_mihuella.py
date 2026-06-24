@@ -24,6 +24,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
+from accounts.management.commands._seed_helpers import ensure_phase
 from accounts.models import (
     BugComment, BugReport, ChangeRequest, ChangeRequestComment,
     Deliverable, DeliverableVersion, HostingSubscription, Payment,
@@ -203,17 +204,19 @@ class Command(BaseCommand):
             first_name='Laura',
             last_name='Blanco',
         )
-        UserProfile.objects.create(
+        UserProfile.objects.update_or_create(
             user=user,
-            role=UserProfile.ROLE_CLIENT,
-            is_onboarded=True,
-            profile_completed=True,
-            company_name='Entre Especies',
-            phone='+57 315 420 8899',
-            cedula='1098765432',
-            date_of_birth='1994-08-22',
-            gender=UserProfile.GENDER_FEMALE,
-            education_level=UserProfile.EDUCATION_UNIVERSITY,
+            defaults={
+                'role': UserProfile.ROLE_CLIENT,
+                'is_onboarded': True,
+                'profile_completed': True,
+                'company_name': 'Entre Especies',
+                'phone': '+57 315 420 8899',
+                'cedula': '1098765432',
+                'date_of_birth': '1994-08-22',
+                'gender': UserProfile.GENDER_FEMALE,
+                'education_level': UserProfile.EDUCATION_UNIVERSITY,
+            },
         )
         self.stdout.write(self.style.SUCCESS(f'  Created client: {CLIENT_EMAIL}'))
         return user
@@ -669,15 +672,7 @@ class Command(BaseCommand):
             self.stdout.write(f'  Requirements already exist for {project.name}')
             return
 
-        d = Deliverable.objects.filter(project=project).order_by('id').first()
-        if not d:
-            d = Deliverable.objects.create(
-                project=project,
-                title='Alcance Mi Huella',
-                category=Deliverable.CATEGORY_OTHER,
-                file=None,
-                uploaded_by=project.client,
-            )
+        phase = ensure_phase(project)
 
         order_counters = {}
         objs = []
@@ -686,7 +681,7 @@ class Command(BaseCommand):
             order_counters.setdefault(status, 0)
             epic_key = req_data.get('epic', '')
             objs.append(Requirement(
-                deliverable=d,
+                phase=phase,
                 title=req_data['title'],
                 description=req_data.get('description', ''),
                 configuration=req_data.get('configuration', ''),
@@ -797,12 +792,7 @@ class Command(BaseCommand):
             self.stdout.write(f'  Bug reports already exist for {project.name}')
             return
 
-        deliverable_list = list(
-            Deliverable.objects.filter(project=project).order_by('id'),
-        )
-        if not deliverable_list:
-            self.stdout.write(self.style.WARNING(f'  Skipping bug reports — no deliverables for {project.name}'))
-            return
+        phase = ensure_phase(project)
 
         bugs = [
             {
@@ -969,10 +959,10 @@ class Command(BaseCommand):
             },
         ]
 
-        for i, bug_data in enumerate(bugs):
-            dlv = deliverable_list[i % len(deliverable_list)]
+        for bug_data in bugs:
             bug = BugReport.objects.create(
-                deliverable=dlv,
+                project=project,
+                phase=phase,
                 reported_by=client,
                 title=bug_data['title'],
                 description=bug_data['description'],
