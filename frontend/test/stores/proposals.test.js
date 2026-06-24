@@ -544,6 +544,20 @@ describe('useProposalStore', () => {
 
       expect(store.error).toBe('delete_failed');
     });
+
+    it('propagates backend error message and keeps the proposal', async () => {
+      store.proposals = [{ id: 1 }, { id: 2 }];
+      delete_request.mockRejectedValue({
+        response: { status: 409, data: { error: 'Vinculada a un proyecto' } },
+      });
+
+      const result = await store.deleteProposal(1);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Vinculada a un proyecto');
+      // List untouched because the delete failed.
+      expect(store.proposals).toEqual([{ id: 1 }, { id: 2 }]);
+    });
   });
 
   describe('sendProposal', () => {

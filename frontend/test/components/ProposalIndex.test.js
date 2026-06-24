@@ -28,6 +28,22 @@ describe('ProposalIndex', () => {
     expect(wrapper.text()).toContain('Presupuesto');
   });
 
+  it('keeps the toggle at top-4 when no banner is active', () => {
+    const wrapper = mountIndex({ bannerActive: false });
+    const toggle = wrapper.find('[data-testid="index-toggle"]');
+
+    expect(toggle.classes()).toContain('top-4');
+  });
+
+  it('drops the toggle below the banner when bannerActive is true', () => {
+    const wrapper = mountIndex({ bannerActive: true });
+    const toggle = wrapper.find('[data-testid="index-toggle"]');
+
+    expect(toggle.classes()).toContain('top-28');
+    expect(toggle.classes()).toContain('sm:top-20');
+    expect(toggle.classes()).not.toContain('top-4');
+  });
+
   it('emits navigate with the section index when a section button is clicked', async () => {
     const wrapper = mountIndex();
 

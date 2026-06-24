@@ -283,7 +283,13 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         this.error = 'delete_failed';
         console.error('Error deleting proposal:', error);
-        return { success: false };
+        return {
+          success: false,
+          error:
+            error.response?.data?.error ||
+            error.response?.data?.detail ||
+            null,
+        };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;

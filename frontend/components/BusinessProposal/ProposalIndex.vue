@@ -3,10 +3,11 @@
     <!-- Toggle button (always visible) -->
     <button
       data-testid="index-toggle"
-      class="index-toggle absolute left-4 top-4 z-50 pointer-events-auto
+      class="index-toggle absolute left-4 z-50 pointer-events-auto
              w-10 h-10 rounded-full bg-surface/90 backdrop-blur-sm shadow-lg
              flex items-center justify-center text-text-brand
-             hover:bg-primary/5 transition-colors"
+             hover:bg-primary/5 transition-all"
+      :class="bannerActive ? 'top-28 sm:top-20' : 'top-4'"
       @click="isOpen = !isOpen"
     >
       <svg v-if="!isOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,6 +141,12 @@ defineProps({
   language: {
     type: String,
     default: 'es',
+  },
+  // When a full-width fixed banner (e.g. the expired-proposal notice) is
+  // shown at the top, drop the toggle button below it so they don't overlap.
+  bannerActive: {
+    type: Boolean,
+    default: false,
   },
 });
 
