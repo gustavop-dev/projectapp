@@ -1064,6 +1064,7 @@ def notify_first_view(proposal_id):
     """
     from content.models import BusinessProposal
     from content.services.proposal_email_service import ProposalEmailService
+    from content.services.proposal_service import ProposalService
 
     try:
         proposal = BusinessProposal.objects.get(pk=proposal_id)
@@ -1071,6 +1072,14 @@ def notify_first_view(proposal_id):
         logger.warning(
             'Proposal %s not found for first-view notification task.',
             proposal_id,
+        )
+        return
+
+    # Defense in depth: never notify opens on closed proposals.
+    if ProposalService.open_notifications_suppressed(proposal):
+        logger.info(
+            'Skipping first-view notification for proposal %s (status=%s).',
+            proposal.uuid, proposal.status,
         )
         return
 

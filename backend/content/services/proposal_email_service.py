@@ -1059,6 +1059,13 @@ class ProposalEmailService:
         opens a proposal for the first time. This is the ideal moment
         for the sales team to do follow-up.
         """
+        from content.services.proposal_service import ProposalService
+        if ProposalService.open_notifications_suppressed(proposal):
+            logger.info(
+                'Skipping proposal_first_view_notification: proposal %s is %s',
+                proposal.uuid, proposal.status,
+            )
+            return False
         if not cls._is_template_active('proposal_first_view_notification'):
             logger.info('Skipping proposal_first_view_notification: template disabled')
             return False
@@ -1610,6 +1617,13 @@ class ProposalEmailService:
         Notify the sales team when the proposal is accessed from a new
         IP address, suggesting a secondary decision-maker is reviewing it.
         """
+        from content.services.proposal_service import ProposalService
+        if ProposalService.open_notifications_suppressed(proposal):
+            logger.info(
+                'Skipping proposal_stakeholder_detected: proposal %s is %s',
+                proposal.uuid, proposal.status,
+            )
+            return False
         if not cls._is_template_active('proposal_stakeholder_detected'):
             logger.info('Skipping proposal_stakeholder_detected: template disabled')
             return False

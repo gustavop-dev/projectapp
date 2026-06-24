@@ -2574,6 +2574,21 @@ class ProposalService:
     DEFAULT_EXPIRATION_DAYS = 21
 
     @staticmethod
+    def open_notifications_suppressed(proposal):
+        """Whether "client opened the proposal" notifications should be skipped.
+
+        We don't notify on opens once the proposal is in a closed/won state:
+        accepted or finished. At that point the open-tracking signal no longer
+        helps the sales team and only produces noise (e.g. the owner revisiting
+        an old, already-accepted proposal).
+        """
+        from content.models import BusinessProposal
+        return proposal.status in (
+            BusinessProposal.Status.ACCEPTED,
+            BusinessProposal.Status.FINISHED,
+        )
+
+    @staticmethod
     def _require_valid_client_email(proposal):
         """Raise ValueError if proposal lacks a deliverable client_email."""
         if not proposal.client_email:
