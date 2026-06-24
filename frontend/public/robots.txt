@@ -3,7 +3,5 @@ Allow: /
 
 Disallow: /admin/
 Disallow: /api/
-Disallow: /static/
-Disallow: /_nuxt/
 
 Sitemap: https://projectapp.co/sitemap.xml
