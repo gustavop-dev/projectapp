@@ -860,16 +860,35 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/proposals/`
-- **Description:** Delete an existing business proposal.
+- **Description:** Delete an existing business proposal from the proposals list.
 - **Steps:**
   1. Admin views the proposal list.
   2. Admin clicks delete on a proposal.
-  3. Confirmation dialog appears.
+  3. A confirmation modal appears requiring the admin to type `DELETE`.
   4. Admin confirms deletion.
   5. API call to `DELETE /api/proposals/:id/delete/`.
-  6. Proposal is removed from the list.
-- **Coverage:** ✅ Covered
+  6. On success: proposal is removed (list refreshed) and a success toast shows.
+  7. On `409 Conflict` (proposal linked to a launched project via `ProjectPhase`, `on_delete=PROTECT`): the proposal stays and an error toast shows the backend message.
+- **Coverage:** ⚠️ Partial
 - **E2E Spec:** `e2e/admin/admin-proposal-delete.spec.js`
+- **Known gaps:** The existing spec only navigates + mocks the endpoint; it does not exercise the confirm modal (type `DELETE`), the success toast + list refresh, or the `409` blocked-delete path for project-linked proposals.
+
+### FLOW: `admin-proposal-delete-from-client`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/clients/`
+- **Description:** Delete a specific proposal from a client's expanded row in the Mini-CRM clients view.
+- **Steps:**
+  1. Admin opens `/panel/clients` and expands a client row to see its linked proposals.
+  2. Admin clicks delete on a specific proposal.
+  3. A confirmation modal appears requiring the admin to type `DELETE`.
+  4. Admin confirms → `DELETE /api/proposals/:id/delete/`.
+  5. On success: the client detail is refetched (proposal disappears) and a success toast shows.
+  6. On `409 Conflict` (linked to a launched project): the proposal stays and an error toast shows.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** _none yet (suggested: `e2e/admin/admin-proposal-delete-from-client.spec.js`)_
 
 ### FLOW: `admin-proposal-duplicate`
 
@@ -1022,9 +1041,11 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   4. Admin uses tab buttons (Todos/Activos/Huérfanos) to filter — sends `?orphans=true/false`.
   5. Admin searches clients by name, email, or company.
   6. Admin expands a client row to view individual proposals (lazy-loaded via `GET /api/proposals/client-profiles/:id/`).
-- **Coverage:** ✅ Covered
+  7. Pressing the global panel refresh button invalidates the per-client detail cache and refetches expanded rows, so renamed/reassigned proposals show up.
+- **Coverage:** ⚠️ Partial
 - **E2E Spec:** `e2e/admin/admin-mini-crm-clients.spec.js`
 - **Backend Tests:** `content/tests/views/test_proposal_clients_views.py`
+- **Known gaps:** No E2E asserts that the refresh button re-fetches an already-expanded client's proposals (the cache-invalidation fix for stale rename/reassignment); see also `admin-proposal-delete-from-client`.
 
 ### FLOW: `admin-client-create-standalone`
 
@@ -1430,6 +1451,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch A — Post-rejection revisit] If the proposal was rejected and the client revisits, a `post_rejection_revisit` alert is also created.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-view.spec.js` (Branch A — Proposal expired)
+- **Known gaps:** When the full proposal still renders with the persistent expired banner (`pages/proposal/[uuid]/index.vue` `isExpired`), the top-left index toggle must drop below the banner (`ProposalIndex` `bannerActive` → `top-28 sm:top-20`) so the two don't overlap. No E2E asserts this no-overlap; only a unit test (`test/components/ProposalIndex.test.js`) covers the offset class.
 
 ### FLOW: `proposal-magic-link-request`
 

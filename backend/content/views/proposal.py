@@ -4,6 +4,7 @@ import re
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from django.conf import settings
+from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -578,8 +579,15 @@ def _serve_public_proposal(request, proposal):
 
         proposal.save(update_fields=update_fields)
 
-    # Send real-time notification to sales team on first view (async)
-    if is_first_view and not is_preview:
+    # Send real-time notification to sales team on first view (async).
+    # Skip for admin previews and for already-closed proposals
+    # (accepted/finished), where open-tracking is just noise.
+    from content.services.proposal_service import ProposalService
+    if (
+        is_first_view
+        and not is_preview
+        and not ProposalService.open_notifications_suppressed(proposal)
+    ):
         try:
             from content.tasks import notify_first_view
             notify_first_view(proposal.id)
@@ -1685,9 +1693,34 @@ def update_proposal(request, proposal_id):
 def delete_proposal(request, proposal_id):
     """
     Delete a proposal and all related sections/groups (CASCADE).
+
+    Proposals that were launched to the platform are referenced by
+    ``ProjectPhase`` rows via ``on_delete=PROTECT`` (see accounts.models).
+    Deleting such a proposal raises ProtectedError; we surface a clear
+    409 instead of a 500 so the admin understands the link must be
+    removed first.
     """
     proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
-    proposal.delete()
+    try:
+        proposal.delete()
+    except ProtectedError:
+        phases = proposal.project_phases.select_related('project').all()
+        phase_labels = [
+            f'{ph.project.name} (fase {ph.order})'
+            if getattr(ph, 'project', None) else f'fase {ph.order}'
+            for ph in phases
+        ]
+        detail = (
+            'No se puede eliminar esta propuesta porque está vinculada a un '
+            'proyecto lanzado a la plataforma'
+        )
+        if phase_labels:
+            detail += ': ' + ', '.join(phase_labels)
+        detail += '. Desvincula el proyecto antes de eliminarla.'
+        return Response(
+            {'error': detail},
+            status=status.HTTP_409_CONFLICT,
+        )
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -2842,7 +2875,15 @@ def track_proposal_engagement(request, proposal_uuid):
     # --- Stakeholder detection ---
     # If this is a new session from a different IP than previous sessions,
     # it may indicate a secondary decision-maker is reviewing the proposal.
-    if _created and not proposal.stakeholder_alert_sent_at and proposal.first_viewed_at:
+    # Skip for already-closed proposals (accepted/finished) — revisiting an
+    # old won proposal shouldn't trigger "someone is reviewing" alerts.
+    from content.services.proposal_service import ProposalService
+    if (
+        _created
+        and not proposal.stakeholder_alert_sent_at
+        and proposal.first_viewed_at
+        and not ProposalService.open_notifications_suppressed(proposal)
+    ):
         known_ips = set(
             ProposalViewEvent.objects
             .filter(proposal=proposal)

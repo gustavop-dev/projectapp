@@ -213,8 +213,20 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Delete an existing business proposal.",
-      "expectedSpecs": 1
+      "description": "Delete an existing business proposal from /panel/proposals. A confirm modal requires typing 'DELETE'; on success the list refreshes and a success toast shows; on 409 (proposal linked to a launched project via ProjectPhase on_delete=PROTECT) the proposal stays and an error toast surfaces the backend message.",
+      "expectedSpecs": 1,
+      "knownGaps": "The spec only navigates + mocks DELETE; it does not exercise the confirm modal (type 'DELETE'), the success toast + list refresh, or the 409 blocked-delete path for project-linked proposals."
+    },
+    "admin-proposal-delete-from-client": {
+      "name": "Admin Proposal Delete From Client",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "From /panel/clients, expand a client row and delete a specific linked proposal. A confirm modal requires typing 'DELETE'; on success the client detail is refetched (proposal disappears) and a success toast shows; on 409 (linked to a launched project) the proposal stays and an error toast shows.",
+      "expectedSpecs": 0,
+      "knownGaps": "No dedicated spec yet (suggested e2e/admin/admin-proposal-delete-from-client.spec.js). The delete-from-client confirm modal, detail refetch, and 409 path are unasserted."
     },
     "admin-proposal-send": {
       "name": "Admin Proposal Send",
@@ -434,8 +446,9 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "View client list with search, tab filtering (Todos/Activos/Huérfanos), expand client to see linked proposals, and empty state.",
-      "expectedSpecs": 3
+      "description": "View client list with search, tab filtering (Todos/Activos/Huérfanos), expand client to see linked proposals, and empty state. The global panel refresh button invalidates the per-client detail cache and refetches expanded rows so renamed/reassigned proposals appear.",
+      "expectedSpecs": 3,
+      "knownGaps": "No E2E asserts that the refresh button re-fetches an already-expanded client's proposals (the cache-invalidation fix for stale rename/reassignment)."
     },
     "admin-portfolio-list": {
       "name": "Admin Portfolio List",
@@ -761,7 +774,8 @@
       ],
       "priority": "P1",
       "description": "Expired proposal returns 410 with partial data; frontend renders ProposalExpired with client name, WhatsApp CTA, and email contact.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": "When the full proposal still renders with the persistent expired banner (pages/proposal/[uuid]/index.vue isExpired), the top-left index toggle must drop below the banner (ProposalIndex bannerActive → top-28 sm:top-20). No E2E asserts this no-overlap; only a unit test covers the offset class."
     },
     "admin-proposal-batch-actions": {
       "name": "Admin Proposal Batch Actions",

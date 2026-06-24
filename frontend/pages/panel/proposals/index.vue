@@ -1290,10 +1290,23 @@ function handleCopyLink(p) {
 function handleDelete(id) {
   requestConfirm({
     title: 'Eliminar propuesta',
-    message: '¿Eliminar esta propuesta? Esta acción no se puede deshacer.',
+    message: 'Esto eliminará la propuesta de forma permanente. Esta acción no se puede deshacer.',
     variant: 'danger',
     confirmText: 'Eliminar',
-    onConfirm: () => proposalStore.deleteProposal(id),
+    cancelText: 'Cancelar',
+    requireTypeText: 'DELETE',
+    onConfirm: async () => {
+      const result = await proposalStore.deleteProposal(id);
+      if (result.success) {
+        await refreshData();
+        showStatusToast('Propuesta eliminada.', 'success');
+      } else {
+        showStatusToast(
+          result.error || 'No se pudo eliminar la propuesta.',
+          'error',
+        );
+      }
+    },
   });
 }
 

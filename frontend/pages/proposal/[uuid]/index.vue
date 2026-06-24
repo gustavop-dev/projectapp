@@ -80,6 +80,7 @@
           :visitedPanelIds="visitedPanelIds"
           :viewMode="viewMode"
           :language="pLang"
+          :bannerActive="isExpired"
           @navigate="handleNavigate"
           @update:open="(val) => indexOpen = val"
           @switchToDetailed="handleSwitchToDetailed"

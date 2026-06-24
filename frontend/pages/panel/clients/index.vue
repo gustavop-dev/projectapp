@@ -533,6 +533,9 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
+
+    <!-- Global panel toast (success/error feedback) -->
+    <PanelToast />
   </div>
 </template>
 
@@ -541,12 +544,14 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { PlusIcon, TrashIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
 import SidebarIcon from '~/components/platform/SidebarIcon.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
+import PanelToast from '~/components/panel/PanelToast.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useClientFilters } from '~/composables/useClientFilters';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { usePanelToast } from '~/composables/usePanelToast';
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge';
 import { usePagination } from '~/composables/usePagination';
 import { useProposalClientsStore } from '~/stores/proposalClients';
@@ -562,6 +567,7 @@ const proposalStore = useProposalStore();
 const diagnosticsStore = useDiagnosticsStore();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =
   useConfirmModal();
+const { showToast } = usePanelToast();
 
 const {
   currentFilters,
@@ -620,6 +626,27 @@ async function loadClients() {
   await clientsStore.fetchClients({ search: search.value.trim(), orphans });
 }
 
+/**
+ * Full refresh bound to the global panel refresh button.
+ *
+ * Besides reloading the top-level rows, it invalidates the per-client
+ * detail cache and refetches the rows that are still expanded. Without
+ * this, renaming a proposal or reassigning it to another client would
+ * not show up after refresh because the nested proposals are served from
+ * `detailCache`, which is only populated once on expand.
+ */
+async function refreshAll() {
+  await loadClients();
+  const expandedIds = Array.from(expandedClients.value);
+  Object.keys(detailCache).forEach((key) => { delete detailCache[key]; });
+  await Promise.all(
+    expandedIds.map(async (id) => {
+      const result = await clientsStore.fetchClient(id);
+      if (result.success) detailCache[id] = result.data;
+    }),
+  );
+}
+
 function setActiveTab(tabId) {
   activeTab.value = tabId;
   loadClients();
@@ -649,7 +676,7 @@ onMounted(() => {
   document.addEventListener('keydown', handleEditEscape);
 });
 
-usePanelRefresh(loadClients);
+usePanelRefresh(refreshAll);
 onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer);
   document.removeEventListener('keydown', handleEditEscape);
@@ -823,7 +850,15 @@ function confirmDeleteProposal(client, proposal) {
     requireTypeText: 'DELETE',
     onConfirm: async () => {
       const result = await proposalStore.deleteProposal(proposal.id);
-      if (result.success) await refreshClientDetail(client.id);
+      if (result.success) {
+        await refreshClientDetail(client.id);
+        showToast({ type: 'success', text: 'Propuesta eliminada.' });
+      } else {
+        showToast({
+          type: 'error',
+          text: result.error || 'No se pudo eliminar la propuesta.',
+        });
+      }
     },
   });
 }
