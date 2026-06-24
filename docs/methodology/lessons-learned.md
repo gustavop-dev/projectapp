@@ -624,3 +624,15 @@ grep -nE "v-html|v-for|content\.kpis" frontend/components/BusinessProposal/Propo
 ```
 
 `ProposalSummary.vue` defines a `kpis` field in its admin form and seller prompt but the public template only iterates `cards[]`. The `kpis` array is dead schema. Always verify the data path is wired end-to-end (admin form → JSON → backend serializer → public component) before adding fields to an existing section.
+
+## 19. Build-time prerender must bypass production nginx (rate limit / TLS)
+
+A build step that prerenders pages by fetching the app's **own public API** is, from nginx's perspective, just another external client — it inherits production's rate limiting, WAF rules, and TLS redirects. This silently broke blog prerender (ERR-015): `build:django` fetched all 114 blog routes from `https://projectapp.co`, tripped `limit_req zone=api` (5 r/s) → 429 → ~100 posts rendered as 500 → build shipped the SPA shell with no per-post HTML/OG tags. It worked when the blog was small and degraded as it grew past the burst window.
+
+### Rules of thumb
+- **Prerender/SSR-at-build against the app server on loopback, never the public hostname.** The build script (`frontend/update-django-template.js`) starts a throwaway Django on a free `127.0.0.1` port and points `PRERENDER_API_ORIGIN` at it.
+- **Don't assume `127.0.0.1:8000` works.** Production gunicorn binds `unix:/run/projectapp.sock`, not a TCP port — there is nothing on :8000. The build brings up its own server instead.
+- **A loopback build server needs a no-TLS settings module.** `settings_prod` forces `SECURE_SSL_REDIRECT=True`, which 301s plain-HTTP loopback fetches to `https://127.0.0.1` and breaks them. `backend/projectapp/settings_build.py` extends prod (real DB/content) but disables SSL redirect / HSTS / secure cookies. It exists only for the build server.
+- **Put the fix at the single build chokepoint.** Both `/deploy-and-check` and the on-publish `run_frontend_rebuild` task call `npm run build:django`, so fixing it there covers every path. Keep a graceful fallback (env-provided origin) for environments with no backend (CI/dev).
+- **Make a dropped prerender loud, not silent.** Set `PRERENDER_REQUIRE_BLOG=1` once the build can reliably reach the API, so a regression fails the build instead of silently shipping un-prerendered SEO pages.
+- **Verify at the served-HTML layer, not just HTTP 200.** A Nuxt SPA shell returns 200 with no article content. Confirm `<article>` + per-post `og:title` + JSON-LD are present in `curl` output, and spot-check a real browser render.
