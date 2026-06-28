@@ -688,7 +688,7 @@ class TestProposalFinancialExtraction:
 
         project = Project.objects.get(id=resp.json()['id'])
 
-        assert len(project.hosting_tiers) == 4
+        assert len(project.hosting_tiers) == 3
         semi = next(t for t in project.hosting_tiers if t['frequency'] == 'semiannual')
         assert semi['discount_percent'] == 20
         assert semi['months'] == 6
@@ -738,8 +738,8 @@ class TestProposalFinancialExtraction:
         admin_detail = api_client.get(f'/api/accounts/projects/{project_id}/', **admin_headers)
         client_detail = api_client.get(f'/api/accounts/projects/{project_id}/', **client_headers)
 
-        assert len(admin_detail.json()['hosting_tiers']) == 4
-        assert len(client_detail.json()['hosting_tiers']) == 4
+        assert len(admin_detail.json()['hosting_tiers']) == 3
+        assert len(client_detail.json()['hosting_tiers']) == 3
 
     def test_project_without_proposal_has_empty_milestones(
         self, api_client, admin_headers, client_user,
@@ -938,7 +938,7 @@ class TestClientCreateSubscription:
 
         sub_resp = api_client.post(
             f'/api/accounts/projects/{project_id}/subscription/',
-            {'plan': 'annual'},
+            {'plan': 'biennial'},
             format='json', **client_headers,
         )
 
