@@ -2326,6 +2326,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-pre-expiration-discount-suggestion` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
 | `admin-proposal-zombie-segment` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-zombie-segment.spec.js` |
 | `proposal-countdown-realtime` | proposal | guest | P3 | ✅ Covered | `e2e/proposal/proposal-countdown-realtime.spec.js` |
+| `proposal-resolved-notice-suppression` | proposal | guest | P2 | 📝 Documented-only | Unit: `frontend/test/components/Investment.test.js`; suggested `e2e/proposal/proposal-resolved-notice-suppression.spec.js` |
+| `proposal-hosting-plan-terms` | proposal | guest | P2 | 📝 Documented-only | Unit: `frontend/test/components/Investment.test.js`; suggested `e2e/proposal/proposal-hosting-plan-terms.spec.js` |
 | `admin-proposal-create-and-send` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-proposal-create-preview` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-seller-inactivity-escalation` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
@@ -2824,9 +2826,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Description:** The client sees a per-phase hosting cost table and activates a subscription that bills the sum of all started phases at one frequency. Card is the only payment method; after activation the client registers a card (see `platform-hosting-card-setup`) for automatic recurring billing. Admin sees subscription status and stored-card info. Netflix-style active state shows the next automatic renewal date.
 - **Steps:**
   1. Client navigates to `/platform/projects/:id/payments`.
-  2. If no subscription: a per-phase cost table renders (one row per phase + total) with frequency pills (mensual/trimestral/semestral).
+  2. If no subscription: a per-phase cost table renders (one row per phase + total) with frequency pills (mensual/trimestral/semestral/anual — anual has the biggest discount).
   3. Client toggles a pill → the table total recomputes live; clicks "Activar plan {frecuencia}" → `POST .../subscription/`.
-  4. Subscription created billing the sum of started phases, with a first payment → "Activa el cobro automático" card prompts to register a card.
+  4. Subscription created billing the sum of started phases. Billing always starts on the 1st of a month and the client gets a free hosting period from delivery until that date (≥ 1 month), so the first payment is dated to the 1st (not the activation day) → "Activa el cobro automático" card prompts to register a card.
   5. Client registers a card (`platform-hosting-card-setup`); the first payment is charged on confirm.
   6. After payment: Netflix-style "Suscripción activa" card with the next automatic renewal date; the per-phase table becomes display-only at the fixed frequency.
 - **Branches:**
@@ -3661,6 +3663,39 @@ No active browser flow is registered for client profile editing at this time.
   4. Expiration badge and urgency messaging stay in sync with the live countdown.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-countdown-realtime.spec.js`
+
+#### FLOW: `proposal-resolved-notice-suppression`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** Once a proposal's status is resolved (`accepted`, `rejected` or `finished`), the public view stops showing time-sensitive / urgency notices that no longer apply after the client's decision: the expiration countdown badge (`ExpirationBadge.vue`), the limited-time discount banner (`Investment.vue` `.discount-banner`) and the hosting tier discount badges. While the proposal is still open (`sent`/`viewed`) those notices keep showing. The `expired` status is handled separately by the expired-state banner.
+- **Steps:**
+  1. Client opens a resolved proposal (e.g. status `accepted` or `finished`) whose `expires_at`/`discount_percent` are still set.
+  2. The expiration countdown badge does **not** render.
+  3. The limited-time discount banner and hosting tier discount badges do **not** render.
+  4. Control: an open proposal (`sent`/`viewed`) with the same data still renders those notices.
+- **Coverage:** 📝 Documented-only (no dedicated E2E spec yet)
+- **Unit coverage:** `frontend/test/components/Investment.test.js` → `resolved-status notice suppression`
+- **Suggested E2E Spec:** `e2e/proposal/proposal-resolved-notice-suppression.spec.js`
+
+#### FLOW: `proposal-hosting-plan-terms`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid` (+ downloadable PDF)
+- **Description:** The Investment section's hosting plan shows four payment-frequency tiers (annual 40% / semiannual 20% / quarterly 10% / monthly 0%), a "1 free month of hosting" gift bucket (billing starts on the 1st of the month; at least one free month), and the renewal conditions for each renewal year from the second year: `new = previous × (1 + (SMLMV increase % + 8% fixed))`. All of it renders in the public view AND the PDF, in ES and EN. Numbers derive from the BusinessProposal model (default `hosting_percent` 80%, `hosting_discount_annual` 40%).
+- **Steps:**
+  1. Client opens the proposal and scrolls to "Tu inversión y cómo pagar".
+  2. The hosting plan shows the four tiers including the highlighted Annual (40%) tier.
+  3. The free-month gift bucket renders.
+  4. The "Renovaciones" / "Renewals" block renders the SMLMV+8% formula and example.
+  5. Downloading the PDF reproduces the same tiers, free-month note and renewal note.
+- **Coverage:** 📝 Documented-only (no dedicated E2E spec yet)
+- **Unit coverage:** `frontend/test/components/Investment.test.js` → `hosting: annual tier, free month, renewal`
+- **Suggested E2E Spec:** `e2e/proposal/proposal-hosting-plan-terms.spec.js`
 
 #### FLOW: `proposal-rejection-optional-reason`
 

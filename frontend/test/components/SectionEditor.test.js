@@ -882,10 +882,10 @@ describe('buildFormFromJson', () => {
       expect(form.hostingPlan.hostingPercent).toBe(30);
     });
 
-    it('defaults hostingPercent to 40 when missing', () => {
+    it('defaults hostingPercent to 80 when missing', () => {
       const json = { ...investmentJson, hostingPlan: { title: 'Hosting' } };
       const form = buildFormFromJson(json, 'investment');
-      expect(form.hostingPlan.hostingPercent).toBe(40);
+      expect(form.hostingPlan.hostingPercent).toBe(80);
     });
 
     it('reads billingTiers from hostingPlan', () => {
@@ -902,15 +902,16 @@ describe('buildFormFromJson', () => {
     it('provides default billingTiers when missing from json', () => {
       const json = { ...investmentJson, hostingPlan: { title: 'Hosting' } };
       const form = buildFormFromJson(json, 'investment');
-      expect(form.hostingPlan.billingTiers).toHaveLength(3);
-      expect(form.hostingPlan.billingTiers[0].months).toBe(6);
-      expect(form.hostingPlan.billingTiers[1].months).toBe(3);
-      expect(form.hostingPlan.billingTiers[2].months).toBe(1);
+      expect(form.hostingPlan.billingTiers).toHaveLength(4);
+      expect(form.hostingPlan.billingTiers[0].months).toBe(12);
+      expect(form.hostingPlan.billingTiers[1].months).toBe(6);
+      expect(form.hostingPlan.billingTiers[2].months).toBe(3);
+      expect(form.hostingPlan.billingTiers[3].months).toBe(1);
     });
 
     it('backward compat: legacy json without billingTiers gets default tiers', () => {
       const form = buildFormFromJson(investmentJsonLegacy, 'investment');
-      expect(form.hostingPlan.billingTiers).toHaveLength(3);
+      expect(form.hostingPlan.billingTiers).toHaveLength(4);
       expect(form.hostingPlan.hostingPercent).toBe(30);
       expect(form.hostingPlan).not.toHaveProperty('monthlyLabel');
       expect(form.hostingPlan).not.toHaveProperty('annualLabel');
@@ -1099,10 +1100,10 @@ describe('formToJson', () => {
       expect(json.hostingPlan).not.toHaveProperty('annualLabel');
     });
 
-    it('defaults hostingPercent to 40 during serialization when missing', () => {
+    it('defaults hostingPercent to 80 during serialization when missing', () => {
       const form = buildFormFromJson({ hostingPlan: { title: 'H' } }, 'investment');
       const json = formToJson(form, 'investment');
-      expect(json.hostingPlan.hostingPercent).toBe(40);
+      expect(json.hostingPlan.hostingPercent).toBe(80);
     });
   });
 

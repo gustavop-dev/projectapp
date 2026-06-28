@@ -1510,49 +1510,58 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                                  _strip_emoji(str(a_price)))
                 y = price_y - 6
 
+        # Coverage + free-month notes: identical light pill-style boxes, only
+        # the font weight differs. Local helper keeps the two in lockstep.
+        def _note_box(y, note_text, font_weight='medium'):
+            lines = textwrap.wrap(
+                _strip_emoji(str(note_text)), width=int(CONTENT_W / (8 * 0.48))
+            )
+            box_h = len(lines) * 12 + 16
+            box_y = y - box_h + 6
+            c.setFillColor(ESMERALD_LIGHT)
+            c.roundRect(MARGIN_L, box_y, CONTENT_W, box_h, 5, fill=1, stroke=0)
+            c.setFont(_font(font_weight), 7.5)
+            c.setFillColor(ESMERALD)
+            text_block_h = len(lines) * 12
+            ty = box_y + box_h - (box_h - text_block_h) / 2 - 10
+            for line in lines:
+                c.drawString(MARGIN_L + 10, ty, line)
+                ty -= 12
+            return box_y - 6
+
         # Coverage note — pill-style block describing the 3 hosting components
         coverage = _safe(hosting, 'coverageNote')
         if coverage:
             y -= 8
             if ps:
                 y = _check_y(c, y, ps, need=50)
-            # Draw a light background box
-            cov_lines = textwrap.wrap(
-                _strip_emoji(str(coverage)), width=int(CONTENT_W / (8 * 0.48))
-            )
-            box_h = len(cov_lines) * 12 + 16
-            box_y = y - box_h + 6
-            c.setFillColor(ESMERALD_LIGHT)
-            c.roundRect(MARGIN_L, box_y, CONTENT_W, box_h, 5,
-                        fill=1, stroke=0)
-            c.setFont(_font('medium'), 7.5)
-            c.setFillColor(ESMERALD)
-            text_block_h = len(cov_lines) * 12
-            ty = box_y + box_h - (box_h - text_block_h) / 2 - 10
-            for cl in cov_lines:
-                c.drawString(MARGIN_L + 10, ty, cl)
-                ty -= 12
-            y = box_y - 6
+            y = _note_box(y, coverage, 'medium')
+
+        # Free-month gift block (copy is bilingual via content_json)
+        free_note = _safe(hosting, 'freeMonthNote')
+        try:
+            free_months_int = int(_safe(hosting, 'freeMonths', 0) or 0)
+        except (TypeError, ValueError):
+            free_months_int = 0
+        if free_months_int > 0 and free_note:
+            y -= 8
+            if ps:
+                y = _check_y(c, y, ps, need=50)
+            y = _note_box(y, free_note, 'bold')
 
         # Renewal note — SMLMV formula text
         renewal = _safe(hosting, 'renewalNote')
-        if renewal:
-            # Normalise legacy 5% formula to current 6%
-            renewal = str(renewal).replace('5%', '6%').replace(
-                '$65,000', '$78.000').replace(
-                '$65.000', '$78.000').replace(
-                '$745,000', '$758.000').replace(
-                '$745.000', '$758.000')
         if not renewal and h_title:
             renewal = (
-                'Renovaciones a partir del segundo año: el costo se ajusta anualmente '
-                'con base en el SMLMV (Salario Mínimo Legal Mensual Vigente) del año '
-                'de renovación, aplicando la siguiente fórmula:\n\n'
-                'Costo de renovación = Costo del año anterior + '
-                '(6% \u00d7 SMLMV del año de renovación)\n\n'
-                'Por ejemplo, si el SMLMV del año de renovación fuera $1.300.000 COP, '
-                'el incremento sería de $78.000 COP, llevando el costo a $758.000 COP '
-                'para ese año.'
+                'Renovaciones para cada año de renovación (a partir del segundo año): '
+                'el costo se ajusta una vez al año tomando como referencia el porcentaje '
+                'en que aumentó el SMLMV (Salario Mínimo Legal Mensual Vigente en Colombia) '
+                'ese año, más un 8% fijo, aplicado sobre el costo del año anterior:\n\n'
+                'Costo de renovación = Costo del año anterior × '
+                '(1 + (% de aumento del SMLMV + 8%))\n\n'
+                'Por ejemplo, si el SMLMV aumentó 5%, el incremento total sería '
+                '5% + 8% = 13%. Si venías pagando $100.000 COP, el nuevo costo sería '
+                '$113.000 COP (un aumento de $13.000).'
             )
         if renewal:
             y -= 6

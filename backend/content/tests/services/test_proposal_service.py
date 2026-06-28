@@ -517,7 +517,7 @@ class TestGetDefaultSections:
         sections = ProposalService.get_default_sections('es')
         inv = next(s for s in sections if s['section_type'] == 'investment')
         hp = inv['content_json']['hostingPlan']
-        assert hp['hostingPercent'] == 40
+        assert hp['hostingPercent'] == 80
         assert 'monthlyPrice' not in hp
         assert 'annualPrice' not in hp
 
@@ -526,9 +526,30 @@ class TestGetDefaultSections:
         sections = ProposalService.get_default_sections('en')
         inv = next(s for s in sections if s['section_type'] == 'investment')
         hp = inv['content_json']['hostingPlan']
-        assert hp['hostingPercent'] == 40
+        assert hp['hostingPercent'] == 80
         assert 'monthlyPrice' not in hp
         assert 'annualPrice' not in hp
+
+    @pytest.mark.parametrize('lang', ['es', 'en'])
+    def test_hosting_plan_has_annual_tier_at_40(self, lang):
+        sections = ProposalService.get_default_sections(lang)
+        inv = next(s for s in sections if s['section_type'] == 'investment')
+        tiers = {t['frequency']: t for t in inv['content_json']['hostingPlan']['billingTiers']}
+        assert 'annual' in tiers
+        assert tiers['annual']['months'] == 12
+        assert tiers['annual']['discountPercent'] == 40
+
+    @pytest.mark.parametrize('lang', ['es', 'en'])
+    def test_hosting_plan_has_renewal_and_free_month_notes(self, lang):
+        sections = ProposalService.get_default_sections(lang)
+        inv = next(s for s in sections if s['section_type'] == 'investment')
+        hp = inv['content_json']['hostingPlan']
+        assert hp['renewalNote'].strip()
+        assert hp['coverageNote'].strip()
+        assert hp['freeMonths'] == 1
+        assert hp['freeMonthNote'].strip()
+        # New multiplicative +8% renewal formula (not the old absolute 6% one).
+        assert '8%' in hp['renewalNote']
 
     def test_defaults_to_es_for_unknown_language(self):
         """Unknown language code falls back to Spanish defaults."""
@@ -928,10 +949,10 @@ class TestNormalizeHostingPlan:
         result = normalize_hosting_plan(p, {'hostingPercent': 25})
         assert result['hostingPercent'] == 25
 
-    def test_missing_model_percent_defaults_to_40_when_json_also_empty(self):
+    def test_missing_model_percent_defaults_to_80_when_json_also_empty(self):
         p = self._proposal(hosting_percent=0)
         result = normalize_hosting_plan(p, {})
-        assert result['hostingPercent'] == 40
+        assert result['hostingPercent'] == 80
 
     def test_empty_billing_tiers_returns_empty_list(self):
         result = normalize_hosting_plan(self._proposal(), {})

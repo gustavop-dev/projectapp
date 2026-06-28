@@ -185,6 +185,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'uuid', 'title', 'client_name', 'client_email', 'slug',
             'language', 'total_investment', 'currency', 'hosting_percent',
+            'hosting_discount_annual',
             'hosting_discount_semiannual', 'hosting_discount_quarterly',
             'status', 'expires_at',
             'reminder_days', 'urgency_reminder_days', 'discount_percent',
@@ -382,6 +383,7 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
         fields = (
             'title', 'client_name', 'client_email', 'slug',
             'language', 'total_investment', 'currency', 'hosting_percent',
+            'hosting_discount_annual',
             'hosting_discount_semiannual', 'hosting_discount_quarterly',
             'status', 'expires_at', 'reminder_days', 'urgency_reminder_days',
             'discount_percent', 'is_active', 'automations_paused',
@@ -694,6 +696,7 @@ class ProposalDefaultConfigSerializer(serializers.ModelSerializer):
             'default_currency',
             'default_total_investment',
             'hosting_percent',
+            'hosting_discount_annual',
             'hosting_discount_semiannual',
             'hosting_discount_quarterly',
             'expiration_days',
@@ -707,6 +710,7 @@ class ProposalDefaultConfigSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'created_at', 'updated_at')
         extra_kwargs = {
             'hosting_percent': {'min_value': 0, 'max_value': 100},
+            'hosting_discount_annual': {'min_value': 0, 'max_value': 100},
             'hosting_discount_semiannual': {'min_value': 0, 'max_value': 100},
             'hosting_discount_quarterly': {'min_value': 0, 'max_value': 100},
             'default_discount_percent': {'min_value': 0, 'max_value': 100},

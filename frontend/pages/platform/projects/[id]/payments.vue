@@ -691,6 +691,7 @@ const frequencyOptions = [
   { value: 'monthly', label: 'Mensual' },
   { value: 'quarterly', label: 'Trimestral' },
   { value: 'semiannual', label: 'Semestral' },
+  { value: 'annual', label: 'Anual' },
 ]
 const selectedFrequencyLabel = computed(
   () => frequencyOptions.find((o) => o.value === selectedPlan.value)?.label || '',
@@ -758,6 +759,7 @@ const manualFreqOptions = [
   { value: 'monthly', label: 'Mensual' },
   { value: 'quarterly', label: 'Trimestral' },
   { value: 'semiannual', label: 'Semestral' },
+  { value: 'annual', label: 'Anual' },
 ]
 const manualForm = reactive({ frequency: '', amount: '', billing_period_start: '', description: '' })
 const manualFormValid = computed(() =>

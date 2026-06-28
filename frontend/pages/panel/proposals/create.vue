@@ -287,11 +287,25 @@
               <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right">
                 ${{ Math.round(form.total_investment * form.hosting_percent / 100).toLocaleString() }} {{ form.currency }}
               </div>
+              <template v-if="form.hosting_discount_annual">
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
+                  Anual
+                  <span class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_annual }}% dcto)</span>
+                </div>
+                <div class="px-4 py-2 text-text-brand font-semibold text-right">
+                  ${{ Math.round(Math.round(form.total_investment * form.hosting_percent / 100 / 12) * (100 - form.hosting_discount_annual) / 100 * 12).toLocaleString() }} {{ form.currency }}
+                </div>
+              </template>
             </div>
           </div>
           <p class="text-xs text-text-subtle mt-1">Se sincroniza con el % del Plan de Hosting en la sección "Tu inversión y cómo pagar".</p>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-text-default mb-1">Dcto. anual (%)</label>
+            <input v-model.number="form.hosting_discount_annual" type="number" min="0" max="100"
+              class="w-32 px-4 py-2.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none" />
+          </div>
           <div>
             <label class="block text-sm font-medium text-text-default mb-1">Dcto. semestral (%)</label>
             <input v-model.number="form.hosting_discount_semiannual" type="number" min="0" max="100"
@@ -1068,6 +1082,7 @@
 import { reactive, ref, computed, onMounted, watch } from 'vue';
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import { get_request } from '~/stores/services/request_http';
+import { DEFAULT_HOSTING_PERCENT } from '~/stores/proposals_constants';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
@@ -1234,7 +1249,8 @@ const form = reactive({
   language: 'es',
   total_investment: 0,
   currency: 'COP',
-  hosting_percent: 40,
+  hosting_percent: DEFAULT_HOSTING_PERCENT,
+  hosting_discount_annual: 40,
   hosting_discount_semiannual: 20,
   hosting_discount_quarterly: 10,
   expires_at: defaultExpiryStr,
@@ -1372,7 +1388,8 @@ const jsonForm = reactive({
   language: 'es',
   total_investment: 0,
   currency: 'COP',
-  hosting_percent: 40,
+  hosting_percent: DEFAULT_HOSTING_PERCENT,
+  hosting_discount_annual: 40,
   hosting_discount_semiannual: 20,
   hosting_discount_quarterly: 10,
   expires_at: defaultExpiryStr,

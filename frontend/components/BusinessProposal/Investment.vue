@@ -181,7 +181,7 @@
         </div>
 
         <div v-if="computedBillingTiers.length" class="mt-8 pl-0 sm:pl-16">
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-3 md:gap-5 items-stretch">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-3 md:gap-5 items-stretch">
             <div
               v-for="(tier, tIdx) in computedBillingTiers"
               :key="tIdx"
@@ -215,7 +215,7 @@
               <div class="flex-1"></div>
 
               <!-- Discount badge -->
-              <div v-if="tier.discountPercent > 0"
+              <div v-if="tier.discountPercent > 0 && !isResolved"
                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold mb-2 w-fit"
                    :class="tIdx === 0 ? 'bg-primary-soft text-primary-strong' : 'bg-surface-muted text-text-muted'">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -235,6 +235,17 @@
               <div class="text-[11px] text-text-brand/40 leading-snug">
                 {{ t.billedEvery }} {{ tier.months }} {{ tier.months === 1 ? t.month : t.months }}
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Free month gift bucket -->
+        <div v-if="freeMonthsCount > 0" class="mt-8 pl-0 sm:pl-16">
+          <div class="flex items-start gap-4 rounded-2xl border-2 border-accent/40 bg-accent/10 p-5 sm:p-6">
+            <div class="text-3xl flex-shrink-0">🎁</div>
+            <div>
+              <div class="font-bold text-text-brand mb-1">{{ t.freeMonthTitle }}</div>
+              <p class="text-sm text-text-brand/70 font-light leading-relaxed">{{ freeMonthBody }}</p>
             </div>
           </div>
         </div>
@@ -270,6 +281,16 @@
             </div>
           </Transition>
         </div>
+
+        <!-- Renewal conditions -->
+        <div v-if="renewalParagraphs.length" class="mt-8 pl-0 sm:pl-16">
+          <h4 class="text-sm font-bold text-text-brand mb-2 flex items-center gap-2">
+            <span>🔄</span> {{ t.renewals }}
+          </h4>
+          <div class="space-y-2 text-sm text-text-brand/70 font-light leading-relaxed">
+            <p v-for="(para, pIdx) in renewalParagraphs" :key="pIdx">{{ para }}</p>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -302,6 +323,7 @@ import { useSectionAnimations } from '~/composables/useSectionAnimations';
 import { useExpirationTimer } from '~/composables/useExpirationTimer';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import { useLinkify } from '~/composables/useLinkify';
+import { RESOLVED_PROPOSAL_STATUSES, DEFAULT_HOSTING_PERCENT, DEFAULT_BILLING_TIERS } from '~/stores/proposals_constants';
 import InvestmentCalculatorModal from './InvestmentCalculatorModal.vue';
 import InvestmentDetailedTeaser from './InvestmentDetailedTeaser.vue';
 
@@ -371,11 +393,13 @@ const props = defineProps({
         { icon: '📍', label: 'Centros de datos', value: 'EE.UU., Brasil, Francia, Lituania e India' },
         { icon: '🧬', label: 'Compatibilidad', value: 'Linux (Ubuntu)' }
       ],
-      hostingPercent: 40,
+      hostingPercent: DEFAULT_HOSTING_PERCENT,
       monthlyLabel: 'por mes',
       annualLabel: 'Hosting anual — Año 1',
       renewalNote: '',
-      coverageNote: ''
+      coverageNote: '',
+      freeMonths: 1,
+      freeMonthNote: ''
     })
   },
   paymentMethods: {
@@ -399,6 +423,10 @@ const props = defineProps({
     default: ''
   },
   expiresAt: {
+    type: String,
+    default: ''
+  },
+  proposalStatus: {
     type: String,
     default: ''
   },
@@ -545,6 +573,9 @@ const i18n = {
       { icon: '🛟', title: 'Soporte ante incidencias', description: 'Resolución de bugs y asistencia técnica continua' },
       { icon: '☁️', title: 'Recursos computacionales', description: 'Servidor, almacenamiento, ancho de banda y certificados SSL' },
     ],
+    renewals: 'Renovaciones',
+    freeMonthTitle: '1 mes de hosting gratis',
+    freeMonthBody: 'Los cobros del hosting inician el día 1° de cada mes. Desde la entrega de tu proyecto hasta tu primer cobro, el hosting es gratis — siempre te regalamos como mínimo un mes completo.',
   },
   en: {
     totalInvestment: 'Total Investment',
@@ -576,13 +607,37 @@ const i18n = {
       { icon: '🛟', title: 'Incident Support', description: 'Bug resolution and ongoing technical assistance' },
       { icon: '☁️', title: 'Computing Resources', description: 'Server, storage, bandwidth, and SSL certificates' },
     ],
+    renewals: 'Renewals',
+    freeMonthTitle: '1 free month of hosting',
+    freeMonthBody: 'Hosting billing starts on the 1st of each month. From your project delivery until your first charge, hosting is free — we always gift you at least one full month.',
   },
 };
 
 const t = computed(() => i18n[props.language] || i18n.es);
 
+// Renewal conditions, split into paragraphs (preserve the \n\n breaks the
+// admin / default copy uses). Rendered in the public view (also shown in PDF).
+const renewalParagraphs = computed(() =>
+  String(props.hostingPlan?.renewalNote || '')
+    .split('\n\n')
+    .map((p) => p.trim())
+    .filter(Boolean));
+
+// Free-month gift: shown as a highlighted bucket. Driven by hostingPlan.freeMonths
+// (default 1); copy can be overridden per-proposal via hostingPlan.freeMonthNote.
+const freeMonthsCount = computed(() => Number(props.hostingPlan?.freeMonths) || 0);
+const freeMonthBody = computed(() => {
+  const custom = props.hostingPlan?.freeMonthNote;
+  return (custom && String(custom).trim()) || t.value.freeMonthBody;
+});
+
+// Once the proposal is resolved (accepted/rejected/finished) the urgency /
+// limited-time pricing notices no longer apply and must stay hidden.
+const isResolved = computed(() =>
+  RESOLVED_PROPOSAL_STATUSES.includes(props.proposalStatus));
+
 const hasActiveDiscount = computed(() => {
-  return props.discountPercent > 0 && props.discountedInvestment;
+  return props.discountPercent > 0 && props.discountedInvestment && !isResolved.value;
 });
 
 function formatCurrency(value) {
@@ -605,11 +660,6 @@ const hostingAnnualAmount = computed(() => {
   return null;
 });
 
-const DEFAULT_BILLING_TIERS = [
-  { frequency: 'semiannual', months: 6, discountPercent: 20, label: 'Semestral', badge: 'Mejor precio' },
-  { frequency: 'quarterly', months: 3, discountPercent: 10, label: 'Trimestral', badge: '10% dcto' },
-  { frequency: 'monthly', months: 1, discountPercent: 0, label: 'Mensual', badge: '' },
-];
 
 const computedBillingTiers = computed(() => {
   const hp = props.hostingPlan;

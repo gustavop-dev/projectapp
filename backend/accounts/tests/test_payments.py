@@ -938,7 +938,7 @@ class TestClientCreateSubscription:
 
         sub_resp = api_client.post(
             f'/api/accounts/projects/{project_id}/subscription/',
-            {'plan': 'annual'},
+            {'plan': 'biennial'},
             format='json', **client_headers,
         )
 

@@ -124,6 +124,45 @@ describe('Investment', () => {
       // 25% discount badge is rendered on the trimestral card
       expect(wrapper.text()).toContain('25%');
     });
+
+    it.each(['accepted', 'rejected', 'finished'])(
+      'hides the tier discount badge when proposal status is %s',
+      (status) => {
+        const tiers = [
+          { frequency: 'quarterly', months: 3, discountPercent: 25, label: 'Trimestral', badge: '' },
+          { frequency: 'monthly', months: 1, discountPercent: 0, label: 'Mensual', badge: '' },
+        ];
+        const wrapper = mountInvestment({
+          totalInvestment: '$1.200.000',
+          hostingPlan: hostingPlanWith(30, tiers),
+          proposalStatus: status,
+        });
+
+        expect(wrapper.text()).not.toContain('25%');
+      },
+    );
+  });
+
+  describe('resolved-status notice suppression', () => {
+    const discountProps = {
+      discountPercent: 15,
+      discountedInvestment: '$1.266.500',
+    };
+
+    it('renders the limited-time discount banner while the proposal is still open', () => {
+      const wrapper = mountInvestment({ ...discountProps, proposalStatus: 'sent' });
+
+      expect(wrapper.find('.discount-banner').exists()).toBe(true);
+    });
+
+    it.each(['accepted', 'rejected', 'finished'])(
+      'hides the limited-time discount banner when status is %s',
+      (status) => {
+        const wrapper = mountInvestment({ ...discountProps, proposalStatus: status });
+
+        expect(wrapper.find('.discount-banner').exists()).toBe(false);
+      },
+    );
   });
 
   // Bug fix: "Tres pagos flexibles" amounts must derive from the LABEL percent
@@ -194,6 +233,46 @@ describe('Investment', () => {
       });
       // Free-form payment option should keep its original amount.
       expect(wrapper.text()).toContain('$100.000');
+    });
+  });
+
+  describe('hosting: annual tier, free month, renewal', () => {
+    it('renders the annual 40% tier by default', () => {
+      const wrapper = mountInvestment();
+      expect(wrapper.text()).toContain('Anual');
+      expect(wrapper.text()).toContain('40%');
+    });
+
+    it('renders the free-month gift bucket by default', () => {
+      const wrapper = mountInvestment();
+      expect(wrapper.text()).toContain('mes de hosting gratis');
+    });
+
+    it('hides the free-month bucket when freeMonths is 0', () => {
+      const wrapper = mountInvestment({
+        hostingPlan: { title: 'Hosting', hostingPercent: 80, freeMonths: 0 },
+      });
+      expect(wrapper.text()).not.toContain('mes de hosting gratis');
+    });
+
+    it('renders renewal conditions paragraphs from renewalNote', () => {
+      const wrapper = mountInvestment({
+        hostingPlan: {
+          title: 'Hosting',
+          hostingPercent: 80,
+          renewalNote: 'Primer parrafo de renovacion.\n\nSegundo parrafo.',
+        },
+      });
+      expect(wrapper.text()).toContain('Renovaciones');
+      expect(wrapper.text()).toContain('Primer parrafo de renovacion.');
+      expect(wrapper.text()).toContain('Segundo parrafo.');
+    });
+
+    it('omits the renewal block when renewalNote is empty', () => {
+      const wrapper = mountInvestment({
+        hostingPlan: { title: 'Hosting', hostingPercent: 80, renewalNote: '' },
+      });
+      expect(wrapper.text()).not.toContain('Renovaciones');
     });
   });
 });

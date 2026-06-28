@@ -384,6 +384,18 @@
                   total ${{ hostingPeriodTotal(form.hosting_discount_semiannual, 6).toLocaleString() }} / 6 meses
                 </div>
 
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
+                  Anual
+                  <span v-if="form.hosting_discount_annual" class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_annual }}% dcto)</span>
+                </div>
+                <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
+                     :class="form.hosting_discount_annual ? 'text-text-brand' : 'text-blue-800 dark:text-blue-200'">
+                  ${{ hostingMonthlyWithDiscount(form.hosting_discount_annual).toLocaleString() }} {{ form.currency }}/mes
+                </div>
+                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
+                  total ${{ hostingPeriodTotal(form.hosting_discount_annual, 12).toLocaleString() }} {{ form.currency }} / 12 meses
+                </div>
+
                 <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">☁️ Anual (referencia)</div>
                 <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right whitespace-nowrap">
                   ${{ hostingAnnualAmount.toLocaleString() }} {{ form.currency }}
@@ -393,7 +405,18 @@
             </div>
             <p class="text-xs text-text-subtle mt-1">Sincronizado automáticamente con el Plan de Hosting que ve el cliente en "Tu inversión y cómo pagar".</p>
           </div>
-          <div data-testid="general-finance-discounts-card" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div data-testid="general-finance-discounts-card" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-text-default mb-1">Dcto. anual (%)</label>
+              <BaseInput
+                v-model.number="form.hosting_discount_annual"
+                data-testid="general-finance-annual-discount"
+                type="number"
+                min="0"
+                max="100"
+                class="w-32"
+              />
+            </div>
             <div>
               <label class="block text-sm font-medium text-text-default mb-1">Dcto. semestral (%)</label>
               <BaseInput
@@ -1442,6 +1465,7 @@ import {
   CheckIcon,
 } from '@heroicons/vue/24/outline';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
+import { DEFAULT_HOSTING_PERCENT } from '~/stores/proposals_constants';
 import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
@@ -1947,7 +1971,8 @@ const form = reactive({
   language: 'es',
   total_investment: 0,
   currency: 'COP',
-  hosting_percent: 40,
+  hosting_percent: DEFAULT_HOSTING_PERCENT,
+  hosting_discount_annual: 40,
   hosting_discount_semiannual: 20,
   hosting_discount_quarterly: 10,
   expires_at: '',
@@ -2212,7 +2237,8 @@ function hydrateFormFromProposal() {
     language: proposal.value.language || 'es',
     total_investment: Number(proposal.value.total_investment),
     currency: proposal.value.currency,
-    hosting_percent: proposal.value.hosting_percent ?? 40,
+    hosting_percent: proposal.value.hosting_percent ?? DEFAULT_HOSTING_PERCENT,
+    hosting_discount_annual: proposal.value.hosting_discount_annual ?? 40,
     hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
     hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
     expires_at: proposal.value.expires_at
@@ -2769,8 +2795,9 @@ function handleApplyImportJson() {
             language: proposal.value.language || 'es',
             total_investment: Number(proposal.value.total_investment),
             currency: proposal.value.currency,
-            hosting_percent: proposal.value.hosting_percent ?? 40,
-            hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
+            hosting_percent: proposal.value.hosting_percent ?? DEFAULT_HOSTING_PERCENT,
+            hosting_discount_annual: proposal.value.hosting_discount_annual ?? 40,
+    hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
             hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
             expires_at: proposal.value.expires_at ? proposal.value.expires_at.slice(0, 16) : '',
             reminder_days: proposal.value.reminder_days,

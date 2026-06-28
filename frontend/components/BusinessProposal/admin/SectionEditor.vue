@@ -336,7 +336,7 @@
               <button type="button" class="text-xs text-text-brand font-medium" @click="form.hostingPlan.specs.push({ icon: '', label: '', value: '' })">+ Agregar especificación</button>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FieldInput v-model.number="form.hostingPlan.hostingPercent" label="% de inversión total" type="number" placeholder="40" />
+              <FieldInput v-model.number="form.hostingPlan.hostingPercent" label="% de inversión total" type="number" placeholder="70" />
             </div>
             <div v-if="form.hostingPlan.hostingPercent > 0 && proposalData?.total_investment" class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800">
               💡 <strong>Hosting anual estimado:</strong> ${{ Math.round(Number(proposalData.total_investment) * form.hostingPlan.hostingPercent / 100).toLocaleString() }} {{ proposalData?.currency || 'COP' }}
@@ -364,6 +364,12 @@
             </div>
             <FieldTextarea v-model="form.hostingPlan.renewalNote" label="Nota de renovación (visible al cliente)" help="Fórmula de incremento anual, SMLMV, etc." :rows="4" :isSingle="true" />
             <FieldTextarea v-model="form.hostingPlan.coverageNote" label="Nota de cobertura (solo PDF)" help="Descripción de los 3 componentes del hosting (mantenimiento, soporte, recursos)" :rows="3" :isSingle="true" />
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <FieldInput v-model.number="form.hostingPlan.freeMonths" label="Meses gratis" type="number" placeholder="1" />
+              <div class="sm:col-span-2">
+                <FieldTextarea v-model="form.hostingPlan.freeMonthNote" label="Texto del mes gratis (web y PDF)" help="Si se deja vacío se usa el texto por defecto según idioma." :rows="2" :isSingle="true" />
+              </div>
+            </div>
           </div>
         </div>
       </template>
