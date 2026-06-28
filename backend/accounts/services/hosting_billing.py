@@ -2,11 +2,13 @@
 Hosting billing calculations for multi-phase projects.
 
 A project's hosting subscription bills the sum of all its activated phases at
-a single frequency (monthly/quarterly/semiannual). Each phase derives its
-price from its own BusinessProposal. A phase that starts mid-cycle is charged
-a prorated amount for the remaining days of the current billing cycle.
+a single frequency (monthly/quarterly/semiannual/annual). Each phase derives
+its price from its own BusinessProposal. A phase that starts mid-cycle is
+charged a prorated amount for the remaining days of the current billing cycle.
 """
 from decimal import Decimal, ROUND_HALF_UP
+
+from dateutil.relativedelta import relativedelta
 
 from accounts.models import HostingSubscription
 
@@ -16,11 +18,27 @@ def _q(value):
     return Decimal(value).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
 
 
+def first_billing_date(delivery_date):
+    """First hosting billing date for a new subscription.
+
+    Hosting billing always starts on the 1st of a calendar month. The client
+    receives a free hosting period from ``delivery_date`` (when they pay the
+    project delivery) until this date, which is always at least one full month.
+
+    Examples (delivery -> first billing): Jun 28 -> Aug 1; Jul 10 -> Sep 1;
+    Jul 1 -> Aug 1. Anchoring on the 1st keeps every later cycle month-aligned.
+    """
+    target = delivery_date + relativedelta(months=1)
+    if target.day == 1:
+        return target
+    return target.replace(day=1) + relativedelta(months=1)
+
+
 def phase_monthly_base(phase):
     """Monthly hosting base for one phase, derived from its proposal pricing."""
     bp = phase.business_proposal
     total = Decimal(str(getattr(bp, 'total_investment', None) or 0))
-    percent = Decimal(str(getattr(bp, 'hosting_percent', 40) or 0))
+    percent = Decimal(str(getattr(bp, 'hosting_percent', 80) or 0))
     return _q(total * percent / Decimal('100') / Decimal('12'))
 
 
@@ -31,6 +49,8 @@ def plan_discount(phase, plan):
         return Decimal(str(getattr(bp, 'hosting_discount_quarterly', 0) or 0))
     if plan == HostingSubscription.PLAN_SEMIANNUAL:
         return Decimal(str(getattr(bp, 'hosting_discount_semiannual', 0) or 0))
+    if plan == HostingSubscription.PLAN_ANNUAL:
+        return Decimal(str(getattr(bp, 'hosting_discount_annual', 0) or 0))
     return Decimal('0')
 
 

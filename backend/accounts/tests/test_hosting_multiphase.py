@@ -54,10 +54,16 @@ def project(client_user):
 
 
 def _proposal(total):
-    """A BusinessProposal with the default 40% hosting / 10% / 20% discounts."""
+    """A BusinessProposal pinned to 40% hosting / 10% / 20% discounts.
+
+    hosting_percent is set explicitly (not left to the model default) so the
+    billing-math assertions below stay stable regardless of the production
+    default.
+    """
     from content.models import BusinessProposal
     return BusinessProposal.objects.create(
         title=f'Proposal {total}', client_name='Test', total_investment=Decimal(total),
+        hosting_percent=40,
     )
 
 
@@ -244,3 +250,39 @@ class TestFrequencyChangeWhilePending:
             {'plan': 'semiannual'}, format='json', **client_headers,
         )
         assert resp.status_code == 403
+
+
+class TestFirstBillingDate:
+    """Free month + always-bill-on-the-1st date logic (pure function)."""
+
+    def test_delivery_midmonth_bills_first_of_following_month(self):
+        # 28-Jun -> free until 1-Aug (~34 days)
+        assert hosting_billing.first_billing_date(date(2026, 6, 28)) == date(2026, 8, 1)
+
+    def test_delivery_early_month_still_gives_at_least_one_month(self):
+        # 10-Jul -> free until 1-Sep
+        assert hosting_billing.first_billing_date(date(2026, 7, 10)) == date(2026, 9, 1)
+
+    def test_delivery_on_first_bills_exactly_one_month_later(self):
+        # 1-Jul -> exactly one free month -> 1-Aug
+        assert hosting_billing.first_billing_date(date(2026, 7, 1)) == date(2026, 8, 1)
+
+    def test_year_rollover(self):
+        assert hosting_billing.first_billing_date(date(2026, 12, 15)) == date(2027, 2, 1)
+
+
+class TestAnnualPlan:
+    """Annual (12-month) hosting plan: discount + billing amount."""
+
+    def test_plan_discount_annual_uses_model_field(self, project):
+        phase = _phase(project, 12_000_000, order=1)
+        assert hosting_billing.plan_discount(
+            phase, HostingSubscription.PLAN_ANNUAL,
+        ) == Decimal('40')
+
+    def test_annual_billing_amount(self, project):
+        # monthly base 12,000,000 * 40% / 12 = 400,000; annual = 400,000 * 12 * 0.60
+        phase = _phase(project, 12_000_000, order=1)
+        assert hosting_billing.phase_billing_amount(
+            phase, HostingSubscription.PLAN_ANNUAL,
+        ) == Decimal('2880000')

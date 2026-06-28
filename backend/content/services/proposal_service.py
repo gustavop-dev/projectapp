@@ -170,14 +170,21 @@ DEFAULT_SECTIONS = [
                     {'icon': '📍', 'label': 'Centros de datos', 'value': 'EE.UU., Brasil, Francia, Lituania e India'},
                     {'icon': '🧬', 'label': 'Compatibilidad', 'value': 'Linux (Ubuntu)'},
                 ],
-                'hostingPercent': 40,
+                'hostingPercent': 80,
                 'billingTiers': [
+                    {
+                        'frequency': 'annual',
+                        'months': 12,
+                        'discountPercent': 40,
+                        'label': 'Anual',
+                        'badge': 'Máximo descuento',
+                    },
                     {
                         'frequency': 'semiannual',
                         'months': 6,
                         'discountPercent': 20,
                         'label': 'Semestral',
-                        'badge': 'Mejor precio',
+                        'badge': '20% dcto',
                     },
                     {
                         'frequency': 'quarterly',
@@ -195,14 +202,15 @@ DEFAULT_SECTIONS = [
                     },
                 ],
                 'renewalNote': (
-                    'Renovaciones a partir del segundo año: el costo se ajusta anualmente '
-                    'con base en el SMLMV (Salario Mínimo Legal Mensual Vigente) del año '
-                    'de renovación, aplicando la siguiente fórmula:\n\n'
-                    'Costo de renovación = Costo del año anterior + '
-                    '(6% × SMLMV del año de renovación)\n\n'
-                    'Por ejemplo, si el SMLMV del año de renovación fuera $1.300.000 COP, '
-                    'el incremento sería de $78.000 COP, llevando el costo a $758.000 COP '
-                    'para ese año.'
+                    'Renovaciones para cada año de renovación (a partir del segundo año): '
+                    'el costo se ajusta una vez al año tomando como referencia el porcentaje '
+                    'en que aumentó el SMLMV (Salario Mínimo Legal Mensual Vigente en Colombia) '
+                    'ese año, más un 8% fijo, aplicado sobre el costo del año anterior:\n\n'
+                    'Costo de renovación = Costo del año anterior × '
+                    '(1 + (% de aumento del SMLMV + 8%))\n\n'
+                    'Por ejemplo, si el SMLMV aumentó 5%, el incremento total sería '
+                    '5% + 8% = 13%. Si venías pagando $100.000 COP, el nuevo costo sería '
+                    '$113.000 COP (un aumento de $13.000).'
                 ),
                 'coverageNote': (
                     'El costo de hosting cubre tres componentes: el mantenimiento técnico '
@@ -210,6 +218,12 @@ DEFAULT_SECTIONS = [
                     'de base de datos), el soporte ante incidencias o bugs, y los recursos '
                     'computacionales necesarios para que todo funcione (servidor, '
                     'almacenamiento, ancho de banda y certificados SSL).'
+                ),
+                'freeMonths': 1,
+                'freeMonthNote': (
+                    'Los cobros del hosting inician el día 1° de cada mes. Desde la '
+                    'entrega de tu proyecto hasta tu primer cobro, el hosting es gratis: '
+                    'siempre te regalamos como mínimo un mes completo.'
                 ),
             },
             'paymentMethods': [
@@ -1366,16 +1380,23 @@ DEFAULT_SECTIONS_EN = [
                     {'icon': '📍', 'label': 'Data centers', 'value': 'US, Brazil, France, Lithuania & India'},
                     {'icon': '🧬', 'label': 'Compatibility', 'value': 'Linux (Ubuntu)'},
                 ],
-                'hostingPercent': 40,
+                'hostingPercent': 80,
                 'monthlyLabel': 'per month',
                 'annualLabel': 'annual payment',
                 'billingTiers': [
+                    {
+                        'frequency': 'annual',
+                        'months': 12,
+                        'discountPercent': 40,
+                        'label': 'Annual',
+                        'badge': 'Best value',
+                    },
                     {
                         'frequency': 'semiannual',
                         'months': 6,
                         'discountPercent': 20,
                         'label': 'Semiannual',
-                        'badge': 'Best price',
+                        'badge': '20% off',
                     },
                     {
                         'frequency': 'quarterly',
@@ -1392,6 +1413,28 @@ DEFAULT_SECTIONS_EN = [
                         'badge': '',
                     },
                 ],
+                'renewalNote': (
+                    'Renewals for each renewal year (from the second year onward): the cost '
+                    'is adjusted once a year based on the percentage by which the SMLMV '
+                    "(Colombia's monthly legal minimum wage) increased that year, plus a "
+                    "fixed 8%, applied to the previous year's cost:\n\n"
+                    'Renewal cost = Previous year cost × (1 + (SMLMV increase % + 8%))\n\n'
+                    'For example, if the SMLMV increased 5%, the total increase would be '
+                    '5% + 8% = 13%. If you were paying $100,000 COP, the new cost would be '
+                    '$113,000 COP (a $13,000 increase).'
+                ),
+                'coverageNote': (
+                    'The hosting cost covers three components: technical maintenance of the '
+                    'platform (security updates, patches and database optimization), '
+                    'incident/bug support, and the computing resources needed to keep '
+                    'everything running (server, storage, bandwidth and SSL certificates).'
+                ),
+                'freeMonths': 1,
+                'freeMonthNote': (
+                    'Hosting billing starts on the 1st of each month. From your project '
+                    'delivery until your first charge, hosting is free: we always gift '
+                    'you at least one full month.'
+                ),
             },
             'paymentMethods': [
                 'Bank transfer',
@@ -2417,10 +2460,12 @@ def normalize_hosting_plan(proposal, hosting_plan_json):
 
     model_percent = getattr(proposal, 'hosting_percent', None)
     base['hostingPercent'] = (
-        model_percent if model_percent else base.get('hostingPercent', 40)
+        model_percent if model_percent else base.get('hostingPercent', 80)
     )
 
     discount_overrides = {
+        HostingSubscription.PLAN_ANNUAL:
+            getattr(proposal, 'hosting_discount_annual', None),
         HostingSubscription.PLAN_SEMIANNUAL:
             getattr(proposal, 'hosting_discount_semiannual', None),
         HostingSubscription.PLAN_QUARTERLY:

@@ -2948,7 +2948,9 @@ def _create_subscription_multi_phase(project, plan):
 
     from dateutil.relativedelta import relativedelta
 
-    from accounts.services.hosting_billing import phase_monthly_base, project_billing_amount
+    from accounts.services.hosting_billing import (
+        first_billing_date, phase_monthly_base, project_billing_amount,
+    )
 
     today = date.today()
     phases = list(project.phases.select_related('business_proposal').all())
@@ -2958,6 +2960,11 @@ def _create_subscription_multi_phase(project, plan):
 
     start_dates = [p.hosting_start_date for p in started if p.hosting_start_date]
     start_date = min(start_dates) if start_dates else today
+
+    # Free month: hosting is gifted from delivery (start_date) until the first
+    # billing date, which always lands on the 1st of a month and is at least one
+    # full month away. No charge is generated for that free period.
+    billing_start = first_billing_date(start_date)
 
     for p in started:
         p.hosting_activated_at = p.hosting_start_date or today
@@ -2972,7 +2979,7 @@ def _create_subscription_multi_phase(project, plan):
         billing_amount=Decimal('0'),
         status=HostingSubscription.STATUS_PENDING,
         start_date=start_date,
-        next_billing_date=start_date,
+        next_billing_date=billing_start,
     )
     sub.save()
 
@@ -2984,14 +2991,14 @@ def _create_subscription_multi_phase(project, plan):
         'billing_amount', 'effective_monthly_amount', 'base_monthly_amount',
     ])
 
-    billing_end = start_date + relativedelta(months=months) - relativedelta(days=1)
+    billing_end = billing_start + relativedelta(months=months) - relativedelta(days=1)
     Payment.objects.create(
         subscription=sub,
         amount=sub.billing_amount,
-        description=f'Hosting {sub.get_plan_display()} — {start_date} a {billing_end}',
-        billing_period_start=start_date,
+        description=f'Hosting {sub.get_plan_display()} — {billing_start} a {billing_end}',
+        billing_period_start=billing_start,
         billing_period_end=billing_end,
-        due_date=start_date,
+        due_date=billing_start,
         status=Payment.STATUS_PENDING,
     )
     sub.next_billing_date = billing_end + relativedelta(days=1)
@@ -3246,7 +3253,7 @@ def project_subscription_view(request, project_id):
         plan = request.data.get('plan')
         if plan not in dict(HostingSubscription.PLAN_CHOICES):
             return Response(
-                {'detail': 'Plan inválido. Opciones: monthly, quarterly, semiannual.'},
+                {'detail': 'Plan inválido. Opciones: monthly, quarterly, semiannual, annual.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -3413,12 +3420,7 @@ def register_manual_payment_view(request, project_id):
     billing_period_start = data['billing_period_start']
     description = data.get('description') or 'Pago manual registrado por administrador'
 
-    months_map = {
-        HostingSubscription.PLAN_MONTHLY: 1,
-        HostingSubscription.PLAN_QUARTERLY: 3,
-        HostingSubscription.PLAN_SEMIANNUAL: 6,
-    }
-    billing_months = months_map[frequency]
+    billing_months = HostingSubscription.PLAN_MONTHS[frequency]
     billing_period_end = billing_period_start + relativedelta(months=billing_months) - relativedelta(days=1)
     next_billing = billing_period_end + relativedelta(days=1)
 
@@ -3875,10 +3877,15 @@ def card_setup_confirm_view(request, project_id, payment_source_id):
         'card_exp_month', 'card_exp_year', 'updated_at',
     ])
 
+    # Only charge a payment that is actually due. With the free-month gift the
+    # first payment is dated to the 1st of a future month; it must NOT be charged
+    # at card registration — the billing cron charges it once its due date arrives.
+    from datetime import date as _date
     payment = Payment.objects.filter(
         subscription=sub,
         status__in=[Payment.STATUS_PENDING, Payment.STATUS_OVERDUE, Payment.STATUS_FAILED],
         is_archived=False,
+        due_date__lte=_date.today(),
     ).order_by('due_date').first()
 
     charge_result = None

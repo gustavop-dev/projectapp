@@ -1534,25 +1534,45 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 ty -= 12
             y = box_y - 6
 
+        # Free-month gift block (copy is bilingual via content_json)
+        free_note = _safe(hosting, 'freeMonthNote')
+        try:
+            free_months_int = int(_safe(hosting, 'freeMonths', 0) or 0)
+        except (TypeError, ValueError):
+            free_months_int = 0
+        if free_months_int > 0 and free_note:
+            y -= 8
+            if ps:
+                y = _check_y(c, y, ps, need=50)
+            fm_lines = textwrap.wrap(
+                _strip_emoji(str(free_note)), width=int(CONTENT_W / (8 * 0.48))
+            )
+            box_h = len(fm_lines) * 12 + 16
+            box_y = y - box_h + 6
+            c.setFillColor(ESMERALD_LIGHT)
+            c.roundRect(MARGIN_L, box_y, CONTENT_W, box_h, 5, fill=1, stroke=0)
+            c.setFont(_font('bold'), 7.5)
+            c.setFillColor(ESMERALD)
+            text_block_h = len(fm_lines) * 12
+            ty = box_y + box_h - (box_h - text_block_h) / 2 - 10
+            for fl in fm_lines:
+                c.drawString(MARGIN_L + 10, ty, fl)
+                ty -= 12
+            y = box_y - 6
+
         # Renewal note — SMLMV formula text
         renewal = _safe(hosting, 'renewalNote')
-        if renewal:
-            # Normalise legacy 5% formula to current 6%
-            renewal = str(renewal).replace('5%', '6%').replace(
-                '$65,000', '$78.000').replace(
-                '$65.000', '$78.000').replace(
-                '$745,000', '$758.000').replace(
-                '$745.000', '$758.000')
         if not renewal and h_title:
             renewal = (
-                'Renovaciones a partir del segundo año: el costo se ajusta anualmente '
-                'con base en el SMLMV (Salario Mínimo Legal Mensual Vigente) del año '
-                'de renovación, aplicando la siguiente fórmula:\n\n'
-                'Costo de renovación = Costo del año anterior + '
-                '(6% \u00d7 SMLMV del año de renovación)\n\n'
-                'Por ejemplo, si el SMLMV del año de renovación fuera $1.300.000 COP, '
-                'el incremento sería de $78.000 COP, llevando el costo a $758.000 COP '
-                'para ese año.'
+                'Renovaciones para cada año de renovación (a partir del segundo año): '
+                'el costo se ajusta una vez al año tomando como referencia el porcentaje '
+                'en que aumentó el SMLMV (Salario Mínimo Legal Mensual Vigente en Colombia) '
+                'ese año, más un 8% fijo, aplicado sobre el costo del año anterior:\n\n'
+                'Costo de renovación = Costo del año anterior × '
+                '(1 + (% de aumento del SMLMV + 8%))\n\n'
+                'Por ejemplo, si el SMLMV aumentó 5%, el incremento total sería '
+                '5% + 8% = 13%. Si venías pagando $100.000 COP, el nuevo costo sería '
+                '$113.000 COP (un aumento de $13.000).'
             )
         if renewal:
             y -= 6

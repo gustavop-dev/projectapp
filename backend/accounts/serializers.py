@@ -380,7 +380,7 @@ class ProjectDetailSerializer(ProjectListSerializer):
         for phase in phases:
             bp = phase.business_proposal
             total_inv = Decimal(str(getattr(bp, 'total_investment', 0) or 0))
-            hosting_pct = Decimal(str(getattr(bp, 'hosting_percent', 40)))
+            hosting_pct = Decimal(str(getattr(bp, 'hosting_percent', 80)))
             total_monthly += (total_inv * hosting_pct / Decimal('100') / Decimal('12'))
         total_monthly = total_monthly.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
 

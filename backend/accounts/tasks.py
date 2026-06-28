@@ -46,7 +46,12 @@ def auto_charge_due_subscriptions():
         is_archived=False,
         due_date__lte=today,
         charge_attempts__lt=MAX_CHARGE_ATTEMPTS,
-        subscription__status=HostingSubscription.STATUS_ACTIVE,
+        # ACTIVE for recurring cycles; PENDING covers the first charge after a
+        # free-month gift (subscription activates when that charge settles).
+        subscription__status__in=[
+            HostingSubscription.STATUS_ACTIVE,
+            HostingSubscription.STATUS_PENDING,
+        ],
     ).filter(
         Q(next_retry_at__isnull=True) | Q(next_retry_at__lte=today),
     ).exclude(

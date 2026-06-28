@@ -87,7 +87,7 @@
           @backToGateway="handleBackToGateway"
         />
         <SectionCounter :current="currentIndex + 1" :total="totalSections" />
-        <ExpirationBadge v-if="proposal.expires_at" :expiresAt="proposal.expires_at" />
+        <ExpirationBadge v-if="proposal.expires_at && !isProposalResolved" :expiresAt="proposal.expires_at" />
 
         <!-- PDF download + Share -->
         <PdfDownloadButton
@@ -351,6 +351,7 @@ import {
 import { filterTechnicalDocumentByModules } from '~/utils/filterTechnicalDocumentByModules';
 import { useProposalDarkMode } from '~/composables/useProposalDarkMode';
 import { normalizePersistedSelectedIds } from '~/utils/proposalModuleSelectionStorage';
+import { RESOLVED_PROPOSAL_STATUSES, DEFAULT_HOSTING_PERCENT } from '~/stores/proposals_constants';
 
 definePageMeta({ layout: false });
 
@@ -395,6 +396,11 @@ const sectionComponentMap = {
 
 const proposal = computed(() => proposalStore.currentProposal);
 const enabledSections = computed(() => proposalStore.enabledSections);
+
+// Once the client's decision is settled (accepted/rejected/finished), urgency
+// notices (expiration countdown, limited-time discount) no longer make sense.
+const isProposalResolved = computed(() =>
+  RESOLVED_PROPOSAL_STATUSES.includes(proposal.value?.status));
 
 // Expired proposal banner data (from expired_meta returned by backend)
 const expiredAtFormatted = computed(() => {
@@ -965,7 +971,7 @@ function getSectionProps(section, displayIndex) {
     };
     const hostingPlan = {
       ...baseHostingPlan,
-      hostingPercent: proposal.value?.hosting_percent ?? baseHostingPlan.hostingPercent ?? 40,
+      hostingPercent: proposal.value?.hosting_percent ?? baseHostingPlan.hostingPercent ?? DEFAULT_HOSTING_PERCENT,
       billingTiers: (baseHostingPlan.billingTiers || []).map((tier) => {
         const override = discountByFrequency[tier?.frequency];
         return override != null ? { ...tier, discountPercent: override } : tier;
@@ -981,6 +987,7 @@ function getSectionProps(section, displayIndex) {
       discountPercent: proposal.value?.discount_percent || 0,
       discountedInvestment: proposal.value?.discounted_investment || '',
       expiresAt: proposal.value?.expires_at || '',
+      proposalStatus: proposal.value?.status || '',
       modules: allCalculatorItems,
       proposalUuid: proposal.value?.uuid || '',
       whatsappLink: extractedWhatsappLink.value,
