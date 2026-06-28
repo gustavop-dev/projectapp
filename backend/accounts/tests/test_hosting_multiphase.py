@@ -255,20 +255,14 @@ class TestFrequencyChangeWhilePending:
 class TestFirstBillingDate:
     """Free month + always-bill-on-the-1st date logic (pure function)."""
 
-    def test_delivery_midmonth_bills_first_of_following_month(self):
-        # 28-Jun -> free until 1-Aug (~34 days)
-        assert hosting_billing.first_billing_date(date(2026, 6, 28)) == date(2026, 8, 1)
-
-    def test_delivery_early_month_still_gives_at_least_one_month(self):
-        # 10-Jul -> free until 1-Sep
-        assert hosting_billing.first_billing_date(date(2026, 7, 10)) == date(2026, 9, 1)
-
-    def test_delivery_on_first_bills_exactly_one_month_later(self):
-        # 1-Jul -> exactly one free month -> 1-Aug
-        assert hosting_billing.first_billing_date(date(2026, 7, 1)) == date(2026, 8, 1)
-
-    def test_year_rollover(self):
-        assert hosting_billing.first_billing_date(date(2026, 12, 15)) == date(2027, 2, 1)
+    @pytest.mark.parametrize('delivery,expected', [
+        (date(2026, 6, 28), date(2026, 8, 1)),   # mid-month -> 1st of following month
+        (date(2026, 7, 10), date(2026, 9, 1)),   # early month, still >= 1 free month
+        (date(2026, 7, 1), date(2026, 8, 1)),    # on the 1st -> exactly one free month
+        (date(2026, 12, 15), date(2027, 2, 1)),  # year rollover
+    ])
+    def test_first_billing_date(self, delivery, expected):
+        assert hosting_billing.first_billing_date(delivery) == expected
 
 
 class TestAnnualPlan:

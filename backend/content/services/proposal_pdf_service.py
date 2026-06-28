@@ -1510,29 +1510,32 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                                  _strip_emoji(str(a_price)))
                 y = price_y - 6
 
+        # Coverage + free-month notes: identical light pill-style boxes, only
+        # the font weight differs. Local helper keeps the two in lockstep.
+        def _note_box(y, note_text, font_weight='medium'):
+            lines = textwrap.wrap(
+                _strip_emoji(str(note_text)), width=int(CONTENT_W / (8 * 0.48))
+            )
+            box_h = len(lines) * 12 + 16
+            box_y = y - box_h + 6
+            c.setFillColor(ESMERALD_LIGHT)
+            c.roundRect(MARGIN_L, box_y, CONTENT_W, box_h, 5, fill=1, stroke=0)
+            c.setFont(_font(font_weight), 7.5)
+            c.setFillColor(ESMERALD)
+            text_block_h = len(lines) * 12
+            ty = box_y + box_h - (box_h - text_block_h) / 2 - 10
+            for line in lines:
+                c.drawString(MARGIN_L + 10, ty, line)
+                ty -= 12
+            return box_y - 6
+
         # Coverage note — pill-style block describing the 3 hosting components
         coverage = _safe(hosting, 'coverageNote')
         if coverage:
             y -= 8
             if ps:
                 y = _check_y(c, y, ps, need=50)
-            # Draw a light background box
-            cov_lines = textwrap.wrap(
-                _strip_emoji(str(coverage)), width=int(CONTENT_W / (8 * 0.48))
-            )
-            box_h = len(cov_lines) * 12 + 16
-            box_y = y - box_h + 6
-            c.setFillColor(ESMERALD_LIGHT)
-            c.roundRect(MARGIN_L, box_y, CONTENT_W, box_h, 5,
-                        fill=1, stroke=0)
-            c.setFont(_font('medium'), 7.5)
-            c.setFillColor(ESMERALD)
-            text_block_h = len(cov_lines) * 12
-            ty = box_y + box_h - (box_h - text_block_h) / 2 - 10
-            for cl in cov_lines:
-                c.drawString(MARGIN_L + 10, ty, cl)
-                ty -= 12
-            y = box_y - 6
+            y = _note_box(y, coverage, 'medium')
 
         # Free-month gift block (copy is bilingual via content_json)
         free_note = _safe(hosting, 'freeMonthNote')
@@ -1544,21 +1547,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             y -= 8
             if ps:
                 y = _check_y(c, y, ps, need=50)
-            fm_lines = textwrap.wrap(
-                _strip_emoji(str(free_note)), width=int(CONTENT_W / (8 * 0.48))
-            )
-            box_h = len(fm_lines) * 12 + 16
-            box_y = y - box_h + 6
-            c.setFillColor(ESMERALD_LIGHT)
-            c.roundRect(MARGIN_L, box_y, CONTENT_W, box_h, 5, fill=1, stroke=0)
-            c.setFont(_font('bold'), 7.5)
-            c.setFillColor(ESMERALD)
-            text_block_h = len(fm_lines) * 12
-            ty = box_y + box_h - (box_h - text_block_h) / 2 - 10
-            for fl in fm_lines:
-                c.drawString(MARGIN_L + 10, ty, fl)
-                ty -= 12
-            y = box_y - 6
+            y = _note_box(y, free_note, 'bold')
 
         # Renewal note — SMLMV formula text
         renewal = _safe(hosting, 'renewalNote')

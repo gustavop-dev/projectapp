@@ -361,7 +361,7 @@ function statusClass(client) {
   return 'bg-emerald-500/15 text-emerald-400'
 }
 
-const PLAN_LABELS = { monthly: 'Mensual', quarterly: 'Trimestral', semiannual: 'Semestral' }
+const PLAN_LABELS = { monthly: 'Mensual', quarterly: 'Trimestral', semiannual: 'Semestral', annual: 'Anual' }
 function planLabel(p) { return PLAN_LABELS[p] || p }
 
 function formatMoney(v) {

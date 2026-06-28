@@ -29,9 +29,9 @@ def first_billing_date(delivery_date):
     Jul 1 -> Aug 1. Anchoring on the 1st keeps every later cycle month-aligned.
     """
     target = delivery_date + relativedelta(months=1)
-    if target.day == 1:
-        return target
-    return target.replace(day=1) + relativedelta(months=1)
+    if target.day != 1:
+        target = target.replace(day=1) + relativedelta(months=1)
+    return target
 
 
 def phase_monthly_base(phase):
@@ -62,12 +62,14 @@ def phase_billing_amount(phase, plan):
 
 
 def phase_tiers(phase):
-    """The three billing tiers for one phase (client breakdown table)."""
+    """The billing tiers for one phase (client breakdown table), one per plan.
+
+    Iterates over every plan in PLAN_CHOICES so a newly added frequency (e.g.
+    annual) is surfaced automatically without touching this function.
+    """
     plan_labels = dict(HostingSubscription.PLAN_CHOICES)
     tiers = []
-    for plan in (HostingSubscription.PLAN_MONTHLY,
-                 HostingSubscription.PLAN_QUARTERLY,
-                 HostingSubscription.PLAN_SEMIANNUAL):
+    for plan, _label in HostingSubscription.PLAN_CHOICES:
         months = HostingSubscription.PLAN_MONTHS[plan]
         amount = phase_billing_amount(phase, plan)
         tiers.append({

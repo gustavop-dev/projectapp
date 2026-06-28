@@ -5,7 +5,7 @@
  * logic without mounting Vue components.
  */
 
-import { DEFAULT_HOSTING_PERCENT } from '~/stores/proposals_constants';
+import { DEFAULT_HOSTING_PERCENT, DEFAULT_BILLING_TIERS } from '~/stores/proposals_constants';
 
 /**
  * Join an array into newline-separated text.
@@ -88,12 +88,7 @@ export function buildFormFromJson(json, type, proposalData) {
       return { index: j.index || '', title: j.title || '', introText: j.introText || '', totalDuration: j.totalDuration || '', phases: (j.phases || []).map(p => ({ title: p.title || '', duration: p.duration || '', description: p.description || '', tasks: arrToText(p.tasks), milestone: p.milestone || '' })) };
     case 'investment': {
       const hp = j.hostingPlan || {};
-      const defaultTiers = [
-        { frequency: 'annual', months: 12, discountPercent: 40, label: 'Anual', badge: 'Máximo descuento' },
-        { frequency: 'semiannual', months: 6, discountPercent: 20, label: 'Semestral', badge: '20% dcto' },
-        { frequency: 'quarterly', months: 3, discountPercent: 10, label: 'Trimestral', badge: '10% dcto' },
-        { frequency: 'monthly', months: 1, discountPercent: 0, label: 'Mensual', badge: '' },
-      ];
+      const defaultTiers = DEFAULT_BILLING_TIERS;
       return {
         index: j.index || '', title: j.title || '', introText: j.introText || '',
         totalInvestment: j.totalInvestment || '', currency: j.currency || 'COP',

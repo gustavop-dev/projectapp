@@ -2905,8 +2905,11 @@ def _extract_proposal_financial_data(proposal):
     billing_tiers = normalized['billingTiers']
     if not billing_tiers:
         billing_tiers = [
+            {'frequency': 'annual', 'months': 12, 'label': 'Anual',
+             'badge': 'Máximo descuento',
+             'discountPercent': proposal.hosting_discount_annual},
             {'frequency': 'semiannual', 'months': 6, 'label': 'Semestral',
-             'badge': 'Mejor precio',
+             'badge': '20% dcto',
              'discountPercent': proposal.hosting_discount_semiannual},
             {'frequency': 'quarterly', 'months': 3, 'label': 'Trimestral',
              'badge': (f'{proposal.hosting_discount_quarterly}% dcto'
@@ -2970,39 +2973,34 @@ def _create_subscription_multi_phase(project, plan):
         p.hosting_activated_at = p.hosting_start_date or today
         p.save(update_fields=['hosting_activated_at'])
 
+    # All amounts/dates are pure Python (no DB dependency), so compute them up
+    # front and persist the subscription in a single write.
+    months = HostingSubscription.PLAN_MONTHS[plan]
+    billing_amount = project_billing_amount(project, plan)
+    billing_end = billing_start + relativedelta(months=months) - relativedelta(days=1)
+
     sub = HostingSubscription(
         project=project,
         plan=plan,
-        base_monthly_amount=Decimal('0'),
+        base_monthly_amount=sum((phase_monthly_base(p) for p in started), Decimal('0')),
         discount_percent=0,
-        effective_monthly_amount=Decimal('0'),
-        billing_amount=Decimal('0'),
+        effective_monthly_amount=round(billing_amount / Decimal(months), 2),
+        billing_amount=billing_amount,
         status=HostingSubscription.STATUS_PENDING,
         start_date=start_date,
-        next_billing_date=billing_start,
+        next_billing_date=billing_end + relativedelta(days=1),
     )
     sub.save()
 
-    months = sub.billing_months
-    sub.billing_amount = project_billing_amount(project, plan)
-    sub.effective_monthly_amount = round(sub.billing_amount / Decimal(months), 2)
-    sub.base_monthly_amount = sum((phase_monthly_base(p) for p in started), Decimal('0'))
-    sub.save(update_fields=[
-        'billing_amount', 'effective_monthly_amount', 'base_monthly_amount',
-    ])
-
-    billing_end = billing_start + relativedelta(months=months) - relativedelta(days=1)
     Payment.objects.create(
         subscription=sub,
-        amount=sub.billing_amount,
+        amount=billing_amount,
         description=f'Hosting {sub.get_plan_display()} — {billing_start} a {billing_end}',
         billing_period_start=billing_start,
         billing_period_end=billing_end,
         due_date=billing_start,
         status=Payment.STATUS_PENDING,
     )
-    sub.next_billing_date = billing_end + relativedelta(days=1)
-    sub.save(update_fields=['next_billing_date'])
 
     return sub
 

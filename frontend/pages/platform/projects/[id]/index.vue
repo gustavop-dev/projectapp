@@ -196,7 +196,7 @@ function formatCurrency(value) {
 }
 
 function planLabel(plan) {
-  const map = { monthly: 'Mensual', quarterly: 'Trimestral', semiannual: 'Semestral' }
+  const map = { monthly: 'Mensual', quarterly: 'Trimestral', semiannual: 'Semestral', annual: 'Anual' }
   return map[plan] || plan
 }
 

@@ -323,7 +323,7 @@ import { useSectionAnimations } from '~/composables/useSectionAnimations';
 import { useExpirationTimer } from '~/composables/useExpirationTimer';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import { useLinkify } from '~/composables/useLinkify';
-import { RESOLVED_PROPOSAL_STATUSES, DEFAULT_HOSTING_PERCENT } from '~/stores/proposals_constants';
+import { RESOLVED_PROPOSAL_STATUSES, DEFAULT_HOSTING_PERCENT, DEFAULT_BILLING_TIERS } from '~/stores/proposals_constants';
 import InvestmentCalculatorModal from './InvestmentCalculatorModal.vue';
 import InvestmentDetailedTeaser from './InvestmentDetailedTeaser.vue';
 
@@ -625,7 +625,7 @@ const renewalParagraphs = computed(() =>
 
 // Free-month gift: shown as a highlighted bucket. Driven by hostingPlan.freeMonths
 // (default 1); copy can be overridden per-proposal via hostingPlan.freeMonthNote.
-const freeMonthsCount = computed(() => Number(props.hostingPlan?.freeMonths ?? 0) || 0);
+const freeMonthsCount = computed(() => Number(props.hostingPlan?.freeMonths) || 0);
 const freeMonthBody = computed(() => {
   const custom = props.hostingPlan?.freeMonthNote;
   return (custom && String(custom).trim()) || t.value.freeMonthBody;
@@ -660,12 +660,6 @@ const hostingAnnualAmount = computed(() => {
   return null;
 });
 
-const DEFAULT_BILLING_TIERS = [
-  { frequency: 'annual', months: 12, discountPercent: 40, label: 'Anual', badge: 'Máximo descuento' },
-  { frequency: 'semiannual', months: 6, discountPercent: 20, label: 'Semestral', badge: '20% dcto' },
-  { frequency: 'quarterly', months: 3, discountPercent: 10, label: 'Trimestral', badge: '10% dcto' },
-  { frequency: 'monthly', months: 1, discountPercent: 0, label: 'Mensual', badge: '' },
-];
 
 const computedBillingTiers = computed(() => {
   const hp = props.hostingPlan;
