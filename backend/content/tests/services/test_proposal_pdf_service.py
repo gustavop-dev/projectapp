@@ -3098,6 +3098,7 @@ class TestInvestmentHostingModelOverride:
             language='es', currency='COP', status='sent',
             total_investment=Decimal('6000000'),
             hosting_percent=40,
+            hosting_discount_annual=40,
             hosting_discount_semiannual=25,
             hosting_discount_quarterly=15,
         )
@@ -3129,11 +3130,16 @@ class TestInvestmentHostingModelOverride:
         _render_investment(pdf_canvas, data, proposal)
 
         monthly_strings = [t for t in drawn if '/mes' in t]
-        # Model values: 6_000_000 × 40% / 12 = 200_000 monthly base
-        #   semiannual (25%): 150_000, quarterly (15%): 170_000, monthly (0%): 200_000
-        assert any('$200.000' in t for t in monthly_strings), (
-            f'Expected monthly tier $200.000/mes from model hosting_percent=40; '
+        # Model values: 6_000_000 × 40% / 12 = 200_000 monthly base. The offered
+        # tiers are annual/semiannual/quarterly (monthly is no longer offered):
+        #   annual (40%): 120_000, semiannual (25%): 150_000, quarterly (15%): 170_000
+        assert any('$120.000' in t for t in monthly_strings), (
+            f'Expected annual tier $120.000/mes from model discount=40; '
             f'got: {monthly_strings}'
+        )
+        # Monthly is no longer an offered tier.
+        assert not any('$200.000 /mes' in t for t in monthly_strings), (
+            f'Monthly tier should no longer be rendered; got: {monthly_strings}'
         )
         assert any('$170.000' in t for t in monthly_strings), (
             f'Expected quarterly tier $170.000/mes from model discount=15; '
