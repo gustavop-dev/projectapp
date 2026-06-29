@@ -121,7 +121,7 @@ scaffold, decidir si los requerimientos describen esa capacidad. Mapa de detecci
 | PWA, app instalable, offline, push notifications | `pwa_module` |
 | IA, chatbot, asistentes, automatización inteligente | `ai_module` |
 | Meta/Facebook Ads, Google Ads, CAPI, ROAS, Enhanced Conversions | `integration_conversion_tracking` |
-| Reportes/alertas por email/WhatsApp/Telegram, alertas de ventas/stock | `reports_alerts_module` |
+| Reportes/alertas por email/WhatsApp, alertas de ventas/stock | `reports_alerts_module` |
 | Email marketing, Mailchimp, Brevo, SendGrid, captura de leads | `email_marketing_module` |
 | Multi-idioma, i18n, varios países, precios por país | `i18n_module` |
 | Chat en vivo, soporte en tiempo real | `live_chat_module` |

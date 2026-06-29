@@ -280,7 +280,9 @@ class TestGetDefaultSections:
         cb = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'corporate_branding_module')
         assert len(cb['items']) == 5
         assert cb['is_calculator_module'] is True
-        assert cb['default_selected'] is False
+        # Pre-selected by default for every new proposal.
+        assert cb['default_selected'] is True
+        assert cb['selected'] is True
         assert cb['price_percent'] == 35
         assert cb.get('is_invite', False) is False
         assert cb['is_visible'] is True
@@ -294,17 +296,20 @@ class TestGetDefaultSections:
         assert ai['is_invite'] is True
         assert ai['price_percent'] == 0
 
-    def test_reports_alerts_module_has_6_items_and_default_not_selected(self):
+    def test_reports_alerts_module_has_5_items_and_default_not_selected(self):
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         reports = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'reports_alerts_module')
-        assert len(reports['items']) == 6
+        assert len(reports['items']) == 5
         assert reports['is_calculator_module'] is True
         assert reports['default_selected'] is False
         assert reports['price_percent'] == 20
         assert 'WhatsApp' in reports['title']
+        # Telegram is no longer offered as a notification channel.
+        assert 'Telegram' not in reports['title']
         item_names = [i['name'] for i in reports['items']]
         assert 'Integración con WhatsApp' in item_names
+        assert all('Telegram' not in n for n in item_names)
 
     def test_en_calculator_modules_mirror_es(self):
         """EN additional modules match ES in item count, calculator flag, and price percent."""
@@ -366,11 +371,18 @@ class TestGetDefaultSections:
             assert g['price_percent'] == 0, f"Group {g['id']} should have price_percent=0"
 
     def test_all_additional_modules_have_selected_false(self):
-        """Verify all additional modules have selected=False."""
+        """Verify additional modules default to selected=False.
+
+        Exception: corporate_branding_module is pre-selected by default for
+        every new proposal.
+        """
+        always_selected = {'corporate_branding_module'}
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         for g in fr['content_json']['additionalModules']:
-            assert g['selected'] is False, f"Additional module {g['id']} should have selected=False"
+            expected = g['id'] in always_selected
+            assert g['selected'] is expected, (
+                f"Additional module {g['id']} should have selected={expected}")
 
     def test_en_regular_groups_match_es_selected_and_price_percent(self):
         """Verify EN regular groups have same selected and price_percent values as ES."""
@@ -904,7 +916,11 @@ class TestNormalizeHostingPlan:
 
     def _proposal(self, **overrides):
         p = MagicMock()
+        p.language = overrides.get('language', 'es')
         p.hosting_percent = overrides.get('hosting_percent', 40)
+        p.hosting_discount_annual = overrides.get(
+            'hosting_discount_annual', 40,
+        )
         p.hosting_discount_semiannual = overrides.get(
             'hosting_discount_semiannual', 25,
         )
@@ -934,15 +950,21 @@ class TestNormalizeHostingPlan:
         tiers = {t['frequency']: t for t in result['billingTiers']}
         assert tiers['semiannual']['discountPercent'] == 25
         assert tiers['quarterly']['discountPercent'] == 15
+        # Annual is guaranteed even though the input lacked it.
+        assert tiers['annual']['discountPercent'] == 40
+        assert 'monthly' not in tiers
 
-    def test_monthly_tier_discount_untouched(self):
+    def test_monthly_tier_is_dropped_and_annual_guaranteed(self):
+        # A legacy proposal that only stored a monthly tier is reconciled to the
+        # canonical offered set [annual, semiannual, quarterly] with no monthly.
         result = normalize_hosting_plan(
             self._proposal(),
             {'billingTiers': [
                 {'frequency': 'monthly', 'discountPercent': 0, 'months': 1},
             ]},
         )
-        assert result['billingTiers'][0]['discountPercent'] == 0
+        freqs = [t['frequency'] for t in result['billingTiers']]
+        assert freqs == ['annual', 'semiannual', 'quarterly']
 
     def test_missing_model_percent_falls_back_to_json(self):
         p = self._proposal(hosting_percent=0)
@@ -967,8 +989,9 @@ class TestNormalizeHostingPlan:
                 {'frequency': 'monthly', 'months': 1, 'discountPercent': 0},
             ]},
         )
-        assert len(result['billingTiers']) == 1
-        assert result['billingTiers'][0]['frequency'] == 'monthly'
+        # Malformed entries are ignored; the result is the canonical offered set.
+        freqs = [t['frequency'] for t in result['billingTiers']]
+        assert freqs == ['annual', 'semiannual', 'quarterly']
 
     def test_none_billing_tiers_returns_empty_list(self):
         result = normalize_hosting_plan(

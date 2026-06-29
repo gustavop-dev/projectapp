@@ -368,7 +368,7 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
     - \`pwa_module\` → PWA, app instalable, funciona sin internet, modo offline, notificaciones push.
     - \`ai_module\` → IA, inteligencia artificial, chatbot inteligente, automatización con IA, agentes.
     - \`integration_conversion_tracking\` → Meta Ads, Facebook Ads, Google Ads, Conversions API, CAPI, ROAS, pixel, Enhanced Conversions.
-    - \`reports_alerts_module\` → reportes, notificaciones, alertas por correo / WhatsApp / Telegram, avisos de ventas o stock.
+    - \`reports_alerts_module\` → reportes, notificaciones, alertas por correo / WhatsApp, avisos de ventas o stock.
     - \`email_marketing_module\` → email marketing, Mailchimp, Brevo, SendGrid, captura de leads, newsletters.
     - \`i18n_module\` → multi-idioma, internacionalización, i18n, múltiples países, traducción, catálogos por país.
     - \`live_chat_module\` → chat en vivo, soporte en tiempo real, asesor en línea, widget de chat propio.

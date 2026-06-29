@@ -111,7 +111,7 @@ const mockProposal = {
           {
             id: 'reports_alerts_module',
             icon: '📬',
-            title: 'Reportes y Alertas vía Correo o Telegram',
+            title: 'Reportes y Alertas vía Correo o WhatsApp',
             is_visible: true,
             description: 'Reportes automáticos y alertas personalizadas.',
             is_calculator_module: true,
@@ -119,7 +119,7 @@ const mockProposal = {
             price_percent: 20,
             items: [
               { icon: '📧', name: 'Reportes automáticos', description: 'Métricas por correo.' },
-              { icon: '✈️', name: 'Integración con Telegram', description: 'Alertas en Telegram.' },
+              { icon: '💚', name: 'Integración con WhatsApp', description: 'Alertas en WhatsApp.' },
             ],
           },
         ],
