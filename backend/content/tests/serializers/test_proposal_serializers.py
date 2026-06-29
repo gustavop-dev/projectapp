@@ -938,7 +938,10 @@ class TestProposalSectionDetailSerializerHostingNormalization:
                      for t in plan['billingTiers']}
         assert discounts['semiannual'] == 22
         assert discounts['quarterly'] == 11
-        assert discounts['monthly'] == 0
+        # Monthly is no longer an offered tier; the annual tier is guaranteed
+        # (taking its discount from the model default).
+        assert 'monthly' not in discounts
+        assert discounts['annual'] == 40
 
     def test_non_investment_section_is_not_mutated(self):
         from content.models import BusinessProposal, ProposalSection

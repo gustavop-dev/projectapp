@@ -1379,7 +1379,7 @@ def get_proposal_json_template(request):
             'notifications -> "pwa_module". AI, intelligent automation, chatbot, assistants '
             '-> "ai_module". Meta Ads, Facebook Ads, Google Ads, Conversions API, CAPI, ROAS, '
             'Enhanced Conversions -> "integration_conversion_tracking". Reports, notifications '
-            'or alerts via email/WhatsApp/Telegram, sales/stock alerts -> '
+            'or alerts via email/WhatsApp, sales/stock alerts -> '
             '"reports_alerts_module". Email marketing, Mailchimp, Brevo, SendGrid, lead '
             'capture -> "email_marketing_module". Multi-language, i18n, multiple countries, '
             'translations, per-country pricing -> "i18n_module". Live chat, real-time '

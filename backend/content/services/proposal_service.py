@@ -658,8 +658,8 @@ DEFAULT_SECTIONS = [
                         'marca se perciba profesional y coherente en todo lugar donde tus clientes interactúan.'
                     ),
                     'is_calculator_module': True,
-                    'default_selected': False,
-                    'selected': False,
+                    'default_selected': True,
+                    'selected': True,
                     'price_percent': 35,
                     'items': [
                         {'icon': '✉️', 'name': 'Correos transaccionales con identidad corporativa', 'description': 'Plantillas HTML con logo, colores, tipografía y firma de marca aplicadas en todos los correos del sistema — bienvenida, confirmaciones, alertas, recuperación de contraseña y notificaciones — en lugar de correos en texto plano o genéricos.'},
@@ -769,11 +769,11 @@ DEFAULT_SECTIONS = [
                 {
                     'id': 'reports_alerts_module',
                     'icon': '📬',
-                    'title': 'Reportes y Alertas vía Correo, WhatsApp o Telegram',
+                    'title': 'Reportes y Alertas vía Correo o WhatsApp',
                     'is_visible': True,
                     'description': (
                         'Mantente informado en todo momento con reportes automáticos y alertas '
-                        'personalizadas que llegan directamente a tu correo, WhatsApp o Telegram.'
+                        'personalizadas que llegan directamente a tu correo o WhatsApp.'
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
@@ -783,7 +783,6 @@ DEFAULT_SECTIONS = [
                         {'icon': '📧', 'name': 'Reportes automáticos por correo', 'description': 'Recibe resúmenes periódicos con las métricas clave de tu negocio directamente en tu bandeja de entrada, sin tener que entrar al sistema.'},
                         {'icon': '🔔', 'name': 'Alertas personalizadas', 'description': 'Configura notificaciones para eventos importantes: nuevas ventas, registros de usuarios, stock bajo, o cualquier métrica que definas.'},
                         {'icon': '💚', 'name': 'Integración con WhatsApp', 'description': 'Recibe alertas y reportes instantáneos en tu número de WhatsApp a través de la API oficial, ideal para estar al tanto desde el mismo canal donde atiendes a tus clientes.'},
-                        {'icon': '✈️', 'name': 'Integración con Telegram', 'description': 'Recibe alertas y reportes instantáneos en tu chat de Telegram, ideal para estar al tanto desde cualquier lugar y en tiempo real.'},
                         {'icon': '⏰', 'name': 'Programación de envíos', 'description': 'Define la frecuencia y horario de tus reportes: diario, semanal, mensual o en tiempo real según tus necesidades.'},
                         {'icon': '📋', 'name': 'Resumen ejecutivo periódico', 'description': 'Informe consolidado con las métricas más relevantes de tu proyecto, diseñado para una lectura rápida y toma de decisiones ágil.'},
                     ],
@@ -911,13 +910,12 @@ DEFAULT_SECTIONS = [
                 {
                     'id': 'dark_mode_module',
                     'icon': '🌙',
-                    'title': 'Motor de Tematización Dinámica (Dark Mode)',
+                    'title': 'Modo Oscuro y Claro',
                     'is_visible': True,
                     'description': (
-                        'Soporte técnico nativo que respeta las preferencias del sistema operativo '
-                        'del usuario, alternando fluidamente entre modo claro y oscuro con persistencia '
-                        'de elección. Un requerimiento visual contemporáneo que reduce la fatiga visual '
-                        'y proyecta modernidad absoluta.'
+                        'El sistema alterna automáticamente entre modo claro y oscuro según la '
+                        'preferencia del dispositivo del usuario, y recuerda su elección. Reduce la '
+                        'fatiga visual y le da un acabado moderno a la plataforma.'
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
@@ -1862,8 +1860,8 @@ DEFAULT_SECTIONS_EN = [
                         'coherent everywhere your customers interact with it.'
                     ),
                     'is_calculator_module': True,
-                    'default_selected': False,
-                    'selected': False,
+                    'default_selected': True,
+                    'selected': True,
                     'price_percent': 35,
                     'items': [
                         {'icon': '✉️', 'name': 'Branded Transactional Emails', 'description': 'HTML templates with logo, colors, typography and brand signature applied across all system emails — welcome, confirmations, alerts, password recovery and notifications — instead of plain-text or generic messages.'},
@@ -1972,11 +1970,11 @@ DEFAULT_SECTIONS_EN = [
                 {
                     'id': 'reports_alerts_module',
                     'icon': '📬',
-                    'title': 'Reports & Alerts via Email, WhatsApp or Telegram',
+                    'title': 'Reports & Alerts via Email or WhatsApp',
                     'is_visible': True,
                     'description': (
                         'Stay informed at all times with automated reports and customized alerts '
-                        'delivered directly to your email, WhatsApp or Telegram.'
+                        'delivered directly to your email or WhatsApp.'
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
@@ -1986,7 +1984,6 @@ DEFAULT_SECTIONS_EN = [
                         {'icon': '📧', 'name': 'Automated Email Reports', 'description': 'Receive periodic summaries with key business metrics directly in your inbox, without having to log into the system.'},
                         {'icon': '🔔', 'name': 'Custom Alerts', 'description': 'Set up notifications for important events: new sales, user registrations, low stock, or any metric you define.'},
                         {'icon': '💚', 'name': 'WhatsApp Integration', 'description': 'Receive instant alerts and reports on your WhatsApp number through the official API, perfect for staying informed from the same channel where you serve your customers.'},
-                        {'icon': '✈️', 'name': 'Telegram Integration', 'description': 'Receive instant alerts and reports in your Telegram chat, perfect for staying informed from anywhere in real time.'},
                         {'icon': '⏰', 'name': 'Scheduled Delivery', 'description': 'Define the frequency and timing of your reports: daily, weekly, monthly, or real-time based on your needs.'},
                         {'icon': '📋', 'name': 'Periodic Executive Summary', 'description': 'Consolidated report with the most relevant metrics of your project, designed for quick reading and agile decision-making.'},
                     ],
@@ -2112,13 +2109,12 @@ DEFAULT_SECTIONS_EN = [
                 },                {
                     'id': 'dark_mode_module',
                     'icon': '🌙',
-                    'title': 'Dynamic Theming Engine (Dark Mode)',
+                    'title': 'Dark & Light Mode',
                     'is_visible': True,
                     'description': (
-                        'Native technical support that respects the user\'s operating system preferences, '
-                        'seamlessly switching between light and dark mode with choice persistence. '
-                        'A contemporary visual requirement that reduces eye strain '
-                        'and projects absolute modernity.'
+                        'The system automatically switches between light and dark mode based on the '
+                        'user\'s device preference, and remembers their choice. It reduces eye strain '
+                        'and gives the platform a modern finish.'
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
@@ -2457,16 +2453,64 @@ def normalize_hosting_plan(proposal, hosting_plan_json):
         HostingSubscription.PLAN_QUARTERLY:
             getattr(proposal, 'hosting_discount_quarterly', None),
     }
+
+    # Enforce the canonical set of *offered* payment tiers, best-discount first.
+    # Month-to-month is no longer offered, so any stored 'monthly' tier is
+    # dropped, and the annual tier is guaranteed even for older proposals whose
+    # stored content predates it. Stored label/badge/months are preserved when
+    # present; discounts always come from the model fields. This keeps the public
+    # view and the PDF consistent for every proposal regardless of stored drift.
+    lang = getattr(proposal, 'language', 'es') or 'es'
+    stored_by_freq = {
+        t.get('frequency'): t
+        for t in (base.get('billingTiers') or [])
+        if isinstance(t, dict)
+    }
+    # No stored tiers → leave empty; the frontend falls back to its own default
+    # tier list. Only reconcile to the canonical set when tiers actually exist.
+    if not stored_by_freq:
+        base['billingTiers'] = []
+        return base
+    tier_defaults = {
+        HostingSubscription.PLAN_ANNUAL: {
+            'months': 12,
+            'label': 'Annual' if lang == 'en' else 'Anual',
+            'badge': 'Best value' if lang == 'en' else 'Máximo descuento',
+            'discount': 40,
+        },
+        HostingSubscription.PLAN_SEMIANNUAL: {
+            'months': 6,
+            'label': 'Semiannual' if lang == 'en' else 'Semestral',
+            'badge': '20% off' if lang == 'en' else '20% dcto',
+            'discount': 20,
+        },
+        HostingSubscription.PLAN_QUARTERLY: {
+            'months': 3,
+            'label': 'Quarterly' if lang == 'en' else 'Trimestral',
+            'badge': '10% off' if lang == 'en' else '10% dcto',
+            'discount': 10,
+        },
+    }
     normalized_tiers = []
-    for tier in base.get('billingTiers', []) or []:
-        if not isinstance(tier, dict):
-            continue
-        override = discount_overrides.get(tier.get('frequency'))
-        discount = (
-            override if override is not None
-            else tier.get('discountPercent', 0)
-        )
-        normalized_tiers.append({**tier, 'discountPercent': discount})
+    for freq in (HostingSubscription.PLAN_ANNUAL,
+                 HostingSubscription.PLAN_SEMIANNUAL,
+                 HostingSubscription.PLAN_QUARTERLY):
+        defaults = tier_defaults[freq]
+        stored = stored_by_freq.get(freq) or {}
+        override = discount_overrides.get(freq)
+        if override is not None:
+            discount = override
+        elif stored.get('discountPercent') is not None:
+            discount = stored.get('discountPercent')
+        else:
+            discount = defaults['discount']
+        normalized_tiers.append({
+            'frequency': freq,
+            'months': stored.get('months', defaults['months']),
+            'label': stored.get('label') or defaults['label'],
+            'badge': stored.get('badge', defaults['badge']),
+            'discountPercent': discount,
+        })
     base['billingTiers'] = normalized_tiers
     return base
 
