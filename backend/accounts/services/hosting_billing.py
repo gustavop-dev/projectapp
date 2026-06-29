@@ -68,6 +68,9 @@ def phase_tiers(phase):
     annual) is surfaced automatically without touching this function.
     """
     plan_labels = dict(HostingSubscription.PLAN_CHOICES)
+    # Undiscounted monthly list price — reference for the "full price" / savings
+    # comparison now that month-to-month is no longer an offered tier.
+    base_monthly = int(phase_monthly_base(phase))
     tiers = []
     for plan, _label in HostingSubscription.PLAN_CHOICES:
         months = HostingSubscription.PLAN_MONTHS[plan]
@@ -77,6 +80,7 @@ def phase_tiers(phase):
             'label': plan_labels.get(plan, plan),
             'months': months,
             'discount_percent': int(plan_discount(phase, plan)),
+            'base_monthly': base_monthly,
             'monthly_equivalent': int(_q(amount / Decimal(months))),
             'billing_amount': int(amount),
         })

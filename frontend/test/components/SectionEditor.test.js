@@ -234,7 +234,6 @@ const investmentJson = {
     billingTiers: [
       { frequency: 'semiannual', months: 6, discountPercent: 20, label: 'Semestral', badge: 'Mejor precio' },
       { frequency: 'quarterly', months: 3, discountPercent: 10, label: 'Trimestral', badge: '10% dcto' },
-      { frequency: 'monthly', months: 1, discountPercent: 0, label: 'Mensual', badge: '' },
     ],
     renewalNote: 'Renovación con SMLMV.',
     coverageNote: 'Cubre mantenimiento, soporte y recursos.',
@@ -890,28 +889,25 @@ describe('buildFormFromJson', () => {
 
     it('reads billingTiers from hostingPlan', () => {
       const form = buildFormFromJson(investmentJson, 'investment');
-      expect(form.hostingPlan.billingTiers).toHaveLength(3);
+      expect(form.hostingPlan.billingTiers).toHaveLength(2);
       expect(form.hostingPlan.billingTiers[0].frequency).toBe('semiannual');
       expect(form.hostingPlan.billingTiers[0].discountPercent).toBe(20);
       expect(form.hostingPlan.billingTiers[1].frequency).toBe('quarterly');
       expect(form.hostingPlan.billingTiers[1].discountPercent).toBe(10);
-      expect(form.hostingPlan.billingTiers[2].frequency).toBe('monthly');
-      expect(form.hostingPlan.billingTiers[2].discountPercent).toBe(0);
     });
 
     it('provides default billingTiers when missing from json', () => {
       const json = { ...investmentJson, hostingPlan: { title: 'Hosting' } };
       const form = buildFormFromJson(json, 'investment');
-      expect(form.hostingPlan.billingTiers).toHaveLength(4);
+      expect(form.hostingPlan.billingTiers).toHaveLength(3);
       expect(form.hostingPlan.billingTiers[0].months).toBe(12);
       expect(form.hostingPlan.billingTiers[1].months).toBe(6);
       expect(form.hostingPlan.billingTiers[2].months).toBe(3);
-      expect(form.hostingPlan.billingTiers[3].months).toBe(1);
     });
 
     it('backward compat: legacy json without billingTiers gets default tiers', () => {
       const form = buildFormFromJson(investmentJsonLegacy, 'investment');
-      expect(form.hostingPlan.billingTiers).toHaveLength(4);
+      expect(form.hostingPlan.billingTiers).toHaveLength(3);
       expect(form.hostingPlan.hostingPercent).toBe(30);
       expect(form.hostingPlan).not.toHaveProperty('monthlyLabel');
       expect(form.hostingPlan).not.toHaveProperty('annualLabel');
@@ -1093,7 +1089,7 @@ describe('formToJson', () => {
     it('serializes billingTiers in hostingPlan', () => {
       const form = buildFormFromJson(investmentJson, 'investment');
       const json = formToJson(form, 'investment');
-      expect(json.hostingPlan.billingTiers).toHaveLength(3);
+      expect(json.hostingPlan.billingTiers).toHaveLength(2);
       expect(json.hostingPlan.billingTiers[0].frequency).toBe('semiannual');
       expect(json.hostingPlan.billingTiers[0].discountPercent).toBe(20);
       expect(json.hostingPlan).not.toHaveProperty('monthlyLabel');

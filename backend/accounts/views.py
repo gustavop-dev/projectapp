@@ -2915,8 +2915,6 @@ def _extract_proposal_financial_data(proposal):
              'badge': (f'{proposal.hosting_discount_quarterly}% dcto'
                        if proposal.hosting_discount_quarterly else ''),
              'discountPercent': proposal.hosting_discount_quarterly},
-            {'frequency': 'monthly', 'months': 1, 'label': 'Mensual',
-             'badge': '', 'discountPercent': 0},
         ]
 
     for tier in billing_tiers:
@@ -3225,7 +3223,7 @@ def project_subscription_view(request, project_id):
     GET  — Subscription detail with payments (admin or owning client).
            Returns 404 if no subscription exists yet.
     POST — Client (or admin) creates subscription by choosing a hosting plan.
-           Required: { plan: 'monthly'|'quarterly'|'semiannual' }
+           Required: { plan: 'quarterly'|'semiannual'|'annual' }
            Only works if no subscription exists yet and the project has phases
            with at least one already started.
     PATCH — Change hosting plan (admin or client) or status (admin only).
@@ -3251,7 +3249,7 @@ def project_subscription_view(request, project_id):
         plan = request.data.get('plan')
         if plan not in dict(HostingSubscription.PLAN_CHOICES):
             return Response(
-                {'detail': 'Plan inválido. Opciones: monthly, quarterly, semiannual, annual.'},
+                {'detail': 'Plan inválido. Opciones: quarterly, semiannual, annual.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

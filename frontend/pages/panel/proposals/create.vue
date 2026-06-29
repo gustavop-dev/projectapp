@@ -253,7 +253,7 @@
           </div>
           <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl overflow-hidden">
             <div class="grid grid-cols-[1fr_auto] gap-x-4 text-sm divide-y divide-blue-100 dark:divide-blue-500/20">
-              <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Mensual</div>
+              <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Base mensual <span class="text-xs font-normal text-text-subtle">(referencia)</span></div>
               <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right">
                 ${{ Math.round(form.total_investment * form.hosting_percent / 100 / 12).toLocaleString() }} {{ form.currency }}
               </div>

@@ -624,13 +624,6 @@ class Command(BaseCommand):
                     'label': 'Trimestral',
                     'badge': '10% dcto',
                 },
-                {
-                    'frequency': 'monthly',
-                    'months': 1,
-                    'discountPercent': 0,
-                    'label': 'Mensual',
-                    'badge': '',
-                },
             ],
         }
         inv_base['whatsIncluded'] = [

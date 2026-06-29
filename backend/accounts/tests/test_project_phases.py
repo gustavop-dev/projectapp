@@ -254,9 +254,9 @@ def test_patch_phase_returns_hosting_tiers(authed_client, project, business_prop
     )
     assert resp.status_code == 200
     tiers = resp.json().get('hosting_tiers', [])
-    assert len(tiers) == 4
+    assert len(tiers) == 3
     frequencies = [t['frequency'] for t in tiers]
-    assert frequencies == ['monthly', 'quarterly', 'semiannual', 'annual']
+    assert frequencies == ['quarterly', 'semiannual', 'annual']
 
 
 def test_patch_phase_rejects_non_admin(project, business_proposal, client_user):
@@ -283,4 +283,4 @@ def test_list_phases_includes_hosting_tiers_and_start_date(authed_client, projec
     data = resp.json()[0]
     assert data['hosting_start_date'] == '2026-05-01'
     assert 'hosting_tiers' in data
-    assert len(data['hosting_tiers']) == 4
+    assert len(data['hosting_tiers']) == 3

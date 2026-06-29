@@ -181,7 +181,7 @@
         </div>
 
         <div v-if="computedBillingTiers.length" class="mt-8 pl-0 sm:pl-16">
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-3 md:gap-5 items-stretch">
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-3 md:gap-5 items-stretch">
             <div
               v-for="(tier, tIdx) in computedBillingTiers"
               :key="tIdx"
@@ -280,16 +280,6 @@
               </div>
             </div>
           </Transition>
-        </div>
-
-        <!-- Renewal conditions -->
-        <div v-if="renewalParagraphs.length" class="mt-8 pl-0 sm:pl-16">
-          <h4 class="text-sm font-bold text-text-brand mb-2 flex items-center gap-2">
-            <span>🔄</span> {{ t.renewals }}
-          </h4>
-          <div class="space-y-2 text-sm text-text-brand/70 font-light leading-relaxed">
-            <p v-for="(para, pIdx) in renewalParagraphs" :key="pIdx">{{ para }}</p>
-          </div>
         </div>
       </div>
 
@@ -573,7 +563,6 @@ const i18n = {
       { icon: '🛟', title: 'Soporte ante incidencias', description: 'Resolución de bugs y asistencia técnica continua' },
       { icon: '☁️', title: 'Recursos computacionales', description: 'Servidor, almacenamiento, ancho de banda y certificados SSL' },
     ],
-    renewals: 'Renovaciones',
     freeMonthTitle: '1 mes de hosting gratis',
     freeMonthBody: 'Los cobros del hosting inician el día 1° de cada mes. Desde la entrega de tu proyecto hasta tu primer cobro, el hosting es gratis — siempre te regalamos como mínimo un mes completo.',
   },
@@ -607,21 +596,12 @@ const i18n = {
       { icon: '🛟', title: 'Incident Support', description: 'Bug resolution and ongoing technical assistance' },
       { icon: '☁️', title: 'Computing Resources', description: 'Server, storage, bandwidth, and SSL certificates' },
     ],
-    renewals: 'Renewals',
     freeMonthTitle: '1 free month of hosting',
     freeMonthBody: 'Hosting billing starts on the 1st of each month. From your project delivery until your first charge, hosting is free — we always gift you at least one full month.',
   },
 };
 
 const t = computed(() => i18n[props.language] || i18n.es);
-
-// Renewal conditions, split into paragraphs (preserve the \n\n breaks the
-// admin / default copy uses). Rendered in the public view (also shown in PDF).
-const renewalParagraphs = computed(() =>
-  String(props.hostingPlan?.renewalNote || '')
-    .split('\n\n')
-    .map((p) => p.trim())
-    .filter(Boolean));
 
 // Free-month gift: shown as a highlighted bucket. Driven by hostingPlan.freeMonths
 // (default 1); copy can be overridden per-proposal via hostingPlan.freeMonthNote.

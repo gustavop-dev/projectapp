@@ -214,7 +214,7 @@ class TestPhaseOnboarding:
 # ===========================================================================
 
 class TestFrequencyChangeWhilePending:
-    def _activate(self, api_client, headers, project, plan='monthly'):
+    def _activate(self, api_client, headers, project, plan='quarterly'):
         return api_client.post(
             f'/api/accounts/projects/{project.id}/subscription/', {'plan': plan}, **headers,
         )
@@ -223,7 +223,7 @@ class TestFrequencyChangeWhilePending:
         self, api_client, client_headers, project,
     ):
         _phase(project, 12_000_000, order=1)
-        assert self._activate(api_client, client_headers, project, 'monthly').status_code == 201
+        assert self._activate(api_client, client_headers, project, 'quarterly').status_code == 201
 
         resp = api_client.patch(
             f'/api/accounts/projects/{project.id}/subscription/',
@@ -240,7 +240,7 @@ class TestFrequencyChangeWhilePending:
         self, api_client, client_headers, project,
     ):
         _phase(project, 12_000_000, order=1)
-        self._activate(api_client, client_headers, project, 'monthly')
+        self._activate(api_client, client_headers, project, 'quarterly')
         sub = HostingSubscription.objects.get(project=project)
         sub.status = HostingSubscription.STATUS_ACTIVE
         sub.save(update_fields=['status'])
