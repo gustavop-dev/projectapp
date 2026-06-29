@@ -76,7 +76,7 @@ def test_register_manual_creates_subscription_and_payment(authed_client, project
 def test_register_manual_payment_creates_history_with_manual_source(authed_client, project):
     authed_client.post(
         MANUAL_URL.format(project.id),
-        {'frequency': 'monthly', 'amount': '200000', 'billing_period_start': '2026-04-01'},
+        {'frequency': 'quarterly', 'amount': '200000', 'billing_period_start': '2026-04-01'},
         format='json',
     )
     payment = Payment.objects.get(subscription__project=project)
@@ -131,7 +131,7 @@ def test_register_manual_rejects_non_admin(project, client_user):
 def test_register_manual_rejects_missing_fields(authed_client, project):
     resp = authed_client.post(
         MANUAL_URL.format(project.id),
-        {'frequency': 'monthly'},
+        {'frequency': 'quarterly'},
         format='json',
     )
     assert resp.status_code == 400

@@ -354,11 +354,11 @@
                 Precio que verá el cliente (por mes)
               </div>
               <div class="grid grid-cols-[1fr_auto_auto] gap-x-4 text-sm divide-y divide-blue-100 dark:divide-blue-900/30">
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Mensual</div>
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Base mensual</div>
                 <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right whitespace-nowrap">
                   ${{ hostingMonthlyBase.toLocaleString() }} {{ form.currency }}/mes
                 </div>
-                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">facturado mensual</div>
+                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">referencia</div>
 
                 <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
                   Trimestral

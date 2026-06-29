@@ -3686,13 +3686,13 @@ No active browser flow is registered for client profile editing at this time.
 - **Role:** guest (via shared UUID link)
 - **Priority:** P2
 - **Routes:** `/proposal/:uuid` (+ downloadable PDF)
-- **Description:** The Investment section's hosting plan shows four payment-frequency tiers (annual 40% / semiannual 20% / quarterly 10% / monthly 0%), a "1 free month of hosting" gift bucket (billing starts on the 1st of the month; at least one free month), and the renewal conditions for each renewal year from the second year: `new = previous × (1 + (SMLMV increase % + 8% fixed))`. All of it renders in the public view AND the PDF, in ES and EN. Numbers derive from the BusinessProposal model (default `hosting_percent` 80%, `hosting_discount_annual` 40%).
+- **Description:** The Investment section's hosting plan shows three payment-frequency tiers (annual 40% / semiannual 20% / quarterly 10%; month-to-month is not offered, minimum commitment is quarterly) and a "1 free month of hosting" gift bucket (billing starts on the 1st of the month; at least one free month). The tier cards match the width of the coverage cards above them. The renewal conditions for each renewal year from the second year (`new = previous × (1 + (SMLMV increase % + 8% fixed))`) render ONLY in the PDF, NOT in the web view. Tiers and the free-month bucket render in both the public view and the PDF, in ES and EN. Numbers derive from the BusinessProposal model (default `hosting_percent` 80%, `hosting_discount_annual` 40%).
 - **Steps:**
   1. Client opens the proposal and scrolls to "Tu inversión y cómo pagar".
-  2. The hosting plan shows the four tiers including the highlighted Annual (40%) tier.
+  2. The hosting plan shows the three tiers including the highlighted Annual (40%) tier.
   3. The free-month gift bucket renders.
-  4. The "Renovaciones" / "Renewals" block renders the SMLMV+8% formula and example.
-  5. Downloading the PDF reproduces the same tiers, free-month note and renewal note.
+  4. The "Renovaciones" / "Renewals" block does NOT render in the web view (it is PDF-only).
+  5. Downloading the PDF reproduces the same tiers, free-month note and the renewal note with the SMLMV+8% formula and example.
 - **Coverage:** 📝 Documented-only (no dedicated E2E spec yet)
 - **Unit coverage:** `frontend/test/components/Investment.test.js` → `hosting: annual tier, free month, renewal`
 - **Suggested E2E Spec:** `e2e/proposal/proposal-hosting-plan-terms.spec.js`

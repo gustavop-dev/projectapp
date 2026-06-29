@@ -80,9 +80,9 @@ describe('Investment', () => {
 
   describe('hosting billing tiers', () => {
     const billingTiers = [
+      { frequency: 'annual', months: 12, discountPercent: 40, label: 'Anual', badge: '' },
       { frequency: 'semiannual', months: 6, discountPercent: 20, label: 'Semestral', badge: '' },
       { frequency: 'quarterly', months: 3, discountPercent: 10, label: 'Trimestral', badge: '' },
-      { frequency: 'monthly', months: 1, discountPercent: 0, label: 'Mensual', badge: '' },
     ];
 
     function hostingPlanWith(percent, tiers = billingTiers) {
@@ -95,7 +95,7 @@ describe('Investment', () => {
       };
     }
 
-    it('recomputes the monthly tier price from hostingPlan.hostingPercent', () => {
+    it('recomputes the tier monthly-equivalent from hostingPlan.hostingPercent', () => {
       const at30 = mountInvestment({
         totalInvestment: '$1.200.000',
         hostingPlan: hostingPlanWith(30),
@@ -105,16 +105,15 @@ describe('Investment', () => {
         hostingPlan: hostingPlanWith(50),
       });
 
-      // 1.200.000 * 30% / 12 = 30.000
-      expect(at30.text()).toContain('$30.000');
-      // 1.200.000 * 50% / 12 = 50.000
-      expect(at50.text()).toContain('$50.000');
+      // monthly base 1.200.000 * 30% / 12 = 30.000; quarterly 10% off -> 27.000
+      expect(at30.text()).toContain('$27.000');
+      // monthly base 1.200.000 * 50% / 12 = 50.000; quarterly 10% off -> 45.000
+      expect(at50.text()).toContain('$45.000');
     });
 
     it('applies the quarterly discountPercent from billingTiers to the rendered tier', () => {
       const tiers = [
         { frequency: 'quarterly', months: 3, discountPercent: 25, label: 'Trimestral', badge: '' },
-        { frequency: 'monthly', months: 1, discountPercent: 0, label: 'Mensual', badge: '' },
       ];
       const wrapper = mountInvestment({
         totalInvestment: '$1.200.000',
@@ -130,7 +129,6 @@ describe('Investment', () => {
       (status) => {
         const tiers = [
           { frequency: 'quarterly', months: 3, discountPercent: 25, label: 'Trimestral', badge: '' },
-          { frequency: 'monthly', months: 1, discountPercent: 0, label: 'Mensual', badge: '' },
         ];
         const wrapper = mountInvestment({
           totalInvestment: '$1.200.000',
@@ -255,7 +253,7 @@ describe('Investment', () => {
       expect(wrapper.text()).not.toContain('mes de hosting gratis');
     });
 
-    it('renders renewal conditions paragraphs from renewalNote', () => {
+    it('never renders renewal conditions in the web view (PDF-only)', () => {
       const wrapper = mountInvestment({
         hostingPlan: {
           title: 'Hosting',
@@ -263,16 +261,9 @@ describe('Investment', () => {
           renewalNote: 'Primer parrafo de renovacion.\n\nSegundo parrafo.',
         },
       });
-      expect(wrapper.text()).toContain('Renovaciones');
-      expect(wrapper.text()).toContain('Primer parrafo de renovacion.');
-      expect(wrapper.text()).toContain('Segundo parrafo.');
-    });
-
-    it('omits the renewal block when renewalNote is empty', () => {
-      const wrapper = mountInvestment({
-        hostingPlan: { title: 'Hosting', hostingPercent: 80, renewalNote: '' },
-      });
+      // Renewal terms live only in the generated PDF, not the public web view.
       expect(wrapper.text()).not.toContain('Renovaciones');
+      expect(wrapper.text()).not.toContain('Primer parrafo de renovacion.');
     });
   });
 });

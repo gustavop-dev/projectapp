@@ -1115,12 +1115,15 @@ class HostingSubscription(models.Model):
     Derived from the linked BusinessProposal pricing or set manually.
     """
 
+    # Legacy value: month-to-month hosting is no longer offered. Kept only so
+    # historical data and pre-existing references resolve; it is intentionally
+    # absent from PLAN_CHOICES/PLAN_MONTHS so it cannot be selected for new
+    # subscriptions (minimum commitment is now quarterly).
     PLAN_MONTHLY = 'monthly'
     PLAN_QUARTERLY = 'quarterly'
     PLAN_SEMIANNUAL = 'semiannual'
     PLAN_ANNUAL = 'annual'
     PLAN_CHOICES = [
-        (PLAN_MONTHLY, 'Mensual'),
         (PLAN_QUARTERLY, 'Trimestral'),
         (PLAN_SEMIANNUAL, 'Semestral'),
         (PLAN_ANNUAL, 'Anual'),
@@ -1137,8 +1140,9 @@ class HostingSubscription(models.Model):
         (STATUS_PENDING, 'Pendiente'),
     ]
 
+    # Legacy 'monthly' is omitted on purpose; billing_months() falls back to 1
+    # for any stored legacy value via .get(plan, 1).
     PLAN_MONTHS = {
-        PLAN_MONTHLY: 1,
         PLAN_QUARTERLY: 3,
         PLAN_SEMIANNUAL: 6,
         PLAN_ANNUAL: 12,
@@ -1147,7 +1151,7 @@ class HostingSubscription(models.Model):
     project = models.OneToOneField(
         Project, on_delete=models.CASCADE, related_name='hosting_subscription',
     )
-    plan = models.CharField(max_length=20, choices=PLAN_CHOICES, default=PLAN_MONTHLY)
+    plan = models.CharField(max_length=20, choices=PLAN_CHOICES, default=PLAN_QUARTERLY)
     base_monthly_amount = models.DecimalField(
         max_digits=12, decimal_places=2,
         help_text='Monthly hosting cost before discount (COP).',

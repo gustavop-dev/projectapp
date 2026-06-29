@@ -22,9 +22,9 @@ const mockProject = {
   start_date: '2025-01-01', estimated_end_date: '2025-06-30',
   hosting_start_date: '2025-04-01',
   hosting_tiers: [
-    { frequency: 'semiannual', months: 6, label: 'Semestral', badge: 'Mejor precio', discount_percent: 20, base_monthly: 250000, effective_monthly: 200000, billing_amount: 1200000, currency: 'COP' },
+    { frequency: 'annual', months: 12, label: 'Anual', badge: 'Máximo descuento', discount_percent: 40, base_monthly: 250000, effective_monthly: 150000, billing_amount: 1800000, currency: 'COP' },
+    { frequency: 'semiannual', months: 6, label: 'Semestral', badge: '20% dcto', discount_percent: 20, base_monthly: 250000, effective_monthly: 200000, billing_amount: 1200000, currency: 'COP' },
     { frequency: 'quarterly', months: 3, label: 'Trimestral', badge: '10% dcto', discount_percent: 10, base_monthly: 250000, effective_monthly: 225000, billing_amount: 675000, currency: 'COP' },
-    { frequency: 'monthly', months: 1, label: 'Mensual', badge: '', discount_percent: 0, base_monthly: 250000, effective_monthly: 250000, billing_amount: 250000, currency: 'COP' },
   ],
   payment_milestones: [],
   has_subscription: false,
@@ -65,9 +65,9 @@ const mockPhases = [
     id: 11, order: 1, hosting_start_date: pastDate(60), hosting_activated_at: pastDate(30) + 'T10:00:00Z',
     proposal: { id: 1, title: 'Fase 1 — Sitio base' },
     hosting_tiers: [
-      { frequency: 'semiannual', months: 6, label: 'Semestral', discount_percent: 20, monthly_equivalent: 200000, billing_amount: 1200000 },
-      { frequency: 'quarterly', months: 3, label: 'Trimestral', discount_percent: 10, monthly_equivalent: 225000, billing_amount: 675000 },
-      { frequency: 'monthly', months: 1, label: 'Mensual', discount_percent: 0, monthly_equivalent: 250000, billing_amount: 250000 },
+      { frequency: 'quarterly', months: 3, label: 'Trimestral', discount_percent: 10, base_monthly: 250000, monthly_equivalent: 225000, billing_amount: 675000 },
+      { frequency: 'semiannual', months: 6, label: 'Semestral', discount_percent: 20, base_monthly: 250000, monthly_equivalent: 200000, billing_amount: 1200000 },
+      { frequency: 'annual', months: 12, label: 'Anual', discount_percent: 40, base_monthly: 250000, monthly_equivalent: 150000, billing_amount: 1800000 },
     ],
   },
 ];
@@ -156,7 +156,7 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
     // exact: true — the "Activar plan <freq>" CTA also contains the frequency label.
     await expect(page.getByRole('button', { name: 'Semestral', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Trimestral', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Mensual', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Anual', exact: true })).toBeVisible();
   });
 
   test('client can select a plan and activate subscription', {

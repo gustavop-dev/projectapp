@@ -349,7 +349,7 @@
                 <div v-for="(tier, tIdx) in form.hostingPlan.billingTiers" :key="tIdx"
                      class="bg-surface-raised rounded-xl p-3 border border-border-muted">
                   <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                    <FieldInput v-model="tier.label" label="Etiqueta" :placeholder="tier.frequency === 'semiannual' ? 'Semestral' : tier.frequency === 'quarterly' ? 'Trimestral' : 'Mensual'" />
+                    <FieldInput v-model="tier.label" label="Etiqueta" :placeholder="tier.frequency === 'annual' ? 'Anual' : tier.frequency === 'semiannual' ? 'Semestral' : tier.frequency === 'quarterly' ? 'Trimestral' : ''" />
                     <FieldInput v-model.number="tier.months" label="Meses" type="number" :placeholder="String(tier.months)" />
                     <FieldInput v-model.number="tier.discountPercent" label="% Descuento" type="number" placeholder="0" />
                     <FieldInput v-model="tier.badge" label="Badge" placeholder="Mejor precio" />

@@ -688,7 +688,6 @@ const isCreatingSub = ref(false)
 const planError = ref('')
 
 const frequencyOptions = [
-  { value: 'monthly', label: 'Mensual' },
   { value: 'quarterly', label: 'Trimestral' },
   { value: 'semiannual', label: 'Semestral' },
   { value: 'annual', label: 'Anual' },
@@ -721,10 +720,11 @@ const phaseRows = computed(() => {
   today.setHours(0, 0, 0, 0)
   return (payStore.phases || []).map((p) => {
     const tier = phaseTier(p, tableFrequency.value)
-    const monthly = phaseTier(p, 'monthly')
     const amount = tier ? tier.billing_amount : 0
-    // Undiscounted cost = paying month by month for the same span.
-    const fullPrice = tier && monthly ? monthly.billing_amount * tier.months : amount
+    // Undiscounted list price for the same span (base monthly × months).
+    const fullPrice = tier && tier.base_monthly
+      ? tier.base_monthly * tier.months
+      : amount
     return {
       id: p.id,
       order: p.order,
@@ -756,7 +756,6 @@ const phaseSaved = reactive({})
 const showManualForm = ref(false)
 const manualError = ref('')
 const manualFreqOptions = [
-  { value: 'monthly', label: 'Mensual' },
   { value: 'quarterly', label: 'Trimestral' },
   { value: 'semiannual', label: 'Semestral' },
   { value: 'annual', label: 'Anual' },

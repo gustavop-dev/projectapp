@@ -388,6 +388,7 @@ class ProjectDetailSerializer(ProjectListSerializer):
         bp1 = phases[0].business_proposal
         disc_q = getattr(bp1, 'hosting_discount_quarterly', 10)
         disc_s = getattr(bp1, 'hosting_discount_semiannual', 20)
+        disc_a = getattr(bp1, 'hosting_discount_annual', 40)
         currency = str(getattr(bp1, 'currency', 'COP'))
 
         def _tier(frequency, months, label, badge, discount):
@@ -407,9 +408,9 @@ class ProjectDetailSerializer(ProjectListSerializer):
             }
 
         return [
-            _tier('semiannual', 6, 'Semestral', 'Mejor precio', disc_s),
+            _tier('annual', 12, 'Anual', 'Máximo descuento', disc_a),
+            _tier('semiannual', 6, 'Semestral', f'{disc_s}% dcto' if disc_s else '', disc_s),
             _tier('quarterly', 3, 'Trimestral', f'{disc_q}% dcto' if disc_q else '', disc_q),
-            _tier('monthly', 1, 'Mensual', '', 0),
         ]
 
     def get_has_subscription(self, obj):
@@ -1296,7 +1297,7 @@ class PaymentHistorySerializer(serializers.ModelSerializer):
 
 
 class ManualPaymentSerializer(serializers.Serializer):
-    frequency = serializers.ChoiceField(choices=['monthly', 'quarterly', 'semiannual'])
+    frequency = serializers.ChoiceField(choices=['quarterly', 'semiannual', 'annual'])
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal('1'))
     billing_period_start = serializers.DateField()
     description = serializers.CharField(max_length=300, required=False, default='', allow_blank=True)

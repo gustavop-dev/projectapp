@@ -256,12 +256,12 @@ class TestProjectSubscription:
 
         resp = api_client.patch(
             f'/api/accounts/projects/{project.id}/subscription/',
-            {'plan': 'monthly'},
+            {'plan': 'annual'},
             format='json', **client_headers,
         )
 
         assert resp.status_code == 200
-        assert resp.json()['plan'] == 'monthly'
+        assert resp.json()['plan'] == 'annual'
 
     def test_client_cannot_change_status(
         self, api_client, client_headers, project, subscription,
@@ -894,7 +894,7 @@ class TestClientCreateSubscription:
 
         first = api_client.post(
             f'/api/accounts/projects/{project_id}/subscription/',
-            {'plan': 'monthly'},
+            {'plan': 'semiannual'},
             format='json', **client_headers,
         )
         assert first.status_code == 201
@@ -919,7 +919,7 @@ class TestClientCreateSubscription:
 
         sub_resp = api_client.post(
             f'/api/accounts/projects/{project_id}/subscription/',
-            {'plan': 'monthly'},
+            {'plan': 'quarterly'},
             format='json', **client_headers,
         )
 

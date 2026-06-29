@@ -193,13 +193,6 @@ DEFAULT_SECTIONS = [
                         'label': 'Trimestral',
                         'badge': '10% dcto',
                     },
-                    {
-                        'frequency': 'monthly',
-                        'months': 1,
-                        'discountPercent': 0,
-                        'label': 'Mensual',
-                        'badge': '',
-                    },
                 ],
                 'renewalNote': (
                     'Renovaciones para cada año de renovación (a partir del segundo año): '
@@ -1404,13 +1397,6 @@ DEFAULT_SECTIONS_EN = [
                         'discountPercent': 10,
                         'label': 'Quarterly',
                         'badge': '10% off',
-                    },
-                    {
-                        'frequency': 'monthly',
-                        'months': 1,
-                        'discountPercent': 0,
-                        'label': 'Monthly',
-                        'badge': '',
                     },
                 ],
                 'renewalNote': (

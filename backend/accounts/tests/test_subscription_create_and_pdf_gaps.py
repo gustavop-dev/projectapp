@@ -142,10 +142,10 @@ class TestProjectSubscriptionCreate:
     def test_creates_subscription_from_linked_proposal(
         self, api_client, client_headers, project, deliverable_with_bp,
     ):
-        """Client can create a monthly subscription from a linked proposal."""
+        """Client can create a subscription from a linked proposal."""
         url = f'/api/accounts/projects/{project.id}/subscription/'
         resp = api_client.post(
-            url, {'plan': HostingSubscription.PLAN_MONTHLY},
+            url, {'plan': HostingSubscription.PLAN_QUARTERLY},
             format='json', **client_headers,
         )
 
@@ -158,7 +158,7 @@ class TestProjectSubscriptionCreate:
         """POST returns 400 when a subscription already exists for the project."""
         url = f'/api/accounts/projects/{project.id}/subscription/'
         resp = api_client.post(
-            url, {'plan': HostingSubscription.PLAN_MONTHLY},
+            url, {'plan': HostingSubscription.PLAN_QUARTERLY},
             format='json', **client_headers,
         )
 
@@ -170,7 +170,7 @@ class TestProjectSubscriptionCreate:
         """POST returns 400 when the project has no linked BusinessProposal."""
         url = f'/api/accounts/projects/{project.id}/subscription/'
         resp = api_client.post(
-            url, {'plan': HostingSubscription.PLAN_MONTHLY},
+            url, {'plan': HostingSubscription.PLAN_QUARTERLY},
             format='json', **client_headers,
         )
 
