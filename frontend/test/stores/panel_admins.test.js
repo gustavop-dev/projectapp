@@ -282,4 +282,26 @@ describe('usePanelAdminsStore', () => {
     const result = await store.resendInvite(1)
     expect(result.error).toBe('Error al reenviar invitación.')
   })
+
+  it('loginAsUser posts and returns redirect url', async () => {
+    create_request.mockResolvedValueOnce({ data: { redirect_url: 'https://x/en-us/platform/admin-login?access=a' } })
+    const result = await store.loginAsUser(42)
+    expect(create_request).toHaveBeenCalledWith('accounts/admins/42/login-as/', {})
+    expect(result.success).toBe(true)
+    expect(result.redirectUrl).toContain('/platform/admin-login')
+  })
+
+  it('loginAsUser returns error detail on failure', async () => {
+    create_request.mockRejectedValueOnce({ response: { data: { detail: 'no autorizado' } } })
+    const result = await store.loginAsUser(42)
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('no autorizado')
+  })
+
+  it('loginAsUser uses default message when error has no detail', async () => {
+    create_request.mockRejectedValueOnce({})
+    const result = await store.loginAsUser(42)
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('No pudimos iniciar sesión como este usuario.')
+  })
 })

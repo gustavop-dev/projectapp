@@ -17,6 +17,7 @@ from accounts.views_saved_filter_tabs import (
 from accounts.views import (
     admin_detail_view,
     admin_list_view,
+    admin_login_as_view,
     admin_resend_invite_view,
     bug_report_all_view,
     bug_report_bulk_evaluate_view,
@@ -114,6 +115,7 @@ urlpatterns = [
     path('admins/', admin_list_view, name='panel-admin-list'),
     path('admins/<int:user_id>/', admin_detail_view, name='panel-admin-detail'),
     path('admins/<int:user_id>/resend-invite/', admin_resend_invite_view, name='panel-admin-resend-invite'),
+    path('admins/<int:user_id>/login-as/', admin_login_as_view, name='panel-admin-login-as'),
 
     # Admin — client management
     path('clients/', client_list_view, name='platform-client-list'),

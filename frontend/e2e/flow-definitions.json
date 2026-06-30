@@ -156,6 +156,16 @@
       "description": "Admin authenticates to access the management panel.",
       "expectedSpecs": 1
     },
+    "admin-impersonate-user": {
+      "name": "Impersonate User (Login with this user)",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "A superuser clicks \"Login with this user\" (in /panel/admins/ or the Django admin user page) and lands authenticated on /platform via the /platform/admin-login callback that consumes the access/refresh tokens.",
+      "expectedSpecs": 1
+    },
     "admin-dashboard": {
       "name": "Admin Dashboard",
       "module": "admin",

@@ -184,6 +184,10 @@ STORAGES = {
 
 FRONTEND_BASE_URL = config('FRONTEND_BASE_URL', default='http://localhost:3000')
 
+# Default locale segment for building locale-prefixed frontend URLs from the
+# backend (i18n strategy is "prefix", so the segment is always required).
+FRONTEND_DEFAULT_LOCALE = config('FRONTEND_DEFAULT_LOCALE', default='en-us')
+
 # Frontend prerender rebuild (blog SEO). The static build bakes blog posts
 # into HTML, so publishing content triggers a rebuild (content/tasks.py).
 # Disabled by default in dev so local publishes don't spawn npm builds.

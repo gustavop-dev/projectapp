@@ -35,6 +35,11 @@ from accounts.serializers import (
     UserProfileSerializer,
     VerifyOnboardingSerializer,
 )
+from accounts.services.impersonation import (
+    ImpersonationError,
+    build_impersonation_redirect_url,
+    impersonate,
+)
 from accounts.services.onboarding import create_admin, create_client, resend_invitation
 from accounts.services.password_reset import (
     PasswordResetError,
@@ -655,6 +660,32 @@ def admin_resend_invite_view(request, user_id):
 
     resend_invitation(profile.user)
     return Response({'detail': 'Invitación reenviada.'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def admin_login_as_view(request, user_id):
+    """Mint impersonation tokens for ``user_id`` and return the callback URL.
+
+    Superuser-only is enforced by the shared impersonation service. The
+    frontend opens ``redirect_url`` to establish the platform session.
+    """
+    User = get_user_model()
+    try:
+        target = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return Response(
+            {'detail': 'Usuario no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        tokens = impersonate(request.user, target)
+    except ImpersonationError as exc:
+        return Response({'detail': exc.message}, status=exc.status_code)
+
+    logger.info('admin %s logged in as user %s', request.user, target)
+    return Response({'redirect_url': build_impersonation_redirect_url(tokens)})
 
 
 # ==========================================================================

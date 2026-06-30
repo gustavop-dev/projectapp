@@ -84,6 +84,15 @@
 
           <button
             v-if="admin.is_active"
+            class="text-xs px-3 py-1.5 rounded-lg bg-surface-raised text-text-default hover:bg-border-muted font-medium transition-colors"
+            :disabled="loggingInId === admin.user_id"
+            @click="handleLoginAs(admin.user_id)"
+          >
+            {{ loggingInId === admin.user_id ? 'Abriendo...' : 'Login with this user' }}
+          </button>
+
+          <button
+            v-if="admin.is_active"
             class="text-xs px-3 py-1.5 rounded-lg bg-danger-soft text-danger-strong hover:opacity-90 font-medium transition-colors"
             @click="handleDeactivate(admin.user_id)"
           >
@@ -206,6 +215,7 @@ const showCreateModal = ref(false);
 const creating = ref(false);
 const createError = ref('');
 const resendingId = ref(null);
+const loggingInId = ref(null);
 const toast = ref(null);
 
 const form = ref({ email: '', first_name: '', last_name: '' });
@@ -282,6 +292,18 @@ async function handleResendInvite(userId) {
     showToast('Invitación reenviada.');
   } else {
     showToast(result.error, 'error');
+  }
+}
+
+async function handleLoginAs(userId) {
+  loggingInId.value = userId;
+  const result = await adminStore.loginAsUser(userId);
+  loggingInId.value = null;
+
+  if (result.success && result.redirectUrl) {
+    window.open(result.redirectUrl, '_blank', 'noopener');
+  } else {
+    showToast(result.error || 'No pudimos iniciar sesión como este usuario.', 'error');
   }
 }
 

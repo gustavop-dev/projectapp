@@ -35,6 +35,7 @@ export const PROPOSAL_DOWNLOAD_PDF = ['@flow:proposal-download-pdf', '@module:pr
 export const ADMIN_LOGIN = ['@flow:admin-login', '@module:auth', '@priority:P1'];
 
 // ── Admin ──
+export const ADMIN_IMPERSONATE_USER = ['@flow:admin-impersonate-user', '@module:admin', '@priority:P2'];
 export const ADMIN_DASHBOARD = ['@flow:admin-dashboard', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_LIST = ['@flow:admin-proposal-list', '@module:admin', '@priority:P1'];
 export const ADMIN_PROPOSAL_CREATE = ['@flow:admin-proposal-create', '@module:admin', '@priority:P1'];
