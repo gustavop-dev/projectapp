@@ -21,17 +21,21 @@ const message = ref('Iniciando sesión...')
 onMounted(async () => {
   localStorage.setItem('platform_theme', 'light')
 
-  const access = typeof route.query.access === 'string' ? route.query.access : ''
-  const refresh = typeof route.query.refresh === 'string' ? route.query.refresh : ''
+  const code = typeof route.query.code === 'string' ? route.query.code : ''
 
-  if (!access || !refresh) {
+  if (!code) {
     await navigateTo(localePath('/platform/login'))
     return
   }
 
-  authStore.applyAuthenticatedSession({ access, refresh }, null)
-  const result = await authStore.fetchMe()
+  const exchange = await authStore.exchangeImpersonationCode(code)
+  if (!exchange.success) {
+    message.value = exchange.message || 'No pudimos iniciar la sesión.'
+    await navigateTo(localePath('/platform/login'))
+    return
+  }
 
+  const result = await authStore.fetchMe()
   if (!result.success) {
     message.value = 'No pudimos iniciar la sesión.'
     await navigateTo(localePath('/platform/login'))

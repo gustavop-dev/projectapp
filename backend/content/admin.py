@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from accounts.services.impersonation import (
     ImpersonationError,
     build_impersonation_redirect_url,
+    create_exchange_code,
     impersonate,
 )
 from .models import (
@@ -448,7 +449,8 @@ class ProjectAppUserAdmin(UserAdmin):
         logger.info(
             'admin %s logged in as user %s', request.user, target,
         )
-        return HttpResponseRedirect(build_impersonation_redirect_url(tokens))
+        code = create_exchange_code(tokens)
+        return HttpResponseRedirect(build_impersonation_redirect_url(code))
 
 
 # Auth models

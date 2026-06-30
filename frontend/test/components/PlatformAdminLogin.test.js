@@ -7,7 +7,7 @@ global.useRoute = () => ({ query: mockQuery, path: '/platform/admin-login' });
 global.navigateTo = jest.fn();
 
 const mockAuthStore = {
-  applyAuthenticatedSession: jest.fn(),
+  exchangeImpersonationCode: jest.fn(),
   fetchMe: jest.fn(),
 };
 
@@ -22,43 +22,52 @@ describe('platform/admin-login page', () => {
   beforeEach(() => {
     mockQuery = {};
     global.navigateTo.mockReset();
-    mockAuthStore.applyAuthenticatedSession.mockReset();
+    mockAuthStore.exchangeImpersonationCode.mockReset().mockResolvedValue({ success: true });
     mockAuthStore.fetchMe.mockReset().mockResolvedValue({ success: true });
   });
 
-  it('redirects to login when tokens are missing', async () => {
+  it('redirects to login when the code is missing', async () => {
     mockQuery = {};
     mount(AdminLogin);
     await flushPromises();
-    expect(mockAuthStore.applyAuthenticatedSession).not.toHaveBeenCalled();
+    expect(mockAuthStore.exchangeImpersonationCode).not.toHaveBeenCalled();
     expect(global.navigateTo).toHaveBeenCalledWith('/platform/login');
   });
 
-  it('stores tokens, hydrates and lands on dashboard by default', async () => {
-    mockQuery = { access: 'a', refresh: 'r' };
+  it('exchanges the code, hydrates and lands on dashboard by default', async () => {
+    mockQuery = { code: 'abc' };
     mount(AdminLogin);
     await flushPromises();
-    expect(mockAuthStore.applyAuthenticatedSession).toHaveBeenCalledWith({ access: 'a', refresh: 'r' }, null);
+    expect(mockAuthStore.exchangeImpersonationCode).toHaveBeenCalledWith('abc');
     expect(mockAuthStore.fetchMe).toHaveBeenCalled();
     expect(global.navigateTo).toHaveBeenCalledWith('/platform/dashboard');
   });
 
   it('honors a platform redirect target', async () => {
-    mockQuery = { access: 'a', refresh: 'r', redirect: '/platform/projects' };
+    mockQuery = { code: 'abc', redirect: '/platform/projects' };
     mount(AdminLogin);
     await flushPromises();
     expect(global.navigateTo).toHaveBeenCalledWith('/platform/projects');
   });
 
   it('ignores a non-platform redirect target', async () => {
-    mockQuery = { access: 'a', refresh: 'r', redirect: 'https://evil.com' };
+    mockQuery = { code: 'abc', redirect: 'https://evil.com' };
     mount(AdminLogin);
     await flushPromises();
     expect(global.navigateTo).toHaveBeenCalledWith('/platform/dashboard');
   });
 
+  it('falls back to login when the exchange fails', async () => {
+    mockQuery = { code: 'abc' };
+    mockAuthStore.exchangeImpersonationCode.mockResolvedValue({ success: false });
+    mount(AdminLogin);
+    await flushPromises();
+    expect(mockAuthStore.fetchMe).not.toHaveBeenCalled();
+    expect(global.navigateTo).toHaveBeenCalledWith('/platform/login');
+  });
+
   it('falls back to login when hydration fails', async () => {
-    mockQuery = { access: 'a', refresh: 'r' };
+    mockQuery = { code: 'abc' };
     mockAuthStore.fetchMe.mockResolvedValue({ success: false });
     mount(AdminLogin);
     await flushPromises();

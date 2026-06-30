@@ -2,12 +2,21 @@
 
 Centralizes the rules and token minting shared by the Django admin button and
 the panel DRF endpoint, so both surfaces enforce the exact same policy.
+
+Tokens are never placed on a URL. Instead the backend mints them, stores them
+behind a short-lived single-use exchange code, and the frontend callback POSTs
+that code to swap it for the real tokens.
 """
+import secrets
 from urllib.parse import urlencode
 
 from django.conf import settings
+from django.core.cache import cache
 
 from accounts.services.tokens import get_tokens_for_user
+
+EXCHANGE_CODE_TTL_SECONDS = 60
+EXCHANGE_CODE_PREFIX = 'impersonation:exchange:'
 
 
 class ImpersonationError(Exception):
@@ -60,16 +69,37 @@ def impersonate(actor, target):
     return get_tokens_for_user(target)
 
 
-def build_impersonation_redirect_url(tokens, redirect_path='/platform'):
-    """Build the absolute frontend callback URL that consumes the tokens.
+def create_exchange_code(tokens):
+    """Store ``tokens`` behind a random opaque code with a short TTL.
+
+    The code is the only thing that travels on the callback URL; it is
+    single-use (consumed on exchange) and expires automatically.
+    """
+    code = secrets.token_urlsafe(32)
+    cache.set(f'{EXCHANGE_CODE_PREFIX}{code}', tokens, timeout=EXCHANGE_CODE_TTL_SECONDS)
+    return code
+
+
+def consume_exchange_code(code):
+    """Return the tokens bound to ``code`` and invalidate it (single-use).
+
+    :returns: the tokens dict, or ``None`` if the code is missing/expired/used.
+    """
+    if not code:
+        return None
+    key = f'{EXCHANGE_CODE_PREFIX}{code}'
+    tokens = cache.get(key)
+    if tokens is not None:
+        cache.delete(key)
+    return tokens
+
+
+def build_impersonation_redirect_url(code, redirect_path='/platform'):
+    """Build the absolute frontend callback URL carrying only the exchange code.
 
     The i18n strategy is ``prefix``, so the locale segment is always present.
     """
     base = settings.FRONTEND_BASE_URL.rstrip('/')
     locale = getattr(settings, 'FRONTEND_DEFAULT_LOCALE', 'en-us')
-    query = urlencode({
-        'access': tokens['access'],
-        'refresh': tokens['refresh'],
-        'redirect': redirect_path,
-    })
+    query = urlencode({'code': code, 'redirect': redirect_path})
     return f'{base}/{locale}/platform/admin-login?{query}'

@@ -38,6 +38,8 @@ from accounts.serializers import (
 from accounts.services.impersonation import (
     ImpersonationError,
     build_impersonation_redirect_url,
+    consume_exchange_code,
+    create_exchange_code,
     impersonate,
 )
 from accounts.services.onboarding import create_admin, create_client, resend_invitation
@@ -685,7 +687,25 @@ def admin_login_as_view(request, user_id):
         return Response({'detail': exc.message}, status=exc.status_code)
 
     logger.info('admin %s logged in as user %s', request.user, target)
-    return Response({'redirect_url': build_impersonation_redirect_url(tokens)})
+    code = create_exchange_code(tokens)
+    return Response({'redirect_url': build_impersonation_redirect_url(code)})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def impersonation_exchange_view(request):
+    """Swap a single-use impersonation code for the JWT tokens.
+
+    Called by the /platform/admin-login callback. The code itself is the
+    bearer of trust (short-lived, single-use), so no prior auth is required.
+    """
+    tokens = consume_exchange_code(request.data.get('code'))
+    if not tokens:
+        return Response(
+            {'detail': 'Código inválido o expirado.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    return Response(tokens)
 
 
 # ==========================================================================
