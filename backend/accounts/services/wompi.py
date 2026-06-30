@@ -285,6 +285,29 @@ def get_payment_source(payment_source_id):
         raise
 
 
+def delete_payment_source(payment_source_id):
+    """
+    Best-effort removal of a stored payment source at Wompi.
+
+    Wompi does not officially document a delete endpoint for payment sources,
+    so this never raises: the source of truth is clearing the local reference
+    on the subscription. Returns True if Wompi acknowledged the deletion,
+    False otherwise.
+    """
+    url = f'{settings.WOMPI_API_URL}/payment_sources/{payment_source_id}'
+    try:
+        resp = requests.delete(url, headers=_get_headers(), timeout=15)
+        resp.raise_for_status()
+        logger.info('Wompi payment source deleted: %s', payment_source_id)
+        return True
+    except requests.RequestException as e:
+        logger.warning(
+            'Wompi delete payment source %s failed (clearing locally anyway): %s',
+            payment_source_id, e,
+        )
+        return False
+
+
 def charge_with_payment_source(payment, payment_source_id, reference, signature):
     """
     Charge a Payment using a stored payment source (recurring subscription billing).

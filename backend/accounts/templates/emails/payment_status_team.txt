@@ -1,0 +1,15 @@
+{{ status_label }} — {{ project_name }}
+
+Cliente:    {{ client_name }}{% if client_email %} <{{ client_email }}>{% endif %}
+Proyecto:   {{ project_name }} (#{{ project_id }})
+Monto:      ${{ amount }} {{ currency }}
+Periodo:    {{ billing_period_start }} — {{ billing_period_end }}
+Vence:      {{ due_date }}
+Estado:     {{ status_label }}
+{% if transaction_id %}Transacción Wompi: {{ transaction_id }}
+{% endif %}{% if source %}Origen: {{ source }}
+{% endif %}{% if is_failed and last_charge_error %}Error: {{ last_charge_error }}
+{% endif %}
+—
+Notificación automática de pagos · ProjectApp.
+Pago #{{ payment_id }}

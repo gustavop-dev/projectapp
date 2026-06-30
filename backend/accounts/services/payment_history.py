@@ -1,6 +1,6 @@
 """Append-only payment status transition log."""
 
-from accounts.models import PaymentHistory
+from accounts.models import Payment, PaymentHistory
 
 
 def record_payment_status_change(payment, old_status, new_status, source='', metadata=None):
@@ -11,10 +11,21 @@ def record_payment_status_change(payment, old_status, new_status, source='', met
     """
     if old_status == new_status:
         return None
-    return PaymentHistory.objects.create(
+    history = PaymentHistory.objects.create(
         payment=payment,
         from_status=old_status,
         to_status=new_status,
         source=source or '',
         metadata=metadata if metadata is not None else {},
     )
+
+    # Notify the team inbox on terminal outcomes (approved / failed). Async and
+    # best-effort: never let an email problem break the payment flow.
+    if new_status in (Payment.STATUS_PAID, Payment.STATUS_FAILED):
+        try:
+            from accounts.tasks import send_payment_status_team_email_task
+            send_payment_status_team_email_task(payment.id, new_status, source or '')
+        except Exception:  # pragma: no cover - defensive guard
+            pass
+
+    return history

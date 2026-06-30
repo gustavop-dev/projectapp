@@ -1444,6 +1444,19 @@
       "description": "Client registers a card once for automatic hosting billing. From the project payments page the client opens the card modal, enters card data, and the card is tokenized into a Wompi payment source. When the card requires 3D Secure, an authentication flow runs (browser-info/fingerprint hidden iframes, then a visible bank challenge iframe) polled every 2s until the source is AVAILABLE. On success the card is stored on the subscription and the first open payment is charged. The same flow handles 'Cambiar tarjeta'. A failed payment can be retried manually with the stored card.",
       "expectedSpecs": 0
     },
+    "platform-hosting-card-delete": {
+      "name": "Platform Hosting Card Delete",
+      "module": "platform",
+      "roles": [
+        "platform-client"
+      ],
+      "priority": "P2",
+      "description": "From the project payments page, when a card is on file, the client sees an 'Eliminar tarjeta' button next to 'Cambiar tarjeta'. Clicking it opens a confirmation modal warning that automatic billing will be disabled. On confirm, DELETE /api/accounts/projects/:id/subscription/card/remove/ best-effort deletes the Wompi payment source and clears the stored card fields on the subscription, so has_payment_source becomes false and the 'Activa el cobro automático / Registrar tarjeta' state reappears. The button is hidden for admins and for archived subscriptions.",
+      "expectedSpecs": 0,
+      "knownGaps": [
+        "No dedicated Playwright spec yet. Backend behavior is unit-tested (accounts/tests/test_card_delete_and_team_email.py: TestCardDelete) and the store action deletePaymentMethod is unit-tested (frontend/test/stores/platform-payments.test.js)."
+      ]
+    },
     "platform-notifications": {
       "name": "Platform Notifications",
       "module": "platform",

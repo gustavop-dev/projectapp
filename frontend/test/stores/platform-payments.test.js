@@ -5,11 +5,13 @@ jest.mock('../../composables/usePlatformApi', () => {
   const mockGet = jest.fn()
   const mockPost = jest.fn()
   const mockPatch = jest.fn()
+  const mockDelete = jest.fn()
   return {
     usePlatformApi: () => ({
       get: mockGet,
       post: mockPost,
       patch: mockPatch,
+      delete: mockDelete,
     }),
     readPlatformSession: jest.fn(() => ({
       accessToken: '',
@@ -23,6 +25,7 @@ jest.mock('../../composables/usePlatformApi', () => {
     __mockGet: mockGet,
     __mockPost: mockPost,
     __mockPatch: mockPatch,
+    __mockDelete: mockDelete,
   }
 })
 
@@ -30,6 +33,7 @@ const {
   __mockGet: mockGet,
   __mockPost: mockPost,
   __mockPatch: mockPatch,
+  __mockDelete: mockDelete,
 } = require('../../composables/usePlatformApi')
 
 describe('usePlatformPaymentsStore', () => {
@@ -446,6 +450,24 @@ describe('usePlatformPaymentsStore', () => {
       const result = await store.chargeStored(2, 7)
       expect(result.success).toBe(false)
       expect(result.message).toBe('Error procesando el cobro.')
+    })
+
+    it('deletePaymentMethod removes the card and syncs subscription', async () => {
+      mockDelete.mockResolvedValueOnce({
+        data: { subscription: { id: 5, has_payment_source: false, payments: [{ id: 2 }] } },
+      })
+      const result = await store.deletePaymentMethod(3)
+      expect(result.success).toBe(true)
+      expect(mockDelete).toHaveBeenCalledWith('projects/3/subscription/card/remove/')
+      expect(store.currentSubscription).toEqual({ id: 5, has_payment_source: false, payments: [{ id: 2 }] })
+      expect(store.payments).toEqual([{ id: 2 }])
+    })
+
+    it('deletePaymentMethod returns fallback message on failure', async () => {
+      mockDelete.mockRejectedValueOnce({})
+      const result = await store.deletePaymentMethod(3)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No se pudo eliminar la tarjeta.')
     })
   })
 })

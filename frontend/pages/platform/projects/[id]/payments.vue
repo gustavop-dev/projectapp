@@ -280,14 +280,22 @@
                 </p>
               </div>
             </div>
-            <button
-              v-if="!authStore.isAdmin && !sub.is_archived"
-              type="button"
-              class="shrink-0 rounded-xl border border-border-default px-4 py-2 text-xs font-medium text-text-default transition hover:bg-surface-muted"
-              @click="openCardModal"
-            >
-              Cambiar tarjeta
-            </button>
+            <div v-if="!authStore.isAdmin && !sub.is_archived" class="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                class="rounded-xl border border-border-default px-4 py-2 text-xs font-medium text-text-default transition hover:bg-surface-muted"
+                @click="openCardModal"
+              >
+                Cambiar tarjeta
+              </button>
+              <button
+                type="button"
+                class="rounded-xl border border-red-300 px-4 py-2 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10"
+                @click="openDeleteCard"
+              >
+                Eliminar tarjeta
+              </button>
+            </div>
           </div>
           <p v-if="!authStore.isAdmin" class="mt-3 text-[11px] text-green-light/60">
             ¿Necesitas cancelar o pausar tu suscripción? Escríbenos y lo gestionamos por ti.
@@ -656,6 +664,49 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Delete card confirmation modal -->
+    <Teleport to="body">
+      <Transition name="modal-overlay">
+        <div v-if="deleteCardOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm" @click.self="closeDeleteCard">
+          <Transition name="modal-content" appear>
+            <div v-if="deleteCardOpen" class="w-full max-w-md rounded-3xl border border-border-default bg-surface p-6 shadow-2xl sm:p-8">
+              <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10">
+                <svg class="h-7 w-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              </div>
+              <h2 class="text-center text-lg font-bold text-text-default">¿Eliminar tarjeta?</h2>
+              <p class="mt-2 text-center text-sm text-green-light">
+                Se eliminará la tarjeta {{ sub?.card_brand || '' }} •••• {{ sub?.card_last_four || '••••' }} y se desactivará el cobro automático. Tendrás que registrar una tarjeta de nuevo para reactivarlo.
+              </p>
+
+              <div v-if="deleteCardError" class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+                {{ deleteCardError }}
+              </div>
+
+              <div class="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
+                <button
+                  type="button"
+                  :disabled="deleteCardBusy"
+                  class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
+                  @click="confirmDeleteCard"
+                >
+                  <svg v-if="deleteCardBusy" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  {{ deleteCardBusy ? 'Eliminando…' : 'Sí, eliminar' }}
+                </button>
+                <button
+                  type="button"
+                  :disabled="deleteCardBusy"
+                  class="flex-1 rounded-xl border border-border-default px-5 py-3 text-sm font-medium text-text-default transition hover:bg-surface-muted disabled:opacity-50"
+                  @click="closeDeleteCard"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
   </ProjectShell>
 </template>
@@ -781,6 +832,34 @@ async function savePhasDate(phaseId) {
     phaseSaved[phaseId] = true
     setTimeout(() => { phaseSaved[phaseId] = false }, 2500)
   }
+}
+
+// --- Delete card ---
+const deleteCardOpen = ref(false)
+const deleteCardBusy = ref(false)
+const deleteCardError = ref('')
+
+function openDeleteCard() {
+  deleteCardError.value = ''
+  deleteCardOpen.value = true
+}
+
+function closeDeleteCard() {
+  if (deleteCardBusy.value) return
+  deleteCardOpen.value = false
+}
+
+async function confirmDeleteCard() {
+  deleteCardBusy.value = true
+  deleteCardError.value = ''
+  const r = await payStore.deletePaymentMethod(projectId.value)
+  deleteCardBusy.value = false
+  if (!r.success) {
+    deleteCardError.value = r.message
+    return
+  }
+  deleteCardOpen.value = false
+  await payStore.fetchProjectSubscription(projectId.value)
 }
 
 // --- Card setup (3DS) ---

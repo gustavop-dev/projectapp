@@ -211,6 +211,9 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='team@projectapp.co')
 NOTIFICATION_EMAIL = config('NOTIFICATION_EMAIL', default='dev.gustavo.perezp@gmail.com')
+# Inbox that receives a notification for every hosting payment outcome
+# (approved / failed) so the team can track transaction status.
+TEAM_PAYMENTS_EMAIL = config('TEAM_PAYMENTS_EMAIL', default='teams@proyegarts.co')
 
 # Firmantes disponibles para los correos al cliente. La key se almacena en
 # BusinessProposal.email_signed_by; el template resuelve nombre + rol desde aquí.
