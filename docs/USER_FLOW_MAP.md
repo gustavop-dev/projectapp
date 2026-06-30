@@ -3179,7 +3179,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents/:id/edit`
-- **Description:** Edit an existing admin document, update content and status, download as PDF.
+- **Description:** Edit an existing admin document, update content and status, download as PDF. The markdown toolbar above the content textarea also exposes "Copiar" (copies the full markdown to the clipboard) and "Pegar" (inserts clipboard content at the current cursor position in the textarea) buttons.
 - **Steps:**
   1. Admin navigates to `/panel/documents/:id/edit`.
   2. Document data loads from API (`GET /api/content/documents/:id/`).
@@ -3191,6 +3191,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch A — Download PDF] Admin clicks "Descargar PDF" → PDF generated from current content.
   - [Branch B — Status change] Admin updates status (draft/published/archived) → status badge updates.
   - [Branch C — Back] "Volver a documentos" link → navigates to list without saving.
+  - [Branch D — Copy markdown] Admin clicks "Copiar" (disabled when content is empty) → `form.content_markdown` is written to the clipboard; button label shows "Copiado" for ~2s.
+  - [Branch E — Paste markdown] Admin clicks "Pegar" → clipboard text is inserted at the textarea's current cursor position (or appended at the end if unfocused); button label shows "Pegado" for ~2s. Clipboard read/write failures fail silently (no error shown).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-edit.spec.js`
 

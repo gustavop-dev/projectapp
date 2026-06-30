@@ -172,6 +172,33 @@
             </span>
             <button
               type="button"
+              class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
+              :class="copiedMarkdown
+                ? 'bg-primary-soft text-text-brand hover:bg-primary-soft'
+                : 'bg-surface-raised text-text-muted hover:bg-surface-raised'"
+              :disabled="!form.content_markdown.trim()"
+              @click="handleCopyContent"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              {{ copiedMarkdown ? 'Copiado' : 'Copiar' }}
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
+              :class="pastedMarkdown
+                ? 'bg-primary-soft text-text-brand hover:bg-primary-soft'
+                : 'bg-surface-raised text-text-muted hover:bg-surface-raised'"
+              @click="handlePasteContent"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              {{ pastedMarkdown ? 'Pegado' : 'Pegar' }}
+            </button>
+            <button
+              type="button"
               class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors
                      bg-surface-raised text-text-muted hover:bg-surface-raised"
               :disabled="!form.content_markdown.trim()"
@@ -204,6 +231,7 @@
         <div :class="showPreview ? 'grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0' : 'flex-1 min-h-0 flex'">
           <textarea
             id="edit-markdown"
+            ref="markdownTextareaRef"
             v-model="form.content_markdown"
             placeholder="# Contenido del documento..."
             class="w-full px-4 py-3 border border-border-default rounded-xl text-sm font-mono leading-relaxed bg-surface text-text-default placeholder:text-text-subtle
@@ -282,7 +310,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted } from 'vue';
+import { reactive, ref, computed, onMounted, nextTick } from 'vue';
 import TagSelector from '~/components/panel/documents/TagSelector.vue';
 import MarkdownPreviewModal from '~/components/panel/documents/MarkdownPreviewModal.vue';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
@@ -301,6 +329,9 @@ const loadError = ref(false);
 const isDownloading = ref(false);
 const showPreview = ref(true);
 const showFullPreview = ref(false);
+const copiedMarkdown = ref(false);
+const pastedMarkdown = ref(false);
+const markdownTextareaRef = ref(null);
 
 const savedForm = ref(null);
 const hasChanges = computed(() => {
@@ -337,6 +368,38 @@ const previewHtml = computed(() => parseMarkdown(form.content_markdown));
 const statusLabel = computed(
   () => statusOptions.find((option) => option.value === form.status)?.label || '',
 );
+
+async function handleCopyContent() {
+  try {
+    await navigator.clipboard.writeText(form.content_markdown);
+    copiedMarkdown.value = true;
+    setTimeout(() => { copiedMarkdown.value = false; }, 2000);
+  } catch {
+    // clipboard unavailable or denied — no false feedback
+  }
+}
+
+async function handlePasteContent() {
+  try {
+    const pasted = await navigator.clipboard.readText();
+    if (!pasted) return;
+    const textarea = markdownTextareaRef.value;
+    const start = textarea ? textarea.selectionStart : form.content_markdown.length;
+    const end = textarea ? textarea.selectionEnd : form.content_markdown.length;
+    form.content_markdown = form.content_markdown.slice(0, start) + pasted + form.content_markdown.slice(end);
+    const cursor = start + pasted.length;
+    if (textarea) {
+      nextTick(() => {
+        textarea.focus();
+        textarea.setSelectionRange(cursor, cursor);
+      });
+    }
+    pastedMarkdown.value = true;
+    setTimeout(() => { pastedMarkdown.value = false; }, 2000);
+  } catch {
+    // clipboard unavailable or denied — no false feedback
+  }
+}
 
 async function reloadDocument() {
   const id = route.params.id;
