@@ -2399,6 +2399,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `platform-profile-edit` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-profile.spec.js` |
 | `platform-hosting-subscription` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-hosting-subscription.spec.js` |
 | `platform-hosting-card-setup` | platform | platform-client | P1 | ❌ Missing | _none_ |
+| `platform-hosting-card-delete` | platform | platform-client | P2 | ❌ Missing | _none_ |
 | `platform-change-requests` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-change-requests.spec.js` |
 | `platform-bug-reports` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-bug-reports.spec.js` |
 | `platform-deliverables` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-deliverables.spec.js` |
@@ -2864,6 +2865,26 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ❌ Missing
 - **E2E Spec:** _none — needs `e2e/platform/platform-hosting-card-setup.spec.js`_
 
+#### FLOW: `platform-hosting-card-delete`
+
+- **Module:** platform
+- **Role:** platform-client
+- **Priority:** P2
+- **Routes:** `/platform/projects/:id/payments`
+- **API:** `DELETE /api/accounts/projects/:id/subscription/card/remove/`
+- **Description:** With a card on file, the client can remove it from the payments page. A confirmation modal warns that automatic billing will be disabled; on confirm, the backend best-effort deletes the Wompi payment source and clears the stored-card fields on the subscription, so `has_payment_source` becomes false and the "Activa el cobro automático / Registrar tarjeta" state reappears. The button is hidden for admins and archived subscriptions.
+- **Steps:**
+  1. On the payments page, with a stored card, the client clicks "Eliminar tarjeta" next to "Cambiar tarjeta".
+  2. A confirmation modal opens explaining that automatic billing will be disabled.
+  3. Client confirms → `DELETE .../subscription/card/remove/`.
+  4. Backend best-effort deletes the Wompi payment source and clears the card fields.
+  5. The subscription refreshes; the stored-card panel is replaced by the "Activa el cobro automático" / "Registrar tarjeta" state.
+- **Branches:**
+  - [Branch A — No card] Endpoint returns 400 when there is no stored card to remove.
+  - [Branch B — Wompi delete fails] The card is still cleared locally (best-effort); the client sees success.
+- **Coverage:** ❌ Missing (backend + store unit-tested)
+- **E2E Spec:** _none — needs `e2e/platform/platform-hosting-card-delete.spec.js`_
+
 ### 8.9 Notifications
 
 #### FLOW: `platform-notifications`
@@ -3048,6 +3069,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `platform-kanban-board` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-kanban-board.spec.js` |
 | `platform-hosting-subscription` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-hosting-subscription.spec.js` |
 | `platform-hosting-card-setup` | platform | platform-client | P1 | ❌ Missing | _none_ |
+| `platform-hosting-card-delete` | platform | platform-client | P2 | ❌ Missing | _none_ |
 | `platform-dashboard` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-dashboard.spec.js` |
 | `platform-sidebar-navigation` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-sidebar.spec.js` |
 | `platform-project-list` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-project-list.spec.js` |

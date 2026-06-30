@@ -199,6 +199,27 @@ export const usePlatformPaymentsStore = defineStore('platformPayments', {
       }
     },
 
+    async deletePaymentMethod(projectId) {
+      this.isUpdating = true
+      this.error = ''
+      try {
+        const { delete: del } = usePlatformApi()
+        const response = await del(`projects/${projectId}/subscription/card/remove/`)
+        if (response.data.subscription) {
+          this.currentSubscription = response.data.subscription
+          this.payments = response.data.subscription.payments || []
+        }
+        return { success: true, data: response.data }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No se pudo eliminar la tarjeta.'
+        this.error = message
+        return { success: false, message }
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false
+      }
+    },
+
     async chargeStored(projectId, paymentId) {
       this.isUpdating = true
       this.error = ''

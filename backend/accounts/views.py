@@ -3906,6 +3906,52 @@ def card_setup_confirm_view(request, project_id, payment_source_id):
     })
 
 
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def card_delete_view(request, project_id):
+    """
+    Remove the stored card from a subscription. Attempts to delete the payment
+    source at Wompi (best-effort) and clears the local card reference, which
+    also disables automatic recurring billing (the cron skips subscriptions
+    with an empty wompi_payment_source_id).
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        sub = HostingSubscription.objects.get(project=proj)
+    except HostingSubscription.DoesNotExist:
+        return Response(
+            {'detail': 'Este proyecto no tiene una suscripción de hosting.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not sub.wompi_payment_source_id:
+        return Response(
+            {'detail': 'No hay una tarjeta registrada para eliminar.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    from accounts.services.wompi import delete_payment_source
+    delete_payment_source(sub.wompi_payment_source_id)
+
+    sub.wompi_payment_source_id = ''
+    sub.card_brand = ''
+    sub.card_last_four = ''
+    sub.card_exp_month = ''
+    sub.card_exp_year = ''
+    sub.save(update_fields=[
+        'wompi_payment_source_id', 'card_brand', 'card_last_four',
+        'card_exp_month', 'card_exp_year', 'updated_at',
+    ])
+
+    sub = HostingSubscription.objects.prefetch_related(
+        _subscription_payment_prefetch(),
+    ).get(pk=sub.pk)
+    return Response({'subscription': HostingSubscriptionSerializer(sub).data})
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def payment_charge_stored_view(request, project_id, payment_id):

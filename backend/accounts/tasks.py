@@ -10,12 +10,20 @@ suspended and the client + admins are notified.
 import logging
 
 from huey import crontab
-from huey.contrib.djhuey import periodic_task
+from huey.contrib.djhuey import periodic_task, task
 
 logger = logging.getLogger(__name__)
 
 MAX_CHARGE_ATTEMPTS = 3
 RETRY_INTERVAL_DAYS = 2
+
+
+@task()
+def send_payment_status_team_email_task(payment_id, to_status, source=''):
+    """Async wrapper: email the team a payment outcome (approved/failed)."""
+    from accounts.services.payment_notifications import send_payment_status_team_email
+
+    return send_payment_status_team_email(payment_id, to_status, source)
 
 
 @periodic_task(crontab(hour='6', minute='0'))
