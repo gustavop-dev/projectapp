@@ -872,4 +872,32 @@ describe('usePlatformAuthStore', () => {
       expect(store.profileCompleted).toBe(false)
     })
   })
+
+  describe('exchangeImpersonationCode', () => {
+    it('returns error when code is missing', async () => {
+      const result = await store.exchangeImpersonationCode('')
+      expect(result.success).toBe(false)
+      expect(mockPost).not.toHaveBeenCalled()
+    })
+
+    it('posts the code and applies the session on success', async () => {
+      mockPost.mockResolvedValueOnce({ data: { access: 'a', refresh: 'r' } })
+      const result = await store.exchangeImpersonationCode('xyz')
+      expect(mockPost).toHaveBeenCalledWith(
+        'impersonation/exchange/',
+        { code: 'xyz' },
+        { skipAuth: true, skipRefresh: true },
+      )
+      expect(result.success).toBe(true)
+      expect(store.accessToken).toBe('a')
+      expect(store.isAuthenticated).toBe(true)
+    })
+
+    it('returns the error detail when the exchange fails', async () => {
+      mockPost.mockRejectedValueOnce({ response: { data: { detail: 'Código inválido o expirado.' } } })
+      const result = await store.exchangeImpersonationCode('xyz')
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Código inválido o expirado.')
+    })
+  })
 })

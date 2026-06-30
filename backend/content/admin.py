@@ -1,7 +1,20 @@
-from django.contrib import admin
+import logging
+
+from django.contrib import admin, messages
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.admin import UserAdmin, GroupAdmin
+from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404
+from django.urls import path, reverse
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
+
+from accounts.services.impersonation import (
+    ImpersonationError,
+    build_impersonation_redirect_url,
+    create_exchange_code,
+    impersonate,
+)
 from .models import (
     Contact, PortfolioWork,
     BusinessProposal, ProposalSection, ProposalRequirementGroup, ProposalRequirementItem,
@@ -29,6 +42,9 @@ from .models import (
     LinkedInToken,
     Task,
 )
+
+logger = logging.getLogger(__name__)
+
 
 class PortfolioWorkAdmin(admin.ModelAdmin):
     """
@@ -379,6 +395,64 @@ admin_site.register(DiagnosticSection)
 admin_site.register(EmailLog)
 admin_site.register(LinkedInToken)
 
+class ProjectAppUserAdmin(UserAdmin):
+    """Stock ``auth.User`` admin plus a "Log in as this user" button."""
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = super().get_fieldsets(request, obj)
+        if obj is None:
+            return fieldsets
+        fieldsets = [(name, dict(opts)) for name, opts in fieldsets]
+        section_name, section_opts = fieldsets[0]
+        fields = list(section_opts.get('fields', ()))
+        if 'impersonate_link' not in fields:
+            fields.append('impersonate_link')
+        section_opts['fields'] = tuple(fields)
+        fieldsets[0] = (section_name, section_opts)
+        return fieldsets
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly = list(super().get_readonly_fields(request, obj))
+        if 'impersonate_link' not in readonly:
+            readonly.append('impersonate_link')
+        return readonly
+
+    def impersonate_link(self, obj):
+        if not obj or not obj.pk:
+            return '—'
+        url = reverse('myadmin:auth_user_login_as', args=[obj.pk])
+        return format_html(
+            '<a class="button" href="{}" style="text-decoration:none" '
+            'target="_blank" rel="noopener">Log in as this user</a>',
+            url,
+        )
+    impersonate_link.short_description = 'Impersonate'
+
+    def get_urls(self):
+        custom = [
+            path(
+                '<int:user_id>/login_as/',
+                self.admin_site.admin_view(self.login_as_user_view),
+                name='auth_user_login_as',
+            ),
+        ]
+        return custom + super().get_urls()
+
+    def login_as_user_view(self, request, user_id):
+        target = get_object_or_404(User, pk=user_id)
+        change_url = reverse('myadmin:auth_user_change', args=[user_id])
+        try:
+            tokens = impersonate(request.user, target)
+        except ImpersonationError as exc:
+            messages.error(request, exc.message)
+            return HttpResponseRedirect(change_url)
+        logger.info(
+            'admin %s logged in as user %s', request.user, target,
+        )
+        code = create_exchange_code(tokens)
+        return HttpResponseRedirect(build_impersonation_redirect_url(code))
+
+
 # Auth models
-admin_site.register(User, UserAdmin)
+admin_site.register(User, ProjectAppUserAdmin)
 admin_site.register(Group, GroupAdmin)

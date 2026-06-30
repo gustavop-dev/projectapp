@@ -517,6 +517,23 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/auth/auth-admin-login.spec.js`
 
+### FLOW: `admin-impersonate-user`
+
+- **Module:** admin
+- **Role:** admin (superuser only)
+- **Priority:** P2
+- **Routes:** `/panel/admins/` (or Django `/admin/` user page) → `/platform/admin-login` → `/platform/dashboard`
+- **Description:** A superuser starts an impersonation session ("Login with this user") to access the platform as the target user for support/QA.
+- **Steps:**
+  1. Superuser opens `/panel/admins/` and clicks "Login with this user" on a user row (or opens the Django admin user page and clicks the "Log in as this user" button).
+  2. Backend `POST /api/accounts/admins/<id>/login-as/` (or the admin `login_as` view) validates the policy, mints JWT tokens, and stores them behind a short-lived single-use exchange code.
+  3. A new tab opens `/platform/admin-login?code=...&redirect=/platform` (no tokens on the URL).
+  4. The callback page POSTs the code to `POST /api/accounts/impersonation/exchange/`, receives the tokens, and hydrates the session (`GET /api/accounts/me/`).
+  5. User lands authenticated on `/platform/dashboard` as the impersonated user.
+- **Security:** only active superusers; cannot impersonate another superuser; cannot impersonate inactive users; target must have a platform profile.
+- **Coverage:** ⚠️ Pending (registered, E2E spec not yet implemented)
+- **E2E Spec:** _suggested:_ `e2e/admin/admin-impersonate-user.spec.js`
+
 ### FLOW: `admin-dashboard`
 
 - **Module:** admin
@@ -2280,6 +2297,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-share` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-share.spec.js` |
 | `proposal-engagement-tracking` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-engagement-tracking.spec.js` |
 | `admin-login` | auth | admin | P1 | ✅ Covered | `e2e/auth/auth-admin-login.spec.js` |
+| `admin-impersonate-user` | admin | admin | P2 | ⚠️ Pending | _suggested:_ `e2e/admin/admin-impersonate-user.spec.js` |
 | `admin-dashboard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
 | `admin-proposal-list` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
 | `admin-proposal-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |

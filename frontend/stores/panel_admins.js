@@ -90,5 +90,15 @@ export const usePanelAdminsStore = defineStore('panel_admins', {
         return { success: false, error: detail };
       }
     },
+
+    async loginAsUser(userId) {
+      try {
+        const response = await create_request(`accounts/admins/${userId}/login-as/`, {});
+        return { success: true, redirectUrl: response.data.redirect_url };
+      } catch (error) {
+        const detail = error.response?.data?.detail || 'No pudimos iniciar sesión como este usuario.';
+        return { success: false, error: detail };
+      }
+    },
   },
 });

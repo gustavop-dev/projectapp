@@ -395,6 +395,29 @@ export const usePlatformAuthStore = defineStore('platformAuth', {
       }
     },
 
+    async exchangeImpersonationCode(code) {
+      if (!code) {
+        return { success: false, message: 'Código de acceso ausente.' }
+      }
+      try {
+        const { post } = usePlatformApi()
+        const response = await post(
+          'impersonation/exchange/',
+          { code },
+          { skipAuth: true, skipRefresh: true },
+        )
+        this.applyAuthenticatedSession(
+          { access: response.data.access, refresh: response.data.refresh },
+          null,
+        )
+        return { success: true }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No pudimos iniciar la sesión.'
+        this.error = message
+        return { success: false, message }
+      }
+    },
+
     async fetchMe() {
       if (!this.accessToken) {
         return { success: false, message: 'No hay sesión activa.' }
