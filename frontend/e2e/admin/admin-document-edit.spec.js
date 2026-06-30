@@ -3,7 +3,8 @@
  *
  * @flow:admin-document-edit
  * Covers: edit form pre-filled with existing document data, save updates document,
- *         status change, back link navigation, download PDF action.
+ *         status change, back link navigation, download PDF action, copy/paste
+ *         markdown content toolbar buttons.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -72,5 +73,47 @@ test.describe('Admin Document Edit', () => {
 
     await page.waitForFunction(() => window._patchCalled || true, { timeout: 5000 }).catch(() => {});
     expect(patchCalled).toBe(true);
+  });
+
+  test('copies the markdown content to the clipboard', {
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin'],
+  }, async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const documentWithMarkdown = { ...mockDocument, content_markdown: '# Contrato\n\nEste es el contenido del contrato.' };
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/1/detail/') return { status: 200, contentType: 'application/json', body: JSON.stringify(documentWithMarkdown) };
+      return null;
+    });
+    await page.goto('/panel/documents/1/edit');
+
+    await page.getByRole('button', { name: /^Copiar$/i }).click();
+
+    await expect(page.getByRole('button', { name: /^Copiado$/i })).toBeVisible({ timeout: 5000 });
+    const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
+    expect(clipboardText).toBe(documentWithMarkdown.content_markdown);
+  });
+
+  test('pastes clipboard content into the markdown textarea', {
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin'],
+  }, async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const documentWithMarkdown = { ...mockDocument, content_markdown: '# Contrato\n\nEste es el contenido del contrato.' };
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/1/detail/') return { status: 200, contentType: 'application/json', body: JSON.stringify(documentWithMarkdown) };
+      return null;
+    });
+    await page.goto('/panel/documents/1/edit');
+
+    const textarea = page.locator('#edit-markdown');
+    await textarea.click();
+    await page.keyboard.press('Control+End');
+    await page.evaluate((text) => navigator.clipboard.writeText(text), '\n\nTexto pegado desde el portapapeles.');
+
+    await page.getByRole('button', { name: /^Pegar$/i }).click();
+
+    await expect(page.getByRole('button', { name: /^Pegado$/i })).toBeVisible({ timeout: 5000 });
+    await expect(textarea).toHaveValue(`${documentWithMarkdown.content_markdown}\n\nTexto pegado desde el portapapeles.`);
   });
 });

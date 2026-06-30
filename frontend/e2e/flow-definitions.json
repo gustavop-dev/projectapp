@@ -1525,7 +1525,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Edit an existing admin document, change content, update status, and download as PDF.",
+      "description": "Edit an existing admin document, change content, update status, download as PDF, and copy/paste the markdown content via the toolbar buttons above the textarea.",
       "expectedSpecs": 1
     },
     "admin-document-folders": {
