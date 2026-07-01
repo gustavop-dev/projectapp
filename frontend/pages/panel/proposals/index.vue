@@ -589,38 +589,19 @@
         </div>
       </div>
     </div>
-
-    <!-- Status change toast -->
-    <Teleport to="body">
-      <Transition name="toast-slide">
-        <div
-          v-if="statusToast"
-          class="fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium pointer-events-none"
-          :class="statusToast.type === 'success'
-            ? 'bg-primary-soft text-text-brand border border-emerald-200  dark:border-emerald-500/20'
-            : 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/20'"
-        >
-          <svg v-if="statusToast.type === 'success'" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-          </svg>
-          <svg v-else class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-          {{ statusToast.message }}
-        </div>
-      </Transition>
-    </Teleport>
+    <!-- Status/send feedback now renders via the global <PanelNotificationHost /> -->
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import ProposalDashboard from '~/components/BusinessProposal/admin/ProposalDashboard.vue';
 import MetricsManual from '~/components/BusinessProposal/admin/MetricsManual.vue';
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ProposalFilterPanel from '~/components/proposals/ProposalFilterPanel.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useProposalFilters } from '~/composables/useProposalFilters';
 
@@ -645,6 +626,7 @@ const {
   renameTab,
 } = useProposalFilters();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
+const notify = usePanelNotify();
 const actionsModalProposal = ref(null);
 const copiedId = ref(null);
 const sendConfirmId = ref(null);
@@ -1010,13 +992,38 @@ const contractModalProposal = ref(null);
 
 // Status change feedback
 const updatingStatusId = ref(null);
-const statusToast = ref(null);
-let toastTimer = null;
 
+// Backward-compatible one-line toast used by simpler call sites (delete, etc.).
+// Renders through the global <PanelNotificationHost />.
 function showStatusToast(message, type) {
-  if (toastTimer) clearTimeout(toastTimer);
-  statusToast.value = { message, type };
-  toastTimer = setTimeout(() => { statusToast.value = null; }, 3500);
+  notify.push({ type: type === 'success' ? 'success' : 'error', title: message });
+}
+
+// Contextual action for a failed backend result, based on its error `code`.
+function actionForFailure(result, proposalId) {
+  if (result?.code === 'missing_client_email' || result?.code === 'invalid_client_email_domain') {
+    return { label: 'Editar propuesta', to: localePath(`/panel/proposals/${proposalId}/edit`) };
+  }
+  return null;
+}
+
+// Notify a failed store result using its normalized { message, hint, code }.
+function notifyFailure(result, { title, proposalId } = {}) {
+  notify.error({
+    title: title || result?.message || 'No se pudo completar la acción',
+    detail: title ? (result?.message || result?.hint || '') : (result?.hint || ''),
+    action: proposalId ? actionForFailure(result, proposalId) : null,
+  });
+}
+
+// When the status/send succeeded but the client email did not go out, offer a resend.
+function notifyEmailFailure(proposalId, emailDelivery, successTitle) {
+  notify.warning({
+    title: successTitle,
+    detail: emailDelivery?.detail
+      || 'No se pudo enviar el correo al cliente. Verifica el correo e intenta reenviar.',
+    action: { label: 'Reenviar', handler: () => handleResend(proposalId) },
+  });
 }
 
 async function handleInlineStatusChange(proposal, newStatus, event) {
@@ -1033,15 +1040,12 @@ async function handleInlineStatusChange(proposal, newStatus, event) {
     if (result.success) {
       const ed = result.email_delivery;
       if (ed && ed.ok === false) {
-        showStatusToast(
-          `Estado actualizado, pero el correo al cliente falló: ${ed.detail || ed.reason}. Revisa el correo del cliente y usa "Reenviar".`,
-          'error',
-        );
+        notifyEmailFailure(proposal.id, ed, 'Estado actualizado');
       } else {
-        showStatusToast('Estado actualizado correctamente', 'success');
+        notify.success({ title: 'Estado actualizado correctamente' });
       }
     } else {
-      showStatusToast('Error al actualizar el estado', 'error');
+      notifyFailure(result, { proposalId: proposal.id });
       proposalStore.fetchProposals();
     }
   } finally {
@@ -1078,10 +1082,6 @@ onMounted(async () => {
   proposalStore.fetchProposals();
   const alertResult = await proposalStore.fetchAlerts();
   if (alertResult.success) alerts.value = alertResult.data || [];
-});
-
-onUnmounted(() => {
-  if (toastTimer) clearTimeout(toastTimer);
 });
 
 const ALERT_ICON_MAP = {
@@ -1214,21 +1214,19 @@ async function confirmSend() {
   if (!sendConfirmId.value) return;
   isSending.value = true;
   try {
-    const result = await proposalStore.sendProposal(sendConfirmId.value);
+    const proposalId = sendConfirmId.value;
+    const result = await proposalStore.sendProposal(proposalId);
     sendConfirmId.value = null;
     proposalStore.fetchProposals();
     if (result.success) {
       const ed = result.email_delivery;
       if (ed && ed.ok === false) {
-        showStatusToast(
-          `Estado cambiado a Enviada, pero el correo al cliente falló: ${ed.detail || ed.reason}. Verifica el email del cliente y reintenta con "Re-enviar".`,
-          'error',
-        );
+        notifyEmailFailure(proposalId, ed, 'Propuesta marcada como enviada');
       } else {
-        showStatusToast('Propuesta enviada al cliente', 'success');
+        notify.success({ title: 'Propuesta enviada al cliente' });
       }
     } else {
-      showStatusToast('Error al enviar la propuesta', 'error');
+      notifyFailure(result, { title: 'No se pudo enviar la propuesta', proposalId });
     }
   } finally {
     isSending.value = false;
@@ -1247,15 +1245,12 @@ function handleResend(id) {
       if (result.success) {
         const ed = result.email_delivery;
         if (ed && ed.ok === false) {
-          showStatusToast(
-            `Reenvío registrado, pero el correo al cliente falló: ${ed.detail || ed.reason}.`,
-            'error',
-          );
+          notifyEmailFailure(id, ed, 'Reenvío registrado');
         } else {
-          showStatusToast('Propuesta re-enviada al cliente', 'success');
+          notify.success({ title: 'Propuesta re-enviada al cliente' });
         }
       } else {
-        showStatusToast('Error al re-enviar la propuesta', 'error');
+        notifyFailure(result, { title: 'No se pudo re-enviar la propuesta', proposalId: id });
       }
     },
   });
@@ -1403,15 +1398,5 @@ function buildWhatsAppUrl(p) {
 .fade-modal-enter-from,
 .fade-modal-leave-to {
   opacity: 0;
-}
-
-.toast-slide-enter-active,
-.toast-slide-leave-active {
-  transition: opacity 0.25s ease, transform 0.25s ease;
-}
-.toast-slide-enter-from,
-.toast-slide-leave-to {
-  opacity: 0;
-  transform: translateY(8px);
 }
 </style>

@@ -838,7 +838,7 @@ class TestEmailTemplateViewsEdgeCases:
             response = admin_client.get(url)
 
         assert response.status_code == 500
-        assert 'Failed to render' in response.data['detail']
+        assert 'No se pudo generar la vista previa' in response.data['detail']
 
 
 # ═══════════════════════════════════════════════════════════════════

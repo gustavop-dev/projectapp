@@ -39,6 +39,24 @@ class BusinessProposal(models.Model):
         # FINISHED, REJECTED, EXPIRED → terminal (no outgoing transitions)
     }
 
+    # Spanish, user-facing labels for statuses (the TextChoices labels are kept
+    # in English for the Django admin). Used to build human error messages.
+    STATUS_LABELS_ES = {
+        Status.DRAFT: 'Borrador',
+        Status.SENT: 'Enviada',
+        Status.VIEWED: 'Vista',
+        Status.ACCEPTED: 'Aceptada',
+        Status.REJECTED: 'Rechazada',
+        Status.NEGOTIATING: 'En negociación',
+        Status.EXPIRED: 'Expirada',
+        Status.FINISHED: 'Finalizada',
+    }
+
+    @classmethod
+    def status_label_es(cls, value):
+        """Return the Spanish label for a status value (falls back to the raw value)."""
+        return cls.STATUS_LABELS_ES.get(value, value)
+
     class Currency(models.TextChoices):
         COP = 'COP', 'COP'
         USD = 'USD', 'USD'

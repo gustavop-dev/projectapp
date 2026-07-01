@@ -308,6 +308,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useTaskStore } from '~/stores/tasks';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -321,6 +322,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'submit', 'delete', 'archive', 'duplicate']);
 
 const store = useTaskStore();
+const notify = usePanelNotify();
 
 const isEditing = computed(() => Boolean(props.task?.id));
 const alerts = computed(() => store.taskAlerts[props.task?.id] ?? []);
@@ -410,7 +412,11 @@ async function handleAddComment() {
   if (!text) return;
   isAddingComment.value = true;
   const result = await store.addTaskComment(props.task.id, text);
-  if (result.success) newComment.value = '';
+  if (result.success) {
+    newComment.value = '';
+  } else {
+    notify.error({ title: 'No se pudo agregar el comentario', detail: result?.message || '' });
+  }
   isAddingComment.value = false;
 }
 
@@ -445,6 +451,8 @@ async function handleAddAlert() {
   const result = await store.createTaskAlert(props.task.id, payload);
   if (result.success) {
     newAlert.value = { notify_at: '', note: '' };
+  } else {
+    notify.error({ title: 'No se pudo crear el recordatorio', detail: result?.message || '' });
   }
   isAddingAlert.value = false;
 }

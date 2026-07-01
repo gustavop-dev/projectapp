@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { get_request, create_request, patch_request, delete_request } from './services/request_http';
+import { normalizeApiError } from './services/normalize_api_error';
 
 const EMPTY_COLUMNS = () => ({ todo: [], in_progress: [], blocked: [], done: [] });
 const BOARD_KEYS = ['standard', 'weekly', 'monthly', 'macro'];
@@ -54,7 +55,7 @@ export const useTaskStore = defineStore('tasks', {
         return { success: true, data: response.data };
       } catch (error) {
         console.error(`Error fetching board ${board}:`, error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       }
     },
 
@@ -97,7 +98,7 @@ export const useTaskStore = defineStore('tasks', {
       } catch (error) {
         this.error = 'create_failed';
         console.error('Error creating task:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -116,7 +117,7 @@ export const useTaskStore = defineStore('tasks', {
       } catch (error) {
         this.error = 'update_failed';
         console.error('Error updating task:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -144,7 +145,7 @@ export const useTaskStore = defineStore('tasks', {
         console.error('Error reordering task:', error);
         await this.fetchAllBoards();
         this.error = 'reorder_failed';
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -177,7 +178,7 @@ export const useTaskStore = defineStore('tasks', {
       } catch (error) {
         this.error = 'delete_failed';
         console.error('Error deleting task:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -196,7 +197,7 @@ export const useTaskStore = defineStore('tasks', {
       } catch (error) {
         this.error = 'duplicate_failed';
         console.error('Error duplicating task:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -216,7 +217,7 @@ export const useTaskStore = defineStore('tasks', {
       } catch (error) {
         this.error = 'archive_failed';
         console.error('Error archiving task:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -236,7 +237,7 @@ export const useTaskStore = defineStore('tasks', {
       } catch (error) {
         this.error = 'unarchive_failed';
         console.error('Error unarchiving task:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -285,7 +286,7 @@ export const useTaskStore = defineStore('tasks', {
         return { success: true, data: comment };
       } catch (error) {
         console.error('Error adding task comment:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       }
     },
 
@@ -328,7 +329,7 @@ export const useTaskStore = defineStore('tasks', {
         return { success: true, data: alert };
       } catch (error) {
         console.error('Error creating task alert:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       }
     },
 

@@ -173,7 +173,7 @@ def upload_portfolio_cover_image(request, work_id):
     cover = request.FILES.get('cover_image')
     if not cover:
         return Response(
-            {'cover_image': 'No file provided.'},
+            {'cover_image': 'No se adjuntó ninguna imagen.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
     work.cover_image = cover

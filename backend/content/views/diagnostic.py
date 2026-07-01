@@ -970,19 +970,19 @@ def upload_diagnostic_attachment(request, diagnostic_id):
     diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
     file = request.FILES.get('file')
     if not file:
-        return Response({'error': 'No file provided.'},
+        return Response({'error': 'No se adjuntó ningún archivo.'},
                         status=http_status.HTTP_400_BAD_REQUEST)
 
     ext = Path(file.name).suffix.lower()
     if ext not in _ATTACHMENT_ALLOWED_EXTENSIONS:
         allowed = ', '.join(sorted(_ATTACHMENT_ALLOWED_EXTENSIONS))
         return Response(
-            {'error': f'File type {ext} not allowed. Allowed: {allowed}'},
+            {'error': f'Tipo de archivo {ext} no permitido. Permitidos: {allowed}'},
             status=http_status.HTTP_400_BAD_REQUEST,
         )
     if file.size > _ATTACHMENT_MAX_SIZE:
         return Response(
-            {'error': 'File too large. Maximum size is 15 MB.'},
+            {'error': 'El archivo es demasiado grande. El tamaño máximo es 15 MB.'},
             status=http_status.HTTP_400_BAD_REQUEST,
         )
 
@@ -992,7 +992,7 @@ def upload_diagnostic_attachment(request, diagnostic_id):
     valid_types = {c[0] for c in DiagnosticAttachment.DOC_TYPE_CHOICES}
     if document_type not in valid_types:
         return Response(
-            {'error': f'Invalid document_type: {document_type}'},
+            {'error': f'Tipo de documento no válido: {document_type}'},
             status=http_status.HTTP_400_BAD_REQUEST,
         )
 
@@ -1556,7 +1556,7 @@ def diagnostic_defaults(request):
     lang = request.query_params.get('lang', request.data.get('language', 'es'))
     if lang not in ('es', 'en'):
         return Response(
-            {'detail': 'lang must be "es" or "en".'},
+            {'detail': 'El idioma debe ser "es" o "en".'},
             status=http_status.HTTP_400_BAD_REQUEST,
         )
 
@@ -1607,7 +1607,7 @@ def reset_diagnostic_defaults(request):
     lang = request.data.get('language', 'es')
     if lang not in ('es', 'en'):
         return Response(
-            {'detail': 'language must be "es" or "en".'},
+            {'detail': 'El idioma debe ser "es" o "en".'},
             status=http_status.HTTP_400_BAD_REQUEST,
         )
     deleted_count, _ = DiagnosticDefaultConfig.objects.filter(language=lang).delete()

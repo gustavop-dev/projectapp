@@ -239,7 +239,7 @@ def test_upload_attachment_returns_400_for_invalid_document_type(admin_client, d
         format='multipart',
     )
     assert response.status_code == 400
-    assert 'Invalid document_type' in response.json()['error']
+    assert 'Tipo de documento no válido' in response.json()['error']
 
 
 def test_upload_attachment_with_custom_type_label_stores_label(admin_client, diagnostic):

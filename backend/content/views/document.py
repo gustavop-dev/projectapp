@@ -37,7 +37,7 @@ def list_documents(request):
             documents = documents.filter(folder_id=int(folder_param))
         except (TypeError, ValueError):
             return Response(
-                {'folder': 'Invalid folder id.'},
+                {'folder': 'El identificador de carpeta no es válido.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -47,7 +47,7 @@ def list_documents(request):
             tag_ids = [int(t) for t in tags_param.split(',') if t.strip()]
         except ValueError:
             return Response(
-                {'tags': 'Invalid tag id list.'},
+                {'tags': 'La lista de etiquetas no es válida.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if tag_ids:
@@ -140,7 +140,7 @@ def upload_document_markdown(request):
     uploaded_file = request.FILES.get('file')
     if not uploaded_file:
         return Response(
-            {'file': 'No file uploaded.'},
+            {'file': 'No se adjuntó ningún archivo.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -149,7 +149,7 @@ def upload_document_markdown(request):
         markdown_text = uploaded_file.read().decode('utf-8')
     except UnicodeDecodeError:
         return Response(
-            {'file': 'File must be a valid UTF-8 text file.'},
+            {'file': 'El archivo debe ser un texto válido en formato UTF-8.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -277,7 +277,7 @@ def duplicate_document(request, document_id):
     document = get_object_or_404(Document, pk=document_id)
     if document.document_type and document.document_type.code == COLLECTION_ACCOUNT:
         return Response(
-            {'detail': 'Collection accounts cannot be duplicated from the panel.'},
+            {'detail': 'Las cuentas de cobro no se pueden duplicar desde el panel.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -309,7 +309,7 @@ def download_document_pdf(request, document_id):
 
     if not document.content_json or not document.content_json.get('blocks'):
         return Response(
-            {'detail': 'Document has no content to generate PDF.'},
+            {'detail': 'El documento no tiene contenido para generar el PDF.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -318,7 +318,7 @@ def download_document_pdf(request, document_id):
 
     if not pdf_bytes:
         return Response(
-            {'detail': 'Failed to generate PDF.'},
+            {'detail': 'No se pudo generar el PDF.'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 

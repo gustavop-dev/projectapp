@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { get_request, create_request, put_request, patch_request, delete_request } from './services/request_http';
+import { normalizeApiError } from './services/normalize_api_error';
 import { isUuid } from '~/utils/slugify';
 
 export const useProposalStore = defineStore('proposals', {
@@ -161,7 +162,7 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         this.error = 'create_failed';
         console.error('Error creating proposal:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -182,7 +183,7 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         this.error = 'create_from_json_failed';
         console.error('Error creating proposal from JSON:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -218,7 +219,7 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         this.error = 'update_from_json_failed';
         console.error('Error updating proposal from JSON:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -240,7 +241,7 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         this.error = 'update_failed';
         console.error('Error updating proposal:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -335,7 +336,7 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         this.error = 'send_failed';
         console.error('Error sending proposal:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -378,7 +379,7 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         this.error = 'send_multi_failed';
         console.error('Error sending multi proposal:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -403,7 +404,7 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         this.error = 'resend_failed';
         console.error('Error resending proposal:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -462,7 +463,7 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         this.error = 'update_status_failed';
         console.error('Error updating proposal status:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -577,7 +578,7 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         this.error = 'update_section_failed';
         console.error('Error updating section:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -599,7 +600,7 @@ export const useProposalStore = defineStore('proposals', {
         return { success: true, data: response.data };
       } catch (error) {
         console.error('Error previewing sync:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       }
     },
 
@@ -626,7 +627,7 @@ export const useProposalStore = defineStore('proposals', {
         return { success: true, data: response.data };
       } catch (error) {
         console.error('Error applying sync:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -855,7 +856,7 @@ export const useProposalStore = defineStore('proposals', {
         return { success: true, data: response.data };
       } catch (error) {
         console.error('Error creating alert:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       }
     },
 
@@ -996,7 +997,7 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         this.error = 'save_defaults_failed';
         console.error('Error saving proposal defaults:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -1081,7 +1082,7 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         this.error = 'save_email_template_failed';
         console.error('Error saving email template:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;

@@ -1,30 +1,30 @@
 import { ref } from 'vue';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 
+/**
+ * Backward-compatible wrapper over the richer usePanelNotify system.
+ *
+ * Existing call sites use `showToast({ type, text })`; these now render through
+ * the single global <PanelNotificationHost /> (mounted in layouts/admin.vue),
+ * with `text` mapped to the notification title. New code should prefer
+ * usePanelNotify directly to get title + detail + action support.
+ */
+
+// Kept only so legacy `toastMsg` imports stay defined; the old per-page
+// <PanelToast /> is now a no-op and this ref stays null.
 const toastMsg = ref(null);
-let toastTimer = null;
-
-function clearToast() {
-  if (toastTimer) {
-    clearTimeout(toastTimer);
-    toastTimer = null;
-  }
-  toastMsg.value = null;
-}
-
-function showToast({ type = 'success', text = '', duration = 5000 } = {}) {
-  if (toastTimer) {
-    clearTimeout(toastTimer);
-    toastTimer = null;
-  }
-  toastMsg.value = { type, text };
-  if (duration > 0) {
-    toastTimer = setTimeout(() => {
-      toastMsg.value = null;
-      toastTimer = null;
-    }, duration);
-  }
-}
 
 export function usePanelToast() {
+  const notify = usePanelNotify();
+
+  function showToast({ type = 'success', text = '', duration } = {}) {
+    const mapped = type === 'success' ? 'success' : (type === 'error' ? 'error' : type);
+    return notify.push({ type: mapped, title: text, duration });
+  }
+
+  function clearToast() {
+    notify.clearAll();
+  }
+
   return { toastMsg, showToast, clearToast };
 }

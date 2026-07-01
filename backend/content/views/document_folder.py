@@ -80,7 +80,7 @@ def delete_document_folder(request, folder_id):
 def reorder_document_folders(request):
     ids = request.data.get('ids', [])
     if not isinstance(ids, list):
-        return Response({'ids': 'Must be a list.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'ids': 'Debe ser una lista.'}, status=status.HTTP_400_BAD_REQUEST)
     folders_by_id = {f.id: f for f in DocumentFolder.objects.filter(pk__in=ids)}
     for order, folder_id in enumerate(ids):
         if folder_id in folders_by_id:
