@@ -177,6 +177,7 @@ import TaskColumn from '~/components/Tasks/TaskColumn.vue';
 import TaskFormModal from '~/components/Tasks/TaskFormModal.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -187,6 +188,7 @@ const editingTask = ref(null);
 const defaultStatus = ref('todo');
 const activeBoardForCreate = ref('standard');
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
+const notify = usePanelNotify();
 
 const boards = [
   { key: 'macro',    label: 'Macro-Tareas' },
@@ -266,12 +268,21 @@ function openEdit(task) {
   showModal.value = true;
 }
 
+// Show the backend's normalized message when a task action fails.
+function notifyTaskFailure(result, fallbackTitle) {
+  notify.error({ title: fallbackTitle, detail: result?.message || '' });
+}
+
 async function handleSubmit(payload) {
-  const result = editingTask.value?.id
+  const isEdit = !!editingTask.value?.id;
+  const result = isEdit
     ? await taskStore.updateTask(editingTask.value.id, payload)
     : await taskStore.createTask(payload);
   if (result.success) {
     showModal.value = false;
+    notify.success({ title: isEdit ? 'Tarea actualizada' : 'Tarea creada' });
+  } else {
+    notifyTaskFailure(result, isEdit ? 'No se pudo actualizar la tarea' : 'No se pudo crear la tarea');
   }
 }
 
@@ -285,13 +296,23 @@ async function handleDelete(task) {
   });
   if (!confirmed) return;
   const result = await taskStore.deleteTask(task.id);
-  if (result.success) showModal.value = false;
+  if (result.success) {
+    showModal.value = false;
+    notify.success({ title: 'Tarea eliminada' });
+  } else {
+    notifyTaskFailure(result, 'No se pudo eliminar la tarea');
+  }
 }
 
 async function handleDuplicate(task) {
   if (!task?.id) return;
   const result = await taskStore.duplicateTask(task.id);
-  if (result.success) showModal.value = false;
+  if (result.success) {
+    showModal.value = false;
+    notify.success({ title: 'Tarea duplicada' });
+  } else {
+    notifyTaskFailure(result, 'No se pudo duplicar la tarea');
+  }
 }
 
 async function handleArchive(task, reason) {
@@ -300,15 +321,26 @@ async function handleArchive(task, reason) {
   if (result.success) {
     showModal.value = false;
     taskStore.archivedTasks = [];
+    notify.success({ title: 'Tarea archivada' });
+  } else {
+    notifyTaskFailure(result, 'No se pudo archivar la tarea');
   }
 }
 
 async function handleUnarchive(task) {
   if (!task?.id) return;
-  await taskStore.unarchiveTask(task.id);
+  const result = await taskStore.unarchiveTask(task.id);
+  if (result.success) {
+    notify.success({ title: 'Tarea restaurada' });
+  } else {
+    notifyTaskFailure(result, 'No se pudo restaurar la tarea');
+  }
 }
 
 async function handleMove({ taskId, status, position }) {
-  await taskStore.moveTask(taskId, status, position);
+  const result = await taskStore.moveTask(taskId, status, position);
+  if (!result.success) {
+    notifyTaskFailure(result, 'No se pudo mover la tarea');
+  }
 }
 </script>
