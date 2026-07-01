@@ -649,7 +649,7 @@ class TestSendProposal:
             client_name='Client',
             client_email='',
         )
-        with pytest.raises(ValueError, match='email'):
+        with pytest.raises(ValueError, match='correo'):
             ProposalService.send_proposal(proposal)
         proposal.refresh_from_db()
         assert proposal.status == 'draft'
@@ -753,7 +753,7 @@ class TestResendProposal:
             client_email='',
             status='sent',
         )
-        with pytest.raises(ValueError, match='email'):
+        with pytest.raises(ValueError, match='correo'):
             ProposalService.resend_proposal(proposal)
         proposal.refresh_from_db()
         assert proposal.status == 'sent'

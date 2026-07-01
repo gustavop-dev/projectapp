@@ -77,6 +77,6 @@ test.describe('Admin Proposal Resend', () => {
     await response.finished();
 
     expect(resendCalled).toBe(true);
-    await expect(page.getByText('Propuesta re-enviada al cliente.')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Propuesta re-enviada al cliente')).toBeVisible({ timeout: 5000 });
   });
 });

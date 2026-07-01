@@ -11,7 +11,7 @@ global.useLocalePath = () => (path) => path;
 global.useRoute = () => ({ query: {}, path: '/', params: {}, name: '' });
 
 import { mount } from '@vue/test-utils';
-import { usePanelToast } from '../../composables/usePanelToast';
+import { usePanelNotify } from '../../composables/usePanelNotify';
 
 const mockDiagnosticsStore = {
   fetchDiagnosticDefaults: jest.fn(),
@@ -41,7 +41,7 @@ jest.mock('../../composables/usePanelRefresh', () => ({
 
 import DiagnosticDefaultsPanel from '../../components/panel/defaults/DiagnosticDefaultsPanel.vue';
 
-const { toastMsg, clearToast } = usePanelToast();
+const notify = usePanelNotify();
 
 async function flushPromises() {
   await Promise.resolve();
@@ -116,7 +116,7 @@ describe('DiagnosticDefaultsPanel', () => {
   afterEach(() => {
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
-    clearToast();
+    notify.clearAll();
   });
 
   // ── Rendering ──────────────────────────────────────────────────────────────
@@ -298,8 +298,8 @@ describe('DiagnosticDefaultsPanel', () => {
       await flushPromises();
       await wrapper_nextTick();
 
-      expect(toastMsg.value).not.toBeNull();
-      expect(toastMsg.value.type).toBe('error');
+      expect(notify.notifications.value).toHaveLength(1);
+      expect(notify.notifications.value[0].type).toBe('error');
     });
   });
 
@@ -340,8 +340,8 @@ describe('DiagnosticDefaultsPanel', () => {
       await wrapper.find('form').trigger('submit');
       await flushPromises();
 
-      expect(toastMsg.value).not.toBeNull();
-      expect(toastMsg.value.type).toBe('success');
+      expect(notify.notifications.value).toHaveLength(1);
+      expect(notify.notifications.value[0].type).toBe('success');
     });
 
     it('shows error toast when save fails', async () => {
@@ -355,8 +355,8 @@ describe('DiagnosticDefaultsPanel', () => {
       await wrapper.find('form').trigger('submit');
       await flushPromises();
 
-      expect(toastMsg.value).not.toBeNull();
-      expect(toastMsg.value.type).toBe('error');
+      expect(notify.notifications.value).toHaveLength(1);
+      expect(notify.notifications.value[0].type).toBe('error');
     });
 
     it('does not call saveDiagnosticDefaults when loaded payment values do not sum to 100', async () => {
@@ -405,8 +405,8 @@ describe('DiagnosticDefaultsPanel', () => {
       await capturedConfirmOpts.onConfirm();
       await flushPromises();
 
-      expect(toastMsg.value).not.toBeNull();
-      expect(toastMsg.value.type).toBe('success');
+      expect(notify.notifications.value).toHaveLength(1);
+      expect(notify.notifications.value[0].type).toBe('success');
     });
   });
 });

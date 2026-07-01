@@ -1,8 +1,8 @@
 import { mount } from '@vue/test-utils';
 import ProposalEmailsTab from '../../components/BusinessProposal/admin/ProposalEmailsTab.vue';
-import { usePanelToast } from '../../composables/usePanelToast';
+import { usePanelNotify } from '../../composables/usePanelNotify';
 
-const { toastMsg, clearToast } = usePanelToast();
+const notify = usePanelNotify();
 
 async function flushPromises() {
   await Promise.resolve();
@@ -76,7 +76,7 @@ describe('ProposalEmailsTab', () => {
   afterEach(() => {
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
-    clearToast();
+    notify.clearAll();
   });
 
   it('loads defaults and history on mount with the proposal-email base path', async () => {
@@ -233,10 +233,10 @@ describe('ProposalEmailsTab', () => {
     expect(formData.get('subject')).toBe('Seguimiento de propuesta');
     expect(formData.get('greeting')).toBe('Hola Carlos');
     expect(formData.get('sections')).toBe(JSON.stringify(['Primer bloque']));
-    expect(toastMsg.value).toEqual({ type: 'success', text: 'Correo enviado correctamente.' });
+    expect(notify.notifications.value[0]).toMatchObject({ type: 'success', title: 'Correo enviado correctamente.' });
 
     jest.advanceTimersByTime(5000);
-    expect(toastMsg.value).toBeNull();
+    expect(notify.notifications.value).toHaveLength(0);
   });
 
   it('appends attachments to the form data when sending', async () => {
@@ -274,7 +274,7 @@ describe('ProposalEmailsTab', () => {
     await wrapper.findAll('button').find((button) => button.text().includes('Enviar correo')).trigger('click');
     await flushPromises();
 
-    expect(toastMsg.value).toEqual({ type: 'error', text: 'Error al enviar el correo. Intenta de nuevo.' });
+    expect(notify.notifications.value[0]).toMatchObject({ type: 'error', title: 'Error al enviar el correo. Intenta de nuevo.' });
   });
 
   it('renders history entries and toggles the expanded detail view', async () => {

@@ -545,7 +545,7 @@ def test_upload_attachment_rejects_invalid_extension(admin_client, diagnostic):
         format='multipart',
     )
     assert response.status_code == 400
-    assert 'not allowed' in response.json()['error']
+    assert 'no permitido' in response.json()['error']
 
 
 def test_upload_attachment_rejects_missing_file(admin_client, diagnostic):

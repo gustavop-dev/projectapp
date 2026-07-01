@@ -1,9 +1,9 @@
 import { mount } from '@vue/test-utils';
 import { useProposalStore } from '~/stores/proposals';
 import ProjectScheduleEditor from '../../components/BusinessProposal/admin/ProjectScheduleEditor.vue';
-import { usePanelToast } from '../../composables/usePanelToast';
+import { usePanelNotify } from '../../composables/usePanelNotify';
 
-const { toastMsg, clearToast } = usePanelToast();
+const notify = usePanelNotify();
 
 jest.mock('~/stores/proposals', () => ({
   useProposalStore: jest.fn(),
@@ -41,7 +41,7 @@ describe('ProjectScheduleEditor', () => {
 
   afterEach(() => {
     jest.useRealTimers();
-    clearToast();
+    notify.clearAll();
   });
 
   it('renders placeholder stages when the proposal has no project stages', () => {
@@ -199,9 +199,9 @@ describe('ProjectScheduleEditor', () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(toastMsg.value).toEqual({
+    expect(notify.notifications.value[0]).toMatchObject({
       type: 'error',
-      text: 'No se pudo guardar. Revisa las fechas e inténtalo de nuevo.',
+      title: 'No se pudo guardar. Revisa las fechas e inténtalo de nuevo.',
     });
   });
 

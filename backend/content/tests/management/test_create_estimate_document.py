@@ -62,7 +62,9 @@ class TestCreateEstimateDocument:
     def test_missing_file_raises_command_error(self, tmp_path):
         with pytest.raises(CommandError, match='not found'):
             _run(tmp_path / 'does-not-exist.md')
+        assert not Document.objects.exists()
 
     def test_empty_file_raises_command_error(self, tmp_path):
         with pytest.raises(CommandError, match='empty'):
             _run(_write_markdown(tmp_path, body='   \n'))
+        assert not Document.objects.exists()

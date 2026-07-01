@@ -71,7 +71,7 @@
       >
         <span>{{ _panelSectionLabel }}</span>
         <span class="text-green-light/40 dark:text-green-light/30">›</span>
-        <span :class="isDark ? 'text-gray-400' : 'text-text-muted'">{{ _panelViewLabel }}</span>
+        <span class="text-text-muted">{{ _panelViewLabel }}</span>
       </div>
       <slot />
     </main>
