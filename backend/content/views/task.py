@@ -68,7 +68,7 @@ def list_tasks(request):
     """
     board = request.query_params.get('board', Task.BoardType.STANDARD)
     if board not in _BOARD_KEYS:
-        return Response({'board': 'Invalid board type.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'board': 'Tipo de tablero no válido.'}, status=status.HTTP_400_BAD_REQUEST)
     return Response(_grouped_board_tasks(board))
 
 
@@ -124,7 +124,7 @@ def reorder_task(request, task_id):
     new_status = request.data.get('status', task.status)
     if new_status not in _STATUS_KEYS:
         return Response(
-            {'status': 'Invalid status.'},
+            {'status': 'Estado no válido.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -132,7 +132,7 @@ def reorder_task(request, task_id):
         new_index = int(request.data.get('position', 0))
     except (TypeError, ValueError):
         return Response(
-            {'position': 'Invalid position.'},
+            {'position': 'Posición no válida.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
     if new_index < 0:
