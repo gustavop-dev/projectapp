@@ -1439,3 +1439,18 @@ def check_task_alert_notifications():
 
     if processed:
         logger.info('check_task_alert_notifications: processed %d alerts', processed)
+
+
+@task()
+def send_accounting_change_email(change_log_id):
+    """
+    Huey task: email an accounting change to the configured recipients.
+
+    Thin async wrapper — all logic (recipients, templates, EmailLog)
+    lives in content.services.accounting_email_service.
+    """
+    from content.services.accounting_email_service import (
+        send_accounting_change_email as _send,
+    )
+
+    return _send(change_log_id)
