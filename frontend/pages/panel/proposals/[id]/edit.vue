@@ -1490,6 +1490,7 @@ import LegacyFormatWarning from '~/components/panel/LegacyFormatWarning.vue';
 import DevChecklistTab from '~/components/panel/proposal/DevChecklistTab.vue';
 import PanelToast from '~/components/panel/PanelToast.vue';
 import { usePanelToast } from '~/composables/usePanelToast';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 
 const localePath = useLocalePath();
 const { proposalEdit: tt } = useTooltipTexts();
@@ -1751,6 +1752,15 @@ async function handleStatusChange(newStatus) {
   const result = await proposalStore.updateProposalStatus(proposal.value.id, newStatus);
   if (result.success) {
     proposal.value = result.data;
+    const ed = result.email_delivery;
+    if (ed && ed.ok === false) {
+      notify.warning({
+        title: 'Estado actualizado',
+        detail: ed.detail || 'No se pudo enviar el correo al cliente.',
+      });
+    }
+  } else {
+    notifyProposalFailure(result, 'No se pudo actualizar el estado');
   }
 }
 
@@ -1950,6 +1960,15 @@ async function handleApplyTechnicalJson() {
 const isRefreshing = ref(false);
 const expandedSections = ref(new Set());
 const { showToast } = usePanelToast();
+const notify = usePanelNotify();
+
+// Notify a failed proposal action using the store's normalized error fields.
+function notifyProposalFailure(result, fallbackTitle) {
+  notify.error({
+    title: result?.message || fallbackTitle,
+    detail: result?.hint || '',
+  });
+}
 const isLaunching = ref(false);
 const syncPreviewVisible = ref(false);
 const syncPreviewData = ref(null);
@@ -2387,9 +2406,18 @@ async function confirmSend() {
   showSendChecklist.value = false;
   const result = await proposalStore.sendProposal(proposal.value.id);
   if (result.success) {
-    showToast({ type: 'success', text: 'Propuesta enviada al cliente.' });
+    const ed = result.email_delivery;
+    if (ed && ed.ok === false) {
+      notify.warning({
+        title: 'Propuesta marcada como enviada',
+        detail: ed.detail || 'No se pudo enviar el correo al cliente.',
+        action: { label: 'Reenviar', handler: () => handleResend() },
+      });
+    } else {
+      notify.success({ title: 'Propuesta enviada al cliente' });
+    }
   } else {
-    showToast({ type: 'error', text: result.errors?.error || 'Error al enviar.' });
+    notifyProposalFailure(result, 'No se pudo enviar la propuesta');
   }
 }
 
@@ -2402,9 +2430,17 @@ function handleResend() {
     onConfirm: async () => {
       const result = await proposalStore.resendProposal(proposal.value.id);
       if (result.success) {
-        showToast({ type: 'success', text: 'Propuesta re-enviada al cliente.' });
+        const ed = result.email_delivery;
+        if (ed && ed.ok === false) {
+          notify.warning({
+            title: 'Reenvío registrado',
+            detail: ed.detail || 'No se pudo enviar el correo al cliente.',
+          });
+        } else {
+          notify.success({ title: 'Propuesta re-enviada al cliente' });
+        }
       } else {
-        showToast({ type: 'error', text: result.errors?.error || 'Error al re-enviar.' });
+        notifyProposalFailure(result, 'No se pudo re-enviar la propuesta');
       }
     },
   });
