@@ -1,4 +1,25 @@
 from django.urls import path
+from content.views.accounting import (
+    accounting_dashboard,
+    list_income_records, create_income_record, retrieve_income_record,
+    update_income_record, delete_income_record,
+    list_expense_records, create_expense_record, retrieve_expense_record,
+    update_expense_record, delete_expense_record,
+    list_hosting_records, create_hosting_record, retrieve_hosting_record,
+    update_hosting_record, delete_hosting_record,
+    list_pocket_movements, create_pocket_movement, retrieve_pocket_movement,
+    update_pocket_movement, delete_pocket_movement,
+    list_recurring_payments, create_recurring_payment,
+    retrieve_recurring_payment, update_recurring_payment,
+    delete_recurring_payment,
+    list_ads_spend_records, create_ads_spend_record,
+    retrieve_ads_spend_record, update_ads_spend_record,
+    delete_ads_spend_record,
+    list_card_snapshots, create_card_snapshot, retrieve_card_snapshot,
+    update_card_snapshot, delete_card_snapshot,
+    list_accounting_change_logs,
+    get_accounting_settings, update_accounting_settings,
+)
 from content.views.contact import contact_list, new_contact
 from content.views.portfolio_works import (
     list_portfolio_works, retrieve_portfolio_work,
@@ -360,4 +381,54 @@ urlpatterns = [
     path('portfolio/', list_portfolio_works, name='list-portfolio-works-public'),
     path('portfolio/sitemap-data/', portfolio_sitemap_data, name='portfolio-sitemap-data'),
     path('portfolio/<slug:slug>/', retrieve_portfolio_work, name='retrieve-portfolio-work'),
+
+    # ── Accounting module (panel, superuser-only) ──────────────────
+    path('accounting/dashboard/', accounting_dashboard, name='accounting-dashboard'),
+
+    path('accounting/incomes/', list_income_records, name='list-income-records'),
+    path('accounting/incomes/create/', create_income_record, name='create-income-record'),
+    path('accounting/incomes/<int:record_id>/', retrieve_income_record, name='retrieve-income-record'),
+    path('accounting/incomes/<int:record_id>/update/', update_income_record, name='update-income-record'),
+    path('accounting/incomes/<int:record_id>/delete/', delete_income_record, name='delete-income-record'),
+
+    path('accounting/expenses/', list_expense_records, name='list-expense-records'),
+    path('accounting/expenses/create/', create_expense_record, name='create-expense-record'),
+    path('accounting/expenses/<int:record_id>/', retrieve_expense_record, name='retrieve-expense-record'),
+    path('accounting/expenses/<int:record_id>/update/', update_expense_record, name='update-expense-record'),
+    path('accounting/expenses/<int:record_id>/delete/', delete_expense_record, name='delete-expense-record'),
+
+    path('accounting/hostings/', list_hosting_records, name='list-hosting-records'),
+    path('accounting/hostings/create/', create_hosting_record, name='create-hosting-record'),
+    path('accounting/hostings/<int:record_id>/', retrieve_hosting_record, name='retrieve-hosting-record'),
+    path('accounting/hostings/<int:record_id>/update/', update_hosting_record, name='update-hosting-record'),
+    path('accounting/hostings/<int:record_id>/delete/', delete_hosting_record, name='delete-hosting-record'),
+
+    path('accounting/pocket/', list_pocket_movements, name='list-pocket-movements'),
+    path('accounting/pocket/create/', create_pocket_movement, name='create-pocket-movement'),
+    path('accounting/pocket/<int:record_id>/', retrieve_pocket_movement, name='retrieve-pocket-movement'),
+    path('accounting/pocket/<int:record_id>/update/', update_pocket_movement, name='update-pocket-movement'),
+    path('accounting/pocket/<int:record_id>/delete/', delete_pocket_movement, name='delete-pocket-movement'),
+
+    path('accounting/recurring/', list_recurring_payments, name='list-recurring-payments'),
+    path('accounting/recurring/create/', create_recurring_payment, name='create-recurring-payment'),
+    path('accounting/recurring/<int:record_id>/', retrieve_recurring_payment, name='retrieve-recurring-payment'),
+    path('accounting/recurring/<int:record_id>/update/', update_recurring_payment, name='update-recurring-payment'),
+    path('accounting/recurring/<int:record_id>/delete/', delete_recurring_payment, name='delete-recurring-payment'),
+
+    path('accounting/ads/', list_ads_spend_records, name='list-ads-spend-records'),
+    path('accounting/ads/create/', create_ads_spend_record, name='create-ads-spend-record'),
+    path('accounting/ads/<int:record_id>/', retrieve_ads_spend_record, name='retrieve-ads-spend-record'),
+    path('accounting/ads/<int:record_id>/update/', update_ads_spend_record, name='update-ads-spend-record'),
+    path('accounting/ads/<int:record_id>/delete/', delete_ads_spend_record, name='delete-ads-spend-record'),
+
+    path('accounting/card-snapshots/', list_card_snapshots, name='list-card-snapshots'),
+    path('accounting/card-snapshots/create/', create_card_snapshot, name='create-card-snapshot'),
+    path('accounting/card-snapshots/<int:record_id>/', retrieve_card_snapshot, name='retrieve-card-snapshot'),
+    path('accounting/card-snapshots/<int:record_id>/update/', update_card_snapshot, name='update-card-snapshot'),
+    path('accounting/card-snapshots/<int:record_id>/delete/', delete_card_snapshot, name='delete-card-snapshot'),
+
+    path('accounting/change-logs/', list_accounting_change_logs, name='list-accounting-change-logs'),
+
+    path('accounting/settings/', get_accounting_settings, name='get-accounting-settings'),
+    path('accounting/settings/update/', update_accounting_settings, name='update-accounting-settings'),
 ]

@@ -54,13 +54,15 @@ class TestCreateRecord:
         notify.assert_called_once_with(log)
 
     def test_create_survives_notification_failure(self, superuser):
-        # No task exists yet in this phase: _notify's failure path runs
-        # for real and must not break the mutation.
-        income = accounting_service.create_record(
-            EntityType.INCOME,
-            valid_serializer(income_payload()),
-            superuser,
-        )
+        with patch(
+            'content.tasks.send_accounting_change_email',
+            side_effect=RuntimeError('queue down'),
+        ):
+            income = accounting_service.create_record(
+                EntityType.INCOME,
+                valid_serializer(income_payload()),
+                superuser,
+            )
         assert IncomeRecord.objects.filter(pk=income.pk).exists()
 
 
