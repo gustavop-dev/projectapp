@@ -1,6 +1,6 @@
 ---
 name: requirement-calculator
-description: "Calculadora de requerimientos: recibe la descripción en lenguaje natural de un requerimiento y devuelve nivel de esfuerzo (XS–XL), horas, rango de precio COP, implicaciones técnicas, adyacencias y estrategia comercial. Persiste el resultado como documento en /panel/documents (carpeta Requirement Estimates) con postfijo de fecha DDMMYYYY."
+description: "Calculadora de requerimientos: recibe la descripción en lenguaje natural de un requerimiento (implementación web por defecto) y devuelve nivel de esfuerzo (XS–XL), horas, rango de precio COP, implicaciones técnicas, adyacencias y estrategia comercial. Persiste el resultado como documento con branding ProjectApp en /panel/documents (carpeta Requirement Estimates) con postfijo de fecha DDMMYYYY."
 argument-hint: "[descripción del requerimiento en lenguaje natural]"
 allowed-tools: Bash, Read, Write, AskUserQuestion
 ---
@@ -18,37 +18,44 @@ Sigue las fases en orden. No inventes reglas: todas viven en los archivos de ref
 Lee **ambos** archivos de referencia de este skill antes de clasificar nada:
 
 - `references/effort-indicators.md` — catálogo de señales XS–XL, modificadores, señales espejo y notas de clasificación. **Es el corazón del proceso.**
-- `references/market-pricing.md` — niveles → horas → precio, orden de cálculo, zonas killer, estrategias comerciales, adyacencias y supuestos.
+- `references/market-pricing.md` — niveles → horas → precio, fórmula y orden de cálculo, zonas killer, estrategias comerciales, adyacencias y supuestos.
 
 ## 2. Gate de ambigüedad (una sola ronda)
 
-Antes de calcular, detecta ambigüedades que **cambian el nivel**:
+Antes de calcular, detecta ambigüedades que **cambian el nivel o el precio**:
 
 - ¿La base ya existe o se construye desde cero? (es LA pregunta que separa `M` de `L`)
-- ¿Aplica también a la PWA contratada?
+- **Plataforma**: ¿web (default, sin recargo), aplica también a la PWA (+30%) o es app móvil nativa (+60%)? Solo preguntar si la descripción lo insinúa.
+- Si menciona "factura": ¿cuenta de cobro / PDF simple (`M`) o facturación electrónica DIAN (`XL` regulatorio)?
 - ¿Hay reglas de negocio sin definir que impidan cerrar precio fijo?
 - ¿Depende de credenciales/datos de un tercero (bloqueo externo)?
 
-Si alguna aplica, haz **una** ronda de preguntas con AskUserQuestion (máximo 4 preguntas, las que más muevan el precio). Con las respuestas, continúa. Si algo queda ambiguo después de esa ronda: asume el caso más común, **declara el supuesto** en el documento y marca la condición de bloqueo ("no cerrar precio fijo hasta aclarar X").
+Si alguna aplica, haz **una** ronda de preguntas con AskUserQuestion (máximo 4 preguntas, las que más muevan el precio). Con las respuestas, continúa. Si algo queda ambiguo después de esa ronda: asume el caso más común, **declara el supuesto** (con su impacto en % o nivel si la realidad fuera otra) y marca la condición de bloqueo ("no cerrar precio fijo hasta aclarar X").
 
-## 3. Descomponer y clasificar
+## 3. Descomponer y clasificar (orden estricto)
 
 1. **Descompón** la descripción en funcionalidades individuales (el proyecto es la suma; nunca estimes el bloque entero de un golpe).
-2. Por cada funcionalidad:
-   - El **indicador más alto** que la describe fija el nivel base (XS/S/M/L/XL). Usa las **señales espejo** cuando la misma palabra pueda caer en varios niveles.
-   - Aplica el **atenuador "extiende algo existente"** si la base ya existe (baja de `L` a `M` o menos).
-   - Aplica los **modificadores** estructurales y de costo/riesgo activos.
-3. Si una funcionalidad da `XL`: **no se cotiza como un ítem** — pártela en 2+ features (`S`/`M`/`L`) y clasifica cada uno.
+2. Por cada funcionalidad, en este orden:
+   - **(a) ¿La base existe?** Si sí, aplica el atenuador "extiende algo existente" (baja de `L` a `M` o menos).
+   - **(b) Nivel base con cita literal**: recorre los niveles de arriba hacia abajo (XL → XS); el primer indicador que la describe fija el nivel. En la tabla del documento **cita el texto literal de la señal** (o de la celda de la familia espejo). Si ninguna señal aplica: clasifica por analogía, márcalo como *"sin señal — por analogía"* y propone la señal faltante al final (retroalimenta el catálogo).
+   - **(c) Checklist de modificadores completo**: recorre la tabla entera de modificadores marcando aplica / no aplica (es donde se olvidan cron, PWA, diseño no entregado). Anti-doble-conteo: *Pantalla nueva* y *Modelo de datos* **nunca** sobre un `L`.
+   - **(d) Familia espejo**: si la palabra clave es ambigua (búsqueda, firma, factura, chat, tiempo real…), verifica la celda correcta en la tabla de señales espejo antes de fijar el nivel.
+3. Si una funcionalidad da `XL`: **prohibido dejarla como fila** — pártela en 2+ funcionalidades `S`/`M`/`L` y clasifica cada una. La tabla final del documento **no puede contener filas XL**.
+4. **Anti-doble-cobro**: verifica que dos filas no coticen la misma pieza (mismo modelo de datos, misma pantalla) y que los transversales (auditoría, permisos, notificaciones, motores) aparezcan **una sola vez** como fila propia — nunca repetidos pantalla por pantalla.
 
-## 4. Precio y reglas de mercado
+## 4. Precio y validación aritmética
 
-1. Traduce cada nivel a **horas y rango COP** con la tabla de `market-pricing.md`. El precio siempre es **rango (piso–techo)**, nunca un punto.
-2. **Suma** la propuesta y aplica el semáforo: ✅ < $12M · ⚠️ $12–20M · ⛔ > $20M (killer → fragmentar obligatorio).
-3. Si el total ≥ $12M: propone **Estrategia A (fases)** o **B (V1/V2/V3)** con alcance y precio de cada parte.
-4. Recorre el **mapa de adyacencias** y anticipa qué funcionalidades se abrirán después (candidatas naturales a V2/V3).
-5. Identifica qué conviene **separar** (motores reutilizables, piezas transversales, features empaquetados, V2 evidentes).
+1. Traduce cada nivel a horas y rango COP con la tabla de `market-pricing.md` y aplica la fórmula:
 
-## 5. Generar el documento markdown
+   `horas = base × (1 + Σ% aditivos) × factor transversal + horas fijas (cron)` — y si es app nativa, `× 1,6` **al final**.
+
+2. El precio siempre es **rango (piso–techo)**, nunca un punto. La columna de precio de la tabla de niveles manda; las horas son indicativas.
+3. **Valida la aritmética antes de escribir el documento**: piso ≤ techo en cada fila · total = suma de las filas · el semáforo corresponde al techo del total.
+4. Semáforo sobre la **suma**: ✅ Sweet spot < $12M · ⚠️ Fricción $12–20M · ⛔ Killer > $20M (fragmentar obligatorio).
+5. Si el total ≥ $12M: propone **Estrategia A (fases)** o **B (V1/V2/V3)** con alcance y precio de cada parte.
+6. Recorre el **mapa de adyacencias** y anticipa qué se abrirá después (candidatas a V2/V3); identifica qué conviene **separar** (motores, transversales, features empaquetados).
+
+## 5. Generar el documento markdown (branding ProjectApp)
 
 Obtén la fecha real del sistema (nunca la asumas):
 
@@ -56,25 +63,30 @@ Obtén la fecha real del sistema (nunca la asumas):
 date +%d%m%Y
 ```
 
-Escribe el resultado en un archivo temporal del scratchpad de la sesión, con **exactamente esta estructura y orden**:
+Escribe el resultado en un archivo temporal del scratchpad. **Markdown puro** — sin HTML embebido ni colores inline: el render del panel y el PDF ya aplican la identidad ProjectApp (títulos esmeralda, tipografía Ubuntu, portadas). Usa los callouts GitHub que el panel soporta (`[!TIP]`, `[!WARNING]`, `[!CAUTION]`, `[!IMPORTANT]`, `[!NOTE]`). El semáforo lleva **emoji + etiqueta de texto** (los emojis se strippean en el PDF). Estructura exacta:
 
 ```markdown
 # Estimate: <nombre corto del requerimiento> — <DDMMYYYY>
+
+> **ProjectApp · Calculadora de Requerimientos** — estimación por funcionalidad para implementación web, precios en COP sin IVA.
 
 ## 1. Resumen
 <1–2 líneas reinterpretando el requerimiento en lenguaje de negocio.>
 
 ## 2. Descomposición por funcionalidad
-| Funcionalidad | Nivel | Indicadores | Modificadores | Horas | Precio COP |
+| Funcionalidad | Nivel | Señal aplicada (cita literal) | Modificadores | Horas | Precio COP |
 |---|---|---|---|---|---|
-<una fila por funcionalidad>
+<una fila por funcionalidad — nunca una fila XL>
 
 <Debajo de la tabla: implicaciones técnicas por funcionalidad (bullets cortos).>
 
 ## 3. Totales
 - **Horas:** <rango total>
 - **Precio total:** <rango COP>
-- **Semáforo:** ✅ <$12M / ⚠️ $12–20M / ⛔ >$20M
+- **Semáforo:** <emoji + etiqueta, p. ej. "✅ Sweet spot (menos de $12M)">
+
+> [!TIP] / [!WARNING] / [!CAUTION]
+> <Una línea con la lectura comercial del semáforo: TIP si sweet spot, WARNING si fricción, CAUTION si killer.>
 
 ## 4. Observaciones
 <Qué separar y por qué · qué es transversal · qué adyacencias se abren.>
@@ -83,14 +95,21 @@ Escribe el resultado en un archivo temporal del scratchpad de la sesión, con **
 <Solo si total ≥ $12M o killer: fases o V1/V2/V3 con alcance y precio. Si no aplica: "Cabe en una sola propuesta (sweet spot).">
 
 ## 6. Supuestos y exclusiones
-<Los supuestos declarados en market-pricing.md, ajustados al caso, + los supuestos asumidos en el gate de ambigüedad.>
-```
+<Supuestos de market-pricing.md ajustados al caso + los asumidos en el gate, cada uno con su impacto si cambiara.>
 
-**Requerimiento original:** incluye al final del documento la descripción original recibida, citada textualmente, para trazabilidad.
+> [!IMPORTANT]
+> <Solo si hubo condición de bloqueo: "No cerrar precio fijo hasta aclarar X." Si no la hubo, omitir este callout.>
+
+---
+
+**Requerimiento original:** «<descripción recibida, textual>»
+
+— *ProjectApp · Calculadora de Requerimientos*
+```
 
 ## 6. Crear el documento en el panel
 
-Persiste el markdown como documento real en `/panel/documents` (carpeta **Requirement Estimates**, creada una sola vez por el command):
+Persiste el markdown como documento real en `/panel/documents` (carpeta **Requirement Estimates**, creada una sola vez por el command; el PDF con portadas ProjectApp sale automático con los defaults del modelo):
 
 ```bash
 cd backend && source venv/bin/activate && python manage.py create_estimate_document \
@@ -107,14 +126,18 @@ Cierra el turno con:
 1. **Resumen ejecutivo** en el chat: total de horas, rango de precio, semáforo, qué conviene separar y las 2–3 observaciones más importantes.
 2. **Confirmación del documento**: título creado, carpeta "Requirement Estimates", visible en `/panel/documents`.
 3. Si aplicó condición de bloqueo: recuérdala explícitamente ("no cerrar precio fijo hasta aclarar X").
+4. Si alguna funcionalidad se clasificó *"sin señal — por analogía"*: propone la señal nueva para agregar al catálogo.
 
 ---
 
 ## Reglas estrictas
 
 - Todo requerimiento se procesa contra los archivos de referencia — no clasificar de memoria.
-- Una funcionalidad `XL` **siempre** se parte antes de cotizar.
-- El precio **siempre** es rango, en COP sin IVA.
+- **Web por defecto**; PWA `+30%` y app nativa `+60%` solo si el requerimiento lo declara (excluyentes entre sí).
+- La tabla final **nunca** contiene filas `XL`: siempre se muestran descompuestas.
+- Cada fila **cita la señal literal** del catálogo que fijó su nivel.
+- El precio **siempre** es rango, en COP sin IVA; la aritmética se valida antes de escribir el documento.
 - La fecha del título viene de `date +%d%m%Y`, jamás asumida.
 - El documento se crea **siempre** (aunque haya condición de bloqueo, el análisis queda guardado con sus supuestos).
-- Máximo una ronda de preguntas; después, supuestos declarados.
+- Máximo una ronda de preguntas; después, supuestos declarados con su impacto.
+- Markdown puro con callouts — sin HTML ni colores inline: el branding lo aplican el panel y el PDF.

@@ -1,9 +1,10 @@
-# Esfuerzo, Precio y Reglas de Mercado — Calculadora de Requerimientos (v1.1)
+# Esfuerzo, Precio y Reglas de Mercado — Calculadora de Requerimientos (v1.2)
 
 > Complemento de `effort-indicators.md`. Traduce el nivel de esfuerzo a horas y precio COP, y define las reglas comerciales del mercado colombiano.
 
 ## Premisas base
 
+- **Implementación web por defecto.** La calculadora está calibrada para web. La plataforma solo entra como modificador excluyente: web = sin recargo · PWA = `+30%` · app móvil nativa (iOS/Android + tiendas) = `+60%` (aplicado al final, `×1,6` sobre el resultado ya modificado).
 - **Desarrollo desde cero (greenfield)** salvo que la descripción declare que se extiende algo existente.
 - **Cliente PYME colombiano.** Precios en **COP, sin IVA**.
 - **Tarifa de venta blended de referencia: ≈ $75.000 COP/hora** (extremo competitivo del mercado local, ≈ US$22 a TRM ≈ $3.443/USD).
@@ -20,17 +21,23 @@
 | Nivel | Pts | Perfil típico | Horas | Precio COP | ≈ USD |
 |---|---|---|---|---|---|
 | **XS** | 1 | Cambio de configuración, un campo, validación básica, enlace simple. | 2–7 | $150K – $500K | $45–145 |
-| **S** | 2 | Ajuste de UI/plantilla, modal, correo básico, monitoreo simple. | 7–20 | $500K – $1,5M | $145–435 |
+| **S** | 2 | Ajuste de UI/plantilla, modal, correo básico, contador simple. | 7–20 | $500K – $1,5M | $145–435 |
 | **M** | 3 | CRUD estándar con extras, generación de archivos, permisos, lógica condicional. A menudo se apoya en algo existente. | 20–50 | $1,5M – $3,5M | $435–1.000 |
 | **L** | 5 | **Un feature completo desde cero**: backend + frontend robustos (a veces + una integración, que lo lleva al techo del rango). | 55–90 | $4M – $7M | $1.160–2.030 |
-| **XL** | 8 | **No es un ítem:** la descripción trae **2+ features** mezclados. Se separa y se cotiza cada feature aparte (cada uno suele ser un L). | 90–200 | $7M – $15M | $2.030–4.350 |
+| **XL** | 8 | **Referencia de magnitud, NO cotizable como ítem.** Exige descomposición obligatoria en 2+ filas `S`/`M`/`L` (cada una suele ser un L). El rango solo sirve para dimensionar la conversación. | 90–200 | $7M – $15M | $2.030–4.350 |
+
+**Fuente de verdad:** la **columna de precio** manda (es la calibración comercial del dueño frente al mercado); las horas son indicativas. Los pequeños desfases entre horas × tarifa y el rango de precio, y el colchón de horas entre `M` (50) y `L` (55), son deliberados: margen pre-modificador. Los puntos (Pts) son un *shorthand* de magnitud, no entran en fórmulas.
 
 ## Orden de cálculo
 
-1. **Nivel base por funcionalidad** — el indicador de esfuerzo más alto que la describe fija XS/S/M/L/XL.
-2. **Modificadores estructurales y de costo/riesgo** — se suman los porcentajes/horas activos. "Motor nuevo" agrega 30–80% (o +1 nivel si es pesado). "Transversal" multiplica.
+1. **Nivel base por funcionalidad** — el indicador de esfuerzo más alto que la describe fija XS/S/M/L/XL, **citando la señal literal** del catálogo.
+2. **Modificadores** — recorrer la tabla completa marcando cuáles aplican. Fórmula:
+
+   `horas = base × (1 + Σ% aditivos) × factor transversal + horas fijas (cron)`
+
+   Si aplica app móvil nativa: `× 1,6` **al final**, sobre el resultado ya modificado. Anti-doble-conteo: *Pantalla nueva* y *Modelo de datos* nunca sobre un `L`.
 3. **Rango, no punto** — el precio siempre se expresa como rango (piso–techo). El piso usa el extremo bajo de horas; el techo, el alto.
-4. **Suma y chequeo de killer** — se suman las funcionalidades. Si el techo total supera $20M, se activan las reglas de mercado (fases o versiones).
+4. **Suma y chequeo de killer** — se suman las funcionalidades (verificar que la suma de filas = total y que piso ≤ techo). Si el techo total supera $20M, se activan las reglas de mercado (fases o versiones).
 
 ## Zonas de precio (sobre la SUMA de la propuesta)
 
@@ -79,4 +86,4 @@ Anticiparlas siempre: no para cobrarlas de una, sino para ordenarlas en fases/ve
 
 ## Supuestos que siempre se declaran
 
-Precios en COP sin IVA · desarrollo desde cero · tarifa blended ≈ $75K/h · no incluye infraestructura recurrente, licencias de terceros ni migración de datos legados salvo mención explícita · estimación sujeta a refinamiento tras análisis detallado.
+Precios en COP sin IVA · implementación web (PWA/nativa solo si se declara, con su recargo) · desarrollo desde cero · tarifa blended ≈ $75K/h · no incluye infraestructura recurrente, licencias de terceros ni migración de datos legados salvo mención explícita · estimación sujeta a refinamiento tras análisis detallado.
