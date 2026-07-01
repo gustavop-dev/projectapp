@@ -18,6 +18,7 @@ from rest_framework.decorators import (
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
+from content.api_errors import error_response, error_response_from_exc
 from content.throttles import TrackingAnonThrottle
 from content.utils import get_client_ip
 
@@ -1852,7 +1853,7 @@ def send_proposal(request, proposal_id):
     try:
         delivery = ProposalService.send_proposal(proposal)
     except ValueError as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return error_response_from_exc(e)
 
     ProposalChangeLog.objects.create(
         proposal=proposal,
@@ -1982,30 +1983,31 @@ def send_multi_proposal(request, proposal_id):
 
     raw_ids = request.data.get('proposal_ids') or []
     if not isinstance(raw_ids, list) or not raw_ids:
-        return Response(
-            {'error': 'proposal_ids debe ser una lista no vacía.'},
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Selecciona al menos una propuesta para el envío conjunto.',
+            code='invalid_proposal_ids',
         )
 
     try:
         ids = list(dict.fromkeys(int(x) for x in raw_ids))
     except (TypeError, ValueError):
-        return Response(
-            {'error': 'proposal_ids debe contener solo enteros.'},
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'La lista de propuestas contiene valores no válidos.',
+            code='invalid_proposal_ids',
         )
 
     MAX_PROPOSALS_PER_EMAIL = 10
     if len(ids) > MAX_PROPOSALS_PER_EMAIL:
-        return Response(
-            {'error': f'No se pueden enviar más de {MAX_PROPOSALS_PER_EMAIL} propuestas en un solo correo.'},
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            f'No se pueden enviar más de {MAX_PROPOSALS_PER_EMAIL} propuestas en un solo correo.',
+            code='too_many_proposals',
         )
 
     if primary.client_id is None:
-        return Response(
-            {'error': 'La propuesta principal no tiene cliente asociado.'},
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'La propuesta principal no tiene cliente asociado.',
+            code='missing_client',
+            hint='Asocia un cliente a la propuesta antes de enviarla.',
         )
 
     selected = list(
@@ -2014,9 +2016,9 @@ def send_multi_proposal(request, proposal_id):
         .prefetch_related('sections')
     )
     if len(selected) != len(ids):
-        return Response(
-            {'error': 'Algunas propuestas no existen o no pertenecen al mismo cliente.'},
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Algunas propuestas no existen o no pertenecen al mismo cliente.',
+            code='invalid_proposal_selection',
         )
 
     by_id = {p.id: p for p in selected}
@@ -2031,16 +2033,16 @@ def send_multi_proposal(request, proposal_id):
             seen.add(pid)
 
     if len(ordered) < 2:
-        return Response(
-            {'error': 'Se requieren al menos 2 propuestas para un envío conjunto.'},
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Se requieren al menos 2 propuestas para un envío conjunto.',
+            code='not_enough_proposals',
         )
 
     from content.services.proposal_service import ProposalService
     try:
         result = ProposalService.send_multi_proposals(ordered)
     except ValueError as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return error_response_from_exc(e)
 
     transitions = result.get('transitions', {})
     titles = ', '.join(p.title for p in ordered)
@@ -2090,17 +2092,20 @@ def update_proposal_status(request, proposal_id):
 
     valid_statuses = {c[0] for c in BusinessProposal.Status.choices}
     if new_status not in valid_statuses:
-        return Response(
-            {'error': f'Invalid status: {new_status}'},
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            f'Estado no válido: {new_status}.',
+            code='invalid_status',
         )
 
     # Enforce whitelist-based transitions
     allowed = BusinessProposal.ALLOWED_TRANSITIONS.get(proposal.status, frozenset())
     if new_status not in allowed:
-        return Response(
-            {'error': f'Cannot transition from {proposal.status} to {new_status}.'},
-            status=status.HTTP_400_BAD_REQUEST,
+        current_label = BusinessProposal.status_label_es(proposal.status)
+        target_label = BusinessProposal.status_label_es(new_status)
+        return error_response(
+            f'No se puede cambiar el estado de «{current_label}» a «{target_label}».',
+            code='invalid_transition',
+            hint='Actualiza la página para ver el estado actual de la propuesta.',
         )
 
     old_status = proposal.status
@@ -2114,7 +2119,7 @@ def update_proposal_status(request, proposal_id):
         try:
             delivery = ProposalService.send_proposal(proposal)
         except ValueError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return error_response_from_exc(e)
 
         ProposalChangeLog.objects.create(
             proposal=proposal,
@@ -2406,7 +2411,7 @@ def resend_proposal(request, proposal_id):
     try:
         delivery = ProposalService.resend_proposal(proposal)
     except ValueError as e:
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return error_response_from_exc(e)
 
     ProposalChangeLog.objects.create(
         proposal=proposal,

@@ -696,7 +696,9 @@ class TestSendProposalToClientEdgePaths:
         result = ProposalEmailService.send_proposal_to_client(email_proposal)
         assert result['ok'] is False
         assert result['reason'] == 'send_failed'
-        assert 'Template error' in result['detail']
+        # The raw exception text is kept in logs, not surfaced to the user.
+        assert 'Template error' not in result['detail']
+        assert 'No se pudo enviar el correo' in result['detail']
 
 
 class TestSendSellerInactivityEscalation:
@@ -1176,11 +1178,11 @@ class TestSendMultiProposalsService:
         )
         from content.services.proposal_service import ProposalService
 
-        with pytest.raises(ValueError, match='same client') as exc_info:
+        with pytest.raises(ValueError, match='mismo cliente') as exc_info:
             ProposalService.send_multi_proposals(
                 [client_with_proposals[0], other],
             )
-        assert 'same client' in str(exc_info.value)
+        assert 'mismo cliente' in str(exc_info.value)
 
 
 class TestSendPostRejectionRevisitAlert:

@@ -4267,11 +4267,11 @@ class TestInlineStatusChange:
         self, mock_send, admin_client, proposal,
     ):
         """Inline draft→sent surfaces ValueError from the service as 400."""
-        mock_send.side_effect = ValueError('Client email is required to send a proposal.')
+        mock_send.side_effect = ValueError('Se requiere el correo del cliente para enviar la propuesta.')
         url = reverse('update-proposal-status', kwargs={'proposal_id': proposal.id})
         response = admin_client.patch(url, {'status': 'sent'}, format='json')
         assert response.status_code == 400
-        assert 'Client email' in response.data['error']
+        assert 'correo del cliente' in response.data['error']
 
     @patch('content.services.proposal_service.ProposalService.send_proposal')
     def test_non_draft_to_sent_does_not_invoke_send_proposal(

@@ -80,6 +80,14 @@ def _delivery(ok, reason, detail=''):
     return {'ok': ok, 'reason': reason, 'detail': detail}
 
 
+# User-facing detail for unexpected send failures. The raw exception text is
+# kept in the logs / EmailLog, never surfaced to the panel user.
+GENERIC_SEND_FAILURE_DETAIL = (
+    'No se pudo enviar el correo al cliente. Verifica el correo del cliente o '
+    'la configuración de envío e inténtalo de nuevo.'
+)
+
+
 class ProposalEmailService:
     """
     Service for sending proposal-related emails to clients.
@@ -406,7 +414,7 @@ class ProposalEmailService:
                 'Failed to send proposal email for %s',
                 proposal.uuid,
             )
-            return _delivery(False, 'send_failed', str(exc)[:500])
+            return _delivery(False, 'send_failed', GENERIC_SEND_FAILURE_DETAIL)
 
     @classmethod
     def send_multi_proposal_to_client(cls, proposals):
@@ -419,7 +427,7 @@ class ProposalEmailService:
         as ``send_proposal_to_client``.
         """
         if not proposals:
-            return _delivery(False, 'no_proposals', 'No proposals provided.')
+            return _delivery(False, 'no_proposals', 'No se proporcionaron propuestas.')
 
         primary = proposals[0]
         if _is_unsendable_client_email(primary.client_email):
@@ -512,7 +520,7 @@ class ProposalEmailService:
             logger.exception(
                 'Failed to send multi-proposal email — group %s', group_uuid,
             )
-            return _delivery(False, 'send_failed', str(exc)[:500])
+            return _delivery(False, 'send_failed', GENERIC_SEND_FAILURE_DETAIL)
 
     @classmethod
     def send_reminder(cls, proposal):

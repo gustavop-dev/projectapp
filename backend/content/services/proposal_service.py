@@ -2665,13 +2665,20 @@ class ProposalService:
 
     @staticmethod
     def _require_valid_client_email(proposal):
-        """Raise ValueError if proposal lacks a deliverable client_email."""
+        """Raise ProposalActionError if proposal lacks a deliverable client_email."""
+        from content.api_errors import ProposalActionError
         if not proposal.client_email:
-            raise ValueError('Client email is required to send a proposal.')
+            raise ProposalActionError(
+                'Falta el correo del cliente.',
+                code='missing_client_email',
+                hint='Agrega el correo del cliente en la propuesta y vuelve a intentar.',
+            )
         from content.utils import validate_email_domain_mx
         if not validate_email_domain_mx(proposal.client_email):
-            raise ValueError(
-                'El dominio del correo del cliente no puede recibir emails.'
+            raise ProposalActionError(
+                'El dominio del correo del cliente no puede recibir emails.',
+                code='invalid_client_email_domain',
+                hint='Verifica que el correo del cliente esté bien escrito.',
             )
 
     @staticmethod
@@ -2779,6 +2786,7 @@ class ProposalService:
         from content.services.proposal_email_service import (
             ProposalEmailService,
             _delivery,
+            GENERIC_SEND_FAILURE_DETAIL,
         )
         try:
             return ProposalEmailService.send_proposal_to_client(proposal)
@@ -2787,7 +2795,7 @@ class ProposalService:
                 'Failed to send initial email for proposal %s',
                 proposal.uuid,
             )
-            return _delivery(False, 'unexpected_error', str(exc)[:500])
+            return _delivery(False, 'unexpected_error', GENERIC_SEND_FAILURE_DETAIL)
 
     @staticmethod
     def _schedule_email_tasks(proposal):
@@ -2887,16 +2895,23 @@ class ProposalService:
                         or proposals span multiple clients.
         """
         from content.models import BusinessProposal
+        from content.api_errors import ProposalActionError
 
         if not proposals:
-            raise ValueError('proposals is empty')
+            raise ProposalActionError(
+                'No se proporcionaron propuestas para el envío conjunto.',
+                code='no_proposals',
+            )
 
         primary = proposals[0]
         ProposalService._require_valid_client_email(primary)
 
         client_id = primary.client_id
         if any(p.client_id != client_id for p in proposals):
-            raise ValueError('All proposals must belong to the same client.')
+            raise ProposalActionError(
+                'Todas las propuestas deben pertenecer al mismo cliente.',
+                code='multiple_clients',
+            )
 
         Status = BusinessProposal.Status
         now = timezone.now()

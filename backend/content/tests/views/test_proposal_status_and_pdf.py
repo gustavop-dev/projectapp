@@ -17,14 +17,14 @@ class TestUpdateProposalStatusAccepted:
         resp = admin_client.patch(self._url(proposal), {'status': 'invalid'}, format='json')
 
         assert resp.status_code == 400
-        assert 'Invalid status' in resp.json()['error']
+        assert resp.json()['code'] == 'invalid_status'
 
     def test_returns_400_for_disallowed_transition(self, admin_client, proposal):
         # proposal fixture is 'draft' — cannot go to 'accepted' directly
         resp = admin_client.patch(self._url(proposal), {'status': 'accepted'}, format='json')
 
         assert resp.status_code == 400
-        assert 'Cannot transition' in resp.json()['error']
+        assert resp.json()['code'] == 'invalid_transition'
 
     def test_creates_changelog_on_valid_transition(self, admin_client, sent_proposal):
         # sent → negotiating is an allowed transition
@@ -117,7 +117,7 @@ class TestUpdateProposalStatusFinished:
         )
 
         assert resp.status_code == 400
-        assert 'Cannot transition' in resp.json()['error']
+        assert resp.json()['code'] == 'invalid_transition'
 
     def test_finished_transition_from_negotiating_returns_400(self, admin_client, negotiating_proposal):
         resp = admin_client.patch(
@@ -125,7 +125,7 @@ class TestUpdateProposalStatusFinished:
         )
 
         assert resp.status_code == 400
-        assert 'Cannot transition' in resp.json()['error']
+        assert resp.json()['code'] == 'invalid_transition'
 
 
 class TestLaunchToPlatform:
