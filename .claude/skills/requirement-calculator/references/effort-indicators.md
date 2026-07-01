@@ -40,7 +40,7 @@
 - **API pública para terceros** — versionado, API keys, rate limiting, documentación, sandbox, soporte a integradores externos.
 - **Entrenamiento / fine-tuning de un modelo de IA propio** — recolección de datos y ajuste (distinto de *usar* una API de IA, que es `M`–`L`).
 
-_Rondando el borde (raros, normalmente XL):_ Web3 / smart contracts · microservicios (extraer de un monolito) · georreferenciación con rutas y tracking en vivo.
+_Rondando el borde (raros, normalmente XL):_ Web3 / smart contracts · microservicios (extraer de un monolito) · georreferenciación con rutas y tracking en vivo · integración profunda con hardware físico cuando el dispositivo es el corazón del requerimiento (una integración puntual con impresora/lector es `L` + modificador *Hardware*).
 
 ---
 
@@ -307,6 +307,8 @@ El diferenciador es *desde cero vs. sobre lo existente* y *volumen / motor*.
 **Re-redacciones de reglas vagas:** secuencias/IDs → *numeración consecutiva sin huecos con concurrencia* · flujo multi-etapa → *con traspaso entre ≥2 roles* · CRUD con extras → *de una entidad, con extras acotados* · temporizadores → *contador en UI / indicador de frescura* · deep links → *con restauración de estado* · chat: widget de terceros = M, chat propio = L · frontera volumen (modificador vs XL) definida · nota de integraciones precisada con sus excepciones.
 
 **Señales nuevas (8, mercado PYME colombiano):** búsqueda global multi-entidad (L) · visualización interactiva compleja a medida (L) · generación de documentos desde plantilla fija (M) / centro de plantillas administrable (L) · cotizador público embebido con captura de lead (M/L) · canal único de mensajería vía proveedor (L) · cuenta de cobro / factura simple no-DIAN (M) · landing multi-sección sin CMS (M) · catálogo público con pedido por WhatsApp (L).
+
+**Hardware reubicado:** la señal `XL` "integración con hardware físico" se reemplazó por el modelo *integración (piso `L`) + modificador Hardware `+25–60%`*; queda en el borde `XL` solo cuando el dispositivo es el corazón del requerimiento.
 
 **Modificadores:** tabla reorganizada en 4 grupos (estructurales / plataforma / costo-riesgo / atenuador) · todos con rango cerrado (legacy `+15–40%`, WCAG/SEO `+20–50%`, hardware `+25–60%`) · anti-doble-conteo explícito (pantalla nueva y modelo de datos no aplican sobre `L`) · renombrado *Observabilidad / logging de errores* · **nuevos:** urgencia/exprés `+20–50%` · coordinación con equipo del cliente `+10–25%` · entregable bilingüe `+5–15%` · capacitación → ítem aparte.
 
