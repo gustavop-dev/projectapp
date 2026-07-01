@@ -26,6 +26,29 @@ class TestUpdateProposalStatusAccepted:
         assert resp.status_code == 400
         assert resp.json()['code'] == 'invalid_transition'
 
+    def test_disallowed_transition_message_uses_spanish_labels(self, admin_client, proposal):
+        resp = admin_client.patch(self._url(proposal), {'status': 'accepted'}, format='json')
+
+        # Human message uses the Spanish status labels, not raw keys.
+        assert 'Borrador' in resp.json()['error']
+        assert 'Aceptada' in resp.json()['error']
+
+    def test_draft_to_sent_without_email_returns_missing_email_code(self, admin_client, proposal):
+        # Real path (no mock): sending dispatches the client email, which requires
+        # client_email. Empty email -> 400 with a descriptive code + hint.
+        proposal.client_email = ''
+        proposal.save(update_fields=['client_email'])
+
+        resp = admin_client.patch(self._url(proposal), {'status': 'sent'}, format='json')
+
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body['error'] == 'Falta el correo del cliente.'
+        assert body['code'] == 'missing_client_email'
+        assert body['hint']  # actionable hint present
+        proposal.refresh_from_db()
+        assert proposal.status == 'draft'  # not transitioned
+
     def test_creates_changelog_on_valid_transition(self, admin_client, sent_proposal):
         # sent → negotiating is an allowed transition
         resp = admin_client.patch(self._url(sent_proposal), {'status': 'negotiating'}, format='json')
