@@ -65,7 +65,7 @@ def email_template_detail(request, template_key):
     entry = get_template_entry(template_key)
     if not entry:
         return Response(
-            {'detail': f'Template "{template_key}" not found in registry.'},
+            {'detail': f'La plantilla "{template_key}" no existe en el registro.'},
             status=status.HTTP_404_NOT_FOUND,
         )
 
@@ -104,7 +104,7 @@ def email_template_detail(request, template_key):
 
     if not isinstance(content_overrides, dict):
         return Response(
-            {'detail': 'content_overrides must be a dict.'},
+            {'detail': 'content_overrides debe ser un objeto (dict).'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -115,7 +115,7 @@ def email_template_detail(request, template_key):
     invalid_keys = set(content_overrides.keys()) - valid_keys
     if invalid_keys:
         return Response(
-            {'detail': f'Invalid field keys: {invalid_keys}'},
+            {'detail': f'Claves de campo no válidas: {invalid_keys}'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -149,7 +149,7 @@ def email_template_preview(request, template_key):
     entry = get_template_entry(template_key)
     if not entry:
         return Response(
-            {'detail': f'Template "{template_key}" not found in registry.'},
+            {'detail': f'La plantilla "{template_key}" no existe en el registro.'},
             status=status.HTTP_404_NOT_FOUND,
         )
 
@@ -177,7 +177,7 @@ def email_template_preview(request, template_key):
         except Exception:
             logger.exception('Failed to render preview for %s', template_key)
             return Response(
-                {'detail': 'Failed to render template preview.'},
+                {'detail': 'No se pudo generar la vista previa de la plantilla.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
     else:
@@ -208,7 +208,7 @@ def email_template_reset(request, template_key):
     entry = get_template_entry(template_key)
     if not entry:
         return Response(
-            {'detail': f'Template "{template_key}" not found in registry.'},
+            {'detail': f'La plantilla "{template_key}" no existe en el registro.'},
             status=status.HTTP_404_NOT_FOUND,
         )
 
