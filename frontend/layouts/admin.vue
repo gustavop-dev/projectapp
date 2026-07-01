@@ -81,6 +81,8 @@
       :loading="refreshStore.isRefreshing"
       @click="refreshStore.trigger()"
     />
+
+    <PanelNotificationHost />
   </div>
 </template>
 
@@ -94,6 +96,7 @@ import { usePanelRefreshStore } from '~/stores/panel_refresh'
 import PanelSidebar from '~/components/panel/PanelSidebar.vue'
 import PanelMobileDrawer from '~/components/panel/PanelMobileDrawer.vue'
 import PanelRefreshButton from '~/components/panel/PanelRefreshButton.vue'
+import PanelNotificationHost from '~/components/panel/PanelNotificationHost.vue'
 
 const refreshStore = usePanelRefreshStore()
 
