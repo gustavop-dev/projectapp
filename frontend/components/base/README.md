@@ -229,10 +229,11 @@ distinct checks on every PR:
   0 offenses, this prevents regressions introduced by new components added
   under `components/panel/` or imported indirectly into the panel without
   being modified by the PR.
-- **Public scope: warn-only.** `--scope=public --quiet` runs with a trailing
-  `|| true` so the delta is visible in CI logs and the PR comment without
-  blocking the build. The public site is still mid-migration; this surfaces
-  progress without forcing churn.
+- **Public scope: hard gate.** `--scope=public --strict` runs against the
+  full public surface (proposal viewer, blog, portfolio, landings) on every
+  PR. The scope sits at 0 offenses; the `proposal-public` sub-scope exists
+  for tracking the public proposal viewer's deeper token migration (the
+  `:deep` override block reduction) independently.
 
 ## Migration policy
 
