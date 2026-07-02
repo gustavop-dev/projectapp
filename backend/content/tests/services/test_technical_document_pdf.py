@@ -328,3 +328,31 @@ def test_generates_pdf_with_backups_quality_decisions(sent_proposal):
 
     assert out is not None
     assert out[:5] == b'%PDF-'
+
+
+# ===========================================================================
+# linked_item_ids on requirements are tolerated (regression)
+# ===========================================================================
+
+@pytest.mark.django_db
+def test_epics_with_linked_item_ids_render_without_error(sent_proposal):
+    ProposalSection.objects.create(
+        proposal=sent_proposal,
+        section_type='technical_document',
+        title='Detalle técnico', order=1, is_enabled=True,
+        content_json={'epics': [{
+            'epicKey': 'views', 'title': 'Vistas',
+            'requirements': [{
+                'flowKey': 'req-registro',
+                'title': 'Registro con verificación',
+                'description': 'Formulario con validación.',
+                'priority': 'high',
+                'linked_item_ids': ['item-views-registro-de-usuario'],
+            }],
+        }]},
+    )
+
+    out = generate_technical_document_pdf(sent_proposal)
+
+    assert out is not None
+    assert out[:5] == b'%PDF-'

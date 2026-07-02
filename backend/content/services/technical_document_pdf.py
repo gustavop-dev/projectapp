@@ -71,11 +71,7 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
     to base-scope requirements only.
     """
     from content.services.technical_document_filter import (
-        filter_technical_document_by_module_selection,
-    )
-    from content.services.proposal_module_links import (
-        build_proposal_module_link_catalog,
-        normalize_technical_document_module_links,
+        get_filtered_technical_document,
     )
 
     sec = (
@@ -91,13 +87,7 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
         }
         for section in proposal.sections.all()
     ]
-    data = normalize_technical_document_module_links(data, section_payloads)
-    link_catalog = build_proposal_module_link_catalog(section_payloads)
-    data = filter_technical_document_by_module_selection(
-        data,
-        selected_modules,
-        always_included_ids=link_catalog['always_included_ids'],
-    )
+    data = get_filtered_technical_document(data, section_payloads, selected_modules)
 
     try:
         _register_fonts()

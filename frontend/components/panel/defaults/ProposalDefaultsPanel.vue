@@ -302,6 +302,7 @@
           <TechnicalDocumentEditor
             :key="`defaults-tech-${selectedLang}-${technicalDocumentIndex}`"
             :section="technicalDefaultVirtualSection"
+            :item-link-options="defaultsItemLinkOptions"
             @save="handleSaveSection"
           />
         </div>
@@ -871,6 +872,7 @@ import SectionPreviewModal from '~/components/BusinessProposal/admin/SectionPrev
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import { DEFAULT_HOSTING_PERCENT } from '~/stores/proposals_constants';
+import { buildProposalItemLinkOptions } from '~/utils/proposalModuleLinkOptions';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
 import { useConfirmModal } from '~/composables/useConfirmModal';
@@ -995,6 +997,10 @@ const technicalDefaultVirtualSection = computed(() => {
   if (idx < 0) return null;
   return toVirtualSection(sections.value[idx], idx);
 });
+
+const defaultsItemLinkOptions = computed(() =>
+  buildProposalItemLinkOptions(sections.value),
+);
 
 const defaultsTechnicalSubTab = ref('editor');
 const defaultsTechnicalJsonRaw = ref('{}');

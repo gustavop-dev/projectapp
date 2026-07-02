@@ -3026,9 +3026,33 @@ class ProposalService:
         Returns:
             list[dict]: Deep copy of DEFAULT_SECTIONS or DEFAULT_SECTIONS_EN.
         """
+        return ProposalService._hardcoded_with_item_ids(language)
+
+    # Hardcoded defaults are module constants — annotate their item ids once
+    # per language instead of re-slugging on every call.
+    _HARDCODED_WITH_IDS_CACHE = {}
+
+    @staticmethod
+    def _hardcoded_with_item_ids(language):
         import copy
-        source = DEFAULT_SECTIONS_EN if language == 'en' else DEFAULT_SECTIONS
-        return copy.deepcopy(source)
+        cache = ProposalService._HARDCODED_WITH_IDS_CACHE
+        if language not in cache:
+            source = DEFAULT_SECTIONS_EN if language == 'en' else DEFAULT_SECTIONS
+            cache[language] = ProposalService._with_item_ids(copy.deepcopy(source))
+        return copy.deepcopy(cache[language])
+
+    @staticmethod
+    def _with_item_ids(sections):
+        """Assign stable item ids to the functional_requirements section in place."""
+        from content.services.proposal_module_links import (
+            ensure_functional_requirements_item_ids,
+        )
+        for section in sections:
+            if section.get('section_type') == 'functional_requirements':
+                section['content_json'] = ensure_functional_requirements_item_ids(
+                    section.get('content_json')
+                )
+        return sections
 
     @staticmethod
     def get_default_sections(language='es'):
@@ -3050,10 +3074,9 @@ class ProposalService:
 
         config = ProposalDefaultConfig.objects.filter(language=language).first()
         if config and config.sections_json:
-            return copy.deepcopy(config.sections_json)
+            return ProposalService._with_item_ids(copy.deepcopy(config.sections_json))
 
-        source = DEFAULT_SECTIONS_EN if language == 'en' else DEFAULT_SECTIONS
-        return copy.deepcopy(source)
+        return ProposalService._hardcoded_with_item_ids(language)
 
     @staticmethod
     def get_default_section(language, section_type):

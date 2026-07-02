@@ -349,6 +349,7 @@ import {
   normalizeTechnicalDocumentModuleLinks,
 } from '~/utils/proposalModuleLinkOptions';
 import { filterTechnicalDocumentByModules } from '~/utils/filterTechnicalDocumentByModules';
+import { buildItemRequirementsMap } from '~/utils/itemRequirementLinks';
 import { useProposalDarkMode } from '~/composables/useProposalDarkMode';
 import { normalizePersistedSelectedIds } from '~/utils/proposalModuleSelectionStorage';
 import { RESOLVED_PROPOSAL_STATUSES, DEFAULT_HOSTING_PERCENT } from '~/stores/proposals_constants';
@@ -464,6 +465,36 @@ function effectiveSelectedModuleIdsForTechnical() {
   return [];
 }
 
+// Technical document as the client should see it, in two layers so the
+// (deep-copying) normalization only re-runs when the section content
+// changes, while the filter reacts to the calculator selection.
+const normalizedTechnicalDocument = computed(() => {
+  const tech = enabledSections.value.find((s) => s.section_type === 'technical_document');
+  if (!tech || !tech.content_json || typeof tech.content_json !== 'object') return null;
+  return normalizeTechnicalDocumentModuleLinks(
+    tech.content_json,
+    technicalModuleLinkCatalog.value.aliasMap,
+  );
+});
+
+const filteredTechnicalDocument = computed(() => {
+  if (!normalizedTechnicalDocument.value) return null;
+  return filterTechnicalDocumentByModules(
+    normalizedTechnicalDocument.value,
+    effectiveSelectedModuleIdsForTechnical(),
+    technicalModuleLinkCatalog.value.alwaysIncludedIds,
+  );
+});
+
+// Item → technical requirements map for the commercial nested modal.
+// Filtered by the client's module selection so deselected calculator
+// modules never leak requirements into the commercial view.
+const itemRequirementsMap = computed(() => (
+  filteredTechnicalDocument.value
+    ? buildItemRequirementsMap(filteredTechnicalDocument.value)
+    : {}
+));
+
 const readMinutesEstimate = computed(() => {
   if (viewMode.value === 'executive') return 2;
   if (viewMode.value === 'technical') return 12;
@@ -479,16 +510,7 @@ const displayPanels = computed(() => {
   if (viewMode.value === 'technical') {
     const tech = enabledSections.value.find((s) => s.section_type === 'technical_document');
     if (!tech) return [];
-    const rawDoc = tech.content_json && typeof tech.content_json === 'object' ? tech.content_json : {};
-    const normalizedDoc = normalizeTechnicalDocumentModuleLinks(
-      rawDoc,
-      technicalModuleLinkCatalog.value.aliasMap,
-    );
-    const docForPanels = filterTechnicalDocumentByModules(
-      normalizedDoc,
-      effectiveSelectedModuleIdsForTechnical(),
-      technicalModuleLinkCatalog.value.alwaysIncludedIds,
-    );
+    const docForPanels = filteredTechnicalDocument.value || {};
     const panels = buildSyntheticTechnicalPanels({ ...tech, content_json: docForPanels }, lang);
     if (enabledSections.value.length > 0) {
       const finalNote = enabledSections.value.find((s) => s.section_type === 'final_note');
@@ -883,6 +905,7 @@ function getSectionProps(section, displayIndex) {
       section: { ...section, content_json: { ...content, index: paddedIndex } },
       proposal: proposal.value || { sections: enabledSections.value },
       proposalUuid: proposal.value?.uuid || '',
+      itemRequirementsMap: itemRequirementsMap.value,
     };
   }
 
@@ -943,6 +966,7 @@ function getSectionProps(section, displayIndex) {
       currency: investContent.currency || proposal.value?.currency || 'COP',
       proposalUuid: proposal.value?.uuid || '',
       valueAddedModuleIds,
+      itemRequirementsMap: itemRequirementsMap.value,
     };
   }
 

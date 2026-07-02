@@ -1021,6 +1021,7 @@ def create_proposal_from_json(request):
     # Use DEFAULT_SECTIONS as a template for title/order/is_wide_panel
     default_sections = ProposalService.get_default_sections(proposal.language)
     from content.services.proposal_module_links import (
+        ensure_functional_requirements_item_ids,
         normalize_technical_document_module_links,
     )
 
@@ -1103,6 +1104,9 @@ def create_proposal_from_json(request):
                 else:
                     final_groups.append(g)
             content_json['groups'] = final_groups
+
+        if section_type == 'functional_requirements':
+            content_json = ensure_functional_requirements_item_ids(content_json)
 
         resolved_sections.append({
             'section_type': section_type,
@@ -1248,7 +1252,30 @@ def get_proposal_json_template(request):
             'Do NOT move modules between arrays. '
             'You may modify content (title, description, items) and add new entries, '
             'but NEVER delete or relocate existing ones. The seller will remove them manually '
-            'after the proposal is created if needed.'
+            'after the proposal is created if needed. '
+            'Every item MUST carry a stable "id" — see '
+            'CRITICAL_functionalRequirements_itemIds.'
+        ),
+        'CRITICAL_functionalRequirements_itemIds': (
+            'EVERY item in every functionalRequirements group AND in every additional '
+            'module must have a stable "id" with the exact format '
+            '"item-<group_id>-<slug-of-name>". Slug algorithm (apply EXACTLY): lowercase '
+            'the full item name; strip accents/diacritics (a-acute -> a, n-tilde -> n); '
+            'replace every run of characters outside [a-z0-9] (spaces, "&", "/", commas, '
+            'parentheses, emojis) with a SINGLE hyphen; trim leading/trailing hyphens. '
+            'Example: "Registro de usuario" in group "views" -> '
+            '"item-views-registro-de-usuario". Ids must be UNIQUE across the whole '
+            'section (groups + additionalModules): on collision, walk the document in '
+            'order (groups top-to-bottom, then additionalModules top-to-bottom); the '
+            'FIRST occurrence keeps the base slug and later ones get "-2", "-3" '
+            'suffixes in order of appearance. STABILITY: when EDITING an existing '
+            'proposal, NEVER change an already-assigned id, even if the item name '
+            'changes — the id is decoupled from the name after creation. These ids are '
+            'the contract with the technical document (step 2): technical requirements '
+            'reference them via "linked_item_ids", powering the client-facing '
+            '"View requirements" modal and the PDF; a changed or missing id silently '
+            'breaks that traceability. Ids derive from the name in the proposal '
+            'language — never reuse ids or technical documents across ES/EN versions.'
         ),
         'CRITICAL_functionalRequirements_itemDetail': (
             'Each item in every functionalRequirements group (and in every SELECTED additional '
@@ -1503,6 +1530,10 @@ def update_proposal_from_json(request, proposal_id):
         proposal.expires_at = data['expires_at']
 
     from accounts.services import proposal_client_service
+    from content.services.proposal_module_links import (
+        ensure_functional_requirements_item_ids,
+        normalize_technical_document_module_links,
+    )
     from content.services.proposal_service import ProposalService
 
     # When the JSON import includes client identity fields, route them through
@@ -1555,7 +1586,8 @@ def update_proposal_from_json(request, proposal_id):
 
     # --- Update section content_json ---
     updated_sections = []
-    for section in proposal.sections.all():
+    all_sections = list(proposal.sections.all())
+    for section in all_sections:
         json_key = SECTION_TYPE_TO_KEY.get(section.section_type)
         if json_key and json_key in sections_data:
             new_content = sections_data[json_key]
@@ -1581,10 +1613,31 @@ def update_proposal_from_json(request, proposal_id):
                     else:
                         final_groups.append(g)
                 new_content['groups'] = final_groups
+                new_content = ensure_functional_requirements_item_ids(new_content)
 
             section.content_json = new_content
             section.save(update_fields=['content_json'])
             updated_sections.append(json_key)
+
+    # Re-normalize the technical document only when the import touched it or
+    # the functional requirements (whose item ids its links reference).
+    if {'technicalDocument', 'functionalRequirements'} & set(updated_sections):
+        technical_section = next(
+            (s for s in all_sections
+             if s.section_type == ProposalSection.SectionType.TECHNICAL_DOCUMENT),
+            None,
+        )
+        if technical_section and isinstance(technical_section.content_json, dict):
+            normalized = normalize_technical_document_module_links(
+                technical_section.content_json,
+                [
+                    {'section_type': s.section_type, 'content_json': s.content_json}
+                    for s in all_sections
+                ],
+            )
+            if normalized != technical_section.content_json:
+                technical_section.content_json = normalized
+                technical_section.save(update_fields=['content_json'])
 
     ProposalChangeLog.objects.create(
         proposal=proposal,

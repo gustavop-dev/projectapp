@@ -160,6 +160,8 @@ _Rondando el borde:_ carrito de compras sin pago · feed/timeline de actividad �
 - **Listas de precios / precio especial por cliente o segmento** — asignar precios diferenciados sobre un catálogo existente, con vigencia y precio por defecto. Reglas de cálculo configurables (volumen, combinaciones) → motor `L`.
 - **Tracking de uso / telemetría propia básica** — registrar eventos de navegación o acciones del usuario (endpoints visitados, vistas, tiempos) vía middleware o eventos, con consulta simple de los datos. Con panel de análisis propio → `L`; con script de terceros (GA/Hotjar) es `S`. Ojo Habeas Data: puede requerir consentimiento (ver *T&C / consentimientos*).
 - **Comparador de ítems lado a lado** — seleccionar N ítems de un catálogo existente y verlos en tabla comparativa de atributos, con persistencia de la selección. Si los atributos comparables los configura el admin o se comparan entidades heterogéneas → `L`.
+- **Texto sugerido automáticamente por el sistema, editable por el usuario** — el sistema propone un texto a partir de datos ya registrados (movimientos, historial, plantillas de contexto) y el usuario lo complementa o sobrescribe antes de persistir: observaciones, descripciones, respuestas precargadas. Si la sugerencia la produce una IA → señal *Funcionalidad basada en IA* (`M`–`L`).
+- **Bloqueo/reserva exclusiva de un registro por usuario** — al iniciar el trabajo, el registro queda reservado a quien lo tomó y un segundo usuario recibe el mensaje de bloqueo (lock con `select_for_update` o equivalente). Suele sumar el modificador *Concurrencia / atomicidad*; la liberación por timeout/vencimiento se cotiza con su *Tarea programada*. ≠ edición colaborativa concurrente sobre el mismo estado (→ `XL` sincronización en tiempo real).
 
 _Rondando el borde:_ favoritos/guardados · recordatorios/snooze · manejo de zona horaria/locale.
 
@@ -192,6 +194,7 @@ _Rondando el borde:_ favoritos/guardados · recordatorios/snooze · manejo de zo
 - **Meta tags / Open Graph / favicon por página** — configurar títulos, descripciones e imagen de compartir (reemplazar el asset del logo/favicon es `XS`).
 - **Animaciones / micro-interacciones puntuales** — transiciones, hover, feedback visual.
 - **Deep link con restauración de estado** — abrir una vista en una pestaña/sección/filtro específico vía URL (query params → estado). El ancla o enlace simple es `XS`.
+- **Retiro controlado de un comportamiento ya entregado** — eliminar un endpoint/acción y su UI, reescribiendo las pruebas que lo cubrían (≠ ocultar un elemento existente, `XS`; sube a `M` si exige decidir o archivar datos históricos del comportamiento retirado).
 
 _Rondando el borde:_ breadcrumbs · contador de caracteres/límites en input.
 

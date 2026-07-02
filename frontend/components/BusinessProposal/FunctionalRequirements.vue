@@ -56,6 +56,8 @@
     <FunctionalRequirementsModal
       :visible="modalVisible"
       :group="selectedGroup"
+      :item-requirements-map="itemRequirementsMap"
+      :language="language"
       @close="modalVisible = false"
     />
   </section>
@@ -105,6 +107,10 @@ const props = defineProps({
   valueAddedModuleIds: {
     type: Array,
     default: () => [],
+  },
+  itemRequirementsMap: {
+    type: Object,
+    default: () => ({}),
   },
 });
 

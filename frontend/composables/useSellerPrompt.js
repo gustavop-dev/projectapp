@@ -193,8 +193,9 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 | Campo | Tipo | Restricción |
 |---|---|---|
 | \`groups\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN grupo base.** Los 7 grupos base (views, components, features, admin_module, analytics_dashboard, kpi_dashboard_module, manual_module) deben permanecer en \`groups[]\`. Solo modificar contenido interno (title, description, items). Se pueden AGREGAR grupos nuevos al final. **NO mover módulos de \`additionalModules\` a \`groups\`.** **Nota:** los 4 últimos (\`admin_module\`, \`analytics_dashboard\`, \`kpi_dashboard_module\`, \`manual_module\`) son catálogo de datos para el modal de \`valueAddedModules\`; el UI los oculta automáticamente del render de \`functionalRequirements\` cuando \`valueAddedModules\` está activa. Deben quedarse aquí de todas formas. |
-| \`groups[].items\` | array de objetos | Cada item tiene \`icon\` (emoji), \`name\` y \`description\`. Se pueden agregar o modificar items dentro de un grupo, pero no eliminar el grupo completo. |
-| \`additionalModules\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN módulo opcional.** Los 13 módulos con \`is_calculator_module: true\` deben permanecer en \`additionalModules[]\`. Solo modificar contenido interno (title, description, items, invite_note). **NO moverlos a \`groups[]\`.** |
+| \`groups[].items\` | array de objetos | Cada item tiene \`icon\` (emoji), \`name\`, \`description\` e \`id\`. **Los 4 campos son OBLIGATORIOS en todo item**, tanto en \`groups\` como en \`additionalModules\`. Se pueden agregar o modificar items dentro de un grupo, pero no eliminar el grupo completo. |
+| \`groups[].items[].id\` | string | **ID estable del item** con formato \`item-<id_del_grupo>-<slug-del-nombre>\`. **Algoritmo del slug (aplícalo EXACTAMENTE, sin variaciones):** (a) toma el \`name\` completo; (b) todo a minúsculas; (c) elimina tildes y diéresis y convierte ñ→n (á→a, é→e, ü→u); (d) reemplaza TODA secuencia de caracteres que no sea \`a-z\` o \`0-9\` (espacios, \`&\`, \`/\`, comas, paréntesis, emojis) por UN solo guion; (e) elimina guiones al inicio y al final. Ej.: "Registro de usuario" en \`views\` → \`item-views-registro-de-usuario\`; "Panel de KPIs & Métricas" en \`features\` → \`item-features-panel-de-kpis-metricas\`. **Unicidad determinista:** los ids son únicos en TODA la sección (groups + additionalModules). Si dos items generan el mismo slug, recorre el documento en orden (groups[] de arriba abajo, luego additionalModules[] de arriba abajo): la PRIMERA aparición conserva el slug base y las siguientes reciben sufijo \`-2\`, \`-3\`… en orden de aparición. **Estabilidad:** al EDITAR una propuesta existente, **NUNCA cambies un \`id\` ya asignado**, ni siquiera si el \`name\` cambia — el id queda desacoplado del nombre tras su creación (id≠slug(name) es un estado VÁLIDO y esperado). El detalle técnico (paso 2) enlaza requerimientos a estos ids vía \`linked_item_ids\`; cambiar un id rompe esos enlaces, el modal "Ver requerimientos" y el PDF. **Idioma:** los ids derivan del nombre en el idioma de la propuesta (\`item-views-registro-de-usuario\` ≠ \`item-views-user-registration\`); nunca reutilices ids ni detalle técnico entre versiones ES/EN. |
+| \`additionalModules\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN módulo opcional.** Los 16 módulos con \`is_calculator_module: true\` deben permanecer en \`additionalModules[]\`. Solo modificar contenido interno (title, description, items, invite_note). **NO moverlos a \`groups[]\`.** |
 
 **Flags de control por grupo** (solo aplican a módulos opcionales, es decir grupos con \`is_calculator_module: true\`):
 
@@ -220,7 +221,7 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 | 5 | \`kpi_dashboard_module\` | Base (incluido sin costo) |
 | 6 | \`manual_module\` | Base (incluido sin costo) |
 
-**Referencia: \`additionalModules[]\`** (13 módulos opcionales — orden obligatorio):
+**Referencia: \`additionalModules[]\`** (16 módulos opcionales — orden obligatorio):
 
 | # | \`id\` | Tipo | \`price_percent\` |
 |---|---|---|---|
@@ -231,12 +232,15 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 | 4 | \`corporate_branding_module\` | Opcional | 35% |
 | 5 | \`ai_module\` | Invitación | 0% |
 | 6 | \`integration_conversion_tracking\` | Invitación | 0% |
-| 7 | \`reports_alerts_module\` | Opcional | 20% |
-| 8 | \`email_marketing_module\` | Opcional | 10% |
-| 9 | \`i18n_module\` | Opcional | 15% |
-| 10 | \`live_chat_module\` | Opcional | 40% |
-| 11 | \`dark_mode_module\` | Opcional | 20% |
-| 12 | \`gift_cards_module\` | Opcional (oculto) | 20% |
+| 7 | \`biometric_verification_module\` | Invitación | 0% |
+| 8 | \`reports_alerts_module\` | Opcional | 20% |
+| 9 | \`email_marketing_module\` | Opcional | 10% |
+| 10 | \`qr_generator_module\` | Opcional | 25% |
+| 11 | \`content_generator_module\` | Opcional | 30% |
+| 12 | \`i18n_module\` | Opcional | 15% |
+| 13 | \`live_chat_module\` | Opcional | 40% |
+| 14 | \`dark_mode_module\` | Opcional | 20% |
+| 15 | \`gift_cards_module\` | Opcional (oculto) | 20% |
 
 #### \`developmentStages\` 
 | Campo | Tipo | Restricción |
@@ -358,8 +362,11 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 - \`valueReasons\`: Razones que justifiquen el precio ANTES de que el cliente lo cuestione. Incluye diferenciadores: "diseñado a medida para el sector X", "integración con pasarela de pago colombiana", etc.
 
 ### \`functionalRequirements\`
-- **REGLA CRÍTICA**: NO elimines ningún grupo que tenga \`"_do_not_remove": true\`. Los 20 grupos (7 base + 13 opcionales) deben permanecer. Solo modifica su contenido interno.
+- **SINERGIA COMERCIAL↔TÉCNICA (léelo antes de escribir esta sección):** esta sección y el detalle técnico del paso 2 son DOS VISTAS DE LA MISMA HISTORIA. Cada tarjeta comercial (Vistas, Componentes, Funcionalidades, módulos) tendrá una épica técnica homónima, y cada item será enlazado por requerimientos técnicos vía su \`id\` (\`linked_item_ids\`). El cliente navega del item comercial al detalle técnico con un clic — un id mal formado, cambiado o faltante rompe esa navegación, y una descripción comercial que el detalle técnico no pueda sustentar rompe la confianza. Escribe cada item pensando en que el paso 2 DEBERÁ detallarlo.
+- **REGLA CRÍTICA**: NO elimines ningún grupo que tenga \`"_do_not_remove": true\`. Los 23 grupos (7 base + 16 opcionales) deben permanecer. Solo modifica su contenido interno.
 - Adapta cada vista, componente y funcionalidad al negocio del cliente. Si es una pet shop, las categorías son "alimentos, accesorios, salud, juguetes". Si es una inmobiliaria, son "apartamentos, casas, locales".
+- **Asigna a CADA item de \`groups[].items\` y \`additionalModules[].items\` su \`id\` estable** (formato \`item-<id_del_grupo>-<slug-del-nombre>\`, algoritmo exacto en la tabla de restricciones). SIN EXCEPCIONES: un item sin \`id\` es un JSON inválido.
+- **Coherencia de las descripciones de items (regla estricta):** la \`description\` de un item cuenta el QUÉ y el valor de negocio; el CÓMO (configuración, flujos, tecnología) vive en el detalle técnico del paso 2. PROHIBIDO afirmar en un item capacidades que pertenecen a un módulo de \`additionalModules\` NO seleccionado (ej.: no menciones pagos con Stripe, modo offline, chat en vivo, facturación DIAN ni generación con IA en items de \`views\`/\`components\`/\`features\` si el módulo correspondiente no quedó \`default_selected: true\` — para eso existe el módulo). Toda afirmación de una descripción debe poder expandirse en requerimientos técnicos del paso 2 sin contradicción.
 - **Auto-selección de módulos adicionales basada en los requerimientos del cliente.** Lee con atención la "Descripción del negocio", el "Contexto adicional" y los "Módulos opcionales seleccionados" del bloque de contexto del cliente. Para **cada** módulo en \`additionalModules\`, decide si el proyecto describe esa capacidad de forma explícita o implícita y, cuando haya evidencia, marca \`"default_selected": true\` Y \`"selected": true\` en ese módulo. Si no hay evidencia clara, déjalos en \`false\`. No inventes coincidencias.
   - Mapeo de detección (usa cualquier mención, en español o inglés, literal o sinónimos):
     - \`integration_electronic_invoicing\` → DIAN, factura electrónica, Siigo, Alegra, facturación, e-invoice, comprobantes fiscales.
@@ -368,14 +375,17 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
     - \`pwa_module\` → PWA, app instalable, funciona sin internet, modo offline, notificaciones push.
     - \`ai_module\` → IA, inteligencia artificial, chatbot inteligente, automatización con IA, agentes.
     - \`integration_conversion_tracking\` → Meta Ads, Facebook Ads, Google Ads, Conversions API, CAPI, ROAS, pixel, Enhanced Conversions.
+    - \`biometric_verification_module\` → verificación biométrica, validación de identidad, reconocimiento facial, KYC, huella, prueba de vida.
     - \`reports_alerts_module\` → reportes, notificaciones, alertas por correo / WhatsApp, avisos de ventas o stock.
     - \`email_marketing_module\` → email marketing, Mailchimp, Brevo, SendGrid, captura de leads, newsletters.
+    - \`qr_generator_module\` → códigos QR, menús QR, escaneo, acceso rápido por QR, etiquetas escaneables.
+    - \`content_generator_module\` → generación de contenido con IA, calendario editorial, posts automáticos, redacción asistida, blog automatizado.
     - \`i18n_module\` → multi-idioma, internacionalización, i18n, múltiples países, traducción, catálogos por país.
     - \`live_chat_module\` → chat en vivo, soporte en tiempo real, asesor en línea, widget de chat propio.
     - \`dark_mode_module\` → modo oscuro, dark mode, cambio de tema, theme switcher.
   - Cuando marques un módulo como seleccionado, **adapta** su \`description\` y reordena/reescribe sus \`items\` para que el texto refleje la terminología, proveedores y matices reales del brief (por ejemplo: si el cliente pidió "quiero recibir reportes por WhatsApp", deja el item de WhatsApp como primero en \`reports_alerts_module\` y menciona WhatsApp como canal principal en la \`description\`).
   - No cambies el \`id\`, \`icon\`, \`price_percent\`, \`is_invite\` ni la posición del módulo en el array.
-  - Los \`invite_note\` de módulos de invitación (\`ai_module\`, \`integration_conversion_tracking\`) deben personalizarse con el nombre del negocio del cliente.
+  - Los \`invite_note\` de módulos de invitación (\`ai_module\`, \`integration_conversion_tracking\`, \`biometric_verification_module\`) deben personalizarse con el nombre del negocio del cliente.
 
 ### \`timeline\` 
 - Mantén las duraciones realistas según la complejidad del proyecto.
@@ -420,12 +430,28 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 - No inventes KPIs ni escenarios en \`roiProjection\`. **Si un KPI no tiene reporte/estudio/ley con nombre + organización + año en \`source\`, ELIMÍNALO — es una promesa, no un dato — y reemplázalo por otro que sí tenga fuente. El array \`kpis\` debe quedar siempre con EXACTAMENTE 3 entradas; ni 2 ni 4. La UI renderiza 3 tarjetas y el layout asume ese número fijo.** Las métricas de escenarios deben ser paralelas (mismas \`label\`s) y solo UNA puede llevar \`emphasis: true\` por escenario.
 - Las \`label\`s de los KPIs y de las métricas de escenarios se leen como las leería el cliente: usa lenguaje natural, no jerga financiera. "Ingresos al mes" en vez de "MRR"; "clientes que se quedan" en vez de "retención"; "de cada 100 visitas, 3 reservan" en vez de "tasa de conversión 3%".
 - No elimines grupos de \`functionalRequirements\` que tengan \`_do_not_remove: true\`.
+- No dejes NINGÚN item de \`functionalRequirements\` (en \`groups\` o \`additionalModules\`) sin \`id\`, no dupliques ids, no inventes un formato distinto a \`item-<id_del_grupo>-<slug>\` y, al editar una propuesta existente, no cambies NUNCA un id ya asignado (ver algoritmo exacto en la tabla de restricciones).
+- No afirmes en la descripción de un item capacidades de un módulo de \`additionalModules\` que no quedó seleccionado (regla de coherencia comercial↔técnica).
 - No uses jerga técnica en secciones que lee el cliente (todo excepto \`_meta\` y \`_seller_prompt\`).
 - No hagas la propuesta más larga de lo necesario. Cada palabra debe justificar su existencia.
 - No cambies los valores de \`circleColor\`, \`statusColor\`, \`index\`, \`source\` (en cards), \`hostingPercent\`, \`price_percent\`, \`activeStep\`, ni datos de contacto del equipo.
 - No agregues keys nuevas que no existan en la plantilla.
 - No cambies tipos de datos (un array de strings debe seguir siendo un array de strings).
 - No rellenes \`sections.technicalDocument\` con arquitectura detallada ni texto comercial en este paso; déjalo en **estructura de plantilla** hasta completar el paso 2 en **Det. técnico → JSON** o en el archivo de importación.
+
+---
+
+## CHECKLIST ANTES DE RESPONDER
+
+Antes de emitir el JSON, verifica UNO POR UNO estos puntos. Si alguno falla, corrige y vuelve a verificar. No respondas hasta que todos pasen:
+
+1. **Ids de items:** TODO item de \`groups[]\` y \`additionalModules[]\` tiene \`id\` con formato \`item-<id_del_grupo>-<slug>\`, generado con el algoritmo exacto (minúsculas, sin tildes, guiones), único en toda la sección, con dedupe \`-2\`/\`-3\` en orden de documento. En ediciones, ningún id existente cambió.
+2. **Estructura de functionalRequirements:** 7 grupos base en su orden original + 16 módulos opcionales en su orden original. Ningún grupo eliminado, ningún módulo movido entre arrays.
+3. **Coherencia de descripciones:** ninguna descripción de item afirma capacidades de módulos no seleccionados; cada descripción es expandible en requerimientos técnicos sin contradicción.
+4. **roiProjection:** exactamente 3 \`kpis\` (todos con \`source\` verificable) y 3 \`scenarios\` con métricas paralelas y UNA sola \`emphasis: true\` por escenario.
+5. **technicalDocument:** presente como esqueleto de plantilla (sin contenido técnico profundo — eso es el paso 2).
+6. **_meta:** sin claves adicionales a las de la plantilla.
+7. **JSON válido:** parseable, sin comentarios, sin texto fuera del objeto.
 
 ---
 

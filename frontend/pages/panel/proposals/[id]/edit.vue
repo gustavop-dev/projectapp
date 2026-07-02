@@ -1224,6 +1224,7 @@
               :key="technicalSection.id"
               :section="technicalSection"
               :module-link-options="technicalModuleLinkOptions"
+              :item-link-options="technicalItemLinkOptions"
               @save="handleSaveSection"
             />
           </template>
@@ -1319,6 +1320,7 @@
                 :section="section"
                 :proposalData="proposal"
                 :module-link-options="technicalModuleLinkOptions"
+                :item-link-options="technicalItemLinkOptions"
                 :all-sections="allSections"
                 @save="handleSaveSection"
                 @syncHostingPercent="handleSyncHostingPercent"
@@ -1482,7 +1484,7 @@ import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
-import { buildProposalModuleLinkOptions } from '~/utils/proposalModuleLinkOptions';
+import { buildProposalItemLinkOptions, buildProposalModuleLinkOptions } from '~/utils/proposalModuleLinkOptions';
 import { getProposalNextAction } from '~/utils/proposalNextAction';
 import { toSlug } from '~/utils/slugify';
 import { detectLegacyTechnicalFormat, downloadMigratedProposalJson, LEGACY_FIELD_LABELS } from '~/utils/proposalJsonMigration';
@@ -1617,6 +1619,10 @@ const hasCustomizedEffectiveTotal = computed(() => {
 
 const technicalModuleLinkOptions = computed(() =>
   buildProposalModuleLinkOptions(proposal.value?.sections || []),
+);
+
+const technicalItemLinkOptions = computed(() =>
+  buildProposalItemLinkOptions(proposal.value?.sections || []),
 );
 
 const enabledSectionsCount = computed(() =>

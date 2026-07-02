@@ -226,3 +226,114 @@ describe('multiple groups from functional requirements', () => {
     expect(withItems).toHaveLength(2);
   });
 });
+
+
+// ── Mounted tests: nested linked-requirements modal ──────────────────────────
+
+import { mount } from '@vue/test-utils';
+import FunctionalRequirementsModal from '../../components/BusinessProposal/FunctionalRequirementsModal.vue';
+import LinkedRequirementsModal from '../../components/BusinessProposal/LinkedRequirementsModal.vue';
+
+const GROUP_WITH_IDS = {
+  icon: '🖥️',
+  title: 'Vistas',
+  description: 'Pantallas del sitio.',
+  items: [
+    { icon: '🏠', name: 'Home', description: 'Landing.', id: 'item-views-home' },
+    { icon: '📧', name: 'Contacto', description: 'Formulario.', id: 'item-views-contacto' },
+    { icon: '📜', name: 'Legacy sin id', description: 'Item viejo.' },
+  ],
+};
+
+const ITEM_REQUIREMENTS_MAP = {
+  'item-views-home': [
+    {
+      title: 'Home dinámico con CTAs',
+      description: 'Página de inicio con secciones administrables.',
+      priority: 'high',
+      epicKey: 'views',
+      flowKey: 'req-home',
+      configuration: 'NO debe mostrarse',
+      usageFlow: 'NO debe mostrarse',
+    },
+  ],
+};
+
+function mountModal(props = {}) {
+  return mount(FunctionalRequirementsModal, {
+    props: {
+      visible: true,
+      group: GROUP_WITH_IDS,
+      itemRequirementsMap: ITEM_REQUIREMENTS_MAP,
+      language: 'es',
+      ...props,
+    },
+    global: { stubs: { teleport: true, transition: false } },
+  });
+}
+
+describe('nested linked-requirements link', () => {
+  it('shows the "Ver requerimientos" link only for items with linked requirements', () => {
+    const wrapper = mountModal();
+    const links = wrapper.findAll('[data-testid="view-requirements-link"]');
+    expect(links).toHaveLength(1);
+    expect(links[0].text()).toContain('Ver requerimientos (1)');
+  });
+
+  it('shows no link at all for legacy groups without item ids', () => {
+    const wrapper = mountModal({
+      group: {
+        ...GROUP_WITH_IDS,
+        items: GROUP_WITH_IDS.items.map(({ id, ...rest }) => rest),
+      },
+    });
+    expect(wrapper.findAll('[data-testid="view-requirements-link"]')).toHaveLength(0);
+  });
+
+  it('shows no link when the map is empty', () => {
+    const wrapper = mountModal({ itemRequirementsMap: {} });
+    expect(wrapper.findAll('[data-testid="view-requirements-link"]')).toHaveLength(0);
+  });
+
+  it('uses English label when language is en', () => {
+    const wrapper = mountModal({ language: 'en' });
+    expect(wrapper.find('[data-testid="view-requirements-link"]').text())
+      .toContain('View requirements (1)');
+  });
+
+  it('opens the nested modal with title, priority and description but not configuration/usageFlow', async () => {
+    const wrapper = mountModal();
+    await wrapper.find('[data-testid="view-requirements-link"]').trigger('click');
+
+    const nested = wrapper.findComponent(LinkedRequirementsModal);
+    expect(nested.props('visible')).toBe(true);
+    expect(nested.props('requirements')).toHaveLength(1);
+
+    const text = nested.text();
+    expect(text).toContain('Home dinámico con CTAs');
+    expect(text).toContain('Alta'); // priority high → Alta (es)
+    expect(text).toContain('Página de inicio con secciones administrables.');
+    expect(text).not.toContain('NO debe mostrarse');
+  });
+
+  it('closing the nested modal keeps the parent modal open', async () => {
+    const wrapper = mountModal();
+    await wrapper.find('[data-testid="view-requirements-link"]').trigger('click');
+
+    const nested = wrapper.findComponent(LinkedRequirementsModal);
+    nested.vm.$emit('close');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.findComponent(LinkedRequirementsModal).props('visible')).toBe(false);
+    expect(wrapper.emitted('close')).toBeUndefined();
+    expect(wrapper.text()).toContain('Vistas');
+  });
+
+  it('resets the nested modal when the parent closes', async () => {
+    const wrapper = mountModal();
+    await wrapper.find('[data-testid="view-requirements-link"]').trigger('click');
+    await wrapper.setProps({ visible: false });
+    await wrapper.setProps({ visible: true });
+    expect(wrapper.findComponent(LinkedRequirementsModal).props('visible')).toBe(false);
+  });
+});

@@ -112,3 +112,31 @@ def filter_technical_document_by_module_selection(
 
     out['epics'] = new_epics
     return out
+
+
+def get_filtered_technical_document(
+    technical_content_json: dict[str, Any] | None,
+    section_payloads: list[dict],
+    selected_module_ids: list[str] | None,
+) -> dict[str, Any]:
+    """
+    Canonical normalize → catalog → filter pipeline shared by the
+    technical and commercial PDF services (and any other consumer that
+    needs the technical document as the client would see it).
+
+    section_payloads: [{'section_type', 'content_json'}] for the proposal.
+    """
+    from content.services.proposal_module_links import (
+        build_proposal_module_link_catalog,
+        normalize_technical_document_module_links,
+    )
+
+    data = normalize_technical_document_module_links(
+        technical_content_json, section_payloads,
+    )
+    catalog = build_proposal_module_link_catalog(section_payloads)
+    return filter_technical_document_by_module_selection(
+        data,
+        selected_module_ids,
+        always_included_ids=catalog['always_included_ids'],
+    )

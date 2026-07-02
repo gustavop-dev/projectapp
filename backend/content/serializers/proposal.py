@@ -3,6 +3,7 @@ from rest_framework import serializers
 from accounts.models import UserProfile
 from accounts.services import proposal_client_service
 from content.services.proposal_module_links import (
+    ensure_functional_requirements_item_ids,
     normalize_technical_document_module_links,
 )
 from content.models import (
@@ -540,6 +541,11 @@ class ProposalSectionUpdateSerializer(serializers.ModelSerializer):
                 for section in self.instance.proposal.sections.all()
             ]
             return normalize_technical_document_module_links(value, sections)
+        if (
+            self.instance
+            and self.instance.section_type == ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS
+        ):
+            return ensure_functional_requirements_item_ids(value)
         return value
 
 
@@ -748,6 +754,8 @@ class ProposalDefaultConfigSerializer(serializers.ModelSerializer):
             cloned = dict(section)
             content_json = cloned.get('content_json')
             cloned['content_json'] = content_json if isinstance(content_json, dict) else {}
+            if cloned.get('section_type') == ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS:
+                cloned['content_json'] = ensure_functional_requirements_item_ids(cloned['content_json'])
             if cloned.get('section_type') == ProposalSection.SectionType.TECHNICAL_DOCUMENT:
                 technical_content = cloned['content_json']
             normalized_sections.append(cloned)
@@ -766,8 +774,7 @@ class ProposalDefaultConfigSerializer(serializers.ModelSerializer):
                 }
                 for section in normalized_sections
             ]
-            return normalized_sections
-        return value
+        return normalized_sections
 
     def validate_expiration_days(self, value):
         if value < 1 or value > 365:

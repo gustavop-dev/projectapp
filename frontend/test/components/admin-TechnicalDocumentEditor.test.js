@@ -845,3 +845,118 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
     expect(wrapper.findAll('[data-testid="technical-epic-description-textarea"]').length).toBe(1);
   });
 });
+
+
+describe('linked_item_ids (item traceability)', () => {
+  const ITEM_OPTIONS = [
+    {
+      groupId: 'views',
+      groupLabel: '🖥️ Vistas',
+      items: [
+        { id: 'item-views-home', label: '🏠 Home' },
+        { id: 'item-views-contacto', label: '📧 Contacto' },
+      ],
+    },
+  ];
+
+  const sectionWithEpic = {
+    ...baseSection,
+    content_json: {
+      ...baseSection.content_json,
+      epics: [{
+        epicKey: 'views',
+        title: 'Vistas',
+        description: '',
+        linked_module_ids: [],
+        requirements: [{
+          flowKey: 'req-home',
+          title: 'Home dinámico',
+          description: '',
+          configuration: '',
+          usageFlow: '',
+          priority: '',
+          linked_module_ids: [],
+          linked_item_ids: ['item-views-home'],
+        }],
+      }],
+    },
+  };
+
+  it('renders the grouped item checkboxes when itemLinkOptions are provided', () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: sectionWithEpic,
+      itemLinkOptions: ITEM_OPTIONS,
+    });
+
+    const block = wrapper.find('[data-testid="technical-req-item-links"]');
+    expect(block.exists()).toBe(true);
+    expect(block.text()).toContain('Vistas');
+    expect(block.text()).toContain('Home');
+    expect(block.text()).toContain('Contacto');
+  });
+
+  it('hides the item block when itemLinkOptions is empty', () => {
+    const wrapper = mountTechnicalDocumentEditor({ section: sectionWithEpic });
+    expect(wrapper.find('[data-testid="technical-req-item-links"]').exists()).toBe(false);
+  });
+
+  it('checks the boxes for already-linked items', () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: sectionWithEpic,
+      itemLinkOptions: ITEM_OPTIONS,
+    });
+
+    const boxes = wrapper.find('[data-testid="technical-req-item-links"]').findAll('input[type="checkbox"]');
+    expect(boxes[0].element.checked).toBe(true);  // item-views-home
+    expect(boxes[1].element.checked).toBe(false); // item-views-contacto
+  });
+
+  it('toggling a checkbox updates linked_item_ids in the save payload', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: sectionWithEpic,
+      itemLinkOptions: ITEM_OPTIONS,
+    });
+
+    const boxes = wrapper.find('[data-testid="technical-req-item-links"]').findAll('input[type="checkbox"]');
+    await boxes[1].trigger('change');
+    await wrapper.findAll('button').find((b) => b.text().startsWith('Guardar detalle')).trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload;
+    expect(payload.content_json.epics[0].requirements[0].linked_item_ids)
+      .toEqual(['item-views-home', 'item-views-contacto']);
+  });
+
+  it('normalizes camelCase linkedItemIds from incoming content_json', () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...sectionWithEpic,
+        content_json: {
+          ...sectionWithEpic.content_json,
+          epics: [{
+            epicKey: 'views',
+            title: 'Vistas',
+            requirements: [{ flowKey: 'r', title: 'R', linkedItemIds: ['item-views-home', 'item-views-home'] }],
+          }],
+        },
+      },
+      itemLinkOptions: ITEM_OPTIONS,
+    });
+
+    const boxes = wrapper.find('[data-testid="technical-req-item-links"]').findAll('input[type="checkbox"]');
+    expect(boxes[0].element.checked).toBe(true);
+  });
+
+  it('addRequirement initializes linked_item_ids as an empty array', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: sectionWithEpic,
+      itemLinkOptions: ITEM_OPTIONS,
+    });
+
+    await wrapper.findAll('button').find((b) => b.text() === '+ Requerimiento').trigger('click');
+    await wrapper.findAll('button').find((b) => b.text().startsWith('Guardar detalle')).trigger('click');
+
+    const payload = wrapper.emitted('save')[0][0].payload;
+    const reqs = payload.content_json.epics[0].requirements;
+    expect(reqs[reqs.length - 1].linked_item_ids).toEqual([]);
+  });
+});

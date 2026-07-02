@@ -81,6 +81,8 @@
     <FunctionalRequirementsModal
       :visible="modalVisible"
       :group="selectedGroup"
+      :item-requirements-map="itemRequirementsMap"
+      :language="language"
       @close="modalVisible = false"
     />
   </section>
@@ -104,6 +106,10 @@ const props = defineProps({
   proposalUuid: {
     type: String,
     default: '',
+  },
+  itemRequirementsMap: {
+    type: Object,
+    default: () => ({}),
   },
 });
 

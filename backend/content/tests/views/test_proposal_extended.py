@@ -1055,3 +1055,107 @@ class TestEngagementScoreStatusBranches:
         score_single = _compute_engagement_score(p, view_events, [], 1)
         score_revisit = _compute_engagement_score(p, view_events, [], 3)
         assert score_revisit > score_single
+
+
+# ═══════════════════════════════════════════════════════════════════
+# content/views/proposal.py — item id assignment + linked_item_ids
+# in create-from-json / update-from-json
+# ═══════════════════════════════════════════════════════════════════
+
+@freeze_time('2026-01-15T10:00:00Z')
+class TestFromJSONItemRequirementTraceability:
+    def _base_payload(self, title):
+        return {
+            'title': title, 'client_name': 'Trace Client',
+            'client_email': 'trace@test.com',
+            'total_investment': 5000, 'currency': 'COP', 'language': 'es',
+            'sections': {
+                'general': {'clientName': 'Trace Client', 'proposalTitle': title},
+                'functionalRequirements': {
+                    'groups': [
+                        {'id': 'views', 'title': 'Vistas', 'items': [
+                            {'icon': '🏠', 'name': 'Registro de usuario', 'description': 'Alta'},
+                        ]},
+                    ],
+                },
+                'technicalDocument': {
+                    'epics': [{
+                        'epicKey': 'views',
+                        'title': 'Vistas',
+                        'requirements': [{
+                            'flowKey': 'req-registro',
+                            'title': 'Registro con verificación',
+                            'linkedItemIds': ['item-views-registro-de-usuario'],
+                        }],
+                    }],
+                },
+            },
+        }
+
+    def test_create_from_json_assigns_item_ids(self, admin_client, db):
+        response = admin_client.post(
+            reverse('create-proposal-from-json'),
+            self._base_payload('Trace Create'),
+            format='json',
+        )
+        assert response.status_code == 201
+        proposal = BusinessProposal.objects.get(title='Trace Create')
+        fr = ProposalSection.objects.get(
+            proposal=proposal, section_type='functional_requirements',
+        )
+        views_group = next(g for g in fr.content_json['groups'] if g['id'] == 'views')
+        registro = next(i for i in views_group['items'] if i['name'] == 'Registro de usuario')
+        assert registro['id'] == 'item-views-registro-de-usuario'
+
+    def test_create_from_json_normalizes_technical_linked_item_ids(self, admin_client, db):
+        response = admin_client.post(
+            reverse('create-proposal-from-json'),
+            self._base_payload('Trace Create Tech'),
+            format='json',
+        )
+        assert response.status_code == 201
+        proposal = BusinessProposal.objects.get(title='Trace Create Tech')
+        tech = ProposalSection.objects.get(
+            proposal=proposal, section_type='technical_document',
+        )
+        req = tech.content_json['epics'][0]['requirements'][0]
+        assert req['linked_item_ids'] == ['item-views-registro-de-usuario']
+        assert 'linkedItemIds' not in req
+
+    def test_update_from_json_assigns_item_ids_and_normalizes_links(self, admin_client, db):
+        create_resp = admin_client.post(
+            reverse('create-proposal-from-json'),
+            self._base_payload('Trace Update'),
+            format='json',
+        )
+        assert create_resp.status_code == 201
+        proposal = BusinessProposal.objects.get(title='Trace Update')
+
+        payload = self._base_payload('Trace Update')
+        payload['sections']['functionalRequirements']['groups'][0]['items'].append(
+            {'icon': '📊', 'name': 'Panel de métricas', 'description': 'KPIs'},
+        )
+        payload['sections']['technicalDocument']['epics'][0]['requirements'].append({
+            'flowKey': 'req-metricas',
+            'title': 'Panel de métricas en vivo',
+            'linkedItemIds': ['item-views-panel-de-metricas', 'item-views-panel-de-metricas'],
+        })
+        response = admin_client.put(
+            reverse('update-proposal-from-json', args=[proposal.id]),
+            payload,
+            format='json',
+        )
+        assert response.status_code == 200
+
+        fr = ProposalSection.objects.get(
+            proposal=proposal, section_type='functional_requirements',
+        )
+        views_group = next(g for g in fr.content_json['groups'] if g['id'] == 'views')
+        metricas = next(i for i in views_group['items'] if i['name'] == 'Panel de métricas')
+        assert metricas['id'] == 'item-views-panel-de-metricas'
+
+        tech = ProposalSection.objects.get(
+            proposal=proposal, section_type='technical_document',
+        )
+        new_req = tech.content_json['epics'][0]['requirements'][1]
+        assert new_req['linked_item_ids'] == ['item-views-panel-de-metricas']

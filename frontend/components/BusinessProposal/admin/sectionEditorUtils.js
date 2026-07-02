@@ -6,6 +6,7 @@
  */
 
 import { DEFAULT_HOSTING_PERCENT, DEFAULT_BILLING_TIERS } from '~/stores/proposals_constants';
+import { ensureFunctionalRequirementItemIds } from '~/utils/itemRequirementLinks';
 
 /**
  * Join an array into newline-separated text.
@@ -68,7 +69,7 @@ export function buildFormFromJson(json, type, proposalData) {
           price_percent: g.price_percent ?? null,
           is_invite: g.is_invite || false,
           invite_note: g.invite_note || '',
-          items: (g.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '', price: i.price ?? null, is_required: i.is_required !== false })),
+          items: (g.items || []).map(i => ({ id: i.id || '', icon: i.icon || '', name: i.name || '', description: i.description || '', price: i.price ?? null, is_required: i.is_required !== false })),
           _pasteMode: g._editMode === 'paste', _pasteText: g.rawText || '', _collapsed: true,
         })),
         additionalModules: (j.additionalModules || []).map(m => ({
@@ -80,7 +81,7 @@ export function buildFormFromJson(json, type, proposalData) {
           price_percent: m.price_percent ?? null,
           is_invite: m.is_invite || false,
           invite_note: m.invite_note || '',
-          items: (m.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '', price: i.price ?? null, is_required: i.is_required !== false })),
+          items: (m.items || []).map(i => ({ id: i.id || '', icon: i.icon || '', name: i.name || '', description: i.description || '', price: i.price ?? null, is_required: i.is_required !== false })),
           _pasteMode: m._editMode === 'paste', _pasteText: m.rawText || '', _collapsed: true,
         })),
       };
@@ -196,7 +197,7 @@ export function formToJson(formData, type) {
           id: g.id, icon: g.icon, title: g.title, description: g.description,
           is_visible: g.is_visible !== undefined ? g.is_visible : true,
           selected: g.selected ?? false,
-          items: (g.items || []).map(i => ({ icon: i.icon, name: i.name, description: i.description, ...(i.price != null ? { price: i.price } : {}), is_required: i.is_required !== false })),
+          items: (g.items || []).map(i => ({ ...(i.id ? { id: i.id } : {}), icon: i.icon, name: i.name, description: i.description, ...(i.price != null ? { price: i.price } : {}), is_required: i.is_required !== false })),
         };
         if (g.is_calculator_module) out.is_calculator_module = true;
         if (g.default_selected != null) out.default_selected = g.default_selected;
@@ -211,11 +212,11 @@ export function formToJson(formData, type) {
         }
         return out;
       };
-      return {
+      return ensureFunctionalRequirementItemIds({
         index: f.index, title: f.title, intro: f.intro,
         groups: (f.groups || []).map(cleanGroup),
         additionalModules: (f.additionalModules || []).map(cleanGroup),
-      };
+      });
     }
     case 'timeline':
       return { index: f.index, title: f.title, introText: f.introText, totalDuration: f.totalDuration, phases: f.phases.map(p => ({ title: p.title, duration: p.duration, description: p.description, tasks: textToArr(p.tasks), milestone: p.milestone })) };

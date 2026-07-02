@@ -1,4 +1,4 @@
-# Esfuerzo, Precio y Reglas de Mercado — Calculadora de Requerimientos (v1.2)
+# Esfuerzo, Precio y Reglas de Mercado — Calculadora de Requerimientos (v1.3)
 
 > Complemento de `effort-indicators.md`. Traduce el nivel de esfuerzo a horas y precio COP, y define las reglas comerciales del mercado colombiano.
 
@@ -7,7 +7,7 @@
 - **Implementación web por defecto.** La calculadora está calibrada para web. La plataforma solo entra como modificador excluyente: web = sin recargo · PWA = `+30%` · app móvil nativa (iOS/Android + tiendas) = `+60%` (aplicado al final, `×1,6` sobre el resultado ya modificado).
 - **Desarrollo desde cero (greenfield)** salvo que la descripción declare que se extiende algo existente.
 - **Cliente PYME colombiano.** Precios en **COP, sin IVA**.
-- **Tarifa de venta blended de referencia: ≈ $75.000 COP/hora** (extremo competitivo del mercado local, ≈ US$22 a TRM ≈ $3.443/USD).
+- **Tarifa de venta blended de referencia: ≈ $18.750 COP/hora** (≈ US$5,4 a TRM ≈ $3.443/USD). *Recalibrada el 02/07/2026:* la calibración anterior (≈ $75.000/h) producía precios justos para un mercado desarrollado (≈ EE.UU.), no para la realidad colombiana; por directriz del dueño los rangos se dividieron **÷4**.
 - **Killer: $20.000.000 COP** — una propuesta (la **suma** de los requerimientos, no un ítem suelto) por encima de ese techo tiende a ser rechazada. Obligatorio fragmentar.
 - **Granularidad:** se estima funcionalidad por funcionalidad; el proyecto es la suma.
 
@@ -20,11 +20,11 @@
 
 | Nivel | Pts | Perfil típico | Horas | Precio COP | ≈ USD |
 |---|---|---|---|---|---|
-| **XS** | 1 | Cambio de configuración, un campo, validación básica, enlace simple. | 2–7 | $150K – $500K | $45–145 |
-| **S** | 2 | Ajuste de UI/plantilla, modal, correo básico, contador simple. | 7–20 | $500K – $1,5M | $145–435 |
-| **M** | 3 | CRUD estándar con extras, generación de archivos, permisos, lógica condicional. A menudo se apoya en algo existente. | 20–50 | $1,5M – $3,5M | $435–1.000 |
-| **L** | 5 | **Un feature completo desde cero**: backend + frontend robustos (a veces + una integración, que lo lleva al techo del rango). | 55–90 | $4M – $7M | $1.160–2.030 |
-| **XL** | 8 | **Referencia de magnitud, NO cotizable como ítem.** Exige descomposición obligatoria en 2+ filas `S`/`M`/`L` (cada una suele ser un L). El rango solo sirve para dimensionar la conversación. | 90–200 | $7M – $15M | $2.030–4.350 |
+| **XS** | 1 | Cambio de configuración, un campo, validación básica, enlace simple. | 2–7 | $40K – $130K | $12–38 |
+| **S** | 2 | Ajuste de UI/plantilla, modal, correo básico, contador simple. | 7–20 | $130K – $380K | $38–110 |
+| **M** | 3 | CRUD estándar con extras, generación de archivos, permisos, lógica condicional. A menudo se apoya en algo existente. | 20–50 | $380K – $880K | $110–255 |
+| **L** | 5 | **Un feature completo desde cero**: backend + frontend robustos (a veces + una integración, que lo lleva al techo del rango). | 55–90 | $1,0M – $1,8M | $290–510 |
+| **XL** | 8 | **Referencia de magnitud, NO cotizable como ítem.** Exige descomposición obligatoria en 2+ filas `S`/`M`/`L` (cada una suele ser un L). El rango solo sirve para dimensionar la conversación. | 90–200 | $1,8M – $3,8M | $510–1.090 |
 
 **Fuente de verdad:** la **columna de precio** manda (es la calibración comercial del dueño frente al mercado); las horas son indicativas. Los pequeños desfases entre horas × tarifa y el rango de precio, y el colchón de horas entre `M` (50) y `L` (55), son deliberados: margen pre-modificador. Los puntos (Pts) son un *shorthand* de magnitud, no entran en fórmulas.
 
@@ -46,6 +46,8 @@
 | ✅ **SWEET SPOT** | < $12M | Propuesta única, sin fricción. |
 | ⚠️ **FRICCIÓN** | $12M – $20M | Viable, pero conviene ofrecer fases o versionado para bajar el ticket inicial. |
 | ⛔ **KILLER** | > $20M | Rechazo probable. Obligatorio fragmentar antes de presentar. |
+
+> **Nota (recalibración 02/07/2026):** los umbrales del semáforo **no** se dividieron con la tarifa. Miden la **disposición de pago absoluta** del cliente colombiano por propuesta (cuánto está dispuesto a firmar), no el costo de producción — por eso permanecen en $12M/$20M aunque los precios por talla bajaran ÷4.
 
 ### Estrategia A — Fragmentación por fases
 
@@ -88,4 +90,10 @@ Anticiparlas siempre: no para cobrarlas de una, sino para ordenarlas en fases/ve
 
 ## Supuestos que siempre se declaran
 
-Precios en COP sin IVA · implementación web (PWA/nativa solo si se declara, con su recargo) · desarrollo desde cero · tarifa blended ≈ $75K/h · no incluye infraestructura recurrente, licencias de terceros ni migración de datos legados salvo mención explícita · estimación sujeta a refinamiento tras análisis detallado.
+Precios en COP sin IVA · implementación web (PWA/nativa solo si se declara, con su recargo) · desarrollo desde cero · tarifa blended ≈ $18.750/h (recalibración colombiana 02/07/2026) · no incluye infraestructura recurrente, licencias de terceros ni migración de datos legados salvo mención explícita · estimación sujeta a refinamiento tras análisis detallado.
+
+---
+
+## Qué cambió en esta versión (v1.3 — recalibración al mercado colombiano)
+
+**Recalibración de precios (02/07/2026, directriz del dueño tras probar la calculadora con los tres reportes de Vástago):** los rangos por talla producían valores justos para un mercado desarrollado (≈ EE.UU.); se dividieron **÷4** para acercarlos a lo que el cliente colombiano efectivamente acepta. La tarifa blended pasó de ≈ $75.000/h a **≈ $18.750/h**. **Sin cambios:** horas por nivel, señales y niveles del catálogo, modificadores, y las zonas del semáforo ($12M/$20M), que miden disposición de pago absoluta y no se recalibran con la tarifa.

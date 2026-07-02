@@ -959,3 +959,89 @@ class TestProposalSectionDetailSerializerHostingNormalization:
 
         data = ProposalSectionDetailSerializer(section).data
         assert data['content_json']['hostingPlan']['hostingPercent'] == 99
+
+
+class TestSectionUpdateItemIdNormalization:
+    def test_functional_requirements_update_assigns_item_ids(self, db, proposal):
+        section = ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='Requerimientos',
+            order=1,
+            content_json={},
+        )
+        serializer = ProposalSectionUpdateSerializer(
+            section,
+            data={'content_json': {
+                'groups': [{'id': 'views', 'items': [{'name': 'Registro de usuario'}]}],
+            }},
+            partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        items = serializer.validated_data['content_json']['groups'][0]['items']
+        assert items[0]['id'] == 'item-views-registro-de-usuario'
+
+    def test_functional_requirements_update_preserves_existing_item_ids(self, db, proposal):
+        section = ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='Requerimientos',
+            order=1,
+            content_json={},
+        )
+        serializer = ProposalSectionUpdateSerializer(
+            section,
+            data={'content_json': {
+                'groups': [{'id': 'views', 'items': [{'name': 'Home', 'id': 'custom-id'}]}],
+            }},
+            partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        items = serializer.validated_data['content_json']['groups'][0]['items']
+        assert items[0]['id'] == 'custom-id'
+
+    def test_technical_document_update_normalizes_linked_item_ids(self, db, proposal):
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='Requerimientos',
+            order=1,
+            content_json={'groups': [{'id': 'views', 'title': 'Vistas', 'items': [
+                {'name': 'Home', 'id': 'item-views-home'},
+            ]}]},
+        )
+        section = ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='technical_document',
+            title='Detalle técnico',
+            order=2,
+            content_json={},
+        )
+        serializer = ProposalSectionUpdateSerializer(
+            section,
+            data={'content_json': {'epics': [{
+                'epicKey': 'views',
+                'requirements': [{'title': 'R', 'linkedItemIds': ['item-views-home', 'item-views-home']}],
+            }]}},
+            partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        req = serializer.validated_data['content_json']['epics'][0]['requirements'][0]
+        assert req['linked_item_ids'] == ['item-views-home']
+        assert 'linkedItemIds' not in req
+
+
+class TestDefaultConfigItemIdNormalization:
+    def test_sections_json_assigns_item_ids_to_functional_requirements(self):
+        section = {
+            'section_type': 'functional_requirements',
+            'title': 'Requerimientos',
+            'order': 1,
+            'content_json': {'groups': [{'id': 'views', 'items': [{'name': 'Registro'}]}]},
+        }
+        serializer = ProposalDefaultConfigSerializer(
+            data={'language': 'es', 'sections_json': [section]}
+        )
+        assert serializer.is_valid(), serializer.errors
+        fr = serializer.validated_data['sections_json'][0]
+        assert fr['content_json']['groups'][0]['items'][0]['id'] == 'item-views-registro'

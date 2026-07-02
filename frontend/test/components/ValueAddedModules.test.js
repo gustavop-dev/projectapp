@@ -37,7 +37,7 @@ const FR_GROUPS = [
 
 const ModalStub = {
   name: 'FunctionalRequirementsModal',
-  props: ['visible', 'group'],
+  props: ['visible', 'group', 'itemRequirementsMap', 'language'],
   template: '<div data-testid="frm-stub" v-if="visible" :data-group-id="group?.id" :data-items-count="group?.items?.length ?? 0" />',
 };
 
@@ -219,5 +219,26 @@ describe('ValueAddedModules', () => {
       await wrapper.find('[data-testid="value-added-card-admin_module"]').trigger('click');
       expect(create_request).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('ValueAddedModules item-requirements pass-through', () => {
+  it('forwards itemRequirementsMap and language to the shared modal', async () => {
+    const map = { 'item-admin_module-gestor-de-productos': [{ title: 'CRUD completo' }] };
+    const wrapper = mountSection({ props: { itemRequirementsMap: map } });
+
+    await wrapper.find('[data-testid="value-added-card-admin_module"]').trigger('click');
+
+    const modal = wrapper.findComponent({ name: 'FunctionalRequirementsModal' });
+    expect(modal.props('itemRequirementsMap')).toEqual(map);
+    expect(modal.props('language')).toBe('es');
+  });
+
+  it('defaults itemRequirementsMap to an empty object', async () => {
+    const wrapper = mountSection();
+    await wrapper.find('[data-testid="value-added-card-admin_module"]').trigger('click');
+
+    const modal = wrapper.findComponent({ name: 'FunctionalRequirementsModal' });
+    expect(modal.props('itemRequirementsMap')).toEqual({});
   });
 });
