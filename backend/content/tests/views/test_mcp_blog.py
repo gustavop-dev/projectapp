@@ -1,0 +1,179 @@
+"""Tests for the Blog Publisher MCP HTTP endpoint."""
+import pytest
+
+from content.models import BlogPost, McpConnector
+
+
+@pytest.fixture
+def blog_connector(db):
+    connector, _ = McpConnector.objects.get_or_create(
+        slug='blog', defaults={'name': 'Blog Publisher'},
+    )
+    connector.is_active = True
+    connector.save(update_fields=['is_active'])
+    token = connector.generate_token()
+    return connector, token
+
+
+def _url(token):
+    return f'/api/mcp/blog/{token}/'
+
+
+def _rpc(method, params=None, msg_id=1):
+    message = {'jsonrpc': '2.0', 'id': msg_id, 'method': method}
+    if params is not None:
+        message['params'] = params
+    return message
+
+
+VALID_POST = {
+    'title_es': 'Post por MCP',
+    'title_en': 'Post via MCP',
+    'excerpt_es': 'Resumen.',
+    'excerpt_en': 'Summary.',
+    'content_json_es': {
+        'intro': 'Intro.',
+        'sections': [{'heading': 'Uno', 'content': 'Texto.'}],
+    },
+}
+
+
+@pytest.mark.django_db
+class TestMcpEndpointAuth:
+    def test_wrong_token_is_404(self, api_client, blog_connector):
+        response = api_client.post(_url('bad-token'), _rpc('ping'), format='json')
+        assert response.status_code == 404
+
+    def test_inactive_connector_is_404_even_with_valid_token(self, api_client, blog_connector):
+        connector, token = blog_connector
+        connector.is_active = False
+        connector.save(update_fields=['is_active'])
+        response = api_client.post(_url(token), _rpc('ping'), format='json')
+        assert response.status_code == 404
+
+    def test_get_is_not_allowed(self, api_client, blog_connector):
+        _, token = blog_connector
+        response = api_client.get(_url(token))
+        assert response.status_code == 405
+
+
+@pytest.mark.django_db
+class TestMcpEndpointFlow:
+    def test_initialize_handshake(self, api_client, blog_connector):
+        _, token = blog_connector
+        response = api_client.post(
+            _url(token),
+            _rpc('initialize', {'protocolVersion': '2025-06-18'}),
+            format='json',
+        )
+        assert response.status_code == 200
+        assert response.data['result']['serverInfo']['name'] == 'projectapp-blog-mcp'
+
+    def test_initialized_notification_returns_202(self, api_client, blog_connector):
+        _, token = blog_connector
+        response = api_client.post(
+            _url(token),
+            {'jsonrpc': '2.0', 'method': 'notifications/initialized'},
+            format='json',
+        )
+        assert response.status_code == 202
+
+    def test_tools_list_exposes_six_tools(self, api_client, blog_connector):
+        _, token = blog_connector
+        response = api_client.post(_url(token), _rpc('tools/list'), format='json')
+        names = [t['name'] for t in response.data['result']['tools']]
+        assert names == [
+            'get_blog_template', 'create_blog_post', 'update_blog_post',
+            'delete_blog_post', 'list_blog_posts', 'get_blog_calendar',
+        ]
+
+    def test_tools_call_creates_post_and_touches_last_used(self, api_client, blog_connector):
+        connector, token = blog_connector
+        assert connector.last_used_at is None
+        response = api_client.post(
+            _url(token),
+            _rpc('tools/call', {'name': 'create_blog_post', 'arguments': VALID_POST}),
+            format='json',
+        )
+        assert response.status_code == 200
+        assert response.data['result']['isError'] is False
+        assert BlogPost.objects.filter(title_es='Post por MCP').exists()
+        connector.refresh_from_db()
+        assert connector.last_used_at is not None
+
+    def test_validation_error_is_readable_tool_error(self, api_client, blog_connector):
+        _, token = blog_connector
+        response = api_client.post(
+            _url(token),
+            _rpc('tools/call', {'name': 'create_blog_post', 'arguments': {'title_es': 'x'}}),
+            format='json',
+        )
+        assert response.status_code == 200
+        assert response.data['result']['isError'] is True
+        assert 'title_en' in response.data['result']['content'][0]['text']
+
+
+@pytest.fixture
+def superuser_client(api_client, django_user_model):
+    user = django_user_model.objects.create_user(
+        username='root_test', password='x', is_staff=True, is_superuser=True,
+    )
+    api_client.force_authenticate(user=user)
+    return api_client
+
+
+@pytest.mark.django_db
+class TestMcpConnectorPanelEndpoints:
+    def test_staff_non_superuser_gets_403(self, admin_client):
+        assert admin_client.get('/api/mcp-connectors/').status_code == 403
+        assert admin_client.post('/api/mcp-connectors/blog/generate-token/').status_code == 403
+
+    def test_list_includes_blog_connector_with_tools(self, superuser_client):
+        response = superuser_client.get('/api/mcp-connectors/')
+        assert response.status_code == 200
+        blog = next(c for c in response.data if c['slug'] == 'blog')
+        assert blog['is_active'] is False
+        assert blog['has_token'] is False
+        tool_names = [t['name'] for t in blog['tools']]
+        assert 'create_blog_post' in tool_names
+
+    def test_generate_token_returns_full_url_once(self, superuser_client):
+        response = superuser_client.post('/api/mcp-connectors/blog/generate-token/')
+        assert response.status_code == 200
+        url = response.data['connector_url']
+        # Host comes from the request (staging/local instances must hand out
+        # URLs pointing at themselves, not at production).
+        assert '/api/mcp/blog/' in url
+        assert url.startswith('http://testserver/')
+        token = url.rstrip('/').rsplit('/', 1)[-1]
+        connector = McpConnector.objects.get(slug='blog')
+        assert connector.check_token(token) is True
+        assert response.data['token_prefix'] == token[:8]
+
+    def test_toggle_is_active(self, superuser_client):
+        response = superuser_client.patch(
+            '/api/mcp-connectors/blog/', {'is_active': True}, format='json',
+        )
+        assert response.status_code == 200
+        assert McpConnector.objects.get(slug='blog').is_active is True
+
+    def test_toggle_accepts_string_false(self, superuser_client):
+        connector = McpConnector.objects.get(slug='blog')
+        connector.is_active = True
+        connector.save(update_fields=['is_active'])
+        response = superuser_client.patch(
+            '/api/mcp-connectors/blog/', {'is_active': 'false'}, format='json',
+        )
+        assert response.status_code == 200
+        assert McpConnector.objects.get(slug='blog').is_active is False
+
+    def test_toggle_rejects_invalid_boolean(self, superuser_client):
+        response = superuser_client.patch(
+            '/api/mcp-connectors/blog/', {'is_active': 'quizás'}, format='json',
+        )
+        assert response.status_code == 400
+
+    def test_unknown_slug_is_404(self, superuser_client):
+        assert superuser_client.patch(
+            '/api/mcp-connectors/nope/', {'is_active': True}, format='json',
+        ).status_code == 404

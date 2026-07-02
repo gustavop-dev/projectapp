@@ -58,3 +58,4 @@ from .ads_spend_record import AdsSpendRecord
 from .card_balance_snapshot import CardBalanceSnapshot
 from .accounting_change_log import AccountingChangeLog
 from .accounting_settings import AccountingSettings
+from .mcp_connector import McpConnector

@@ -1,6 +1,6 @@
 {
   "version": "2.35.0",
-  "lastUpdated": "2026-05-04",
+  "lastUpdated": "2026-07-02",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1706,23 +1706,23 @@
       ]
     },
     "admin-send-branded-email": {
-      "name": "Send Branded Email",
+      "name": "Admin Send Branded Email (Negotiating)",
       "module": "admin",
       "roles": [
         "admin"
       ],
       "priority": "P2",
-      "description": "Admin sends a branded email from proposal edit page Correos tab. Composer with draggable sections, file attachments, branded preview, and paginated email history.",
+      "description": "Admin sends a branded marketing email from the Correos tab of a proposal in negotiating/accepted/rejected status. Composer with draggable sections, file attachments, branded preview, paginated history. Endpoints: POST /api/proposals/:id/branded-email/send/, GET /api/proposals/:id/branded-email/defaults/, GET /api/proposals/:id/branded-email/history/.",
       "expectedSpecs": 1
     },
     "admin-send-proposal-email": {
-      "name": "Send Proposal Email",
+      "name": "Admin Send Proposal Email (Sent+)",
       "module": "admin",
       "roles": [
         "admin"
       ],
       "priority": "P2",
-      "description": "Admin sends a proposal email logged as activity from proposal edit page Enviar correo tab. Same composer UI, each send creates ProposalChangeLog entry.",
+      "description": "Admin sends a proposal email from the Enviar correo tab once the proposal is sent or beyond. Each send writes ProposalChangeLog with EMAIL_SENT change type and updates last_activity_at. Reuses the same composer UI as branded email via mode prop. Endpoints: POST /api/proposals/:id/proposal-email/send/, GET /api/proposals/:id/proposal-email/defaults/, GET /api/proposals/:id/proposal-email/history/, POST /api/proposals/:id/proposal-email/markdown-attachment/.",
       "expectedSpecs": 1
     },
     "admin-proposal-attach-from-documents": {
@@ -2395,26 +2395,6 @@
         "No Playwright spec yet. Suggested spec asserts: modal opens with diff payload mocked, apply triggers POST and updates the section, dismiss leaves content unchanged."
       ]
     },
-    "admin-send-branded-email": {
-      "name": "Admin Send Branded Email (Negotiating)",
-      "module": "admin",
-      "roles": [
-        "admin"
-      ],
-      "priority": "P2",
-      "description": "Admin sends a branded marketing email from the Correos tab of a proposal in negotiating/accepted/rejected status. Composer with draggable sections, file attachments, branded preview, paginated history. Endpoints: POST /api/proposals/:id/branded-email/send/, GET /api/proposals/:id/branded-email/defaults/, GET /api/proposals/:id/branded-email/history/.",
-      "expectedSpecs": 1
-    },
-    "admin-send-proposal-email": {
-      "name": "Admin Send Proposal Email (Sent+)",
-      "module": "admin",
-      "roles": [
-        "admin"
-      ],
-      "priority": "P2",
-      "description": "Admin sends a proposal email from the Enviar correo tab once the proposal is sent or beyond. Each send writes ProposalChangeLog with EMAIL_SENT change type and updates last_activity_at. Reuses the same composer UI as branded email via mode prop. Endpoints: POST /api/proposals/:id/proposal-email/send/, GET /api/proposals/:id/proposal-email/defaults/, GET /api/proposals/:id/proposal-email/history/, POST /api/proposals/:id/proposal-email/markdown-attachment/.",
-      "expectedSpecs": 1
-    },
     "proposal-magic-link-request": {
       "name": "Proposal Magic Link Request (Expired)",
       "module": "proposal",
@@ -2564,6 +2544,16 @@
       "priority": "P3",
       "description": "Superuser tracks advertising spend at /panel/accounting/ads: chronological list with a computed running accumulated column (calculated over the full history), origin-card and platform filters, and modal CRUD.",
       "expectedSpecs": 2
+    },
+    "admin-mcps": {
+      "name": "Admin MCPs Connectors",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser manages MCP connectors at /panel/mcps: sees the Blog Publisher card with its tool catalog, generates/rotates the connector token (one-time URL modal with copy, GET /api/mcp-connectors/ + POST /api/mcp-connectors/<slug>/generate-token/), and toggles is_active. Includes the superuser gate: staff non-superusers are redirected to /panel.",
+      "expectedSpecs": 4
     }
   }
 }

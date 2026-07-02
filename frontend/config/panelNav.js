@@ -94,6 +94,14 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
       ],
     },
     {
+      id: 'integrations',
+      label: 'Integrations',
+      superuserOnly: true,
+      items: [
+        { label: 'MCPs', href: lp('/panel/mcps'), icon: 'settings' },
+      ],
+    },
+    {
       id: 'reference',
       label: 'Reference',
       items: [

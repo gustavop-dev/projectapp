@@ -477,6 +477,21 @@ export const viewCatalogSections = [
     ],
   },
   {
+    id: 'panel-mcps',
+    label: 'MCPs (panel)',
+    description: 'Gestion de conectores MCP para Claude, solo superusuarios.',
+    views: [
+      {
+        label: 'MCPs — Conectores',
+        url: '/panel/mcps',
+        file: 'frontend/pages/panel/mcps/index.vue',
+        reference: 'vista de gestion de conectores MCP del panel',
+        audience: 'admin',
+        viewType: 'config',
+      },
+    ],
+  },
+  {
     id: 'client-platform',
     label: 'Plataforma de clientes',
     description: 'Vistas del portal autenticado para clientes y administradores de proyecto.',

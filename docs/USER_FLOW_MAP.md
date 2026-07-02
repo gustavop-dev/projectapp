@@ -5202,3 +5202,32 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-history` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
 | `admin-accounting-settings` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
 | `admin-accounting-ads` | admin | superuser | P3 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
+
+---
+
+## Section 24 — MCP Connectors Panel (superuser-only) (Jul 2, 2026)
+
+Management UI for remote MCP connectors that expose panel modules to Claude (claude.ai custom connectors). Lives at `/panel/mcps` behind `admin-auth` + `superuser-only` middlewares; the backend enforces `IsSuperUser` on every `/api/mcp-connectors/*` endpoint. The MCP endpoint itself (`POST /api/mcp/blog/<token>/`) is machine-facing (capability-URL token auth, no browser UI) and is covered by backend tests (`backend/content/tests/views/test_mcp_blog.py`), not E2E.
+
+### FLOW: `admin-mcps`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/mcps`
+- **Description:** Superuser sees one card per MCP connector (starting with Blog Publisher): name, description, active toggle, masked token prefix, last-used timestamp and the tool catalog exposed to Claude. "Generar/Regenerar token" calls `POST /api/mcp-connectors/<slug>/generate-token/` and shows the full connector URL exactly once in a modal with a copy button (the plaintext token is never retrievable again; only its SHA-256 hash is stored). The toggle PATCHes `is_active`, killing or enabling the public MCP endpoint instantly.
+- **Steps:**
+  1. Superuser opens `/panel/mcps` (sidebar section "Integrations", superuser-gated).
+  2. Reviews the Blog Publisher card and its tool list.
+  3. Clicks "Generar token" → one-time modal with the connector URL → copies it into claude.ai → Settings → Connectors.
+  4. Activates the connector with the toggle.
+  - [Branch A — gating] Staff non-superuser navigating to `/panel/mcps` is redirected to `/panel`; the Integrations sidebar section is hidden.
+  - [Branch B — rotation] Regenerating the token invalidates the previous one immediately (old connector URL starts returning 404).
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-mcps.spec.js`
+
+### 24.1 Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `admin-mcps` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-mcps.spec.js` |
