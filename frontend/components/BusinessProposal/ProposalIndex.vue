@@ -72,7 +72,7 @@
                 ? 'bg-primary text-accent'
                 : visitedPanelIds.has(section.id)
                   ? 'bg-primary/10 text-text-brand'
-                  : 'bg-gray-200 text-text-muted group-hover:bg-gray-300'"
+                  : 'bg-surface-raised text-text-muted group-hover:bg-border-muted'"
             >
               <svg
                 v-if="visitedPanelIds.has(section.id) && idx !== currentIndex"
@@ -105,7 +105,7 @@
         <button
           data-testid="back-to-gateway-btn"
           class="w-full flex items-center gap-2 px-3 py-2.5 border border-border-default text-text-muted rounded-xl text-sm font-medium
-                 hover:bg-surface-muted hover:border-gray-300 transition-colors"
+                 hover:bg-surface-muted hover:border-text-muted transition-colors"
           @click="$emit('backToGateway'); isOpen = false"
         >
           <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

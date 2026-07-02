@@ -103,8 +103,7 @@
         <!-- Restart tutorial button -->
         <button
           v-if="viewMode && viewMode !== 'technical'"
-          class="restart-tutorial-btn fixed bottom-[68px] left-6 z-[9990] w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110"
-          :class="proposalDarkMode ? 'bg-gray-700 text-emerald-300 hover:bg-gray-600' : 'bg-surface text-text-brand border border-border-default hover:bg-surface-muted'"
+          class="restart-tutorial-btn fixed bottom-[68px] left-6 z-[9990] w-10 h-10 rounded-full shadow-raised flex items-center justify-center transition-all hover:scale-110 bg-surface text-text-brand border border-border-default hover:bg-surface-muted"
           :title="pLang === 'es' ? 'Reiniciar tutorial' : 'Restart tutorial'"
           @click="onboardingRef?.forceStart()"
         >
@@ -116,8 +115,7 @@
         <!-- Dark mode toggle -->
         <button
           v-if="viewMode"
-          class="dark-mode-toggle fixed bottom-6 left-6 z-[9990] w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-lg transition-all hover:scale-110"
-          :class="proposalDarkMode ? 'bg-gray-700 text-yellow-300 hover:bg-gray-600' : 'bg-surface text-text-muted border border-border-default hover:bg-surface-muted'"
+          class="dark-mode-toggle fixed bottom-6 left-6 z-[9990] w-10 h-10 rounded-full shadow-raised flex items-center justify-center text-lg transition-all hover:scale-110 bg-surface text-text-muted border border-border-default hover:bg-surface-muted"
           :title="pLang === 'es' ? 'Cambiar tema' : 'Toggle theme'"
           @click="toggleProposalDarkMode"
         >
@@ -207,7 +205,7 @@
           <div v-if="welcomeBack" class="fixed bottom-6 right-6 z-[10000] max-w-xs w-full">
             <div class="bg-surface rounded-2xl shadow-2xl border border-border-muted p-5 relative">
               <button
-                class="absolute top-3 right-3 w-6 h-6 rounded-full bg-surface-raised flex items-center justify-center text-text-subtle hover:text-text-muted hover:bg-gray-200 transition-colors text-xs"
+                class="absolute top-3 right-3 w-6 h-6 rounded-full bg-surface-raised flex items-center justify-center text-text-subtle hover:text-text-muted hover:bg-border-muted transition-colors text-xs"
                 @click="welcomeBack = null"
               >✕</button>
               <div class="flex items-center gap-3 mb-3">
