@@ -7,7 +7,7 @@
         :data-theme="isDark ? 'dark' : 'light'"
       >
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="$emit('close')" />
-        <div class="calc-modal-panel relative bg-surface rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-border-default">
+        <div class="calc-modal-panel relative bg-surface rounded-2xl shadow-overlay w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-border-default">
           <!-- Header -->
           <div class="flex items-center justify-between px-6 py-5 border-b border-border-default bg-primary">
             <div>
