@@ -422,7 +422,7 @@
                 <th class="px-4 sm:px-6 py-3">Primera vista</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="divide-y divide-border-muted">
               <tr v-for="link in analytics.share_links" :key="link.uuid" class="hover:bg-surface-muted/50">
                 <td class="px-4 sm:px-6 py-3">
                   <span class="font-medium text-text-default">{{ link.shared_by_name }}</span>
@@ -614,8 +614,8 @@
                 <th class="px-4 sm:px-6 py-3">Engagement</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
-              <tr v-for="section in analytics.sections" :key="section.section_type" class="hover:bg-surface-muted/50 dark:hover:bg-gray-700/50">
+            <tbody class="divide-y divide-border-muted">
+              <tr v-for="section in analytics.sections" :key="section.section_type" class="hover:bg-surface-muted/50">
                 <td class="px-4 sm:px-6 py-3">
                   <span class="font-medium text-text-default">{{ section.section_title }}</span>
                   <span class="text-xs text-text-subtle ml-1">({{ sectionAnalyticsTypeLabel(section.section_type) || section.section_type }})</span>
@@ -739,8 +739,8 @@
                 <th class="px-4 sm:px-6 py-3 text-right">Tiempo total</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
-              <tr v-for="session in analytics.sessions" :key="session.session_id" class="hover:bg-surface-muted/50 dark:hover:bg-gray-700/50">
+            <tbody class="divide-y divide-border-muted">
+              <tr v-for="session in analytics.sessions" :key="session.session_id" class="hover:bg-surface-muted/50">
                 <td class="px-4 sm:px-6 py-3">
                   <span class="font-mono text-xs text-text-muted">{{ session.session_id.slice(0, 12) }}...</span>
                   <span v-if="session.ip_address" class="text-xs text-text-subtle ml-2">{{ session.ip_address }}</span>
@@ -981,7 +981,7 @@ function barColor(avgSeconds) {
   if (avgSeconds >= 60) return 'bg-primary';
   if (avgSeconds >= 20) return 'bg-blue-500';
   if (avgSeconds >= 5) return 'bg-amber-400';
-  return 'bg-gray-300';
+  return 'bg-border-default';
 }
 
 function heatBarWidth(totalSeconds) {
@@ -996,7 +996,7 @@ function heatBarColor(idx, total) {
   if (ratio <= 0.35) return 'bg-orange-400';
   if (ratio <= 0.55) return 'bg-amber-400';
   if (ratio <= 0.75) return 'bg-yellow-300';
-  return 'bg-gray-300';
+  return 'bg-border-default';
 }
 
 function heatEmoji(idx, total) {
@@ -1218,14 +1218,14 @@ function timelineColor(type) {
   const colors = {
     created: 'bg-blue-400', updated: 'bg-amber-400', sent: 'bg-indigo-400',
     viewed: 'bg-green-400', accepted: 'bg-primary', rejected: 'bg-red-500',
-    resent: 'bg-purple-400', expired: 'bg-yellow-500', duplicated: 'bg-gray-400',
+    resent: 'bg-purple-400', expired: 'bg-yellow-500', duplicated: 'bg-text-subtle',
     commented: 'bg-purple-400', negotiating: 'bg-indigo-400', reengagement: 'bg-orange-400',
-    call: 'bg-sky-400', meeting: 'bg-indigo-500', followup: 'bg-amber-400', note: 'bg-gray-400',
+    call: 'bg-sky-400', meeting: 'bg-indigo-500', followup: 'bg-amber-400', note: 'bg-text-subtle',
     calc_confirmed: 'bg-emerald-400', calc_abandoned: 'bg-red-400', calc_followup: 'bg-orange-400',
-    auto_archived: 'bg-gray-500', status_change: 'bg-blue-400', cond_accepted: 'bg-amber-500',
+    auto_archived: 'bg-text-subtle', status_change: 'bg-blue-400', cond_accepted: 'bg-amber-500',
     req_clicked: 'bg-cyan-400', seller_inactivity_escalation: 'bg-red-500',
   };
-  return colors[type] || 'bg-gray-400';
+  return colors[type] || 'bg-text-subtle';
 }
 
 function timelineBadge(type) {

@@ -175,7 +175,7 @@
               <input
                 type="checkbox"
                 :checked="epic.linked_module_ids.includes(opt.id)"
-                class="rounded border-gray-300 dark:border-white/[0.08] text-text-brand"
+                class="rounded border-input-border text-text-brand"
                 @change="toggleLinkedId(epic.linked_module_ids, opt.id)"
               >
               <span class="max-w-[14rem] truncate" :title="opt.label">{{ opt.label }}</span>
@@ -217,7 +217,7 @@
                   <input
                     type="checkbox"
                     :checked="req.linked_module_ids.includes(opt.id)"
-                    class="rounded border-gray-300 dark:border-white/[0.08] text-text-brand"
+                    class="rounded border-input-border text-text-brand"
                     @change="toggleLinkedId(req.linked_module_ids, opt.id)"
                   >
                   <span class="max-w-[10rem] truncate" :title="opt.label">{{ opt.label }}</span>

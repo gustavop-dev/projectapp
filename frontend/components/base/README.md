@@ -204,7 +204,10 @@ npm --prefix frontend run check:design-tokens:strict   # exit 1 on any offense (
 node frontend/scripts/check-design-tokens.mjs --files path/to/file.vue   # focused check on touched files
 ```
 
-The script accepts `--scope=panel|public|full` and `--quiet` (summary only).
+The script accepts `--scope=panel|proposal-public|public|full` and `--quiet`
+(summary only). `proposal-public` is the public business-proposal viewer
+(`pages/proposal/` + non-admin `components/BusinessProposal/`) carved out of
+`public` so it can graduate to a hard CI gate once its token migration lands.
 The base components (`components/base/`), the styleguide page, and decorative
 UI components (`AnimatedTestimonials`, `BackgroundGradientAnimation`) are
 allowlisted.

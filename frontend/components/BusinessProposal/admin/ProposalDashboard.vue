@@ -189,8 +189,8 @@
                     <th class="px-3 py-2 text-center">Rechazadas</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
-                  <tr v-for="row in data.monthly_trend" :key="row.month" class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50">
+                <tbody class="divide-y divide-border-muted">
+                  <tr v-for="row in data.monthly_trend" :key="row.month" class="hover:bg-surface-muted/50">
                     <td class="px-3 py-2 text-text-default">{{ formatMonth(row.month) }}</td>
                     <td class="px-3 py-2 text-center text-text-muted">{{ row.created }}</td>
                     <td class="px-3 py-2 text-center text-blue-600">{{ row.sent }}</td>
@@ -335,8 +335,8 @@
                     <th class="px-3 py-2 text-center">Aceptadas / Total</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
-                  <tr v-for="(row, idx) in data.win_rate_by_combination" :key="idx" class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50">
+                <tbody class="divide-y divide-border-muted">
+                  <tr v-for="(row, idx) in data.win_rate_by_combination" :key="idx" class="hover:bg-surface-muted/50">
                     <td class="px-3 py-2 text-text-default capitalize">{{ projectTypeLabel(row.project_type) }}</td>
                     <td class="px-3 py-2 text-text-default capitalize">{{ marketTypeLabel(row.market_type) }}</td>
                     <td class="px-3 py-2 text-center font-medium" :class="idx === 0 ? 'text-text-brand' : 'text-text-muted'">{{ row.win_rate }}%</td>
@@ -503,11 +503,11 @@ function statusPercent(count) {
 
 function statusBarColor(status) {
   const map = {
-    draft: 'bg-gray-300', sent: 'bg-blue-400', viewed: 'bg-green-400',
+    draft: 'bg-border-default', sent: 'bg-blue-400', viewed: 'bg-green-400',
     accepted: 'bg-primary', finished: 'bg-violet-500',
     rejected: 'bg-red-400', expired: 'bg-yellow-400',
   };
-  return map[status] || 'bg-gray-300';
+  return map[status] || 'bg-border-default';
 }
 
 function rejectionPercent(count) {

@@ -23,7 +23,7 @@
           <span
             title="Registra el envío como actividad de la propuesta y actualiza la fecha de seguimiento del vendedor."
             class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border text-[9px] font-bold cursor-help leading-none"
-            :class="activeMode === 'proposal' ? 'border-white/50 text-white/80' : 'border-gray-400 text-text-subtle dark:border-green-light/40 dark:text-green-light/40'"
+            :class="activeMode === 'proposal' ? 'border-white/50 text-white/80' : 'border-border-default text-text-subtle dark:border-green-light/40 dark:text-green-light/40'"
           >?</span>
         </button>
         <button type="button"
@@ -36,7 +36,7 @@
           <span
             title="Envío de marca genérico. No registra actividad ni afecta el seguimiento de la propuesta."
             class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border text-[9px] font-bold cursor-help leading-none"
-            :class="activeMode === 'branded' ? 'border-white/50 text-white/80' : 'border-gray-400 text-text-subtle dark:border-green-light/40 dark:text-green-light/40'"
+            :class="activeMode === 'branded' ? 'border-white/50 text-white/80' : 'border-border-default text-text-subtle dark:border-green-light/40 dark:text-green-light/40'"
           >?</span>
         </button>
       </div>

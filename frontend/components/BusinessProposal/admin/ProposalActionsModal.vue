@@ -153,7 +153,7 @@ const actions = computed(() => {
       key: 'preview',
       label: 'Vista previa pública',
       description: 'Abre la propuesta en una nueva pestaña tal como la ve el cliente.',
-      dotClass: 'bg-gray-400',
+      dotClass: 'bg-text-subtle',
       href: '/proposal/' + p.uuid + '?preview=1',
     });
   }

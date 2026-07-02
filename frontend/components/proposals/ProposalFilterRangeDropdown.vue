@@ -5,7 +5,7 @@
       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors border whitespace-nowrap focus-visible:ring-2 focus-visible:ring-focus-ring/30 focus-visible:outline-none"
       :class="isActive
         ? 'bg-primary text-white border-emerald-600 hover:bg-primary-strong'
-        : 'bg-surface text-text-muted dark:text-gray-400 border-border-default hover:border-gray-300 dark:hover:border-gray-500'"
+        : 'bg-surface text-text-muted border-border-default hover:border-text-muted'"
       @click="isOpen = !isOpen"
     >
       <span v-if="icon" class="text-sm leading-none">{{ icon }}</span>
@@ -25,7 +25,7 @@
         class="absolute top-full left-0 mt-1 z-50 bg-surface border border-border-default rounded-xl shadow-lg p-3"
         :class="type === 'date' ? 'w-64' : 'w-56'"
       >
-        <p class="text-[10px] font-semibold text-gray-400 dark:text-text-muted uppercase tracking-wider mb-2">
+        <p class="text-[10px] font-semibold text-text-subtle uppercase tracking-wider mb-2">
           {{ label }}<span v-if="unit" class="ml-1 normal-case font-normal">({{ unit }})</span>
         </p>
         <div :class="type === 'date' ? 'flex flex-col gap-2' : 'flex items-center gap-2'">
@@ -36,7 +36,7 @@
             class="w-full px-2.5 py-1.5 border border-border-default rounded-lg text-xs bg-surface text-text-default outline-none focus:ring-1 focus:ring-focus-ring/30"
             @change="emit('update:minValue', parseValue($event.target.value))"
           />
-          <span v-if="type !== 'date'" class="text-gray-400 text-xs shrink-0">—</span>
+          <span v-if="type !== 'date'" class="text-text-subtle text-xs shrink-0">—</span>
           <input
             :value="maxValue"
             :type="type"
@@ -48,7 +48,7 @@
         <div v-if="isActive" class="mt-2 pt-2 border-t border-border-muted">
           <button
             type="button"
-            class="text-xs text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+            class="text-xs text-text-subtle hover:text-danger-strong transition-colors"
             @click="clearRange"
           >
             Limpiar

@@ -161,7 +161,7 @@ const MAX_PROPOSALS_PER_EMAIL = 10;
 const ELIGIBLE_STATUSES = ['draft', 'sent', 'viewed', 'negotiating', 'expired'];
 
 const STATUS_GROUPS = [
-  { key: 'draft', label: 'Borradores', match: (p) => p.status === 'draft', dotClass: 'bg-gray-400' },
+  { key: 'draft', label: 'Borradores', match: (p) => p.status === 'draft', dotClass: 'bg-text-subtle' },
   {
     key: 'in-progress',
     label: 'Enviadas / Vistas / Negociación',
