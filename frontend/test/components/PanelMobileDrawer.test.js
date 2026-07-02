@@ -1,6 +1,12 @@
 import { mount } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
 import { nextTick } from 'vue';
 import PanelMobileDrawer from '../../components/panel/PanelMobileDrawer.vue';
+
+// The drawer reads the proposals store (superuser nav gating).
+beforeEach(() => {
+  setActivePinia(createPinia());
+});
 
 jest.mock('../../config/panelNav', () => ({
   getPanelNavSections: jest.fn(() => ([

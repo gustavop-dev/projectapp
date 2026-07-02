@@ -139,14 +139,16 @@ class TestAutoManagedGuard:
 
     def test_auto_movement_update_is_rejected(self, superuser):
         movement = self._auto_movement(superuser)
-        with pytest.raises(ProposalActionError):
+        with pytest.raises(ProposalActionError) as exc_info:
             accounting_service.update_record(
                 EntityType.POCKET, movement, None, superuser,
             )
+        assert exc_info.value.code == 'auto_managed_movement'
 
     def test_auto_movement_delete_is_rejected(self, superuser):
         movement = self._auto_movement(superuser)
-        with pytest.raises(ProposalActionError):
+        with pytest.raises(ProposalActionError) as exc_info:
             accounting_service.delete_record(
                 EntityType.POCKET, movement, superuser,
             )
+        assert exc_info.value.code == 'auto_managed_movement'

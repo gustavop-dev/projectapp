@@ -23,8 +23,9 @@ class TestPartnerSplit:
             gustavo_amount=Decimal('60.00'),
             carlos_amount=Decimal('60.00'),
         )
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             income.full_clean()
+        assert 'socios' in str(exc_info.value)
 
     def test_clean_rejects_negative_amounts(self, make_income):
         income = make_income(
@@ -32,8 +33,9 @@ class TestPartnerSplit:
             gustavo_amount=Decimal('-10.00'),
             carlos_amount=Decimal('0.00'),
         )
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             income.full_clean()
+        assert 'gustavo_amount' in exc_info.value.message_dict
 
     def test_company_amount_is_the_unassigned_remainder(self, make_income):
         income = make_income(
@@ -107,8 +109,9 @@ class TestPocketMovement:
             direction=PocketMovement.Direction.IN,
             amount=Decimal('0.00'),
         )
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as exc_info:
             movement.full_clean()
+        assert 'amount' in exc_info.value.message_dict
 
     def test_manual_movement_is_not_auto_managed(self):
         movement = PocketMovement.objects.create(

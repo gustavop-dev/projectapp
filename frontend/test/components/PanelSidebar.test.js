@@ -1,9 +1,15 @@
 import { mount } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
 
 global.useLocalePath = jest.fn(() => (path) => path);
 global.useRoute = jest.fn(() => ({ path: '/' }));
 
 import PanelSidebar from '../../components/panel/PanelSidebar.vue';
+
+// The sidebar reads the proposals store (superuser nav gating).
+beforeEach(() => {
+  setActivePinia(createPinia());
+});
 
 jest.mock('../../config/panelNav', () => ({
   getPanelNavSections: jest.fn(() => [
