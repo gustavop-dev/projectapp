@@ -4692,6 +4692,17 @@ class TestProposalJsonTemplate:
         assert 'integration_international_payments' in autoselect
         assert 'Stripe' in autoselect
 
+    def test_seller_prompt_defines_item_id_rules(self, admin_client):
+        response = admin_client.get('/api/proposals/json-template/?lang=es')
+        prompt = response.data['_seller_prompt']
+        assert 'CRITICAL_functionalRequirements_itemIds' in prompt
+        rules = prompt['CRITICAL_functionalRequirements_itemIds']
+        assert 'item-<group_id>-<slug-of-name>' in rules
+        assert 'NEVER change an already-assigned id' in rules
+        assert 'linked_item_ids' in rules
+        # The base FR rule must point at the id rules
+        assert 'CRITICAL_functionalRequirements_itemIds' in prompt['CRITICAL_functionalRequirements']
+
     def test_template_includes_roi_projection_section(self, admin_client):
         response = admin_client.get('/api/proposals/json-template/?lang=es')
         assert response.status_code == 200

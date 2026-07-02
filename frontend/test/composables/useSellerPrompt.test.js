@@ -223,3 +223,45 @@ describe('useSellerPrompt', () => {
     });
   });
 });
+
+describe('useSellerPrompt DEFAULT_PROMPT coherence rules (regression guard)', () => {
+  const { useSellerPrompt } = require('../../composables/useSellerPrompt')
+  const { DEFAULT_PROMPT } = useSellerPrompt()
+
+  it('defines the deterministic slug algorithm for item ids', () => {
+    expect(DEFAULT_PROMPT).toContain('Algoritmo del slug')
+    expect(DEFAULT_PROMPT).toContain('item-<id_del_grupo>-<slug-del-nombre>')
+    expect(DEFAULT_PROMPT).toContain('ñ→n')
+  })
+
+  it('defines deterministic dedupe by document order', () => {
+    expect(DEFAULT_PROMPT).toContain('la PRIMERA aparición conserva el slug base')
+  })
+
+  it('locks id stability and language dependence', () => {
+    expect(DEFAULT_PROMPT).toContain('NUNCA cambies un `id` ya asignado')
+    expect(DEFAULT_PROMPT).toContain('nunca reutilices ids ni detalle técnico entre versiones ES/EN')
+  })
+
+  it('states the commercial↔technical synergy principle', () => {
+    expect(DEFAULT_PROMPT).toContain('SINERGIA COMERCIAL↔TÉCNICA')
+    expect(DEFAULT_PROMPT).toContain('DOS VISTAS DE LA MISMA HISTORIA')
+  })
+
+  it('guards item descriptions against non-selected module claims', () => {
+    expect(DEFAULT_PROMPT).toContain('PROHIBIDO afirmar en un item capacidades')
+  })
+
+  it('lists the full 16-module catalog including the newest modules', () => {
+    expect(DEFAULT_PROMPT).toContain('16 módulos opcionales')
+    expect(DEFAULT_PROMPT).toContain('biometric_verification_module')
+    expect(DEFAULT_PROMPT).toContain('qr_generator_module')
+    expect(DEFAULT_PROMPT).toContain('content_generator_module')
+    expect(DEFAULT_PROMPT).not.toContain('13 módulos')
+  })
+
+  it('includes the pre-output checklist', () => {
+    expect(DEFAULT_PROMPT).toContain('CHECKLIST ANTES DE RESPONDER')
+    expect(DEFAULT_PROMPT).toContain('Ids de items:')
+  })
+})

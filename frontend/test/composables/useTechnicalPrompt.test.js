@@ -110,3 +110,44 @@ describe('useTechnicalPrompt', () => {
     document.body.removeChild.mockRestore()
   })
 })
+
+describe('useTechnicalPrompt DEFAULT_PROMPT coherence rules (regression guard)', () => {
+  const { useTechnicalPrompt } = require('../../composables/useTechnicalPrompt')
+  const { DEFAULT_PROMPT } = useTechnicalPrompt()
+
+  it('mandates one epic per commercial card with verbatim epicKey', () => {
+    expect(DEFAULT_PROMPT).toContain('EXACTAMENTE UNA')
+    expect(DEFAULT_PROMPT).toContain('EXACTO Y VERBATIM')
+    expect(DEFAULT_PROMPT).toContain('NUNCA `admin-module`')
+  })
+
+  it('forbids epics for non-contracted modules', () => {
+    expect(DEFAULT_PROMPT).toContain('PROHIBIDO crear épicas para módulos NO contratados')
+  })
+
+  it('requires canonical linked_module_ids on additional-module epics', () => {
+    expect(DEFAULT_PROMPT).toContain('["module-<id>"]')
+    expect(DEFAULT_PROMPT).toContain('OBLIGATORIO')
+  })
+
+  it('makes item coverage mandatory (DEBE, not debería)', () => {
+    expect(DEFAULT_PROMPT).toContain('DEBE quedar enlazado por AL MENOS un requerimiento')
+    expect(DEFAULT_PROMPT).not.toContain('debería quedar enlazado')
+  })
+
+  it('defines the halt rule when step-1 functionalRequirements is missing', () => {
+    expect(DEFAULT_PROMPT).toContain('REGLA DE ALTO')
+    expect(DEFAULT_PROMPT).toContain('NO generes el JSON')
+  })
+
+  it('allows underscores in epicKey while keeping flowKey kebab', () => {
+    expect(DEFAULT_PROMPT).toContain('guiones y guiones bajos')
+    expect(DEFAULT_PROMPT).toMatch(/flowKey\*\*: ASCII, minúsculas, números y guiones \(kebab\)/)
+  })
+
+  it('includes the pre-output checklist', () => {
+    expect(DEFAULT_PROMPT).toContain('CHECKLIST ANTES DE RESPONDER')
+    expect(DEFAULT_PROMPT).toContain('Cobertura total de items')
+    expect(DEFAULT_PROMPT).toContain('cero ids inventados')
+  })
+})

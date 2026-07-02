@@ -29,9 +29,15 @@ dejando secciones a medias — sobre todo el **Detalle Técnico**, que arranca v
 NO valida. **No reportes "terminado" hasta que la auditoría mecánica de la Fase 8 dé
 `AUDIT_PASS`.**
 
-**Fuente canónica del prompt comercial:** `backend/content/views/proposal.py:1182-1383`
-(`_seller_prompt`). Las instrucciones de las Fases 2-6 son el espejo operativo de ese objeto —
-si el prompt del backend cambia, re-sincronizar este skill.
+**Fuente canónica del prompt comercial:** `backend/content/views/proposal.py` (`_seller_prompt`
+dentro de `get_proposal_json_template`). Las instrucciones de las Fases 2-6 son el espejo
+operativo de ese objeto — si el prompt del backend cambia, re-sincronizar este skill.
+
+**Espejos de las reglas de trazabilidad comercial↔técnica:** las reglas de ids de items
+(`item-<grupo>-<slug>`), `linked_item_ids` y la convención épica-por-tarjeta viven en 4 lugares
+que deben contar la misma historia: `frontend/composables/useSellerPrompt.js`,
+`frontend/composables/useTechnicalPrompt.js`, el `_seller_prompt` del backend y este skill.
+Si cambias una, re-sincroniza las otras tres.
 
 ---
 
@@ -189,8 +195,20 @@ para entender exactamente qué recibe. Dedicale esfuerzo: estructura escaneable 
 cualquier gap de interpretación**.
 
 Shape: `{index, title, intro, groups[], additionalModules[]}`. Cada `groups[].items[]` y
-`additionalModules[].items[]` es un objeto **`{icon, name, description}`** (usa **`name`**, no
-`title`). Render real: cards de resumen → modal con grilla de items.
+`additionalModules[].items[]` es un objeto **`{icon, name, description, id}`** (usa **`name`**,
+no `title`; los 4 campos son obligatorios). Render real: cards de resumen → modal con grilla de
+items, y cada item con requerimientos técnicos enlazados muestra "Ver requerimientos (N)".
+
+> **`id` estable del item (obligatorio, regla estricta):** formato
+> `item-<id_del_grupo>-<slug-del-nombre>`. Algoritmo del slug (aplicarlo EXACTAMENTE): minúsculas;
+> tildes/diéresis eliminadas y ñ→n; toda secuencia fuera de `[a-z0-9]` → UN solo guion; sin
+> guiones al inicio/fin. Ej.: "Registro de usuario" en `views` → `item-views-registro-de-usuario`.
+> **Unicidad determinista** en toda la sección (groups + additionalModules): en colisión, la
+> PRIMERA aparición en orden de documento conserva el slug base; las siguientes reciben `-2`,
+> `-3`. **Estabilidad:** al editar una propuesta existente NUNCA regenerar un id ya asignado,
+> aunque el `name` cambie (id≠slug(name) es un estado válido). Estos ids son el contrato con la
+> Fase 5: los requerimientos técnicos los referencian vía `linked_item_ids`. Los ids dependen del
+> idioma de la propuesta — no reutilizarlos entre versiones ES/EN.
 
 ### 4a — Definir el flujo lógico del usuario
 Antes de redactar, mapeá el **recorrido de punta a punta** de un usuario de este proyecto/sector
@@ -258,24 +276,44 @@ quality{dimensions[],testTypes[],criticalFlowsNote}, decisions[]}`.
 
 ### 5a — Propósito y stack
 - `purpose`: 1-2 párrafos sobre qué resuelve el proyecto técnicamente.
-- `stack[]`: items `{layer, technology, rationale}`. Stack real del repo: Cliente/SSR (Nuxt 3,
-  Vue 3, Tailwind), API (Django 5 + DRF), Datos (MySQL 8), Tareas/colas (Huey + Redis), Infra.
+- `stack[]`: items `{layer, technology, rationale}`. Stack estándar de proyectos de cliente:
+  Cliente/SSR (React + Next.js + Tailwind — App Router, componentes por sección, Zustand para
+  estado global, hooks personalizados), API (Django 5 + DRF), Datos (MySQL 8), Tareas/colas
+  (Huey), Infra (VPS + Nginx + Gunicorn). **No mencionar Redis, AWS, S3 ni servicios cloud** que
+  no formen parte del proyecto real (regla del prompt técnico).
 
-### 5b — Épicas y flujos (el núcleo)
-`epics[]` — derivá las épicas de los grupos/módulos de la Fase 4 + el brief. Cada épica:
+### 5b — Épicas y flujos (el núcleo) — convención épica-por-tarjeta (REGLA ESTRICTA)
+`epics[]` espeja la sección `functionalRequirements` de la Fase 4: el cliente navega de cada
+tarjeta comercial a su épica técnica, y cada item comercial a sus requerimientos. Cada épica:
 `{epicKey, title, description, linked_module_ids[], requirements[]}`.
-- `epicKey`: **kebab-case, único** (p.ej. `storefront`, `admin-ops`).
+- **Exactamente UNA épica por tarjeta comercial:** `views`, `components`, `features`, cada
+  módulo base (`admin_module`, `analytics_dashboard`, `kpi_dashboard_module`, `manual_module`) y
+  cada módulo de `additionalModules` **contratado** (`selected`/`default_selected: true`).
+  **PROHIBIDO crear épicas para módulos no contratados** (una épica sin links se muestra SIEMPRE
+  en el modo técnico y le enseñaría al cliente alcance que no compró). Se permite una épica
+  transversal extra al final (infraestructura/seguridad/calidad) si hace falta.
+- `epicKey`: **id comercial EXACTO Y VERBATIM**, guiones bajos incluidos (`views`,
+  `admin_module`, `pwa_module` — nunca `admin-module`). Único. La épica transversal usa un
+  slug kebab propio (p.ej. `base-tecnica`).
+- **Orden de `epics[]` = orden de las tarjetas comerciales** (groups en su orden, luego módulos
+  contratados en su orden; transversal al final).
+- `linked_module_ids` de la épica: **OBLIGATORIO** `["module-<id>"]` (canónico exacto) en épicas
+  de módulos de `additionalModules`; omitido o `[]` en épicas de tarjetas base (alcance base).
 - `requirements[]`: cada uno `{flowKey, title, description, configuration, usageFlow, priority,
-  linked_module_ids[]}`:
+  linked_module_ids[], linked_item_ids[]}`:
   - `flowKey`: **kebab-case, único GLOBAL** entre todas las épicas (p.ej. `flow-checkout-pse`).
   - `title`: **obligatorio**.
   - `usageFlow`: el **paso a paso** del usuario ("Carrito → datos de envío → pasarela → confirmación").
   - `priority`: `critical` | `high` | `medium` | `low`.
-  - `linked_module_ids`: conecta el requisito con el alcance funcional. IDs válidos:
-    `group-<id>` (grupos FR), `module-<id>` (módulos FR del calculador), o el `<id>` crudo de
-    `investment.modules`. Vacío = base, siempre incluido. (Lo normaliza
-    `normalize_technical_document_module_links`.) **Un requisito que dependa de un módulo
-    opcional debe linkearlo** para que solo aparezca si el cliente lo selecciona.
+  - `linked_module_ids`: solo formatos canónicos `group-<id>` / `module-<id>`, y **consistente
+    con el de su épica** (nunca apuntar a un módulo distinto del de la épica que lo contiene).
+    **Un requisito que dependa de un módulo opcional debe linkearlo** para que solo aparezca si
+    el cliente lo selecciona.
+  - `linked_item_ids`: los `id` EXACTOS (carácter por carácter, de la Fase 4) de los items
+    comerciales que este requerimiento implementa. **Cobertura OBLIGATORIA: todo item comercial
+    de grupos visibles y módulos contratados DEBE quedar enlazado por AL MENOS un requerimiento**
+    — alimenta el modal "Ver requerimientos" y el PDF. Solo requerimientos transversales pueden
+    omitirlo o dejarlo `[]` (en cualquier épica).
 
 ### 5c — Modelo de datos
 `dataModel`: `summary`, `relationships` (texto), `entities[]` con `{name, description, keyFields}`.
@@ -294,9 +332,11 @@ Completá `environments[]`, `environmentsNote`, `security[]`, `performanceQualit
 practices[]}`, `backupsNote`, `quality{dimensions[],testTypes[],criticalFlowsNote}`,
 `decisions[]` (`{decision, alternative, reason}`), `growthReadiness{summary,strategies[]}`.
 
-**Reglas duras:** NO dejar `technicalDocument` como el placeholder vacío; `epicKey`/`flowKey`
-kebab-case y únicos; mantener consistencia con el alcance de la Fase 4 y los módulos
-seleccionados (Fase 2).
+**Reglas duras:** NO dejar `technicalDocument` como el placeholder vacío; `epicKey` = id
+comercial verbatim (guiones bajos permitidos) y único; `flowKey` kebab-case y único global;
+una épica por tarjeta contratada y ninguna de módulos no contratados; todo item comercial
+cubierto por ≥1 requerimiento vía `linked_item_ids`; mantener consistencia con el alcance de la
+Fase 4 y los módulos seleccionados (Fase 2).
 
 ---
 
@@ -376,6 +416,11 @@ def FAIL(loc, msg): fails.append((loc, msg))
 def WARN(loc, msg): warns.append((loc, msg))
 kebab = re.compile(r'[a-z0-9]+(-[a-z0-9]+)*')
 def is_kebab(s): return bool(kebab.fullmatch(s))
+# epicKey espeja el id comercial verbatim -> permite guiones bajos ademas de guiones
+epickey_re = re.compile(r'[a-z0-9_]+([-_][a-z0-9_]+)*')
+def is_epic_key(s): return bool(epickey_re.fullmatch(s))
+item_id_re = re.compile(r'item-[a-z0-9_-]+')
+def is_item_id(s): return bool(item_id_re.fullmatch(s))
 
 # 1) las 17 secciones presentes
 for k in defaults:
@@ -402,8 +447,24 @@ fr = art.get('functionalRequirements') or {}
 frd = defaults.get('functionalRequirements') or {}
 def_ids = [g.get('id') for g in (frd.get('groups') or [])]
 groups = fr.get('groups') or []
+modules = fr.get('additionalModules') or []
 ids = [g.get('id') for g in groups]
 if ids[:len(def_ids)] != def_ids: FAIL('fr.groups', 'grupos base alterados/reordenados: %s' % ids)
+all_item_ids, sel_item_ids = set(), set()
+for g in groups + modules:
+    gid = g.get('id')
+    is_module = g in modules
+    is_selected = bool(g.get('selected') or g.get('default_selected'))
+    for j, it in enumerate(g.get('items') or []):
+        iid = (it.get('id') or '').strip()
+        if not iid: FAIL('fr.%s.items[%d].id' % (gid, j), 'item sin id')
+        elif not is_item_id(iid): FAIL('fr.%s.items[%d].id' % (gid, j), 'formato invalido: %r' % iid)
+        elif iid in all_item_ids: FAIL('fr.%s.items[%d].id' % (gid, j), 'id duplicado: %r' % iid)
+        else:
+            all_item_ids.add(iid)
+            # cobertura exigible: items de grupos visibles + modulos contratados
+            if (not is_module and g.get('is_visible') is not False) or (is_module and is_selected):
+                sel_item_ids.add(iid)
 for g in groups:
     gid = g.get('id'); items = g.get('items') or []
     if len(items) < 2: FAIL('fr.%s.items' % gid, 'solo %d items' % len(items))
@@ -413,6 +474,11 @@ for g in groups:
     gd = next((x for x in (frd.get('groups') or []) if x.get('id') == gid), None)
     if gd is not None and g.get('items') == gd.get('items'):
         WARN('fr.%s' % gid, 'items identicos al default (no personalizado)')
+# ids de modulos NO contratados (una epica de estos seria alcance no comprado)
+unselected_module_ids = {
+    m.get('id') for m in modules
+    if not (m.get('selected') or m.get('default_selected'))
+}
 
 # 4) technicalDocument
 td = art.get('technicalDocument') or {}
@@ -423,12 +489,19 @@ if not purpose and not epics:
 else:
     if not purpose: WARN('technicalDocument.purpose', 'vacio')
     if not epics: FAIL('technicalDocument.epics', 'sin epicas')
-    se, sf = set(), set()
+    se, sf, linked_items = set(), set(), set()
     for e in epics:
         ek = (e.get('epicKey') or '').strip()
-        if ek and not is_kebab(ek): FAIL('epicKey ' + ek, 'no es kebab-case')
+        if ek and not is_epic_key(ek): FAIL('epicKey ' + ek, 'formato invalido (minusculas, numeros, - y _)')
         if ek and ek in se: FAIL('epicKey ' + ek, 'duplicado')
         se.add(ek)
+        if ek in unselected_module_ids:
+            FAIL('epicKey ' + ek, 'epica de modulo NO contratado (alcance no comprado)')
+        elif ek and ek.endswith('_module') and ek not in {g.get('id') for g in groups + modules}:
+            WARN('epicKey ' + ek, 'no coincide con ningun id comercial')
+        epic_mods = set(e.get('linked_module_ids') or [])
+        if ek in {m.get('id') for m in modules} and 'module-%s' % ek not in epic_mods:
+            FAIL('epic ' + ek, 'epica de modulo sin linked_module_ids canonico ["module-%s"]' % ek)
         reqs = e.get('requirements') or []
         if not reqs: WARN('epic ' + (ek or '?'), 'sin requirements')
         for r in reqs:
@@ -438,6 +511,24 @@ else:
             sf.add(fk)
             other = any((r.get(x) or '').strip() for x in ('description', 'configuration', 'usageFlow'))
             if other and not (r.get('title') or '').strip(): FAIL('requirement ' + (fk or '?'), 'title faltante')
+            for iid in (r.get('linked_item_ids') or []):
+                iid = (iid or '').strip()
+                if iid and iid not in all_item_ids:
+                    FAIL('req %s.linked_item_ids' % (fk or '?'), 'id inexistente en fr: %r' % iid)
+                elif iid:
+                    linked_items.add(iid)
+            req_mods = set(r.get('linked_module_ids') or [])
+            if epic_mods and req_mods and not req_mods <= epic_mods:
+                FAIL('req %s.linked_module_ids' % (fk or '?'), 'apunta a modulo distinto del de su epica')
+    # cobertura obligatoria: todo item exigible enlazado por >=1 requerimiento
+    uncovered = sorted(sel_item_ids - linked_items)
+    for iid in uncovered:
+        FAIL('trazabilidad', 'item sin requerimiento tecnico enlazado: %s' % iid)
+    # una epica por tarjeta contratada
+    expected_epics = [g.get('id') for g in groups if g.get('is_visible') is not False]
+    expected_epics += [m.get('id') for m in modules if m.get('selected') or m.get('default_selected')]
+    for ek in expected_epics:
+        if ek not in se: FAIL('epics', 'falta epica de la tarjeta comercial: %s' % ek)
 
 print('AUDIT_FAIL', len(fails)) if fails else print('AUDIT_PASS')
 for loc, msg in fails: print('  FAIL', loc + ':', msg)
