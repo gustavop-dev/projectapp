@@ -191,7 +191,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     // COP by default: no COP-equivalent field.
     await expect(page.getByText('Equivalente COP')).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'USD' }).click();
+    await page.getByRole('tab', { name: 'USD' }).click();
     await expect(page.getByText('Equivalente COP')).toBeVisible();
   });
 

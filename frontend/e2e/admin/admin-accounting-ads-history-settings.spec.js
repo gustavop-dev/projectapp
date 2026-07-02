@@ -159,7 +159,9 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
       page.getByRole('heading', { name: 'Contabilidad — Ads' }),
     ).toBeVisible({ timeout: 25_000 });
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
-    await expect(page.getByText('$289.923')).toBeVisible();
+    await expect(
+      page.getByTestId('accounting-row-2').getByText('$289.923'),
+    ).toBeVisible();
   });
 
   test('creates an ads spend through the modal', {

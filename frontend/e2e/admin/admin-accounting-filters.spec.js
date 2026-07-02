@@ -183,11 +183,11 @@ test.describe('Admin Accounting Filters', () => {
     await gotoIncomes(page);
     await openFilterPanel(page);
 
-    await page.getByRole('button', { name: 'Gustavo' }).click();
+    await page.getByRole('tab', { name: 'Gustavo' }).click();
     await expect(visibleRows(page)).toHaveCount(3);
     await expect(page.getByText('Vastago (Fase 1) - Inicio 40%')).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'ProjectApp' }).click();
+    await page.getByRole('tab', { name: 'ProjectApp' }).click();
     await expect(visibleRows(page)).toHaveCount(1);
     await expect(page.getByText('Vastago (Fase 1) - Inicio 40%')).toBeVisible();
   });
@@ -198,8 +198,8 @@ test.describe('Admin Accounting Filters', () => {
     await gotoIncomes(page);
     await openFilterPanel(page);
 
-    await page.getByRole('button', { name: 'Líquido' }).click();
-    await page.getByRole('button', { name: 'Gustavo' }).click();
+    await page.getByRole('tab', { name: 'Líquido' }).click();
+    await page.getByRole('tab', { name: 'Gustavo' }).click();
 
     await expect(page.getByRole('button', { name: /Filtros/ })).toContainText('2');
   });
@@ -210,7 +210,7 @@ test.describe('Admin Accounting Filters', () => {
     await gotoIncomes(page);
     await openFilterPanel(page);
 
-    await page.getByRole('button', { name: 'Líquido' }).click();
+    await page.getByRole('tab', { name: 'Líquido' }).click();
     await expect(visibleRows(page)).toHaveCount(2);
 
     await page.getByTestId('accounting-filter-reset').click();

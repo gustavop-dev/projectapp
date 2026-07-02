@@ -146,7 +146,7 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     ).toBeVisible({ timeout: 25_000 });
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
     await expect(page.getByText('Claude Code 20x')).toBeVisible();
-    await expect(page.getByText('Negocio')).toBeVisible();
+    await expect(page.getByText('Negocio', { exact: true })).toBeVisible();
   });
 
   test('creates an expense through the modal', {
@@ -182,8 +182,8 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     await expect(
       page.getByRole('heading', { name: 'Hostings' }),
     ).toBeVisible({ timeout: 25_000 });
-    await expect(page.getByText('Hostings activos')).toBeVisible();
-    await expect(page.getByText('Ingreso mensual')).toBeVisible();
+    await expect(page.getByText('Hostings activos', { exact: true })).toBeVisible();
+    await expect(page.getByText('Ingreso mensual', { exact: true })).toBeVisible();
     await expect(page.getByText('$91.667 COP').first()).toBeVisible();
   });
 
