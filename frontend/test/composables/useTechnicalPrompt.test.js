@@ -130,7 +130,7 @@ describe('useTechnicalPrompt DEFAULT_PROMPT coherence rules (regression guard)',
     expect(DEFAULT_PROMPT).toContain('OBLIGATORIO')
   })
 
-  it('makes item coverage mandatory (DEBE, not debería)', () => {
+  it('requires every commercial item to be linked by at least one requirement (DEBE)', () => {
     expect(DEFAULT_PROMPT).toContain('DEBE quedar enlazado por AL MENOS un requerimiento')
     expect(DEFAULT_PROMPT).not.toContain('debería quedar enlazado')
   })
