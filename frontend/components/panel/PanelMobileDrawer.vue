@@ -107,6 +107,7 @@ import { computed } from 'vue'
 import { getPanelNavSections } from '~/config/panelNav'
 import { isPanelNavItemActive } from '~/utils/panelNavActive'
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge'
+import { useProposalStore } from '~/stores/proposals'
 import SidebarIcon from '~/components/platform/SidebarIcon.vue'
 import SidebarItem from '~/components/platform/SidebarItem.vue'
 
@@ -122,7 +123,12 @@ defineProps({
 const localePath = useLocalePath()
 const route = useRoute()
 
-const sections = computed(() => getPanelNavSections(localePath))
+const proposalStore = useProposalStore()
+const sections = computed(() =>
+  getPanelNavSections(localePath).filter(
+    (section) => !section.superuserOnly || proposalStore.isSuperuser,
+  ),
+)
 
 function isItemActive(item) {
   return isPanelNavItemActive(route.path, item)

@@ -17,6 +17,7 @@ export const useProposalStore = defineStore('proposals', {
   state: () => ({
     proposals: [],
     currentProposal: null,
+    adminUser: null,
     isLoading: false,
     isUpdating: false,
     error: null,
@@ -43,6 +44,12 @@ export const useProposalStore = defineStore('proposals', {
      */
     totalSections: (state) =>
       state.currentProposal?.sections?.filter((s) => s.is_enabled)?.length || 0,
+
+    /**
+     * isSuperuser: Whether the checked panel session belongs to a superuser
+     * (set by checkAdminAuth; gates superuser-only modules like accounting).
+     */
+    isSuperuser: (state) => !!state.adminUser?.is_superuser,
   },
 
   actions: {
@@ -896,8 +903,10 @@ export const useProposalStore = defineStore('proposals', {
     async checkAdminAuth() {
       try {
         const response = await get_request('auth/check/');
+        this.adminUser = response.data.user;
         return { success: true, user: response.data.user };
       } catch (error) {
+        this.adminUser = null;
         return { success: false, status: error?.response?.status ?? null };
       }
     },

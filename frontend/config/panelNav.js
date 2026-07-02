@@ -74,6 +74,23 @@ export function getPanelNavSections(localePath) {
       ],
     },
     {
+      id: 'accounting',
+      label: 'Accounting',
+      superuserOnly: true,
+      items: [
+        { label: 'Overview', href: lp('/panel/accounting'), icon: 'credit-card', matchExact: true },
+        { label: 'Incomes', href: lp('/panel/accounting/incomes'), icon: 'plus' },
+        { label: 'Expenses', href: lp('/panel/accounting/expenses'), icon: 'file' },
+        { label: 'Hostings', href: lp('/panel/accounting/hostings'), icon: 'database' },
+        { label: 'Pocket', href: lp('/panel/accounting/pocket'), icon: 'folder' },
+        { label: 'Recurring', href: lp('/panel/accounting/recurring'), icon: 'refresh' },
+        { label: 'Ads', href: lp('/panel/accounting/ads'), icon: 'portfolio' },
+        { divider: true },
+        { label: 'History', href: lp('/panel/accounting/history'), icon: 'calendar' },
+        { label: 'Settings', href: lp('/panel/accounting/settings'), icon: 'settings' },
+      ],
+    },
+    {
       id: 'reference',
       label: 'Reference',
       items: [
