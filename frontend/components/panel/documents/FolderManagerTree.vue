@@ -114,8 +114,8 @@ function rowClass(folder) {
   if (folder.id === props.deletingId) {
     return 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20';
   }
-  return 'border-border-muted hover:border-border-default dark:hover:border-gray-600 '
-    + 'bg-surface hover:bg-surface-muted dark:hover:bg-gray-700/50';
+  return 'border-border-muted hover:border-border-default '
+    + 'bg-surface hover:bg-surface-muted';
 }
 
 // vuedraggable aísla cada lista por defecto: el reorden solo afecta este nivel.

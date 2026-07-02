@@ -54,11 +54,11 @@
     <MetricsManual />
 
     <!-- Zombie proposals segment -->
-    <div v-if="zombieAlerts.length" class="mb-4 bg-gray-800 border border-gray-700 rounded-xl p-4">
+    <div v-if="zombieAlerts.length" class="mb-4 bg-surface border border-border-default rounded-xl shadow-card p-4">
       <div class="flex items-center justify-between mb-3 cursor-pointer" @click="zombieExpanded = !zombieExpanded">
         <div class="flex items-center gap-2">
           <span class="text-lg">🧟</span>
-          <h3 class="text-sm font-semibold text-gray-200">Propuestas zombie ({{ zombieAlerts.length }})</h3>
+          <h3 class="text-sm font-semibold text-text-default">Propuestas zombie ({{ zombieAlerts.length }})</h3>
         </div>
         <span class="text-xs text-text-subtle">{{ zombieExpanded ? '▲' : '▼' }}</span>
       </div>
@@ -66,13 +66,13 @@
         <div
           v-for="alert in zombieAlerts"
           :key="`zombie-${alert.id}-${alert.alert_type}`"
-          class="flex items-center justify-between bg-gray-700/50 rounded-lg px-4 py-2.5 border border-gray-600 cursor-pointer hover:border-gray-500 transition-colors"
+          class="flex items-center justify-between bg-surface-raised rounded-lg px-4 py-2.5 border border-border-default cursor-pointer hover:border-focus-ring/40 transition-colors"
           @click="navigateToProposal(alert.id, $event)"
         >
           <div class="flex items-center gap-3">
             <span class="text-sm">{{ alert.alert_type === 'zombie_draft' ? '📝💀' : alert.alert_type === 'zombie_sent_stale' ? '📤💀' : '💀' }}</span>
             <div>
-              <span class="text-sm font-medium text-gray-200">{{ alert.client_name }}</span>
+              <span class="text-sm font-medium text-text-default">{{ alert.client_name }}</span>
               <span class="text-xs text-text-subtle ml-2">{{ alert.title }}</span>
             </div>
           </div>
@@ -262,7 +262,7 @@
 
     <!-- Batch action bar -->
     <Transition name="fade-modal">
-      <div v-if="selectedIds.size > 0" class="sticky top-0 z-40 mb-3 bg-gray-900 text-white rounded-xl px-5 py-3 flex items-center justify-between shadow-lg">
+      <div v-if="selectedIds.size > 0" class="sticky top-0 z-40 mb-3 bg-primary-strong text-white rounded-xl px-5 py-3 flex items-center justify-between shadow-raised">
         <span class="text-sm font-medium">{{ selectedIds.size }} seleccionada(s)</span>
         <div class="flex items-center gap-2">
           <button
@@ -287,7 +287,7 @@
             🗑️ Eliminar
           </button>
           <button
-            class="px-3 py-1.5 bg-gray-700 rounded-lg text-xs font-medium hover:bg-gray-600 transition-colors"
+            class="px-3 py-1.5 bg-white/10 rounded-lg text-xs font-medium hover:bg-white/20 transition-colors"
             @click="selectedIds = new Set()"
           >
             Cancelar
@@ -297,12 +297,12 @@
     </Transition>
 
     <!-- Table -->
-    <div v-if="!proposalStore.isLoading && proposals.length > 0" class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-x-auto  ">
+    <div v-if="!proposalStore.isLoading && proposals.length > 0" class="bg-surface rounded-xl shadow-card border border-border-default overflow-x-auto">
       <table class="w-full min-w-[800px]">
         <thead>
           <tr class="border-b border-border-muted text-left">
             <th class="px-3 py-3 w-10">
-              <input type="checkbox" class="rounded border-gray-300 text-text-brand focus:ring-focus-ring/30" :checked="selectedIds.size === paginatedProposals.length && paginatedProposals.length > 0" @change="toggleSelectAll" @click.stop />
+              <input type="checkbox" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" :checked="selectedIds.size === paginatedProposals.length && paginatedProposals.length > 0" @change="toggleSelectAll" @click.stop />
             </th>
             <th class="px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider w-12">ID</th>
             <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider cursor-pointer hover:text-text-brand" @click="toggleSort('client_name')">
@@ -317,7 +317,7 @@
             </th>
             <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Vistas</th>
             <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider text-center">
-              <BaseTooltip position="bottom" backgroundColor="bg-gray-900" width="max-w-[220px]" minWidth="min-w-0">
+              <BaseTooltip position="bottom" width="max-w-[220px]" minWidth="min-w-0">
                 <template #trigger><span class="cursor-help">🔥</span></template>
                 <p class="text-xs">Heat Score (1-10): indicador rápido de "temperatura" de engagement del cliente con la propuesta.</p>
               </BaseTooltip>
@@ -325,10 +325,10 @@
             <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
+        <tbody class="divide-y divide-border-muted">
           <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="[p.is_active ? 'hover:bg-surface-muted' : 'bg-surface-muted opacity-60', selectedIds.has(p.id) ? 'bg-primary-soft' : '']" @click="navigateToProposal(p.id, $event)">
             <td class="px-3 py-4" @click.stop>
-              <input type="checkbox" class="rounded border-gray-300 text-text-brand focus:ring-focus-ring/30" :checked="selectedIds.has(p.id)" @change="toggleSelect(p.id)" />
+              <input type="checkbox" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" :checked="selectedIds.has(p.id)" @change="toggleSelect(p.id)" />
             </td>
             <td class="px-4 py-4 text-xs text-text-subtle tabular-nums">#{{ p.id }}</td>
             <td class="px-6 py-4">
@@ -376,13 +376,13 @@
               </template>
               <template v-else-if="p.created_at">
                 {{ timeAgo(p.created_at) }}
-                <span class="text-[10px] text-text-subtle dark:text-green-light/60 ml-1">(creada)</span>
+                <span class="text-[10px] text-text-subtle ml-1">(creada)</span>
               </template>
-              <span v-else class="text-text-subtle dark:text-green-light/60">—</span>
+              <span v-else class="text-text-subtle">—</span>
             </td>
             <td class="px-6 py-4 text-sm text-text-muted tabular-nums">{{ p.view_count }}</td>
             <td class="px-6 py-4 text-center">
-              <BaseTooltip v-if="p.heat_score > 0 && p.engagement_summary" position="left" backgroundColor="bg-gray-900" width="max-w-[260px]" minWidth="min-w-0">
+              <BaseTooltip v-if="p.heat_score > 0 && p.engagement_summary" position="left" width="max-w-[260px]" minWidth="min-w-0">
                 <template #trigger>
                   <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white cursor-help" :class="heatScoreColor(p.heat_score)">
                     {{ p.heat_score }}
@@ -409,7 +409,7 @@
                     <span class="text-text-subtle">Dispositivos</span>
                     <span class="font-medium">{{ p.engagement_summary.unique_devices }}</span>
                   </div>
-                  <div v-if="p.engagement_summary.skipped_sections && p.engagement_summary.skipped_sections.length" class="pt-1 border-t border-gray-700">
+                  <div v-if="p.engagement_summary.skipped_sections && p.engagement_summary.skipped_sections.length" class="pt-1 border-t border-white/15">
                     <span class="text-text-subtle">No revisó:</span>
                     <span class="text-amber-400 ml-1">{{ p.engagement_summary.skipped_sections.map(s => sectionLabel(s)).join(', ') }}</span>
                   </div>
@@ -418,7 +418,7 @@
               <span v-else-if="p.heat_score > 0" class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white" :class="heatScoreColor(p.heat_score)">
                 {{ p.heat_score }}
               </span>
-              <span v-else class="text-text-subtle dark:text-green-light/60 text-xs">—</span>
+              <span v-else class="text-text-subtle text-xs">—</span>
             </td>
             <td class="px-6 py-4">
               <div class="flex items-center gap-2">
@@ -444,7 +444,7 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="actionsModalProposal = null"
         >
-          <div class="bg-surface rounded-2xl shadow-2xl max-w-md w-full  dark:border dark:border-white/[0.06]">
+          <div class="bg-surface rounded-2xl shadow-overlay border border-border-default max-w-md w-full">
             <!-- Header -->
             <div class="px-6 py-4 border-b border-border-muted flex items-center justify-between">
               <div>
@@ -476,9 +476,9 @@
                   <!-- Info tooltip -->
                   <div class="relative flex-shrink-0 group/info">
                     <span class="w-6 h-6 rounded-full bg-surface-raised group-hover/info:bg-primary-soft dark:group-hover/info:bg-primary/10 flex items-center justify-center text-text-subtle group-hover/info:text-text-brand text-[11px] cursor-help transition-colors">?</span>
-                    <div class="absolute right-full top-1/2 -translate-y-1/2 mr-2 w-52 bg-gray-900 text-white text-xs rounded-xl px-3 py-2 shadow-lg opacity-0 pointer-events-none group-hover/info:opacity-100 group-hover/info:pointer-events-auto transition-opacity z-10 leading-relaxed">
+                    <div class="absolute right-full top-1/2 -translate-y-1/2 mr-2 w-52 bg-primary-strong text-white text-xs rounded-xl px-3 py-2 shadow-raised opacity-0 pointer-events-none group-hover/info:opacity-100 group-hover/info:pointer-events-auto transition-opacity z-10 leading-relaxed">
                       {{ action.info }}
-                      <div class="absolute top-1/2 -translate-y-1/2 -right-1 w-2 h-2 bg-gray-900 rotate-45" />
+                      <div class="absolute top-1/2 -translate-y-1/2 -right-1 w-2 h-2 bg-primary-strong rotate-45" />
                     </div>
                   </div>
                 </component>
@@ -498,7 +498,7 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="sendConfirmId = null"
         >
-          <div class="bg-surface rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center  dark:border dark:border-white/[0.06]">
+          <div class="bg-surface rounded-2xl shadow-overlay border border-border-default max-w-sm w-full p-6 text-center">
             <div class="text-4xl mb-3">📤</div>
             <h3 class="text-lg font-bold text-text-default mb-2">¿Enviar esta propuesta?</h3>
             <p class="text-sm text-text-muted mb-6">Se enviará un email al cliente con el enlace de la propuesta.</p>
@@ -511,7 +511,7 @@
                 {{ isSending ? 'Enviando...' : 'Sí, enviar' }}
               </button>
               <button
-                class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors "
+                class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-border-muted transition-colors"
                 @click="sendConfirmId = null"
               >
                 Cancelar
@@ -530,7 +530,7 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="quickLogProposal = null"
         >
-          <div class="bg-surface rounded-2xl shadow-2xl max-w-sm w-full p-6  dark:border dark:border-white/[0.06]">
+          <div class="bg-surface rounded-2xl shadow-overlay border border-border-default max-w-sm w-full p-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-base font-bold text-text-default">Registrar actividad</h3>
               <button class="w-8 h-8 rounded-lg flex items-center justify-center text-text-subtle hover:bg-surface-raised transition-colors" @click="quickLogProposal = null">
@@ -541,7 +541,7 @@
             <div class="space-y-3">
               <div>
                 <label class="block text-xs text-text-muted mb-1">Tipo de actividad</label>
-                <select v-model="quickLogType" class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface outline-none focus:ring-1 focus:ring-focus-ring/30 dark:border-white/[0.08]  dark:text-white">
+                <select v-model="quickLogType" class="w-full px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg text-input-text outline-none focus:ring-1 focus:ring-focus-ring/30">
                   <option value="call">📞 Llamada</option>
                   <option value="meeting">🤝 Reunión</option>
                   <option value="followup">📩 Seguimiento</option>
@@ -550,7 +550,7 @@
               </div>
               <div>
                 <label class="block text-xs text-text-muted mb-1">Descripción</label>
-                <input v-model="quickLogMessage" type="text" placeholder="Ej: Llamada de seguimiento, cliente interesado..." class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-lg text-sm outline-none focus:ring-1 focus:ring-focus-ring/30 dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40" @keyup.enter="confirmQuickLog" />
+                <input v-model="quickLogMessage" type="text" placeholder="Ej: Llamada de seguimiento, cliente interesado..." class="bg-input-bg w-full px-3 py-2 border border-input-border rounded-lg text-sm text-input-text placeholder:text-input-placeholder outline-none focus:ring-1 focus:ring-focus-ring/30" @keyup.enter="confirmQuickLog" />
               </div>
             </div>
             <div class="flex gap-3 mt-5">
@@ -562,7 +562,7 @@
                 {{ isQuickLogging ? 'Guardando...' : 'Registrar' }}
               </button>
               <button
-                class="px-4 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors "
+                class="px-4 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-border-muted transition-colors"
                 @click="quickLogProposal = null"
               >
                 Cancelar
@@ -1104,7 +1104,7 @@ function resolveAlertDate(alert) {
 function alertBorderClass(priority) {
   if (priority === 'critical') return 'border-danger-soft hover:border-danger-strong/40 dark:border-danger-strong/30 dark:hover:border-danger-strong/60';
   if (priority === 'high') return 'border-warning-soft hover:border-warning-strong/40 dark:border-warning-strong/30 dark:hover:border-warning-strong/60';
-  return 'border-border-default hover:border-gray-300  dark:hover:border-gray-500';
+  return 'border-border-default hover:border-focus-ring/40';
 }
 
 async function handleCreateAlert() {

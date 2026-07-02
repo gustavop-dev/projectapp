@@ -40,7 +40,7 @@
             <div v-if="!tagStore.tags.length" class="text-sm text-text-muted text-center py-6">
               No hay etiquetas todavía.
             </div>
-            <ul v-else class="divide-y divide-gray-100 dark:divide-gray-700">
+            <ul v-else class="divide-y divide-border-muted">
               <li v-for="tag in tagStore.tags" :key="tag.id" class="py-2 flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full flex-shrink-0" :class="tagDotClass(tag.color)"></span>
 

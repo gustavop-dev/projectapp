@@ -79,34 +79,34 @@ describe('TaskColumn', () => {
 
   // ── dotClass computed ──────────────────────────────────────────────────────
 
-  it('dotClass is bg-gray-400 for todo status', () => {
+  it('dotClass is bg-text-subtle for todo status', () => {
     const wrapper = mountColumn({ status: 'todo' })
     const dot = wrapper.find('span.rounded-full')
-    expect(dot.classes()).toContain('bg-gray-400')
+    expect(dot.classes()).toContain('bg-text-subtle')
   })
 
-  it('dotClass is bg-blue-500 for in_progress status', () => {
+  it('dotClass is bg-info-strong for in_progress status', () => {
     const wrapper = mountColumn({ status: 'in_progress', label: 'En progreso' })
     const dot = wrapper.find('span.rounded-full')
-    expect(dot.classes()).toContain('bg-blue-500')
+    expect(dot.classes()).toContain('bg-info-strong')
   })
 
-  it('dotClass is bg-red-500 for blocked status', () => {
+  it('dotClass is bg-danger-strong for blocked status', () => {
     const wrapper = mountColumn({ status: 'blocked', label: 'Bloqueado' })
     const dot = wrapper.find('span.rounded-full')
-    expect(dot.classes()).toContain('bg-red-500')
+    expect(dot.classes()).toContain('bg-danger-strong')
   })
 
-  it('dotClass is bg-emerald-500 for done status', () => {
+  it('dotClass is bg-success-strong for done status', () => {
     const wrapper = mountColumn({ status: 'done', label: 'Hecho' })
     const dot = wrapper.find('span.rounded-full')
-    expect(dot.classes()).toContain('bg-emerald-500')
+    expect(dot.classes()).toContain('bg-success-strong')
   })
 
-  it('dotClass falls back to bg-gray-400 for unknown status', () => {
+  it('dotClass falls back to bg-text-subtle for unknown status', () => {
     const wrapper = mountColumn({ status: 'unknown', label: 'Custom' })
     const dot = wrapper.find('span.rounded-full')
-    expect(dot.classes()).toContain('bg-gray-400')
+    expect(dot.classes()).toContain('bg-text-subtle')
   })
 
   // ── groupedTasks computed ──────────────────────────────────────────────────

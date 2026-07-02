@@ -58,37 +58,37 @@ describe('TaskCard', () => {
   it('priorityBadgeClass includes gray classes for "low" priority', () => {
     const wrapper = mountCard({ priority: 'low' })
     const badge = wrapper.findAll('span')[0]
-    expect(badge.classes()).toContain('bg-gray-100')
+    expect(badge.classes()).toContain('bg-surface-raised')
   })
 
   it('priorityBadgeClass includes blue classes for "medium" priority', () => {
     const wrapper = mountCard({ priority: 'medium' })
     const badge = wrapper.findAll('span')[0]
-    expect(badge.classes()).toContain('bg-blue-100')
+    expect(badge.classes()).toContain('bg-info-soft')
   })
 
   it('priorityBadgeClass includes red classes for "high" priority', () => {
     const wrapper = mountCard({ priority: 'high' })
     const badge = wrapper.findAll('span')[0]
-    expect(badge.classes()).toContain('bg-red-100')
+    expect(badge.classes()).toContain('bg-danger-soft')
   })
 
   it('priorityBadgeClass defaults to medium classes for unknown priority', () => {
     const wrapper = mountCard({ priority: 'urgent' })
     const badge = wrapper.findAll('span')[0]
-    expect(badge.classes()).toContain('bg-blue-100')
+    expect(badge.classes()).toContain('bg-info-soft')
   })
 
   it('applies overdue date styling when is_overdue is true', () => {
     const wrapper = mountCard({ due_date: '2026-01-01', is_overdue: true })
     const dateSpan = wrapper.findAll('span').find((s) => s.text().includes('Jan'))
-    expect(dateSpan.classes()).toContain('text-red-600')
+    expect(dateSpan.classes()).toContain('text-danger-strong')
   })
 
   it('does not apply overdue styling when is_overdue is false', () => {
     const wrapper = mountCard({ due_date: '2026-12-31', is_overdue: false })
     const dateSpan = wrapper.findAll('span').find((s) => s.text().includes('Dec'))
-    expect(dateSpan.classes()).not.toContain('text-red-600')
+    expect(dateSpan.classes()).not.toContain('text-danger-strong')
   })
 
   it('renders assignee name when provided', () => {

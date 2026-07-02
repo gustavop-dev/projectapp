@@ -23,7 +23,7 @@
             </div>
             <button
               type="button"
-              class="w-8 h-8 flex-shrink-0 ml-2 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised dark:hover:bg-gray-700 transition-colors"
+              class="w-8 h-8 flex-shrink-0 ml-2 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised transition-colors"
               @click="close"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -236,7 +236,7 @@
                             v-model="selectedDocIds"
                             type="checkbox"
                             :value="d.id"
-                            class="rounded border-gray-300 dark:border-white/[0.15] text-text-brand focus:ring-focus-ring/30"
+                            class="rounded border-input-border text-text-brand focus:ring-focus-ring/30"
                           />
                           <label :for="`pick-${d.id}`" class="flex-1 min-w-0 cursor-pointer">
                             <div class="text-sm text-text-default truncate">{{ d.title }}</div>
@@ -309,7 +309,7 @@
           <div class="px-6 py-4 border-t border-border-muted flex justify-end gap-2 flex-shrink-0">
             <button
               type="button"
-              class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised dark:hover:bg-gray-700 rounded-lg transition-colors"
+              class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised rounded-lg transition-colors"
               @click="close"
             >
               Cancelar

@@ -22,7 +22,7 @@
                 v-model="form.title"
                 required
                 type="text"
-                class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500"
+                class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring"
                 data-testid="task-title-input"
               />
             </div>
@@ -32,7 +32,7 @@
               <textarea
                 v-model="form.description"
                 rows="3"
-                class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500"
+                class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring"
               ></textarea>
             </div>
 
@@ -105,7 +105,7 @@
                 <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">Alertas</span>
                 <span
                   v-if="alerts.length"
-                  class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
+                  class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-primary-soft text-text-brand"
                 >{{ alerts.length }}</span>
               </div>
 
@@ -115,13 +115,13 @@
                 <li
                   v-for="alert in alerts"
                   :key="alert.id"
-                  class="flex items-start justify-between gap-2 px-3 py-2 rounded-lg bg-gray-50/50 text-sm"
+                  class="flex items-start justify-between gap-2 px-3 py-2 rounded-lg bg-surface-raised text-sm"
                 >
                   <div class="flex-1 min-w-0">
                     <span class="font-medium text-text-default">{{ formatAlertDate(alert.notify_at) }}</span>
                     <span
                       v-if="alert.sent"
-                      class="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400"
+                      class="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-primary-soft text-text-brand"
                     >Enviada</span>
                     <span
                       v-else
@@ -131,7 +131,7 @@
                   </div>
                   <button
                     type="button"
-                    class="text-text-subtle hover:text-red-500 dark:hover:text-red-400 flex-shrink-0 mt-0.5"
+                    class="text-text-subtle hover:text-danger-strong flex-shrink-0 mt-0.5"
                     :disabled="deletingAlertId === alert.id"
                     @click="handleDeleteAlert(alert.id)"
                   >✕</button>
@@ -146,7 +146,7 @@
                   <input
                     v-model="newAlert.notify_at"
                     type="date"
-                    class="px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+                    class="px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring"
                     data-testid="new-alert-date"
                   />
                 </div>
@@ -156,13 +156,13 @@
                     v-model="newAlert.note"
                     type="text"
                     placeholder="Ej: Revisar avance con el cliente"
-                    class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+                    class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring"
                   />
                 </div>
                 <button
                   type="button"
                   :disabled="!newAlert.notify_at || isAddingAlert"
-                  class="px-3 py-2 text-sm rounded-lg bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 flex-shrink-0"
+                  class="px-3 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary-strong disabled:opacity-50 flex-shrink-0"
                   @click="handleAddAlert"
                 >
                   {{ isAddingAlert ? '…' : '+ Agregar' }}
@@ -176,7 +176,7 @@
                 <span class="text-xs font-semibold text-text-muted uppercase tracking-wide">Comentarios</span>
                 <span
                   v-if="comments.length"
-                  class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                  class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-info-soft text-info-strong"
                 >{{ comments.length }}</span>
               </div>
 
@@ -186,7 +186,7 @@
                 <li
                   v-for="comment in comments"
                   :key="comment.id"
-                  class="flex items-start gap-2 px-3 py-2 rounded-lg bg-gray-50/50 text-sm"
+                  class="flex items-start gap-2 px-3 py-2 rounded-lg bg-surface-raised text-sm"
                 >
                   <div class="flex-1 min-w-0">
                     <div class="flex items-baseline gap-2">
@@ -197,7 +197,7 @@
                   </div>
                   <button
                     type="button"
-                    class="text-text-subtle hover:text-red-500 dark:hover:text-red-400 flex-shrink-0 mt-0.5 text-xs"
+                    class="text-text-subtle hover:text-danger-strong flex-shrink-0 mt-0.5 text-xs"
                     @click="handleDeleteComment(comment.id)"
                   >✕</button>
                 </li>
@@ -209,13 +209,13 @@
                   v-model="newComment"
                   type="text"
                   placeholder="Agregar comentario…"
-                  class="flex-1 px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  class="flex-1 px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring"
                   @keydown.enter.prevent="handleAddComment"
                 />
                 <button
                   type="button"
                   :disabled="!newComment.trim() || isAddingComment"
-                  class="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 flex-shrink-0"
+                  class="px-3 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary-strong disabled:opacity-50 flex-shrink-0"
                   @click="handleAddComment"
                 >{{ isAddingComment ? '…' : '+ Agregar' }}</button>
               </div>
@@ -224,32 +224,32 @@
             <!-- Archive section (edit mode only) -->
             <div v-if="isEditing" class="pt-1">
               <!-- Already archived: show badge + reason -->
-              <div v-if="props.task?.is_archived" class="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/40">
-                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 flex-shrink-0">Archivada</span>
-                <p v-if="props.task.archive_reason" class="text-xs text-amber-700 dark:text-amber-400 flex-1">{{ props.task.archive_reason }}</p>
+              <div v-if="props.task?.is_archived" class="flex items-start gap-2 px-3 py-2 rounded-lg bg-warning-soft border border-warning-strong/30">
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-warning-strong/20 text-warning-strong flex-shrink-0">Archivada</span>
+                <p v-if="props.task.archive_reason" class="text-xs text-warning-strong flex-1">{{ props.task.archive_reason }}</p>
                 <p v-else class="text-xs text-text-subtle italic flex-1">Sin motivo registrado.</p>
               </div>
               <!-- Not archived: show archive trigger / form -->
               <div v-else-if="!showArchiveForm" class="flex items-center gap-2">
                 <button
                   type="button"
-                  class="text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400 underline"
+                  class="text-xs text-warning-strong hover:opacity-80 underline"
                   @click="showArchiveForm = true"
                 >Archivar tarea</button>
               </div>
-              <div v-else class="space-y-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/40">
-                <label class="block text-xs font-medium text-amber-700 dark:text-amber-400">Motivo del archivo <span class="text-text-subtle">(opcional)</span></label>
+              <div v-else class="space-y-2 p-3 rounded-lg bg-warning-soft border border-warning-strong/30">
+                <label class="block text-xs font-medium text-warning-strong">Motivo del archivo <span class="text-text-subtle">(opcional)</span></label>
                 <textarea
                   v-model="archiveReason"
                   rows="2"
                   placeholder="Ej: Descartada por cambio de prioridades…"
-                  class="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm bg-surface focus:ring-2 focus:ring-amber-500"
+                  class="w-full px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:ring-2 focus:ring-focus-ring/30"
                 ></textarea>
                 <div class="flex gap-2">
                   <button
                     type="button"
                     :disabled="busy"
-                    class="px-3 py-1.5 text-xs rounded-lg bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50"
+                    class="px-3 py-1.5 text-xs rounded-lg bg-primary text-white hover:bg-primary-strong disabled:opacity-50"
                     @click="handleArchive"
                   >Confirmar archivo</button>
                   <button type="button" class="text-xs text-text-muted hover:text-text-default" @click="showArchiveForm = false">Cancelar</button>
@@ -263,7 +263,7 @@
               <button
                 v-if="isEditing"
                 type="button"
-                class="text-sm text-red-600 hover:text-red-700 dark:text-red-400"
+                class="text-sm text-danger-strong hover:opacity-80"
                 :disabled="busy"
                 @click="handleDelete"
               >
@@ -274,7 +274,7 @@
                 <button
                   v-if="isEditing"
                   type="button"
-                  class="px-4 py-2 text-sm rounded-lg bg-surface-raised text-text-default hover:bg-gray-200 disabled:opacity-50"
+                  class="px-4 py-2 text-sm rounded-lg bg-surface-raised text-text-default hover:bg-border-muted disabled:opacity-50"
                   :disabled="busy"
                   data-testid="task-duplicate-btn"
                   @click="handleDuplicate"
@@ -283,7 +283,7 @@
                 </button>
                 <button
                   type="button"
-                  class="px-4 py-2 text-sm rounded-lg bg-surface-raised text-text-default hover:bg-gray-200"
+                  class="px-4 py-2 text-sm rounded-lg bg-surface-raised text-text-default hover:bg-border-muted"
                   @click="close"
                 >
                   Cancel

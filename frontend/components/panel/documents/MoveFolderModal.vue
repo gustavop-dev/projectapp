@@ -23,7 +23,7 @@
             </div>
             <button
               type="button"
-              class="w-8 h-8 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised dark:hover:bg-gray-700 transition-colors"
+              class="w-8 h-8 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised transition-colors"
               @click="close"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -41,7 +41,7 @@
               class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left disabled:opacity-50"
               :class="document.folder_id === null
                 ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
-                : 'border-border-muted hover:border-border-default dark:hover:border-gray-600 hover:bg-surface-muted dark:hover:bg-gray-700/50'"
+                : 'border-border-muted hover:border-border-default hover:bg-surface-muted'"
               @click="moveToFolder(null)"
             >
               <div class="w-7 h-7 rounded-lg bg-surface-raised flex items-center justify-center flex-shrink-0">
@@ -69,7 +69,7 @@
               class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left disabled:opacity-50"
               :class="document.folder_id === folder.id
                 ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
-                : 'border-border-muted hover:border-border-default dark:hover:border-gray-600 hover:bg-surface-muted dark:hover:bg-gray-700/50'"
+                : 'border-border-muted hover:border-border-default hover:bg-surface-muted'"
               :style="{ paddingLeft: `${12 + folder.depth * 18}px` }"
               @click="moveToFolder(folder.id)"
             >
@@ -104,7 +104,7 @@
           <div class="px-6 py-4 border-t border-border-muted flex justify-end">
             <button
               type="button"
-              class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default dark:text-text-subtle dark:hover:text-gray-100 hover:bg-surface-raised dark:hover:bg-gray-700 rounded-lg transition-colors"
+              class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised rounded-lg transition-colors"
               @click="close"
             >
               Cancelar
