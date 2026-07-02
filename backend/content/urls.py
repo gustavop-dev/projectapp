@@ -75,6 +75,7 @@ from content.views.blog import (
     retrieve_admin_blog_post, update_blog_post, delete_blog_post,
     duplicate_blog_post, upload_blog_cover_image, blog_calendar,
 )
+from content.views.mcp_blog import mcp_blog_endpoint
 from content.views.linkedin import (
     linkedin_auth_url, linkedin_callback, linkedin_status,
     publish_to_linkedin,
@@ -248,6 +249,9 @@ urlpatterns = [
     path('blog/admin/<int:post_id>/duplicate/', duplicate_blog_post, name='duplicate-blog-post'),
     path('blog/admin/<int:post_id>/upload-cover/', upload_blog_cover_image, name='upload-blog-cover-image'),
     path('blog/admin/calendar/', blog_calendar, name='blog-calendar'),
+
+    # MCP (Model Context Protocol) — token-authenticated remote connectors
+    path('mcp/blog/<str:token>/', mcp_blog_endpoint, name='mcp-blog-endpoint'),
     path('blog/admin/<int:post_id>/publish-linkedin/', publish_to_linkedin, name='publish-to-linkedin'),
 
     # LinkedIn OAuth

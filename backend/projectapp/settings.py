@@ -343,6 +343,9 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
+    'DEFAULT_THROTTLE_RATES': {
+        'mcp': '60/min',
+    },
 }
 
 SIMPLE_JWT = {
