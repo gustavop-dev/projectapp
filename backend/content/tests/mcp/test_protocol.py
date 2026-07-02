@@ -110,3 +110,10 @@ class TestProtocolErrors:
         status, resp = handle_message(['not', 'a', 'dict'], TOOLS)
         assert status == 200
         assert resp['error']['code'] == -32600
+
+    def test_array_params_return_invalid_params_not_crash(self):
+        status, resp = handle_message(
+            {'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call', 'params': [1]}, TOOLS,
+        )
+        assert status == 200
+        assert resp['error']['code'] == -32602

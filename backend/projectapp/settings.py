@@ -422,6 +422,24 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
+        # Publish pipeline logic moved here from content.views.blog — keep
+        # its [LinkedIn]/scheduling logs flowing into blog_publish.log.
+        'content.services.blog_service': {
+            'handlers': ['blog_publish_file', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        # MCP endpoint + tool execution audit trail.
+        'content.views.mcp_blog': {
+            'handlers': ['blog_publish_file', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'content.mcp.protocol': {
+            'handlers': ['blog_publish_file', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
         'content.services.linkedin_service': {
             'handlers': ['blog_publish_file', 'console'],
             'level': 'DEBUG',

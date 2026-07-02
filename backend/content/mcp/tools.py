@@ -104,8 +104,11 @@ def delete_blog_post(arguments):
 
 
 def list_blog_posts(arguments):
-    page = max(1, int(arguments.get('page', 1) or 1))
-    page_size = max(1, min(int(arguments.get('page_size', 15) or 15), 50))
+    try:
+        page = max(1, int(arguments.get('page', 1) or 1))
+        page_size = max(1, min(int(arguments.get('page_size', 15) or 15), 50))
+    except (TypeError, ValueError):
+        raise ToolError('page y page_size deben ser enteros.')
     qs = BlogPost.objects.all()
     total = qs.count()
     start = (page - 1) * page_size
@@ -120,8 +123,13 @@ def list_blog_posts(arguments):
 
 
 def get_blog_calendar(arguments):
-    start_date = parse_date(str(arguments.get('start', '')))
-    end_date = parse_date(str(arguments.get('end', '')))
+    try:
+        # parse_date returns None for malformed strings but raises ValueError
+        # for well-formed impossible dates (e.g. 2026-02-30).
+        start_date = parse_date(str(arguments.get('start', '')))
+        end_date = parse_date(str(arguments.get('end', '')))
+    except ValueError:
+        start_date = end_date = None
     if not start_date or not end_date:
         raise ToolError('Formato de fecha inválido: usa YYYY-MM-DD en start y end.')
     start_dt = tz.make_aware(datetime.combine(start_date, time.min))

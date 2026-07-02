@@ -66,6 +66,11 @@ def handle_message(message, tools):
     if message.get('jsonrpc') != '2.0' or not method:
         return _error(msg_id, INVALID_REQUEST, 'Malformed JSON-RPC 2.0 request.')
 
+    # JSON-RPC allows positional (array) params, but every MCP method here
+    # takes named params — reject anything that is not an object.
+    if not isinstance(params, dict):
+        return _error(msg_id, INVALID_PARAMS, 'params must be a JSON object.')
+
     if method == 'initialize':
         requested = params.get('protocolVersion', '')
         version = requested if requested in SUPPORTED_PROTOCOL_VERSIONS else DEFAULT_PROTOCOL_VERSION

@@ -141,7 +141,10 @@ class TestMcpConnectorPanelEndpoints:
         response = superuser_client.post('/api/mcp-connectors/blog/generate-token/')
         assert response.status_code == 200
         url = response.data['connector_url']
-        assert url.startswith('https://projectapp.co/api/mcp/blog/')
+        # Host comes from the request (staging/local instances must hand out
+        # URLs pointing at themselves, not at production).
+        assert '/api/mcp/blog/' in url
+        assert url.startswith('http://testserver/')
         token = url.rstrip('/').rsplit('/', 1)[-1]
         connector = McpConnector.objects.get(slug='blog')
         assert connector.check_token(token) is True
@@ -153,6 +156,22 @@ class TestMcpConnectorPanelEndpoints:
         )
         assert response.status_code == 200
         assert McpConnector.objects.get(slug='blog').is_active is True
+
+    def test_toggle_accepts_string_false(self, superuser_client):
+        connector = McpConnector.objects.get(slug='blog')
+        connector.is_active = True
+        connector.save(update_fields=['is_active'])
+        response = superuser_client.patch(
+            '/api/mcp-connectors/blog/', {'is_active': 'false'}, format='json',
+        )
+        assert response.status_code == 200
+        assert McpConnector.objects.get(slug='blog').is_active is False
+
+    def test_toggle_rejects_invalid_boolean(self, superuser_client):
+        response = superuser_client.patch(
+            '/api/mcp-connectors/blog/', {'is_active': 'quizás'}, format='json',
+        )
+        assert response.status_code == 400
 
     def test_unknown_slug_is_404(self, superuser_client):
         assert superuser_client.patch(

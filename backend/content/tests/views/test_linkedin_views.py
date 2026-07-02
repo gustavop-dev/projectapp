@@ -207,7 +207,7 @@ class TestPublishToLinkedin:
 
 class TestAutoPublishOnBlogCreate:
 
-    @patch('content.views.blog.auto_publish_blog_to_linkedin')
+    @patch('content.services.blog_service.auto_publish_blog_to_linkedin')
     def test_calls_auto_publish_when_created_published_with_summary(self, mock_auto, admin_client):
         payload = {
             'title_es': 'Auto post',
@@ -224,8 +224,10 @@ class TestAutoPublishOnBlogCreate:
         assert response.status_code == 201
         mock_auto.assert_called_once()
 
-    @patch('content.views.blog.auto_publish_blog_to_linkedin')
-    def test_calls_auto_publish_for_draft_but_returns_early(self, mock_auto, admin_client):
+    @patch('content.services.blog_service.auto_publish_blog_to_linkedin')
+    def test_does_not_call_auto_publish_for_draft(self, mock_auto, admin_client):
+        # run_post_save_pipeline skips the LinkedIn call entirely for drafts
+        # (the old view called it and relied on its internal early return).
         payload = {
             'title_es': 'Draft post',
             'title_en': 'Draft EN',
@@ -239,4 +241,4 @@ class TestAutoPublishOnBlogCreate:
             reverse('create-blog-post-from-json'), payload, format='json',
         )
         assert response.status_code == 201
-        mock_auto.assert_called_once()
+        mock_auto.assert_not_called()

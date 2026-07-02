@@ -11,6 +11,17 @@
       Cargando conectores...
     </div>
 
+    <div
+      v-else-if="store.error && store.connectors.length === 0"
+      data-testid="mcps-error"
+      class="max-w-2xl bg-surface border border-border-muted rounded-xl shadow-sm p-6 text-center"
+    >
+      <p class="text-sm text-text-muted mb-4">{{ store.error }}</p>
+      <BaseButton variant="secondary" size="sm" @click="store.fetchConnectors()">
+        Reintentar
+      </BaseButton>
+    </div>
+
     <div v-else class="max-w-2xl space-y-4">
       <div
         v-for="connector in store.connectors"

@@ -7,7 +7,7 @@ import logging
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone as tz
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.decorators import (
     api_view,
     authentication_classes,
@@ -22,11 +22,15 @@ from content.mcp.protocol import handle_message
 from content.mcp.tools import BLOG_TOOLS
 from content.models import McpConnector
 from content.permissions import IsSuperUser
-from content.services.blog_service import BASE_URL
 
 logger = logging.getLogger(__name__)
 
 LAST_USED_TOUCH_SECONDS = 60
+
+# One entry per exposed MCP connector: slug -> tool registry.
+TOOLS_BY_SLUG = {
+    'blog': BLOG_TOOLS,
+}
 
 
 class McpEndpointThrottle(AnonRateThrottle):
@@ -44,17 +48,18 @@ def _touch_last_used(connector):
 @authentication_classes([])  # token in URL is the credential; no session ⇒ no CSRF
 @permission_classes([AllowAny])
 @throttle_classes([McpEndpointThrottle])
-def mcp_blog_endpoint(request, token):
+def mcp_endpoint(request, slug, token):
     """
-    MCP Streamable HTTP endpoint for the Blog Publisher connector.
+    MCP Streamable HTTP endpoint for a connector (e.g. blog).
     Plain-JSON responses only (no SSE) — WSGI-compatible by design.
     """
-    connector = McpConnector.objects.filter(slug='blog', is_active=True).first()
-    if connector is None or not connector.check_token(token):
+    tools = TOOLS_BY_SLUG.get(slug)
+    connector = McpConnector.objects.filter(slug=slug, is_active=True).first()
+    if tools is None or connector is None or not connector.check_token(token):
         raise Http404
 
     message = request.data
-    http_status, payload = handle_message(message, BLOG_TOOLS)
+    http_status, payload = handle_message(message, tools)
 
     if isinstance(message, dict) and message.get('method') == 'tools/call':
         _touch_last_used(connector)
@@ -67,11 +72,6 @@ def mcp_blog_endpoint(request, token):
 # ---------------------------------------------------------------------------
 # Panel management endpoints (/panel/mcps) — session + CSRF, superuser only
 # ---------------------------------------------------------------------------
-
-TOOLS_BY_SLUG = {
-    'blog': BLOG_TOOLS,
-}
-
 
 def _connector_payload(connector):
     tools = TOOLS_BY_SLUG.get(connector.slug, [])
@@ -102,8 +102,11 @@ def generate_mcp_connector_token(request, slug):
     connector = get_object_or_404(McpConnector, slug=slug)
     token = connector.generate_token()
     logger.info('[MCP] token rotated for connector %s by %s', slug, request.user.username)
+    # Build from the request host so staging/local instances hand out URLs
+    # that actually point at themselves (the token only exists in their DB).
+    connector_url = request.build_absolute_uri(f'/api/mcp/{connector.slug}/{token}/')
     return Response({
-        'connector_url': f'{BASE_URL}/api/mcp/{connector.slug}/{token}/',
+        'connector_url': connector_url,
         'token_prefix': connector.token_prefix,
     }, status=status.HTTP_200_OK)
 
@@ -114,7 +117,14 @@ def update_mcp_connector(request, slug):
     """Toggle is_active."""
     connector = get_object_or_404(McpConnector, slug=slug)
     if 'is_active' in request.data:
-        connector.is_active = bool(request.data['is_active'])
+        try:
+            is_active = serializers.BooleanField().to_internal_value(request.data['is_active'])
+        except serializers.ValidationError:
+            return Response(
+                {'is_active': 'Valor booleano inválido.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        connector.is_active = is_active
         connector.save(update_fields=['is_active', 'updated_at'])
         logger.info(
             '[MCP] connector %s %s by %s',

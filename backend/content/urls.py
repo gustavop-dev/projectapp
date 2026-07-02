@@ -78,7 +78,7 @@ from content.views.blog import (
 from content.views.mcp_blog import (
     generate_mcp_connector_token,
     list_mcp_connectors,
-    mcp_blog_endpoint,
+    mcp_endpoint,
     update_mcp_connector,
 )
 from content.views.linkedin import (
@@ -256,7 +256,7 @@ urlpatterns = [
     path('blog/admin/calendar/', blog_calendar, name='blog-calendar'),
 
     # MCP (Model Context Protocol) — token-authenticated remote connectors
-    path('mcp/blog/<str:token>/', mcp_blog_endpoint, name='mcp-blog-endpoint'),
+    path('mcp/<slug:slug>/<str:token>/', mcp_endpoint, name='mcp-endpoint'),
     path('mcp-connectors/', list_mcp_connectors, name='list-mcp-connectors'),
     path('mcp-connectors/<slug:slug>/', update_mcp_connector, name='update-mcp-connector'),
     path('mcp-connectors/<slug:slug>/generate-token/', generate_mcp_connector_token, name='generate-mcp-connector-token'),
