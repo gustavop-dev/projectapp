@@ -48,7 +48,7 @@ class TestCreateBlogPost:
         with patch('content.tasks.publish_single_scheduled_blog') as mock_task:
             result = _tool('create_blog_post')['handler'](args)
         assert result['status'] == 'scheduled'
-        assert mock_task.schedule.called
+        assert mock_task.schedule.call_count == 1
 
     def test_invalid_payload_raises_tool_error_with_field_names(self):
         with pytest.raises(ToolError) as exc:
@@ -68,8 +68,9 @@ class TestUpdateBlogPost:
         assert result['id'] == draft_blog_post.id
 
     def test_unknown_post_raises_tool_error(self):
-        with pytest.raises(ToolError):
+        with pytest.raises(ToolError) as exc:
             _tool('update_blog_post')['handler']({'post_id': 99999, 'title_es': 'x'})
+        assert 'No existe un blog post con id=99999' in str(exc.value)
 
 
 @pytest.mark.django_db
@@ -105,5 +106,6 @@ class TestGetBlogCalendar:
         assert any(p['id'] == blog_post.id for p in result['posts'])
 
     def test_invalid_dates_raise_tool_error(self):
-        with pytest.raises(ToolError):
+        with pytest.raises(ToolError) as exc:
             _tool('get_blog_calendar')['handler']({'start': 'ayer', 'end': 'hoy'})
+        assert 'YYYY-MM-DD' in str(exc.value)
