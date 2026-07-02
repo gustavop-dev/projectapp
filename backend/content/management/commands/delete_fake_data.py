@@ -83,6 +83,31 @@ class Command(BaseCommand):
             total_folders += count
         self.stdout.write(self.style.SUCCESS(f'Deleted document folders ({total_folders} rows)'))
 
+        # Accounting: only rows tagged fake:accounting are removed (imported
+        # spreadsheet data and manual records are preserved). Unlink pocket
+        # references first so OneToOne SET_NULL ordering never matters.
+        from content.models import (
+            AdsSpendRecord as AccAds,
+            CardBalanceSnapshot as AccCards,
+            ExpenseRecord as AccExpenses,
+            HostingRecord as AccHostings,
+            IncomeRecord as AccIncomes,
+            PocketMovement as AccPocket,
+            RecurringPayment as AccRecurring,
+        )
+        accounting_total = 0
+        for model in (
+            AccIncomes, AccExpenses, AccHostings,
+            AccPocket, AccRecurring, AccAds, AccCards,
+        ):
+            deleted, _ = model.objects.filter(
+                source_ref='fake:accounting',
+            ).delete()
+            accounting_total += deleted
+        self.stdout.write(self.style.SUCCESS(
+            f'Deleted fake accounting rows ({accounting_total} rows)'
+        ))
+
         # Superusers and staff users are intentionally never deleted.
         protected = User.objects.filter(is_superuser=True).count() \
             + User.objects.filter(is_staff=True, is_superuser=False).count()
