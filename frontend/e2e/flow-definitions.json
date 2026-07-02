@@ -2464,6 +2464,106 @@
       ],
       "expectedSpecs": 0,
       "description": "Admin-only quick-access hub at /platform/access: grid of project cards with clickable URLs (production, staging, Django admin, repository) and copy/reveal credential controls."
+    },
+    "admin-accounting-dashboard": {
+      "name": "Admin Accounting Dashboard",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Superuser opens /panel/accounting and sees the financial overview fed by GET /api/accounting/dashboard/?year=: expected vs liquid income, expenses, utilities, pocket balance, per-partner cards (Gustavo/Carlos/ProjectApp), 12-month breakdown table, operative cost cards and latest card snapshots. Includes the superuser gate: staff non-superusers are redirected to /panel and the Accounting sidebar section is hidden.",
+      "expectedSpecs": 5
+    },
+    "admin-accounting-income-crud": {
+      "name": "Admin Accounting Income CRUD",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Superuser manages income records at /panel/accounting/incomes: create via modal with automatic 50/50 partner split (editable), edit with prefill (PATCH /api/accounting/incomes/:id/update/), delete with ConfirmModal (DELETE .../delete/), HTML5 required validation and backend error toasts via usePanelNotify.",
+      "expectedSpecs": 7
+    },
+    "admin-accounting-filters": {
+      "name": "Admin Accounting Filters",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Superuser filters the incomes list client-side: period date range, total amount min/max, kind segmented (Esperado/Líquido), partner segmented (Gustavo/Carlos/ProjectApp), free-text search with debounce, active-filter count badge and reset. Powered by useAccountingFilters + AccountingFilterPanel.",
+      "expectedSpecs": 6
+    },
+    "admin-accounting-expenses-crud": {
+      "name": "Admin Accounting Expenses CRUD",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser manages expense records at /panel/accounting/expenses with category (Negocio/Personal) and paid-from badges, partner split and the same modal CRUD + filters pattern as incomes.",
+      "expectedSpecs": 2
+    },
+    "admin-accounting-hostings": {
+      "name": "Admin Accounting Hostings",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser manages the client hosting registry at /panel/accounting/hostings: list with estado badge and validity, meta stat cards (active count, monthly income from list meta) and modal CRUD with per-modality payment defaults.",
+      "expectedSpecs": 3
+    },
+    "admin-accounting-pocket": {
+      "name": "Admin Accounting Pocket Ledger",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser reviews the ProjectApp pocket ledger at /panel/accounting/pocket: balance card from list meta, chronological running-balance column, manual movement CRUD, and protection of auto-managed movements (edit/delete warns and never calls the API — they are managed from the linked income/expense).",
+      "expectedSpecs": 3
+    },
+    "admin-accounting-recurring": {
+      "name": "Admin Accounting Recurring Payments",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser manages recurring operational costs at /panel/accounting/recurring: monthly COP total card, breakdowns by frequency and payment method, and modal CRUD where the COP-equivalent field only applies to USD payments.",
+      "expectedSpecs": 3
+    },
+    "admin-accounting-history": {
+      "name": "Admin Accounting History",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser audits every accounting change at /panel/accounting/history: server-paginated log (GET /api/accounting/change-logs/, 20 per page) with entity/action/actor/date filters and expandable field-level old→new diffs per entry.",
+      "expectedSpecs": 3
+    },
+    "admin-accounting-settings": {
+      "name": "Admin Accounting Settings",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser configures accounting email notifications at /panel/accounting/settings: recipient list (add/remove emails with validation) and global enable toggle, saved via PATCH /api/accounting/settings/update/ (audited).",
+      "expectedSpecs": 2
+    },
+    "admin-accounting-ads": {
+      "name": "Admin Accounting Ads Log",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Superuser tracks advertising spend at /panel/accounting/ads: chronological list with a computed running accumulated column (calculated over the full history), origin-card and platform filters, and modal CRUD.",
+      "expectedSpecs": 2
     }
   }
 }
