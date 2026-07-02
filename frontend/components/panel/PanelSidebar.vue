@@ -189,9 +189,9 @@ const toggleSidebar = inject('togglePanelSidebar', null)
 
 const proposalStore = useProposalStore()
 const sections = computed(() =>
-  getPanelNavSections(localePath).filter(
-    (section) => !section.superuserOnly || proposalStore.isSuperuser,
-  ),
+  getPanelNavSections(localePath, {
+    includeSuperuserOnly: proposalStore.isSuperuser,
+  }),
 )
 
 function isItemActive(item) {

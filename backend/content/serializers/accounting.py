@@ -9,6 +9,7 @@ from decimal import Decimal, ROUND_DOWN
 
 from rest_framework import serializers
 
+from content.utils import SPANISH_MONTHS
 from content.models import (
     AccountingChangeLog,
     AccountingSettings,
@@ -20,11 +21,6 @@ from content.models import (
     PocketMovement,
     RecurringPayment,
 )
-
-SPANISH_MONTHS = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
 
 MONTH_PERIOD_RE = re.compile(r'^\d{4}-(0[1-9]|1[0-2])$')
 
@@ -40,7 +36,7 @@ def month_label(date_value):
     """Return the Spanish 'Mes YYYY' label of a date."""
     if not date_value:
         return ''
-    return f'{SPANISH_MONTHS[date_value.month - 1]} {date_value.year}'
+    return f'{SPANISH_MONTHS[date_value.month].capitalize()} {date_value.year}'
 
 
 def split_half(total):

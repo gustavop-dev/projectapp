@@ -9,9 +9,8 @@ happens client-side. The change log is the only paginated endpoint.
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
-from django.db.models import F, Q
+from django.db.models import Count, F, Q, Sum
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -30,6 +29,7 @@ from content.models import (
 )
 from content.permissions import IsSuperUser
 from content.serializers.accounting import (
+    TWO_PLACES,
     AccountingChangeLogSerializer,
     AccountingSettingsSerializer,
     AdsSpendRecordCreateUpdateSerializer,
@@ -48,6 +48,7 @@ from content.serializers.accounting import (
     RecurringPaymentSerializer,
 )
 from content.services import accounting_service
+from content.utils import today_bogota
 
 EntityType = AccountingChangeLog.EntityType
 
@@ -66,20 +67,18 @@ def _parse_decimal(value, param):
         raise ValueError(f"El parámetro '{param}' debe ser un número.")
 
 
-_TWO_PLACES = Decimal('0.01')
-
-
 def _money(value):
-    return str(Decimal(value).quantize(_TWO_PLACES))
+    return str(Decimal(value).quantize(TWO_PLACES))
 
 
 def _hosting_meta(queryset, params):
-    active = queryset.filter(is_active=True)
+    totals = queryset.aggregate(
+        active_count=Count('id', filter=Q(is_active=True)),
+        monthly_income=Sum('monthly_value', filter=Q(is_active=True)),
+    )
     return {
-        'active_count': active.count(),
-        'monthly_income': _money(
-            accounting_service._sum(active, 'monthly_value'),
-        ),
+        'active_count': totals['active_count'] or 0,
+        'monthly_income': _money(totals['monthly_income'] or 0),
     }
 
 
@@ -91,9 +90,8 @@ def _pocket_meta(queryset, params):
 
 
 def _recurring_meta(queryset, params):
-    total = sum(
-        (row.monthly_cop_cost for row in queryset.filter(is_active=True)),
-        Decimal('0'),
+    total = accounting_service.recurring_monthly_cost(
+        queryset.filter(is_active=True),
     )
     return {'monthly_cop_total': _money(total)}
 
@@ -337,7 +335,7 @@ def accounting_dashboard(request):
     """Aggregated summary feeding the accounting dashboard."""
     year_param = request.query_params.get('year') or ''
     try:
-        year = int(year_param) if year_param else timezone.localdate().year
+        year = int(year_param) if year_param else today_bogota().year
     except (TypeError, ValueError):
         return error_response("El parámetro 'year' debe ser un año válido.")
     return Response(accounting_service.dashboard_summary(year))

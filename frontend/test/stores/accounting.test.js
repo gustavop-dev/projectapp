@@ -181,14 +181,6 @@ describe('useAccountingStore', () => {
   })
 
   describe('getters', () => {
-    it('pocketBalance subtracts outgoing from incoming amounts', () => {
-      store.pocketMovements = [
-        { direction: 'in', amount: '100.00' },
-        { direction: 'out', amount: '40.00' },
-      ]
-      expect(store.pocketBalance).toBe(60)
-    })
-
     it('pocketWithRunningBalance orders chronologically with running sum', () => {
       store.pocketMovements = [
         {

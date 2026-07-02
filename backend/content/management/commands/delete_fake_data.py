@@ -84,22 +84,12 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'Deleted document folders ({total_folders} rows)'))
 
         # Accounting: only rows tagged fake:accounting are removed (imported
-        # spreadsheet data and manual records are preserved). Unlink pocket
-        # references first so OneToOne SET_NULL ordering never matters.
-        from content.models import (
-            AdsSpendRecord as AccAds,
-            CardBalanceSnapshot as AccCards,
-            ExpenseRecord as AccExpenses,
-            HostingRecord as AccHostings,
-            IncomeRecord as AccIncomes,
-            PocketMovement as AccPocket,
-            RecurringPayment as AccRecurring,
-        )
+        # spreadsheet data and manual records are preserved). The entity
+        # registry is the single owner of "what is an accounting model".
+        from content.services.accounting_service import ENTITY_MODELS
+
         accounting_total = 0
-        for model in (
-            AccIncomes, AccExpenses, AccHostings,
-            AccPocket, AccRecurring, AccAds, AccCards,
-        ):
+        for model in ENTITY_MODELS.values():
             deleted, _ = model.objects.filter(
                 source_ref='fake:accounting',
             ).delete()

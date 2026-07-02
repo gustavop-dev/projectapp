@@ -1,4 +1,4 @@
-import { computed, onMounted, reactive, ref, toRaw, watch } from 'vue';
+import { computed, getCurrentScope, onMounted, onScopeDispose, reactive, ref, toRaw, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { useSavedFilterTabs } from '~/composables/useSavedFilterTabs';
@@ -101,6 +101,17 @@ export function matchEquals(field, key) {
   return fn;
 }
 
+/** Tri-state boolean: '' matches all, 'true'/'false' match the boolean field. */
+export function matchBoolean(field, key) {
+  const fn = (record, _value, filters) => {
+    const selected = filters[key];
+    if (selected === '' || selected === null || selected === undefined) return true;
+    return record[field] === (selected === 'true');
+  };
+  fn.keys = [key];
+  return fn;
+}
+
 // ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
@@ -133,7 +144,35 @@ export function useAccountingFilters({
   const isFilterPanelOpen = ref(false);
 
   const tabs = useSavedFilterTabs(viewName);
-  const { savedTabs, isLoading, isReady, lastError, isTabLimitReached } = tabs;
+  const { savedTabs, isTabLimitReached } = tabs;
+
+  // Debounced free-text search: pages bind their search box to
+  // `searchInput`; the actual `currentFilters.search` value (which drives
+  // applyFilters) follows 250ms after the user stops typing. External
+  // changes (tab selection, reset) sync back into the input immediately.
+  const searchInput = ref(currentFilters.search);
+  let searchTimer = null;
+
+  watch(searchInput, (value) => {
+    if (searchTimer) clearTimeout(searchTimer);
+    if (value === currentFilters.search) return;
+    searchTimer = setTimeout(() => {
+      currentFilters.search = value;
+    }, 250);
+  });
+
+  watch(
+    () => currentFilters.search,
+    (value) => {
+      if (value !== searchInput.value) searchInput.value = value;
+    },
+  );
+
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (searchTimer) clearTimeout(searchTimer);
+    });
+  }
 
   const initialTab = route?.query?.[tabQueryParam] || 'all';
   const activeTabId = ref(initialTab);
@@ -262,12 +301,10 @@ export function useAccountingFilters({
 
   return {
     currentFilters,
+    searchInput,
     savedTabs,
     activeTabId,
     isFilterPanelOpen,
-    isLoading,
-    isReady,
-    lastError,
     hasActiveFilters,
     activeFilterCount,
     isTabLimitReached,

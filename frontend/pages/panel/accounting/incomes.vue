@@ -40,7 +40,6 @@
         placeholder="Buscar por concepto o notas..."
         data-testid="incomes-search-input"
         class="w-full sm:max-w-xs"
-        @input="onSearchInput"
       />
       <UiFilterToggleButton
         :open="isFilterPanelOpen"
@@ -149,7 +148,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onMounted } from 'vue';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
@@ -158,10 +157,8 @@ import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
-import { useConfirmModal } from '~/composables/useConfirmModal';
-import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
-import { usePagination } from '~/composables/usePagination';
+import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import {
   useAccountingFilters,
   matchDateRange,
@@ -174,9 +171,6 @@ import { formatMoney } from '~/utils/formatMoney';
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
-const notify = usePanelNotify();
-const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =
-  useConfirmModal();
 
 // -------------------------------------------------------------------
 // Filters
@@ -195,6 +189,7 @@ matchPartner.keys = ['partner'];
 
 const {
   currentFilters,
+  searchInput,
   savedTabs,
   activeTabId: filterTabId,
   isFilterPanelOpen,
@@ -252,54 +247,53 @@ const filterFields = [
   },
 ];
 
-// Debounced search (mirrors the clients page pattern).
-const searchInput = ref(currentFilters.search);
-let searchTimer = null;
-
-function onSearchInput() {
-  if (searchTimer) clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    currentFilters.search = searchInput.value;
-  }, 250);
-}
-
-watch(
-  () => currentFilters.search,
-  (value) => {
-    if (value !== searchInput.value) searchInput.value = value;
-  },
-);
-
-function handleCreateFilterTab(name) {
-  saveTab(name);
-  isFilterPanelOpen.value = true;
-}
-
-function handleResetFilters() {
-  resetFilters();
-  isFilterPanelOpen.value = false;
-}
-
 // -------------------------------------------------------------------
-// Data + pagination
+// Data + CRUD controller (modal, delete confirm, pagination)
 // -------------------------------------------------------------------
 
 const filteredRecords = computed(() => applyFilters(store.incomes));
 
 const {
+  isModalOpen,
+  editingRecord,
+  openCreateModal,
+  openEditModal,
+  closeModal,
+  handleSubmit,
+  confirmDeleteRecord,
+  confirmState,
+  handleConfirmed,
+  handleCancelled,
   currentPage,
   totalPages,
   totalItems,
   rangeFrom,
   rangeTo,
-  paginatedItems: pagedRecords,
-  goTo: goToPage,
-  next: nextPage,
-  prev: prevPage,
-  reset: resetPage,
-} = usePagination(filteredRecords, { pageSize: 15 });
-
-watch(filteredRecords, () => resetPage(), { deep: false });
+  pagedRecords,
+  prevPage,
+  nextPage,
+  goToPage,
+  handleCreateFilterTab,
+  handleResetFilters,
+} = useAccountingCrudPage({
+  entity: 'incomes',
+  store,
+  filteredRecords,
+  saveTab,
+  resetFilters,
+  isFilterPanelOpen,
+  labels: {
+    entityName: 'ingreso',
+    created: 'Ingreso creado',
+    updated: 'Ingreso actualizado',
+    deleted: 'Ingreso eliminado',
+    saveErrorTitle: 'No se pudo guardar',
+    deleteErrorTitle: 'No se pudo eliminar',
+    deleteTitle: 'Eliminar ingreso',
+    deleteMessage: (record) =>
+      `Esto eliminará el ingreso "${record.concept}" de forma permanente. Esta acción no se puede deshacer.`,
+  },
+});
 
 const totalExpected = computed(() =>
   filteredRecords.value
@@ -329,70 +323,4 @@ async function loadRecords() {
 
 onMounted(loadRecords);
 usePanelRefresh(loadRecords);
-onBeforeUnmount(() => {
-  if (searchTimer) clearTimeout(searchTimer);
-});
-
-// -------------------------------------------------------------------
-// Create / edit modal
-// -------------------------------------------------------------------
-
-const isModalOpen = ref(false);
-const editingRecord = ref(null);
-
-function openCreateModal() {
-  editingRecord.value = null;
-  isModalOpen.value = true;
-}
-
-function openEditModal(record) {
-  editingRecord.value = record;
-  isModalOpen.value = true;
-}
-
-function closeModal() {
-  isModalOpen.value = false;
-  editingRecord.value = null;
-}
-
-async function handleSubmit(payload) {
-  const editing = editingRecord.value;
-  const result = editing
-    ? await store.updateRecord('incomes', editing.id, payload)
-    : await store.createRecord('incomes', payload);
-
-  if (result.success) {
-    notify.success({ title: editing ? 'Ingreso actualizado' : 'Ingreso creado' });
-    closeModal();
-    // Keep the pocket ledger consistent when the income feeds the pocket.
-    if (payload.destination === 'pocket' || editing?.pocket_movement) {
-      store.fetchRecords('pocket');
-    }
-  } else {
-    notify.error({ title: 'No se pudo guardar', detail: result.message || '' });
-  }
-}
-
-// -------------------------------------------------------------------
-// Delete
-// -------------------------------------------------------------------
-
-function confirmDeleteRecord(record) {
-  requestConfirm({
-    title: 'Eliminar ingreso',
-    message: `Esto eliminará el ingreso "${record.concept}" de forma permanente. Esta acción no se puede deshacer.`,
-    variant: 'danger',
-    confirmText: 'Eliminar',
-    cancelText: 'Cancelar',
-    onConfirm: async () => {
-      const result = await store.deleteRecord('incomes', record.id);
-      if (result.success) {
-        notify.success('Ingreso eliminado');
-        if (record.pocket_movement) store.fetchRecords('pocket');
-      } else {
-        notify.error({ title: 'No se pudo eliminar', detail: result.message || '' });
-      }
-    },
-  });
-}
 </script>

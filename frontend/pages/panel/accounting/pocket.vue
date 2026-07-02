@@ -52,7 +52,6 @@
         placeholder="Buscar por concepto..."
         data-testid="pocket-search-input"
         class="w-full sm:max-w-xs"
-        @input="onSearchInput"
       />
       <UiFilterToggleButton
         :open="isFilterPanelOpen"
@@ -162,7 +161,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onMounted } from 'vue';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
@@ -171,10 +170,9 @@ import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel
 import PocketMovementFormModal from '~/components/accounting/PocketMovementFormModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
-import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
-import { usePagination } from '~/composables/usePagination';
+import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import {
   useAccountingFilters,
   matchDateRange,
@@ -188,8 +186,6 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] }
 
 const store = useAccountingStore();
 const notify = usePanelNotify();
-const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =
-  useConfirmModal();
 
 // -------------------------------------------------------------------
 // Filters
@@ -197,6 +193,7 @@ const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =
 
 const {
   currentFilters,
+  searchInput,
   savedTabs,
   activeTabId: filterTabId,
   isFilterPanelOpen,
@@ -241,63 +238,75 @@ const filterFields = [
   { kind: 'range', label: 'Valor', minKey: 'amountMin', maxKey: 'amountMax', type: 'number' },
 ];
 
-// Debounced search (mirrors the clients page pattern).
-const searchInput = ref(currentFilters.search);
-let searchTimer = null;
-
-function onSearchInput() {
-  if (searchTimer) clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    currentFilters.search = searchInput.value;
-  }, 250);
-}
-
-watch(
-  () => currentFilters.search,
-  (value) => {
-    if (value !== searchInput.value) searchInput.value = value;
-  },
-);
-
-function handleCreateFilterTab(name) {
-  saveTab(name);
-  isFilterPanelOpen.value = true;
-}
-
-function handleResetFilters() {
-  resetFilters();
-  isFilterPanelOpen.value = false;
-}
-
 // -------------------------------------------------------------------
-// Data + pagination
+// Data + CRUD controller (modal, delete confirm, pagination)
 // -------------------------------------------------------------------
 
-const pocketBalance = computed(() => {
-  const meta = store.metaFor('pocket');
-  return meta.balance !== undefined && meta.balance !== null
-    ? Number(meta.balance)
-    : store.pocketBalance;
-});
+// Server meta is the single owner of the headline balance.
+const pocketBalance = computed(() => Number(store.metaFor('pocket').balance ?? 0));
 
 const filteredMovements = computed(() =>
   applyFilters(store.pocketWithRunningBalance),
 );
 
+function warnAutoManaged() {
+  notify.warning({
+    title: 'Movimiento automático',
+    detail: 'Se gestiona desde el ingreso o gasto vinculado.',
+  });
+}
+
+function guardAutoManaged(record) {
+  if (record.is_auto_managed) {
+    warnAutoManaged();
+    return false;
+  }
+  return true;
+}
+
 const {
+  isModalOpen,
+  editingRecord,
+  openCreateModal,
+  openEditModal: handleEdit,
+  closeModal,
+  handleSubmit,
+  confirmDeleteRecord: handleDelete,
+  confirmState,
+  handleConfirmed,
+  handleCancelled,
   currentPage,
   totalPages,
   totalItems,
   rangeFrom,
   rangeTo,
-  paginatedItems: pagedMovements,
-  goTo: goToPage,
-  next: nextPage,
-  prev: prevPage,
-  reset: resetPage,
-} = usePagination(filteredMovements, { pageSize: 15 });
-
-watch(filteredMovements, () => resetPage(), { deep: false });
+  pagedRecords: pagedMovements,
+  prevPage,
+  nextPage,
+  goToPage,
+  handleCreateFilterTab,
+  handleResetFilters,
+} = useAccountingCrudPage({
+  entity: 'pocket',
+  store,
+  filteredRecords: filteredMovements,
+  labels: {
+    created: 'Movimiento creado',
+    updated: 'Movimiento actualizado',
+    deleted: 'Movimiento eliminado',
+    saveErrorTitle: 'No se pudo guardar',
+    deleteErrorTitle: 'No se pudo eliminar',
+    deleteTitle: 'Eliminar movimiento',
+    deleteMessage: (record) =>
+      `Esto eliminará el movimiento "${record.concept}" de forma permanente. ` +
+      'Esta acción no se puede deshacer.',
+  },
+  beforeEdit: guardAutoManaged,
+  beforeDelete: guardAutoManaged,
+  saveTab,
+  resetFilters,
+  isFilterPanelOpen,
+});
 
 const columns = [
   { key: 'movement_date', label: 'Fecha', format: 'date' },
@@ -313,84 +322,4 @@ async function loadRecords() {
 
 onMounted(loadRecords);
 usePanelRefresh(loadRecords);
-onBeforeUnmount(() => {
-  if (searchTimer) clearTimeout(searchTimer);
-});
-
-// -------------------------------------------------------------------
-// Auto-managed guard
-// -------------------------------------------------------------------
-
-function warnAutoManaged() {
-  notify.warning({
-    title: 'Movimiento automático',
-    detail: 'Se gestiona desde el ingreso o gasto vinculado.',
-  });
-}
-
-// -------------------------------------------------------------------
-// Create / edit modal
-// -------------------------------------------------------------------
-
-const isModalOpen = ref(false);
-const editingRecord = ref(null);
-
-function openCreateModal() {
-  editingRecord.value = null;
-  isModalOpen.value = true;
-}
-
-function handleEdit(record) {
-  if (record.is_auto_managed) {
-    warnAutoManaged();
-    return;
-  }
-  editingRecord.value = record;
-  isModalOpen.value = true;
-}
-
-function closeModal() {
-  isModalOpen.value = false;
-  editingRecord.value = null;
-}
-
-async function handleSubmit(payload) {
-  const editing = editingRecord.value;
-  const result = editing
-    ? await store.updateRecord('pocket', editing.id, payload)
-    : await store.createRecord('pocket', payload);
-
-  if (result.success) {
-    notify.success({ title: editing ? 'Movimiento actualizado' : 'Movimiento creado' });
-    closeModal();
-  } else {
-    notify.error({ title: 'No se pudo guardar', detail: result.message || '' });
-  }
-}
-
-// -------------------------------------------------------------------
-// Delete
-// -------------------------------------------------------------------
-
-function handleDelete(record) {
-  if (record.is_auto_managed) {
-    warnAutoManaged();
-    return;
-  }
-  requestConfirm({
-    title: 'Eliminar movimiento',
-    message: `Esto eliminará el movimiento "${record.concept}" de forma permanente. Esta acción no se puede deshacer.`,
-    variant: 'danger',
-    confirmText: 'Eliminar',
-    cancelText: 'Cancelar',
-    onConfirm: async () => {
-      const result = await store.deleteRecord('pocket', record.id);
-      if (result.success) {
-        notify.success('Movimiento eliminado');
-      } else {
-        notify.error({ title: 'No se pudo eliminar', detail: result.message || '' });
-      }
-    },
-  });
-}
 </script>

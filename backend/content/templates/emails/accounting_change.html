@@ -1,4 +1,4 @@
-{% autoescape on %}
+{% load date_filters %}{% autoescape on %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -38,7 +38,7 @@
                 </tr>
                 <tr>
                   <td style="padding:2px 12px 2px 0; color:#6b7280;">Fecha</td>
-                  <td style="padding:2px 0;">{{ occurred_at|date:"d/m/Y H:i" }}</td>
+                  <td style="padding:2px 0;">{{ occurred_at|bogota_datetime }}</td>
                 </tr>
               </table>
               {% if changes %}

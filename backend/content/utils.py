@@ -49,6 +49,9 @@ _SPANISH_MONTHS = {
     9: 'septiembre', 10: 'octubre', 11: 'noviembre', 12: 'diciembre',
 }
 
+# Public alias: single owner of the Spanish month-name table (1-12, lowercase).
+SPANISH_MONTHS = _SPANISH_MONTHS
+
 
 _dns_resolver = dns.resolver.Resolver()
 _dns_resolver.lifetime = 2.0

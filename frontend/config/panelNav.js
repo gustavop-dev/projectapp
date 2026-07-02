@@ -1,7 +1,10 @@
 /**
  * Admin panel navigation: section definitions. Paths are i18n keys; resolve with localePath().
  * @param {(path: string) => string} localePath - Nuxt i18n localePath composable
- * @returns {Array<{ id: string, label: string, muted?: boolean, items: Array<NavItem> }>}
+ * @param {{ includeSuperuserOnly?: boolean }} [options] - pass the viewer's
+ *   superuser flag to hide gated sections; defaults to including everything
+ *   (label lookups in the admin layout need the full list).
+ * @returns {Array<{ id: string, label: string, muted?: boolean, superuserOnly?: boolean, items: Array<NavItem> }>}
  */
 
 /**
@@ -14,9 +17,9 @@
  * @property {boolean} [openInNewTab]
  */
 
-export function getPanelNavSections(localePath) {
+export function getPanelNavSections(localePath, { includeSuperuserOnly = true } = {}) {
   const lp = localePath
-  return [
+  const sections = [
     {
       id: 'overview',
       label: 'Overview',
@@ -120,4 +123,6 @@ export function getPanelNavSections(localePath) {
       ],
     },
   ]
+  if (includeSuperuserOnly) return sections
+  return sections.filter((section) => !section.superuserOnly)
 }

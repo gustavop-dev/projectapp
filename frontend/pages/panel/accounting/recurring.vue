@@ -72,7 +72,7 @@
     <!-- Search + Filter toggle -->
     <div class="flex items-center gap-2 mb-5">
       <BaseInput
-        v-model="currentFilters.search"
+        v-model="searchInput"
         type="text"
         placeholder="Buscar por nombre o notas..."
         data-testid="recurring-search-input"
@@ -174,7 +174,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted } from 'vue';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
@@ -187,12 +187,12 @@ import BaseButton from '~/components/base/BaseButton.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import UiFilterToggleButton from '~/components/ui/FilterToggleButton.vue';
-import { useConfirmModal } from '~/composables/useConfirmModal';
-import { usePagination } from '~/composables/usePagination';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import {
   useAccountingFilters,
+  matchBoolean,
   matchEquals,
   matchIncludes,
   matchNumberRange,
@@ -204,23 +204,14 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] }
 
 const store = useAccountingStore();
 const notify = usePanelNotify();
-const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
 // -------------------------------------------------------------------
 // Filters
 // -------------------------------------------------------------------
 
-function matchIsActive() {
-  const fn = (record, _value, filters) => {
-    if (filters.is_active === '') return true;
-    return record.is_active === (filters.is_active === 'true');
-  };
-  fn.keys = ['is_active'];
-  return fn;
-}
-
 const {
   currentFilters,
+  searchInput,
   savedTabs,
   activeTabId,
   isFilterPanelOpen,
@@ -249,7 +240,7 @@ const {
     currency: matchEquals('currency', 'currency'),
     cost_type: matchEquals('cost_type', 'cost_type'),
     priceRange: matchNumberRange('price', 'price_min', 'price_max'),
-    isActive: matchIsActive(),
+    isActive: matchBoolean('is_active', 'is_active'),
   },
   searchFields: ['name', 'notes'],
 });
@@ -308,11 +299,6 @@ const filterFields = [
   },
 ];
 
-function handleCreateTab(name) {
-  saveTab(name);
-  isFilterPanelOpen.value = true;
-}
-
 // -------------------------------------------------------------------
 // Data + table
 // -------------------------------------------------------------------
@@ -331,19 +317,49 @@ const columns = [
 const filteredRows = computed(() => applyFilters(store.recurringPayments));
 
 const {
+  isModalOpen: showFormModal,
+  editingRecord,
+  openCreateModal,
+  openEditModal,
+  closeModal: closeFormModal,
+  handleSubmit: submitForm,
+  confirmDeleteRecord: confirmDelete,
+  confirmState,
+  handleConfirmed,
+  handleCancelled,
   currentPage,
   totalPages,
   totalItems,
   rangeFrom,
   rangeTo,
-  paginatedItems: pagedRows,
-  goTo,
-  next,
-  prev,
-  reset: resetPage,
-} = usePagination(filteredRows, { pageSize: 15 });
-
-watch(filteredRows, () => resetPage(), { deep: false });
+  pagedRecords: pagedRows,
+  prevPage: prev,
+  nextPage: next,
+  goToPage: goTo,
+  handleCreateFilterTab: handleCreateTab,
+} = useAccountingCrudPage({
+  entity: 'recurring',
+  store,
+  filteredRecords: filteredRows,
+  labels: {
+    created: 'Pago recurrente creado',
+    updated: 'Pago recurrente actualizado',
+    deleted: 'Pago recurrente eliminado',
+    saveErrorTitle: (editing) =>
+      editing
+        ? 'No se pudo actualizar el pago recurrente'
+        : 'No se pudo crear el pago recurrente',
+    deleteErrorTitle: 'No se pudo eliminar el pago recurrente',
+    deleteTitle: 'Eliminar pago recurrente',
+    deleteMessage: (record) =>
+      `Esto eliminará "${record.name}" de forma permanente. ` +
+      'Esta acción no se puede deshacer.',
+  },
+  // Refetch: the monthly COP total meta is computed server-side.
+  onAfterMutation: loadRecords,
+  saveTab,
+  isFilterPanelOpen,
+});
 
 const monthlyCopTotal = computed(() => store.metaFor('recurring').monthly_cop_total ?? 0);
 const frequencyEntries = computed(() => Object.entries(store.recurringTotalsByFrequency));
@@ -362,68 +378,4 @@ async function loadRecords() {
 
 onMounted(loadRecords);
 usePanelRefresh(loadRecords);
-
-// -------------------------------------------------------------------
-// Create / edit / delete
-// -------------------------------------------------------------------
-
-const showFormModal = ref(false);
-const editingRecord = ref(null);
-
-function openCreateModal() {
-  editingRecord.value = null;
-  showFormModal.value = true;
-}
-
-function openEditModal(record) {
-  editingRecord.value = record;
-  showFormModal.value = true;
-}
-
-function closeFormModal() {
-  showFormModal.value = false;
-  editingRecord.value = null;
-}
-
-async function submitForm(payload) {
-  const isEdit = !!editingRecord.value;
-  const result = isEdit
-    ? await store.updateRecord('recurring', editingRecord.value.id, payload)
-    : await store.createRecord('recurring', payload);
-  if (result.success) {
-    closeFormModal();
-    notify.success(isEdit ? 'Pago recurrente actualizado' : 'Pago recurrente creado');
-    // Refetch to refresh the server-side monthly total meta.
-    await loadRecords();
-  } else {
-    notify.error({
-      title: isEdit
-        ? 'No se pudo actualizar el pago recurrente'
-        : 'No se pudo crear el pago recurrente',
-      detail: result.message,
-    });
-  }
-}
-
-function confirmDelete(record) {
-  requestConfirm({
-    title: 'Eliminar pago recurrente',
-    message: `Esto eliminará "${record.name}" de forma permanente. Esta acción no se puede deshacer.`,
-    variant: 'danger',
-    confirmText: 'Eliminar',
-    cancelText: 'Cancelar',
-    onConfirm: async () => {
-      const result = await store.deleteRecord('recurring', record.id);
-      if (result.success) {
-        notify.success('Pago recurrente eliminado');
-        await loadRecords();
-      } else {
-        notify.error({
-          title: 'No se pudo eliminar el pago recurrente',
-          detail: result.message,
-        });
-      }
-    },
-  });
-}
 </script>

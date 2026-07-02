@@ -116,7 +116,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted } from 'vue';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
@@ -127,10 +127,9 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import UiFilterToggleButton from '~/components/ui/FilterToggleButton.vue';
-import { useConfirmModal } from '~/composables/useConfirmModal';
-import { usePagination } from '~/composables/usePagination';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import {
   useAccountingFilters,
   matchDateRange,
@@ -144,7 +143,6 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] }
 
 const store = useAccountingStore();
 const notify = usePanelNotify();
-const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
 // -------------------------------------------------------------------
 // Filters (no saved tabs UI: the backend has no 'accounting_ads' view choice)
@@ -216,24 +214,49 @@ const filteredTotal = computed(() =>
   filteredRows.value.reduce((total, record) => total + (Number(record.amount) || 0), 0),
 );
 
+function money(value) {
+  return formatMoney(Number(value ?? 0), 'COP');
+}
+
 const {
+  isModalOpen: showFormModal,
+  editingRecord,
+  openCreateModal,
+  openEditModal,
+  closeModal: closeFormModal,
+  handleSubmit: submitForm,
+  confirmDeleteRecord: confirmDelete,
+  confirmState,
+  handleConfirmed,
+  handleCancelled,
   currentPage,
   totalPages,
   totalItems,
   rangeFrom,
   rangeTo,
-  paginatedItems: pagedRows,
-  goTo,
-  next,
-  prev,
-  reset: resetPage,
-} = usePagination(filteredRows, { pageSize: 15 });
-
-watch(filteredRows, () => resetPage(), { deep: false });
-
-function money(value) {
-  return formatMoney(Number(value ?? 0), 'COP');
-}
+  pagedRecords: pagedRows,
+  prevPage: prev,
+  nextPage: next,
+  goToPage: goTo,
+} = useAccountingCrudPage({
+  entity: 'ads',
+  store,
+  filteredRecords: filteredRows,
+  labels: {
+    created: 'Gasto en Ads creado',
+    updated: 'Gasto en Ads actualizado',
+    deleted: 'Gasto en Ads eliminado',
+    saveErrorTitle: (editing) =>
+      editing ? 'No se pudo actualizar el gasto en Ads' : 'No se pudo crear el gasto en Ads',
+    deleteErrorTitle: 'No se pudo eliminar el gasto en Ads',
+    deleteTitle: 'Eliminar gasto en Ads',
+    deleteMessage: (record) =>
+      `Esto eliminará el gasto del ${record.spend_date} por ${money(record.amount)} ` +
+      'de forma permanente. Esta acción no se puede deshacer.',
+  },
+  // Refetch: the accumulated column depends on the full history order.
+  onAfterMutation: loadRecords,
+});
 
 async function loadRecords() {
   const result = await store.fetchRecords('ads');
@@ -244,63 +267,4 @@ async function loadRecords() {
 
 onMounted(loadRecords);
 usePanelRefresh(loadRecords);
-
-// -------------------------------------------------------------------
-// Create / edit / delete
-// -------------------------------------------------------------------
-
-const showFormModal = ref(false);
-const editingRecord = ref(null);
-
-function openCreateModal() {
-  editingRecord.value = null;
-  showFormModal.value = true;
-}
-
-function openEditModal(record) {
-  editingRecord.value = record;
-  showFormModal.value = true;
-}
-
-function closeFormModal() {
-  showFormModal.value = false;
-  editingRecord.value = null;
-}
-
-async function submitForm(payload) {
-  const isEdit = !!editingRecord.value;
-  const result = isEdit
-    ? await store.updateRecord('ads', editingRecord.value.id, payload)
-    : await store.createRecord('ads', payload);
-  if (result.success) {
-    closeFormModal();
-    notify.success(isEdit ? 'Gasto en Ads actualizado' : 'Gasto en Ads creado');
-    // Refetch: the accumulated column depends on the full history order.
-    await loadRecords();
-  } else {
-    notify.error({
-      title: isEdit ? 'No se pudo actualizar el gasto en Ads' : 'No se pudo crear el gasto en Ads',
-      detail: result.message,
-    });
-  }
-}
-
-function confirmDelete(record) {
-  requestConfirm({
-    title: 'Eliminar gasto en Ads',
-    message: `Esto eliminará el gasto del ${record.spend_date} por ${money(record.amount)} de forma permanente. Esta acción no se puede deshacer.`,
-    variant: 'danger',
-    confirmText: 'Eliminar',
-    cancelText: 'Cancelar',
-    onConfirm: async () => {
-      const result = await store.deleteRecord('ads', record.id);
-      if (result.success) {
-        notify.success('Gasto en Ads eliminado');
-        await loadRecords();
-      } else {
-        notify.error({ title: 'No se pudo eliminar el gasto en Ads', detail: result.message });
-      }
-    },
-  });
-}
 </script>

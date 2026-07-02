@@ -54,7 +54,6 @@
         placeholder="Buscar por cliente o dominio..."
         data-testid="hostings-search-input"
         class="w-full sm:max-w-xs"
-        @input="onSearchInput"
       />
       <UiFilterToggleButton
         :open="isFilterPanelOpen"
@@ -162,7 +161,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onMounted } from 'vue';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
@@ -172,15 +171,14 @@ import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import HostingFormModal from '~/components/accounting/HostingFormModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
-import { useConfirmModal } from '~/composables/useConfirmModal';
-import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
-import { usePagination } from '~/composables/usePagination';
+import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import {
   useAccountingFilters,
   matchDateRange,
   matchNumberRange,
   matchIncludes,
+  matchBoolean,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
 import { formatMoney } from '~/utils/formatMoney';
@@ -188,22 +186,14 @@ import { formatMoney } from '~/utils/formatMoney';
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
-const notify = usePanelNotify();
-const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =
-  useConfirmModal();
 
 // -------------------------------------------------------------------
 // Filters
 // -------------------------------------------------------------------
 
-const matchIsActive = (record, value) => {
-  if (value === '' || value === null || value === undefined) return true;
-  return record.is_active === (value === 'true');
-};
-matchIsActive.keys = ['isActive'];
-
 const {
   currentFilters,
+  searchInput,
   savedTabs,
   activeTabId: filterTabId,
   isFilterPanelOpen,
@@ -230,7 +220,7 @@ const {
     modalities: matchIncludes('payment_modality', 'modalities'),
     value: matchNumberRange('monthly_value', 'valueMin', 'valueMax'),
     validTo: matchDateRange('valid_to', 'validToAfter', 'validToBefore'),
-    isActive: matchIsActive,
+    isActive: matchBoolean('is_active', 'isActive'),
   },
   searchFields: ['client_name', 'domain_url', 'notes'],
 });
@@ -261,36 +251,8 @@ const filterFields = [
   },
 ];
 
-// Debounced search (mirrors the clients page pattern).
-const searchInput = ref(currentFilters.search);
-let searchTimer = null;
-
-function onSearchInput() {
-  if (searchTimer) clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    currentFilters.search = searchInput.value;
-  }, 250);
-}
-
-watch(
-  () => currentFilters.search,
-  (value) => {
-    if (value !== searchInput.value) searchInput.value = value;
-  },
-);
-
-function handleCreateFilterTab(name) {
-  saveTab(name);
-  isFilterPanelOpen.value = true;
-}
-
-function handleResetFilters() {
-  resetFilters();
-  isFilterPanelOpen.value = false;
-}
-
 // -------------------------------------------------------------------
-// Data + pagination
+// Data + CRUD controller (modal, delete confirm, pagination)
 // -------------------------------------------------------------------
 
 const hostingsMeta = computed(() => store.metaFor('hostings'));
@@ -298,19 +260,48 @@ const hostingsMeta = computed(() => store.metaFor('hostings'));
 const filteredRecords = computed(() => applyFilters(store.hostings));
 
 const {
+  isModalOpen,
+  editingRecord,
+  openCreateModal,
+  openEditModal,
+  closeModal,
+  handleSubmit,
+  confirmDeleteRecord,
+  confirmState,
+  handleConfirmed,
+  handleCancelled,
   currentPage,
   totalPages,
   totalItems,
   rangeFrom,
   rangeTo,
-  paginatedItems: pagedRecords,
-  goTo: goToPage,
-  next: nextPage,
-  prev: prevPage,
-  reset: resetPage,
-} = usePagination(filteredRecords, { pageSize: 15 });
-
-watch(filteredRecords, () => resetPage(), { deep: false });
+  pagedRecords,
+  prevPage,
+  nextPage,
+  goToPage,
+  handleCreateFilterTab,
+  handleResetFilters,
+} = useAccountingCrudPage({
+  entity: 'hostings',
+  store,
+  filteredRecords,
+  saveTab,
+  resetFilters,
+  isFilterPanelOpen,
+  labels: {
+    entityName: 'hosting',
+    created: 'Hosting creado',
+    updated: 'Hosting actualizado',
+    deleted: 'Hosting eliminado',
+    saveErrorTitle: 'No se pudo guardar',
+    deleteErrorTitle: 'No se pudo eliminar',
+    deleteTitle: 'Eliminar hosting',
+    deleteMessage: (record) =>
+      `Esto eliminará el hosting de "${record.client_name}" de forma permanente. Esta acción no se puede deshacer.`,
+  },
+  // Refresh meta (active_count / monthly_income) after changes.
+  onAfterMutation: () => loadRecords(),
+});
 
 const columns = [
   { key: 'client_name', label: 'Cliente' },
@@ -329,69 +320,4 @@ async function loadRecords() {
 
 onMounted(loadRecords);
 usePanelRefresh(loadRecords);
-onBeforeUnmount(() => {
-  if (searchTimer) clearTimeout(searchTimer);
-});
-
-// -------------------------------------------------------------------
-// Create / edit modal
-// -------------------------------------------------------------------
-
-const isModalOpen = ref(false);
-const editingRecord = ref(null);
-
-function openCreateModal() {
-  editingRecord.value = null;
-  isModalOpen.value = true;
-}
-
-function openEditModal(record) {
-  editingRecord.value = record;
-  isModalOpen.value = true;
-}
-
-function closeModal() {
-  isModalOpen.value = false;
-  editingRecord.value = null;
-}
-
-async function handleSubmit(payload) {
-  const editing = editingRecord.value;
-  const result = editing
-    ? await store.updateRecord('hostings', editing.id, payload)
-    : await store.createRecord('hostings', payload);
-
-  if (result.success) {
-    notify.success({ title: editing ? 'Hosting actualizado' : 'Hosting creado' });
-    closeModal();
-    // Refresh meta (active_count / monthly_income) after changes.
-    loadRecords();
-  } else {
-    notify.error({ title: 'No se pudo guardar', detail: result.message || '' });
-  }
-}
-
-// -------------------------------------------------------------------
-// Delete
-// -------------------------------------------------------------------
-
-function confirmDeleteRecord(record) {
-  requestConfirm({
-    title: 'Eliminar hosting',
-    message: `Esto eliminará el hosting de "${record.client_name}" de forma permanente. Esta acción no se puede deshacer.`,
-    variant: 'danger',
-    confirmText: 'Eliminar',
-    cancelText: 'Cancelar',
-    onConfirm: async () => {
-      const result = await store.deleteRecord('hostings', record.id);
-      if (result.success) {
-        notify.success('Hosting eliminado');
-        // Refresh meta cards after deletion.
-        loadRecords();
-      } else {
-        notify.error({ title: 'No se pudo eliminar', detail: result.message || '' });
-      }
-    },
-  });
-}
 </script>

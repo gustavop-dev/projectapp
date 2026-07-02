@@ -11,15 +11,16 @@ import { normalizeApiError } from './services/normalize_api_error';
  * Accounting entities exposed by the backend (/api/accounting/...).
  * Every entity shares the same CRUD URL shape, so the store maps a key
  * to its endpoint path and the state array holding its records.
+ * (card-snapshots exists in the API but has no panel view yet — add its
+ * entry here when that page is built.)
  */
-export const ACCOUNTING_ENTITIES = {
+const ACCOUNTING_ENTITIES = {
   incomes: { stateKey: 'incomes', path: 'accounting/incomes/' },
   expenses: { stateKey: 'expenses', path: 'accounting/expenses/' },
   hostings: { stateKey: 'hostings', path: 'accounting/hostings/' },
   pocket: { stateKey: 'pocketMovements', path: 'accounting/pocket/' },
   recurring: { stateKey: 'recurringPayments', path: 'accounting/recurring/' },
   ads: { stateKey: 'adsRecords', path: 'accounting/ads/' },
-  cardSnapshots: { stateKey: 'cardSnapshots', path: 'accounting/card-snapshots/' },
 };
 
 function entityConfig(entity) {
@@ -45,7 +46,7 @@ export const useAccountingStore = defineStore('accounting', {
    *
    * Properties:
    * - incomes/expenses/hostings/pocketMovements/recurringPayments/
-   *   adsRecords/cardSnapshots (Array): records per entity.
+   *   adsRecords (Array): records per entity.
    * - metas (Object): list meta per entity key (balance, totals...).
    * - summary (Object|null): dashboard payload for selectedYear.
    * - changelog (Object): paginated audit log {results, count, page, numPages}.
@@ -58,7 +59,6 @@ export const useAccountingStore = defineStore('accounting', {
     pocketMovements: [],
     recurringPayments: [],
     adsRecords: [],
-    cardSnapshots: [],
     metas: {},
     summary: null,
     changelog: { results: [], count: 0, page: 1, numPages: 1 },
@@ -71,26 +71,10 @@ export const useAccountingStore = defineStore('accounting', {
 
   getters: {
     /**
-     * recordsFor: records array for an entity key ('incomes', 'pocket'...).
-     */
-    recordsFor: (state) => (entity) =>
-      state[entityConfig(entity).stateKey],
-
-    /**
-     * metaFor: last list meta for an entity key.
+     * metaFor: last list meta for an entity key. The pocket balance lives
+     * here too (meta.balance) — the server is its single owner.
      */
     metaFor: (state) => (entity) => state.metas[entity] || {},
-
-    /**
-     * pocketBalance: Sum(in) - Sum(out) of the loaded movements.
-     */
-    pocketBalance: (state) =>
-      state.pocketMovements.reduce((balance, movement) => {
-        const amount = Number(movement.amount) || 0;
-        return movement.direction === 'in'
-          ? balance + amount
-          : balance - amount;
-      }, 0),
 
     /**
      * pocketWithRunningBalance: movements sorted chronologically with a

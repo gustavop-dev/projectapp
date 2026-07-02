@@ -81,8 +81,9 @@ class TestUpdateRecord:
         assert len(log.changes) == 1
         change = log.changes[0]
         assert change['field'] == 'total_amount'
-        assert change['old'] == '1000000.00'
-        assert change['new'] == '1200000.00'
+        # Money fields are audited with COP formatting (shared helper).
+        assert change['old'] == "$1'000.000"
+        assert change['new'] == "$1'200.000"
         notify.assert_called_once()
 
     def test_noop_update_writes_no_log_and_no_email(

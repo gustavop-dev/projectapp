@@ -6,12 +6,13 @@ enqueues the email notification (the established convention — explicit
 logging in services, not signals).
 """
 import logging
+from datetime import date
 from decimal import Decimal
 
-from django.db.models import Sum
-from django.utils import timezone
+from django.db.models import Count, Q, Sum
 
 from content.api_errors import ProposalActionError
+from content.utils import format_cop_email, today_bogota
 from content.models import (
     AccountingChangeLog,
     AdsSpendRecord,
@@ -129,6 +130,9 @@ def display_value(instance, field_name):
         return 'Sí' if value else 'No'
     if isinstance(value, list):
         return ', '.join(str(item) for item in value)
+    if isinstance(value, Decimal):
+        # Money field: audit rows and emails show COP formatting.
+        return f'${format_cop_email(value)}'
     return str(value)
 
 
@@ -256,17 +260,22 @@ def update_record(entity_type, instance, serializer, user):
     return instance
 
 
+def _deletion_changes(entity_type, old_values):
+    """Diff payload for a deletion: every non-empty field as old -> ''."""
+    return [
+        {'field': field, 'label': label, 'old': old_values[field], 'new': ''}
+        for field, label in TRACKED_FIELDS[entity_type]
+        if old_values[field] != ''
+    ]
+
+
 def delete_record(entity_type, instance, user):
     """Delete a record (and its auto pocket movement), audit and notify."""
     _ensure_editable(entity_type, instance)
     deleted_id = instance.pk
     deleted_repr = object_repr(entity_type, instance)
     old_values = snapshot_values(instance, entity_type)
-    changes = [
-        {'field': field, 'label': label, 'old': old_values[field], 'new': ''}
-        for field, label in TRACKED_FIELDS[entity_type]
-        if old_values[field] != ''
-    ]
+    changes = _deletion_changes(entity_type, old_values)
 
     linked_movement = None
     if entity_type in (EntityType.INCOME, EntityType.EXPENSE):
@@ -387,11 +396,7 @@ def _log_pocket_removal(movement, user):
         object_id=movement.pk,
         object_repr=movement.concept,
         action=Action.DELETED,
-        changes=[
-            {'field': field, 'label': label, 'old': old_values[field], 'new': ''}
-            for field, label in TRACKED_FIELDS[EntityType.POCKET]
-            if old_values[field] != ''
-        ],
+        changes=_deletion_changes(EntityType.POCKET, old_values),
         actor=user,
     )
 
@@ -407,13 +412,11 @@ def pocket_balance(as_of=None):
     queryset = PocketMovement.objects.all()
     if as_of:
         queryset = queryset.filter(movement_date__lte=as_of)
-    inflow = _sum(
-        queryset.filter(direction=PocketMovement.Direction.IN), 'amount',
+    totals = queryset.aggregate(
+        inflow=Sum('amount', filter=Q(direction=PocketMovement.Direction.IN)),
+        outflow=Sum('amount', filter=Q(direction=PocketMovement.Direction.OUT)),
     )
-    outflow = _sum(
-        queryset.filter(direction=PocketMovement.Direction.OUT), 'amount',
-    )
-    return inflow - outflow
+    return (totals['inflow'] or Decimal('0')) - (totals['outflow'] or Decimal('0'))
 
 
 def _split_sums(queryset):
@@ -433,26 +436,36 @@ def _split_sums(queryset):
     }
 
 
-def partner_totals(year):
-    """Expected/liquid income, expenses and net per partner + company."""
-    expected = _split_sums(IncomeRecord.objects.filter(
-        kind=IncomeRecord.Kind.EXPECTED, period_date__year=year,
-    ))
-    liquid = _split_sums(IncomeRecord.objects.filter(
-        kind=IncomeRecord.Kind.LIQUID, period_date__year=year,
-    ))
-    expenses = _split_sums(
-        ExpenseRecord.objects.filter(period_date__year=year),
-    )
+def _year_split_sums(year):
+    """The three split aggregates every year summary is derived from."""
+    return {
+        'expected': _split_sums(IncomeRecord.objects.filter(
+            kind=IncomeRecord.Kind.EXPECTED, period_date__year=year,
+        )),
+        'liquid': _split_sums(IncomeRecord.objects.filter(
+            kind=IncomeRecord.Kind.LIQUID, period_date__year=year,
+        )),
+        'expenses': _split_sums(
+            ExpenseRecord.objects.filter(period_date__year=year),
+        ),
+    }
+
+
+def _build_partner_totals(sums):
     return {
         party: {
-            'expected': expected[party],
-            'liquid': liquid[party],
-            'expenses': expenses[party],
-            'net': liquid[party] - expenses[party],
+            'expected': sums['expected'][party],
+            'liquid': sums['liquid'][party],
+            'expenses': sums['expenses'][party],
+            'net': sums['liquid'][party] - sums['expenses'][party],
         }
         for party in ('gustavo', 'carlos', 'company')
     }
+
+
+def partner_totals(year):
+    """Expected/liquid income, expenses and net per partner + company."""
+    return _build_partner_totals(_year_split_sums(year))
 
 
 def _totals_by_month(queryset, date_field, amount_field):
@@ -486,8 +499,6 @@ def monthly_breakdown(year):
 
     breakdown = []
     for month in range(1, 13):
-        from datetime import date
-
         month_date = date(year, month, 1)
         expected = expected_by_month.get(month, Decimal('0'))
         liquid = liquid_by_month.get(month, Decimal('0'))
@@ -504,62 +515,47 @@ def monthly_breakdown(year):
     return breakdown
 
 
-def recurring_monthly_cost():
+def recurring_monthly_cost(queryset=None):
     """Sum of active recurring payments prorated to a monthly COP cost."""
+    if queryset is None:
+        queryset = RecurringPayment.objects.filter(is_active=True)
     return sum(
-        (
-            payment.monthly_cop_cost
-            for payment in RecurringPayment.objects.filter(is_active=True)
-        ),
+        (payment.monthly_cop_cost for payment in queryset),
         Decimal('0'),
     )
 
 
 def latest_card_snapshots():
-    """Newest snapshot per card name."""
-    card_names = (
-        CardBalanceSnapshot.objects
-        .order_by()  # clear Meta ordering so DISTINCT applies to card_name only
-        .values_list('card_name', flat=True)
-        .distinct()
-    )
+    """Newest snapshot per card name (single query, few rows per card)."""
     snapshots = []
-    for name in card_names:
-        snapshot = (
-            CardBalanceSnapshot.objects
-            .filter(card_name=name)
-            .order_by('-snapshot_date', '-created_at')
-            .first()
-        )
-        if snapshot:
-            snapshots.append({
-                'card_name': snapshot.card_name,
-                'snapshot_date': snapshot.snapshot_date,
-                'available_amount': snapshot.available_amount,
-                'debt_amount': snapshot.debt_amount,
-            })
+    seen_cards = set()
+    for snapshot in CardBalanceSnapshot.objects.order_by(
+        'card_name', '-snapshot_date', '-created_at',
+    ):
+        if snapshot.card_name in seen_cards:
+            continue
+        seen_cards.add(snapshot.card_name)
+        snapshots.append({
+            'card_name': snapshot.card_name,
+            'snapshot_date': snapshot.snapshot_date,
+            'available_amount': snapshot.available_amount,
+            'debt_amount': snapshot.debt_amount,
+        })
     return snapshots
 
 
 def dashboard_summary(year):
     """Single payload feeding the accounting dashboard."""
-    expected_total = _sum(
-        IncomeRecord.objects.filter(
-            kind=IncomeRecord.Kind.EXPECTED, period_date__year=year,
-        ),
-        'total_amount',
+    sums = _year_split_sums(year)
+    expected_total = sums['expected']['total']
+    liquid_total = sums['liquid']['total']
+    expenses_total = sums['expenses']['total']
+    today = today_bogota()
+    hostings = HostingRecord.objects.aggregate(
+        active_count=Count('id', filter=Q(is_active=True)),
+        monthly_income=Sum('monthly_value', filter=Q(is_active=True)),
+        total_paid=Sum('total_paid'),
     )
-    liquid_total = _sum(
-        IncomeRecord.objects.filter(
-            kind=IncomeRecord.Kind.LIQUID, period_date__year=year,
-        ),
-        'total_amount',
-    )
-    expenses_total = _sum(
-        ExpenseRecord.objects.filter(period_date__year=year), 'total_amount',
-    )
-    today = timezone.localdate()
-    active_hostings = HostingRecord.objects.filter(is_active=True)
 
     return {
         'year': year,
@@ -570,7 +566,7 @@ def dashboard_summary(year):
         'expected_utility': expected_total - expenses_total,
         'liquid_utility': liquid_total - expenses_total,
         'pocket_balance': pocket_balance(),
-        'partners': partner_totals(year),
+        'partners': _build_partner_totals(sums),
         'monthly': monthly_breakdown(year),
         'recurring_monthly_cost': recurring_monthly_cost(),
         'ads': {
@@ -587,9 +583,9 @@ def dashboard_summary(year):
             ),
         },
         'hostings': {
-            'active_count': active_hostings.count(),
-            'monthly_income': _sum(active_hostings, 'monthly_value'),
-            'total_paid': _sum(HostingRecord.objects.all(), 'total_paid'),
+            'active_count': hostings['active_count'] or 0,
+            'monthly_income': hostings['monthly_income'] or Decimal('0'),
+            'total_paid': hostings['total_paid'] or Decimal('0'),
         },
         'latest_card_snapshots': latest_card_snapshots(),
     }
