@@ -75,7 +75,7 @@
           <!-- Actions -->
           <button
             v-if="!admin.is_onboarded && admin.is_active"
-            class="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 font-medium transition-colors"
+            class="text-xs px-3 py-1.5 rounded-lg bg-info-soft text-info-strong hover:opacity-90 font-medium transition-colors"
             :disabled="resendingId === admin.user_id"
             @click="handleResendInvite(admin.user_id)"
           >

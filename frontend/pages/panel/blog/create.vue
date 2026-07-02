@@ -32,36 +32,36 @@
     <!-- ============================================================ -->
     <form v-if="mode === 'manual'" class="space-y-6 max-w-3xl" @submit.prevent="handleSubmit">
       <!-- Español Section -->
-      <fieldset class="border border-border-default dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+      <fieldset class="border border-border-default rounded-xl p-5 space-y-4">
         <legend class="text-sm font-medium text-text-default px-2">Español</legend>
         <div>
           <label for="title_es" class="block text-sm font-medium text-text-default mb-1">Título (ES)</label>
-          <input id="title_es" v-model="form.title_es" type="text" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-emerald-500 transition-all" placeholder="Título del artículo en español" />
+          <input id="title_es" v-model="form.title_es" type="text" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="Título del artículo en español" />
         </div>
         <div>
           <label for="excerpt_es" class="block text-sm font-medium text-text-default mb-1">Resumen (ES)</label>
-          <textarea id="excerpt_es" v-model="form.excerpt_es" rows="2" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-emerald-500 transition-all resize-y" placeholder="Resumen corto en español (1-2 oraciones)" />
+          <textarea id="excerpt_es" v-model="form.excerpt_es" rows="2" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all resize-y" placeholder="Resumen corto en español (1-2 oraciones)" />
         </div>
         <div>
           <label for="content_es" class="block text-sm font-medium text-text-default mb-1">Contenido HTML (ES)</label>
-          <textarea id="content_es" v-model="form.content_es" rows="10" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-sm font-mono focus:ring-2 focus:ring-focus-ring/30/20 focus:border-emerald-500 transition-all resize-y" placeholder="<h2>Subtítulo</h2><p>Contenido en español...</p>" />
+          <textarea id="content_es" v-model="form.content_es" rows="10" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-sm font-mono focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all resize-y" placeholder="<h2>Subtítulo</h2><p>Contenido en español...</p>" />
         </div>
       </fieldset>
 
       <!-- English Section -->
-      <fieldset class="border border-border-default dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+      <fieldset class="border border-border-default rounded-xl p-5 space-y-4">
         <legend class="text-sm font-medium text-text-default px-2">English</legend>
         <div>
           <label for="title_en" class="block text-sm font-medium text-text-default mb-1">Title (EN)</label>
-          <input id="title_en" v-model="form.title_en" type="text" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-emerald-500 transition-all" placeholder="Article title in English" />
+          <input id="title_en" v-model="form.title_en" type="text" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="Article title in English" />
         </div>
         <div>
           <label for="excerpt_en" class="block text-sm font-medium text-text-default mb-1">Excerpt (EN)</label>
-          <textarea id="excerpt_en" v-model="form.excerpt_en" rows="2" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-emerald-500 transition-all resize-y" placeholder="Short summary in English (1-2 sentences)" />
+          <textarea id="excerpt_en" v-model="form.excerpt_en" rows="2" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all resize-y" placeholder="Short summary in English (1-2 sentences)" />
         </div>
         <div>
           <label for="content_en" class="block text-sm font-medium text-text-default mb-1">Content HTML (EN)</label>
-          <textarea id="content_en" v-model="form.content_en" rows="10" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-sm font-mono focus:ring-2 focus:ring-focus-ring/30/20 focus:border-emerald-500 transition-all resize-y" placeholder="<h2>Subtitle</h2><p>Content in English...</p>" />
+          <textarea id="content_en" v-model="form.content_en" rows="10" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-sm font-mono focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all resize-y" placeholder="<h2>Subtitle</h2><p>Content in English...</p>" />
         </div>
       </fieldset>
 
@@ -69,14 +69,14 @@
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label for="category" class="block text-sm font-medium text-text-default mb-1">Categoría</label>
-          <select id="category" v-model="form.category" class="w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-emerald-500 transition-all bg-surface">
+          <select id="category" v-model="form.category" class="w-full px-4 py-2.5 rounded-xl border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all bg-surface">
             <option value="">Sin categoría</option>
             <option v-for="cat in blogStore.availableCategories" :key="cat.slug" :value="cat.slug">{{ cat.label }}</option>
           </select>
         </div>
         <div>
           <label for="read_time_minutes" class="block text-sm font-medium text-text-default mb-1">Tiempo lectura (min)</label>
-          <input id="read_time_minutes" v-model.number="form.read_time_minutes" type="number" min="0" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-emerald-500 transition-all" />
+          <input id="read_time_minutes" v-model.number="form.read_time_minutes" type="number" min="0" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" />
         </div>
         <div class="flex items-end">
           <label class="relative inline-flex items-center cursor-pointer gap-3">
@@ -90,7 +90,7 @@
       <!-- Cover image URL -->
       <div>
         <label for="cover_image_url" class="block text-sm font-medium text-text-default mb-1">Imagen de portada (URL)</label>
-        <input id="cover_image_url" v-model="form.cover_image_url" type="url" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-emerald-500 transition-all" placeholder="https://example.com/image.jpg (opcional)" />
+        <input id="cover_image_url" v-model="form.cover_image_url" type="url" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="https://example.com/image.jpg (opcional)" />
         <p class="text-xs text-text-subtle mt-1">También puedes subir un archivo después de crear el post desde la vista de edición.</p>
       </div>
 
@@ -101,9 +101,9 @@
           <button type="button" class="text-xs text-text-brand hover:text-text-brand transition-colors" @click="addSource">+ Agregar fuente</button>
         </div>
         <div v-for="(source, idx) in form.sources" :key="idx" class="flex gap-2 mb-2">
-          <input v-model="source.name" type="text" class="bg-input-bg flex-1 px-3 py-2 rounded-lg border border-border-default dark:border-white/[0.08]  text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-emerald-500 transition-all" placeholder="Nombre de la fuente" />
-          <input v-model="source.url" type="url" class="bg-input-bg flex-[2] px-3 py-2 rounded-lg border border-border-default dark:border-white/[0.08]  text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-emerald-500 transition-all" placeholder="https://..." />
-          <button type="button" class="text-text-subtle hover:text-red-500 transition-colors px-2" @click="removeSource(idx)">
+          <input v-model="source.name" type="text" class="bg-input-bg flex-1 px-3 py-2 rounded-lg border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="Nombre de la fuente" />
+          <input v-model="source.url" type="url" class="bg-input-bg flex-[2] px-3 py-2 rounded-lg border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="https://..." />
+          <button type="button" class="text-text-subtle hover:text-danger-strong transition-colors px-2" @click="removeSource(idx)">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
@@ -111,7 +111,7 @@
       </div>
 
       <!-- Publishing options -->
-      <fieldset class="border border-border-default dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+      <fieldset class="border border-border-default rounded-xl p-5 space-y-4">
         <legend class="text-sm font-medium text-text-default px-2">Publicación</legend>
         <div class="flex flex-col gap-3">
           <label class="flex items-center gap-3 cursor-pointer">
@@ -127,21 +127,21 @@
             <span class="text-sm text-text-default">Programar publicación</span>
           </label>
           <div v-if="publishMode === 'schedule'" class="ml-7">
-            <input v-model="scheduledDate" type="datetime-local" class="bg-input-bg px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-emerald-500 transition-all" />
+            <input v-model="scheduledDate" type="datetime-local" class="bg-input-bg px-4 py-2.5 rounded-xl border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" />
             <p class="text-xs text-text-subtle mt-1">El post se publicará automáticamente en la fecha seleccionada.</p>
           </div>
         </div>
       </fieldset>
 
       <!-- Error -->
-      <p v-if="errorMsg" class="text-sm text-red-500">{{ errorMsg }}</p>
+      <p v-if="errorMsg" class="text-sm text-danger-strong">{{ errorMsg }}</p>
 
       <!-- Actions -->
       <div class="flex gap-3 pt-4">
         <button type="submit" :disabled="blogStore.isUpdating" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium text-sm hover:bg-primary transition-colors shadow-sm disabled:opacity-50">
           {{ blogStore.isUpdating ? 'Creando...' : 'Crear Post' }}
         </button>
-        <NuxtLink :to="localePath('/panel/blog')" class="px-6 py-2.5 border border-border-default dark:border-white/[0.08] text-text-muted rounded-xl text-sm hover:bg-surface-raised transition-colors">Cancelar</NuxtLink>
+        <NuxtLink :to="localePath('/panel/blog')" class="px-6 py-2.5 border border-border-default text-text-muted rounded-xl text-sm hover:bg-surface-raised transition-colors">Cancelar</NuxtLink>
       </div>
     </form>
 
@@ -157,7 +157,7 @@
             <h3 class="text-sm font-medium text-text-default">Plantilla JSON</h3>
             <p class="text-xs text-text-subtle mt-0.5">Descarga la plantilla con todas las secciones y campos de ejemplo.</p>
           </div>
-          <button type="button" :disabled="isDownloading" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50" @click="downloadTemplate">
+          <button type="button" :disabled="isDownloading" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-strong text-white rounded-lg text-sm font-medium hover:bg-primary-strong/90 transition-colors disabled:opacity-50" @click="downloadTemplate">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
             {{ isDownloading ? 'Descargando...' : 'Descargar Plantilla' }}
           </button>
@@ -168,7 +168,7 @@
       <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4 sm:p-6">
         <h3 class="text-sm font-medium text-text-default mb-3">Pegar o subir JSON</h3>
         <div class="flex items-center gap-3 mb-3">
-          <label class="inline-flex items-center gap-2 px-4 py-2 border border-border-default dark:border-white/[0.08] rounded-lg text-sm text-text-default hover:bg-surface-raised cursor-pointer transition-colors">
+          <label class="inline-flex items-center gap-2 px-4 py-2 border border-border-default rounded-lg text-sm text-text-default hover:bg-surface-raised cursor-pointer transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
             Subir archivo .json
             <input type="file" accept=".json" class="hidden" @change="handleFileUpload" />
@@ -179,13 +179,13 @@
           v-model="jsonRaw"
           rows="14"
           placeholder='{ "title_es": "...", "title_en": "...", "content_json_es": { "intro": "...", "sections": [...] }, ... }'
-          class="bg-input-bg w-full px-4 py-3 border border-border-default dark:border-white/[0.08]  rounded-xl text-xs font-mono leading-relaxed focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none resize-y"
+          class="bg-input-bg w-full px-4 py-3 border border-border-default  rounded-xl text-xs font-mono leading-relaxed focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
           @input="parseJson"
         />
 
-        <div v-if="jsonError" class="mt-2 text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-500/10 px-4 py-2 rounded-lg">{{ jsonError }}</div>
+        <div v-if="jsonError" class="mt-2 text-sm bg-danger-soft text-danger-strong px-4 py-2 rounded-lg">{{ jsonError }}</div>
 
-        <div v-if="jsonParsed && !jsonError" class="mt-3 bg-primary-soft border border-emerald-200 dark:border-emerald-500/20 rounded-lg px-4 py-3">
+        <div v-if="jsonParsed && !jsonError" class="mt-3 bg-primary-soft rounded-lg px-4 py-3">
           <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
             <span><span class="text-text-muted">Título:</span> <span class="font-medium text-text-default">{{ jsonParsed.title_es }}</span></span>
             <span><span class="text-text-muted">Categoría:</span> <span class="font-medium text-text-default">{{ jsonParsed.category || '—' }}</span></span>
@@ -201,14 +201,14 @@
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label class="block text-xs font-medium text-text-muted mb-1">Categoría</label>
-              <select v-model="jsonMeta.category" class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none bg-surface text-text-default">
+              <select v-model="jsonMeta.category" class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface text-text-default">
                 <option value="">Sin categoría</option>
                 <option v-for="cat in blogStore.availableCategories" :key="cat.slug" :value="cat.slug">{{ cat.label }}</option>
               </select>
             </div>
             <div>
               <label class="block text-xs font-medium text-text-muted mb-1">Tiempo lectura (min)</label>
-              <input v-model.number="jsonMeta.read_time_minutes" type="number" min="0" class="bg-input-bg w-full px-4 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none" />
+              <input v-model.number="jsonMeta.read_time_minutes" type="number" min="0" class="bg-input-bg w-full px-4 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none" />
             </div>
             <div class="flex items-end">
               <label class="relative inline-flex items-center cursor-pointer gap-3">
@@ -236,12 +236,12 @@
                 <span class="text-sm text-text-default">Programar publicación</span>
               </label>
               <div v-if="jsonPublishMode === 'schedule'" class="ml-7">
-                <input v-model="jsonScheduledDate" type="datetime-local" class="bg-input-bg px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-emerald-500 transition-all" />
+                <input v-model="jsonScheduledDate" type="datetime-local" class="bg-input-bg px-4 py-2.5 rounded-xl border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" />
               </div>
             </div>
           </fieldset>
 
-          <div v-if="errorMsg" class="text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-500/10 px-4 py-3 rounded-xl">{{ errorMsg }}</div>
+          <div v-if="errorMsg" class="text-sm bg-danger-soft text-danger-strong px-4 py-3 rounded-xl">{{ errorMsg }}</div>
 
           <div class="flex flex-wrap items-center gap-4 pt-2">
             <button type="submit" :disabled="blogStore.isUpdating" class="px-5 sm:px-6 py-2.5 bg-primary text-white rounded-xl font-medium text-sm hover:bg-primary transition-colors shadow-sm disabled:opacity-50">

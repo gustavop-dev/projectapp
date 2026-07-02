@@ -75,7 +75,7 @@
         </div>
 
         <!-- Español Section -->
-        <fieldset class="border border-border-default dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+        <fieldset class="border border-border-default rounded-xl p-5 space-y-4">
           <legend class="text-sm font-medium text-text-default px-2">Español</legend>
           <div>
             <label for="title_es" class="block text-sm font-medium text-text-default mb-1">Título (ES)</label>
@@ -97,7 +97,7 @@
         </fieldset>
 
         <!-- English Section -->
-        <fieldset class="border border-border-default dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+        <fieldset class="border border-border-default rounded-xl p-5 space-y-4">
           <legend class="text-sm font-medium text-text-default px-2">English</legend>
           <div>
             <label for="title_en" class="block text-sm font-medium text-text-default mb-1">Title (EN)</label>
@@ -118,7 +118,7 @@
         </fieldset>
 
         <!-- SEO Section -->
-        <fieldset class="border border-border-default dark:border-white/[0.08] rounded-xl p-5 space-y-6">
+        <fieldset class="border border-border-default rounded-xl p-5 space-y-6">
           <legend class="text-sm font-medium text-text-default px-2">SEO</legend>
           <div class="space-y-4">
             <div>
@@ -154,7 +154,7 @@
         </fieldset>
 
         <!-- LinkedIn Summary -->
-        <fieldset class="border border-border-default dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+        <fieldset class="border border-border-default rounded-xl p-5 space-y-4">
           <legend class="text-sm font-medium text-text-default px-2">LinkedIn</legend>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -202,20 +202,20 @@
                 Última publicación: {{ new Date(post.linkedin_published_at).toLocaleString() }}
               </p>
               <p v-if="linkedinMsg" class="text-sm text-text-brand">{{ linkedinMsg }}</p>
-              <p v-if="linkedinError" class="text-sm text-red-500">{{ linkedinError }}</p>
+              <p v-if="linkedinError" class="text-sm text-danger-strong">{{ linkedinError }}</p>
             </div>
           </div>
         </fieldset>
 
         <!-- Cover image -->
-        <fieldset class="border border-border-default dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+        <fieldset class="border border-border-default rounded-xl p-5 space-y-4">
           <legend class="text-sm font-medium text-text-default px-2">Imagen de portada</legend>
 
           <!-- File upload -->
           <div>
             <label class="block text-sm font-medium text-text-default mb-2">Subir archivo</label>
             <div class="flex items-center gap-3">
-              <label class="inline-flex items-center gap-2 px-4 py-2.5 border border-border-default dark:border-white/[0.08] rounded-xl text-sm text-text-default hover:bg-surface-raised cursor-pointer transition-colors">
+              <label class="inline-flex items-center gap-2 px-4 py-2.5 border border-border-default rounded-xl text-sm text-text-default hover:bg-surface-raised cursor-pointer transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                 Seleccionar imagen
                 <input type="file" accept="image/*" class="hidden" @change="handleCoverUpload" />
@@ -227,9 +227,9 @@
 
           <!-- OR divider -->
           <div class="flex items-center gap-3">
-            <div class="flex-1 border-t border-border-default dark:border-white/[0.06]" />
+            <div class="flex-1 border-t border-border-default" />
             <span class="text-xs text-text-subtle">o pegar URL externa</span>
-            <div class="flex-1 border-t border-border-default dark:border-white/[0.06]" />
+            <div class="flex-1 border-t border-border-default" />
           </div>
 
           <!-- URL input -->
@@ -239,9 +239,9 @@
           </div>
 
           <!-- Preview -->
-          <div v-if="coverImagePreview" class="mt-2 rounded-xl overflow-hidden border border-border-default dark:border-white/[0.08] max-w-md">
+          <div v-if="coverImagePreview" class="mt-2 rounded-xl overflow-hidden border border-border-default max-w-md">
             <img :src="coverImagePreview" alt="Preview" class="w-full h-auto" @error="imgError = true" />
-            <p v-if="imgError" class="text-xs text-red-400 p-2">No se pudo cargar la imagen.</p>
+            <p v-if="imgError" class="text-xs text-danger-strong p-2">No se pudo cargar la imagen.</p>
           </div>
 
           <!-- Credit -->
@@ -266,7 +266,7 @@
           <div v-for="(source, idx) in form.sources" :key="idx" class="flex gap-2 mb-2">
             <input v-model="source.name" type="text" class="flex-1 px-3 py-2 rounded-lg border border-input-border bg-input-bg text-input-text placeholder-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="Nombre de la fuente" />
             <input v-model="source.url" type="url" class="flex-[2] px-3 py-2 rounded-lg border border-input-border bg-input-bg text-input-text placeholder-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="https://..." />
-            <button type="button" class="text-text-subtle hover:text-red-500 dark:text-white/30 dark:hover:text-red-400 transition-colors px-2" @click="removeSource(idx)">
+            <button type="button" class="text-text-subtle hover:text-danger-strong transition-colors px-2" @click="removeSource(idx)">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
@@ -274,7 +274,7 @@
         </div>
 
         <!-- Publishing options -->
-        <fieldset class="border border-border-default dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+        <fieldset class="border border-border-default rounded-xl p-5 space-y-4">
           <legend class="text-sm font-medium text-text-default px-2">Publicación</legend>
           <div class="flex flex-col gap-3">
             <label class="flex items-center gap-3 cursor-pointer">
@@ -292,7 +292,7 @@
             <div v-if="publishMode === 'schedule'" class="ml-7">
               <input v-model="scheduledDate" type="datetime-local" class="px-4 py-2.5 rounded-xl border border-input-border bg-input-bg text-input-text placeholder-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" />
               <p class="text-xs text-text-subtle mt-1">El post se publicará automáticamente en la fecha seleccionada.</p>
-              <p v-if="scheduledOverdue" class="text-xs text-amber-600 dark:text-amber-400 mt-2" data-test="scheduled-overdue-banner">
+              <p v-if="scheduledOverdue" class="text-xs text-warning-strong mt-2" data-test="scheduled-overdue-banner">
                 Programado para una fecha que ya pasó. El sistema lo publicará en el próximo minuto. Si pasa más de 2 minutos, refresca esta página o pulsa "Publicar ahora".
               </p>
             </div>
@@ -300,7 +300,7 @@
         </fieldset>
 
         <!-- Error / Success -->
-        <p v-if="errorMsg" class="text-sm text-red-500">{{ errorMsg }}</p>
+        <p v-if="errorMsg" class="text-sm text-danger-strong">{{ errorMsg }}</p>
         <p v-if="successMsg" class="text-sm text-text-brand">{{ successMsg }}</p>
 
         <!-- Actions -->
@@ -308,7 +308,7 @@
           <button type="submit" :disabled="blogStore.isUpdating" class="px-6 py-2.5 bg-primary text-on-primary rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50">
             {{ blogStore.isUpdating ? 'Guardando...' : 'Guardar Cambios' }}
           </button>
-          <a v-if="post?.slug" :href="`/blog/${post.slug}`" target="_blank" class="px-6 py-2.5 border border-border-default dark:border-white/[0.08] text-text-muted rounded-xl text-sm hover:bg-surface-raised transition-colors inline-flex items-center gap-1">
+          <a v-if="post?.slug" :href="`/blog/${post.slug}`" target="_blank" class="px-6 py-2.5 border border-border-default text-text-muted rounded-xl text-sm hover:bg-surface-raised transition-colors inline-flex items-center gap-1">
             Ver en blog
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
           </a>
@@ -318,7 +318,7 @@
       <!-- Preview panel: desktop (inline) -->
       <aside
         v-if="showPreview"
-        class="hidden lg:block w-[45%] flex-shrink-0 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto rounded-xl border border-border-default dark:border-white/[0.08] bg-surface shadow-sm"
+        class="hidden lg:block w-[45%] flex-shrink-0 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto rounded-xl border border-border-default bg-surface shadow-sm"
       >
         <div class="p-4 border-b border-border-muted flex items-center justify-between">
           <span class="text-sm font-medium text-text-default">Vista previa</span>
@@ -341,7 +341,7 @@
           </div>
           <h1 class="text-2xl font-light text-text-default mb-3 leading-tight">{{ previewTitle }}</h1>
           <p class="text-sm text-text-muted mb-4 leading-relaxed">{{ previewExcerpt }}</p>
-          <div v-if="coverImagePreview" class="mb-6 rounded-xl overflow-hidden border border-border-default dark:border-white/[0.08]">
+          <div v-if="coverImagePreview" class="mb-6 rounded-xl overflow-hidden border border-border-default">
             <img :src="coverImagePreview" alt="Cover" class="w-full h-auto" />
           </div>
           <div v-if="form.read_time_minutes" class="text-xs text-text-subtle mb-6">{{ form.read_time_minutes }} min de lectura</div>
@@ -382,7 +382,7 @@
               </div>
               <h1 class="text-2xl font-light text-text-default mb-3 leading-tight">{{ previewTitle }}</h1>
               <p class="text-sm text-text-muted mb-4 leading-relaxed">{{ previewExcerpt }}</p>
-              <div v-if="coverImagePreview" class="mb-6 rounded-xl overflow-hidden border border-border-default dark:border-white/[0.08]">
+              <div v-if="coverImagePreview" class="mb-6 rounded-xl overflow-hidden border border-border-default">
                 <img :src="coverImagePreview" alt="Cover" class="w-full h-auto" />
               </div>
               <div v-if="form.read_time_minutes" class="text-xs text-text-subtle mb-6">{{ form.read_time_minutes }} min de lectura</div>

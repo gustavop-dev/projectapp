@@ -113,7 +113,7 @@
           <Transition name="fade-modal">
             <div
               v-if="editingFolder"
-              class="mx-6 mb-4 flex-shrink-0 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-primary-soft p-4"
+              class="mx-6 mb-4 flex-shrink-0 rounded-xl border border-primary/20 bg-primary-soft p-4"
             >
               <p class="text-xs font-semibold text-text-brand mb-2">
                 Editar "{{ editingFolder.name }}"
@@ -123,7 +123,7 @@
                   v-model="editName"
                   type="text"
                   placeholder="Nombre de la carpeta"
-                  class="w-full px-2.5 py-2 border border-emerald-300 dark:border-emerald-600 rounded-lg text-sm bg-surface text-text-default focus:ring-2 focus:ring-focus-ring/30 outline-none"
+                  class="w-full px-2.5 py-2 border border-input-border rounded-lg text-sm bg-surface text-text-default focus:ring-2 focus:ring-focus-ring/30 outline-none"
                   @keyup.enter="commitEdit"
                   @keyup.esc="editingFolder = null"
                 />
@@ -161,7 +161,7 @@
           </Transition>
 
           <div v-if="errorMsg" class="px-6 pb-2 flex-shrink-0">
-            <p class="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">{{ errorMsg }}</p>
+            <p class="text-xs text-danger-strong bg-danger-soft px-3 py-2 rounded-lg">{{ errorMsg }}</p>
           </div>
 
           <Transition name="fade-modal">
@@ -334,11 +334,11 @@ const deleteVariant = computed(() => {
   if (folder.document_count) {
     return {
       kind: 'blocked',
-      panel: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20',
-      iconWrap: 'bg-amber-100 dark:bg-amber-900/40',
-      iconStroke: 'text-amber-600 dark:text-amber-400',
-      title: 'text-amber-800 dark:text-amber-200',
-      body: 'text-amber-700 dark:text-amber-300',
+      panel: 'border-warning-strong/30 bg-warning-soft',
+      iconWrap: 'bg-warning-soft',
+      iconStroke: 'text-warning-strong',
+      title: 'text-warning-strong',
+      body: 'text-warning-strong',
       titleText: `No se puede eliminar "${folder.name}"`,
       bodyText: `Primero mueve o elimina sus ${folder.document_count} documento(s).`,
       dismiss: 'bg-amber-600 text-white hover:bg-amber-700',
@@ -348,11 +348,11 @@ const deleteVariant = computed(() => {
   if (folder.children_count) {
     return {
       kind: 'blocked',
-      panel: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20',
-      iconWrap: 'bg-amber-100 dark:bg-amber-900/40',
-      iconStroke: 'text-amber-600 dark:text-amber-400',
-      title: 'text-amber-800 dark:text-amber-200',
-      body: 'text-amber-700 dark:text-amber-300',
+      panel: 'border-warning-strong/30 bg-warning-soft',
+      iconWrap: 'bg-warning-soft',
+      iconStroke: 'text-warning-strong',
+      title: 'text-warning-strong',
+      body: 'text-warning-strong',
       titleText: `No se puede eliminar "${folder.name}"`,
       bodyText: `Primero mueve o elimina sus ${folder.children_count} subcarpeta(s).`,
       dismiss: 'bg-amber-600 text-white hover:bg-amber-700',
@@ -361,14 +361,14 @@ const deleteVariant = computed(() => {
   }
   return {
     kind: 'destructive',
-    panel: 'border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20',
-    iconWrap: 'bg-red-100 dark:bg-red-900/40',
-    iconStroke: 'text-red-600 dark:text-red-400',
-    title: 'text-red-800 dark:text-red-200',
-    body: 'text-red-600 dark:text-red-400',
+    panel: 'border-danger-strong/30 bg-danger-soft',
+    iconWrap: 'bg-danger-soft',
+    iconStroke: 'text-danger-strong',
+    title: 'text-danger-strong',
+    body: 'text-danger-strong',
     titleText: `Eliminar "${folder.name}"`,
     bodyText: 'Esta acción no se puede deshacer.',
-    dismiss: 'text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40',
+    dismiss: 'text-danger-strong hover:bg-danger-soft',
     dismissText: 'Cancelar',
   };
 });

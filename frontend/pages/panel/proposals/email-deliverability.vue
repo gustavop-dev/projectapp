@@ -26,38 +26,38 @@
     <template v-else-if="stats">
       <!-- KPI Cards -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div class="bg-surface rounded-xl border border-border-muted p-5 shadow-sm  ">
+        <div class="bg-surface rounded-xl border border-border-muted p-5 shadow-card">
           <div class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">Total Enviados</div>
           <div class="text-3xl font-bold text-text-default tabular-nums">{{ stats.total_emails_30d }}</div>
           <div class="text-xs text-text-subtle mt-1">últimos 30 días</div>
         </div>
-        <div class="bg-surface rounded-xl border border-border-muted p-5 shadow-sm  ">
+        <div class="bg-surface rounded-xl border border-border-muted p-5 shadow-card">
           <div class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">Tasa de Éxito</div>
-          <div class="text-3xl font-bold tabular-nums" :class="stats.success_rate >= 95 ? 'text-text-brand' : stats.success_rate >= 80 ? 'text-amber-600' : 'text-red-600'">
+          <div class="text-3xl font-bold tabular-nums" :class="stats.success_rate >= 95 ? 'text-text-brand' : stats.success_rate >= 80 ? 'text-warning-strong' : 'text-danger-strong'">
             {{ stats.success_rate }}%
           </div>
           <div class="text-xs text-text-subtle mt-1">enviados correctamente</div>
         </div>
-        <div class="bg-surface rounded-xl border border-border-muted p-5 shadow-sm  ">
+        <div class="bg-surface rounded-xl border border-border-muted p-5 shadow-card">
           <div class="text-xs font-medium text-text-brand uppercase tracking-wider mb-1">Exitosos</div>
           <div class="text-3xl font-bold text-text-brand tabular-nums">{{ stats.sent_count }}</div>
         </div>
-        <div class="bg-surface rounded-xl border border-border-muted p-5 shadow-sm  ">
-          <div class="text-xs font-medium text-red-600 uppercase tracking-wider mb-1">Fallidos</div>
-          <div class="text-3xl font-bold tabular-nums" :class="stats.failed_count > 0 ? 'text-red-600' : 'text-text-subtle'">
+        <div class="bg-surface rounded-xl border border-border-muted p-5 shadow-card">
+          <div class="text-xs font-medium text-danger-strong uppercase tracking-wider mb-1">Fallidos</div>
+          <div class="text-3xl font-bold tabular-nums" :class="stats.failed_count > 0 ? 'text-danger-strong' : 'text-text-subtle'">
             {{ stats.failed_count }}
           </div>
         </div>
       </div>
 
       <!-- Per-template breakdown -->
-      <div class="bg-surface rounded-xl border border-border-muted shadow-sm mb-8 overflow-hidden  ">
+      <div class="bg-surface rounded-xl border border-border-muted shadow-card mb-8 overflow-hidden">
         <div class="px-6 py-4 border-b border-border-muted">
           <h2 class="text-sm font-semibold text-text-default">Por Plantilla</h2>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
-            <thead class="bg-surface-muted /50">
+            <thead class="bg-surface-muted">
               <tr>
                 <th class="text-left px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Plantilla</th>
                 <th class="text-center px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Total</th>
@@ -66,17 +66,17 @@
                 <th class="text-center px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Tasa</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
-              <tr v-for="tpl in stats.by_template" :key="tpl.template_key" class="hover:bg-surface-muted dark:hover:bg-gray-700/50 transition-colors">
+            <tbody class="divide-y divide-border-muted">
+              <tr v-for="tpl in stats.by_template" :key="tpl.template_key" class="hover:bg-surface-muted transition-colors">
                 <td class="px-6 py-3 font-medium text-text-default">
-                  <code class="text-xs bg-surface-raised   px-2 py-0.5 rounded">{{ tpl.template_key }}</code>
+                  <code class="text-xs bg-surface-raised px-2 py-0.5 rounded">{{ tpl.template_key }}</code>
                 </td>
                 <td class="px-4 py-3 text-center text-text-muted tabular-nums">{{ tpl.total }}</td>
                 <td class="px-4 py-3 text-center text-text-brand tabular-nums">{{ tpl.sent }}</td>
-                <td class="px-4 py-3 text-center tabular-nums" :class="tpl.failed > 0 ? 'text-red-600 font-medium' : 'text-text-subtle'">{{ tpl.failed }}</td>
+                <td class="px-4 py-3 text-center tabular-nums" :class="tpl.failed > 0 ? 'text-danger-strong font-medium' : 'text-text-subtle'">{{ tpl.failed }}</td>
                 <td class="px-4 py-3 text-center">
                   <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
-                    :class="tpl.success_rate >= 95 ? 'bg-primary-soft text-text-brand' : tpl.success_rate >= 80 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'">
+                    :class="tpl.success_rate >= 95 ? 'bg-primary-soft text-text-brand' : tpl.success_rate >= 80 ? 'bg-warning-soft text-warning-strong' : 'bg-danger-soft text-danger-strong'">
                     {{ tpl.success_rate }}%
                   </span>
                 </td>
@@ -90,7 +90,7 @@
       </div>
 
       <!-- Daily trend (simple bar chart) -->
-      <div v-if="stats.daily_trend.length" class="bg-surface rounded-xl border border-border-muted shadow-sm mb-8 overflow-hidden  ">
+      <div v-if="stats.daily_trend.length" class="bg-surface rounded-xl border border-border-muted shadow-card mb-8 overflow-hidden">
         <div class="px-6 py-4 border-b border-border-muted">
           <h2 class="text-sm font-semibold text-text-default">Tendencia Diaria</h2>
         </div>
@@ -106,7 +106,7 @@
                 :class="day.failed > 0 ? 'bg-red-400' : 'bg-emerald-400'"
                 :style="{ height: `${Math.max(4, (day.total / maxDailyTotal) * 100)}%` }"
               />
-              <div class="absolute bottom-full mb-1 hidden group-hover:block bg-gray-900 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-10">
+              <div class="absolute bottom-full mb-1 hidden group-hover:block bg-primary-strong text-white shadow-raised text-[10px] px-2 py-1 rounded whitespace-nowrap z-10">
                 {{ day.date }}: {{ day.total }} emails
                 <span v-if="day.failed > 0" class="text-red-300">({{ day.failed }} fallidos)</span>
               </div>
@@ -120,23 +120,23 @@
       </div>
 
       <!-- Recent failures -->
-      <div v-if="stats.recent_failures.length" class="bg-surface rounded-xl border border-red-100 shadow-sm overflow-hidden  dark:border-red-900/50">
-        <div class="px-6 py-4 border-b border-red-100 bg-red-50 dark:bg-red-900/20 dark:border-red-900/50">
-          <h2 class="text-sm font-semibold text-red-800 dark:text-red-400">Fallos Recientes ({{ stats.recent_failures.length }})</h2>
+      <div v-if="stats.recent_failures.length" class="bg-surface rounded-xl border border-danger-strong/30 shadow-card overflow-hidden">
+        <div class="px-6 py-4 border-b border-danger-strong/30 bg-danger-soft">
+          <h2 class="text-sm font-semibold text-danger-strong">Fallos Recientes ({{ stats.recent_failures.length }})</h2>
         </div>
-        <div class="divide-y divide-gray-50 dark:divide-gray-700">
+        <div class="divide-y divide-border-muted">
           <div v-for="(failure, idx) in stats.recent_failures" :key="idx" class="px-6 py-3 text-sm">
             <div class="flex flex-wrap items-center gap-2 mb-1">
-              <code class="text-xs bg-surface-raised   px-2 py-0.5 rounded">{{ failure.template_key }}</code>
+              <code class="text-xs bg-surface-raised px-2 py-0.5 rounded">{{ failure.template_key }}</code>
               <span class="text-text-subtle">→</span>
               <span class="text-text-default font-medium">{{ failure.recipient }}</span>
               <span class="text-xs px-1.5 py-0.5 rounded-full font-medium"
-                :class="failure.status === 'bounced' ? 'bg-orange-50 text-orange-700' : 'bg-red-50 text-red-700'">
+                :class="failure.status === 'bounced' ? 'bg-warning-soft text-warning-strong' : 'bg-danger-soft text-danger-strong'">
                 {{ failure.status }}
               </span>
               <span class="text-xs text-text-subtle ml-auto">{{ formatDate(failure.sent_at) }}</span>
             </div>
-            <p v-if="failure.error_message" class="text-xs text-red-500 truncate max-w-full">
+            <p v-if="failure.error_message" class="text-xs text-danger-strong truncate max-w-full">
               {{ failure.error_message }}
             </p>
           </div>

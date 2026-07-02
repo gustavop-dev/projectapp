@@ -170,11 +170,11 @@
             <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
+        <tbody class="divide-y divide-border-muted">
           <tr
             v-for="d in paginatedDiagnostics"
             :key="d.id"
-            class="transition-colors cursor-pointer hover:bg-surface-muted dark:hover:bg-gray-700/50"
+            class="transition-colors cursor-pointer hover:bg-surface-muted"
             :data-testid="`diagnostic-row-${d.id}`"
             @click="navigateToDiagnostic(d.id, $event)"
           >
@@ -284,8 +284,8 @@
                 rel="noopener noreferrer"
                 class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-surface-raised"
               >
-                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400">👁️</span>
-                <span class="text-sm font-medium text-purple-700 dark:text-purple-300">Ver vista pública</span>
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-primary-soft text-text-brand">👁️</span>
+                <span class="text-sm font-medium text-text-brand">Ver vista pública</span>
               </a>
 
               <button
@@ -308,11 +308,11 @@
 
               <button
                 type="button"
-                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-red-50 dark:hover:bg-red-500/10"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-danger-soft"
                 @click="handleDelete(actionsModalDiagnostic)"
               >
-                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400">🗑️</span>
-                <span class="text-sm font-medium text-red-600 dark:text-red-400">Eliminar</span>
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-danger-soft text-danger-strong">🗑️</span>
+                <span class="text-sm font-medium text-danger-strong">Eliminar</span>
               </button>
             </div>
           </div>

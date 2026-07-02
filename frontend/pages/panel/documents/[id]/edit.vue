@@ -79,7 +79,7 @@
                 type="text"
                 required
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
-                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               />
             </div>
             <div>
@@ -90,7 +90,7 @@
                 type="text"
                 placeholder="Empresa S.A."
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default placeholder:text-text-subtle
-                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               />
             </div>
             <div>
@@ -98,7 +98,7 @@
               <select
                 v-model="form.status"
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
-                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               >
                 <option v-for="option in statusOptions" :key="option.value" :value="option.value">
                   {{ option.label }}
@@ -116,7 +116,7 @@
               <select
                 v-model="form.folder_id"
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
-                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               >
                 <option :value="null">Sin carpeta</option>
                 <option v-for="folder in folderStore.folders" :key="folder.id" :value="folder.id">
@@ -136,7 +136,7 @@
               <select
                 v-model="form.language"
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
-                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               >
                 <option value="es">Español</option>
                 <option value="en">English</option>
@@ -235,7 +235,7 @@
             v-model="form.content_markdown"
             placeholder="# Contenido del documento..."
             class="w-full px-4 py-3 border border-border-default rounded-xl text-sm font-mono leading-relaxed bg-surface text-text-default placeholder:text-text-subtle
-                   focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none resize-none
+                   focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-none
                    min-h-[24rem] lg:h-[calc(100vh-18rem)]"
           ></textarea>
           <div
@@ -260,7 +260,7 @@
           </div>
         </div>
 
-        <div v-if="errorMsg" class="mt-4 text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl dark:bg-red-900/20 dark:text-red-400">
+        <div v-if="errorMsg" class="mt-4 text-sm text-danger-strong bg-danger-soft px-4 py-3 rounded-xl">
           {{ errorMsg }}
         </div>
 

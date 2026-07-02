@@ -30,7 +30,7 @@
         <div
           v-for="(sub, i) in section.subsections"
           :key="i"
-          class="bg-primary-soft dark:bg-surface/[0.03] rounded-2xl p-5 sm:p-8 border border-border-default/40 dark:border-white/[0.06]"
+          class="bg-primary-soft rounded-2xl p-5 sm:p-8 border border-border-default"
         >
           <h3 class="text-xl font-medium mb-3 text-text-brand dark:text-white">{{ sub.title }}</h3>
           <p class="text-base text-green-light dark:text-green-light/80 leading-relaxed font-regular">{{ sub.description }}</p>
@@ -41,10 +41,10 @@
       <div v-if="section.timeline && section.timeline.length" class="space-y-4">
         <div v-for="(item, i) in section.timeline" :key="i" class="flex gap-6">
           <div class="flex flex-col items-center">
-            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 bg-primary-soft dark:bg-surface/[0.06]">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 bg-primary-soft">
               <span class="text-lg font-bold text-text-brand dark:text-white">{{ i + 1 }}</span>
             </div>
-            <div v-if="i < section.timeline.length - 1" class="w-0.5 h-full mt-2 bg-gray-200 dark:bg-surface/[0.08]" />
+            <div v-if="i < section.timeline.length - 1" class="w-0.5 h-full mt-2 bg-border-muted" />
           </div>
           <div class="pb-8">
             <h4 class="text-lg font-medium mb-2 text-text-brand dark:text-white">{{ item.step }}</h4>
@@ -58,7 +58,7 @@
         <div
           v-for="(example, i) in section.examples"
           :key="i"
-          class="bg-primary-soft dark:bg-surface/[0.03] rounded-xl p-6"
+          class="bg-primary-soft rounded-xl p-6"
         >
           <p class="text-base font-regular text-text-brand dark:text-white/80 leading-relaxed">{{ example }}</p>
         </div>
@@ -115,7 +115,7 @@
 
       <!-- Video (YouTube / Vimeo embed) -->
       <div v-if="section.video && section.video.url" class="my-8">
-        <div class="relative aspect-video rounded-2xl overflow-hidden shadow-lg bg-gray-900">
+        <div class="relative aspect-video rounded-2xl overflow-hidden shadow-lg bg-primary-strong">
           <iframe
             :src="videoEmbedUrl(section.video.url)"
             :title="section.video.title || section.heading"
@@ -152,13 +152,13 @@
         <div
           v-for="(item, i) in section.faq"
           :key="i"
-          class="bg-surface dark:bg-primary rounded-2xl border border-border-default/60 dark:border-white/[0.06] overflow-hidden"
+          class="bg-surface rounded-2xl border border-border-default overflow-hidden"
           itemscope
           itemprop="mainEntity"
           itemtype="https://schema.org/Question"
         >
           <details class="group">
-            <summary class="flex items-center justify-between gap-4 px-5 sm:px-8 py-5 cursor-pointer select-none hover:bg-primary-soft/40 dark:hover:bg-surface/[0.03] transition-colors">
+            <summary class="flex items-center justify-between gap-4 px-5 sm:px-8 py-5 cursor-pointer select-none hover:bg-primary-soft transition-colors">
               <span class="text-base sm:text-lg font-medium text-text-brand dark:text-white leading-snug" itemprop="name">{{ item.question }}</span>
               <svg class="w-5 h-5 text-green-light flex-shrink-0 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
             </summary>
@@ -208,10 +208,10 @@ const hasJsonContent = computed(() => {
 
 function calloutClasses(type) {
   const map = {
-    tip: 'bg-primary-soft/60 border-emerald-200/60 dark:bg-emerald-900/20 dark:border-emerald-700/30',
-    warning: 'bg-amber-50/60 border-amber-200/60 dark:bg-amber-900/20 dark:border-amber-700/30',
-    info: 'bg-blue-50/60 border-blue-200/60 dark:bg-blue-900/20 dark:border-blue-700/30',
-    note: 'bg-gray-50/60 border-border-default/60 dark:bg-surface/[0.03] dark:border-white/[0.06]',
+    tip: 'bg-success-soft border-success-strong/30',
+    warning: 'bg-warning-soft border-warning-strong/30',
+    info: 'bg-info-soft border-info-strong/30',
+    note: 'bg-surface-muted border-border-default',
   };
   return map[type] || map.note;
 }

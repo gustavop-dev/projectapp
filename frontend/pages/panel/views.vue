@@ -124,7 +124,7 @@
             <div>
               <h3 class="text-sm font-medium text-text-default">{{ view.label }}</h3>
               <p class="mt-1 text-xs text-text-muted">{{ view.reference }}</p>
-              <p v-if="view.notes" class="mt-2 text-xs leading-5 text-amber-700 dark:text-amber-300">{{ view.notes }}</p>
+              <p v-if="view.notes" class="mt-2 text-xs leading-5 text-warning-strong">{{ view.notes }}</p>
             </div>
 
             <div>

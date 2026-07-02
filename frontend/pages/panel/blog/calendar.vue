@@ -45,7 +45,7 @@
         <div class="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            class="px-3 py-1.5 text-xs font-medium text-text-brand border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:bg-primary-soft transition-colors"
+            class="px-3 py-1.5 text-xs font-medium text-text-brand border border-border-default rounded-lg hover:bg-primary-soft transition-colors"
             @click="goToToday"
           >
             Hoy
@@ -64,23 +64,23 @@
 
       <!-- Loading -->
       <div v-if="isLoading" class="flex justify-center py-12">
-        <div class="w-6 h-6 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+        <div class="w-6 h-6 border-2 border-focus-ring/30 border-t-focus-ring rounded-full animate-spin" />
       </div>
 
       <!-- Week grid (md+) -->
-      <div v-else class="hidden md:grid grid-cols-7 divide-x divide-gray-100 dark:divide-white/[0.04]">
+      <div v-else class="hidden md:grid grid-cols-7 divide-x divide-border-muted">
         <div
           v-for="day in weekDays"
           :key="day.date"
           class="min-h-[160px] p-3 min-w-0"
-          :class="{ 'bg-primary-soft dark:bg-primary-soft': day.isToday }"
+          :class="{ 'bg-primary-soft': day.isToday }"
         >
           <!-- Day header -->
           <div class="mb-2">
             <p class="text-[10px] uppercase tracking-wider text-text-subtle font-medium">{{ day.dayName }}</p>
             <p
               class="text-sm font-semibold"
-              :class="day.isToday ? 'text-text-brand' : 'text-text-default dark:text-white'"
+              :class="day.isToday ? 'text-text-brand' : 'text-text-default'"
             >
               {{ day.dayNumber }}
             </p>
@@ -101,7 +101,7 @@
           </div>
 
           <!-- Empty state -->
-          <p v-if="day.posts.length === 0" class="text-[10px] text-text-subtle dark:text-white/20 mt-3">Sin posts</p>
+          <p v-if="day.posts.length === 0" class="text-[10px] text-text-subtle mt-3">Sin posts</p>
         </div>
       </div>
 
@@ -111,14 +111,14 @@
           v-for="day in weekDays"
           :key="`m-${day.date}`"
           class="px-4 py-3"
-          :class="{ 'bg-primary-soft dark:bg-primary-soft': day.isToday }"
+          :class="{ 'bg-primary-soft': day.isToday }"
         >
           <div class="flex items-baseline justify-between gap-2 mb-2">
             <div class="flex items-baseline gap-2 min-w-0">
               <p class="text-[10px] uppercase tracking-wider text-text-subtle font-medium shrink-0">{{ day.dayName }}</p>
               <p
                 class="text-base font-semibold"
-                :class="day.isToday ? 'text-text-brand' : 'text-text-default dark:text-white'"
+                :class="day.isToday ? 'text-text-brand' : 'text-text-default'"
               >
                 {{ day.dayNumber }}
               </p>
@@ -137,7 +137,7 @@
               <p v-if="post.category" class="text-xs opacity-70 mt-0.5 break-words">{{ post.category }}</p>
             </NuxtLink>
           </div>
-          <p v-else class="text-xs text-text-subtle dark:text-white/30">Sin posts</p>
+          <p v-else class="text-xs text-text-subtle">Sin posts</p>
         </div>
       </div>
     </div>
@@ -145,11 +145,11 @@
     <!-- Legend -->
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-6 text-xs text-text-muted">
       <div class="flex items-center gap-1.5">
-        <span class="w-3 h-3 rounded bg-primary-soft border border-emerald-200 dark:border-emerald-500/30 inline-block" />
+        <span class="w-3 h-3 rounded bg-primary-soft inline-block" />
         Publicado
       </div>
       <div class="flex items-center gap-1.5">
-        <span class="w-3 h-3 rounded bg-blue-100 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-500/30 inline-block" />
+        <span class="w-3 h-3 rounded bg-info-soft inline-block" />
         Programado
       </div>
       <div class="flex items-center gap-1.5">
@@ -248,8 +248,8 @@ function nextWeek() { weekOffset.value++; }
 function goToToday() { weekOffset.value = 0; }
 
 function postCardClass(post) {
-  if (post.calendar_status === 'published') return 'bg-primary-soft text-emerald-800 dark:text-emerald-300 hover:bg-primary-soft border border-emerald-200 dark:border-emerald-500/20';
-  if (post.calendar_status === 'scheduled') return 'bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/20';
+  if (post.calendar_status === 'published') return 'bg-primary-soft text-text-brand hover:bg-primary-soft';
+  if (post.calendar_status === 'scheduled') return 'bg-info-soft text-info-strong hover:bg-info-soft';
   return 'bg-surface-raised text-text-muted hover:bg-surface-raised border border-border-default';
 }
 

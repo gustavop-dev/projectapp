@@ -38,13 +38,13 @@
                 v-model="editingTitle"
                 type="text"
                 placeholder="Nombre del documento"
-                class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08] rounded-lg text-sm text-text-default focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+                class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-lg text-sm text-text-default focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
                 :disabled="isSaving"
                 @keyup.esc="close"
               />
             </div>
 
-            <p v-if="errorMsg" class="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">
+            <p v-if="errorMsg" class="text-xs text-danger-strong bg-danger-soft px-3 py-2 rounded-lg">
               {{ errorMsg }}
             </p>
 

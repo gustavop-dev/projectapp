@@ -1,6 +1,6 @@
 <template>
   <div v-show="isOpen" class="mb-4">
-    <div class="bg-surface border border-border-default rounded-xl divide-y divide-gray-100 dark:divide-gray-700/60">
+    <div class="bg-surface border border-border-default rounded-xl divide-y divide-border-muted">
 
       <!-- Clasificación -->
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
@@ -76,7 +76,7 @@
         <button
           v-if="filterCount > 0"
           type="button"
-          class="text-xs text-text-subtle hover:text-red-500 dark:hover:text-red-400 transition-colors font-medium whitespace-nowrap"
+          class="text-xs text-text-subtle hover:text-danger-strong transition-colors font-medium whitespace-nowrap"
           @click="emit('reset')"
         >
           Limpiar todo
@@ -90,12 +90,12 @@
       <span
         v-for="chip in activeChips"
         :key="chip.key"
-        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-soft text-text-brand border border-emerald-200 dark:border-emerald-700"
+        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-soft text-text-brand"
       >
         {{ chip.label }}
         <button
           type="button"
-          class="ml-0.5 hover:text-red-500 dark:hover:text-red-400 leading-none"
+          class="ml-0.5 hover:text-danger-strong leading-none"
           @click="clearChip(chip.key)"
         >&times;</button>
       </span>

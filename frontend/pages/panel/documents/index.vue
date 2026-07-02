@@ -6,8 +6,7 @@
       <NuxtLink
         :to="createLink"
         class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl
-               font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm
-               dark:bg-primary-strong dark:hover:bg-primary"
+               font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -609,7 +608,7 @@ function statusBadgeClass(status) {
   const map = {
     draft: 'bg-surface-raised text-text-default ',
     published: 'bg-primary-soft text-text-brand ',
-    archived: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
+    archived: 'bg-warning-soft text-warning-strong',
   };
   return map[status] || map.draft;
 }

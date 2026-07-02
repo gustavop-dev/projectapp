@@ -34,7 +34,7 @@
         <select
           v-model="language"
           class="w-full px-3 py-2 border border-border-default rounded-xl text-sm bg-surface outline-none
-                 focus:ring-1 focus:ring-focus-ring/30 focus:border-emerald-500
+                 focus:ring-1 focus:ring-focus-ring/30 focus:border-focus-ring
                 "
         >
           <option value="es">Español</option>
@@ -48,24 +48,22 @@
           v-model="title"
           type="text"
           class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-xl text-sm outline-none
-                 focus:ring-1 focus:ring-focus-ring/30 focus:border-emerald-500
-                 dark:placeholder-gray-500"
+                 focus:ring-1 focus:ring-focus-ring/30 focus:border-focus-ring
+                 placeholder:text-input-placeholder"
           placeholder="Se generará automáticamente si lo dejas vacío"
         />
       </div>
 
       <div
         v-if="errorMsg"
-        class="rounded-xl bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 text-sm
-               dark:bg-rose-900/20 dark:border-rose-700 dark:text-rose-300"
+        class="rounded-xl bg-danger-soft border border-danger-strong/30 text-danger-strong px-4 py-3 text-sm"
       >{{ errorMsg }}</div>
 
       <div class="text-right">
         <button
           type="submit"
           class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl
-                 font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50
-                 dark:bg-primary-strong dark:hover:bg-primary"
+                 font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50"
           :disabled="!selectedClientId || store.isUpdating"
           data-testid="diagnostic-submit-btn"
         >

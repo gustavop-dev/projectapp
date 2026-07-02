@@ -902,15 +902,15 @@ function formatDate(iso) {
 function statusClass(s) {
   const map = {
     draft: 'bg-surface-raised text-text-muted',
-    sent: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300',
-    viewed: 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300',
+    sent: 'bg-info-soft text-info-strong',
+    viewed: 'bg-success-soft text-success-strong',
     accepted: 'bg-primary-soft text-text-brand',
     finished: 'bg-primary-soft text-text-brand',
-    rejected: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300',
-    expired: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
-    negotiating: 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300',
-    active: 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300',
-    paused: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
+    rejected: 'bg-danger-soft text-danger-strong',
+    expired: 'bg-warning-soft text-warning-strong',
+    negotiating: 'bg-primary-soft text-text-brand',
+    active: 'bg-success-soft text-success-strong',
+    paused: 'bg-warning-soft text-warning-strong',
     completed: 'bg-primary-soft text-text-brand',
     archived: 'bg-surface-raised text-text-muted',
   };

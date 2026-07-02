@@ -123,7 +123,7 @@
         </div>
         <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
           <p class="text-xs text-text-subtle uppercase tracking-wider leading-tight mb-1">Llega a Inversión</p>
-          <p class="text-2xl font-light" :class="kpis?.pct_reaching_investment >= 60 ? 'text-text-brand' : 'text-amber-500'">
+          <p class="text-2xl font-light" :class="kpis?.pct_reaching_investment >= 60 ? 'text-text-brand' : 'text-warning-strong'">
             {{ kpis?.pct_reaching_investment != null ? kpis.pct_reaching_investment + '%' : '—' }}
           </p>
           <p class="text-xs text-text-subtle mt-1">de los que leen</p>
@@ -166,7 +166,7 @@
             <span v-if="kpis.discount_analysis.avg_discount_accepted"> · En aceptadas: <strong>{{ kpis.discount_analysis.avg_discount_accepted }}%</strong></span>
           </div>
           <div v-if="discountDelta !== null && discountDelta <= 0" class="mt-2 text-center">
-            <span class="text-[10px] text-amber-600 font-medium">⚠️ El descuento no está mejorando el cierre — evalúa si estás regalando margen</span>
+            <span class="text-[10px] text-warning-strong font-medium">⚠️ El descuento no está mejorando el cierre — evalúa si estás regalando margen</span>
           </div>
         </div>
 
@@ -270,7 +270,7 @@
         <div v-if="recentProposals.length === 0" class="px-6 py-12 text-center text-text-subtle text-sm">
           No proposals yet. Create the first one.
         </div>
-        <ul v-else class="divide-y divide-gray-50 dark:divide-white/[0.04]">
+        <ul v-else class="divide-y divide-border-muted">
           <li
             v-for="p in recentProposals"
             :key="p.id"
@@ -408,11 +408,11 @@ function sectionLabel(s) { return SECTION_LABELS[s] || s; }
 function pillClass(s) {
   const map = {
     draft: 'bg-surface-raised text-text-muted',
-    sent: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300',
-    viewed: 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300',
+    sent: 'bg-info-soft text-info-strong',
+    viewed: 'bg-success-soft text-success-strong',
     accepted: 'bg-primary-soft text-text-brand',
-    rejected: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-300',
-    expired: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
+    rejected: 'bg-danger-soft text-danger-strong',
+    expired: 'bg-warning-soft text-warning-strong',
   };
   return map[s] || 'bg-surface-raised text-text-muted';
 }

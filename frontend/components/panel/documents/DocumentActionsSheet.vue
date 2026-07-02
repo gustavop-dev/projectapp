@@ -33,12 +33,12 @@
               :key="action.event"
               type="button"
               class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all active:scale-[0.98] hover:bg-surface-muted"
-              :class="action.danger ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20' : 'text-text-default'"
+              :class="action.danger ? 'text-danger-strong hover:bg-danger-soft' : 'text-text-default'"
               @click="trigger(action.event)"
             >
               <div
                 class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                :class="action.danger ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-surface-raised text-text-subtle'"
+                :class="action.danger ? 'bg-danger-soft text-danger-strong' : 'bg-surface-raised text-text-subtle'"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="action.icon" />

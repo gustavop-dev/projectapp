@@ -82,21 +82,21 @@
     </div>
 
     <!-- Alerts panel -->
-    <div v-if="activeAlerts.length || showAlertForm" class="mb-6 bg-warning-soft border border-warning-soft rounded-xl overflow-hidden dark:border-warning-strong/30">
+    <div v-if="activeAlerts.length || showAlertForm" class="mb-6 bg-warning-soft border border-warning-strong/30 rounded-xl overflow-hidden">
       <div class="flex items-center justify-between gap-3 px-4 py-3 border-l-4 border-l-warning-strong">
         <div class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0" @click="attentionExpanded = !attentionExpanded">
           <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-warning-strong/15 text-base" aria-hidden="true">⚠️</span>
-          <h3 class="text-sm font-semibold text-warning-strong dark:text-warning-soft truncate">
+          <h3 class="text-sm font-semibold text-warning-strong truncate">
             Propuestas que necesitan atención
             <span class="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-warning-strong text-warning-soft text-[11px] font-bold">{{ groupedActiveAlerts.length }}</span>
           </h3>
-          <svg class="h-3.5 w-3.5 shrink-0 text-warning-strong/70 dark:text-warning-soft transition-transform" :class="{ 'rotate-180': !attentionExpanded }" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <svg class="h-3.5 w-3.5 shrink-0 text-warning-strong/70 transition-transform" :class="{ 'rotate-180': !attentionExpanded }" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
           </svg>
         </div>
         <button
           type="button"
-          class="shrink-0 text-xs font-medium text-warning-strong/90 dark:text-warning-soft hover:text-warning-strong dark:hover:text-warning-soft px-2.5 py-1 rounded-lg hover:bg-warning-strong/10 transition-colors"
+          class="shrink-0 text-xs font-medium text-warning-strong/90 hover:text-warning-strong px-2.5 py-1 rounded-lg hover:bg-warning-strong/10 transition-colors"
           @click.stop="toggleAlertForm"
         >
           {{ showAlertForm ? 'Cancelar' : '+ Crear recordatorio' }}
@@ -250,7 +250,7 @@
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="proposals.length === 0" class="text-center py-16 dark:text-text-subtle">
+    <div v-else-if="proposals.length === 0" class="text-center py-16 text-text-subtle">
       <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-raised flex items-center justify-center">
         <svg class="w-8 h-8 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -367,7 +367,7 @@
             </td>
             <td class="px-6 py-4 text-sm text-text-muted">
               <template v-if="isInactive(p)">
-                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300">
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-danger-soft text-danger-strong">
                   {{ inactiveDays(p) }}d sin actividad
                 </span>
               </template>
@@ -462,20 +462,20 @@
                   :is="action.href ? 'a' : action.to ? 'NuxtLink' : 'button'"
                   v-bind="action.href ? { href: action.href, target: '_blank', rel: 'noopener noreferrer' } : action.to ? { to: action.to } : {}"
                   class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors group"
-                  :class="action.danger ? 'hover:bg-red-50 dark:hover:bg-red-500/10' : 'hover:bg-surface-raised'"
+                  :class="action.danger ? 'hover:bg-danger-soft' : 'hover:bg-surface-raised'"
                   @click="action.onClick ? action.onClick() : null"
                 >
                   <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
-                    :class="action.danger ? 'bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400' : action.bgClass || 'bg-surface-raised'"
+                    :class="action.danger ? 'bg-danger-soft text-danger-strong' : action.bgClass || 'bg-surface-raised'"
                   >
                     {{ action.icon }}
                   </span>
                   <div class="flex-1 min-w-0">
-                    <span class="text-sm font-medium block" :class="action.danger ? 'text-red-600 dark:text-red-400' : action.textClass || 'text-text-default'">{{ action.label }}</span>
+                    <span class="text-sm font-medium block" :class="action.danger ? 'text-danger-strong' : action.textClass || 'text-text-default'">{{ action.label }}</span>
                   </div>
                   <!-- Info tooltip -->
                   <div class="relative flex-shrink-0 group/info">
-                    <span class="w-6 h-6 rounded-full bg-surface-raised group-hover/info:bg-primary-soft dark:group-hover/info:bg-primary/10 flex items-center justify-center text-text-subtle group-hover/info:text-text-brand text-[11px] cursor-help transition-colors">?</span>
+                    <span class="w-6 h-6 rounded-full bg-surface-raised group-hover/info:bg-primary-soft flex items-center justify-center text-text-subtle group-hover/info:text-text-brand text-[11px] cursor-help transition-colors">?</span>
                     <div class="absolute right-full top-1/2 -translate-y-1/2 mr-2 w-52 bg-primary-strong text-white text-xs rounded-xl px-3 py-2 shadow-raised opacity-0 pointer-events-none group-hover/info:opacity-100 group-hover/info:pointer-events-auto transition-opacity z-10 leading-relaxed">
                       {{ action.info }}
                       <div class="absolute top-1/2 -translate-y-1/2 -right-1 w-2 h-2 bg-primary-strong rotate-45" />
@@ -872,8 +872,8 @@ const proposalActions = computed(() => {
     label: 'Ver preview',
     info: 'Abre la propuesta tal como la ve el cliente, sin registrar vistas.',
     href: `/proposal/${p.slug || p.uuid}?preview=1`,
-    bgClass: 'bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400',
-    textClass: 'text-purple-700 dark:text-purple-300',
+    bgClass: 'bg-primary-soft text-text-brand',
+    textClass: 'text-text-brand',
   });
 
   if (p.status === 'draft') {
@@ -882,8 +882,8 @@ const proposalActions = computed(() => {
       icon: '📤',
       label: 'Enviar al cliente',
       info: 'Envía un email al cliente con el enlace de la propuesta. Cambia el estado a "enviada".',
-      bgClass: 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400',
-      textClass: 'text-blue-700 dark:text-blue-300',
+      bgClass: 'bg-info-soft text-info-strong',
+      textClass: 'text-info-strong',
       onClick: () => { actionsModalProposal.value = null; handleSend(p.id); },
     });
   }
@@ -894,8 +894,8 @@ const proposalActions = computed(() => {
       icon: '🔄',
       label: 'Re-enviar email',
       info: 'Envía nuevamente el email al cliente. Mantiene la misma fecha de expiración.',
-      bgClass: 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400',
-      textClass: 'text-blue-700 dark:text-blue-300',
+      bgClass: 'bg-info-soft text-info-strong',
+      textClass: 'text-info-strong',
       onClick: () => { actionsModalProposal.value = null; handleResend(p.id); },
     });
   }
@@ -916,8 +916,8 @@ const proposalActions = computed(() => {
     label: 'Enviar por WhatsApp',
     info: 'Abre WhatsApp con un mensaje pre-escrito incluyendo el enlace de la propuesta.',
     href: buildWhatsAppUrl(p),
-    bgClass: 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400',
-    textClass: 'text-green-700 dark:text-green-300',
+    bgClass: 'bg-success-soft text-success-strong',
+    textClass: 'text-success-strong',
   });
 
   actions.push({
@@ -925,8 +925,8 @@ const proposalActions = computed(() => {
     icon: '📝',
     label: 'Registrar actividad',
     info: 'Registra rápidamente una llamada, reunión o nota sin entrar a la propuesta.',
-    bgClass: 'bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-400',
-    textClass: 'text-teal-700 dark:text-teal-300',
+    bgClass: 'bg-success-soft text-success-strong',
+    textClass: 'text-success-strong',
     onClick: () => { actionsModalProposal.value = null; openQuickLog(p); },
   });
 
@@ -935,8 +935,8 @@ const proposalActions = computed(() => {
     icon: '📋',
     label: 'Duplicar propuesta',
     info: 'Crea una copia exacta de esta propuesta para reutilizar con otro cliente.',
-    bgClass: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400',
-    textClass: 'text-indigo-700 dark:text-indigo-300',
+    bgClass: 'bg-info-soft text-info-strong',
+    textClass: 'text-info-strong',
     onClick: () => { actionsModalProposal.value = null; handleDuplicate(p.id); },
   });
 
@@ -947,8 +947,8 @@ const proposalActions = computed(() => {
     info: p.is_active
       ? 'Desactiva la propuesta. El cliente no podrá acceder al enlace.'
       : 'Reactiva la propuesta para que el cliente pueda verla nuevamente.',
-    bgClass: p.is_active ? 'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400' : 'bg-primary-soft text-text-brand ',
-    textClass: p.is_active ? 'text-yellow-700 dark:text-yellow-300' : 'text-text-brand',
+    bgClass: p.is_active ? 'bg-warning-soft text-warning-strong' : 'bg-primary-soft text-text-brand ',
+    textClass: p.is_active ? 'text-warning-strong' : 'text-text-brand',
     onClick: () => { actionsModalProposal.value = null; handleToggleActive(p.id, p.is_active); },
   });
 
@@ -1102,8 +1102,8 @@ function resolveAlertDate(alert) {
 }
 
 function alertBorderClass(priority) {
-  if (priority === 'critical') return 'border-danger-soft hover:border-danger-strong/40 dark:border-danger-strong/30 dark:hover:border-danger-strong/60';
-  if (priority === 'high') return 'border-warning-soft hover:border-warning-strong/40 dark:border-warning-strong/30 dark:hover:border-warning-strong/60';
+  if (priority === 'critical') return 'border-danger-strong/30 hover:border-danger-strong/60';
+  if (priority === 'high') return 'border-warning-strong/30 hover:border-warning-strong/60';
   return 'border-border-default hover:border-focus-ring/40';
 }
 
@@ -1308,13 +1308,13 @@ function handleDelete(id) {
 function statusClass(status) {
   const map = {
     draft: 'bg-surface-raised text-text-muted',
-    sent: 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300',
-    viewed: 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300',
+    sent: 'bg-info-soft text-info-strong',
+    viewed: 'bg-success-soft text-success-strong',
     accepted: 'bg-primary-soft text-text-brand ',
-    finished: 'bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300',
-    rejected: 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300',
-    negotiating: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',
-    expired: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-300',
+    finished: 'bg-primary-soft text-text-brand',
+    rejected: 'bg-danger-soft text-danger-strong',
+    negotiating: 'bg-warning-soft text-warning-strong',
+    expired: 'bg-warning-soft text-warning-strong',
   };
   return map[status] || 'bg-surface-raised text-text-muted';
 }
@@ -1335,7 +1335,7 @@ function inactiveDays(p) {
 function heatScoreColor(score) {
   if (score >= 8) return 'bg-red-500';
   if (score >= 5) return 'bg-orange-400';
-  if (score >= 2) return 'bg-yellow-400 text-text-default dark:text-text-default';
+  if (score >= 2) return 'bg-yellow-400 text-text-default';
   return 'bg-surface-raised text-text-default';
 }
 

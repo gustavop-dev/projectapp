@@ -22,28 +22,28 @@
     <!-- MANUAL MODE -->
     <form v-if="mode === 'manual'" class="space-y-6 max-w-3xl" @submit.prevent="handleSubmit">
       <!-- Español -->
-      <fieldset class="border border-border-default dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+      <fieldset class="border border-border-default rounded-xl p-5 space-y-4">
         <legend class="text-sm font-medium text-text-default px-2">Español</legend>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Título (ES)</label>
-          <input v-model="form.title_es" type="text" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="Título del proyecto en español" />
+          <input v-model="form.title_es" type="text" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-input-text placeholder:text-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="Título del proyecto en español" />
         </div>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Tagline (ES)</label>
-          <input v-model="form.excerpt_es" type="text" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="Tagline corto en español" />
+          <input v-model="form.excerpt_es" type="text" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-input-text placeholder:text-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="Tagline corto en español" />
         </div>
       </fieldset>
 
       <!-- English -->
-      <fieldset class="border border-border-default dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+      <fieldset class="border border-border-default rounded-xl p-5 space-y-4">
         <legend class="text-sm font-medium text-text-default px-2">English</legend>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Title (EN)</label>
-          <input v-model="form.title_en" type="text" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="Project title in English" />
+          <input v-model="form.title_en" type="text" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-input-text placeholder:text-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="Project title in English" />
         </div>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Tagline (EN)</label>
-          <input v-model="form.excerpt_en" type="text" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="Short tagline in English" />
+          <input v-model="form.excerpt_en" type="text" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-input-text placeholder:text-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="Short tagline in English" />
         </div>
       </fieldset>
 
@@ -51,22 +51,22 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">URL del proyecto</label>
-          <input v-model="form.project_url" type="url" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="https://example.com" />
+          <input v-model="form.project_url" type="url" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-input-text placeholder:text-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="https://example.com" />
         </div>
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Imagen de portada (URL)</label>
-          <input v-model="form.cover_image_url" type="url" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" placeholder="https://... (opcional)" />
+          <input v-model="form.cover_image_url" type="url" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-input-text placeholder:text-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="https://... (opcional)" />
         </div>
       </div>
 
       <!-- Order -->
       <div class="max-w-[200px]">
         <label class="block text-sm font-medium text-text-default mb-1">Orden</label>
-        <input v-model.number="form.order" type="number" min="0" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-focus-ring/30/20 focus:border-focus-ring transition-all" />
+        <input v-model.number="form.order" type="number" min="0" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-input-text placeholder:text-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" />
       </div>
 
       <!-- Publishing -->
-      <fieldset class="border border-border-default dark:border-white/[0.08] rounded-xl p-5 space-y-3">
+      <fieldset class="border border-border-default rounded-xl p-5 space-y-3">
         <legend class="text-sm font-medium text-text-default px-2">Publicación</legend>
         <label class="flex items-center gap-3 cursor-pointer">
           <input v-model="publishMode" type="radio" value="draft" name="pm" class="w-4 h-4 text-text-brand focus:ring-focus-ring/30" />
@@ -78,13 +78,13 @@
         </label>
       </fieldset>
 
-      <p v-if="errorMsg" class="text-sm text-red-500">{{ errorMsg }}</p>
+      <p v-if="errorMsg" class="text-sm text-danger-strong">{{ errorMsg }}</p>
 
       <div class="flex gap-3 pt-4">
         <button type="submit" :disabled="portfolioStore.isUpdating" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50">
           {{ portfolioStore.isUpdating ? 'Creando...' : 'Crear Proyecto' }}
         </button>
-        <NuxtLink :to="localePath('/panel/portfolio')" class="px-6 py-2.5 border border-border-default dark:border-white/[0.08] text-text-muted rounded-xl text-sm hover:bg-surface-raised transition-colors">Cancelar</NuxtLink>
+        <NuxtLink :to="localePath('/panel/portfolio')" class="px-6 py-2.5 border border-border-default text-text-muted rounded-xl text-sm hover:bg-surface-raised transition-colors">Cancelar</NuxtLink>
       </div>
     </form>
 
@@ -97,7 +97,7 @@
             <h3 class="text-sm font-medium text-text-default">Plantilla JSON</h3>
             <p class="text-xs text-text-subtle mt-0.5">Descarga la plantilla con la estructura problem/solution/results.</p>
           </div>
-          <button type="button" :disabled="isDownloading" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50" @click="downloadTemplate">
+          <button type="button" :disabled="isDownloading" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-strong text-white rounded-lg text-sm font-medium hover:bg-primary-strong/90 transition-colors disabled:opacity-50" @click="downloadTemplate">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
             {{ isDownloading ? 'Descargando...' : 'Descargar Plantilla' }}
           </button>
@@ -116,8 +116,8 @@
           <span v-if="uploadedFileName" class="text-xs text-text-muted">{{ uploadedFileName }}</span>
         </div>
         <textarea v-model="jsonRaw" rows="14" placeholder='{ "title_es": "...", "title_en": "...", "project_url": "...", "content_json_es": { "problem": {...}, "solution": {...}, "results": {...} } }' class="bg-input-bg w-full px-4 py-3 border border-border-default rounded-xl text-xs font-mono leading-relaxed focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y" @input="parseJson" />
-        <div v-if="jsonError" class="mt-2 text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">{{ jsonError }}</div>
-        <div v-if="jsonParsed && !jsonError" class="mt-3 bg-primary-soft border border-emerald-200 rounded-lg px-4 py-3">
+        <div v-if="jsonError" class="mt-2 text-sm bg-danger-soft text-danger-strong px-4 py-2 rounded-lg">{{ jsonError }}</div>
+        <div v-if="jsonParsed && !jsonError" class="mt-3 bg-primary-soft rounded-lg px-4 py-3">
           <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
             <span><span class="text-text-muted">Título:</span> <span class="font-medium text-text-default">{{ jsonParsed.title_es }}</span></span>
             <span><span class="text-text-muted">URL:</span> <span class="font-medium text-text-default">{{ jsonParsed.project_url || '—' }}</span></span>
@@ -140,7 +140,7 @@
               <span class="text-sm text-text-default">Publicar ahora</span>
             </label>
           </fieldset>
-          <div v-if="errorMsg" class="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl">{{ errorMsg }}</div>
+          <div v-if="errorMsg" class="text-sm bg-danger-soft text-danger-strong px-4 py-3 rounded-xl">{{ errorMsg }}</div>
           <div class="flex flex-wrap items-center gap-4 pt-2">
             <button type="submit" :disabled="portfolioStore.isUpdating" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50">
               {{ portfolioStore.isUpdating ? 'Creando...' : 'Crear desde JSON' }}
