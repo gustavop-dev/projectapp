@@ -5,6 +5,7 @@ the panel management endpoints backing /panel/mcps.
 import logging
 
 from django.http import Http404
+from django.shortcuts import get_object_or_404
 from django.utils import timezone as tz
 from rest_framework import status
 from rest_framework.decorators import (
@@ -20,6 +21,8 @@ from rest_framework.throttling import AnonRateThrottle
 from content.mcp.protocol import handle_message
 from content.mcp.tools import BLOG_TOOLS
 from content.models import McpConnector
+from content.permissions import IsSuperUser
+from content.services.blog_service import BASE_URL
 
 logger = logging.getLogger(__name__)
 
@@ -59,3 +62,63 @@ def mcp_blog_endpoint(request, token):
     if payload is None:
         return Response(status=http_status)
     return Response(payload, status=http_status)
+
+
+# ---------------------------------------------------------------------------
+# Panel management endpoints (/panel/mcps) — session + CSRF, superuser only
+# ---------------------------------------------------------------------------
+
+TOOLS_BY_SLUG = {
+    'blog': BLOG_TOOLS,
+}
+
+
+def _connector_payload(connector):
+    tools = TOOLS_BY_SLUG.get(connector.slug, [])
+    return {
+        'slug': connector.slug,
+        'name': connector.name,
+        'description': connector.description,
+        'is_active': connector.is_active,
+        'has_token': bool(connector.token_hash),
+        'token_prefix': connector.token_prefix,
+        'last_used_at': connector.last_used_at.isoformat() if connector.last_used_at else None,
+        'tools': [{'name': t['name'], 'description': t['description']} for t in tools],
+    }
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def list_mcp_connectors(request):
+    """List MCP connectors for /panel/mcps."""
+    connectors = McpConnector.objects.all().order_by('slug')
+    return Response([_connector_payload(c) for c in connectors], status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def generate_mcp_connector_token(request, slug):
+    """Create/rotate the connector token. The full URL is returned ONCE."""
+    connector = get_object_or_404(McpConnector, slug=slug)
+    token = connector.generate_token()
+    logger.info('[MCP] token rotated for connector %s by %s', slug, request.user.username)
+    return Response({
+        'connector_url': f'{BASE_URL}/api/mcp/{connector.slug}/{token}/',
+        'token_prefix': connector.token_prefix,
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsSuperUser])
+def update_mcp_connector(request, slug):
+    """Toggle is_active."""
+    connector = get_object_or_404(McpConnector, slug=slug)
+    if 'is_active' in request.data:
+        connector.is_active = bool(request.data['is_active'])
+        connector.save(update_fields=['is_active', 'updated_at'])
+        logger.info(
+            '[MCP] connector %s %s by %s',
+            slug, 'activated' if connector.is_active else 'deactivated',
+            request.user.username,
+        )
+    return Response(_connector_payload(connector), status=status.HTTP_200_OK)

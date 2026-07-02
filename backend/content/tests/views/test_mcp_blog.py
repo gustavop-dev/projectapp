@@ -111,3 +111,50 @@ class TestMcpEndpointFlow:
         assert response.status_code == 200
         assert response.data['result']['isError'] is True
         assert 'title_en' in response.data['result']['content'][0]['text']
+
+
+@pytest.fixture
+def superuser_client(api_client, django_user_model):
+    user = django_user_model.objects.create_user(
+        username='root_test', password='x', is_staff=True, is_superuser=True,
+    )
+    api_client.force_authenticate(user=user)
+    return api_client
+
+
+@pytest.mark.django_db
+class TestMcpConnectorPanelEndpoints:
+    def test_staff_non_superuser_gets_403(self, admin_client):
+        assert admin_client.get('/api/mcp-connectors/').status_code == 403
+        assert admin_client.post('/api/mcp-connectors/blog/generate-token/').status_code == 403
+
+    def test_list_includes_blog_connector_with_tools(self, superuser_client):
+        response = superuser_client.get('/api/mcp-connectors/')
+        assert response.status_code == 200
+        blog = next(c for c in response.data if c['slug'] == 'blog')
+        assert blog['is_active'] is False
+        assert blog['has_token'] is False
+        tool_names = [t['name'] for t in blog['tools']]
+        assert 'create_blog_post' in tool_names
+
+    def test_generate_token_returns_full_url_once(self, superuser_client):
+        response = superuser_client.post('/api/mcp-connectors/blog/generate-token/')
+        assert response.status_code == 200
+        url = response.data['connector_url']
+        assert url.startswith('https://projectapp.co/api/mcp/blog/')
+        token = url.rstrip('/').rsplit('/', 1)[-1]
+        connector = McpConnector.objects.get(slug='blog')
+        assert connector.check_token(token) is True
+        assert response.data['token_prefix'] == token[:8]
+
+    def test_toggle_is_active(self, superuser_client):
+        response = superuser_client.patch(
+            '/api/mcp-connectors/blog/', {'is_active': True}, format='json',
+        )
+        assert response.status_code == 200
+        assert McpConnector.objects.get(slug='blog').is_active is True
+
+    def test_unknown_slug_is_404(self, superuser_client):
+        assert superuser_client.patch(
+            '/api/mcp-connectors/nope/', {'is_active': True}, format='json',
+        ).status_code == 404
