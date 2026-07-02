@@ -1,0 +1,2076 @@
+{
+  "incomes_expected": [
+    {
+      "concept": "Cierre Diciembre 2025",
+      "period": "2026-01",
+      "total_amount": "13054099.00",
+      "gustavo_amount": "13054099.00",
+      "carlos_amount": "0.00",
+      "destination": "partners",
+      "notes": "Saldo de cierre de diciembre 2025"
+    },
+    {
+      "concept": "Tendalux - Inicio 40%",
+      "period": "2026-01",
+      "total_amount": "1280000.00",
+      "gustavo_amount": "640000.00",
+      "carlos_amount": "640000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore - Inicio 40%",
+      "period": "2026-02",
+      "total_amount": "1160000.00",
+      "gustavo_amount": "580000.00",
+      "carlos_amount": "580000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore - Diseño 30%",
+      "period": "2026-02",
+      "total_amount": "870000.00",
+      "gustavo_amount": "435000.00",
+      "carlos_amount": "435000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Universidad Nacional",
+      "period": "2026-02",
+      "total_amount": "1400000.00",
+      "gustavo_amount": "1400000.00",
+      "carlos_amount": "0.00",
+      "destination": "partners",
+      "notes": "Registro solo de Gustavo (sin total en el Excel)"
+    },
+    {
+      "concept": "Kore - Entrega 30%",
+      "period": "2026-02",
+      "total_amount": "1000000.00",
+      "gustavo_amount": "500000.00",
+      "carlos_amount": "500000.00",
+      "destination": "partners",
+      "notes": "Pendiente por Pagar"
+    },
+    {
+      "concept": "Tendalux - Diseño 30%",
+      "period": "2026-02",
+      "total_amount": "960000.00",
+      "gustavo_amount": "480000.00",
+      "carlos_amount": "480000.00",
+      "destination": "partners",
+      "notes": "Siguiente Pago"
+    },
+    {
+      "concept": "Tendalux - Entrega 30%",
+      "period": "2026-02",
+      "total_amount": "960000.00",
+      "gustavo_amount": "480000.00",
+      "carlos_amount": "480000.00",
+      "destination": "partners",
+      "notes": "Pagado"
+    },
+    {
+      "concept": "Kore v2 - Inicio Mes-1 40%",
+      "period": "2026-03",
+      "total_amount": "1614000.00",
+      "gustavo_amount": "807000.00",
+      "carlos_amount": "807000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 - Diseño Mes-2 30%",
+      "period": "2026-03",
+      "total_amount": "1330560.00",
+      "gustavo_amount": "665280.00",
+      "carlos_amount": "665280.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore hosting (Mayo 21 del 2026)",
+      "period": "2026-03",
+      "total_amount": "680000.00",
+      "gustavo_amount": "340000.00",
+      "carlos_amount": "340000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 - Entrega Mes-1 30%",
+      "period": "2026-03",
+      "total_amount": "1219440.00",
+      "gustavo_amount": "609720.00",
+      "carlos_amount": "609720.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 - Entrega Mes-1 (Saldo pendiente)",
+      "period": "2026-03",
+      "total_amount": "111120.00",
+      "gustavo_amount": "55560.00",
+      "carlos_amount": "55560.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Carlos Corredor (colegio) - Inicio 40%",
+      "period": "2026-03",
+      "total_amount": "880000.00",
+      "gustavo_amount": "440000.00",
+      "carlos_amount": "440000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Carlos Corredor (colegio) - Diseño 30%",
+      "period": "2026-03",
+      "total_amount": "660000.00",
+      "gustavo_amount": "330000.00",
+      "carlos_amount": "330000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Carlos Corredor (colegio) - Entrega 30%",
+      "period": "2026-03",
+      "total_amount": "440000.00",
+      "gustavo_amount": "220000.00",
+      "carlos_amount": "220000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "G&M Entrega No. 1 (Marzo)",
+      "period": "2026-03",
+      "total_amount": "3553750.00",
+      "gustavo_amount": "1776875.00",
+      "carlos_amount": "1776875.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Katerin Ruiz - Candles (1er Semestre 2026)",
+      "period": "2026-04",
+      "total_amount": "460000.00",
+      "gustavo_amount": "230000.00",
+      "carlos_amount": "230000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Nestor & Milena - Xpandia (Inicio 40%)",
+      "period": "2026-03",
+      "total_amount": "828000.00",
+      "gustavo_amount": "414000.00",
+      "carlos_amount": "414000.00",
+      "destination": "partners",
+      "notes": "Mes no especificado en el Excel; inferido"
+    },
+    {
+      "concept": "Nestor & Milena - Xpandia (Diseño 30%)",
+      "period": "2026-04",
+      "total_amount": "621000.00",
+      "gustavo_amount": "310500.00",
+      "carlos_amount": "310500.00",
+      "destination": "partners",
+      "notes": "Mes no especificado en el Excel; inferido"
+    },
+    {
+      "concept": "Nestor & Milena - Xpandia (Entrega 30%)",
+      "period": "2026-06",
+      "total_amount": "621000.00",
+      "gustavo_amount": "310500.00",
+      "carlos_amount": "310500.00",
+      "destination": "partners",
+      "notes": "Mes no especificado en el Excel; inferido"
+    },
+    {
+      "concept": "Nestor & Milena - Xpandia (Hosting (Anual): JUL 1, 2026 - JUL 1 2027)",
+      "period": "2026-07",
+      "total_amount": "228000.00",
+      "gustavo_amount": "114000.00",
+      "carlos_amount": "114000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Nestor & Milena - Xpandia (Hosting (Anual): JUL 1, 2027 - JUL 1 2028)",
+      "period": "2026-07",
+      "total_amount": "228000.00",
+      "gustavo_amount": "114000.00",
+      "carlos_amount": "114000.00",
+      "destination": "partners",
+      "notes": "Enviar en ENERO 2027 correo de actualizacion de precios"
+    },
+    {
+      "concept": "Jimmy & Daniel (Inicio 40%)",
+      "period": "2026-03",
+      "total_amount": "1382400.00",
+      "gustavo_amount": "691200.00",
+      "carlos_amount": "691200.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Jimmy & Daniel (Diseño 30%)",
+      "period": "2026-03",
+      "total_amount": "1036800.00",
+      "gustavo_amount": "518400.00",
+      "carlos_amount": "518400.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Jimmy & Daniel (Entrega 30%)",
+      "period": "2026-05",
+      "total_amount": "1036800.00",
+      "gustavo_amount": "518400.00",
+      "carlos_amount": "518400.00",
+      "destination": "partners",
+      "notes": "Mes no especificado en el Excel; inferido"
+    },
+    {
+      "concept": "Jimmy & Daniel - Hosting, Mayo",
+      "period": "2026-05",
+      "total_amount": "86400.00",
+      "gustavo_amount": "43200.00",
+      "carlos_amount": "43200.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Jimmy & Daniel - Hosting, Junio",
+      "period": "2026-06",
+      "total_amount": "86400.00",
+      "gustavo_amount": "43200.00",
+      "carlos_amount": "43200.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Jimmy & Daniel - Hosting, Julio",
+      "period": "2026-07",
+      "total_amount": "86400.00",
+      "gustavo_amount": "43200.00",
+      "carlos_amount": "43200.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Jimmy & Daniel Hosting (trimestral): AGO 1, 2027 - NOV 1, 2027",
+      "period": "2026-08",
+      "total_amount": "233280.00",
+      "gustavo_amount": "116640.00",
+      "carlos_amount": "116640.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "G&M Entrega No. 1 (Abril)",
+      "period": "2026-04",
+      "total_amount": "3553750.00",
+      "gustavo_amount": "1776875.00",
+      "carlos_amount": "1776875.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 1) - Inicio 40%",
+      "period": "2026-05",
+      "total_amount": "1400000.00",
+      "gustavo_amount": "700000.00",
+      "carlos_amount": "700000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 1) - Diseño 30%",
+      "period": "2026-05",
+      "total_amount": "1050000.00",
+      "gustavo_amount": "525000.00",
+      "carlos_amount": "525000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 1) - Entrega 30%",
+      "period": "2026-05",
+      "total_amount": "1050000.00",
+      "gustavo_amount": "525000.00",
+      "carlos_amount": "525000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 1) - Hosting",
+      "period": "2026-05",
+      "total_amount": "420000.00",
+      "gustavo_amount": "210000.00",
+      "carlos_amount": "210000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 2) - Inicio 40%",
+      "period": "2026-05",
+      "total_amount": "1280000.00",
+      "gustavo_amount": "640000.00",
+      "carlos_amount": "640000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 2) - Diseño 30%",
+      "period": "2026-06",
+      "total_amount": "960000.00",
+      "gustavo_amount": "480000.00",
+      "carlos_amount": "480000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 2) - Entrega 30%",
+      "period": "2026-06",
+      "total_amount": "960000.00",
+      "gustavo_amount": "480000.00",
+      "carlos_amount": "480000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 2) - Hosting",
+      "period": "2026-06",
+      "total_amount": "384000.00",
+      "gustavo_amount": "192000.00",
+      "carlos_amount": "192000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 3) - Inicio 40%",
+      "period": "2026-06",
+      "total_amount": "960000.00",
+      "gustavo_amount": "480000.00",
+      "carlos_amount": "480000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 3) - Diseño 30%",
+      "period": "2026-07",
+      "total_amount": "720000.00",
+      "gustavo_amount": "360000.00",
+      "carlos_amount": "360000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 3) - Entrega 30%",
+      "period": "2026-07",
+      "total_amount": "720000.00",
+      "gustavo_amount": "360000.00",
+      "carlos_amount": "360000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 3) - Hosting",
+      "period": "2026-07",
+      "total_amount": "288000.00",
+      "gustavo_amount": "144000.00",
+      "carlos_amount": "144000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 4) - Inicio 40%",
+      "period": "2026-07",
+      "total_amount": "1440000.00",
+      "gustavo_amount": "720000.00",
+      "carlos_amount": "720000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 4) - Diseño 30%",
+      "period": "2026-08",
+      "total_amount": "1080000.00",
+      "gustavo_amount": "540000.00",
+      "carlos_amount": "540000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 4) - Entrega 30%",
+      "period": "2026-08",
+      "total_amount": "1080000.00",
+      "gustavo_amount": "540000.00",
+      "carlos_amount": "540000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 4) - Hosting",
+      "period": "2026-08",
+      "total_amount": "432000.00",
+      "gustavo_amount": "216000.00",
+      "carlos_amount": "216000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 1) - Inicio 40%",
+      "period": "2026-04",
+      "total_amount": "2123000.00",
+      "gustavo_amount": "1061500.00",
+      "carlos_amount": "1061500.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 1) - Diseño 30%",
+      "period": "2026-05",
+      "total_amount": "1592250.00",
+      "gustavo_amount": "796125.00",
+      "carlos_amount": "796125.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 1) - Entrega 30%",
+      "period": "2026-05",
+      "total_amount": "1592250.00",
+      "gustavo_amount": "796125.00",
+      "carlos_amount": "796125.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 2) - Inicio 40%",
+      "period": "2026-06",
+      "total_amount": "2123000.00",
+      "gustavo_amount": "1061500.00",
+      "carlos_amount": "1061500.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 2) - Diseño 30%",
+      "period": "2026-06",
+      "total_amount": "1592250.00",
+      "gustavo_amount": "796125.00",
+      "carlos_amount": "796125.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 2) - Entrega 30%",
+      "period": "2026-06",
+      "total_amount": "1592250.00",
+      "gustavo_amount": "796125.00",
+      "carlos_amount": "796125.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 3) - Inicio 40%",
+      "period": "2026-07",
+      "total_amount": "1930000.00",
+      "gustavo_amount": "965000.00",
+      "carlos_amount": "965000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 3) - Diseño 30%",
+      "period": "2026-07",
+      "total_amount": "1447500.00",
+      "gustavo_amount": "723750.00",
+      "carlos_amount": "723750.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 3) - Entrega 30%",
+      "period": "2026-07",
+      "total_amount": "1447500.00",
+      "gustavo_amount": "723750.00",
+      "carlos_amount": "723750.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 1) - Hosting",
+      "period": "2026-10",
+      "total_amount": "396000.00",
+      "gustavo_amount": "198000.00",
+      "carlos_amount": "198000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 2) - Hosting",
+      "period": "2026-10",
+      "total_amount": "396000.00",
+      "gustavo_amount": "198000.00",
+      "carlos_amount": "198000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 3) - Hosting",
+      "period": "2026-10",
+      "total_amount": "360000.00",
+      "gustavo_amount": "180000.00",
+      "carlos_amount": "180000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "G&M Entrega No. 1 (Mayo)",
+      "period": "2026-05",
+      "total_amount": "3553750.00",
+      "gustavo_amount": "1776875.00",
+      "carlos_amount": "1776875.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "G&M Entrega No. 1 (Junio)",
+      "period": "2026-06",
+      "total_amount": "3553750.00",
+      "gustavo_amount": "1776875.00",
+      "carlos_amount": "1776875.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "G&M Entrega No. 1 (Julio)",
+      "period": "2026-07",
+      "total_amount": "3553750.00",
+      "gustavo_amount": "1776875.00",
+      "carlos_amount": "1776875.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "G&M Entrega No. 1 (Agosto)",
+      "period": "2026-08",
+      "total_amount": "3553750.00",
+      "gustavo_amount": "1776875.00",
+      "carlos_amount": "1776875.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "G&M Entrega No. 1 (Septiembre)",
+      "period": "2026-09",
+      "total_amount": "3553750.00",
+      "gustavo_amount": "1776875.00",
+      "carlos_amount": "1776875.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "G&M Entrega No. 1 (Octubre)",
+      "period": "2026-10",
+      "total_amount": "3553750.00",
+      "gustavo_amount": "1776875.00",
+      "carlos_amount": "1776875.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "G&M (Hosting (Anual): NOV 1, 2026 - NOV 1 2027)",
+      "period": "2026-11",
+      "total_amount": "760000.00",
+      "gustavo_amount": "380000.00",
+      "carlos_amount": "380000.00",
+      "destination": "partners",
+      "notes": "Buscaremos que el hosting cambie a semestral"
+    },
+    {
+      "concept": "Miguel & Carlos - Crushme (Hosting (Anual): NOV 1, 2026 - NOV 1 2027)",
+      "period": "2026-11",
+      "total_amount": "679000.00",
+      "gustavo_amount": "339500.00",
+      "carlos_amount": "339500.00",
+      "destination": "partners",
+      "notes": "Buscaremos que el hosting cambie a semestral"
+    }
+  ],
+  "incomes_liquid": [
+    {
+      "concept": "Cierre Diciembre 2025",
+      "period": "2026-01",
+      "total_amount": "13054099.00",
+      "gustavo_amount": "13054099.00",
+      "carlos_amount": "0.00",
+      "destination": "partners",
+      "notes": "El Excel registra total $13.000.000 y Tavo $13.054.099 (inconsistente); se usa el valor de Tavo"
+    },
+    {
+      "concept": "Tendalux - Inicio 40%",
+      "period": "2026-02",
+      "total_amount": "1280000.00",
+      "gustavo_amount": "640000.00",
+      "carlos_amount": "640000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore - Inicio 40%",
+      "period": "2026-02",
+      "total_amount": "1160000.00",
+      "gustavo_amount": "580000.00",
+      "carlos_amount": "580000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore - Inicio 30%",
+      "period": "2026-02",
+      "total_amount": "870000.00",
+      "gustavo_amount": "435000.00",
+      "carlos_amount": "435000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Universidad Nacional",
+      "period": "2026-02",
+      "total_amount": "1400000.00",
+      "gustavo_amount": "1400000.00",
+      "carlos_amount": "0.00",
+      "destination": "partners",
+      "notes": "Registro solo de Gustavo (sin total en el Excel)"
+    },
+    {
+      "concept": "Kore - Entrega 30%",
+      "period": "2026-02",
+      "total_amount": "1000000.00",
+      "gustavo_amount": "500000.00",
+      "carlos_amount": "500000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 - Inicio 40%",
+      "period": "2026-03",
+      "total_amount": "1614000.00",
+      "gustavo_amount": "807000.00",
+      "carlos_amount": "807000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Carlos Corredor (colegio) - Inicio 40%",
+      "period": "2026-03",
+      "total_amount": "880000.00",
+      "gustavo_amount": "440000.00",
+      "carlos_amount": "440000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 - Diseño Mes-2 30%",
+      "period": "2026-03",
+      "total_amount": "1330560.00",
+      "gustavo_amount": "665280.00",
+      "carlos_amount": "665280.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 - Entrega Mes-1 30%",
+      "period": "2026-03",
+      "total_amount": "1219440.00",
+      "gustavo_amount": "665280.00",
+      "carlos_amount": "554160.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Carlos Corredor (colegio) - Diseño 30%",
+      "period": "2026-03",
+      "total_amount": "660000.00",
+      "gustavo_amount": "330000.00",
+      "carlos_amount": "330000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Nestor & Milena - Xpandia (Inicio 40%)",
+      "period": "2026-03",
+      "total_amount": "828000.00",
+      "gustavo_amount": "414000.00",
+      "carlos_amount": "414000.00",
+      "destination": "partners",
+      "notes": "Mes no especificado en el Excel; inferido"
+    },
+    {
+      "concept": "G&M Entrega No. 1",
+      "period": "2026-03",
+      "total_amount": "3553750.00",
+      "gustavo_amount": "1776875.00",
+      "carlos_amount": "1776875.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 - Entrega Mes-1 (Saldo pendiente)",
+      "period": "2026-03",
+      "total_amount": "111120.00",
+      "gustavo_amount": "55560.00",
+      "carlos_amount": "55560.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore hosting (Marzo 4 del 2026)",
+      "period": "2026-03",
+      "total_amount": "680000.00",
+      "gustavo_amount": "340000.00",
+      "carlos_amount": "340000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Jimmy & Daniel (Inicio 40%)",
+      "period": "2026-03",
+      "total_amount": "1382400.00",
+      "gustavo_amount": "691200.00",
+      "carlos_amount": "691200.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Carlos Corredor (colegio) - Entrega 30%",
+      "period": "2026-03",
+      "total_amount": "440000.00",
+      "gustavo_amount": "220000.00",
+      "carlos_amount": "220000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 1) - Inicio 40%",
+      "period": "2026-04",
+      "total_amount": "1400000.00",
+      "gustavo_amount": "700000.00",
+      "carlos_amount": "700000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Jimmy & Daniel (Diseño 30%)",
+      "period": "2026-03",
+      "total_amount": "1036800.00",
+      "gustavo_amount": "518400.00",
+      "carlos_amount": "518400.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 1) - Inicio 40%",
+      "period": "2026-04",
+      "total_amount": "2123000.00",
+      "gustavo_amount": "1061500.00",
+      "carlos_amount": "1061500.00",
+      "destination": "pocket",
+      "notes": "Bolsillo ProjectApp según el Excel"
+    },
+    {
+      "concept": "Nestor & Milena - Xpandia (Diseño 30%)",
+      "period": "2026-04",
+      "total_amount": "621000.00",
+      "gustavo_amount": "310500.00",
+      "carlos_amount": "310500.00",
+      "destination": "pocket",
+      "notes": "Bolsillo ProjectApp según el Excel"
+    },
+    {
+      "concept": "G&M Entrega No. 1 (Abril)",
+      "period": "2026-04",
+      "total_amount": "3553750.00",
+      "gustavo_amount": "1776875.00",
+      "carlos_amount": "1776875.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 1) - Diseño 30%",
+      "period": "2026-05",
+      "total_amount": "1592250.00",
+      "gustavo_amount": "796125.00",
+      "carlos_amount": "796125.00",
+      "destination": "pocket",
+      "notes": "Bolsillo ProjectApp según el Excel"
+    },
+    {
+      "concept": "Tendalux - Diseño 30%",
+      "period": "2026-02",
+      "total_amount": "960000.00",
+      "gustavo_amount": "480000.00",
+      "carlos_amount": "480000.00",
+      "destination": "pocket",
+      "notes": "Bolsillo ProjectApp según el Excel"
+    },
+    {
+      "concept": "Kore v2 (Fase 1) - Diseño 30%",
+      "period": "2026-05",
+      "total_amount": "1050000.00",
+      "gustavo_amount": "525000.00",
+      "carlos_amount": "525000.00",
+      "destination": "pocket",
+      "notes": "Bolsillo ProjectApp según el Excel"
+    },
+    {
+      "concept": "Jimmy & Daniel (Entrega 30%)",
+      "period": "2026-05",
+      "total_amount": "1036800.00",
+      "gustavo_amount": "518400.00",
+      "carlos_amount": "518400.00",
+      "destination": "pocket",
+      "notes": "Bolsillo ProjectApp según el Excel"
+    },
+    {
+      "concept": "Kore v2 (Fase 1) - Entrega 30%",
+      "period": "2026-05",
+      "total_amount": "1050000.00",
+      "gustavo_amount": "525000.00",
+      "carlos_amount": "525000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 1) - Hosting",
+      "period": "2026-05",
+      "total_amount": "420000.00",
+      "gustavo_amount": "210000.00",
+      "carlos_amount": "210000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 1) - Entrega 30%",
+      "period": "2026-05",
+      "total_amount": "1592250.00",
+      "gustavo_amount": "796125.00",
+      "carlos_amount": "796125.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 2) - Inicio 40%",
+      "period": "2026-06",
+      "total_amount": "2123000.00",
+      "gustavo_amount": "1061500.00",
+      "carlos_amount": "1061500.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "G&M Entrega No. 1 (Mayo)",
+      "period": "2026-05",
+      "total_amount": "3553750.00",
+      "gustavo_amount": "1776875.00",
+      "carlos_amount": "1776875.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 2) - Inicio 40%",
+      "period": "2026-06",
+      "total_amount": "1280000.00",
+      "gustavo_amount": "640000.00",
+      "carlos_amount": "640000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Jimmy & Daniel - Hosting, Mayo",
+      "period": "2026-06",
+      "total_amount": "86400.00",
+      "gustavo_amount": "43200.00",
+      "carlos_amount": "43200.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Jimmy & Daniel - Hosting, Junio",
+      "period": "2026-06",
+      "total_amount": "81546.00",
+      "gustavo_amount": "40773.00",
+      "carlos_amount": "40773.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Jimmy & Daniel - Hosting, Julio",
+      "period": "2026-06",
+      "total_amount": "81546.00",
+      "gustavo_amount": "40773.00",
+      "carlos_amount": "40773.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Ajuste para Bolsillo: Cuenta Projectapp",
+      "period": "2026-06",
+      "total_amount": "8050.00",
+      "gustavo_amount": "4025.00",
+      "carlos_amount": "4025.00",
+      "destination": "pocket",
+      "notes": "Bolsillo ProjectApp según el Excel"
+    },
+    {
+      "concept": "Nestor & Milena - Xpandia (Entrega 30%)",
+      "period": "2026-06",
+      "total_amount": "621000.00",
+      "gustavo_amount": "310500.00",
+      "carlos_amount": "310500.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Nestor & Milena - Xpandia (Hosting (Anual): JUL 1, 2027 - JUL 1 2028)",
+      "period": "2026-07",
+      "total_amount": "228000.00",
+      "gustavo_amount": "114000.00",
+      "carlos_amount": "114000.00",
+      "destination": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "G&M Entrega No. 1 (Junio)",
+      "period": "2026-07",
+      "total_amount": "3553750.00",
+      "gustavo_amount": "1776875.00",
+      "carlos_amount": "1776875.00",
+      "destination": "partners",
+      "notes": ""
+    }
+  ],
+  "expenses": [
+    {
+      "concept": "1er aporte Carro Onix",
+      "period": "2026-01",
+      "total_amount": "13000000.00",
+      "gustavo_amount": "13000000.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Trans. Cuenta Tavo 31/01/2026",
+      "period": "2026-01",
+      "total_amount": "280000.00",
+      "gustavo_amount": "280000.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Figma, 6 Febrero",
+      "period": "2026-02",
+      "total_amount": "80000.00",
+      "gustavo_amount": "40000.00",
+      "carlos_amount": "40000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Gasolina Carro 08/02/2026",
+      "period": "2026-02",
+      "total_amount": "203325.00",
+      "gustavo_amount": "203325.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Aporte Casa EPM Diciembre",
+      "period": "2026-02",
+      "total_amount": "400817.00",
+      "gustavo_amount": "400817.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Almuerzo (Deisy)",
+      "period": "2026-02",
+      "total_amount": "28000.00",
+      "gustavo_amount": "28000.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Almuerzo (Pollo Frisby)",
+      "period": "2026-02",
+      "total_amount": "28000.00",
+      "gustavo_amount": "28000.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Predial Anual (Zurich)",
+      "period": "2026-02",
+      "total_amount": "975000.00",
+      "gustavo_amount": "975000.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Radiografia dientes",
+      "period": "2026-02",
+      "total_amount": "30000.00",
+      "gustavo_amount": "30000.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Rappi 23 feb",
+      "period": "2026-02",
+      "total_amount": "15000.00",
+      "gustavo_amount": "15000.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Prestamo moto (Odontologia)",
+      "period": "2026-02",
+      "total_amount": "10000.00",
+      "gustavo_amount": "10000.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Edicion de video promocional",
+      "period": "2026-02",
+      "total_amount": "70000.00",
+      "gustavo_amount": "35000.00",
+      "carlos_amount": "35000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Windsurf, Enero & Febrero",
+      "period": "2026-02",
+      "total_amount": "2762800.00",
+      "gustavo_amount": "1381400.00",
+      "carlos_amount": "1381400.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": "Mes original: Enero/Febrero"
+    },
+    {
+      "concept": "GPT (Enero & Febrero)",
+      "period": "2026-02",
+      "total_amount": "160000.00",
+      "gustavo_amount": "80000.00",
+      "carlos_amount": "80000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": "Mes original: Enero/Febrero"
+    },
+    {
+      "concept": "Claude (Enero & Febrero)",
+      "period": "2026-02",
+      "total_amount": "160000.00",
+      "gustavo_amount": "80000.00",
+      "carlos_amount": "80000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": "Mes original: Enero/Febrero"
+    },
+    {
+      "concept": "Anuncios & publiciad FB",
+      "period": "2026-02",
+      "total_amount": "549196.00",
+      "gustavo_amount": "274598.00",
+      "carlos_amount": "274598.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": "Mes original: Enero/Febrero"
+    },
+    {
+      "concept": "Anuncios & publiciad Google Ads",
+      "period": "2026-02",
+      "total_amount": "200000.00",
+      "gustavo_amount": "100000.00",
+      "carlos_amount": "100000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": "Mes original: Enero/Febrero"
+    },
+    {
+      "concept": "Tigo Plan Pospago (Febrero)",
+      "period": "2026-02",
+      "total_amount": "24000.00",
+      "gustavo_amount": "24000.00",
+      "carlos_amount": "0.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Google Ads - Empresa Marketing (Marzo/Abril/Mayo)",
+      "period": "2026-03",
+      "total_amount": "1200000.00",
+      "gustavo_amount": "600000.00",
+      "carlos_amount": "600000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": "Mes original: Marzo/Abril/Mayo"
+    },
+    {
+      "concept": "Google Ads - Campaña (Marzo)",
+      "period": "2026-03",
+      "total_amount": "1200000.00",
+      "gustavo_amount": "600000.00",
+      "carlos_amount": "600000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Aporte Casa EPM Febrero",
+      "period": "2026-02",
+      "total_amount": "386043.00",
+      "gustavo_amount": "386043.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Gasolina Carro 13/03/2026",
+      "period": "2026-03",
+      "total_amount": "188961.00",
+      "gustavo_amount": "188961.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Compra TQ Envigado",
+      "period": "2026-03",
+      "total_amount": "49500.00",
+      "gustavo_amount": "49500.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Cafe Pergamino Laureles 23/03/2026",
+      "period": "2026-03",
+      "total_amount": "31800.00",
+      "gustavo_amount": "31800.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Claude Code Marzo",
+      "period": "2026-03",
+      "total_amount": "400000.00",
+      "gustavo_amount": "200000.00",
+      "carlos_amount": "200000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Anuncios & Publiciad FB",
+      "period": "2026-02",
+      "total_amount": "549196.00",
+      "gustavo_amount": "274598.00",
+      "carlos_amount": "274598.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Anuncios & Publiciad FB",
+      "period": "2026-03",
+      "total_amount": "259273.00",
+      "gustavo_amount": "129636.50",
+      "carlos_amount": "129636.50",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Windsurf, Marzo",
+      "period": "2026-03",
+      "total_amount": "3000000.00",
+      "gustavo_amount": "1500000.00",
+      "carlos_amount": "1500000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "GPT, Marzo",
+      "period": "2026-03",
+      "total_amount": "80000.00",
+      "gustavo_amount": "40000.00",
+      "carlos_amount": "40000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Figma, 6 Marzo",
+      "period": "2026-03",
+      "total_amount": "80000.00",
+      "gustavo_amount": "40000.00",
+      "carlos_amount": "40000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Figma, 6 Abril",
+      "period": "2026-04",
+      "total_amount": "80000.00",
+      "gustavo_amount": "40000.00",
+      "carlos_amount": "40000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Trans. Cuenta Tavo 7/04/2026",
+      "period": "2026-04",
+      "total_amount": "150000.00",
+      "gustavo_amount": "150000.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Claude Code (Upgrade 20x) Marzo",
+      "period": "2026-03",
+      "total_amount": "584000.00",
+      "gustavo_amount": "292000.00",
+      "carlos_amount": "292000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Aporte Casa EPM Marzo",
+      "period": "2026-03",
+      "total_amount": "489196.00",
+      "gustavo_amount": "489196.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Trans. Cuenta Tavo 15/04/2026",
+      "period": "2026-04",
+      "total_amount": "240000.00",
+      "gustavo_amount": "240000.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Google Ads - Campaña (Abril)",
+      "period": "2026-04",
+      "total_amount": "800000.00",
+      "gustavo_amount": "400000.00",
+      "carlos_amount": "400000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": "El Excel dice 'Abrl' (typo de Abril)"
+    },
+    {
+      "concept": "Registro & Matricula Mercantil",
+      "period": "2026-04",
+      "total_amount": "63000.00",
+      "gustavo_amount": "31500.00",
+      "carlos_amount": "31500.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "CineColombia 02/05/2026",
+      "period": "2026-05",
+      "total_amount": "23000.00",
+      "gustavo_amount": "23000.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Figma, 6 Marzo",
+      "period": "2026-05",
+      "total_amount": "246400.00",
+      "gustavo_amount": "123200.00",
+      "carlos_amount": "123200.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Pago T.C Rappi",
+      "period": "2026-05",
+      "total_amount": "2272000.00",
+      "gustavo_amount": "0.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Vuelos MED - BOG, 23 de Mayo",
+      "period": "2026-05",
+      "total_amount": "240000.00",
+      "gustavo_amount": "120000.00",
+      "carlos_amount": "120000.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Trans. Carlos 07 Mayo",
+      "period": "2026-05",
+      "total_amount": "300000.00",
+      "gustavo_amount": "0.00",
+      "carlos_amount": "0.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": "Transferencia a Carlos"
+    },
+    {
+      "concept": "Anuncios & Publiciad FB",
+      "period": "2026-04",
+      "total_amount": "199935.00",
+      "gustavo_amount": "99967.50",
+      "carlos_amount": "99967.50",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Trans. Cuenta Tavo 09/05/2026",
+      "period": "2026-05",
+      "total_amount": "200000.00",
+      "gustavo_amount": "200000.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Regalo dia de Madre 09/05/2026",
+      "period": "2026-05",
+      "total_amount": "300000.00",
+      "gustavo_amount": "150000.00",
+      "carlos_amount": "150000.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Aporte Casa EPM Abril",
+      "period": "2026-05",
+      "total_amount": "337471.00",
+      "gustavo_amount": "337471.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Trans. Cuenta Tavo 17/05/2026",
+      "period": "2026-05",
+      "total_amount": "100000.00",
+      "gustavo_amount": "100000.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Pago T.C - ProjectApp 19/05/2026",
+      "period": "2026-05",
+      "total_amount": "1600000.00",
+      "gustavo_amount": "800000.00",
+      "carlos_amount": "800000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Pago T.C - ProjectApp. 19/05/2026",
+      "period": "2026-05",
+      "total_amount": "570000.00",
+      "gustavo_amount": "285000.00",
+      "carlos_amount": "285000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Pago T.C - ProjectApp. 22/05/2026",
+      "period": "2026-05",
+      "total_amount": "3500000.00",
+      "gustavo_amount": "1750000.00",
+      "carlos_amount": "1750000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Pago T.C - ProjectApp. 30/05/2026",
+      "period": "2026-05",
+      "total_amount": "3594000.00",
+      "gustavo_amount": "1797000.00",
+      "carlos_amount": "1797000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Aporte Credito",
+      "period": "2026-06",
+      "total_amount": "9831957.00",
+      "gustavo_amount": "0.00",
+      "carlos_amount": "0.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Aporte Interes Credito",
+      "period": "2026-06",
+      "total_amount": "2616581.00",
+      "gustavo_amount": "2616581.00",
+      "carlos_amount": "0.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": "Registro solo de Gustavo (sin total en el Excel)"
+    },
+    {
+      "concept": "Aporte Carro Onix",
+      "period": "2026-06",
+      "total_amount": "3000000.00",
+      "gustavo_amount": "3000000.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": "Registro solo de Gustavo (sin total en el Excel)"
+    },
+    {
+      "concept": "Aporte Casa EPM Mayo",
+      "period": "2026-06",
+      "total_amount": "416164.00",
+      "gustavo_amount": "416164.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Google Ads - Agencia de Marketing (Jun 16 - Ago 16)",
+      "period": "2026-06",
+      "total_amount": "800000.00",
+      "gustavo_amount": "400000.00",
+      "carlos_amount": "400000.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "Pollo Almuerzo",
+      "period": "2026-06",
+      "total_amount": "23000.00",
+      "gustavo_amount": "11500.00",
+      "carlos_amount": "11500.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": ""
+    },
+    {
+      "concept": "T.C Gasto Tavo (9 Jun) - KFC BELEN",
+      "period": "2026-06",
+      "total_amount": "15900.00",
+      "gustavo_amount": "15900.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": "Registro solo de Gustavo (sin total en el Excel)"
+    },
+    {
+      "concept": "T.C Gasto Tavo (9 Jun) - UNE TELCO UNE PAGO EXP",
+      "period": "2026-06",
+      "total_amount": "47953.00",
+      "gustavo_amount": "47953.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": "Registro solo de Gustavo (sin total en el Excel)"
+    },
+    {
+      "concept": "T.C Gasto Tavo (9 Jun) - TIENDA LOS MOLINOS",
+      "period": "2026-06",
+      "total_amount": "32994.00",
+      "gustavo_amount": "32994.00",
+      "carlos_amount": "0.00",
+      "category": "personal",
+      "paid_from": "partners",
+      "notes": "Registro solo de Gustavo (sin total en el Excel)"
+    },
+    {
+      "concept": "Pago T.C - ProjectApp. 1/07/2026",
+      "period": "2026-07",
+      "total_amount": "3553750.00",
+      "gustavo_amount": "1776875.00",
+      "carlos_amount": "1776875.00",
+      "category": "business",
+      "paid_from": "partners",
+      "notes": ""
+    }
+  ],
+  "hostings": [
+    {
+      "client_name": "German - Kore",
+      "domain_url": "https://korehealths.com/",
+      "monthly_value": "91667.00",
+      "payment_modality": "semiannual",
+      "benefit": "",
+      "valid_from": "2026-03-02",
+      "valid_to": "2026-09-02",
+      "cycles_count": 1,
+      "payment_per_cycle": "1100000.00",
+      "total_paid": "1100000.00",
+      "is_active": true,
+      "notes": ""
+    },
+    {
+      "client_name": "Wilson Garcia - G&M",
+      "domain_url": "https://www.gmconsultoresjuridicos.com/",
+      "monthly_value": "63333.00",
+      "payment_modality": "annual",
+      "benefit": "",
+      "valid_from": "2025-10-28",
+      "valid_to": "2026-10-28",
+      "cycles_count": 2,
+      "payment_per_cycle": "760000.00",
+      "total_paid": "1160000.00",
+      "is_active": true,
+      "notes": ""
+    },
+    {
+      "client_name": "Nestor - Xpandia",
+      "domain_url": "https://xpandia.global/",
+      "monthly_value": "19000.00",
+      "payment_modality": "annual",
+      "benefit": "",
+      "valid_from": "2026-07-01",
+      "valid_to": "2027-07-01",
+      "cycles_count": 1,
+      "payment_per_cycle": "228000.00",
+      "total_paid": "228000.00",
+      "is_active": true,
+      "notes": ""
+    },
+    {
+      "client_name": "Jimmy & Daniel - Mimittos",
+      "domain_url": "https://mimittos.com/",
+      "monthly_value": "19440.00",
+      "payment_modality": "quarterly",
+      "benefit": "",
+      "valid_from": "2026-08-01",
+      "valid_to": "2026-11-01",
+      "cycles_count": 1,
+      "payment_per_cycle": "233280.00",
+      "total_paid": "487080.00",
+      "is_active": true,
+      "notes": ""
+    },
+    {
+      "client_name": "Miguel & Carlos - Crushme",
+      "domain_url": "https://crushme.com.co/",
+      "monthly_value": "56583.00",
+      "payment_modality": "annual",
+      "benefit": "",
+      "valid_from": "2025-10-20",
+      "valid_to": "2026-10-20",
+      "cycles_count": 1,
+      "payment_per_cycle": "679000.00",
+      "total_paid": "679000.00",
+      "is_active": true,
+      "notes": ""
+    },
+    {
+      "client_name": "Katerin Ruiz - Senses Candles",
+      "domain_url": "https://www.sensescandlesbykate.com/",
+      "monthly_value": "38333.00",
+      "payment_modality": "semiannual",
+      "benefit": "1 Mes gratis",
+      "valid_from": "2026-04-09",
+      "valid_to": "2026-10-09",
+      "cycles_count": 2,
+      "payment_per_cycle": "460000.00",
+      "total_paid": "920000.00",
+      "is_active": true,
+      "notes": ""
+    }
+  ],
+  "pocket_movements": [
+    {
+      "concept": "Vastago (Fase 1) - Inicio 40%",
+      "movement_date": "2026-04-29",
+      "direction": "in",
+      "amount": "2123000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Registro & Matricula Mercantil",
+      "movement_date": "2026-04-29",
+      "direction": "out",
+      "amount": "63000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Nestor & Milena - Xpandia (Diseño 30%)",
+      "movement_date": "2026-04-30",
+      "direction": "in",
+      "amount": "621000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Tendalux - Diseño 30%",
+      "movement_date": "2026-05-06",
+      "direction": "in",
+      "amount": "960000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Pago T.C Rappi",
+      "movement_date": "2026-05-06",
+      "direction": "out",
+      "amount": "2272000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Vastago (Fase 1) - Diseño 30%",
+      "movement_date": "2026-05-07",
+      "direction": "in",
+      "amount": "1592250.00",
+      "notes": ""
+    },
+    {
+      "concept": "Trans. Carlos",
+      "movement_date": "2026-05-07",
+      "direction": "out",
+      "amount": "300000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 1) - Diseño 30%",
+      "movement_date": "2026-05-07",
+      "direction": "in",
+      "amount": "1050000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Jimmy & Daniel (Entrega 30%)",
+      "movement_date": "2026-05-08",
+      "direction": "in",
+      "amount": "1036800.00",
+      "notes": ""
+    },
+    {
+      "concept": "Trans. Gustavo",
+      "movement_date": "2026-05-09",
+      "direction": "out",
+      "amount": "200000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Regalo dia de Madre",
+      "movement_date": "2026-05-10",
+      "direction": "out",
+      "amount": "300000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Trans. Gustavo",
+      "movement_date": "2026-05-14",
+      "direction": "out",
+      "amount": "200000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 1) - Entrega 30%",
+      "movement_date": "2026-05-16",
+      "direction": "in",
+      "amount": "1050000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Trans. Gustavo",
+      "movement_date": "2026-05-17",
+      "direction": "out",
+      "amount": "100000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Pago T.C - ProjectApp",
+      "movement_date": "2026-05-19",
+      "direction": "out",
+      "amount": "1600000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Pago T.C - ProjectApp",
+      "movement_date": "2026-05-19",
+      "direction": "out",
+      "amount": "570000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Pago T.C - Personal Carlos",
+      "movement_date": "2026-05-19",
+      "direction": "out",
+      "amount": "2820000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Kore v2 (Fase 2) - Inicio 40%",
+      "movement_date": "2026-06-12",
+      "direction": "in",
+      "amount": "1280000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Jimmy & Daniel - Hosting, Mayo",
+      "movement_date": "2026-06-12",
+      "direction": "in",
+      "amount": "86400.00",
+      "notes": ""
+    },
+    {
+      "concept": "Aporte Casa EPM Mayo",
+      "movement_date": "2026-06-12",
+      "direction": "out",
+      "amount": "416164.00",
+      "notes": ""
+    },
+    {
+      "concept": "Pollo Almuerzo",
+      "movement_date": "2026-06-13",
+      "direction": "out",
+      "amount": "23000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Google Ads - Agencia de Marketing (Jun 16 - Ago 16)",
+      "movement_date": "2026-06-16",
+      "direction": "out",
+      "amount": "800000.00",
+      "notes": ""
+    },
+    {
+      "concept": "Nestor & Milena - Xpandia (Entrega 30%)",
+      "movement_date": "2026-06-30",
+      "direction": "in",
+      "amount": "621000.00",
+      "notes": "Fecha no especificada en el Excel"
+    },
+    {
+      "concept": "Nestor & Milena - Xpandia (Hosting (Anual): JUL 1, 2027 - JUL 1 2028)",
+      "movement_date": "2026-06-30",
+      "direction": "in",
+      "amount": "228000.00",
+      "notes": "Fecha no especificada en el Excel"
+    },
+    {
+      "concept": "Jimmy & Daniel - Hosting, Junio",
+      "movement_date": "2026-06-30",
+      "direction": "in",
+      "amount": "81546.00",
+      "notes": "Fecha no especificada en el Excel"
+    },
+    {
+      "concept": "Jimmy & Daniel - Hosting, Julio",
+      "movement_date": "2026-06-30",
+      "direction": "in",
+      "amount": "81546.00",
+      "notes": "Fecha no especificada en el Excel"
+    }
+  ],
+  "recurring_payments": [
+    {
+      "name": "Google Ads - Empresa Marketing",
+      "price": "400000.00",
+      "currency": "COP",
+      "cop_equivalent": "400000.00",
+      "payment_method": "cash",
+      "frequency": "monthly",
+      "billing_day": 1,
+      "cost_type": "fixed",
+      "is_active": true,
+      "notes": "Se paga primeros de cada mes"
+    },
+    {
+      "name": "Google Ads - Campaña",
+      "price": "1200000.00",
+      "currency": "COP",
+      "cop_equivalent": "1200000.00",
+      "payment_method": "credit_card",
+      "frequency": "monthly",
+      "billing_day": null,
+      "cost_type": "variable",
+      "is_active": true,
+      "notes": "Depende de la carga de trabajo"
+    },
+    {
+      "name": "FB Anuncios & Publicidad",
+      "price": "400000.00",
+      "currency": "COP",
+      "cop_equivalent": "400000.00",
+      "payment_method": "credit_card",
+      "frequency": "monthly",
+      "billing_day": null,
+      "cost_type": "fixed",
+      "is_active": true,
+      "notes": "Sin frecuencia definida actualmente"
+    },
+    {
+      "name": "Windsurf (Carlos)",
+      "price": "6.90",
+      "currency": "USD",
+      "cop_equivalent": "27600.00",
+      "payment_method": "credit_card",
+      "frequency": "monthly",
+      "billing_day": 30,
+      "cost_type": "fixed",
+      "is_active": true,
+      "notes": "Ofrece dos dias de uso full en Opus"
+    },
+    {
+      "name": "Windsurf (Gustavo)",
+      "price": "6.90",
+      "currency": "USD",
+      "cop_equivalent": "27600.00",
+      "payment_method": "credit_card",
+      "frequency": "monthly",
+      "billing_day": 20,
+      "cost_type": "fixed",
+      "is_active": true,
+      "notes": ""
+    },
+    {
+      "name": "Claude Code 20x",
+      "price": "200.00",
+      "currency": "USD",
+      "cop_equivalent": "800000.00",
+      "payment_method": "credit_card",
+      "frequency": "monthly",
+      "billing_day": 8,
+      "cost_type": "fixed",
+      "is_active": true,
+      "notes": "Nuestro Titan de batalla"
+    },
+    {
+      "name": "Chat-GPT",
+      "price": "20.00",
+      "currency": "USD",
+      "cop_equivalent": "80000.00",
+      "payment_method": "credit_card",
+      "frequency": "monthly",
+      "billing_day": 26,
+      "cost_type": "fixed",
+      "is_active": true,
+      "notes": "La familia lo usa"
+    },
+    {
+      "name": "Figma",
+      "price": "0.00",
+      "currency": "COP",
+      "cop_equivalent": "0.00",
+      "payment_method": "credit_card",
+      "frequency": "monthly",
+      "billing_day": 6,
+      "cost_type": "fixed",
+      "is_active": false,
+      "notes": "Se canceló; cobraba los 6 de cada mes"
+    },
+    {
+      "name": "Netflix",
+      "price": "39800.00",
+      "currency": "COP",
+      "cop_equivalent": "39800.00",
+      "payment_method": "credit_card",
+      "frequency": "monthly",
+      "billing_day": 8,
+      "cost_type": "fixed",
+      "is_active": true,
+      "notes": "La familia lo usa"
+    },
+    {
+      "name": "GoDaddy",
+      "price": "161964.00",
+      "currency": "COP",
+      "cop_equivalent": "161964.00",
+      "payment_method": "credit_card",
+      "frequency": "triennial",
+      "billing_day": 13,
+      "cost_type": "fixed",
+      "is_active": true,
+      "notes": "Email empresarial: team@projectapp.co; cobra SEP 13 cada 3 años"
+    },
+    {
+      "name": "NameCheap",
+      "price": "10.98",
+      "currency": "USD",
+      "cop_equivalent": "43920.00",
+      "payment_method": "credit_card",
+      "frequency": "annual",
+      "billing_day": 4,
+      "cost_type": "fixed",
+      "is_active": true,
+      "notes": "Dominio: projectapp.co; cobra NOV 4"
+    },
+    {
+      "name": "Hostinger",
+      "price": "789600.00",
+      "currency": "COP",
+      "cop_equivalent": "789600.00",
+      "payment_method": "credit_card",
+      "frequency": "biennial",
+      "billing_day": 29,
+      "cost_type": "fixed",
+      "is_active": true,
+      "notes": "VPS - Staging; cobra JUN 29 cada 2 años"
+    }
+  ],
+  "ads_spend": [
+    {
+      "spend_date": "2026-01-17",
+      "platform": "facebook",
+      "origin_card": "T.C 0655",
+      "amount": "146103.00",
+      "notes": ""
+    },
+    {
+      "spend_date": "2026-01-25",
+      "platform": "facebook",
+      "origin_card": "T.C 0656",
+      "amount": "143820.00",
+      "notes": ""
+    },
+    {
+      "spend_date": "2026-02-13",
+      "platform": "facebook",
+      "origin_card": "T.C 0657",
+      "amount": "169477.00",
+      "notes": ""
+    },
+    {
+      "spend_date": "2026-02-25",
+      "platform": "facebook",
+      "origin_card": "T.C 0658",
+      "amount": "89796.00",
+      "notes": ""
+    },
+    {
+      "spend_date": "2026-03-22",
+      "platform": "facebook",
+      "origin_card": "T.C 0655",
+      "amount": "169477.00",
+      "notes": ""
+    },
+    {
+      "spend_date": "2026-03-25",
+      "platform": "facebook",
+      "origin_card": "T.C 0656",
+      "amount": "89796.00",
+      "notes": ""
+    },
+    {
+      "spend_date": "2026-04-06",
+      "platform": "facebook",
+      "origin_card": "T.C 0655",
+      "amount": "66645.00",
+      "notes": ""
+    },
+    {
+      "spend_date": "2026-04-08",
+      "platform": "facebook",
+      "origin_card": "T.C 0655",
+      "amount": "66645.00",
+      "notes": ""
+    },
+    {
+      "spend_date": "2026-04-08",
+      "platform": "facebook",
+      "origin_card": "T.C 0655",
+      "amount": "66645.00",
+      "notes": "Segundo cargo del mismo día"
+    }
+  ],
+  "card_snapshots": [
+    {
+      "snapshot_date": "2026-06-17",
+      "card_name": "T.C 0064",
+      "available_amount": "413226.00",
+      "debt_amount": "7586774.00",
+      "notes": ""
+    },
+    {
+      "snapshot_date": "2026-06-28",
+      "card_name": "T.C 0064",
+      "available_amount": "320000.00",
+      "debt_amount": "7680000.00",
+      "notes": ""
+    },
+    {
+      "snapshot_date": "2026-07-01",
+      "card_name": "T.C 0064",
+      "available_amount": "3849046.00",
+      "debt_amount": "4150954.00",
+      "notes": ""
+    }
+  ]
+}
