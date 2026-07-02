@@ -3,17 +3,19 @@ Blog Publisher MCP: public JSON-RPC endpoint (token-authenticated) and
 the panel management endpoints backing /panel/mcps.
 """
 import logging
+from urllib.parse import urlparse
 
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone as tz
-from rest_framework import serializers, status
+from rest_framework import exceptions, serializers, status
 from rest_framework.decorators import (
     api_view,
     authentication_classes,
     permission_classes,
     throttle_classes,
 )
+from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
@@ -37,6 +39,33 @@ class McpEndpointThrottle(AnonRateThrottle):
     scope = 'mcp'
 
 
+class McpContentNegotiation(DefaultContentNegotiation):
+    """
+    MCP clients probe with Accept: text/event-stream (SSE detection). DRF's
+    default negotiation raises 406 before the view runs, but the Streamable
+    HTTP spec requires a plain 405 for that probe. Fall back to the first
+    renderer (JSON) instead of erroring so the view controls the response.
+    """
+
+    def select_renderer(self, request, renderers, format_suffix=None):
+        try:
+            return super().select_renderer(request, renderers, format_suffix)
+        except exceptions.NotAcceptable:
+            return (renderers[0], renderers[0].media_type)
+
+
+def _origin_is_foreign(request):
+    """
+    Streamable HTTP spec: servers MUST validate the Origin header (DNS
+    rebinding defense). Server-to-server clients (claude.ai) send none;
+    a browser Origin from another host is rejected.
+    """
+    origin = request.headers.get('Origin')
+    if not origin:
+        return False
+    return urlparse(origin).netloc != request.get_host()
+
+
 def _touch_last_used(connector):
     now = tz.now()
     if connector.last_used_at and (now - connector.last_used_at).total_seconds() < LAST_USED_TOUCH_SECONDS:
@@ -51,8 +80,14 @@ def _touch_last_used(connector):
 def mcp_endpoint(request, slug, token):
     """
     MCP Streamable HTTP endpoint for a connector (e.g. blog).
-    Plain-JSON responses only (no SSE) — WSGI-compatible by design.
+    Plain-JSON responses only (no SSE) — WSGI-compatible by design. DRF
+    answers GET (SSE probe) and DELETE (session termination) with the
+    spec-mandated 405; McpContentNegotiation keeps an SSE-only Accept
+    header from short-circuiting into a 406.
     """
+    if _origin_is_foreign(request):
+        return HttpResponse(status=403)
+
     tools = TOOLS_BY_SLUG.get(slug)
     connector = McpConnector.objects.filter(slug=slug, is_active=True).first()
     if tools is None or connector is None or not connector.check_token(token):
@@ -67,6 +102,11 @@ def mcp_endpoint(request, slug, token):
     if payload is None:
         return Response(status=http_status)
     return Response(payload, status=http_status)
+
+
+# api_view exposes the wrapped APIView class as .cls; override negotiation so
+# an SSE-only Accept header reaches the view instead of 406ing in initial().
+mcp_endpoint.cls.content_negotiation_class = McpContentNegotiation
 
 
 # ---------------------------------------------------------------------------

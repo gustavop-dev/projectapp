@@ -31,12 +31,21 @@
       >
         <div class="flex items-start justify-between gap-3 mb-1">
           <h2 class="text-lg font-bold text-text-default">{{ connector.name }}</h2>
-          <BaseToggle
-            :model-value="connector.is_active"
-            :aria-label="`Activar ${connector.name}`"
-            :data-testid="`mcp-toggle-${connector.slug}`"
-            @update:model-value="(value) => onToggle(connector, value)"
-          />
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span
+              class="text-xs font-medium"
+              :class="connector.is_active ? 'text-success-strong' : 'text-text-subtle'"
+              :data-testid="`mcp-status-${connector.slug}`"
+            >
+              {{ connector.is_active ? 'Activo' : 'Inactivo' }}
+            </span>
+            <BaseToggle
+              :model-value="connector.is_active"
+              :aria-label="`Activar ${connector.name}`"
+              :data-testid="`mcp-toggle-${connector.slug}`"
+              @update:model-value="(value) => onToggle(connector, value)"
+            />
+          </div>
         </div>
         <p class="text-sm text-text-muted mb-4">{{ connector.description }}</p>
 
