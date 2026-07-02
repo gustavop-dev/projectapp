@@ -122,7 +122,7 @@ describe('DocumentActionsSheet', () => {
     it('styles the delete action as danger', () => {
       const wrapper = mountSheet();
 
-      expect(actionByLabel(wrapper, 'Eliminar').classes().join(' ')).toContain('text-red-600');
+      expect(actionByLabel(wrapper, 'Eliminar').classes().join(' ')).toContain('text-danger-strong');
     });
   });
 

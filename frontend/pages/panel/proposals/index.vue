@@ -262,7 +262,7 @@
 
     <!-- Batch action bar -->
     <Transition name="fade-modal">
-      <div v-if="selectedIds.size > 0" class="sticky top-0 z-40 mb-3 bg-primary-strong text-white rounded-xl px-5 py-3 flex items-center justify-between shadow-raised">
+      <div v-if="selectedIds.size > 0" data-testid="batch-action-bar" class="sticky top-0 z-40 mb-3 bg-primary-strong text-white rounded-xl px-5 py-3 flex items-center justify-between shadow-raised">
         <span class="text-sm font-medium">{{ selectedIds.size }} seleccionada(s)</span>
         <div class="flex items-center gap-2">
           <button
