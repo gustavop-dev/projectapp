@@ -237,7 +237,7 @@
                     <input
                       type="checkbox"
                       :checked="req.linked_item_ids.includes(it.id)"
-                      class="rounded border-gray-300 dark:border-white/[0.08] text-text-brand"
+                      class="rounded border-input-border text-text-brand"
                       @change="toggleLinkedId(req.linked_item_ids, it.id)"
                     >
                     <span class="max-w-[12rem] truncate" :title="it.label">{{ it.label }}</span>
