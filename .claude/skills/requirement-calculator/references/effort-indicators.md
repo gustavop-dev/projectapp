@@ -1,4 +1,4 @@
-# Indicadores de Esfuerzo — Calculadora de Requerimientos (v1.2)
+# Indicadores de Esfuerzo — Calculadora de Requerimientos (v1.3)
 
 > **Propósito.** Este documento es el corazón del procesamiento de un requerimiento. Mapea señales concretas presentes en la **descripción de un requerimiento** hacia un **nivel de esfuerzo (XS → XL)**, que luego se traduce en horas y precio. No estima proyectos completos: clasifica **funcionalidad por funcionalidad** (o feature por feature); el proyecto es la suma.
 >
@@ -19,7 +19,8 @@
 - **Dinero y datos sensibles** — pagos, transacciones financieras, facturación electrónica (DIAN), open banking / conciliación bancaria directa, o cualquier integración con terceros críticos que maneje datos sensibles (pasarelas, entidades financieras).
 - **Cobro recurrente y comercio completo** — suscripciones / facturación recurrente (planes, prorrateo, reintentos de cobro, *dunning*) y checkout e-commerce completo (carrito + pago + órdenes + inventario descontado). El carrito sin pago ronda `L`; el link de pago de pasarela es `L`.
 - **Cumplimiento regulatorio de dominio** — facturación electrónica DIAN, nómina / liquidación laboral colombiana (prestaciones, PILA, retenciones), Habeas Data avanzado: normativa con cambios frecuentes que exige mantenimiento continuo.
-- **Flujo multi-etapa con traspaso de responsabilidad entre ≥2 roles** — aprobaciones, turnos, escalamiento, notificación por etapa. Un wizard multi-paso de un solo usuario es `L`.
+- **Contabilidad de dominio** — plan de cuentas (PUC), comprobantes y asientos de partida doble, libros auxiliares, balances y cierres de periodo: dominio normado (NIIF/PUC) que exige exactitud y cuadre contable. Casi siempre la respuesta comercial correcta es integrarse o exportar hacia un software contable existente (ver *Exportación contable en formato de tercero*, `M`), no construirla.
+- **Flujo multi-etapa con traspaso de responsabilidad entre roles** — **≥3 etapas o ≥2 traspasos** con escalamiento, SLA o notificación por etapa. Una aprobación de un solo paso (solicitante → aprobador) es `M` sobre lo existente o `L` como módulo desde cero; un wizard multi-paso de un solo usuario es `L`. "Turnos" aquí = traspaso de responsabilidad dentro del flujo; el turnero/digiturno de atención es `L` (señal propia). Ver familia *Aprobaciones / flujo*.
 - **Motor de PDF complejo** — posicionamiento preciso de múltiples elementos, contenido dinámico inyectado, merge de documentos. Una firma-imagen posicionada en un PDF propio es `L`.
 - **Sincronización en tiempo real transversal / edición colaborativa concurrente** — múltiples usuarios sobre el mismo estado o documento (CRDT/OT, cursores compartidos, resolución de conflictos).
 - **Arquitectura multiempresa / multi-tenant** — aislamiento de datos, roles y configuración por cliente. Estructural y transversal.
@@ -29,7 +30,7 @@
 - **Integración bidireccional con ERP/CRM** (SAP, Salesforce, Siigo, World Office) — sincronización de maestros, colas, reconciliación.
 - **Firma digital/electrónica certificada** — PKI, estampado cronológico, validez legal (distinta de "firmar un PDF").
 - **Offline-first** — operar sin conexión y sincronizar al reconectar (comparte "resolución de conflictos" con la sync en tiempo real, pero el diferenciador es operar desconectado).
-- **Agendamiento / reservas críticas** — disponibilidad de recursos, cupos, zonas horarias, solapamiento, concurrencia, pagos y cancelaciones.
+- **Agendamiento / reservas críticas** — es `XL` solo cuando concurren **al menos dos** de: múltiples recursos con solapamiento, pagos y reembolsos, concurrencia real por cupos limitados, zonas horarias. La reserva de citas de **un** recurso sin pago (agenda de un profesional, mesas) es `L` (calendario / agenda base).
 - **Mensajería a escala** — orquestación multicanal (SMS/WhatsApp/push con proveedor, reintentos, plantillas por canal, opt-in/out) y/o campañas masivas de correo (listas, segmentación, deliverability, bounces, reputación de dominio). Distinto de *notificar por evento* (`M`) y de *un canal único vía proveedor* (`L`).
 - **SSO corporativo / endurecimiento de seguridad empresarial** — SAML, LDAP, Active Directory, MFA, políticas de contraseña, auditoría avanzada, cifrado at-rest transversal, cumplimiento de estándar (OWASP/ISO) verificado.
 - **Motor de BI / analítica sobre volumen** — agregaciones, drill-down, series temporales (distinto del dashboard `L` y del reporte parametrizable `M`).
@@ -52,7 +53,7 @@ _Rondando el borde (raros, normalmente XL):_ Web3 / smart contracts · microserv
 - **Constructor visual con drag-and-drop desde cero** — *form builder* interno acotado, *page builder*, tablero Kanban (columnas, tarjetas, persistencia del orden). Un motor de formularios configurable como producto (lógica condicional, versionado, publicación) es `XL`. Agregar DnD a una lista existente es `M`.
 - **Búsqueda / filtrado avanzado desde cero** — filtros combinados o facetados, autocompletado, paginado y/o preferencias y vistas guardadas por usuario. Con motor de indexación → `XL`; agregar un filtro a un listado existente → `M` o menos.
 - **Búsqueda global multi-entidad (omnibox)** — un solo campo que busca sobre varias entidades del sistema con resultados agrupados (con motor de indexación → `XL`).
-- **Trazabilidad de historial / auditoría** (construir el registro de quién cambió qué; solo *mostrar* logs ya guardados es `M`).
+- **Trazabilidad de historial / auditoría / bitácora de eventos** — construir el registro de quién hizo qué y cuándo: eventos de creación, edición y eliminación sobre uno o varios modelos, con su vista de consulta. Solo *mostrar* logs ya guardados es `M`; extender una bitácora existente a otro modelo es el atenuador (`M` o menos); auditoría avanzada con exigencia de cumplimiento → `XL` (seguridad empresarial).
 - **Numeración consecutiva sin huecos con garantía de concurrencia** — consecutivos legales o de facturación que no pueden duplicarse ni saltarse. Un ID único simple (UUID, slug) es `XS`–`S`.
 - **Múltiples CRUD relacionados** entre sí / **panel de administración de entidades** (CRUD + permisos + búsqueda sobre varios modelos).
 - **Autenticación / registro completo desde cero** — login, signup, verificación de correo, recuperación, sesiones. Piezas sueltas sobre auth existente (OAuth social, recuperación) son `M`; 2FA/MFA es `L`; SSO corporativo es `XL`.
@@ -64,7 +65,7 @@ _Rondando el borde (raros, normalmente XL):_ Web3 / smart contracts · microserv
 - **Centro / bandeja de notificaciones in-app** — leído/no leído, agrupación, preferencias, tiempo real (distinto de *notificar por evento*, que es `M`).
 - **Gestor documental** — cargar, clasificar, consultar, descargar, con permisos, categorías y estados.
 - **Centro de plantillas de documentos administrable** — el usuario crea y edita las plantillas (contratos, certificados, correos) con variables. Generar documentos desde una plantilla **fija** es `M`.
-- **Calendario / agenda base** — vistas mensual/semanal, eventos, disponibilidad, recordatorios (→ `XL` si se vuelve scheduling con recursos y concurrencia).
+- **Calendario / agenda base** — vistas mensual/semanal, eventos, plantilla de disponibilidad con excepciones, recordatorios; incluye la reserva de citas de **un** recurso sin pago (→ `XL` si se vuelve scheduling multi-recurso con concurrencia y pagos).
 - **Inventario básico desde cero** — productos, entradas/salidas, existencias, alertas, movimientos.
 - **Geolocalización / mapas** — pines, clustering, rutas, polígonos (Google Maps/Mapbox); tracking en vivo → `XL`.
 - **Panel de configuración / parametrización del sistema** — variables de negocio, reglas y textos administrables desde la UI.
@@ -72,12 +73,12 @@ _Rondando el borde (raros, normalmente XL):_ Web3 / smart contracts · microserv
 - **Chat / mensajería en tiempo real propio** — 1:1 o grupos, historial persistente, presencia. Embeber un widget de chat de terceros (Chatwoot, Tawk) es `M` (componente de terceros).
 - **Gestión de etiquetas/taxonomías o de reseñas como feature completo** — agregar un rating a una entidad existente es `M`.
 - **Onboarding / wizard multi-paso** con persistencia de progreso (de un solo usuario; con traspaso entre roles → `XL`).
-- **Integración con un servicio / API externo (piso)** — toda integración de **datos con backend de terceros autenticada** es **al menos `L`** (incluye el link de pago de pasarela); sube a `XL` con pagos recurrentes/checkout, facturación, datos sensibles o bidireccionalidad. Excepciones que conservan su nivel: webhook saliente (`M`), componente FE de terceros (`M`), script/pixel (`S`).
+- **Integración con un servicio / API externo (piso)** — toda integración de **datos con backend de terceros autenticada** es **al menos `L`** (incluye el link de pago de pasarela y la generación de guías con transportadoras — Servientrega, Coordinadora, Envía; multi-transportadora con reglas de selección o tracking en vivo → `XL`); sube a `XL` con pagos recurrentes/checkout, facturación, datos sensibles o bidireccionalidad. Excepciones que conservan su nivel: webhook saliente (`M`), componente FE de terceros (`M`), script/pixel (`S`).
 - **Canal único de mensajería vía proveedor** — WhatsApp Business API, SMS o push con un proveedor: setup, plantillas aprobadas, envío y estados. Multicanal orquestado → `XL`.
 - **Funcionalidad basada en IA / resoluble con IA** — piso `M`, típicamente `L`; **antes de dar precio**, validar alcance y factibilidad. Modelo propio / fine-tuning → `XL`.
 - **OCR / extracción de datos desde documentos** — facturas, cédulas, PDFs escaneados: captura + parsing + corrección manual del resultado.
 - **Chatbot / asistente con IA sobre datos propios (RAG)** — ingesta de documentos, embeddings, recuperación, UI de conversación (→ `XL` si exige fine-tuning o volumen).
-- **Motor de cotizaciones / precios / descuentos / comisiones** — reglas de cálculo de negocio configurables que producen un valor (→ `XL` si el cliente arma las reglas como un BPM).
+- **Motor de cotizaciones / precios / descuentos / comisiones** — reglas de cálculo de negocio configurables que producen un valor (→ `XL` si el cliente arma las reglas como un BPM). Un cupón/código simple o una lista de precios por cliente es `M`; el motor es `L` cuando las reglas son combinables o configurables.
 - **Constructor de encuestas / formularios públicos con resultados** — crear encuesta + responder público + resultados agregados (una encuesta fija simple es `M`).
 - **CMS / portal público administrable** — blog, landing o sitio con contenido editable desde el panel (una página estática es `S`; una landing sin CMS es `M`).
 - **Catálogo público con pedido por WhatsApp** — catálogo + carrito sin pasarela + deep link `wa.me` con el pedido armado (con pago en línea → `XL` comercio completo).
@@ -85,7 +86,24 @@ _Rondando el borde (raros, normalmente XL):_ Web3 / smart contracts · microserv
 - **Estructura organizacional** — sedes, sucursales, equipos, jerarquías con datos y permisos por nodo.
 - **Recepción y parseo de correo entrante** — recibir emails hacia la app (inbound), extraer datos, adjuntos, responder.
 - **Galería / biblioteca multimedia con procesamiento** — colecciones, miniaturas, orden, metadatos (subir una imagen a una entidad es `M`).
-- **Portal de autoservicio del cliente final** — vista externa limitada donde el cliente consulta sus propios datos/documentos/estados (hereda auth y permisos).
+- **Portal de autoservicio del cliente final** — vista externa limitada donde el cliente consulta sus propios datos/documentos/estados (hereda auth y permisos). Si la autenticación de clientes ya existe y es una sola vista de datos propios, baja a `M` (atenuador *extiende algo existente*); el portal completo desde cero es `L`.
+
+- **Módulo de tickets / PQRS / mesa de ayuda** — radicación (interna o formulario público) con número de caso, asignación a un responsable, estados, respuestas en hilo y notificación al solicitante. Con SLA, escalamiento automático o traspaso configurable entre áreas → `XL`.
+- **Pipeline de documentos comerciales** — cadena cotización → orden/pedido → remisión → factura o cuenta de cobro, con conversión entre documentos (heredando ítems y totales), numeración y estados por documento. Cada documento suelto es `M`; el pipeline encadenado es `L`; con pago en línea o facturación DIAN → `XL`.
+- **Turnero / gestión de filas (digiturno)** — tomar turno (kiosco, QR o recepción), tablero de llamado con actualización en vivo, módulos/ventanillas de atención y estadísticas básicas de espera. Con priorización configurable, múltiples sedes o integración con pantallas físicas → suma modificadores o `XL`.
+- **Módulo de caja** — apertura y cierre de turno de caja, registro de ingresos/egresos, arqueo con conteo y detección de descuadre por responsable.
+- **Analítica de comportamiento con panel propio** — tracking de eventos + agregaciones + panel de uso (sesiones, rutas más visitadas, tiempos, embudos simples). El tracking básico sin panel es `M`; sobre gran volumen o con series temporales complejas → `XL` (motor de BI).
+- **Motor de emparejamiento / matching entre dos conjuntos** — personas↔personas, personas↔publicaciones, demanda↔oferta, con criterios ponderados, sugerencias y opcionalmente mutualidad (ambas partes aceptan para conectar). Un listado "recomendados" que solo aplica filtros sobre una búsqueda existente es `M`; con colas en tiempo real, escala o modelo aprendido → `XL`.
+- **Seguimiento de progreso con desbloqueo secuencial** — avance sobre una secuencia de contenidos o requisitos: unidades completadas, prerequisitos que desbloquean lo siguiente, reanudar donde se quedó, evento "completado" que dispara acciones. Un simple % de completitud calculado sobre campos llenos es `M` (campos calculados).
+- **Credenciales / comprobantes verificables** — emisión automática al cumplirse una condición (completar curso, pagar entrada, aprobar verificación) con código/QR único, verificación pública y ciclo de estados (válido / usado / vencido / revocado). Generar el PDF desde plantilla fija es `M`; con venta → `XL` (comercio); con control de acceso físico → modificador *Hardware*.
+- **Lista de espera con promoción automática** — cola ordenada (o priorizada) cuando el cupo/stock está lleno; al liberarse un lugar se ofrece al siguiente con ventana de aceptación que expira y pasa el turno. Un "avísame cuando haya disponibilidad" que solo notifica sin reservar turno es `M`.
+- **Re-enganche automático por abandono** — detectar un flujo iniciado y no terminado (carrito, solicitud, reserva, registro) o inactividad, con secuencia programada de 2–3 recordatorios, enlace de reanudación al punto exacto y supresión al completar. Un recordatorio único por evento es `M`; con orquestación multicanal → `XL` (mensajería a escala).
+- **Moderación de contenido generado por usuarios (UGC)** — reportar/denunciar con motivos, bandeja de revisión, acciones (aprobar / ocultar / eliminar) y sanciones acumulativas al autor (strikes, suspensión). Distinto del maker-checker (aprobación de operaciones internas): aquí dispara la denuncia del público y hay régimen de sanciones. Un botón "reportar" que solo crea un registro visible al admin es `M`; con IA o escalamiento entre roles → `XL`.
+- **Billetera / ledger de saldo y créditos internos** — cuenta por usuario con saldo, movimientos inmutables (abonos/cargos con concepto), atomicidad en el débito y extracto — créditos, puntos canjeables, horas, tokens de uso; **sin dinero real**. Con recargas por pasarela o retiros/payouts → `XL` (dinero y datos sensibles). ≠ puntos de gamificación (premian, no se gastan como medio de pago).
+- **Límites y features por plan (feature gating / entitlements)** — planes con límites cuantitativos (N usuarios, N registros, X GB), medición del consumo, bloqueo o aviso al alcanzar el límite y llamados a upgrade. No incluye el cobro (suscripciones → `XL`). Gatear features con un booleano por plan es `M` (como permisos por rol). Tiende a sumar el multiplicador *Transversal*.
+- **Asignación / despacho de tareas o pedidos (dispatch)** — distribuir unidades de trabajo (pedidos, citas, leads, casos) entre un pool de responsables con reglas — round-robin, carga, zona, habilidad — más aceptar/rechazar, reasignación y notificación. Un campo "asignado a" manual con notificación es `M`; despacho automático en tiempo real con geolocalización y rutas → `XL`.
+- **Oferta / contraoferta entre dos partes (negociación)** — una parte ofrece, la otra acepta, rechaza o contraoferta; historial del hilo, expiración y notificación por movimiento. ≠ pipeline de documentos comerciales (ahí emite la empresa; aquí negocian dos usuarios). Una oferta simple sin réplica es `M`; subasta con pujas en tiempo real → `XL`.
+- **Corte y liquidación periódica a contrapartes** — cierre de periodo que congela las transacciones incluidas, cálculo del neto (usa el motor de comisiones si existe), estado de cuenta y estados pagado/pendiente/en disputa (vendedores, repartidores, comisionistas, propietarios). La dispersión real del dinero es `XL` (pagos); la nómina es `XL` regulatorio.
 
 _Rondando el borde:_ carrito de compras sin pago · feed/timeline de actividad · invitaciones/referidos · web scraping/crawling (proxies, CAPTCHAs).
 
@@ -110,9 +128,9 @@ _Rondando el borde:_ carrito de compras sin pago · feed/timeline de actividad �
 - **Autoguardado / borradores (drafts).**
 - **Preferencias de usuario / de app** — columnas visibles, orden, vista o tema preferido; aplican en runtime.
 - **Documento o correo con maquetación / branding** — membretes, tipografías, identidad corporativa, marcas de agua ligeras. Incluye generar contratos, certificados o actas desde una **plantilla fija** con variables (centro de plantillas administrable → `L`; motor de PDF complejo → `XL`).
-- **Cuenta de cobro / factura simple no-DIAN en PDF** — documento de cobro con numeración y branding, sin facturación electrónica. La facturación electrónica DIAN es `XL` (regulatorio).
-- **Notificaciones por evento** (in-app o correo) — detectar el evento, plantilla, envío. Periódica → suma *Tarea programada*.
-- **Máquina de estados / cambios de estado** — transiciones y reglas (→ `L` si hay acciones/permisos por estado o varios actores).
+- **Cuenta de cobro / factura simple no-DIAN en PDF** — documento de cobro con numeración y branding, sin facturación electrónica. La facturación electrónica DIAN es `XL` (regulatorio). Su numeración asume secuencia simple; si exigen consecutivo legal sin huecos bajo concurrencia, esa pieza sube a `L`.
+- **Notificaciones por evento** (in-app o correo) — detectar el evento, plantilla, envío. Periódica o resumen (digest) → suma *Tarea programada*.
+- **Máquina de estados / cambios de estado** — transiciones y reglas sobre un registro (→ `L` si hay acciones/permisos por estado o varios actores). Cambiar el estado de un **conjunto** de registros a la vez es *Acciones masivas / bulk* (`M`); mostrar el estado es badge (`S`).
 - **Mostrar historial ya registrado** — si los logs ya se guardan y solo hay que exponerlos (construir la trazabilidad es `L`).
 - **Integrar un componente de terceros en el FE** — mapa embebido, editor WYSIWYG, date-range picker, tabla avanzada, reCAPTCHA, recorte de imagen, widget de chat (Chatwoot/Tawk).
 - **Webhook saliente simple** — enviar un payload a un tercero cuando ocurre un evento.
@@ -135,6 +153,13 @@ _Rondando el borde:_ carrito de compras sin pago · feed/timeline de actividad �
 - **Landing / página de marketing multi-sección con formulario** — página nueva con varias secciones y captura de contacto, sin CMS (página estática simple = `S`; administrable = `L`).
 - **Cotizador / calculadora pública embebida con captura de lead** — con reglas de cálculo simples fijas (con motor de reglas configurable → `L`).
 - **Tarea técnica no funcional pedida como requerimiento** — actualizar framework, migrar hosting, SSL/dominio, optimización puntual: se clasifica y cotiza aparte del roadmap funcional.
+
+- **Aprobación de un paso (maker-checker)** — un usuario registra o solicita y otro aprueba/rechaza antes de que surta efecto: estado pendiente, notificación al aprobador y evidencia de quién aprobó (→ `L` si el módulo de solicitudes se construye desde cero; → `XL` con ≥3 etapas, escalamiento o reglas configurables).
+- **Cupones / códigos de descuento simples** — código con porcentaje o valor fijo, vigencia, límite de usos y validación al aplicar. Reglas combinables o configurables por el cliente (motor) → `L`.
+- **Exportación contable en formato de tercero** — archivo plano o Excel con la estructura exigida por un software contable (Siigo, World Office, contador), con homologación parametrizable de cuentas, terceros e impuestos (→ `L` si la homologación exige un panel de parametrización completo; la integración por API con el ERP es `XL`).
+- **Listas de precios / precio especial por cliente o segmento** — asignar precios diferenciados sobre un catálogo existente, con vigencia y precio por defecto. Reglas de cálculo configurables (volumen, combinaciones) → motor `L`.
+- **Tracking de uso / telemetría propia básica** — registrar eventos de navegación o acciones del usuario (endpoints visitados, vistas, tiempos) vía middleware o eventos, con consulta simple de los datos. Con panel de análisis propio → `L`; con script de terceros (GA/Hotjar) es `S`. Ojo Habeas Data: puede requerir consentimiento (ver *T&C / consentimientos*).
+- **Comparador de ítems lado a lado** — seleccionar N ítems de un catálogo existente y verlos en tabla comparativa de atributos, con persistencia de la selección. Si los atributos comparables los configura el admin o se comparan entidades heterogéneas → `L`.
 
 _Rondando el borde:_ favoritos/guardados · recordatorios/snooze · manejo de zona horaria/locale.
 
@@ -265,7 +290,7 @@ El diferenciador es *desde cero vs. sobre lo existente* y *volumen / motor*.
 | Autenticación | — | OAuth / recuperación sobre lo existente | módulo completo o 2FA/MFA | SSO corporativo |
 | Permisos | ajuste puntual (XS) | permisos / visibilidad por rol | panel RBAC granular | seguridad empresarial |
 | Documentos | descarga estática | adjuntar a una entidad / plantilla fija con variables | gestor documental / centro de plantillas | firma certificada / motor de PDF complejo |
-| Facturación | — | cuenta de cobro / factura simple PDF | — | facturación electrónica DIAN |
+| Facturación / contabilidad | — | cuenta de cobro / factura simple PDF · exportación contable formato tercero | pipeline de documentos comerciales | facturación electrónica DIAN / contabilidad de dominio |
 | Duplicar | duplicar un documento (S) | clonar entidad con relaciones | — | — |
 | Drag-and-drop | — | agregar DnD a una lista existente | constructor / Kanban desde cero | motor de formularios como producto |
 | Validación | requerido/límite (XS), regex (S) | de negocio (cross-field) | — | cumplimiento regulatorio |
@@ -278,6 +303,21 @@ El diferenciador es *desde cero vs. sobre lo existente* y *volumen / motor*.
 | Plataforma | responsive puntual (S) | responsive completo (mod +15–35%) | PWA (mod +30%) | app nativa (mod +60%) — *toda la fila son modificadores; el nivel lo da la funcionalidad* |
 | Media / archivos | descarga estática | upload con procesamiento | galería / gestor multimedia | pipeline de video / streaming en vivo |
 | Encuestas / formularios | — | encuesta fija simple | constructor de encuestas / form builder interno | motor de formularios como producto |
+| Auditoría / eventos | — | mostrar historial ya registrado | construir bitácora/auditoría (quién, qué, cuándo) | auditoría avanzada con cumplimiento (seguridad empresarial) |
+| Analítica de uso | script de terceros (GA/pixel) | tracking/telemetría propia básica | analítica de comportamiento con panel propio | motor de BI sobre volumen |
+| Aprobaciones / flujo | — | maker-checker sobre lo existente | módulo de solicitudes desde cero / tickets-PQRS | ≥3 etapas con escalamiento/SLA / workflow configurable (BPM) |
+| Agendamiento / reservas | — | vencimientos / recordatorios con alertas | agenda base / cita de un recurso sin pago | scheduling multi-recurso con concurrencia y pagos |
+| Precios / descuentos | cambiar un precio o % fijo (XS) | cupón simple / lista de precios por cliente / parametrizar regla fija | motor de reglas de precios / comisiones | el cliente configura reglas como BPM |
+| Integraciones | script / pixel (S) | webhook saliente / componente FE de terceros | API de datos autenticada / canal único de mensajería / link de pago | ERP-CRM bidireccional / pagos recurrentes / datos sensibles / API pública propia |
+| Inventario / stock | — | campo de stock + alerta de mínimos sobre lo existente | inventario básico desde cero | checkout con stock descontado / alto volumen con concurrencia |
+| Matching | — | "sugeridos" por filtros fijos sobre búsqueda existente | motor de emparejamiento con criterios y mutualidad | matching en tiempo real a escala / con modelo propio |
+| Espera / cupo | — | "avísame cuando haya disponibilidad" (alerta pasiva) | lista de espera con promoción automática y ventana | reservas críticas con pagos y concurrencia |
+| Créditos / saldo | — | contador simple decrementable sin historial | billetera / ledger con extracto y atomicidad | recargas / retiros de dinero real |
+| Asignación | — | "asignado a" manual con notificación | dispatch con reglas y aceptar/rechazar | despacho en tiempo real con tracking / rutas |
+| Negociación | — | oferta simple sin réplica | oferta / contraoferta con expiración | subasta con pujas en tiempo real |
+| Estados | badge / chip de estado | máquina de estados de un registro / cambio masivo (bulk) | acciones y permisos por estado o varios actores | flujo multi-etapa ≥3 / workflow configurable (BPM) |
+
+_Ejemplo componible (no señal propia): "alertas por búsqueda guardada" = búsqueda avanzada con vistas guardadas (`L`) + notificación por evento (`M`) + modificador *Tarea programada*._
 
 ---
 
@@ -298,7 +338,23 @@ El diferenciador es *desde cero vs. sobre lo existente* y *volumen / motor*.
 
 ---
 
-## Qué cambió en esta versión (v1.2 — auditoría anti-duplicados)
+## Qué cambió en esta versión (v1.3 — simulación de mercado + patrones por arquetipo)
+
+**Correcciones a señales que sobre-disparaban (6):** `XL` *Flujo multi-etapa* ahora exige **≥3 etapas o ≥2 traspasos** (una aprobación de un paso ya no es XL — era el falso positivo más costoso) · `XL` *Agendamiento/reservas críticas* exige **al menos dos** condiciones concurrentes (la cita de un recurso sin pago es `L`) · notas de desempate en *Motor de cotizaciones* (cupón/lista de precios = `M`), *Cuenta de cobro* (consecutivo legal = `L`), *Portal de autoservicio* (una vista sobre auth existente = `M`) y "turnos" (flujo ≠ turnero).
+
+**Señales del dueño (auditoría de eventos y uso):** `L` *Trazabilidad/auditoría* refinada — nombra explícitamente la bitácora de eventos de creación/edición/eliminación sobre uno o varios modelos · **nuevas** `M` *Tracking de uso / telemetría propia básica* y `L` *Analítica de comportamiento con panel propio*.
+
+**Señales nuevas por simulación de mercado (9):** maker-checker (`M`) · tickets/PQRS (`L`) · pipeline de documentos comerciales (`L`) · cupones simples (`M`) · exportación contable formato tercero (`M`) · turnero/digiturno (`L`) · listas de precios por cliente (`M`) · contabilidad de dominio (`XL`) · módulo de caja (`L`).
+
+**Patrones generalizados por arquetipo (12):** matching entre dos conjuntos (`L`) · progreso con desbloqueo secuencial (`L`) · credenciales verificables (`L`) · lista de espera con promoción automática (`L`) · re-enganche por abandono (`L`) · comparador de ítems (`M`) · moderación UGC (`L`) · billetera/ledger interno (`L`) · feature gating por plan (`L`) · dispatch/asignación con reglas (`L`) · oferta/contraoferta (`L`) · corte y liquidación a contrapartes (`L`).
+
+**Señales espejo:** 13 filas nuevas (Auditoría/eventos, Analítica de uso, Aprobaciones/flujo, Agendamiento/reservas, Precios/descuentos, Integraciones, Inventario/stock, Matching, Espera/cupo, Créditos/saldo, Asignación, Negociación, Estados) y fila *Facturación/contabilidad* ampliada — total 33 familias. La familia *Estados* desambigua la palabra más frecuente del día a día: badge (`S`) → máquina de estados / bulk (`M`) → permisos por estado (`L`) → workflow (`XL`).
+
+**Enriquecimientos menores:** transportadoras como ejemplo de integración (piso `L`) · digest en notificaciones por evento · disponibilidad con excepciones en agenda base · "alertas por búsqueda guardada" documentada como composición.
+
+---
+
+## Qué cambió en la versión anterior (v1.2 — auditoría anti-duplicados)
 
 **Recalibración de plataforma (directriz del dueño):** la calculadora asume **web por defecto**; se eliminó la señal `XL` "app móvil nativa" y se reemplazó por el modificador de plataforma `+60%` (PWA `+30%` y nativa `+60%` son excluyentes entre sí).
 

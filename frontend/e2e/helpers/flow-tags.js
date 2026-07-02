@@ -315,3 +315,15 @@ export const ADMIN_PROPOSAL_DEFAULTS_SLUG_PATTERN = ['@flow:admin-proposal-defau
 // ── Documents Tab Reorganization — Adjuntar desde Documentos (Apr 22, 2026) ──
 export const ADMIN_PROPOSAL_ATTACH_FROM_DOCUMENTS   = ['@flow:admin-proposal-attach-from-documents',   '@module:admin', '@priority:P1'];
 export const ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS = ['@flow:admin-diagnostic-attach-from-documents', '@module:admin', '@priority:P2'];
+
+// ── Accounting module (superuser-only) (Jul 2, 2026) ──
+export const ADMIN_ACCOUNTING_DASHBOARD     = ['@flow:admin-accounting-dashboard',     '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_INCOME_CRUD   = ['@flow:admin-accounting-income-crud',   '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_FILTERS       = ['@flow:admin-accounting-filters',       '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_EXPENSES_CRUD = ['@flow:admin-accounting-expenses-crud', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_HOSTINGS      = ['@flow:admin-accounting-hostings',      '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_POCKET        = ['@flow:admin-accounting-pocket',        '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_RECURRING     = ['@flow:admin-accounting-recurring',     '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_HISTORY       = ['@flow:admin-accounting-history',       '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_SETTINGS      = ['@flow:admin-accounting-settings',      '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_ADS           = ['@flow:admin-accounting-ads',           '@module:admin', '@priority:P3'];

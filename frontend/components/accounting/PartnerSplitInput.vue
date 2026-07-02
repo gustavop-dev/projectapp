@@ -1,0 +1,120 @@
+<template>
+  <div class="space-y-4">
+    <div>
+      <label class="block text-xs font-medium text-text-muted mb-1">Valor total</label>
+      <BaseInput
+        :model-value="total"
+        type="number"
+        placeholder="0"
+        data-testid="partner-split-total"
+        @update:model-value="onTotalInput"
+      />
+    </div>
+
+    <div class="flex items-center gap-2">
+      <BaseToggle
+        :model-value="autoSplit"
+        aria-label="Reparto automático 50/50"
+        data-testid="partner-split-auto"
+        @update:model-value="onToggleAuto"
+      />
+      <span class="text-sm text-text-default">Reparto automático 50/50</span>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label class="block text-xs font-medium text-text-muted mb-1">Gustavo</label>
+        <BaseInput
+          :model-value="gustavoAmount"
+          type="number"
+          placeholder="0"
+          :disabled="autoSplit"
+          data-testid="partner-split-gustavo"
+          @update:model-value="emit('update:gustavoAmount', $event)"
+        />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-text-muted mb-1">Carlos</label>
+        <BaseInput
+          :model-value="carlosAmount"
+          type="number"
+          placeholder="0"
+          :disabled="autoSplit"
+          data-testid="partner-split-carlos"
+          @update:model-value="emit('update:carlosAmount', $event)"
+        />
+      </div>
+    </div>
+
+    <p
+      v-if="sumExceedsTotal"
+      data-testid="partner-split-warning"
+      class="text-xs text-warning-strong"
+    >
+      La suma de socios supera el total
+    </p>
+
+    <p
+      v-if="remainder > 0"
+      data-testid="partner-split-remainder"
+      class="text-xs text-text-muted"
+    >
+      Bolsillo ProjectApp: {{ formatMoney(remainder, 'COP') }}
+    </p>
+  </div>
+</template>
+
+<script setup>
+import { computed, ref } from 'vue';
+import BaseInput from '~/components/base/BaseInput.vue';
+import BaseToggle from '~/components/base/BaseToggle.vue';
+import { formatMoney } from '~/utils/formatMoney';
+
+const props = defineProps({
+  total: { type: [String, Number], default: '' },
+  gustavoAmount: { type: [String, Number], default: '' },
+  carlosAmount: { type: [String, Number], default: '' },
+});
+
+const emit = defineEmits(['update:total', 'update:gustavoAmount', 'update:carlosAmount']);
+
+const autoSplit = ref(true);
+
+function toNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+// Integer COP split that always sums exactly to the total.
+function splitFrom(totalValue) {
+  const n = Math.max(0, Math.floor(toNumber(totalValue)));
+  const gustavo = Math.floor(n / 2);
+  return { gustavo, carlos: n - gustavo };
+}
+
+function emitSplit(totalValue) {
+  const { gustavo, carlos } = splitFrom(totalValue);
+  emit('update:gustavoAmount', gustavo);
+  emit('update:carlosAmount', carlos);
+}
+
+function onTotalInput(value) {
+  emit('update:total', value);
+  if (autoSplit.value) emitSplit(value);
+}
+
+function onToggleAuto(value) {
+  autoSplit.value = value;
+  if (value) emitSplit(props.total);
+}
+
+const sumExceedsTotal = computed(
+  () =>
+    !autoSplit.value &&
+    toNumber(props.gustavoAmount) + toNumber(props.carlosAmount) > toNumber(props.total),
+);
+
+const remainder = computed(
+  () => toNumber(props.total) - toNumber(props.gustavoAmount) - toNumber(props.carlosAmount),
+);
+</script>

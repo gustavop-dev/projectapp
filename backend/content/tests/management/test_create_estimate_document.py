@@ -5,7 +5,12 @@ Business rules asserted:
 - The folder is created once (get_or_create) and reused on later runs
 - Content, status and language land on the created Document
 - A missing or empty markdown file aborts with CommandError
+- Title collisions version (" — vN") by default, or update in place with
+  --on-conflict replace
+- Output always includes the direct panel URL
 """
+from io import StringIO
+
 import pytest
 from django.core.management import CommandError, call_command
 
@@ -68,3 +73,39 @@ class TestCreateEstimateDocument:
         with pytest.raises(CommandError, match='empty'):
             _run(_write_markdown(tmp_path, body='   \n'))
         assert not Document.objects.exists()
+
+    def test_same_title_creates_versioned_document(self, tmp_path):
+        md_file = _write_markdown(tmp_path)
+        _run(md_file)
+        _run(md_file)
+
+        titles = set(Document.objects.values_list('title', flat=True))
+        assert titles == {
+            'Estimate: demo — 01072026',
+            'Estimate: demo — 01072026 — v2',
+        }
+
+    def test_on_conflict_replace_updates_newest_without_creating(self, tmp_path):
+        _run(_write_markdown(tmp_path, body='# Original\n'))
+        md_file = _write_markdown(tmp_path, body='# Corrected\n')
+        call_command(
+            'create_estimate_document',
+            '--title', 'Estimate: demo — 01072026',
+            '--file', str(md_file),
+            '--on-conflict', 'replace',
+        )
+
+        document = Document.objects.get()
+        assert document.content_markdown == '# Corrected\n'
+
+    def test_output_includes_panel_url(self, tmp_path):
+        out = StringIO()
+        call_command(
+            'create_estimate_document',
+            '--title', 'Estimate: demo — 01072026',
+            '--file', str(_write_markdown(tmp_path)),
+            stdout=out,
+        )
+
+        document = Document.objects.get()
+        assert f'Panel URL: /panel/documents/{document.pk}/edit' in out.getvalue()

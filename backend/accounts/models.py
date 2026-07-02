@@ -1319,11 +1319,23 @@ class SavedFilterTab(models.Model):
     VIEW_CLIENT = 'client'
     VIEW_DIAGNOSTIC = 'diagnostic'
     VIEW_VIEW_MAP = 'view_map'
+    VIEW_ACCOUNTING_INCOME = 'accounting_income'
+    VIEW_ACCOUNTING_EXPENSE = 'accounting_expense'
+    VIEW_ACCOUNTING_HOSTING = 'accounting_hosting'
+    VIEW_ACCOUNTING_POCKET = 'accounting_pocket'
+    VIEW_ACCOUNTING_RECURRING = 'accounting_recurring'
+    VIEW_ACCOUNTING_HISTORY = 'accounting_history'
     VIEW_CHOICES = [
         (VIEW_PROPOSAL, 'Proposal'),
         (VIEW_CLIENT, 'Client'),
         (VIEW_DIAGNOSTIC, 'Diagnostic'),
         (VIEW_VIEW_MAP, 'View Map'),
+        (VIEW_ACCOUNTING_INCOME, 'Accounting Income'),
+        (VIEW_ACCOUNTING_EXPENSE, 'Accounting Expense'),
+        (VIEW_ACCOUNTING_HOSTING, 'Accounting Hosting'),
+        (VIEW_ACCOUNTING_POCKET, 'Accounting Pocket'),
+        (VIEW_ACCOUNTING_RECURRING, 'Accounting Recurring'),
+        (VIEW_ACCOUNTING_HISTORY, 'Accounting History'),
     ]
 
     MAX_TABS_PER_VIEW = 12

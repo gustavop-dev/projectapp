@@ -1,7 +1,10 @@
 /**
  * Admin panel navigation: section definitions. Paths are i18n keys; resolve with localePath().
  * @param {(path: string) => string} localePath - Nuxt i18n localePath composable
- * @returns {Array<{ id: string, label: string, muted?: boolean, items: Array<NavItem> }>}
+ * @param {{ includeSuperuserOnly?: boolean }} [options] - pass the viewer's
+ *   superuser flag to hide gated sections; defaults to including everything
+ *   (label lookups in the admin layout need the full list).
+ * @returns {Array<{ id: string, label: string, muted?: boolean, superuserOnly?: boolean, items: Array<NavItem> }>}
  */
 
 /**
@@ -14,9 +17,9 @@
  * @property {boolean} [openInNewTab]
  */
 
-export function getPanelNavSections(localePath) {
+export function getPanelNavSections(localePath, { includeSuperuserOnly = true } = {}) {
   const lp = localePath
-  return [
+  const sections = [
     {
       id: 'overview',
       label: 'Overview',
@@ -74,6 +77,23 @@ export function getPanelNavSections(localePath) {
       ],
     },
     {
+      id: 'accounting',
+      label: 'Accounting',
+      superuserOnly: true,
+      items: [
+        { label: 'Overview', href: lp('/panel/accounting'), icon: 'credit-card', matchExact: true },
+        { label: 'Incomes', href: lp('/panel/accounting/incomes'), icon: 'plus' },
+        { label: 'Expenses', href: lp('/panel/accounting/expenses'), icon: 'file' },
+        { label: 'Hostings', href: lp('/panel/accounting/hostings'), icon: 'database' },
+        { label: 'Pocket', href: lp('/panel/accounting/pocket'), icon: 'folder' },
+        { label: 'Recurring', href: lp('/panel/accounting/recurring'), icon: 'refresh' },
+        { label: 'Ads', href: lp('/panel/accounting/ads'), icon: 'portfolio' },
+        { divider: true },
+        { label: 'History', href: lp('/panel/accounting/history'), icon: 'calendar' },
+        { label: 'Settings', href: lp('/panel/accounting/settings'), icon: 'settings' },
+      ],
+    },
+    {
       id: 'reference',
       label: 'Reference',
       items: [
@@ -103,4 +123,6 @@ export function getPanelNavSections(localePath) {
       ],
     },
   ]
+  if (includeSuperuserOnly) return sections
+  return sections.filter((section) => !section.superuserOnly)
 }

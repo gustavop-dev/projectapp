@@ -472,6 +472,80 @@ def company_settings(db):
     return obj
 
 
+# ── Accounting Module Fixtures ──
+
+@pytest.fixture
+def superuser(db):
+    """Superuser for accounting-gated endpoints."""
+    return User.objects.create_superuser(
+        username='super_test',
+        email='super@test.com',
+        password='testpass123',
+    )
+
+
+@pytest.fixture
+def super_client(api_client, superuser):
+    """Authenticated DRF API client with superuser privileges."""
+    api_client.force_authenticate(user=superuser)
+    return api_client
+
+
+@pytest.fixture
+def accounting_settings(db):
+    """Accounting settings singleton with two notification recipients."""
+    from content.models import AccountingSettings
+
+    obj = AccountingSettings.load()
+    obj.notification_recipients = ['gustavo@test.com', 'carlos@test.com']
+    obj.notifications_enabled = True
+    obj.save()
+    return obj
+
+
+@pytest.fixture
+def make_income(db):
+    """Factory for IncomeRecord rows with sensible defaults."""
+    from datetime import date
+
+    from content.models import IncomeRecord
+
+    def _make(**kwargs):
+        defaults = {
+            'concept': 'Kore v2 (Fase 1) - Inicio 40%',
+            'kind': IncomeRecord.Kind.EXPECTED,
+            'period_date': date(2026, 3, 1),
+            'total_amount': Decimal('1000000.00'),
+            'gustavo_amount': Decimal('500000.00'),
+            'carlos_amount': Decimal('500000.00'),
+        }
+        defaults.update(kwargs)
+        return IncomeRecord.objects.create(**defaults)
+
+    return _make
+
+
+@pytest.fixture
+def make_expense(db):
+    """Factory for ExpenseRecord rows with sensible defaults."""
+    from datetime import date
+
+    from content.models import ExpenseRecord
+
+    def _make(**kwargs):
+        defaults = {
+            'concept': 'Claude Code 20x',
+            'period_date': date(2026, 3, 1),
+            'total_amount': Decimal('800000.00'),
+            'gustavo_amount': Decimal('400000.00'),
+            'carlos_amount': Decimal('400000.00'),
+        }
+        defaults.update(kwargs)
+        return ExpenseRecord.objects.create(**defaults)
+
+    return _make
+
+
 @pytest.fixture
 def diag_client_profile(db):
     """A client UserProfile suitable for attaching to a WebAppDiagnostic."""

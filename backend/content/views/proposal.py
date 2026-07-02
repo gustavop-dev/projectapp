@@ -2780,7 +2780,13 @@ def check_admin_auth(request):
             status=status.HTTP_403_FORBIDDEN,
         )
     return Response(
-        {'user': {'username': request.user.username, 'is_staff': True}},
+        {
+            'user': {
+                'username': request.user.username,
+                'is_staff': True,
+                'is_superuser': request.user.is_superuser,
+            }
+        },
         status=status.HTTP_200_OK,
     )
 

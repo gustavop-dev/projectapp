@@ -44,6 +44,13 @@ class Command(BaseCommand):
             choices=[choice for choice, _ in Document.Language.choices],
             help='Document language (default: es).',
         )
+        parser.add_argument(
+            '--on-conflict', default='version', choices=['version', 'replace', 'new'],
+            help=(
+                'Same title in folder: version = append " — vN"; '
+                'replace = update the newest match; new = allow duplicate.'
+            ),
+        )
 
     def handle(self, *args, **options):
         path = Path(options['file'])
@@ -61,10 +68,27 @@ class Command(BaseCommand):
         )
         admin = User.objects.filter(is_staff=True).order_by('pk').first()
 
+        title = options['title']
+        existing = Document.objects.filter(folder=folder, title=title)
+        if existing.exists():
+            if options['on_conflict'] == 'replace':
+                document = existing.latest('created_at')
+                document.content_markdown = content
+                document.status = options['status']
+                document.updated_by = admin
+                document.save()
+                self.stdout.write(self.style.SUCCESS(
+                    f'Document #{document.pk} "{document.title}" updated (replaced).'
+                ))
+                self.stdout.write(f'Panel URL: /panel/documents/{document.pk}/edit')
+                return
+            if options['on_conflict'] == 'version':
+                title = f'{title} — v{existing.count() + 1}'
+
         document = Document.objects.create(
             document_type=doc_type,
             folder=folder,
-            title=options['title'],
+            title=title,
             status=options['status'],
             content_markdown=content,
             language=options['language'],
@@ -77,3 +101,4 @@ class Command(BaseCommand):
             f'Document #{document.pk} "{document.title}" created in '
             f'folder "{folder.name}"{suffix}.'
         ))
+        self.stdout.write(f'Panel URL: /panel/documents/{document.pk}/edit')

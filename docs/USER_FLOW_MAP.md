@@ -5061,3 +5061,141 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-diagnostic-document-preview` | admin | admin | P3 | ❌ Missing | extend `e2e/admin/admin-diagnostic-email-documents.spec.js` |
 | `admin-blog-publish-mode` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-blog-publish-mode.spec.js` |
 | `admin-blog-overdue-detection` | admin | system | P2 | ⬜ Backend-only | N/A |
+
+---
+
+## Section 23 — Accounting Module (superuser-only) (Jul 2, 2026)
+
+Internal accounting module for the company owners (Gustavo & Carlos). Every subview lives under `/panel/accounting/*` behind the `admin-auth` + `superuser-only` middlewares; the backend enforces `IsSuperUser` on every `/api/accounting/*` endpoint regardless of the UI. Every create/update/delete is audited in `AccountingChangeLog` and emailed to the recipients configured in settings (async via Huey).
+
+### FLOW: `admin-accounting-dashboard`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting`
+- **Description:** Annual financial overview fed by `GET /api/accounting/dashboard/?year=`: expected vs liquid income, expenses, expected/liquid utility, pocket balance, per-partner cards, 12-month breakdown, operative cost cards and latest card snapshots. Year selector re-fetches the summary.
+- **Steps:**
+  1. Superuser opens `/panel/accounting`.
+  2. Stat cards render the summary totals; partner cards show Gustavo/Carlos/ProjectApp splits.
+  3. Monthly table lists the 12 months with a totals row.
+  4. Superuser switches the year → summary re-fetches.
+  5. "Nuevo ingreso" opens the income modal from the dashboard.
+- **Branches:**
+  - [Branch A — gating] Staff non-superuser navigating to any `/panel/accounting*` route is redirected to `/panel`; the Accounting sidebar section is hidden.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-dashboard.spec.js`
+
+### FLOW: `admin-accounting-income-crud`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/incomes`
+- **Description:** Income records (expected vs liquid) with editable 50/50 partner split. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket.
+- **Steps:**
+  1. Superuser opens the incomes list (kind badge, month, totals per partner, destination).
+  2. "Nuevo ingreso" opens the modal; PartnerSplitInput defaults to an exact 50/50 of the total.
+  3. Submit POSTs `/api/accounting/incomes/create/` → success toast + audit + email.
+  4. Row edit prefills the modal and PATCHes `.../update/`.
+  5. Row delete asks for confirmation and DELETEs `.../delete/`.
+- **Branches:**
+  - [Branch A] Manual split: turning off the 50/50 toggle allows custom per-partner amounts (sum must not exceed the total; backend validates too).
+  - [Branch B] Backend 400 → error toast with the Spanish backend message; modal stays open.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
+
+### FLOW: `admin-accounting-filters`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/incomes` (same pattern across subviews)
+- **Description:** Client-side dynamic filters via `useAccountingFilters`: period date range, amount min/max, kind segmented, partner segmented (Gustavo/Carlos/ProjectApp), debounced free search, active-count badge, reset and saved filter tabs per view.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-filters.spec.js`
+
+### FLOW: `admin-accounting-expenses-crud`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/expenses`
+- **Description:** Expense records with category (Negocio/Personal), paid-from and partner split; same modal CRUD + filters pattern as incomes.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-expenses-hostings.spec.js`
+
+### FLOW: `admin-accounting-hostings`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/hostings`
+- **Description:** Client hosting registry: monthly value, payment modality, validity, cycles and totals, with meta stat cards (active count / monthly income) and modal CRUD (per-modality payment-per-cycle default).
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-expenses-hostings.spec.js`
+
+### FLOW: `admin-accounting-pocket`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/pocket`
+- **Description:** ProjectApp pocket ledger with balance card and chronological running-balance column. Manual movements have full CRUD; auto-managed movements (created by pocket-bound incomes/expenses) warn on edit/delete and are only editable through their source record.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-pocket-recurring.spec.js`
+
+### FLOW: `admin-accounting-recurring`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/recurring`
+- **Description:** Recurring operational costs with monthly COP proration, totals by frequency and payment method, and modal CRUD where the COP-equivalent field applies only to USD payments.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-pocket-recurring.spec.js`
+
+### FLOW: `admin-accounting-history`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/history`
+- **Description:** Read-only audit trail (server-paginated 20/page) of every accounting change with entity/action/actor/date filters and expandable field-level old→new diffs.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-ads-history-settings.spec.js`
+
+### FLOW: `admin-accounting-settings`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/settings`
+- **Description:** Notification recipients (email list with add/remove + validation) and the global notifications toggle; changes are themselves audited.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-ads-history-settings.spec.js`
+
+### FLOW: `admin-accounting-ads`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P3
+- **Routes:** `/panel/accounting/ads`
+- **Description:** Advertising spend log with a running accumulated column computed over the full history, platform/card filters and modal CRUD.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-ads-history-settings.spec.js`
+
+### 23.1 Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `admin-accounting-dashboard` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-dashboard.spec.js` |
+| `admin-accounting-income-crud` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-incomes.spec.js` |
+| `admin-accounting-filters` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-filters.spec.js` |
+| `admin-accounting-expenses-crud` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-expenses-hostings.spec.js` |
+| `admin-accounting-hostings` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-expenses-hostings.spec.js` |
+| `admin-accounting-pocket` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-pocket-recurring.spec.js` |
+| `admin-accounting-recurring` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-pocket-recurring.spec.js` |
+| `admin-accounting-history` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
+| `admin-accounting-settings` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
+| `admin-accounting-ads` | admin | superuser | P3 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |

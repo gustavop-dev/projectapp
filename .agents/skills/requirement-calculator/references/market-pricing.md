@@ -74,6 +74,8 @@ Anticiparlas siempre: no para cobrarlas de una, sino para ordenarlas en fases/ve
 | Multiusuario | Permisos / roles · control de concurrencia · invitaciones |
 | Documentos | Motor de PDF · plantillas · numeración/secuencias · firmas |
 | Tiempo / recurrencia | Tareas programadas (Huey) · recordatorios · vencimientos |
+| Solicitudes / aprobaciones | Escalamiento · SLA · delegación · reportes de tiempos de respuesta |
+| Documentos comerciales | Conversión entre documentos (cotización→orden→factura) · exportación contable · pagos |
 
 ## Cuándo decir "sepáralo y constrúyelo aparte"
 

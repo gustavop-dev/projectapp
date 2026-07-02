@@ -131,6 +131,15 @@ watch(() => route.fullPath, () => {
 })
 
 const _panelRouteMap = [
+  { path: localePath('/panel/accounting/incomes'), label: 'Ingresos' },
+  { path: localePath('/panel/accounting/expenses'), label: 'Gastos' },
+  { path: localePath('/panel/accounting/hostings'), label: 'Hostings' },
+  { path: localePath('/panel/accounting/pocket'), label: 'Bolsillo' },
+  { path: localePath('/panel/accounting/recurring'), label: 'Recurrentes' },
+  { path: localePath('/panel/accounting/ads'), label: 'Ads' },
+  { path: localePath('/panel/accounting/history'), label: 'Historial' },
+  { path: localePath('/panel/accounting/settings'), label: 'Config. contable' },
+  { path: localePath('/panel/accounting'), label: 'Resumen' },
   { path: localePath('/panel/proposals/email-deliverability'), label: 'Entregabilidad' },
   { path: localePath('/panel/proposals/email-templates'), label: 'Plantillas' },
   { path: localePath('/panel/proposals/create'), label: 'Nueva prop.' },
