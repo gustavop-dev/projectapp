@@ -70,7 +70,7 @@ function onSubmit() {
     gustavo_amount: form.value.gustavo_amount,
     carlos_amount: form.value.carlos_amount,
   }
-  if (form.value.notes) payload.notes = form.value.notes
+  payload.notes = form.value.notes
   emit('submit', payload)
 }
 </script>

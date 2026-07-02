@@ -134,7 +134,7 @@ describe('IncomeFormModal', () => {
     });
   });
 
-  it('omits empty notes from the payload', async () => {
+  it('always includes notes so edits can clear them', async () => {
     const wrapper = mountModal();
 
     await wrapper.find('input[type="text"]').setValue('Sin nota');
@@ -142,7 +142,7 @@ describe('IncomeFormModal', () => {
     await wrapper.find('form').trigger('submit');
 
     const payload = wrapper.emitted('submit')[0][0];
-    expect(payload).not.toHaveProperty('notes');
+    expect(payload.notes).toBe('');
   });
 
   it('hides destination when kind is expected and forces it back to partners', async () => {

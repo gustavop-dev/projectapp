@@ -97,8 +97,8 @@ function onSubmit() {
   if (form.value.currency === 'USD' && form.value.cop_equivalent !== '') {
     payload.cop_equivalent = form.value.cop_equivalent
   }
-  if (form.value.billing_day !== '') payload.billing_day = form.value.billing_day
-  if (form.value.notes) payload.notes = form.value.notes
+  payload.billing_day = form.value.billing_day === '' ? null : form.value.billing_day
+  payload.notes = form.value.notes
   emit('submit', payload)
 }
 </script>

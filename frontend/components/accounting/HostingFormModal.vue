@@ -75,14 +75,14 @@ function onSubmit() {
     payment_modality: form.value.payment_modality,
     is_active: form.value.is_active,
   }
-  addIfFilled(payload, 'domain_url', form.value.domain_url)
-  addIfFilled(payload, 'benefit', form.value.benefit)
-  addIfFilled(payload, 'valid_from', form.value.valid_from)
-  addIfFilled(payload, 'valid_to', form.value.valid_to)
+  payload.domain_url = form.value.domain_url
+  payload.benefit = form.value.benefit
+  payload.notes = form.value.notes
+  payload.valid_from = form.value.valid_from || null
+  payload.valid_to = form.value.valid_to || null
   addIfFilled(payload, 'cycles_count', form.value.cycles_count)
   addIfFilled(payload, 'payment_per_cycle', form.value.payment_per_cycle)
   addIfFilled(payload, 'total_paid', form.value.total_paid)
-  addIfFilled(payload, 'notes', form.value.notes)
   emit('submit', payload)
 }
 </script>

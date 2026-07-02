@@ -55,8 +55,8 @@ function onSubmit() {
     platform: form.value.platform,
     amount: form.value.amount,
   }
-  if (form.value.origin_card) payload.origin_card = form.value.origin_card
-  if (form.value.notes) payload.notes = form.value.notes
+  payload.origin_card = form.value.origin_card
+  payload.notes = form.value.notes
   emit('submit', payload)
 }
 </script>

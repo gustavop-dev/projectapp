@@ -57,7 +57,7 @@ function onSubmit() {
     direction: form.value.direction,
     amount: form.value.amount,
   }
-  if (form.value.notes) payload.notes = form.value.notes
+  payload.notes = form.value.notes
   emit('submit', payload)
 }
 </script>
