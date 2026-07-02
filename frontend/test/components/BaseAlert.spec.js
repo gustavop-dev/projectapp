@@ -7,13 +7,14 @@ describe('BaseAlert', () => {
     const alert = wrapper.find('[role="alert"]')
     expect(alert.exists()).toBe(true)
     expect(alert.text()).toContain('Mensaje informativo')
-    expect(alert.classes()).toContain('bg-primary-soft')
+    expect(alert.classes()).toContain('bg-info-soft')
   })
 
   it.each([
     ['success', 'bg-success-soft', 'text-success-strong'],
     ['warning', 'bg-warning-soft', 'text-warning-strong'],
     ['danger', 'bg-danger-soft', 'text-danger-strong'],
+    ['info', 'bg-info-soft', 'text-info-strong'],
   ])('applies %s variant tokens', (variant, bg, text) => {
     const wrapper = mount(BaseAlert, { props: { variant }, slots: { default: 'x' } })
     const alert = wrapper.find('[role="alert"]')

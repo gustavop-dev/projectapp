@@ -14,7 +14,7 @@ const paddings = {
 }
 
 const classes = computed(() => [
-  'bg-surface border border-border-muted rounded-xl',
+  'bg-surface border border-border-default rounded-xl shadow-card',
   props.padding in paddings ? paddings[props.padding] : paddings.md,
 ])
 </script>

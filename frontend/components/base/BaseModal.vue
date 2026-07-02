@@ -64,7 +64,7 @@ watch(
       >
         <div class="absolute inset-0 bg-black/50" @click="onBackdrop" />
         <div
-          class="relative bg-surface rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto border border-border-muted"
+          class="relative bg-surface rounded-2xl shadow-overlay w-full max-h-[90vh] overflow-y-auto border border-border-default"
           :class="[sizeClass, paddingClass]"
         >
           <slot />

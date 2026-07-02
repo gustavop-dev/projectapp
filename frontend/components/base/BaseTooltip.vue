@@ -22,7 +22,7 @@
       <div
         v-if="showTooltip"
         :class="[
-          'absolute z-10 px-3 py-2 text-sm rounded-lg shadow-lg whitespace-normal break-words',
+          'absolute z-10 px-3 py-2 text-sm rounded-lg shadow-raised whitespace-normal break-words',
           backgroundColor,
           textColor,
           width,
@@ -56,10 +56,11 @@ const props = defineProps({
     validator: oneOf(['top', 'bottom', 'left', 'right']),
   },
   backgroundColor: {
-    // Default reads as dark grey on light surfaces and stays legible on dark
-    // ones. Override per-consumer for branded tooltips.
+    // Brand-dark surface: legible over both washes and consistent with the
+    // tooltip spec (bg-primary-strong + text-white). Override per-consumer
+    // only for genuinely branded tooltips.
     type: String,
-    default: 'bg-gray-800',
+    default: 'bg-primary-strong',
   },
   textColor: {
     type: String,

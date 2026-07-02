@@ -11,7 +11,7 @@ const props = defineProps({
 defineEmits(['dismiss'])
 
 const variants = {
-  info: 'bg-primary-soft text-text-default border-primary',
+  info: 'bg-info-soft text-info-strong border-info-strong/30',
   success: 'bg-success-soft text-success-strong border-success-strong/30',
   warning: 'bg-warning-soft text-warning-strong border-warning-strong/30',
   danger: 'bg-danger-soft text-danger-strong border-danger-strong/30',

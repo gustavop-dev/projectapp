@@ -92,7 +92,7 @@ const ALPHA_BAKED_TOKENS = [
   'border', 'border-muted',
   'primary-soft',
   'input-border', 'input-placeholder',
-  'success-soft', 'warning-soft', 'danger-soft',
+  'success-soft', 'warning-soft', 'danger-soft', 'info-soft',
 ];
 
 const ALPHA_BAKED_PATTERN = new RegExp(
@@ -222,7 +222,9 @@ const NON_COLOR_BY_UTILITY = {
   ring: new Set(['inset', 'offset', 'opacity', 'solid', 'dashed', 'dotted', 'double']),
   divide: new Set(['solid', 'dashed', 'dotted', 'double', 'none', 'opacity', 'reverse']),
   outline: new Set(['solid', 'dashed', 'dotted', 'double', 'offset']),
-  shadow: new Set(['inner']),
+  // card/raised/overlay are the elevation scale from theme.extend.boxShadow,
+  // not colors (the color parser only reads theme.extend.colors).
+  shadow: new Set(['inner', 'card', 'raised', 'overlay']),
   // SVG `stroke-linecap`, `stroke-linejoin`, `stroke-width`, `stroke-dasharray`
   // are SVG attribute names that look like Tailwind classes when scanned.
   stroke: new Set(['linecap', 'linejoin', 'width', 'dasharray', 'dashoffset', 'miterlimit', 'opacity']),

@@ -122,6 +122,8 @@
   --color-warning-strong: #92400E;
   --color-danger-soft: #FEE2E2;
   --color-danger-strong: #991B1B;
+  --color-info-soft: #DBEAFE;
+  --color-info-strong: #1D4ED8;
 
   /* Status RGB triplets — light (all solid) */
   --color-success-soft-rgb: 209 250 229;   /* #D1FAE5 */
@@ -130,6 +132,19 @@
   --color-warning-strong-rgb: 146 64 14;   /* #92400E */
   --color-danger-soft-rgb: 254 226 226;    /* #FEE2E2 */
   --color-danger-strong-rgb: 153 27 27;    /* #991B1B */
+  --color-info-soft-rgb: 219 234 254;      /* #DBEAFE */
+  --color-info-strong-rgb: 29 78 216;      /* #1D4ED8 */
+
+  /* Elevation scale — the only three shadows the UI uses.
+     card    → cards / panels at rest
+     raised  → dropdowns, popovers, floating buttons, sticky bars
+     overlay → modals and drawers
+     Surfaces that rely on shadow for separation must also carry
+     `border border-border-default`: in dark mode shadows fade against
+     the near-black wash and the border keeps the edge readable. */
+  --shadow-card:    0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-raised:  0 4px 12px -2px rgb(0 0 0 / 0.10);
+  --shadow-overlay: 0 25px 50px -12px rgb(0 0 0 / 0.25);
 }
 
 /* The same dark-mode token overrides are activated by:
@@ -199,6 +214,8 @@
   --color-warning-strong: #FCD34D;
   --color-danger-soft: rgba(239, 68, 68, 0.15);
   --color-danger-strong: #FCA5A5;
+  --color-info-soft: rgba(59, 130, 246, 0.15);
+  --color-info-strong: #93C5FD;
 
   /* Status RGB triplets — dark
      The *-soft variants are intrinsically rgba(); triplet exposes the
@@ -210,4 +227,12 @@
   --color-warning-strong-rgb: 252 211 77;  /* #FCD34D */
   --color-danger-soft-rgb: 239 68 68;      /* #EF4444 hue, alpha baked */
   --color-danger-strong-rgb: 252 165 165;  /* #FCA5A5 */
+  --color-info-soft-rgb: 59 130 246;       /* #3B82F6 hue, alpha baked */
+  --color-info-strong-rgb: 147 197 253;    /* #93C5FD */
+
+  /* Elevation scale — dark. Shadows need more opacity to register against
+     the dark wash, and even then they read weaker: pair with a border. */
+  --shadow-card:    0 1px 2px 0 rgb(0 0 0 / 0.45);
+  --shadow-raised:  0 4px 16px -2px rgb(0 0 0 / 0.55);
+  --shadow-overlay: 0 25px 60px -12px rgb(0 0 0 / 0.70);
 }
