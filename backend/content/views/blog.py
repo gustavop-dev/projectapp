@@ -15,6 +15,16 @@ from rest_framework.response import Response
 
 from content.models import BlogPost, PortfolioWork
 from content.services.frontend_build import schedule_rebuild_after_publish
+from content.services.blog_service import (
+    BASE_URL,
+    # Re-exported: content.tasks imports auto_publish_blog_to_linkedin from
+    # this module at call time (and tests patch it here).
+    auto_publish_blog_to_linkedin,  # noqa: F401
+    build_blog_json_template,
+    create_post_from_json,
+    get_calendar_posts,
+    run_post_save_pipeline,
+)
 from content.serializers.blog import (
     BlogPostAdminDetailSerializer,
     BlogPostAdminListSerializer,
@@ -22,106 +32,9 @@ from content.serializers.blog import (
     BlogPostDetailSerializer,
     BlogPostFromJSONSerializer,
     BlogPostListSerializer,
-    AVAILABLE_CATEGORIES,
-    BLOG_JSON_TEMPLATE,
 )
 
 logger = logging.getLogger(__name__)
-
-BASE_URL = 'https://projectapp.co'
-# Canonical public URL for posts (i18n strategy 'prefix': /blog/* only 301s here)
-BLOG_PUBLIC_BASE = f'{BASE_URL}/es-co/blog'
-
-
-def auto_publish_blog_to_linkedin(post):
-    """
-    Publish a blog post to LinkedIn if conditions are met:
-    - Post is published (is_published=True)
-    - Has a linkedin_summary (es or en)
-    - Has not been published to LinkedIn yet (no linkedin_post_id)
-
-    Runs silently — logs errors but never raises.
-    """
-    logger.info(
-        '[LinkedIn] auto_publish_blog_to_linkedin called — slug=%s is_published=%s '
-        'linkedin_post_id=%s linkedin_summary_es=%s linkedin_summary_en=%s',
-        post.slug, post.is_published, bool(post.linkedin_post_id),
-        bool(post.linkedin_summary_es), bool(post.linkedin_summary_en),
-    )
-
-    if not post.is_published:
-        logger.info('[LinkedIn] skip: post "%s" is not published yet', post.slug)
-        return
-    if post.linkedin_post_id:
-        logger.info('[LinkedIn] skip: post "%s" already has linkedin_post_id=%s', post.slug, post.linkedin_post_id)
-        return
-
-    summary = post.linkedin_summary_es or post.linkedin_summary_en
-    if not summary:
-        logger.info('[LinkedIn] skip: post "%s" has no linkedin_summary (es or en) — fill it to enable auto-post', post.slug)
-        return
-
-    lang = 'es' if post.linkedin_summary_es else 'en'
-    title = post.title_es if lang == 'es' else post.title_en
-
-    # Get cover image URL
-    cover_image_url = ''
-    if post.cover_image_url:
-        cover_image_url = post.cover_image_url
-    elif post.cover_image:
-        cover_image_url = f'{BASE_URL}{post.cover_image.url}'
-
-    blog_url = f'{BLOG_PUBLIC_BASE}/{post.slug}'
-    logger.info('[LinkedIn] attempting post to LinkedIn: slug=%s lang=%s url=%s', post.slug, lang, blog_url)
-
-    try:
-        from content.services.linkedin_service import publish_blog_to_linkedin
-
-        try:
-            result = publish_blog_to_linkedin(
-                summary=summary,
-                blog_url=blog_url,
-                title=title,
-                cover_image_url=cover_image_url,
-                description=post.excerpt_es if lang == 'es' else post.excerpt_en,
-            )
-        except ValueError as exc:
-            logger.error(
-                '[LinkedIn] not connected / no credentials for blog "%s": %s',
-                post.slug, exc,
-            )
-            return
-
-        if result['success']:
-            post.linkedin_post_id = result['post_id']
-            post.linkedin_published_at = tz.now()
-            post.save(update_fields=['linkedin_post_id', 'linkedin_published_at'])
-            logger.info('[LinkedIn] auto-published blog "%s": post_id=%s', post.slug, result['post_id'])
-        else:
-            logger.warning('[LinkedIn] publish failed for "%s": %s', post.slug, result['message'])
-    except Exception:
-        logger.exception('[LinkedIn] unexpected error for blog "%s"', post.slug)
-
-
-def _enqueue_scheduled_publish_if_future(post):
-    """
-    If the post is a draft with a future published_at, enqueue a one-shot
-    Huey task at that exact ETA so it publishes (site + LinkedIn) without
-    waiting for the 1-minute periodic sweep.
-    """
-    if post.is_published or not post.published_at:
-        return
-    if post.published_at <= tz.now():
-        return
-    try:
-        from content.tasks import publish_single_scheduled_blog
-        publish_single_scheduled_blog.schedule(args=(post.id,), eta=post.published_at)
-        logger.info(
-            'Encolado publish_single_scheduled_blog para post %s a %s',
-            post.id, post.published_at,
-        )
-    except Exception:
-        logger.exception('Failed to enqueue scheduled publish for post %s', post.id)
 
 STATIC_SITEMAP_PAGES = [
     ('/en-us', '/es-co', 'weekly', '1.0'),
@@ -340,10 +253,7 @@ def create_blog_post(request):
         '[Blog] post created: id=%s slug=%s is_published=%s published_at=%s',
         post.id, post.slug, post.is_published, post.published_at,
     )
-    auto_publish_blog_to_linkedin(post)
-    _enqueue_scheduled_publish_if_future(post)
-    if post.is_published:
-        schedule_rebuild_after_publish()
+    run_post_save_pipeline(post)
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_201_CREATED)
 
@@ -379,15 +289,7 @@ def update_blog_post(request, post_id):
         '[Blog] post updated: id=%s slug=%s was_published=%s is_published=%s published_at=%s',
         post.id, post.slug, was_published, post.is_published, post.published_at,
     )
-    # Auto-publish to LinkedIn when post transitions to published
-    if post.is_published and not was_published:
-        logger.info('[Blog] publish transition detected for post %s — triggering LinkedIn', post.id)
-        auto_publish_blog_to_linkedin(post)
-    _enqueue_scheduled_publish_if_future(post)
-    # Any save of a live post changes content baked into the static build
-    # (publish transition, content edit, or unpublish).
-    if post.is_published or was_published:
-        schedule_rebuild_after_publish()
+    run_post_save_pipeline(post, was_published=was_published)
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_200_OK)
 
@@ -419,38 +321,8 @@ def create_blog_post_from_json(request):
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    data = serializer.validated_data
-    post = BlogPost.objects.create(
-        title_es=data['title_es'],
-        title_en=data['title_en'],
-        excerpt_es=data['excerpt_es'],
-        excerpt_en=data['excerpt_en'],
-        content_json_es=data['content_json_es'],
-        content_json_en=data.get('content_json_en') or {},
-        cover_image_url=data.get('cover_image_url', ''),
-        sources=data.get('sources', []),
-        category=data.get('category', ''),
-        read_time_minutes=data.get('read_time_minutes', 0),
-        is_featured=data.get('is_featured', False),
-        is_published=data.get('is_published', False),
-        published_at=data.get('published_at'),
-        author=data.get('author', 'projectapp-team'),
-        meta_title_es=data.get('meta_title_es', ''),
-        meta_title_en=data.get('meta_title_en', ''),
-        meta_description_es=data.get('meta_description_es', ''),
-        meta_description_en=data.get('meta_description_en', ''),
-        meta_keywords_es=data.get('meta_keywords_es', ''),
-        meta_keywords_en=data.get('meta_keywords_en', ''),
-        cover_image_credit=data.get('cover_image_credit', ''),
-        cover_image_credit_url=data.get('cover_image_credit_url', ''),
-        linkedin_summary_es=data.get('linkedin_summary_es', ''),
-        linkedin_summary_en=data.get('linkedin_summary_en', ''),
-    )
-
-    auto_publish_blog_to_linkedin(post)
-    _enqueue_scheduled_publish_if_future(post)
-    if post.is_published:
-        schedule_rebuild_after_publish()
+    post = create_post_from_json(serializer.validated_data)
+    run_post_save_pipeline(post)
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_201_CREATED)
 
@@ -462,35 +334,7 @@ def get_blog_json_template(request):
     Return a downloadable JSON template for blog post creation.
     Includes all section types with placeholder content.
     """
-    template = {
-        'title_es': 'Título del artículo en español',
-        'title_en': 'Article title in English',
-        'excerpt_es': 'Resumen corto en español (1-2 oraciones).',
-        'excerpt_en': 'Short summary in English (1-2 sentences).',
-        'author': 'projectapp-team',
-        'content_json_es': _copy.deepcopy(BLOG_JSON_TEMPLATE),
-        'content_json_en': _copy.deepcopy(BLOG_JSON_TEMPLATE),
-        'cover_image_url': '',
-        'cover_image_credit': '',
-        'cover_image_credit_url': '',
-        'sources': [
-            {'name': 'Source Name', 'url': 'https://example.com'},
-        ],
-        'category': 'technology',
-        'read_time_minutes': 8,
-        'is_featured': False,
-        'is_published': False,
-        'meta_title_es': '',
-        'meta_title_en': '',
-        'meta_description_es': '',
-        'meta_description_en': '',
-        'meta_keywords_es': '',
-        'meta_keywords_en': '',
-        'linkedin_summary_es': 'Resumen para LinkedIn en español (máx. ~1300 caracteres).',
-        'linkedin_summary_en': 'LinkedIn summary in English (max ~1300 chars).',
-        '_available_categories': AVAILABLE_CATEGORIES,
-    }
-    return Response(template, status=status.HTTP_200_OK)
+    return Response(build_blog_json_template(), status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
@@ -593,50 +437,8 @@ def blog_calendar(request):
         )
 
     from datetime import datetime, time
-    from django.utils import timezone as tz
     start_dt = tz.make_aware(datetime.combine(start_date, time.min))
     end_dt = tz.make_aware(datetime.combine(end_date, time.max))
 
-    # Published or scheduled posts with published_at in range
-    published_qs = BlogPost.objects.filter(
-        published_at__gte=start_dt,
-        published_at__lte=end_dt,
-    )
-    # Drafts (no published_at) created in range
-    draft_qs = BlogPost.objects.filter(
-        is_published=False,
-        published_at__isnull=True,
-        created_at__gte=start_dt,
-        created_at__lte=end_dt,
-    )
-
-    all_ids = set(published_qs.values_list('id', flat=True)) | set(
-        draft_qs.values_list('id', flat=True)
-    )
-    posts = BlogPost.objects.filter(id__in=all_ids)
-
-    data = []
-    for p in posts:
-        is_scheduled = (
-            not p.is_published
-            and p.published_at is not None
-            and p.published_at > tz.now()
-        )
-        cal_status = 'published' if p.is_published else ('scheduled' if is_scheduled else 'draft')
-        data.append({
-            'id': p.id,
-            'title_es': p.title_es,
-            'title_en': p.title_en,
-            'slug': p.slug,
-            'category': p.category,
-            'is_published': p.is_published,
-            'published_at': p.published_at.isoformat() if p.published_at else None,
-            'created_at': p.created_at.isoformat(),
-            'calendar_status': cal_status,
-            'date': (
-                p.published_at.strftime('%Y-%m-%d') if p.published_at
-                else p.created_at.strftime('%Y-%m-%d')
-            ),
-        })
-
+    data = get_calendar_posts(start_dt, end_dt)
     return Response(data, status=status.HTTP_200_OK)
