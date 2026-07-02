@@ -1423,6 +1423,18 @@ onBeforeUnmount(() => {
     radial-gradient(ellipse 80% 60% at 50% 0%, rgba(16, 185, 129, 0.07) 0%, transparent 60%),
     radial-gradient(ellipse 60% 50% at 80% 100%, rgba(16, 185, 129, 0.04) 0%, transparent 50%);
   background-attachment: fixed;
+
+  /* Page-level art direction: retune the semantic tokens to the proposal's
+     dark-teal palette. Custom properties inherit into child components, so
+     token-based markup follows this look automatically — no per-class
+     :deep allow-list needed for token consumers. */
+  --color-surface-muted: #112e29;
+  --color-surface-muted-rgb: 17 46 41;
+  --color-surface-raised: rgba(230, 239, 239, 0.12);
+  --color-border: rgba(230, 239, 239, 0.25);
+  --color-border-muted: rgba(230, 239, 239, 0.20);
+  --color-primary-soft: rgba(16, 185, 129, 0.25);
+  --color-primary-soft-rgb: 16 185 129;
 }
 
 [data-theme="dark"] :deep(section),
@@ -1431,10 +1443,6 @@ onBeforeUnmount(() => {
 [data-theme="dark"] :deep(.proposal-closing) {
   background-color: transparent !important;
   box-shadow: none !important;
-}
-
-[data-theme="dark"] :deep(.bg-surface-muted) {
-  background-color: #112e29 !important;
 }
 
 /* Yellow notice backgrounds (validity notice in ProposalClosing) */
@@ -1475,14 +1483,6 @@ onBeforeUnmount(() => {
 
 
 
-/* Borders — gray shades */
-[data-theme="dark"] :deep(.border-border-muted) {
-  border-color: rgba(230, 239, 239, 0.20) !important;
-}
-[data-theme="dark"] :deep(.border-border-default) {
-  border-color: rgba(230, 239, 239, 0.25) !important;
-}
-
 /* Borders — emerald shades (stages, methodology, timeline) */
 [data-theme="dark"] :deep(.border-emerald-100) {
   border-color: rgba(16, 185, 129, 0.30) !important;
@@ -1500,11 +1500,6 @@ onBeforeUnmount(() => {
 }
 
 
-
-/* Emerald backgrounds in sections */
-[data-theme="dark"] :deep(.bg-primary-soft) {
-  background-color: rgba(16, 185, 129, 0.25) !important;
-}
 
 /* Client-action badges (ProcessMethodology "Tu aporte" pills) */
 [data-theme="dark"] :deep(.bg-primary-soft.text-text-brand) {
@@ -1526,11 +1521,6 @@ onBeforeUnmount(() => {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), 0 0 24px rgba(16, 185, 129, 0.15) !important;
 }
 
-
-/* SectionCounter, PdfDownloadButton, ShareButton text in dark */
-[data-theme="dark"] :deep(.text-text-brand) {
-  color: #6ee7b7 !important;
-}
 
 /* Nav buttons (SectionNavButtons uses scoped CSS with inline rgba) */
 [data-theme="dark"] :deep(.nav-side) {
@@ -1611,13 +1601,6 @@ onBeforeUnmount(() => {
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 18px rgba(16, 185, 129, 0.14), inset 0 1px 0 rgba(16, 185, 129, 0.08) !important;
 }
 
-/* ProposalIndex items in dark */
-[data-theme="dark"] :deep(.bg-gray-200) {
-  background-color: rgba(230, 239, 239, 0.18) !important;
-}
-[data-theme="dark"] :deep(.bg-surface-raised) {
-  background-color: rgba(230, 239, 239, 0.12) !important;
-}
 [data-theme="dark"] :deep(.hover\:bg-surface-muted:hover) {
   background-color: rgba(230, 239, 239, 0.08) !important;
 }
@@ -1779,5 +1762,5 @@ onBeforeUnmount(() => {
   background-color: rgba(255, 255, 255, 0.10) !important;
 }
 
-/* ── FunctionalRequirementsModal (teleported, can't reach via :deep) — handled inline via .dark-modal class ── */
+/* Teleported modals (requirements, calculator) set their own :data-theme — see InvestmentCalculatorModal pattern. */
 </style>
