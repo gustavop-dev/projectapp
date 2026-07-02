@@ -129,3 +129,139 @@ test.describe('Proposal Functional Requirements Modal', () => {
     await expect(page.getByText('Barra de navegación responsive')).toBeVisible();
   });
 });
+
+// ── Item ↔ technical requirement traceability (nested modal) ────────────────
+
+const mockProposalWithTech = {
+  ...mockProposal,
+  sections: [
+    mockProposal.sections[0],
+    {
+      ...mockProposal.sections[1],
+      content_json: {
+        ...mockProposal.sections[1].content_json,
+        groups: [
+          {
+            id: 'views',
+            icon: '🖥️',
+            title: 'Vistas',
+            description: 'Páginas principales del sitio.',
+            items: [
+              { icon: '🏠', name: 'Home', description: 'Página principal con hero y servicios', id: 'item-views-home' },
+              { icon: '📞', name: 'Contacto', description: 'Formulario de contacto', id: 'item-views-contacto' },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      id: 3,
+      section_type: 'technical_document',
+      title: '🔧 Detalle técnico',
+      order: 2,
+      is_enabled: true,
+      content_json: {
+        epics: [{
+          epicKey: 'views',
+          title: 'Vistas',
+          description: 'Páginas del sitio.',
+          requirements: [{
+            flowKey: 'req-home',
+            title: 'Home dinámico con secciones administrables',
+            description: 'Hero, servicios y testimonios editables desde el panel.',
+            priority: 'high',
+            linked_item_ids: ['item-views-home'],
+          }],
+        }],
+      },
+    },
+  ],
+};
+
+test.describe('Nested linked-requirements modal', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript((_uuid) => {
+      localStorage.setItem('proposal_onboarding_seen', 'true');
+      localStorage.setItem(`requirements_onboarding_seen_${_uuid}`, 'true');
+    }, MOCK_UUID);
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === `proposals/${MOCK_UUID}/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposalWithTech) };
+      }
+      return null;
+    });
+  });
+
+  test('item with linked requirements shows link that opens the nested modal', {
+    tag: [...PROPOSAL_FUNCTIONAL_REQUIREMENTS_MODAL, '@role:guest'],
+  }, async ({ page }) => {
+    await navigateToRequirements(page);
+
+    await page.getByText('Vistas').first().click();
+    await expect(page.getByText('Página principal con hero y servicios')).toBeVisible({ timeout: 3000 });
+
+    // Only the linked item shows the link
+    const links = page.getByTestId('view-requirements-link');
+    await expect(links).toHaveCount(1);
+    await expect(links.first()).toContainText('Ver requerimientos (1)');
+
+    await links.first().click();
+
+    // Nested modal: requirement title + priority badge + description
+    const nested = page.getByTestId('linked-requirement');
+    await expect(nested).toBeVisible({ timeout: 3000 });
+    await expect(nested).toContainText('Home dinámico con secciones administrables');
+    await expect(nested).toContainText('Alta');
+    await expect(nested).toContainText('Hero, servicios y testimonios editables desde el panel.');
+  });
+
+  test('closing the nested modal keeps the group modal open', {
+    tag: [...PROPOSAL_FUNCTIONAL_REQUIREMENTS_MODAL, '@role:guest'],
+  }, async ({ page }) => {
+    await navigateToRequirements(page);
+
+    await page.getByText('Vistas').first().click();
+    await page.getByTestId('view-requirements-link').first().click();
+    await expect(page.getByTestId('linked-requirement')).toBeVisible({ timeout: 3000 });
+
+    await page.getByRole('button', { name: 'Cerrar' }).click();
+
+    await expect(page.getByTestId('linked-requirement')).toHaveCount(0);
+    await expect(page.getByText('Página principal con hero y servicios')).toBeVisible();
+  });
+
+  test('nested requirements link also works in executive mode', {
+    tag: [...PROPOSAL_FUNCTIONAL_REQUIREMENTS_MODAL, '@role:guest'],
+  }, async ({ page }) => {
+    await page.goto(`/proposal/${MOCK_UUID}?mode=executive`);
+
+    const nextBtn = page.getByTestId('nav-next');
+    await expect(nextBtn).toBeVisible({ timeout: 15000 });
+    await nextBtn.click();
+    await expect(page.getByText('Requerimientos funcionales')).toBeVisible({ timeout: 5000 });
+
+    await page.getByText('Vistas').first().click();
+    await page.getByTestId('view-requirements-link').first().click();
+    await expect(page.getByTestId('linked-requirement')).toContainText(
+      'Home dinámico con secciones administrables', { timeout: 3000 },
+    );
+  });
+
+  test('legacy proposal without item ids shows no requirements link', {
+    tag: [...PROPOSAL_FUNCTIONAL_REQUIREMENTS_MODAL, '@role:guest'],
+  }, async ({ page }) => {
+    // Override with the legacy mock (items without ids, no technical doc)
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === `proposals/${MOCK_UUID}/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
+      }
+      return null;
+    });
+
+    await navigateToRequirements(page);
+
+    await page.getByText('Vistas').first().click();
+    await expect(page.getByText('Página principal con hero y servicios')).toBeVisible({ timeout: 3000 });
+    await expect(page.getByTestId('view-requirements-link')).toHaveCount(0);
+  });
+});

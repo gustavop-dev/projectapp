@@ -16,6 +16,7 @@
       v-if="sectionType === 'technical_document'"
       :section="section"
       :module-link-options="moduleLinkOptions"
+      :item-link-options="itemLinkOptions"
       @save="emit('save', $event)"
     />
 
@@ -792,10 +793,13 @@
                       <FieldInput v-model="item.name" label="Nombre" />
                     </div>
                     <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
+                    <div class="mt-1" title="Identificador estable usado para enlazar requerimientos técnicos. Se genera automáticamente al guardar; no lo cambies si ya tiene requerimientos enlazados.">
+                      <FieldInput v-model="item.id" label="ID (enlace técnico)" placeholder="auto al guardar" />
+                    </div>
                   </div>
                 </template>
               </draggable>
-              <button type="button" class="text-xs text-text-brand font-medium" @click="group.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
+              <button type="button" class="text-xs text-text-brand font-medium" @click="group.items.push({ id: '', icon: '', name: '', description: '' })">+ Agregar elemento</button>
             </div>
           </div>
         </div>
@@ -880,10 +884,13 @@
                         <FieldInput v-model="item.name" label="Nombre" />
                       </div>
                       <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
+                      <div class="mt-1" title="Identificador estable usado para enlazar requerimientos técnicos. Se genera automáticamente al guardar; no lo cambies si ya tiene requerimientos enlazados.">
+                        <FieldInput v-model="item.id" label="ID (enlace técnico)" placeholder="auto al guardar" />
+                      </div>
                     </div>
                   </template>
                 </draggable>
-                <button type="button" class="text-xs text-text-brand font-medium" @click="mod.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
+                <button type="button" class="text-xs text-text-brand font-medium" @click="mod.items.push({ id: '', icon: '', name: '', description: '' })">+ Agregar elemento</button>
               </div>
             </div>
           </div>
@@ -974,6 +981,7 @@ import {
   formToReadableText as _formToReadableText,
   groupToReadableText as _groupToReadableText,
 } from '~/components/BusinessProposal/admin/sectionEditorUtils.js';
+import { ensureFunctionalRequirementItemIds } from '~/utils/itemRequirementLinks';
 
 // --- Inline sub-components (render functions for prod compatibility) ---
 const FieldInput = {
@@ -1014,6 +1022,8 @@ const props = defineProps({
   proposalData: { type: Object, default: () => ({}) },
   /** { id, label }[] for technical_document linked_module_ids */
   moduleLinkOptions: { type: Array, default: () => [] },
+  /** { groupId, groupLabel, items }[] for technical_document linked_item_ids */
+  itemLinkOptions: { type: Array, default: () => [] },
   /** All sections in the proposal (used by value_added_modules to discover available group ids). */
   allSections: { type: Array, default: () => [] },
 });
@@ -1260,7 +1270,12 @@ function handleSave() {
       return;
     }
 
-    const contentJson = formToJson(form, sectionType.value);
+    let contentJson = formToJson(form, sectionType.value);
+    // Assign stable item ids client-side so the technical editor can link
+    // requirements right away (the backend re-ensures ids on save anyway).
+    if (sectionType.value === 'functional_requirements') {
+      contentJson = ensureFunctionalRequirementItemIds(contentJson);
+    }
     if (pasteMode.value) {
       contentJson._editMode = 'paste';
       contentJson.rawText = pasteText.value;

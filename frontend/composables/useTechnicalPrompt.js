@@ -20,7 +20,8 @@ No escribes narrativa comercial ni precios. Respondes: **cómo** se construye y 
 
 1. **Sin duplicar la propuesta comercial** — No repitas valor de negocio, storytelling ni inversión.
 2. **Claves estables** — Cada módulo del producto tiene \`epicKey\` único (slug: minúsculas, guiones). Cada requerimiento bajo un módulo tiene \`flowKey\` único en toda la propuesta (slug).
-3. **Módulos del producto = agrupadores** — Los módulos del producto son áreas o bloques funcionales del sistema (ej. Tienda pública, Panel admin). Los requerimientos son entregables o flujos concretos dentro de ese módulo.
+3. **Módulos del producto = tarjetas comerciales** — Organiza \`epics[]\` siguiendo la MISMA estructura de la sección \`functionalRequirements\` del paso 1, para que el cliente pueda ir de la propuesta comercial al detalle técnico sin perderse: crea **una épica por cada tarjeta comercial** — una para \`views\` (Vistas), una para \`components\` (Componentes), una para \`features\` (Funcionalidades Específicas), una por cada módulo base incluido (\`admin_module\`, \`analytics_dashboard\`, \`kpi_dashboard_module\`, \`manual_module\`) y una por cada módulo de \`additionalModules\` contratado o preseleccionado (\`default_selected: true\`). Usa \`epicKey\` = id del grupo comercial (ej. \`views\`, \`admin_module\`, \`pwa_module\`) y en \`linked_module_ids\` de la épica pon el id canónico del grupo (\`group-<id>\` para grupos, \`module-<id>\` para módulos de calculadora). Los requerimientos son entregables o flujos concretos dentro de esa épica.
+3b. **Trazabilidad item → requerimiento (\`linked_item_ids\`)** — Cada item de \`functionalRequirements\` del paso 1 trae un \`id\` estable (formato \`item-<grupo>-<slug>\`). En cada requerimiento técnico, incluye \`linked_item_ids\`: array con los \`id\` EXACTOS de los items comerciales que ese requerimiento implementa. **Copia los ids literalmente del JSON del paso 1 — NUNCA los inventes ni los reconstruyas de memoria.** Un requerimiento puede enlazar varios items; si no implementa ningún item concreto (ej. infraestructura transversal), omite el campo o déjalo \`[]\`. **Cobertura:** todo item comercial debería quedar enlazado por AL MENOS un requerimiento — esos enlaces alimentan el modal "Ver requerimientos" de la propuesta comercial y el PDF.
 4. **No inventes stack** — Si el contexto no indica tecnología, deja campos vacíos o "Por definir" en una sola palabra donde aplique.
 5. **Preparación para el crecimiento (\`growthReadiness\`)** — Describe **cómo el sistema está preparado para crecer** (tráfico, datos, integraciones, equipos), no solo métricas puntuales de rendimiento: es complementario a \`performanceQuality\`.
 6. **Lenguaje accesible en requerimientos** — Los campos \`title\` y \`description\` de cada requerimiento deben usar lenguaje que un dueño de negocio entienda sin ayuda técnica. Los detalles de implementación van en \`configuration\` y \`usageFlow\`.
@@ -82,7 +83,7 @@ El siguiente bloque es un **esqueleto vacío** (solo forma y claves). En tu resp
 - \`architecture.patterns[]\`: \`{ "component", "pattern", "description" }\`
 - \`dataModel.entities[]\`: \`{ "name", "description", "keyFields" }\`
 - \`growthReadiness\`: \`summary\` (texto) y \`strategies[]\` con \`dimension\` (ámbito: tráfico, datos, colas…), \`preparation\` (qué ya está previsto), \`evolution\` (cómo evoluciona ante más carga o alcance)
-- \`epics[]\`: \`{ "epicKey", "title", "description", "linked_module_ids"?, "requirements" }\` — opcional \`linked_module_ids\`: array de ids comerciales (\`module-…\`, \`group-…\`, o id de módulo de inversión); si falta o está vacío, el módulo/requisito es alcance base (siempre visible en modo técnico). Cada ítem de \`requirements\`: \`flowKey\`, \`title\` (obligatorio si el requerimiento no es vacío), opcionales \`description\`, \`configuration\`, \`usageFlow\`, \`priority\`, \`linked_module_ids\`
+- \`epics[]\`: \`{ "epicKey", "title", "description", "linked_module_ids"?, "requirements" }\` — opcional \`linked_module_ids\`: array de ids comerciales (\`module-…\`, \`group-…\`, o id de módulo de inversión); si falta o está vacío, el módulo/requisito es alcance base (siempre visible en modo técnico). Cada ítem de \`requirements\`: \`flowKey\`, \`title\` (obligatorio si el requerimiento no es vacío), opcionales \`description\`, \`configuration\`, \`usageFlow\`, \`priority\`, \`linked_module_ids\`, \`linked_item_ids\` (array de \`id\`s de items comerciales del paso 1 que este requerimiento implementa — copiar literalmente, ver PRINCIPIO 3b)
 - \`apiDomains[]\`: \`{ "domain", "summary" }\`
 - \`integrations.included[]\`: \`service\`, \`provider\`, \`connection\`, \`dataExchange\`, \`accountOwner\` — \`excluded[]\`: \`service\`, \`reason\`, \`availability\`
 - \`environments[]\`: \`name\`, \`purpose\`, \`url\`, \`database\`, \`whoAccesses\` — Servidor estándar ProjectApp: VPS con 4 CPUs y 8 GB RAM. URLs por defecto: staging → \`<nombre-propuesta>.project.co\`, producción → dominio propio del cliente (ej. \`<nombre-propuesta>.co\` o el que indique el contexto).
@@ -93,7 +94,7 @@ El siguiente bloque es un **esqueleto vacío** (solo forma y claves). En tu resp
 
 ### Reglas
 
-- **No agregues** propiedades de primer nivel que no estén en el esquema anterior (salvo \`linked_module_ids\` dentro de \`epics\` o \`requirements\`, opcional).
+- **No agregues** propiedades de primer nivel que no estén en el esquema anterior (salvo \`linked_module_ids\` dentro de \`epics\` o \`requirements\`, y \`linked_item_ids\` dentro de \`requirements\`, opcionales).
 - **No elimines** claves de primer nivel; si no hay datos, usa string vacío \`""\` o array vacío \`[]\` según el tipo.
 - **epics[].requirements[].title** es obligatorio en cada requerimiento que no sea placeholder vacío.
 - **flowKey** y **epicKey**: ASCII, minúsculas, números y guiones; sin espacios.
@@ -105,7 +106,7 @@ Devuelve **únicamente** un objeto JSON válido: el contenido de \`technicalDocu
 
 ## CONTEXTO (rellenar por el usuario)
 
-**1) Alineación con el paso 1 (recomendado)** — Pega el JSON comercial que generaste con el prompt comercial, o **extractos** (por ejemplo \`sections\` relevantes: \`functionalRequirements\`, \`general\`, \`timeline\`, etc.) para que el detalle técnico sea coherente con el alcance ya descrito. Si el contexto es muy largo, basta con un resumen fiel más las partes clave.
+**1) Alineación con el paso 1 (OBLIGATORIO para trazabilidad)** — Pega el JSON comercial que generaste con el prompt comercial; como mínimo la sección \`functionalRequirements\` **completa y sin recortar los \`id\` de los items** — sin ella no puedes rellenar \`linked_item_ids\` y la trazabilidad comercial↔técnica queda vacía. Añade otros extractos útiles (\`general\`, \`timeline\`, etc.). Si el contexto es muy largo, resume lo demás pero nunca los ids de \`functionalRequirements\`. **Nota:** los ids dependen del idioma de la propuesta; no reutilices un detalle técnico generado para la versión en otro idioma.
 
 **2) Datos adicionales** (opcional, si faltan en el JSON pegado):
 

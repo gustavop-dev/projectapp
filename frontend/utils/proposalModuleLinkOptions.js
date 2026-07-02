@@ -100,6 +100,45 @@ export function buildProposalModuleIdAliasMap(sections) {
   return buildProposalModuleLinkCatalog(sections).aliasMap;
 }
 
+/**
+ * Build the grouped item options for the admin technical-document editor's
+ * per-requirement "link to commercial items" picker. Items without an id
+ * are skipped (they get one on the next functional-requirements save).
+ *
+ * @param {Array<{ section_type?: string, content_json?: object }>} sections
+ * @returns {Array<{ groupId: string, groupLabel: string, items: Array<{ id: string, label: string }> }>}
+ */
+export function buildProposalItemLinkOptions(sections) {
+  if (!Array.isArray(sections)) return [];
+  const fr = sections.find((s) => s?.section_type === 'functional_requirements');
+  const cj = fr?.content_json || {};
+  const groups = [...(cj.groups || []), ...(cj.additionalModules || [])];
+  const out = [];
+
+  for (const g of groups) {
+    if (!g || typeof g !== 'object') continue;
+    const groupId = g.id == null ? '' : String(g.id).trim();
+    if (!groupId) continue;
+    const items = [];
+    for (const item of Array.isArray(g.items) ? g.items : []) {
+      if (!item || typeof item !== 'object') continue;
+      const itemId = typeof item.id === 'string' ? item.id.trim() : '';
+      if (!itemId) continue;
+      items.push({
+        id: itemId,
+        label: `${item.icon || ''} ${item.name || itemId}`.trim(),
+      });
+    }
+    if (!items.length) continue;
+    out.push({
+      groupId,
+      groupLabel: `${g.icon || ''} ${g.title || groupId}`.trim(),
+      items,
+    });
+  }
+  return out;
+}
+
 export function buildProposalModuleIdAliasMapFromOptions(options) {
   const aliasMap = {};
   for (const option of options || []) {
@@ -147,6 +186,10 @@ export function normalizeTechnicalDocumentModuleLinks(contentJson, aliasMap = {}
       normalizedRequirement.linked_module_ids = normalizeLinkedModuleIds(
         requirement.linked_module_ids || requirement.linkedModuleIds,
         aliasMap,
+      );
+      delete normalizedRequirement.linkedItemIds;
+      normalizedRequirement.linked_item_ids = normalizeLinkedModuleIds(
+        requirement.linked_item_ids || requirement.linkedItemIds,
       );
       return normalizedRequirement;
     });

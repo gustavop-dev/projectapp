@@ -1771,3 +1771,64 @@ describe('form-to-paste auto-sync (formToReadableText reflects form state)', () 
     expect(result.payload.content_json.clientName).toBe('María García');
   });
 });
+
+
+describe('functional_requirements item ids (traceability)', () => {
+  const frJsonWithIds = {
+    index: '7',
+    title: 'Requerimientos',
+    intro: 'Detalle.',
+    groups: [{
+      id: 'views', icon: '🖥️', title: 'Vistas', description: 'Páginas.',
+      items: [
+        { icon: '🏠', name: 'Home', description: 'Landing.', id: 'item-views-home' },
+        { icon: '📧', name: 'Contacto', description: 'Formulario.' },
+      ],
+    }],
+    additionalModules: [],
+  };
+
+  it('buildFormFromJson preserves existing item ids and defaults missing ones to empty string', () => {
+    const form = buildFormFromJson(frJsonWithIds, 'functional_requirements');
+    expect(form.groups[0].items[0].id).toBe('item-views-home');
+    expect(form.groups[0].items[1].id).toBe('');
+  });
+
+  it('formToJson keeps existing item ids and omits empty ones', () => {
+    const form = buildFormFromJson(frJsonWithIds, 'functional_requirements');
+    const json = formToJson(form, 'functional_requirements');
+    expect(json.groups[0].items[0].id).toBe('item-views-home');
+    expect(json.groups[0].items[1].id).toBeUndefined();
+  });
+
+  it('buildSavePayload auto-assigns ids to items missing one', () => {
+    const form = buildFormFromJson(frJsonWithIds, 'functional_requirements');
+    const { payload } = buildSavePayload(
+      form, 'functional_requirements', false, '', 'Reqs', false, 99,
+    );
+    const items = payload.content_json.groups[0].items;
+    expect(items[0].id).toBe('item-views-home');
+    expect(items[1].id).toBe('item-views-contacto');
+  });
+
+  it('mounted editor emits save payload with auto-assigned item ids', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('functional_requirements', frJsonWithIds),
+    });
+
+    await wrapper.findAll('button').find((b) => b.text() === 'Guardar Sección').trigger('click');
+
+    const emitted = wrapper.emitted('save');
+    expect(emitted).toHaveLength(1);
+    const items = emitted[0][0].payload.content_json.groups[0].items;
+    expect(items[0].id).toBe('item-views-home');
+    expect(items[1].id).toBe('item-views-contacto');
+  });
+
+  it('renders an editable ID field per item', () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('functional_requirements', frJsonWithIds),
+    });
+    expect(wrapper.text()).toContain('ID (enlace técnico)');
+  });
+});

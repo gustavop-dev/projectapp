@@ -1,7 +1,11 @@
 """Tests for content.services.proposal_module_links — 100% coverage target."""
 
 from content.services.proposal_module_links import (
+    build_item_id,
+    build_item_requirements_map,
     build_proposal_module_link_catalog,
+    collect_functional_requirement_item_ids,
+    ensure_functional_requirements_item_ids,
     normalize_linked_module_ids,
     normalize_technical_document_module_links,
 )
@@ -303,3 +307,161 @@ class TestNormalizeTechnicalDocumentModuleLinks:
         result = normalize_technical_document_module_links(content, [])
         assert result['epics'][0]['linked_module_ids'] == ['a']
         assert 'requirements' not in result['epics'][0]
+
+
+# ---------------------------------------------------------------------------
+# ensure_functional_requirements_item_ids
+# ---------------------------------------------------------------------------
+
+class TestEnsureFunctionalRequirementsItemIds:
+    def test_returns_empty_dict_for_non_dict(self):
+        assert ensure_functional_requirements_item_ids(None) == {}
+        assert ensure_functional_requirements_item_ids('nope') == {}
+
+    def test_assigns_id_from_group_and_name(self):
+        content = {'groups': [{'id': 'views', 'items': [{'name': 'Registro de usuario'}]}]}
+        result = ensure_functional_requirements_item_ids(content)
+        assert result['groups'][0]['items'][0]['id'] == 'item-views-registro-de-usuario'
+
+    def test_preserves_existing_id_verbatim(self):
+        content = {'groups': [{'id': 'views', 'items': [{'name': 'Home', 'id': 'custom_id'}]}]}
+        result = ensure_functional_requirements_item_ids(content)
+        assert result['groups'][0]['items'][0]['id'] == 'custom_id'
+
+    def test_dedupes_generated_ids_with_numeric_suffix(self):
+        content = {'groups': [{'id': 'views', 'items': [{'name': 'Home'}, {'name': 'Home'}, {'name': 'Home'}]}]}
+        result = ensure_functional_requirements_item_ids(content)
+        ids = [i['id'] for i in result['groups'][0]['items']]
+        assert ids == ['item-views-home', 'item-views-home-2', 'item-views-home-3']
+
+    def test_generated_id_avoids_collision_with_existing_id(self):
+        content = {'groups': [{'id': 'views', 'items': [
+            {'name': 'Home', 'id': 'item-views-home'},
+            {'name': 'Home'},
+        ]}]}
+        result = ensure_functional_requirements_item_ids(content)
+        assert result['groups'][0]['items'][1]['id'] == 'item-views-home-2'
+
+    def test_covers_additional_modules(self):
+        content = {'additionalModules': [{'id': 'billing_module', 'items': [{'name': 'Factura DIAN'}]}]}
+        result = ensure_functional_requirements_item_ids(content)
+        assert result['additionalModules'][0]['items'][0]['id'] == 'item-billing_module-factura-dian'
+
+    def test_skips_item_without_name(self):
+        content = {'groups': [{'id': 'views', 'items': [{'name': '', 'description': 'x'}]}]}
+        result = ensure_functional_requirements_item_ids(content)
+        assert 'id' not in result['groups'][0]['items'][0]
+
+    def test_tolerates_non_dict_groups_and_items(self):
+        content = {'groups': ['nope', {'id': 'views', 'items': [None, 'str', {'name': 'Home'}]}]}
+        result = ensure_functional_requirements_item_ids(content)
+        assert result['groups'][1]['items'][2]['id'] == 'item-views-home'
+
+    def test_does_not_mutate_original(self):
+        content = {'groups': [{'id': 'views', 'items': [{'name': 'Home'}]}]}
+        ensure_functional_requirements_item_ids(content)
+        assert 'id' not in content['groups'][0]['items'][0]
+
+    def test_group_without_id_uses_group_fallback(self):
+        content = {'groups': [{'items': [{'name': 'Home'}]}]}
+        result = ensure_functional_requirements_item_ids(content)
+        assert result['groups'][0]['items'][0]['id'] == 'item-group-home'
+
+
+class TestBuildItemId:
+    def test_builds_slug(self):
+        assert build_item_id('views', 'Registro de Usuario') == 'item-views-registro-de-usuario'
+
+    def test_empty_name_returns_empty(self):
+        assert build_item_id('views', '  ') == ''
+
+
+# ---------------------------------------------------------------------------
+# collect_functional_requirement_item_ids
+# ---------------------------------------------------------------------------
+
+class TestCollectFunctionalRequirementItemIds:
+    def test_returns_empty_for_non_list(self):
+        assert collect_functional_requirement_item_ids(None) == set()
+
+    def test_returns_empty_when_no_fr_section(self):
+        assert collect_functional_requirement_item_ids([_inv([])]) == set()
+
+    def test_collects_ids_from_groups_and_modules(self):
+        sections = [_fr({
+            'groups': [{'id': 'views', 'items': [{'name': 'Home', 'id': 'item-views-home'}, {'name': 'NoId'}]}],
+            'additionalModules': [{'id': 'm1', 'items': [{'name': 'X', 'id': 'item-m1-x'}]}],
+        })]
+        assert collect_functional_requirement_item_ids(sections) == {'item-views-home', 'item-m1-x'}
+
+
+# ---------------------------------------------------------------------------
+# linked_item_ids normalization in normalize_technical_document_module_links
+# ---------------------------------------------------------------------------
+
+class TestNormalizeLinkedItemIds:
+    def test_camelcase_key_is_canonicalized(self):
+        content = {'epics': [{'requirements': [{'title': 'R', 'linkedItemIds': ['item-views-home']}]}]}
+        result = normalize_technical_document_module_links(content, [])
+        req = result['epics'][0]['requirements'][0]
+        assert req['linked_item_ids'] == ['item-views-home']
+        assert 'linkedItemIds' not in req
+
+    def test_dedupes_and_strips(self):
+        content = {'epics': [{'requirements': [
+            {'title': 'R', 'linked_item_ids': [' item-views-home ', 'item-views-home', '', None]},
+        ]}]}
+        result = normalize_technical_document_module_links(content, [])
+        assert result['epics'][0]['requirements'][0]['linked_item_ids'] == ['item-views-home']
+
+    def test_unknown_ids_are_preserved(self):
+        content = {'epics': [{'requirements': [{'title': 'R', 'linked_item_ids': ['item-dead-ref']}]}]}
+        result = normalize_technical_document_module_links(content, [])
+        assert result['epics'][0]['requirements'][0]['linked_item_ids'] == ['item-dead-ref']
+
+    def test_missing_key_defaults_to_empty_list(self):
+        content = {'epics': [{'requirements': [{'title': 'R'}]}]}
+        result = normalize_technical_document_module_links(content, [])
+        assert result['epics'][0]['requirements'][0]['linked_item_ids'] == []
+
+
+# ---------------------------------------------------------------------------
+# build_item_requirements_map
+# ---------------------------------------------------------------------------
+
+class TestBuildItemRequirementsMap:
+    def test_returns_empty_for_non_dict(self):
+        assert build_item_requirements_map(None) == {}
+        assert build_item_requirements_map({'epics': 'nope'}) == {}
+
+    def test_maps_items_to_requirements(self):
+        content = {'epics': [{
+            'epicKey': 'views',
+            'requirements': [
+                {'flowKey': 'r1', 'title': 'Registro', 'description': 'Alta de usuario',
+                 'priority': 'high', 'linked_item_ids': ['item-views-registro', 'item-views-home']},
+                {'flowKey': 'r2', 'title': 'Login', 'linked_item_ids': ['item-views-registro']},
+            ],
+        }]}
+        result = build_item_requirements_map(content)
+        assert [r['title'] for r in result['item-views-registro']] == ['Registro', 'Login']
+        assert result['item-views-home'][0] == {
+            'title': 'Registro',
+            'description': 'Alta de usuario',
+            'priority': 'high',
+            'epicKey': 'views',
+            'flowKey': 'r1',
+        }
+
+    def test_accepts_camelcase_linked_item_ids(self):
+        content = {'epics': [{'requirements': [{'title': 'R', 'linkedItemIds': ['item-x']}]}]}
+        assert 'item-x' in build_item_requirements_map(content)
+
+    def test_requirements_without_links_are_ignored(self):
+        content = {'epics': [{'requirements': [{'title': 'R'}]}]}
+        assert build_item_requirements_map(content) == {}
+
+    def test_tolerates_non_dict_epics_and_requirements(self):
+        content = {'epics': ['nope', {'requirements': [None, {'title': 'R', 'linked_item_ids': ['i']}]}]}
+        result = build_item_requirements_map(content)
+        assert 'i' in result

@@ -786,6 +786,77 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
     return row_y - 8
 
 
+_REQ_PRIORITY_LABELS = {
+    'es': {'critical': 'Crítica', 'high': 'Alta', 'medium': 'Media', 'low': 'Baja'},
+    'en': {'critical': 'Critical', 'high': 'High', 'medium': 'Medium', 'low': 'Low'},
+}
+
+
+def _render_linked_requirements(c, item, ps, row_y):
+    """Render the technical requirements linked to a group item as
+    indented sub-rows under the item's table row. Items without an id
+    or without linked requirements render nothing."""
+    linked = []
+    if ps:
+        item_id = _safe(item, 'id')
+        if item_id:
+            linked = (ps.get('_item_requirements_map') or {}).get(item_id) or []
+    if not linked:
+        return row_y
+
+    lang = (ps or {}).get('_pdf_lang', 'es')
+    labels = _REQ_PRIORITY_LABELS.get(lang, _REQ_PRIORITY_LABELS['es'])
+    indent_x = MARGIN_L + 28
+    text_w = CONTENT_W - 28 - 12
+    title_chars = int(text_w / 5.0) - 1
+    desc_chars = int(text_w / 4.5) - 1
+    line_h = 11
+
+    for req in linked:
+        title = _strip_emoji(req.get('title') or '')
+        desc = (req.get('description') or '').strip()
+        title_lines = textwrap.wrap(title, width=title_chars) or ([title] if title else [])
+        # Cap description length so dense groups don't explode the page count
+        desc_lines = textwrap.wrap(desc, width=desc_chars)[:3] if desc else []
+        if not title_lines and not desc_lines:
+            continue
+        n_lines = len(title_lines) + len(desc_lines)
+        row_h = n_lines * line_h + 10
+
+        if ps:
+            row_y = _check_y(c, row_y, ps, need=row_h)
+        row_bottom = row_y - row_h
+
+        # Subtle left accent to visually nest under the parent item
+        c.setFillColor(BONE)
+        c.rect(indent_x, row_bottom, 2, row_h, fill=1, stroke=0)
+
+        text_y = row_y - 9
+        c.setFont(_font('bold'), 8)
+        c.setFillColor(ESMERALD)
+        for i, tl in enumerate(title_lines):
+            c.drawString(indent_x + 8, text_y, tl)
+            if i == 0:
+                priority = (req.get('priority') or '').strip().lower()
+                label = labels.get(priority)
+                if label:
+                    title_line_w = c.stringWidth(tl, _font('bold'), 8)
+                    _draw_pill(
+                        c, indent_x + 8 + title_line_w + 6, text_y + 2, label,
+                        bg_color=BONE, text_color=ESMERALD,
+                        font_size=6, padding_h=4, padding_v=2,
+                    )
+            text_y -= line_h
+        c.setFont(_font('regular'), 8)
+        c.setFillColor(ESMERALD_80)
+        for dl in desc_lines:
+            c.drawString(indent_x + 8, text_y, dl)
+            text_y -= line_h
+
+        row_y = row_bottom
+    return row_y
+
+
 def _render_requirement_group_page(c, grp, ps=None, y=None,
                                     sub_index=''):
     """Render a single requirement group detail with cards layout."""
@@ -918,6 +989,7 @@ def _render_requirement_group_page(c, grp, ps=None, y=None,
                 text_y -= line_h
 
         row_y = row_bottom
+        row_y = _render_linked_requirements(c, item, ps, row_y)
 
     return row_y - 4
 
@@ -2150,6 +2222,43 @@ class ProposalPdfService:
                             base_weeks = int(_wm.group(1))
                         break
             ps['base_weeks'] = base_weeks
+
+            # Item → technical requirements map for the per-group detail
+            # pages. Uses the same normalization + module-selection filter
+            # as the technical PDF so both documents stay consistent.
+            from content.services.proposal_module_links import (
+                build_item_requirements_map,
+                build_proposal_module_link_catalog,
+                normalize_technical_document_module_links,
+            )
+            from content.services.technical_document_filter import (
+                filter_technical_document_by_module_selection,
+            )
+            item_req_map = {}
+            tech_sec = next(
+                (s for s in sections if s.section_type == 'technical_document'),
+                None,
+            )
+            if tech_sec and isinstance(tech_sec.content_json, dict):
+                section_payloads = [
+                    {
+                        'section_type': s.section_type,
+                        'content_json': s.content_json if isinstance(s.content_json, dict) else {},
+                    }
+                    for s in sections
+                ]
+                tech_data = normalize_technical_document_module_links(
+                    tech_sec.content_json, section_payloads,
+                )
+                link_catalog = build_proposal_module_link_catalog(section_payloads)
+                tech_data = filter_technical_document_by_module_selection(
+                    tech_data,
+                    selected_modules,
+                    always_included_ids=link_catalog['always_included_ids'],
+                )
+                item_req_map = build_item_requirements_map(tech_data)
+            ps['_item_requirements_map'] = item_req_map
+            ps['_pdf_lang'] = 'en' if proposal.language == 'en' else 'es'
 
             # ── Pass A: Content canvas (pages 3+) ────────────────────
             # Pages 1 = greeting, 2 = TOC; content starts at page 3.

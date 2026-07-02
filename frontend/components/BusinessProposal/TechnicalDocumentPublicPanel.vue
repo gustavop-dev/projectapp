@@ -582,6 +582,7 @@ import {
   FRAGMENT_ORDER,
   TECH_PANEL_TITLES,
 } from '~/utils/technicalProposalPanels';
+import { priorityLabel as sharedPriorityLabel } from '~/utils/requirementPriority';
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
@@ -743,13 +744,7 @@ const criticalFlowsNote = computed(() => {
 
 const decisionRows = computed(() => filterRows(props.contentJson?.decisions, ['decision', 'alternative', 'reason']));
 
-const PRIORITY_I18N = {
-  es: { critical: 'Crítico', high: 'Alta', medium: 'Media', low: 'Baja' },
-  en: { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' },
-};
-
 function priorityLabel(p) {
-  const map = PRIORITY_I18N[props.language] || PRIORITY_I18N.es;
-  return map[p] || p;
+  return sharedPriorityLabel(p, props.language);
 }
 </script>

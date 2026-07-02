@@ -312,4 +312,76 @@ test.describe('Admin Proposal Edit', () => {
     await expect(page.getByTestId('technical-json-stats')).toContainText('Última actualización:');
     await expect(page.getByTestId('technical-json-textarea')).toHaveAttribute('rows', '18');
   });
+
+  test('links a technical requirement to a commercial item and saves linked_item_ids', {
+    tag: [...ADMIN_PROPOSAL_EDIT, '@role:admin'],
+  }, async ({ page }) => {
+    const proposalWithItems = {
+      ...baseProposal,
+      sections: [
+        {
+          id: 200,
+          section_type: 'functional_requirements',
+          title: 'Requerimientos',
+          order: 7,
+          is_enabled: true,
+          content_json: {
+            index: '7',
+            title: 'Requerimientos',
+            intro: 'Detalle.',
+            groups: [{
+              id: 'views', icon: '🖥️', title: 'Vistas', description: 'Páginas.',
+              items: [
+                { icon: '🏠', name: 'Home', description: 'Landing.', id: 'item-views-home' },
+                { icon: '📧', name: 'Contacto', description: 'Formulario.', id: 'item-views-contacto' },
+              ],
+            }],
+            additionalModules: [],
+          },
+        },
+        ...baseProposal.sections,
+      ],
+    };
+    let capturedSectionPayload = null;
+
+    await mockApi(page, async ({ apiPath, method, route }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === 'proposals/1/detail/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(proposalWithItems) };
+      }
+      if (apiPath === 'proposals/sections/201/update/' && method === 'PATCH') {
+        capturedSectionPayload = route.request().postDataJSON();
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            section: { ...proposalWithItems.sections[1], ...capturedSectionPayload },
+          }),
+        };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/proposals/1/edit', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText('Edit Test')).toBeVisible({ timeout: 20_000 });
+
+    await page.getByRole('tab', { name: 'Det. técnico' }).click();
+    await expect(page.getByTestId('technical-req-description-textarea').first()).toBeVisible();
+
+    // The commercial-item link block lists the FR items grouped by card
+    const itemLinks = page.getByTestId('technical-req-item-links').first();
+    await expect(itemLinks).toBeVisible();
+    await expect(itemLinks).toContainText('Vistas');
+    await expect(itemLinks).toContainText('Home');
+
+    // Link the requirement to the "Home" item and save
+    await itemLinks.getByRole('checkbox').first().check();
+    await page.getByRole('button', { name: /Guardar detalle técnico/ }).click();
+
+    await expect.poll(() => capturedSectionPayload, { timeout: 10_000 }).not.toBeNull();
+    const savedReq = capturedSectionPayload.content_json.epics[0].requirements[0];
+    expect(savedReq.linked_item_ids).toEqual(['item-views-home']);
+  });
 });

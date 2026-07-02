@@ -224,6 +224,27 @@
                 </label>
               </div>
             </div>
+            <div v-if="itemLinkOptions.length" class="space-y-1 pt-1" data-testid="technical-req-item-links">
+              <p class="text-[10px] text-text-muted">Vincular a ítems comerciales (vistas/componentes/funcionalidades que implementa este requerimiento):</p>
+              <div v-for="grp in itemLinkOptions" :key="'rqi-'+ei+'-'+ri+'-'+grp.groupId" class="space-y-0.5">
+                <p class="text-[10px] font-medium text-text-subtle">{{ grp.groupLabel }}</p>
+                <div class="flex flex-wrap gap-x-2 gap-y-1 pl-2">
+                  <label
+                    v-for="it in grp.items"
+                    :key="'rqi-'+ei+'-'+ri+'-'+it.id"
+                    class="flex items-center gap-1 text-[11px] text-text-default cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      :checked="req.linked_item_ids.includes(it.id)"
+                      class="rounded border-gray-300 dark:border-white/[0.08] text-text-brand"
+                      @change="toggleLinkedId(req.linked_item_ids, it.id)"
+                    >
+                    <span class="max-w-[12rem] truncate" :title="it.label">{{ it.label }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
             <button type="button" class="text-xs text-red-500" @click="epic.requirements.splice(ri, 1)">Quitar requerimiento</button>
           </div>
         </div>
@@ -473,6 +494,8 @@ const props = defineProps({
   section: { type: Object, required: true },
   /** { id, label }[] from proposal FR + investment modules */
   moduleLinkOptions: { type: Array, default: () => [] },
+  /** { groupId, groupLabel, items: { id, label }[] }[] from FR items, for linked_item_ids */
+  itemLinkOptions: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['save']);
@@ -586,6 +609,7 @@ function mergeContent(src) {
             usageFlow: req.usageFlow || '',
             priority: typeof req.priority === 'string' ? req.priority : '',
             linked_module_ids: normLinkedIds(req.linked_module_ids || req.linkedModuleIds),
+            linked_item_ids: normalizeLinkedModuleIds(req.linked_item_ids || req.linkedItemIds),
           }))
           : [],
       }))
@@ -706,6 +730,7 @@ function addRequirement(epic) {
     usageFlow: '',
     priority: '',
     linked_module_ids: [],
+    linked_item_ids: [],
   });
 }
 function addApiDomain() {

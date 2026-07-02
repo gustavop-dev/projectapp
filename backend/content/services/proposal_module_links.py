@@ -7,6 +7,10 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+from django.utils.text import slugify
+
+ITEM_ID_PREFIX = 'item'
+
 
 def _string_id(value: Any) -> str:
     if value is None:
@@ -26,6 +30,116 @@ def _unique_strings(values: list[str]) -> list[str]:
         seen.add(value)
         out.append(value)
     return out
+
+
+def _iter_functional_requirement_groups(content_json: Any):
+    if not isinstance(content_json, dict):
+        return
+    for key in ('groups', 'additionalModules'):
+        entries = content_json.get(key)
+        if not isinstance(entries, list):
+            continue
+        for group in entries:
+            if isinstance(group, dict):
+                yield group
+
+
+def build_item_id(group_id: Any, name: Any) -> str:
+    group_slug = _string_id(group_id) or 'group'
+    name_slug = slugify(_string_id(name))
+    if not name_slug:
+        return ''
+    return f'{ITEM_ID_PREFIX}-{group_slug}-{name_slug}'
+
+
+def ensure_functional_requirements_item_ids(content_json: Any) -> dict[str, Any]:
+    """Assign stable ids to functional-requirements items that lack one.
+
+    Existing ids are preserved verbatim (they are opaque strings); generated
+    ids follow ``item-<group_id>-<slug(name)>`` and are deduped across the
+    whole section with a numeric suffix.
+    """
+    if not isinstance(content_json, dict):
+        return {}
+
+    out = copy.deepcopy(content_json)
+    seen: set[str] = set()
+    for group in _iter_functional_requirement_groups(out):
+        for item in group.get('items') or []:
+            if not isinstance(item, dict):
+                continue
+            existing = _string_id(item.get('id'))
+            if existing:
+                seen.add(existing)
+
+    for group in _iter_functional_requirement_groups(out):
+        for item in group.get('items') or []:
+            if not isinstance(item, dict):
+                continue
+            if _string_id(item.get('id')):
+                item['id'] = _string_id(item.get('id'))
+                continue
+            base = build_item_id(group.get('id'), item.get('name'))
+            if not base:
+                continue
+            candidate = base
+            suffix = 2
+            while candidate in seen:
+                candidate = f'{base}-{suffix}'
+                suffix += 1
+            item['id'] = candidate
+            seen.add(candidate)
+    return out
+
+
+def collect_functional_requirement_item_ids(sections: list[dict] | None) -> set[str]:
+    ids: set[str] = set()
+    if not isinstance(sections, list):
+        return ids
+    fr = next(
+        (section for section in sections
+         if isinstance(section, dict) and section.get('section_type') == 'functional_requirements'),
+        None,
+    )
+    if not isinstance(fr, dict):
+        return ids
+    for group in _iter_functional_requirement_groups(fr.get('content_json')):
+        for item in group.get('items') or []:
+            if not isinstance(item, dict):
+                continue
+            item_id = _string_id(item.get('id'))
+            if item_id:
+                ids.add(item_id)
+    return ids
+
+
+def build_item_requirements_map(technical_content_json: Any) -> dict[str, list[dict[str, Any]]]:
+    """Map functional-requirements item ids to the technical requirements linked to them."""
+    result: dict[str, list[dict[str, Any]]] = {}
+    if not isinstance(technical_content_json, dict):
+        return result
+    epics = technical_content_json.get('epics')
+    if not isinstance(epics, list):
+        return result
+    for epic in epics:
+        if not isinstance(epic, dict):
+            continue
+        requirements = epic.get('requirements')
+        if not isinstance(requirements, list):
+            continue
+        for requirement in requirements:
+            if not isinstance(requirement, dict):
+                continue
+            linked = requirement.get('linked_item_ids') or requirement.get('linkedItemIds')
+            for item_id in normalize_linked_module_ids(linked):
+                result.setdefault(item_id, []).append({
+                    'title': requirement.get('title') or '',
+                    'description': requirement.get('description') or '',
+                    'priority': requirement.get('priority') or '',
+                    'epicKey': epic.get('epicKey') or '',
+                    'flowKey': requirement.get('flowKey') or '',
+                })
+    return result
 
 
 def build_proposal_module_link_catalog(sections: list[dict] | None) -> dict[str, Any]:
@@ -162,6 +276,10 @@ def normalize_technical_document_module_links(
                 normalized_requirement['linked_module_ids'] = normalize_linked_module_ids(
                     requirement.get('linked_module_ids') or requirement.get('linkedModuleIds'),
                     alias_map,
+                )
+                normalized_requirement.pop('linkedItemIds', None)
+                normalized_requirement['linked_item_ids'] = normalize_linked_module_ids(
+                    requirement.get('linked_item_ids') or requirement.get('linkedItemIds'),
                 )
                 normalized_requirements.append(normalized_requirement)
             normalized_epic['requirements'] = normalized_requirements

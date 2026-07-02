@@ -3324,3 +3324,138 @@ class TestValueAddedModulesSection:
         text = '\n'.join(p.extract_text() or '' for p in reader.pages)
 
         assert 'Aplicación PWA' not in text
+
+
+# ── Item ↔ technical requirement traceability in group detail pages ──
+
+class TestGenerateWithLinkedItemRequirements:
+    def _create_sections(self, proposal, with_links=True):
+        item = {'name': 'Registro de usuario', 'description': 'Alta de usuarios.'}
+        if with_links:
+            item['id'] = 'item-views-registro-de-usuario'
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='Reqs', order=1, is_enabled=True,
+            content_json={
+                'index': '7', 'title': 'Requerimientos',
+                'intro': 'Detalle.',
+                'groups': [{
+                    'id': 'views', 'title': 'Vistas',
+                    'description': 'Páginas.',
+                    'items': [item],
+                }],
+                'additionalModules': [],
+            },
+        )
+        epic_req = {
+            'flowKey': 'req-registro',
+            'title': 'Registro con verificacion de email',
+            'description': 'Formulario con validacion en tiempo real.',
+            'priority': 'high',
+        }
+        if with_links:
+            epic_req['linked_item_ids'] = ['item-views-registro-de-usuario']
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='technical_document',
+            title='Detalle técnico', order=2, is_enabled=True,
+            content_json={'epics': [{
+                'epicKey': 'views', 'title': 'Vistas',
+                'requirements': [epic_req],
+            }]},
+        )
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_linked_requirements_rendered_under_item(
+        self, mock_back, mock_cover, proposal,
+    ):
+        self._create_sections(proposal, with_links=True)
+        result = ProposalPdfService.generate(proposal)
+        assert result is not None
+        reader = PdfReader(io.BytesIO(result))
+        text = '\n'.join(p.extract_text() or '' for p in reader.pages)
+        assert 'Registro con verificacion de email' in text
+        assert 'Alta' in text
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_legacy_proposal_without_ids_renders_unchanged(
+        self, mock_back, mock_cover, proposal,
+    ):
+        self._create_sections(proposal, with_links=False)
+        result = ProposalPdfService.generate(proposal)
+        assert result is not None
+        reader = PdfReader(io.BytesIO(result))
+        text = '\n'.join(p.extract_text() or '' for p in reader.pages)
+        # The item itself renders, but no linked technical requirement appears
+        assert 'Registro de usuario' in text
+        assert 'Registro con verificacion de email' not in text
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_deselected_module_requirements_excluded(
+        self, mock_back, mock_cover, proposal,
+    ):
+        """Requirements linked to a deselected calculator module don't leak
+        into the group detail pages."""
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='Reqs', order=1, is_enabled=True,
+            content_json={
+                'index': '7', 'title': 'Requerimientos',
+                'groups': [{
+                    'id': 'views', 'title': 'Vistas', 'description': 'Páginas.',
+                    'items': [{'name': 'Home', 'description': 'Landing.',
+                               'id': 'item-views-home'}],
+                }],
+                'additionalModules': [{
+                    'id': 'billing_module', 'title': 'Facturación',
+                    'is_calculator_module': True, 'price_percent': 10,
+                    'items': [{'name': 'Factura DIAN', 'description': 'Emisión.',
+                               'id': 'item-billing_module-factura-dian'}],
+                }],
+            },
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='technical_document',
+            title='Detalle técnico', order=2, is_enabled=True,
+            content_json={'epics': [{
+                'epicKey': 'billing', 'title': 'Facturación',
+                'linked_module_ids': ['module-billing_module'],
+                'requirements': [{
+                    'flowKey': 'req-dian',
+                    'title': 'Emision electronica DIAN',
+                    'priority': 'critical',
+                    'linked_module_ids': ['module-billing_module'],
+                    'linked_item_ids': ['item-billing_module-factura-dian'],
+                }],
+            }]},
+        )
+        # Empty selection → module not contracted
+        result = ProposalPdfService.generate(proposal, selected_modules=[])
+        assert result is not None
+        reader = PdfReader(io.BytesIO(result))
+        text = '\n'.join(p.extract_text() or '' for p in reader.pages)
+        assert 'Emision electronica DIAN' not in text

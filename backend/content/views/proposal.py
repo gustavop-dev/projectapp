@@ -1021,6 +1021,7 @@ def create_proposal_from_json(request):
     # Use DEFAULT_SECTIONS as a template for title/order/is_wide_panel
     default_sections = ProposalService.get_default_sections(proposal.language)
     from content.services.proposal_module_links import (
+        ensure_functional_requirements_item_ids,
         normalize_technical_document_module_links,
     )
 
@@ -1103,6 +1104,9 @@ def create_proposal_from_json(request):
                 else:
                     final_groups.append(g)
             content_json['groups'] = final_groups
+
+        if section_type == 'functional_requirements':
+            content_json = ensure_functional_requirements_item_ids(content_json)
 
         resolved_sections.append({
             'section_type': section_type,
@@ -1503,6 +1507,10 @@ def update_proposal_from_json(request, proposal_id):
         proposal.expires_at = data['expires_at']
 
     from accounts.services import proposal_client_service
+    from content.services.proposal_module_links import (
+        ensure_functional_requirements_item_ids,
+        normalize_technical_document_module_links,
+    )
     from content.services.proposal_service import ProposalService
 
     # When the JSON import includes client identity fields, route them through
@@ -1581,10 +1589,24 @@ def update_proposal_from_json(request, proposal_id):
                     else:
                         final_groups.append(g)
                 new_content['groups'] = final_groups
+                new_content = ensure_functional_requirements_item_ids(new_content)
 
             section.content_json = new_content
             section.save(update_fields=['content_json'])
             updated_sections.append(json_key)
+
+    technical_section = proposal.sections.filter(
+        section_type=ProposalSection.SectionType.TECHNICAL_DOCUMENT
+    ).first()
+    if technical_section and isinstance(technical_section.content_json, dict):
+        technical_section.content_json = normalize_technical_document_module_links(
+            technical_section.content_json,
+            [
+                {'section_type': s.section_type, 'content_json': s.content_json}
+                for s in proposal.sections.all()
+            ],
+        )
+        technical_section.save(update_fields=['content_json'])
 
     ProposalChangeLog.objects.create(
         proposal=proposal,

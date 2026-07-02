@@ -711,8 +711,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A] Admin reorders sections → `POST /api/proposals/:id/reorder-sections/`.
   - [Branch B] Admin updates individual section → `PATCH /api/proposals/sections/:id/update/`.
+  - [Branch C — item traceability] In the Det. técnico tab, each requirement shows "Vincular a ítems comerciales" checkboxes (grouped by functional_requirements card) that write `linked_item_ids`; saving persists them via the section update endpoint. These links power the public nested requirements modal and the commercial PDF sub-rows.
 - **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-proposal-edit.spec.js`
+- **E2E Spec:** `e2e/admin/admin-proposal-edit.spec.js` (includes linked_item_ids save test)
 
 ### FLOW: `admin-proposal-slug-edit`
 
@@ -835,15 +836,15 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/proposals/:id/edit` (Sections tab → functional_requirements section)
-- **Description:** Admin manages functional requirement groups (Views, Components, Features, Admin Module) and their items using the form interface.
+- **Description:** Admin manages functional requirement groups (Views, Components, Features, Admin Module) and their items using the form interface. Each item has an editable "ID (enlace técnico)" field — the stable id (`item-<group>-<slug>`) used by the technical document's `linked_item_ids` for item↔requirement traceability. Missing ids are auto-assigned on save (client mirror + backend `ensure_functional_requirements_item_ids`).
 - **Steps:**
   1. Admin opens the functional_requirements section editor.
   2. Four default groups render: Views, Components, Features, Admin Module.
   3. Admin edits group fields: icon, title, description.
-  4. Admin adds items to a group: icon, name, description.
+  4. Admin adds items to a group: icon, name, description, optional stable id (auto-generated on save when empty).
   5. Admin removes items from a group.
   6. Admin adds additional modules via "+ Agregar módulo adicional".
-  7. Admin saves the section → content_json includes groups[] and additionalModules[] with per-group `_editMode`.
+  7. Admin saves the section → content_json includes groups[] and additionalModules[] with per-group `_editMode` and per-item stable `id`.
 - **Coverage:** ⚠️ Partial
 - **E2E Spec:** `e2e/admin/admin-proposal-requirements.spec.js`
 - **Unit Tests:** `test/components/SectionEditor.test.js`
@@ -1410,6 +1411,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   4. Each card shows the justification text from `content_json.justifications`.
   5. A "Gratis" badge appears on every card.
   6. Optional `footer_note` renders at the bottom of the section.
+  7. [Optional] Clicking a card opens the shared requirements modal; items with linked technical requirements show the same nested "Ver requerimientos (N)" link as `proposal-functional-requirements-modal` (pass-through covered by `test/components/ValueAddedModules.test.js`).
 - **Coverage:** ✅ Covered — `frontend/e2e/proposal/proposal-value-added-modules.spec.js`
 
 ### FLOW: `proposal-calculator-modules`
@@ -1559,14 +1561,15 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** guest (via shared UUID link)
 - **Priority:** P2
 - **Routes:** `/proposal/:uuid`
-- **Description:** Client clicks a functional requirement group card in the proposal to open a detail modal showing individual requirement items with icons and descriptions.
+- **Description:** Client clicks a functional requirement group card in the proposal to open a detail modal showing individual requirement items with icons and descriptions. Items with linked technical requirements (`linked_item_ids` in the technical document, matched by the item's stable `id`) additionally show a "Ver requerimientos (N)" link that opens a nested `LinkedRequirementsModal` listing each requirement's title, priority badge, and description (no configuration/usageFlow). Works in both detailed and executive modes; legacy proposals without item ids show no link.
 - **Steps:**
   1. Client views the functional requirements section of the proposal.
   2. Client clicks a requirement group card.
   3. Detail modal opens listing individual items with icons and descriptions.
-  4. Client closes the modal by clicking outside or the close button.
+  4. [Branch — linked requirements] Client clicks "Ver requerimientos (N)" under an item → nested modal opens with the technical requirements that implement that item; closing it returns to the group modal.
+  5. Client closes the modal by clicking outside or the close button.
 - **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/proposal/proposal-requirements-modal.spec.js`
+- **E2E Spec:** `e2e/proposal/proposal-requirements-modal.spec.js` (includes nested-modal, executive-mode, and legacy-fallback tests)
 
 ### FLOW: `proposal-negotiate`
 

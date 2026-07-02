@@ -3028,7 +3028,20 @@ class ProposalService:
         """
         import copy
         source = DEFAULT_SECTIONS_EN if language == 'en' else DEFAULT_SECTIONS
-        return copy.deepcopy(source)
+        return ProposalService._with_item_ids(copy.deepcopy(source))
+
+    @staticmethod
+    def _with_item_ids(sections):
+        """Assign stable item ids to the functional_requirements section in place."""
+        from content.services.proposal_module_links import (
+            ensure_functional_requirements_item_ids,
+        )
+        for section in sections:
+            if section.get('section_type') == 'functional_requirements':
+                section['content_json'] = ensure_functional_requirements_item_ids(
+                    section.get('content_json')
+                )
+        return sections
 
     @staticmethod
     def get_default_sections(language='es'):
@@ -3050,10 +3063,10 @@ class ProposalService:
 
         config = ProposalDefaultConfig.objects.filter(language=language).first()
         if config and config.sections_json:
-            return copy.deepcopy(config.sections_json)
+            return ProposalService._with_item_ids(copy.deepcopy(config.sections_json))
 
         source = DEFAULT_SECTIONS_EN if language == 'en' else DEFAULT_SECTIONS
-        return copy.deepcopy(source)
+        return ProposalService._with_item_ids(copy.deepcopy(source))
 
     @staticmethod
     def get_default_section(language, section_type):

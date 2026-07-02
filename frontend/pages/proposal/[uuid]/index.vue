@@ -349,6 +349,7 @@ import {
   normalizeTechnicalDocumentModuleLinks,
 } from '~/utils/proposalModuleLinkOptions';
 import { filterTechnicalDocumentByModules } from '~/utils/filterTechnicalDocumentByModules';
+import { buildItemRequirementsMap } from '~/utils/itemRequirementLinks';
 import { useProposalDarkMode } from '~/composables/useProposalDarkMode';
 import { normalizePersistedSelectedIds } from '~/utils/proposalModuleSelectionStorage';
 import { RESOLVED_PROPOSAL_STATUSES, DEFAULT_HOSTING_PERCENT } from '~/stores/proposals_constants';
@@ -463,6 +464,24 @@ function effectiveSelectedModuleIdsForTechnical() {
   if (Array.isArray(persisted)) return [...persisted];
   return [];
 }
+
+// Item → technical requirements map for the commercial nested modal.
+// Filtered by the client's module selection so deselected calculator
+// modules never leak requirements into the commercial view.
+const itemRequirementsMap = computed(() => {
+  const tech = enabledSections.value.find((s) => s.section_type === 'technical_document');
+  if (!tech || !tech.content_json || typeof tech.content_json !== 'object') return {};
+  const normalizedDoc = normalizeTechnicalDocumentModuleLinks(
+    tech.content_json,
+    technicalModuleLinkCatalog.value.aliasMap,
+  );
+  const filteredDoc = filterTechnicalDocumentByModules(
+    normalizedDoc,
+    effectiveSelectedModuleIdsForTechnical(),
+    technicalModuleLinkCatalog.value.alwaysIncludedIds,
+  );
+  return buildItemRequirementsMap(filteredDoc);
+});
 
 const readMinutesEstimate = computed(() => {
   if (viewMode.value === 'executive') return 2;
@@ -883,6 +902,7 @@ function getSectionProps(section, displayIndex) {
       section: { ...section, content_json: { ...content, index: paddedIndex } },
       proposal: proposal.value || { sections: enabledSections.value },
       proposalUuid: proposal.value?.uuid || '',
+      itemRequirementsMap: itemRequirementsMap.value,
     };
   }
 
@@ -943,6 +963,7 @@ function getSectionProps(section, displayIndex) {
       currency: investContent.currency || proposal.value?.currency || 'COP',
       proposalUuid: proposal.value?.uuid || '',
       valueAddedModuleIds,
+      itemRequirementsMap: itemRequirementsMap.value,
     };
   }
 
