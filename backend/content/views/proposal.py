@@ -1563,7 +1563,8 @@ def update_proposal_from_json(request, proposal_id):
 
     # --- Update section content_json ---
     updated_sections = []
-    for section in proposal.sections.all():
+    all_sections = list(proposal.sections.all())
+    for section in all_sections:
         json_key = SECTION_TYPE_TO_KEY.get(section.section_type)
         if json_key and json_key in sections_data:
             new_content = sections_data[json_key]
@@ -1595,18 +1596,25 @@ def update_proposal_from_json(request, proposal_id):
             section.save(update_fields=['content_json'])
             updated_sections.append(json_key)
 
-    technical_section = proposal.sections.filter(
-        section_type=ProposalSection.SectionType.TECHNICAL_DOCUMENT
-    ).first()
-    if technical_section and isinstance(technical_section.content_json, dict):
-        technical_section.content_json = normalize_technical_document_module_links(
-            technical_section.content_json,
-            [
-                {'section_type': s.section_type, 'content_json': s.content_json}
-                for s in proposal.sections.all()
-            ],
+    # Re-normalize the technical document only when the import touched it or
+    # the functional requirements (whose item ids its links reference).
+    if {'technicalDocument', 'functionalRequirements'} & set(updated_sections):
+        technical_section = next(
+            (s for s in all_sections
+             if s.section_type == ProposalSection.SectionType.TECHNICAL_DOCUMENT),
+            None,
         )
-        technical_section.save(update_fields=['content_json'])
+        if technical_section and isinstance(technical_section.content_json, dict):
+            normalized = normalize_technical_document_module_links(
+                technical_section.content_json,
+                [
+                    {'section_type': s.section_type, 'content_json': s.content_json}
+                    for s in all_sections
+                ],
+            )
+            if normalized != technical_section.content_json:
+                technical_section.content_json = normalized
+                technical_section.save(update_fields=['content_json'])
 
     ProposalChangeLog.objects.create(
         proposal=proposal,

@@ -787,7 +787,7 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
 
 
 _REQ_PRIORITY_LABELS = {
-    'es': {'critical': 'Crítica', 'high': 'Alta', 'medium': 'Media', 'low': 'Baja'},
+    'es': {'critical': 'Crítico', 'high': 'Alta', 'medium': 'Media', 'low': 'Baja'},
     'en': {'critical': 'Critical', 'high': 'High', 'medium': 'Medium', 'low': 'Low'},
 }
 
@@ -804,8 +804,7 @@ def _render_linked_requirements(c, item, ps, row_y):
     if not linked:
         return row_y
 
-    lang = (ps or {}).get('_pdf_lang', 'es')
-    labels = _REQ_PRIORITY_LABELS.get(lang, _REQ_PRIORITY_LABELS['es'])
+    labels = _REQ_PRIORITY_LABELS.get(ps.get('_pdf_lang'), _REQ_PRIORITY_LABELS['es'])
     indent_x = MARGIN_L + 28
     text_w = CONTENT_W - 28 - 12
     title_chars = int(text_w / 5.0) - 1
@@ -814,17 +813,16 @@ def _render_linked_requirements(c, item, ps, row_y):
 
     for req in linked:
         title = _strip_emoji(req.get('title') or '')
-        desc = (req.get('description') or '').strip()
         title_lines = textwrap.wrap(title, width=title_chars) or ([title] if title else [])
-        # Cap description length so dense groups don't explode the page count
-        desc_lines = textwrap.wrap(desc, width=desc_chars)[:3] if desc else []
-        if not title_lines and not desc_lines:
+        # Rich description like the parent item rows (honors <br>/<b>/**bold**),
+        # capped so dense groups don't explode the page count.
+        desc_seg_lines = _desc_to_segmented_lines(req.get('description') or '', desc_chars)[:3]
+        if not title_lines and not desc_seg_lines:
             continue
-        n_lines = len(title_lines) + len(desc_lines)
+        n_lines = len(title_lines) + len(desc_seg_lines)
         row_h = n_lines * line_h + 10
 
-        if ps:
-            row_y = _check_y(c, row_y, ps, need=row_h)
+        row_y = _check_y(c, row_y, ps, need=row_h)
         row_bottom = row_y - row_h
 
         # Subtle left accent to visually nest under the parent item
@@ -847,10 +845,14 @@ def _render_linked_requirements(c, item, ps, row_y):
                         font_size=6, padding_h=4, padding_v=2,
                     )
             text_y -= line_h
-        c.setFont(_font('regular'), 8)
         c.setFillColor(ESMERALD_80)
-        for dl in desc_lines:
-            c.drawString(indent_x + 8, text_y, dl)
+        for seg_line in desc_seg_lines:
+            x = indent_x + 8
+            for seg_text, seg_bold in seg_line:
+                fnt = _font('bold') if seg_bold else _font('regular')
+                c.setFont(fnt, 8)
+                c.drawString(x, text_y, seg_text)
+                x += c.stringWidth(seg_text, fnt, 8)
             text_y -= line_h
 
         row_y = row_bottom
@@ -2224,15 +2226,13 @@ class ProposalPdfService:
             ps['base_weeks'] = base_weeks
 
             # Item → technical requirements map for the per-group detail
-            # pages. Uses the same normalization + module-selection filter
-            # as the technical PDF so both documents stay consistent.
+            # pages. Shares the technical PDF's normalize+filter pipeline
+            # so both documents stay consistent.
             from content.services.proposal_module_links import (
                 build_item_requirements_map,
-                build_proposal_module_link_catalog,
-                normalize_technical_document_module_links,
             )
             from content.services.technical_document_filter import (
-                filter_technical_document_by_module_selection,
+                get_filtered_technical_document,
             )
             item_req_map = {}
             tech_sec = next(
@@ -2247,14 +2247,8 @@ class ProposalPdfService:
                     }
                     for s in sections
                 ]
-                tech_data = normalize_technical_document_module_links(
-                    tech_sec.content_json, section_payloads,
-                )
-                link_catalog = build_proposal_module_link_catalog(section_payloads)
-                tech_data = filter_technical_document_by_module_selection(
-                    tech_data,
-                    selected_modules,
-                    always_included_ids=link_catalog['always_included_ids'],
+                tech_data = get_filtered_technical_document(
+                    tech_sec.content_json, section_payloads, selected_modules,
                 )
                 item_req_map = build_item_requirements_map(tech_data)
             ps['_item_requirements_map'] = item_req_map

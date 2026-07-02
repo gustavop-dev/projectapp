@@ -9,6 +9,7 @@
  * remains authoritative (it re-ensures ids on every save/import).
  */
 import { toSlug } from '~/utils/slugify';
+import { normalizeLinkedModuleIds } from '~/utils/proposalModuleLinkOptions';
 
 export function buildItemId(groupId, name) {
   const groupSlug = String(groupId ?? '').trim() || 'group';
@@ -82,13 +83,8 @@ export function buildItemRequirementsMap(technicalContentJson) {
     const requirements = Array.isArray(epic.requirements) ? epic.requirements : [];
     for (const req of requirements) {
       if (!req || typeof req !== 'object') continue;
-      const rawLinked = req.linked_item_ids ?? req.linkedItemIds;
-      const linked = Array.isArray(rawLinked) ? rawLinked : [];
-      const seenIds = new Set();
-      for (const rawId of linked) {
-        const itemId = String(rawId ?? '').trim();
-        if (!itemId || seenIds.has(itemId)) continue;
-        seenIds.add(itemId);
+      const linked = normalizeLinkedModuleIds(req.linked_item_ids ?? req.linkedItemIds);
+      for (const itemId of linked) {
         if (!result[itemId]) result[itemId] = [];
         result[itemId].push({
           title: req.title || '',

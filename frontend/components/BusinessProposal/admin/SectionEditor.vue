@@ -981,7 +981,6 @@ import {
   formToReadableText as _formToReadableText,
   groupToReadableText as _groupToReadableText,
 } from '~/components/BusinessProposal/admin/sectionEditorUtils.js';
-import { ensureFunctionalRequirementItemIds } from '~/utils/itemRequirementLinks';
 
 // --- Inline sub-components (render functions for prod compatibility) ---
 const FieldInput = {
@@ -1270,12 +1269,7 @@ function handleSave() {
       return;
     }
 
-    let contentJson = formToJson(form, sectionType.value);
-    // Assign stable item ids client-side so the technical editor can link
-    // requirements right away (the backend re-ensures ids on save anyway).
-    if (sectionType.value === 'functional_requirements') {
-      contentJson = ensureFunctionalRequirementItemIds(contentJson);
-    }
+    const contentJson = formToJson(form, sectionType.value);
     if (pasteMode.value) {
       contentJson._editMode = 'paste';
       contentJson.rawText = pasteText.value;

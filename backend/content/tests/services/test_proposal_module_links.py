@@ -4,7 +4,6 @@ from content.services.proposal_module_links import (
     build_item_id,
     build_item_requirements_map,
     build_proposal_module_link_catalog,
-    collect_functional_requirement_item_ids,
     ensure_functional_requirements_item_ids,
     normalize_linked_module_ids,
     normalize_technical_document_module_links,
@@ -374,25 +373,6 @@ class TestBuildItemId:
 
     def test_empty_name_returns_empty(self):
         assert build_item_id('views', '  ') == ''
-
-
-# ---------------------------------------------------------------------------
-# collect_functional_requirement_item_ids
-# ---------------------------------------------------------------------------
-
-class TestCollectFunctionalRequirementItemIds:
-    def test_returns_empty_for_non_list(self):
-        assert collect_functional_requirement_item_ids(None) == set()
-
-    def test_returns_empty_when_no_fr_section(self):
-        assert collect_functional_requirement_item_ids([_inv([])]) == set()
-
-    def test_collects_ids_from_groups_and_modules(self):
-        sections = [_fr({
-            'groups': [{'id': 'views', 'items': [{'name': 'Home', 'id': 'item-views-home'}, {'name': 'NoId'}]}],
-            'additionalModules': [{'id': 'm1', 'items': [{'name': 'X', 'id': 'item-m1-x'}]}],
-        })]
-        assert collect_functional_requirement_item_ids(sections) == {'item-views-home', 'item-m1-x'}
 
 
 # ---------------------------------------------------------------------------

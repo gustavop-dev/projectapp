@@ -9,8 +9,6 @@ from typing import Any
 
 from django.utils.text import slugify
 
-ITEM_ID_PREFIX = 'item'
-
 
 def _string_id(value: Any) -> str:
     if value is None:
@@ -49,7 +47,7 @@ def build_item_id(group_id: Any, name: Any) -> str:
     name_slug = slugify(_string_id(name))
     if not name_slug:
         return ''
-    return f'{ITEM_ID_PREFIX}-{group_slug}-{name_slug}'
+    return f'item-{group_slug}-{name_slug}'
 
 
 def ensure_functional_requirements_item_ids(content_json: Any) -> dict[str, Any]:
@@ -90,27 +88,6 @@ def ensure_functional_requirements_item_ids(content_json: Any) -> dict[str, Any]
             item['id'] = candidate
             seen.add(candidate)
     return out
-
-
-def collect_functional_requirement_item_ids(sections: list[dict] | None) -> set[str]:
-    ids: set[str] = set()
-    if not isinstance(sections, list):
-        return ids
-    fr = next(
-        (section for section in sections
-         if isinstance(section, dict) and section.get('section_type') == 'functional_requirements'),
-        None,
-    )
-    if not isinstance(fr, dict):
-        return ids
-    for group in _iter_functional_requirement_groups(fr.get('content_json')):
-        for item in group.get('items') or []:
-            if not isinstance(item, dict):
-                continue
-            item_id = _string_id(item.get('id'))
-            if item_id:
-                ids.add(item_id)
-    return ids
 
 
 def build_item_requirements_map(technical_content_json: Any) -> dict[str, list[dict[str, Any]]]:

@@ -212,11 +212,11 @@ export function formToJson(formData, type) {
         }
         return out;
       };
-      return {
+      return ensureFunctionalRequirementItemIds({
         index: f.index, title: f.title, intro: f.intro,
         groups: (f.groups || []).map(cleanGroup),
         additionalModules: (f.additionalModules || []).map(cleanGroup),
-      };
+      });
     }
     case 'timeline':
       return { index: f.index, title: f.title, introText: f.introText, totalDuration: f.totalDuration, phases: f.phases.map(p => ({ title: p.title, duration: p.duration, description: p.description, tasks: textToArr(p.tasks), milestone: p.milestone })) };
@@ -482,10 +482,7 @@ export function groupToReadableText(group) {
  * @returns {{ sectionId: number, payload: object }}
  */
 export function buildSavePayload(form, sectionType, pasteMode, pasteText, sectionTitle, isWidePanel, sectionId) {
-  let contentJson = formToJson(form, sectionType);
-  if (sectionType === 'functional_requirements') {
-    contentJson = ensureFunctionalRequirementItemIds(contentJson);
-  }
+  const contentJson = formToJson(form, sectionType);
   if (pasteMode) {
     contentJson._editMode = 'paste';
     contentJson.rawText = pasteText;

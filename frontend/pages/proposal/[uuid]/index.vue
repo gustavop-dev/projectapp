@@ -465,23 +465,35 @@ function effectiveSelectedModuleIdsForTechnical() {
   return [];
 }
 
-// Item → technical requirements map for the commercial nested modal.
-// Filtered by the client's module selection so deselected calculator
-// modules never leak requirements into the commercial view.
-const itemRequirementsMap = computed(() => {
+// Technical document as the client should see it, in two layers so the
+// (deep-copying) normalization only re-runs when the section content
+// changes, while the filter reacts to the calculator selection.
+const normalizedTechnicalDocument = computed(() => {
   const tech = enabledSections.value.find((s) => s.section_type === 'technical_document');
-  if (!tech || !tech.content_json || typeof tech.content_json !== 'object') return {};
-  const normalizedDoc = normalizeTechnicalDocumentModuleLinks(
+  if (!tech || !tech.content_json || typeof tech.content_json !== 'object') return null;
+  return normalizeTechnicalDocumentModuleLinks(
     tech.content_json,
     technicalModuleLinkCatalog.value.aliasMap,
   );
-  const filteredDoc = filterTechnicalDocumentByModules(
-    normalizedDoc,
+});
+
+const filteredTechnicalDocument = computed(() => {
+  if (!normalizedTechnicalDocument.value) return null;
+  return filterTechnicalDocumentByModules(
+    normalizedTechnicalDocument.value,
     effectiveSelectedModuleIdsForTechnical(),
     technicalModuleLinkCatalog.value.alwaysIncludedIds,
   );
-  return buildItemRequirementsMap(filteredDoc);
 });
+
+// Item → technical requirements map for the commercial nested modal.
+// Filtered by the client's module selection so deselected calculator
+// modules never leak requirements into the commercial view.
+const itemRequirementsMap = computed(() => (
+  filteredTechnicalDocument.value
+    ? buildItemRequirementsMap(filteredTechnicalDocument.value)
+    : {}
+));
 
 const readMinutesEstimate = computed(() => {
   if (viewMode.value === 'executive') return 2;
@@ -498,16 +510,7 @@ const displayPanels = computed(() => {
   if (viewMode.value === 'technical') {
     const tech = enabledSections.value.find((s) => s.section_type === 'technical_document');
     if (!tech) return [];
-    const rawDoc = tech.content_json && typeof tech.content_json === 'object' ? tech.content_json : {};
-    const normalizedDoc = normalizeTechnicalDocumentModuleLinks(
-      rawDoc,
-      technicalModuleLinkCatalog.value.aliasMap,
-    );
-    const docForPanels = filterTechnicalDocumentByModules(
-      normalizedDoc,
-      effectiveSelectedModuleIdsForTechnical(),
-      technicalModuleLinkCatalog.value.alwaysIncludedIds,
-    );
+    const docForPanels = filteredTechnicalDocument.value || {};
     const panels = buildSyntheticTechnicalPanels({ ...tech, content_json: docForPanels }, lang);
     if (enabledSections.value.length > 0) {
       const finalNote = enabledSections.value.find((s) => s.section_type === 'final_note');

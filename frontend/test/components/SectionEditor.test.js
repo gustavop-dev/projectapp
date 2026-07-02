@@ -1794,11 +1794,11 @@ describe('functional_requirements item ids (traceability)', () => {
     expect(form.groups[0].items[1].id).toBe('');
   });
 
-  it('formToJson keeps existing item ids and omits empty ones', () => {
+  it('formToJson keeps existing item ids and auto-assigns missing ones', () => {
     const form = buildFormFromJson(frJsonWithIds, 'functional_requirements');
     const json = formToJson(form, 'functional_requirements');
     expect(json.groups[0].items[0].id).toBe('item-views-home');
-    expect(json.groups[0].items[1].id).toBeUndefined();
+    expect(json.groups[0].items[1].id).toBe('item-views-contacto');
   });
 
   it('buildSavePayload auto-assigns ids to items missing one', () => {
