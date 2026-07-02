@@ -26,7 +26,7 @@
         class="px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap"
         :class="activeTabId === 'all'
           ? 'border-emerald-600 text-text-brand'
-          : 'border-transparent text-text-muted hover:text-text-default dark:text-gray-400 dark:hover:text-gray-300'"
+          : 'border-transparent text-text-muted hover:text-text-default'"
         @click="$emit('select', 'all')"
       >
         Todas
@@ -44,7 +44,7 @@
           class="px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap"
           :class="activeTabId === tab.id
             ? 'border-emerald-600 text-text-brand'
-            : 'border-transparent text-text-muted hover:text-text-default dark:text-gray-400 dark:hover:text-gray-300'"
+            : 'border-transparent text-text-muted hover:text-text-default'"
           @click="$emit('select', tab.id)"
         >
           {{ tab.name }}
@@ -53,7 +53,7 @@
         <button
           type="button"
           :data-testid="`filter-tabs-menu-${tab.id}`"
-          class="p-0.5 rounded text-gray-400 hover:text-text-muted dark:hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 mr-1"
+          class="p-0.5 rounded text-text-subtle hover:text-text-muted opacity-0 group-hover:opacity-100 transition-opacity -ml-1 mr-1"
           @click.stop="toggleMenu(tab.id)"
         >
           <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -68,7 +68,7 @@
           <button
             type="button"
             data-testid="filter-tabs-rename"
-            class="w-full px-3 py-1.5 text-left text-sm text-text-default hover:bg-gray-50 dark:hover:bg-gray-700"
+            class="w-full px-3 py-1.5 text-left text-sm text-text-default hover:bg-surface-raised"
             @click="startRename(tab)"
           >
             Renombrar
@@ -90,8 +90,8 @@
         data-testid="filter-tabs-create"
         class="px-3 py-2.5 text-sm font-medium transition-colors border-b-2 border-transparent -mb-px"
         :class="props.isTabLimitReached
-          ? 'text-gray-300 dark:text-text-muted cursor-not-allowed'
-          : 'text-gray-400 hover:text-text-brand dark:text-text-muted dark:hover:text-emerald-400'"
+          ? 'text-text-subtle cursor-not-allowed'
+          : 'text-text-muted hover:text-text-brand'"
         :disabled="props.isTabLimitReached"
         :title="props.isTabLimitReached ? `Máximo ${props.tabs.length} pestañas` : 'Guardar filtros como nueva pestaña'"
         @click="!props.isTabLimitReached && startCreate()"
@@ -132,7 +132,7 @@
         <button
           type="button"
           data-testid="filter-tabs-cancel"
-          class="px-3 py-2 bg-gray-100 text-text-muted rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          class="px-3 py-2 bg-surface-raised text-text-muted rounded-lg text-sm font-medium hover:bg-border-muted transition-colors"
           @click="cancelInput"
         >
           Cancelar

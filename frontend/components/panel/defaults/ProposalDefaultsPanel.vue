@@ -178,7 +178,7 @@
           class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden"
         >
           <div
-            class="px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-surface-muted dark:hover:bg-gray-700/50 transition-colors"
+            class="px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-surface-muted transition-colors"
             @click="toggleSection(idx)"
           >
             <div class="flex items-center gap-4">
@@ -193,7 +193,7 @@
               >✓ Modificado</span>
               <button
                 type="button"
-                class="p-1.5 rounded-lg text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                class="p-1.5 rounded-lg text-info-strong hover:bg-info-soft transition-colors"
                 title="Vista previa"
                 @click.stop="handleSectionPreview(idx)"
               >
@@ -239,7 +239,7 @@
         <div class="flex items-center gap-3">
           <button
             type="button"
-            class="px-5 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors"
+            class="px-5 py-2 text-sm font-medium text-danger-strong hover:bg-danger-soft rounded-xl transition-colors"
             :disabled="isSaving"
             @click="handleReset"
           >
@@ -293,7 +293,7 @@
       <div v-show="defaultsTechnicalSubTab === 'editor'">
         <p
           v-if="technicalDocumentIndex < 0"
-          class="text-sm text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3"
+          class="text-sm text-warning-strong bg-warning-soft border border-warning-strong/30 rounded-lg px-4 py-3"
         >
           No hay sección <code class="text-xs">technical_document</code> en la plantilla.
           Restaura valores originales desde Secciones o añade la entrada en la pestaña JSON.
@@ -366,7 +366,7 @@
               type="button"
               class="w-full text-left bg-surface rounded-xl shadow-sm border transition-colors px-4 py-3 cursor-pointer hover:bg-surface-raised"
               :class="emailSelectedTemplate === tpl.template_key
-                ? 'border-emerald-500 ring-1 ring-focus-ring/30'
+                ? 'border-focus-ring ring-1 ring-focus-ring/30'
                 : 'border-border-muted'"
               @click="selectEmailTemplate(tpl.template_key)"
             >
@@ -377,7 +377,7 @@
                   <div class="text-xs text-text-subtle truncate">{{ tpl.description }}</div>
                   <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
                     <span v-if="tpl.is_customized" class="text-[10px] text-text-brand font-medium bg-primary-soft px-1.5 py-0.5 rounded-full">Personalizado</span>
-                    <span v-if="!tpl.is_active" class="text-[10px] text-red-600 font-medium bg-red-50 dark:bg-red-900/20 dark:text-red-400 px-1.5 py-0.5 rounded-full">Desactivado</span>
+                    <span v-if="!tpl.is_active" class="text-[10px] text-danger-strong font-medium bg-danger-soft px-1.5 py-0.5 rounded-full">Desactivado</span>
                     <span class="text-[10px] text-text-subtle">{{ tpl.editable_fields_count }} campos</span>
                   </div>
                 </div>
@@ -417,7 +417,7 @@
               </div>
               <button
                 type="button"
-                class="px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                class="px-3 py-1.5 text-xs font-medium text-info-strong hover:bg-info-soft rounded-lg transition-colors"
                 :disabled="emailIsPreviewLoading"
                 @click="handleEmailPreview(emailSelectedTemplate)"
               >
@@ -446,7 +446,7 @@
                 <button
                   v-if="emailEditFields[field.key] && emailEditFields[field.key] !== field.default_value"
                   type="button"
-                  class="text-[10px] text-text-subtle hover:text-red-500 transition-colors"
+                  class="text-[10px] text-text-subtle hover:text-danger-strong transition-colors"
                   @click="emailEditFields[field.key] = field.default_value || ''"
                 >restaurar campo</button>
               </div>
@@ -593,7 +593,7 @@
           </div>
         </div>
 
-        <p v-if="promptText !== promptDefault" class="text-xs text-amber-600 mt-3">
+        <p v-if="promptText !== promptDefault" class="text-xs text-warning-strong mt-3">
           Este prompt ha sido personalizado. Usa "Restaurar original" para volver al valor por defecto.
         </p>
         </template>
@@ -665,7 +665,7 @@
             <pre class="text-xs leading-relaxed text-text-default whitespace-pre-wrap font-mono break-words">{{ technicalDefaultsPromptText }}</pre>
           </div>
         </div>
-        <p v-if="technicalDefaultsPromptText !== technicalDefaultsPromptDefault" class="text-xs text-amber-600 mt-3">
+        <p v-if="technicalDefaultsPromptText !== technicalDefaultsPromptDefault" class="text-xs text-warning-strong mt-3">
           Prompt técnico personalizado. «Restaurar original» vuelve al valor por defecto.
         </p>
         </template>
@@ -688,7 +688,7 @@
       </ul>
       <p
         v-if="defaultsTechnicalEpicCount !== null"
-        class="text-xs text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 border border-teal-100 dark:border-teal-800 rounded-lg px-3 py-2 mb-4"
+        class="text-xs text-success-strong bg-success-soft border border-success-strong/30 rounded-lg px-3 py-2 mb-4"
       >
         Vista rápida: <strong>{{ defaultsTechnicalEpicCount }}</strong> módulo(s) en el detalle técnico por defecto (idioma {{ selectedLang }}).
       </p>
@@ -754,7 +754,7 @@
                    bg-transparent text-text-default outline-none resize-y focus:ring-0"
           />
         </div>
-        <p v-if="jsonEditError" class="text-xs text-red-600 dark:text-red-400 px-1">
+        <p v-if="jsonEditError" class="text-xs text-danger-strong px-1">
           {{ jsonEditError }}
         </p>
       </div>

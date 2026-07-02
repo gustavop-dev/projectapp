@@ -72,7 +72,7 @@
                   <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted select-none text-sm">⠿</span>
                   <span class="text-[10px] text-text-subtle uppercase tracking-wide">Sección {{ idx + 1 }}</span>
                   <button v-if="sections.length > 1" type="button" @click="removeSection(idx)"
-                    class="ml-auto text-text-subtle hover:text-red-500 transition-colors p-0.5">
+                    class="ml-auto text-text-subtle hover:text-danger-strong transition-colors p-0.5">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
@@ -111,7 +111,7 @@
               class="flex items-center justify-between py-1.5 px-3 bg-surface-muted  rounded-lg">
               <span class="text-xs text-text-default truncate">{{ file.name }}</span>
               <button type="button" @click="removeAttachment(idx)"
-                class="text-text-subtle hover:text-red-500 transition-colors p-0.5">
+                class="text-text-subtle hover:text-danger-strong transition-colors p-0.5">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -122,7 +122,7 @@
 
         <!-- Send button -->
         <div class="flex items-center justify-between pt-2">
-          <p v-if="sendError" class="text-xs text-red-500">{{ sendError }}</p>
+          <p v-if="sendError" class="text-xs text-danger-strong">{{ sendError }}</p>
           <p v-else-if="sendSuccess" class="text-xs text-text-brand">Correo enviado correctamente.</p>
           <span v-else />
           <button type="button" :disabled="!canSend || sending" @click="handleSend"
@@ -213,7 +213,7 @@
     <!-- ── History ── -->
     <section class="bg-surface border border-border-muted rounded-xl p-5  ">
       <div class="flex items-center gap-2 mb-4">
-        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 text-info-strong" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <h3 class="text-sm font-semibold text-text-default">Historial de correos enviados</h3>
@@ -230,14 +230,14 @@
           class="border border-border-muted  rounded-lg overflow-hidden">
           <!-- Summary row -->
           <button type="button" @click="toggleExpand(entry.id)"
-            class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-muted dark:hover:bg-gray-700 transition-colors">
+            class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-muted transition-colors">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
                 <span class="text-xs font-medium text-text-default truncate">{{ entry.subject }}</span>
                 <span class="px-1.5 py-0.5 rounded text-[10px] font-medium"
                   :class="{
                     'bg-primary-soft text-text-brand ': entry.status === 'sent' || entry.status === 'delivered',
-                    'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400': entry.status === 'failed' || entry.status === 'bounced',
+                    'bg-danger-soft text-danger-strong': entry.status === 'failed' || entry.status === 'bounced',
                   }">
                   {{ statusLabel(entry.status) }}
                 </span>
@@ -285,7 +285,7 @@
         <!-- Load more -->
         <div v-if="emailStore.historyPagination.has_next" class="pt-3 text-center">
           <button type="button" :disabled="emailStore.isLoadingHistory" @click="loadMore"
-            class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-text-muted bg-surface-muted  rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors disabled:opacity-50">
+            class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-text-muted bg-surface-muted  rounded-lg hover:bg-surface-raised transition-colors disabled:opacity-50">
             {{ emailStore.isLoadingHistory ? 'Cargando...' : 'Cargar más' }}
           </button>
         </div>

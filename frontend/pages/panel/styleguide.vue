@@ -36,8 +36,18 @@ const tokenSwatches = [
       'bg-success-soft', 'text-success-strong',
       'bg-warning-soft', 'text-warning-strong',
       'bg-danger-soft', 'text-danger-strong',
+      'bg-info-soft', 'text-info-strong',
     ],
   },
+]
+
+// Elevation contract: the only three shadows the UI uses. Surfaces that rely
+// on shadow for separation must also carry border-border-default (in dark the
+// shadow fades against the wash and the border keeps the edge readable).
+const shadowScale = [
+  { cls: 'shadow-card', role: 'Cards / paneles en reposo' },
+  { cls: 'shadow-raised', role: 'Dropdowns, popovers, botones flotantes, sticky bars' },
+  { cls: 'shadow-overlay', role: 'Modales y drawers' },
 ]
 </script>
 
@@ -114,6 +124,7 @@ const tokenSwatches = [
           <BaseBadge variant="success">Success</BaseBadge>
           <BaseBadge variant="warning">Warning</BaseBadge>
           <BaseBadge variant="danger">Danger</BaseBadge>
+          <BaseBadge variant="info">Info</BaseBadge>
           <BaseBadge variant="success" size="sm">Small</BaseBadge>
         </div>
       </BaseCard>
@@ -188,6 +199,24 @@ const tokenSwatches = [
         <div class="rounded-xl border border-border-muted p-5 bg-surface-raised">
           <h3 class="text-sm font-semibold text-text-default">bg-surface-raised</h3>
           <p class="text-xs text-text-muted mt-1">Panel interior elevado.</p>
+        </div>
+      </div>
+      <div class="pt-2">
+        <h3 class="text-xs font-semibold text-text-brand uppercase tracking-wider mb-2">Elevación (escala de sombras)</h3>
+        <p class="text-xs text-text-muted mb-3">
+          Las únicas tres sombras del sistema. Toda superficie con sombra lleva también
+          <code>border-border-default</code>: en dark la sombra se pierde contra el wash y el borde mantiene el contorno.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 py-2">
+          <div
+            v-for="s in shadowScale"
+            :key="s.cls"
+            class="rounded-xl border border-border-default bg-surface p-5"
+            :class="s.cls"
+          >
+            <code class="text-xs text-text-brand">{{ s.cls }}</code>
+            <p class="text-xs text-text-muted mt-1">{{ s.role }}</p>
+          </div>
         </div>
       </div>
     </section>
@@ -319,6 +348,22 @@ const tokenSwatches = [
           </div>
         </div>
       </BaseModal>
+    </section>
+
+    <!-- Tooltip -->
+    <section class="space-y-4">
+      <h2 class="text-lg font-semibold text-text-default">12. BaseTooltip</h2>
+      <BaseCard padding="md">
+        <div class="flex items-center gap-3">
+          <BaseTooltip position="right" width="max-w-xs" min-width="min-w-[200px]">
+            <template #trigger>
+              <BaseButton variant="secondary" size="sm">Hover / tap</BaseButton>
+            </template>
+            Spec de tooltip: <code>bg-primary-strong</code> + <code>text-white</code> — oscuro de marca, legible sobre ambos washes.
+          </BaseTooltip>
+          <span class="text-xs text-text-muted">Mismo fondo en claro y oscuro; nunca <code>bg-gray-900</code>.</span>
+        </div>
+      </BaseCard>
     </section>
   </div>
 </template>

@@ -4,7 +4,8 @@
     <Transition name="inv-fade">
       <div
         v-if="visible"
-        class="onb-backdrop fixed inset-0 z-[9998] bg-surface/60 backdrop-blur-[2px]"
+        class="onb-backdrop fixed inset-0 z-[9998] bg-surface-muted/60 backdrop-blur-[2px]"
+        :data-theme="isDark ? 'dark' : 'light'"
       />
     </Transition>
 
@@ -34,16 +35,17 @@
         :key="currentStep"
         ref="tooltipRef"
         class="fixed z-[10000]"
+        :data-theme="isDark ? 'dark' : 'light'"
         :style="tooltipStyle"
       >
         <!-- Arrow -->
         <div
-          class="tooltip-arrow absolute w-3 h-3 bg-surface rotate-45 border border-border-muted"
+          class="tooltip-arrow absolute w-3 h-3 bg-surface rotate-45 border border-border-default"
           :style="arrowComputedStyle"
         />
 
         <!-- Content card -->
-        <div class="relative bg-surface rounded-2xl shadow-2xl border border-border-muted p-5 w-[272px] sm:w-[296px]">
+        <div class="relative bg-surface rounded-2xl shadow-overlay border border-border-default p-5 w-[272px] sm:w-[296px]">
           <!-- Progress dots -->
           <div class="flex items-center gap-1.5 mb-3">
             <div
@@ -54,7 +56,7 @@
                 ? 'w-5 bg-primary'
                 : i - 1 < currentStep
                   ? 'w-1.5 bg-primary/40'
-                  : 'w-1.5 bg-gray-200'"
+                  : 'w-1.5 bg-border-default'"
             />
             <span class="ml-auto text-[10px] text-text-subtle font-medium tabular-nums">
               {{ currentStep + 1 }}/{{ totalSteps }}
@@ -99,6 +101,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { useProposalDarkMode } from '~/composables/useProposalDarkMode';
 import { smoothScrollTo, smoothScrollToElement } from '~/composables/useSmoothScroll';
 
 const STORAGE_KEY_PREFIX = 'investment_onboarding_seen';
@@ -108,6 +111,8 @@ const GAP = 14;
 const ARROW_SIZE = 6;
 const VIEWPORT_PAD = 12;
 
+
+const { isDark } = useProposalDarkMode();
 
 const props = defineProps({
   language: { type: String, default: 'es' },

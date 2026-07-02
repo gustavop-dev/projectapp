@@ -5,7 +5,8 @@
       <div
         v-if="visible"
         data-testid="onboarding-backdrop"
-        class="onb-backdrop fixed inset-0 z-[9998] bg-white/60 backdrop-blur-[2px]"
+        class="onb-backdrop fixed inset-0 z-[9998] bg-surface-muted/60 backdrop-blur-[2px]"
+        :data-theme="isDark ? 'dark' : 'light'"
       />
     </Transition>
 
@@ -35,16 +36,17 @@
         :key="currentStep"
         ref="tooltipRef"
         class="fixed z-[10000]"
+        :data-theme="isDark ? 'dark' : 'light'"
         :style="tooltipStyle"
       >
         <!-- Arrow -->
         <div
-          class="tooltip-arrow absolute w-3 h-3 bg-surface rotate-45 border border-border-muted"
+          class="tooltip-arrow absolute w-3 h-3 bg-surface rotate-45 border border-border-default"
           :style="arrowComputedStyle"
         />
 
         <!-- Content card -->
-        <div class="relative bg-surface rounded-2xl shadow-2xl border border-border-muted p-5 w-[272px] sm:w-[296px]">
+        <div class="relative bg-surface rounded-2xl shadow-overlay border border-border-default p-5 w-[272px] sm:w-[296px]">
           <!-- Progress dots -->
           <div class="flex items-center gap-1.5 mb-3">
             <div
@@ -55,7 +57,7 @@
                 ? 'w-5 bg-primary'
                 : i - 1 < currentStep
                   ? 'w-1.5 bg-esmerald/40'
-                  : 'w-1.5 bg-gray-200'"
+                  : 'w-1.5 bg-border-default'"
             />
             <span data-testid="onboarding-step-progress" class="ml-auto text-[10px] text-text-subtle font-medium tabular-nums">
               {{ currentStep + 1 }}/{{ totalSteps }}
@@ -85,7 +87,7 @@
               <button
                 :data-testid="isLastStep ? 'onboarding-done-btn' : 'onboarding-next-btn'"
                 class="px-4 py-1.5 text-xs font-medium text-white bg-primary rounded-lg
-                       hover:bg-esmerald/90 transition-colors shadow-sm pointer-events-auto"
+                       hover:bg-primary-strong transition-colors shadow-sm pointer-events-auto"
                 @click="next"
               >
                 {{ isLastStep ? btnLabels.done : btnLabels.next }}
@@ -101,6 +103,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { useProposalDarkMode } from '~/composables/useProposalDarkMode';
 
 const STORAGE_KEY = 'proposal_onboarding_seen';
 const TOOLTIP_W = 296;
@@ -109,6 +112,8 @@ const GAP = 14;
 const ARROW_SIZE = 6;
 const VIEWPORT_PAD = 12;
 
+
+const { isDark } = useProposalDarkMode();
 
 const props = defineProps({
   language: { type: String, default: 'es' },

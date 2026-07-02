@@ -1,6 +1,6 @@
 <template>
   <div
-    class="group bg-surface border border-border-default rounded-lg p-3 shadow-sm hover:shadow-md cursor-pointer transition-all"
+    class="group bg-surface border border-border-default rounded-lg p-3 shadow-card hover:shadow-raised cursor-pointer transition-all"
     data-testid="task-card"
   >
     <div class="flex items-start justify-between gap-2 mb-2">
@@ -17,20 +17,20 @@
 
     <p
       v-if="task.description"
-      class="text-xs text-text-muted dark:text-gray-400 line-clamp-2 mb-2"
+      class="text-xs text-text-muted line-clamp-2 mb-2"
     >
       {{ task.description }}
     </p>
 
-    <div class="flex items-center justify-between text-[11px] text-text-muted dark:text-gray-400">
+    <div class="flex items-center justify-between text-[11px] text-text-muted">
       <span v-if="task.assignee_name" class="truncate" :title="task.assignee_email || ''">
         👤 {{ task.assignee_name }}
       </span>
-      <span v-else class="text-gray-300 dark:text-text-muted">Unassigned</span>
+      <span v-else class="text-text-subtle">Unassigned</span>
 
       <span
         v-if="task.due_date"
-        :class="task.is_overdue ? 'text-red-600 dark:text-red-400 font-semibold' : ''"
+        :class="task.is_overdue ? 'text-danger-strong font-semibold' : ''"
       >
         📅 {{ formatDate(task.due_date) }}
       </span>
@@ -52,9 +52,9 @@ const priorityLabel = computed(() => {
 
 const priorityBadgeClass = computed(() => {
   const map = {
-    low: 'bg-gray-100 text-text-muted',
-    medium: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-    high: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+    low: 'bg-surface-raised text-text-muted',
+    medium: 'bg-info-soft text-info-strong',
+    high: 'bg-danger-soft text-danger-strong',
   };
   return map[props.task.priority] || map.medium;
 });

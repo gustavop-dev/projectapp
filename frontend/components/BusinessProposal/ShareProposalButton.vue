@@ -39,7 +39,7 @@
                 </div>
               </div>
               <button
-                class="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-text-subtle hover:text-text-muted hover:bg-gray-200 transition-colors"
+                class="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-text-subtle hover:text-text-muted hover:bg-border-muted transition-colors"
                 @click="closeModal"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

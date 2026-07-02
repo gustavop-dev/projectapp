@@ -28,7 +28,7 @@
           class="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors"
           :class="!pasteMode
             ? 'bg-primary text-on-primary border-primary'
-            : 'bg-surface text-text-muted/60 border-border-default dark:border-white/[0.08] hover:border-gray-300 dark:hover:border-white/[0.12]'"
+            : 'bg-surface text-text-muted/60 border-border-default dark:border-white/[0.08] hover:border-text-muted'"
           @click="onTogglePasteMode(false)"
         >Formulario</button>
         <button
@@ -36,7 +36,7 @@
           class="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors"
           :class="pasteMode
             ? 'bg-primary text-on-primary border-primary'
-            : 'bg-surface text-text-muted/60 border-border-default dark:border-white/[0.08] hover:border-gray-300 dark:hover:border-white/[0.12]'"
+            : 'bg-surface text-text-muted/60 border-border-default dark:border-white/[0.08] hover:border-text-muted'"
           @click="onTogglePasteMode(true)"
         >Pegar contenido</button>
         <button
@@ -185,7 +185,7 @@
                 </div>
                 <FieldTextarea v-model="stage.description" label="Descripción" :rows="2" :isSingle="true" />
                 <label class="flex items-center gap-2 mt-2 text-xs">
-                  <input type="checkbox" v-model="stage.current" class="rounded border-gray-300 dark:border-white/[0.08] text-text-brand" />
+                  <input type="checkbox" v-model="stage.current" class="rounded border-input-border text-text-brand" />
                   <span class="text-text-muted/60">Etapa actual</span>
                 </label>
               </div>
@@ -591,7 +591,7 @@
                 <input
                   type="checkbox"
                   :checked="form.module_ids.includes(id)"
-                  class="rounded border-gray-300 dark:border-white/[0.08] text-text-brand focus:ring-focus-ring/30"
+                  class="rounded border-input-border text-text-brand focus:ring-focus-ring/30"
                   @change="toggleValueAddedId(id, $event.target.checked)"
                 />
                 <span class="text-sm font-medium text-text-default">
@@ -735,7 +735,7 @@
               </svg>
             </button>
             <label class="flex items-center gap-1 cursor-pointer" title="Si está marcado, este módulo aparecerá preseleccionado en la calculadora del cliente">
-              <input type="checkbox" v-model="group.selected" class="rounded border-gray-300 dark:border-white/[0.08] text-text-brand focus:ring-focus-ring/30" />
+              <input type="checkbox" v-model="group.selected" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" />
               <span class="text-[10px] text-text-muted font-medium">Seleccionado</span>
             </label>
             <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
@@ -832,7 +832,7 @@
                 </svg>
               </button>
               <label class="flex items-center gap-1 cursor-pointer" title="Si está marcado, este módulo aparecerá preseleccionado en la calculadora del cliente">
-                <input type="checkbox" v-model="mod.selected" class="rounded border-gray-300 dark:border-white/[0.08] text-text-brand focus:ring-focus-ring/30" />
+                <input type="checkbox" v-model="mod.selected" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" />
                 <span class="text-[10px] text-text-muted font-medium">Seleccionado</span>
               </label>
               <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
@@ -930,7 +930,7 @@
       </button>
       <button
         type="button"
-        class="px-5 py-2 border border-gray-300 dark:border-white/[0.08] text-text-default rounded-xl text-sm font-medium
+        class="px-5 py-2 border border-border-default text-text-default rounded-xl text-sm font-medium
                hover:bg-surface-raised transition-colors"
         @click="showPreview = true"
       >

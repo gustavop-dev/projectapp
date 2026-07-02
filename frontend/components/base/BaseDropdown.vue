@@ -35,7 +35,7 @@ function itemColorClass(danger, active) {
     >
       <MenuItems
         :class="[
-          'absolute z-30 mt-2 origin-top rounded-xl bg-surface border border-border-default shadow-lg focus:outline-none p-1',
+          'absolute z-30 mt-2 origin-top rounded-xl bg-surface border border-border-default shadow-raised focus:outline-none p-1',
           width,
           align === 'right' ? 'right-0 origin-top-right' : 'left-0 origin-top-left',
         ]"

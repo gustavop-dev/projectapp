@@ -17,7 +17,7 @@
             </div>
             <button
               type="button"
-              class="w-8 h-8 flex-shrink-0 ml-2 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised dark:hover:bg-gray-700 transition-colors"
+              class="w-8 h-8 flex-shrink-0 ml-2 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised transition-colors"
               @click="close"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,13 +32,13 @@
               v-for="action in actions"
               :key="action.event"
               type="button"
-              class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all active:scale-[0.98] hover:bg-surface-muted dark:hover:bg-gray-700/50"
-              :class="action.danger ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20' : 'text-text-default'"
+              class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all active:scale-[0.98] hover:bg-surface-muted"
+              :class="action.danger ? 'text-danger-strong hover:bg-danger-soft' : 'text-text-default'"
               @click="trigger(action.event)"
             >
               <div
                 class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                :class="action.danger ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400' : 'bg-surface-raised text-text-subtle'"
+                :class="action.danger ? 'bg-danger-soft text-danger-strong' : 'bg-surface-raised text-text-subtle'"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="action.icon" />
@@ -55,7 +55,7 @@
           <div class="px-5 py-3 border-t border-border-muted">
             <button
               type="button"
-              class="w-full px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised dark:hover:bg-gray-700 rounded-lg transition-colors"
+              class="w-full px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised rounded-lg transition-colors"
               @click="close"
             >
               Cancelar

@@ -123,7 +123,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-text-default mb-1">Tipo de proyecto</label>
-            <select v-model="form.project_type" class="w-full px-4 py-2.5 border border-border-default dark:border-white/[0.08] rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none bg-surface dark:text-white">
+            <select v-model="form.project_type" class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface text-text-default">
               <option value="">— Sin definir —</option>
               <option value="website">Sitio Web</option>
               <option value="ecommerce">E-commerce</option>
@@ -158,7 +158,7 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-text-default mb-1">Tipo de mercado</label>
-            <select v-model="form.market_type" class="w-full px-4 py-2.5 border border-border-default dark:border-white/[0.08] rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none bg-surface dark:text-white">
+            <select v-model="form.market_type" class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface text-text-default">
               <option value="">— Sin definir —</option>
               <option value="b2b">B2B</option>
               <option value="b2c">B2C</option>
@@ -203,8 +203,8 @@
           <label class="block text-sm font-medium text-text-default mb-1">Idioma de la propuesta</label>
           <select
             v-model="form.language"
-            class="w-full px-4 py-2.5 border border-border-default dark:border-white/[0.08] rounded-xl text-sm
-                   focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none bg-surface dark:text-white"
+            class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm
+                   focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface text-text-default"
           >
             <option value="es">Español</option>
             <option value="en">English</option>
@@ -229,8 +229,8 @@
             <label class="block text-sm font-medium text-text-default mb-1">Moneda</label>
             <select
               v-model="form.currency"
-              class="w-full px-4 py-2.5 border border-border-default dark:border-white/[0.08] rounded-xl text-sm
-                     focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none bg-surface dark:text-white"
+              class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm
+                     focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface text-text-default"
             >
               <option value="COP">COP</option>
               <option value="USD">USD</option>
@@ -251,18 +251,18 @@
             />
             <span class="text-sm text-text-muted">%</span>
           </div>
-          <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl overflow-hidden">
-            <div class="grid grid-cols-[1fr_auto] gap-x-4 text-sm divide-y divide-blue-100 dark:divide-blue-500/20">
-              <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Base mensual <span class="text-xs font-normal text-text-subtle">(referencia)</span></div>
-              <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right">
+          <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-info-soft border border-info-strong/30 rounded-xl overflow-hidden">
+            <div class="grid grid-cols-[1fr_auto] gap-x-4 text-sm divide-y divide-info-strong/20">
+              <div class="px-4 py-2 text-info-strong font-medium">Base mensual <span class="text-xs font-normal text-text-subtle">(referencia)</span></div>
+              <div class="px-4 py-2 text-info-strong font-semibold text-right">
                 ${{ Math.round(form.total_investment * form.hosting_percent / 100 / 12).toLocaleString() }} {{ form.currency }}
               </div>
-              <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Trimestral</div>
-              <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right">
+              <div class="px-4 py-2 text-info-strong font-medium">Trimestral</div>
+              <div class="px-4 py-2 text-info-strong font-semibold text-right">
                 ${{ Math.round(form.total_investment * form.hosting_percent / 100 / 12 * 3).toLocaleString() }} {{ form.currency }}
               </div>
               <template v-if="form.hosting_discount_quarterly">
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
+                <div class="px-4 py-2 text-info-strong font-medium">
                   Trimestral
                   <span class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_quarterly }}% dcto)</span>
                 </div>
@@ -270,12 +270,12 @@
                   ${{ Math.round(Math.round(form.total_investment * form.hosting_percent / 100 / 12) * (100 - form.hosting_discount_quarterly) / 100 * 3).toLocaleString() }} {{ form.currency }}
                 </div>
               </template>
-              <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Semestral</div>
-              <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right">
+              <div class="px-4 py-2 text-info-strong font-medium">Semestral</div>
+              <div class="px-4 py-2 text-info-strong font-semibold text-right">
                 ${{ Math.round(form.total_investment * form.hosting_percent / 100 / 12 * 6).toLocaleString() }} {{ form.currency }}
               </div>
               <template v-if="form.hosting_discount_semiannual">
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
+                <div class="px-4 py-2 text-info-strong font-medium">
                   Semestral
                   <span class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_semiannual }}% dcto)</span>
                 </div>
@@ -283,12 +283,12 @@
                   ${{ Math.round(Math.round(form.total_investment * form.hosting_percent / 100 / 12) * (100 - form.hosting_discount_semiannual) / 100 * 6).toLocaleString() }} {{ form.currency }}
                 </div>
               </template>
-              <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">☁️ Anual</div>
-              <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right">
+              <div class="px-4 py-2 text-info-strong font-medium">☁️ Anual</div>
+              <div class="px-4 py-2 text-info-strong font-semibold text-right">
                 ${{ Math.round(form.total_investment * form.hosting_percent / 100).toLocaleString() }} {{ form.currency }}
               </div>
               <template v-if="form.hosting_discount_annual">
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
+                <div class="px-4 py-2 text-info-strong font-medium">
                   Anual
                   <span class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_annual }}% dcto)</span>
                 </div>
@@ -495,7 +495,7 @@
         </div>
 
         <!-- Errors -->
-        <div v-if="errorMsg" class="text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-500/10 px-4 py-3 rounded-xl">
+        <div v-if="errorMsg" class="text-sm text-danger-strong bg-danger-soft px-4 py-3 rounded-xl">
           {{ errorMsg }}
         </div>
 
@@ -542,15 +542,15 @@
           <div class="flex items-center gap-3">
             <select
               v-model="jsonForm.language"
-              class="px-3 py-2 border border-border-default dark:border-white/[0.08] rounded-lg text-sm bg-surface dark:text-white
-                     focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
+              class="px-3 py-2 border border-border-default rounded-lg text-sm bg-surface text-text-default
+                     focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
             >
               <option value="es">Español</option>
               <option value="en">English</option>
             </select>
             <button
               type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default dark:border-white/[0.08] rounded-lg hover:bg-surface-raised transition-colors"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
               @click="copyTemplate"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
@@ -559,7 +559,7 @@
             <button
               type="button"
               :disabled="isDownloading"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default dark:border-white/[0.08] rounded-lg hover:bg-surface-raised transition-colors disabled:opacity-50"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors disabled:opacity-50"
               @click="downloadTemplate"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -575,7 +575,7 @@
 
         <div class="flex items-center gap-3 mb-3">
           <label
-            class="inline-flex items-center gap-2 px-4 py-2 border border-border-default dark:border-white/[0.08] rounded-lg text-sm
+            class="inline-flex items-center gap-2 px-4 py-2 border border-border-default rounded-lg text-sm
                    text-text-default hover:bg-surface-raised cursor-pointer transition-colors"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -596,12 +596,12 @@
         ></textarea>
 
         <!-- Parse error -->
-        <div v-if="jsonError" class="mt-2 text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-500/10 px-4 py-2 rounded-lg">
+        <div v-if="jsonError" class="mt-2 text-sm text-danger-strong bg-danger-soft px-4 py-2 rounded-lg">
           {{ jsonError }}
         </div>
 
         <!-- Preview -->
-        <div v-if="jsonParsed && !jsonError" class="mt-3 bg-primary-soft border border-emerald-200 dark:border-emerald-500/20 rounded-lg px-4 py-3">
+        <div v-if="jsonParsed && !jsonError" class="mt-3 bg-primary-soft border border-primary/30 rounded-lg px-4 py-3">
           <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
             <span><span class="text-text-muted">Cliente:</span> <span class="font-medium text-text-default">{{ jsonPreview.clientName }}</span></span>
             <span><span class="text-text-muted">Secciones:</span> <span class="font-medium text-text-default">{{ jsonPreview.sectionCount }}</span></span>
@@ -710,8 +710,8 @@
               <label class="block text-xs font-medium text-text-muted mb-1">Moneda</label>
               <select
                 v-model="jsonForm.currency"
-                class="w-full px-4 py-2.5 border border-border-default dark:border-white/[0.08] rounded-xl text-sm
-                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none bg-surface dark:text-white"
+                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface text-text-default"
               >
                 <option value="COP">COP</option>
                 <option value="USD">USD</option>
@@ -724,7 +724,7 @@
             <div>
               <label class="block text-xs font-medium text-text-muted mb-1">Tipo de proyecto</label>
               <select v-model="jsonForm.project_type"
-                class="w-full px-4 py-2.5 border border-border-default dark:border-white/[0.08] rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none bg-surface dark:text-white">
+                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface text-text-default">
                 <option value="">— Sin definir —</option>
                 <option value="website">Sitio Web</option>
                 <option value="ecommerce">E-commerce</option>
@@ -760,7 +760,7 @@
             <div>
               <label class="block text-xs font-medium text-text-muted mb-1">Tipo de mercado</label>
               <select v-model="jsonForm.market_type"
-                class="w-full px-4 py-2.5 border border-border-default dark:border-white/[0.08] rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none bg-surface dark:text-white">
+                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface text-text-default">
                 <option value="">— Sin definir —</option>
                 <option value="b2b">B2B</option>
                 <option value="b2c">B2C</option>
@@ -850,7 +850,7 @@
           </div>
 
           <!-- Errors -->
-          <div v-if="errorMsg" class="text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-500/10 px-4 py-3 rounded-xl">
+          <div v-if="errorMsg" class="text-sm text-danger-strong bg-danger-soft px-4 py-3 rounded-xl">
             {{ errorMsg }}
           </div>
 
@@ -889,14 +889,14 @@
             <template v-if="!createCommercialPromptIsEditing">
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default dark:border-white/[0.08] rounded-lg hover:bg-surface-raised transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
                 @click="startEditCreateCommercialPrompt"
               >
                 Editar
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default dark:border-white/[0.08] rounded-lg hover:bg-surface-raised transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
                 @click="handleCopyCreateCommercialPrompt"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
@@ -904,7 +904,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default dark:border-white/[0.08] rounded-lg hover:bg-surface-raised transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
                 @click="createCommercialPromptDownload"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -913,7 +913,7 @@
               <button
                 v-if="createCommercialPromptText !== createCommercialPromptDefault"
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-surface border border-border-default dark:border-white/[0.08] rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-danger-strong bg-surface border border-border-default rounded-lg hover:bg-danger-soft transition-colors"
                 @click="handleResetCreateCommercialPrompt"
               >
                 Restaurar original
@@ -948,7 +948,7 @@
               <pre class="text-xs leading-relaxed text-text-default whitespace-pre-wrap font-mono break-words">{{ createCommercialPromptText }}</pre>
             </div>
           </div>
-          <p v-if="createCommercialPromptText !== createCommercialPromptDefault" class="text-xs text-amber-600 dark:text-amber-400 mt-3">
+          <p v-if="createCommercialPromptText !== createCommercialPromptDefault" class="text-xs text-warning-strong mt-3">
             Prompt personalizado. «Restaurar original» vuelve al texto por defecto.
           </p>
           </template>
@@ -961,21 +961,21 @@
             <template v-if="!createTechnicalPromptIsEditing">
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default dark:border-white/[0.08] rounded-lg hover:bg-surface-raised transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
                 @click="startEditCreateTechnicalPrompt"
               >
                 Editar
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default dark:border-white/[0.08] rounded-lg hover:bg-surface-raised transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
                 @click="handleCopyCreateTechnicalPrompt"
               >
                 {{ createTechnicalPromptCopied ? '¡Copiado!' : 'Copiar' }}
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default dark:border-white/[0.08] rounded-lg hover:bg-surface-raised transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
                 @click="createTechnicalPromptDownload"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -984,7 +984,7 @@
               <button
                 v-if="createTechnicalPromptText !== createTechnicalPromptDefault"
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-surface border border-border-default dark:border-white/[0.08] rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-danger-strong bg-surface border border-border-default rounded-lg hover:bg-danger-soft transition-colors"
                 @click="handleResetCreateTechnicalPrompt"
               >
                 Restaurar original
@@ -1019,14 +1019,14 @@
               <pre class="text-xs leading-relaxed text-text-default whitespace-pre-wrap font-mono break-words">{{ createTechnicalPromptText }}</pre>
             </div>
           </div>
-          <p v-if="createTechnicalPromptText !== createTechnicalPromptDefault" class="text-xs text-amber-600 dark:text-amber-400 mt-3">
+          <p v-if="createTechnicalPromptText !== createTechnicalPromptDefault" class="text-xs text-warning-strong mt-3">
             Prompt técnico personalizado. «Restaurar original» vuelve al texto por defecto.
           </p>
           </template>
         </PromptSubTabsPanel>
 
-        <div class="mt-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-lg px-4 py-3">
-          <p class="text-xs text-blue-700 dark:text-blue-300">
+        <div class="mt-4 bg-info-soft border border-info-strong/30 rounded-lg px-4 py-3">
+          <p class="text-xs text-info-strong">
             <strong>Flujo recomendado:</strong><br/>
             1) Descarga la plantilla JSON desde «Importar JSON» (incluye <code class="text-[11px]">technicalDocument</code>).<br/>
             → 2) Usa el prompt comercial y/o el técnico según lo que quieras generar.<br/>
@@ -1044,9 +1044,9 @@
           <div class="text-5xl mb-4">✅</div>
           <h3 class="text-xl font-bold text-text-default mb-2">Propuesta creada</h3>
           <p class="text-sm text-text-muted mb-4">{{ createdProposal.title }}</p>
-          <div v-if="jsonWarnings.length" class="mb-4 text-left bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-lg px-4 py-3">
-            <p class="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1">⚠️ Advertencias del JSON</p>
-            <p v-for="(warn, i) in jsonWarnings" :key="i" class="text-xs text-amber-700 dark:text-amber-400">{{ warn }}</p>
+          <div v-if="jsonWarnings.length" class="mb-4 text-left bg-warning-soft border border-warning-strong/30 rounded-lg px-4 py-3">
+            <p class="text-xs font-semibold text-warning-strong mb-1">⚠️ Advertencias del JSON</p>
+            <p v-for="(warn, i) in jsonWarnings" :key="i" class="text-xs text-warning-strong">{{ warn }}</p>
           </div>
           <div class="flex flex-col gap-3">
             <a

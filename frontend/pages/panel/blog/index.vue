@@ -247,7 +247,7 @@ function statusLabel(post) {
 
 function statusBadgeClass(post) {
   if (post.is_published) return 'bg-primary-soft text-text-brand';
-  if (isScheduled(post)) return 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300';
+  if (isScheduled(post)) return 'bg-info-soft text-info-strong';
   return 'bg-surface-raised text-text-muted';
 }
 

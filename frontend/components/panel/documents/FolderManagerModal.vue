@@ -23,7 +23,7 @@
             </div>
             <button
               type="button"
-              class="w-8 h-8 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised dark:hover:bg-gray-700 transition-colors"
+              class="w-8 h-8 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised transition-colors"
               @click="close"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,7 +43,7 @@
                   v-model="newName"
                   type="text"
                   placeholder="Nombre de la nueva carpeta..."
-                  class="w-full pl-9 pr-3 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none bg-surface dark:placeholder-gray-500 transition-colors"
+                  class="w-full pl-9 pr-3 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface placeholder:text-input-placeholder transition-colors"
                 />
               </div>
               <button
@@ -91,7 +91,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
                 </svg>
               </div>
-              <p class="text-sm font-medium text-text-muted dark:text-text-subtle">Sin carpetas todavía</p>
+              <p class="text-sm font-medium text-text-muted">Sin carpetas todavía</p>
               <p class="text-xs text-text-subtle mt-1">Usa el campo de arriba para crear la primera.</p>
             </div>
 
@@ -113,7 +113,7 @@
           <Transition name="fade-modal">
             <div
               v-if="editingFolder"
-              class="mx-6 mb-4 flex-shrink-0 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-primary-soft p-4"
+              class="mx-6 mb-4 flex-shrink-0 rounded-xl border border-primary/20 bg-primary-soft p-4"
             >
               <p class="text-xs font-semibold text-text-brand mb-2">
                 Editar "{{ editingFolder.name }}"
@@ -123,7 +123,7 @@
                   v-model="editName"
                   type="text"
                   placeholder="Nombre de la carpeta"
-                  class="w-full px-2.5 py-2 border border-emerald-300 dark:border-emerald-600 rounded-lg text-sm bg-surface text-text-default focus:ring-2 focus:ring-focus-ring/30 outline-none"
+                  class="w-full px-2.5 py-2 border border-input-border rounded-lg text-sm bg-surface text-text-default focus:ring-2 focus:ring-focus-ring/30 outline-none"
                   @keyup.enter="commitEdit"
                   @keyup.esc="editingFolder = null"
                 />
@@ -161,7 +161,7 @@
           </Transition>
 
           <div v-if="errorMsg" class="px-6 pb-2 flex-shrink-0">
-            <p class="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">{{ errorMsg }}</p>
+            <p class="text-xs text-danger-strong bg-danger-soft px-3 py-2 rounded-lg">{{ errorMsg }}</p>
           </div>
 
           <Transition name="fade-modal">
@@ -214,7 +214,7 @@
           <div class="px-6 py-4 border-t border-border-muted flex justify-end flex-shrink-0">
             <button
               type="button"
-              class="px-5 py-2 text-sm font-medium text-text-muted hover:text-text-default dark:text-text-subtle dark:hover:text-gray-100 hover:bg-surface-raised dark:hover:bg-gray-700 rounded-xl transition-colors"
+              class="px-5 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised rounded-xl transition-colors"
               @click="close"
             >
               Cerrar
@@ -334,11 +334,11 @@ const deleteVariant = computed(() => {
   if (folder.document_count) {
     return {
       kind: 'blocked',
-      panel: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20',
-      iconWrap: 'bg-amber-100 dark:bg-amber-900/40',
-      iconStroke: 'text-amber-600 dark:text-amber-400',
-      title: 'text-amber-800 dark:text-amber-200',
-      body: 'text-amber-700 dark:text-amber-300',
+      panel: 'border-warning-strong/30 bg-warning-soft',
+      iconWrap: 'bg-warning-soft',
+      iconStroke: 'text-warning-strong',
+      title: 'text-warning-strong',
+      body: 'text-warning-strong',
       titleText: `No se puede eliminar "${folder.name}"`,
       bodyText: `Primero mueve o elimina sus ${folder.document_count} documento(s).`,
       dismiss: 'bg-amber-600 text-white hover:bg-amber-700',
@@ -348,11 +348,11 @@ const deleteVariant = computed(() => {
   if (folder.children_count) {
     return {
       kind: 'blocked',
-      panel: 'border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-900/20',
-      iconWrap: 'bg-amber-100 dark:bg-amber-900/40',
-      iconStroke: 'text-amber-600 dark:text-amber-400',
-      title: 'text-amber-800 dark:text-amber-200',
-      body: 'text-amber-700 dark:text-amber-300',
+      panel: 'border-warning-strong/30 bg-warning-soft',
+      iconWrap: 'bg-warning-soft',
+      iconStroke: 'text-warning-strong',
+      title: 'text-warning-strong',
+      body: 'text-warning-strong',
       titleText: `No se puede eliminar "${folder.name}"`,
       bodyText: `Primero mueve o elimina sus ${folder.children_count} subcarpeta(s).`,
       dismiss: 'bg-amber-600 text-white hover:bg-amber-700',
@@ -361,14 +361,14 @@ const deleteVariant = computed(() => {
   }
   return {
     kind: 'destructive',
-    panel: 'border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20',
-    iconWrap: 'bg-red-100 dark:bg-red-900/40',
-    iconStroke: 'text-red-600 dark:text-red-400',
-    title: 'text-red-800 dark:text-red-200',
-    body: 'text-red-600 dark:text-red-400',
+    panel: 'border-danger-strong/30 bg-danger-soft',
+    iconWrap: 'bg-danger-soft',
+    iconStroke: 'text-danger-strong',
+    title: 'text-danger-strong',
+    body: 'text-danger-strong',
     titleText: `Eliminar "${folder.name}"`,
     bodyText: 'Esta acción no se puede deshacer.',
-    dismiss: 'text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40',
+    dismiss: 'text-danger-strong hover:bg-danger-soft',
     dismissText: 'Cancelar',
   };
 });

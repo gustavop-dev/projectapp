@@ -29,10 +29,67 @@ Defined in `frontend/assets/styles/theme.css` and exposed as Tailwind colors
 | `ring-focus-ring`                 | focus ring                               |
 | `text-on-primary`                 | foreground (text/icon) on `bg-primary`   |
 | `text-on-danger`                  | foreground (text/icon) on `bg-danger-strong` |
-| `bg-success-soft / text-success-strong`, `warning-*`, `danger-*` | status pairs |
+| `bg-success-soft / text-success-strong`, `warning-*`, `danger-*`, `info-*` | status pairs |
 
 The legacy hex tokens (`esmerald`, `lemon`, `bone`, `gray-*`, etc.) keep working
 unchanged. New work should prefer semantic tokens.
+
+## Element-role contract
+
+The normative map from UI role to canonical classes. One class set per role —
+tokens flip automatically, so following this table standardizes light AND dark
+at once. `/panel/styleguide` renders each row as its executable spec.
+
+| Role | Canonical classes |
+| --- | --- |
+| Page wash | `bg-surface-muted` (the layout paints it; pages don't repaint) |
+| Card / panel | `bg-surface border border-border-default rounded-xl shadow-card` |
+| Raised chip / inner panel / table header | `bg-surface-raised` |
+| Row / list hover | `hover:bg-surface-raised` (never `hover:bg-gray-*`) |
+| Table borders / dividers | `border-border-muted`, `divide-border-muted` |
+| Modal panel | `bg-surface border border-border-default rounded-2xl shadow-overlay` |
+| Modal backdrop | `bg-black/50` in both modes (`BaseModal` is the reference) |
+| Dropdown / popover / floating button | `bg-surface border border-border-default shadow-raised` |
+| Tooltip | `bg-primary-strong text-white` (never `bg-gray-900`) |
+| Empty state | `BaseEmptyState` or `bg-surface-raised text-text-muted` |
+
+### Status color convention
+
+All status UI routes through the paired tokens — components never pick raw
+Tailwind hues or write their own dark alphas (the token bakes the dark alpha):
+
+| Semantic | Absorbs (legacy drift) | Soft chip/badge | Strong text/icon |
+| --- | --- | --- | --- |
+| success | `green-*`, `emerald-*`, `teal-*` | `bg-success-soft` | `text-success-strong` |
+| warning | `amber-*`, `yellow-*` | `bg-warning-soft` | `text-warning-strong` |
+| danger | `red-*`, `rose-*` | `bg-danger-soft` | `text-danger-strong` |
+| info | informational `blue-*` | `bg-info-soft` | `text-info-strong` |
+
+Soft chips carry no status border by default; alert boxes may use
+`border-success-strong/30` etc. (`*-strong` tokens are solid, so `/N` is safe).
+
+### Elevation scale
+
+Three shadows only, bound to CSS vars that strengthen in dark mode
+(`--shadow-card/raised/overlay` in `theme.css`):
+
+- `shadow-card` — cards / panels at rest
+- `shadow-raised` — dropdowns, popovers, floating buttons, sticky bars
+- `shadow-overlay` — modals and drawers
+
+Any surface that relies on shadow for separation must also carry
+`border border-border-default`: in dark mode shadows fade against the wash and
+the border keeps the edge readable. Don't stack heavier shadows (`shadow-2xl`)
+on nested cards.
+
+### `dark:` variant policy
+
+- **Panel:** prefer tokens; `dark:` only for genuinely mode-specific design
+  (rare — leave a comment). Never a `dark:` gray.
+- **Public proposal (`components/BusinessProposal/`, non-admin):** `dark:` is
+  forbidden and non-functional — the viewer toggles `data-theme="dark"` on a
+  wrapper, which `darkMode: 'class'` never matches. Use tokens, or scoped
+  `[data-theme="dark"]` CSS for genuinely bespoke looks.
 
 ### Opacity modifiers
 
@@ -66,7 +123,7 @@ prefer the bare class without `/N`.
 | `BaseSelect`    | `modelValue`, `options` (array or default slot), `size`, `error`, `placeholder`, `disabled` |
 | `BaseTextarea`  | `modelValue`, `rows`, `size`, `error`, `placeholder`, `disabled`                       |
 | `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`accent`), `size` (`sm`/`md`/`lg`), `loading`, `disabled`, `as` |
-| `BaseBadge`     | `variant` (`neutral`/`success`/`warning`/`danger`/`accent`/`primary`), `size`          |
+| `BaseBadge`     | `variant` (`neutral`/`success`/`warning`/`danger`/`info`/`accent`/`primary`), `size`   |
 | `BaseCard`      | `padding` (`none`/`sm`/`md`/`lg`), `as`                                                |
 | `BaseModal`     | `modelValue`, `size` (`sm`/`md`/`lg`/`xl`/`2xl`/`5xl`), `closeOnBackdrop`, `closeOnEsc`, `padding` |
 | `BaseToggle`    | `modelValue`, `size` (`sm`/`md`), `disabled`, `ariaLabel`, `onClass` / `offClass` (override colors for status toggles, e.g. `on-class="bg-warning-strong"`) |
@@ -147,7 +204,10 @@ npm --prefix frontend run check:design-tokens:strict   # exit 1 on any offense (
 node frontend/scripts/check-design-tokens.mjs --files path/to/file.vue   # focused check on touched files
 ```
 
-The script accepts `--scope=panel|public|full` and `--quiet` (summary only).
+The script accepts `--scope=panel|proposal-public|public|full` and `--quiet`
+(summary only). `proposal-public` is the public business-proposal viewer
+(`pages/proposal/` + non-admin `components/BusinessProposal/`) carved out of
+`public` so it can graduate to a hard CI gate once its token migration lands.
 The base components (`components/base/`), the styleguide page, and decorative
 UI components (`AnimatedTestimonials`, `BackgroundGradientAnimation`) are
 allowlisted.
@@ -169,10 +229,11 @@ distinct checks on every PR:
   0 offenses, this prevents regressions introduced by new components added
   under `components/panel/` or imported indirectly into the panel without
   being modified by the PR.
-- **Public scope: warn-only.** `--scope=public --quiet` runs with a trailing
-  `|| true` so the delta is visible in CI logs and the PR comment without
-  blocking the build. The public site is still mid-migration; this surfaces
-  progress without forcing churn.
+- **Public scope: hard gate.** `--scope=public --strict` runs against the
+  full public surface (proposal viewer, blog, portfolio, landings) on every
+  PR. The scope sits at 0 offenses; the `proposal-public` sub-scope exists
+  for tracking the public proposal viewer's deeper token migration (the
+  `:deep` override block reduction) independently.
 
 ## Migration policy
 

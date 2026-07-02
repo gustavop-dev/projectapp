@@ -9,7 +9,7 @@
         <h3 class="text-sm font-semibold text-text-default dark:text-white">Documentos</h3>
       </div>
 
-      <ul class="divide-y divide-gray-100 dark:divide-white/[0.06]">
+      <ul class="divide-y divide-border-muted">
         <!-- Contrato de desarrollo -->
         <li class="py-3 flex items-start justify-between gap-3 flex-wrap">
           <div class="min-w-0">

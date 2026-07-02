@@ -18,7 +18,7 @@
         >
           <div
             class="folder-tree-handle flex-shrink-0 w-4 flex items-center justify-center
-                   text-text-subtle dark:text-text-muted cursor-grab active:cursor-grabbing"
+                   text-text-subtle cursor-grab active:cursor-grabbing"
             title="Arrastrar para reordenar"
           >
             <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
@@ -53,7 +53,7 @@
             </button>
             <button
               type="button"
-              class="w-7 h-7 flex items-center justify-center rounded-lg text-text-subtle hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+              class="w-7 h-7 flex items-center justify-center rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
               title="Eliminar carpeta"
               @click="$emit('delete', folder)"
             >
@@ -109,13 +109,13 @@ function childrenOf(id) {
 
 function rowClass(folder) {
   if (folder.id === props.editingId) {
-    return 'border-emerald-300 dark:border-emerald-600 bg-primary-soft';
+    return 'border-primary/20 bg-primary-soft';
   }
   if (folder.id === props.deletingId) {
-    return 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20';
+    return 'border-danger-strong/30 bg-danger-soft';
   }
-  return 'border-border-muted hover:border-border-default dark:hover:border-gray-600 '
-    + 'bg-surface hover:bg-surface-muted dark:hover:bg-gray-700/50';
+  return 'border-border-muted hover:border-border-default '
+    + 'bg-surface hover:bg-surface-muted';
 }
 
 // vuedraggable aísla cada lista por defecto: el reorden solo afecta este nivel.

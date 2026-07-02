@@ -54,11 +54,11 @@
     <MetricsManual />
 
     <!-- Zombie proposals segment -->
-    <div v-if="zombieAlerts.length" class="mb-4 bg-gray-800 border border-gray-700 rounded-xl p-4">
+    <div v-if="zombieAlerts.length" class="mb-4 bg-surface border border-border-default rounded-xl shadow-card p-4">
       <div class="flex items-center justify-between mb-3 cursor-pointer" @click="zombieExpanded = !zombieExpanded">
         <div class="flex items-center gap-2">
           <span class="text-lg">🧟</span>
-          <h3 class="text-sm font-semibold text-gray-200">Propuestas zombie ({{ zombieAlerts.length }})</h3>
+          <h3 class="text-sm font-semibold text-text-default">Propuestas zombie ({{ zombieAlerts.length }})</h3>
         </div>
         <span class="text-xs text-text-subtle">{{ zombieExpanded ? '▲' : '▼' }}</span>
       </div>
@@ -66,13 +66,13 @@
         <div
           v-for="alert in zombieAlerts"
           :key="`zombie-${alert.id}-${alert.alert_type}`"
-          class="flex items-center justify-between bg-gray-700/50 rounded-lg px-4 py-2.5 border border-gray-600 cursor-pointer hover:border-gray-500 transition-colors"
+          class="flex items-center justify-between bg-surface-raised rounded-lg px-4 py-2.5 border border-border-default cursor-pointer hover:border-focus-ring/40 transition-colors"
           @click="navigateToProposal(alert.id, $event)"
         >
           <div class="flex items-center gap-3">
             <span class="text-sm">{{ alert.alert_type === 'zombie_draft' ? '📝💀' : alert.alert_type === 'zombie_sent_stale' ? '📤💀' : '💀' }}</span>
             <div>
-              <span class="text-sm font-medium text-gray-200">{{ alert.client_name }}</span>
+              <span class="text-sm font-medium text-text-default">{{ alert.client_name }}</span>
               <span class="text-xs text-text-subtle ml-2">{{ alert.title }}</span>
             </div>
           </div>
@@ -82,21 +82,21 @@
     </div>
 
     <!-- Alerts panel -->
-    <div v-if="activeAlerts.length || showAlertForm" class="mb-6 bg-warning-soft border border-warning-soft rounded-xl overflow-hidden dark:border-warning-strong/30">
+    <div v-if="activeAlerts.length || showAlertForm" class="mb-6 bg-warning-soft border border-warning-strong/30 rounded-xl overflow-hidden">
       <div class="flex items-center justify-between gap-3 px-4 py-3 border-l-4 border-l-warning-strong">
         <div class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0" @click="attentionExpanded = !attentionExpanded">
           <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-warning-strong/15 text-base" aria-hidden="true">⚠️</span>
-          <h3 class="text-sm font-semibold text-warning-strong dark:text-warning-soft truncate">
+          <h3 class="text-sm font-semibold text-warning-strong truncate">
             Propuestas que necesitan atención
             <span class="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-warning-strong text-warning-soft text-[11px] font-bold">{{ groupedActiveAlerts.length }}</span>
           </h3>
-          <svg class="h-3.5 w-3.5 shrink-0 text-warning-strong/70 dark:text-warning-soft transition-transform" :class="{ 'rotate-180': !attentionExpanded }" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <svg class="h-3.5 w-3.5 shrink-0 text-warning-strong/70 transition-transform" :class="{ 'rotate-180': !attentionExpanded }" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
           </svg>
         </div>
         <button
           type="button"
-          class="shrink-0 text-xs font-medium text-warning-strong/90 dark:text-warning-soft hover:text-warning-strong dark:hover:text-warning-soft px-2.5 py-1 rounded-lg hover:bg-warning-strong/10 transition-colors"
+          class="shrink-0 text-xs font-medium text-warning-strong/90 hover:text-warning-strong px-2.5 py-1 rounded-lg hover:bg-warning-strong/10 transition-colors"
           @click.stop="toggleAlertForm"
         >
           {{ showAlertForm ? 'Cancelar' : '+ Crear recordatorio' }}
@@ -250,7 +250,7 @@
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="proposals.length === 0" class="text-center py-16 dark:text-text-subtle">
+    <div v-else-if="proposals.length === 0" class="text-center py-16 text-text-subtle">
       <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-raised flex items-center justify-center">
         <svg class="w-8 h-8 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -262,7 +262,7 @@
 
     <!-- Batch action bar -->
     <Transition name="fade-modal">
-      <div v-if="selectedIds.size > 0" class="sticky top-0 z-40 mb-3 bg-gray-900 text-white rounded-xl px-5 py-3 flex items-center justify-between shadow-lg">
+      <div v-if="selectedIds.size > 0" data-testid="batch-action-bar" class="sticky top-0 z-40 mb-3 bg-primary-strong text-white rounded-xl px-5 py-3 flex items-center justify-between shadow-raised">
         <span class="text-sm font-medium">{{ selectedIds.size }} seleccionada(s)</span>
         <div class="flex items-center gap-2">
           <button
@@ -287,7 +287,7 @@
             🗑️ Eliminar
           </button>
           <button
-            class="px-3 py-1.5 bg-gray-700 rounded-lg text-xs font-medium hover:bg-gray-600 transition-colors"
+            class="px-3 py-1.5 bg-white/10 rounded-lg text-xs font-medium hover:bg-white/20 transition-colors"
             @click="selectedIds = new Set()"
           >
             Cancelar
@@ -297,12 +297,12 @@
     </Transition>
 
     <!-- Table -->
-    <div v-if="!proposalStore.isLoading && proposals.length > 0" class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-x-auto  ">
+    <div v-if="!proposalStore.isLoading && proposals.length > 0" class="bg-surface rounded-xl shadow-card border border-border-default overflow-x-auto">
       <table class="w-full min-w-[800px]">
         <thead>
           <tr class="border-b border-border-muted text-left">
             <th class="px-3 py-3 w-10">
-              <input type="checkbox" class="rounded border-gray-300 text-text-brand focus:ring-focus-ring/30" :checked="selectedIds.size === paginatedProposals.length && paginatedProposals.length > 0" @change="toggleSelectAll" @click.stop />
+              <input type="checkbox" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" :checked="selectedIds.size === paginatedProposals.length && paginatedProposals.length > 0" @change="toggleSelectAll" @click.stop />
             </th>
             <th class="px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider w-12">ID</th>
             <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider cursor-pointer hover:text-text-brand" @click="toggleSort('client_name')">
@@ -317,7 +317,7 @@
             </th>
             <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Vistas</th>
             <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider text-center">
-              <BaseTooltip position="bottom" backgroundColor="bg-gray-900" width="max-w-[220px]" minWidth="min-w-0">
+              <BaseTooltip position="bottom" width="max-w-[220px]" minWidth="min-w-0">
                 <template #trigger><span class="cursor-help">🔥</span></template>
                 <p class="text-xs">Heat Score (1-10): indicador rápido de "temperatura" de engagement del cliente con la propuesta.</p>
               </BaseTooltip>
@@ -325,10 +325,10 @@
             <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
+        <tbody class="divide-y divide-border-muted">
           <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="[p.is_active ? 'hover:bg-surface-muted' : 'bg-surface-muted opacity-60', selectedIds.has(p.id) ? 'bg-primary-soft' : '']" @click="navigateToProposal(p.id, $event)">
             <td class="px-3 py-4" @click.stop>
-              <input type="checkbox" class="rounded border-gray-300 text-text-brand focus:ring-focus-ring/30" :checked="selectedIds.has(p.id)" @change="toggleSelect(p.id)" />
+              <input type="checkbox" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" :checked="selectedIds.has(p.id)" @change="toggleSelect(p.id)" />
             </td>
             <td class="px-4 py-4 text-xs text-text-subtle tabular-nums">#{{ p.id }}</td>
             <td class="px-6 py-4">
@@ -367,7 +367,7 @@
             </td>
             <td class="px-6 py-4 text-sm text-text-muted">
               <template v-if="isInactive(p)">
-                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300">
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-danger-soft text-danger-strong">
                   {{ inactiveDays(p) }}d sin actividad
                 </span>
               </template>
@@ -376,13 +376,13 @@
               </template>
               <template v-else-if="p.created_at">
                 {{ timeAgo(p.created_at) }}
-                <span class="text-[10px] text-text-subtle dark:text-green-light/60 ml-1">(creada)</span>
+                <span class="text-[10px] text-text-subtle ml-1">(creada)</span>
               </template>
-              <span v-else class="text-text-subtle dark:text-green-light/60">—</span>
+              <span v-else class="text-text-subtle">—</span>
             </td>
             <td class="px-6 py-4 text-sm text-text-muted tabular-nums">{{ p.view_count }}</td>
             <td class="px-6 py-4 text-center">
-              <BaseTooltip v-if="p.heat_score > 0 && p.engagement_summary" position="left" backgroundColor="bg-gray-900" width="max-w-[260px]" minWidth="min-w-0">
+              <BaseTooltip v-if="p.heat_score > 0 && p.engagement_summary" position="left" width="max-w-[260px]" minWidth="min-w-0">
                 <template #trigger>
                   <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white cursor-help" :class="heatScoreColor(p.heat_score)">
                     {{ p.heat_score }}
@@ -409,7 +409,7 @@
                     <span class="text-text-subtle">Dispositivos</span>
                     <span class="font-medium">{{ p.engagement_summary.unique_devices }}</span>
                   </div>
-                  <div v-if="p.engagement_summary.skipped_sections && p.engagement_summary.skipped_sections.length" class="pt-1 border-t border-gray-700">
+                  <div v-if="p.engagement_summary.skipped_sections && p.engagement_summary.skipped_sections.length" class="pt-1 border-t border-white/15">
                     <span class="text-text-subtle">No revisó:</span>
                     <span class="text-amber-400 ml-1">{{ p.engagement_summary.skipped_sections.map(s => sectionLabel(s)).join(', ') }}</span>
                   </div>
@@ -418,7 +418,7 @@
               <span v-else-if="p.heat_score > 0" class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white" :class="heatScoreColor(p.heat_score)">
                 {{ p.heat_score }}
               </span>
-              <span v-else class="text-text-subtle dark:text-green-light/60 text-xs">—</span>
+              <span v-else class="text-text-subtle text-xs">—</span>
             </td>
             <td class="px-6 py-4">
               <div class="flex items-center gap-2">
@@ -444,7 +444,7 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="actionsModalProposal = null"
         >
-          <div class="bg-surface rounded-2xl shadow-2xl max-w-md w-full  dark:border dark:border-white/[0.06]">
+          <div class="bg-surface rounded-2xl shadow-overlay border border-border-default max-w-md w-full">
             <!-- Header -->
             <div class="px-6 py-4 border-b border-border-muted flex items-center justify-between">
               <div>
@@ -462,23 +462,23 @@
                   :is="action.href ? 'a' : action.to ? 'NuxtLink' : 'button'"
                   v-bind="action.href ? { href: action.href, target: '_blank', rel: 'noopener noreferrer' } : action.to ? { to: action.to } : {}"
                   class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors group"
-                  :class="action.danger ? 'hover:bg-red-50 dark:hover:bg-red-500/10' : 'hover:bg-surface-raised'"
+                  :class="action.danger ? 'hover:bg-danger-soft' : 'hover:bg-surface-raised'"
                   @click="action.onClick ? action.onClick() : null"
                 >
                   <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
-                    :class="action.danger ? 'bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400' : action.bgClass || 'bg-surface-raised'"
+                    :class="action.danger ? 'bg-danger-soft text-danger-strong' : action.bgClass || 'bg-surface-raised'"
                   >
                     {{ action.icon }}
                   </span>
                   <div class="flex-1 min-w-0">
-                    <span class="text-sm font-medium block" :class="action.danger ? 'text-red-600 dark:text-red-400' : action.textClass || 'text-text-default'">{{ action.label }}</span>
+                    <span class="text-sm font-medium block" :class="action.danger ? 'text-danger-strong' : action.textClass || 'text-text-default'">{{ action.label }}</span>
                   </div>
                   <!-- Info tooltip -->
                   <div class="relative flex-shrink-0 group/info">
-                    <span class="w-6 h-6 rounded-full bg-surface-raised group-hover/info:bg-primary-soft dark:group-hover/info:bg-primary/10 flex items-center justify-center text-text-subtle group-hover/info:text-text-brand text-[11px] cursor-help transition-colors">?</span>
-                    <div class="absolute right-full top-1/2 -translate-y-1/2 mr-2 w-52 bg-gray-900 text-white text-xs rounded-xl px-3 py-2 shadow-lg opacity-0 pointer-events-none group-hover/info:opacity-100 group-hover/info:pointer-events-auto transition-opacity z-10 leading-relaxed">
+                    <span class="w-6 h-6 rounded-full bg-surface-raised group-hover/info:bg-primary-soft flex items-center justify-center text-text-subtle group-hover/info:text-text-brand text-[11px] cursor-help transition-colors">?</span>
+                    <div class="absolute right-full top-1/2 -translate-y-1/2 mr-2 w-52 bg-primary-strong text-white text-xs rounded-xl px-3 py-2 shadow-raised opacity-0 pointer-events-none group-hover/info:opacity-100 group-hover/info:pointer-events-auto transition-opacity z-10 leading-relaxed">
                       {{ action.info }}
-                      <div class="absolute top-1/2 -translate-y-1/2 -right-1 w-2 h-2 bg-gray-900 rotate-45" />
+                      <div class="absolute top-1/2 -translate-y-1/2 -right-1 w-2 h-2 bg-primary-strong rotate-45" />
                     </div>
                   </div>
                 </component>
@@ -498,7 +498,7 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="sendConfirmId = null"
         >
-          <div class="bg-surface rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center  dark:border dark:border-white/[0.06]">
+          <div class="bg-surface rounded-2xl shadow-overlay border border-border-default max-w-sm w-full p-6 text-center">
             <div class="text-4xl mb-3">📤</div>
             <h3 class="text-lg font-bold text-text-default mb-2">¿Enviar esta propuesta?</h3>
             <p class="text-sm text-text-muted mb-6">Se enviará un email al cliente con el enlace de la propuesta.</p>
@@ -511,7 +511,7 @@
                 {{ isSending ? 'Enviando...' : 'Sí, enviar' }}
               </button>
               <button
-                class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors "
+                class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-border-muted transition-colors"
                 @click="sendConfirmId = null"
               >
                 Cancelar
@@ -530,7 +530,7 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="quickLogProposal = null"
         >
-          <div class="bg-surface rounded-2xl shadow-2xl max-w-sm w-full p-6  dark:border dark:border-white/[0.06]">
+          <div class="bg-surface rounded-2xl shadow-overlay border border-border-default max-w-sm w-full p-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-base font-bold text-text-default">Registrar actividad</h3>
               <button class="w-8 h-8 rounded-lg flex items-center justify-center text-text-subtle hover:bg-surface-raised transition-colors" @click="quickLogProposal = null">
@@ -541,7 +541,7 @@
             <div class="space-y-3">
               <div>
                 <label class="block text-xs text-text-muted mb-1">Tipo de actividad</label>
-                <select v-model="quickLogType" class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface outline-none focus:ring-1 focus:ring-focus-ring/30 dark:border-white/[0.08]  dark:text-white">
+                <select v-model="quickLogType" class="w-full px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg text-input-text outline-none focus:ring-1 focus:ring-focus-ring/30">
                   <option value="call">📞 Llamada</option>
                   <option value="meeting">🤝 Reunión</option>
                   <option value="followup">📩 Seguimiento</option>
@@ -550,7 +550,7 @@
               </div>
               <div>
                 <label class="block text-xs text-text-muted mb-1">Descripción</label>
-                <input v-model="quickLogMessage" type="text" placeholder="Ej: Llamada de seguimiento, cliente interesado..." class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-lg text-sm outline-none focus:ring-1 focus:ring-focus-ring/30 dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40" @keyup.enter="confirmQuickLog" />
+                <input v-model="quickLogMessage" type="text" placeholder="Ej: Llamada de seguimiento, cliente interesado..." class="bg-input-bg w-full px-3 py-2 border border-input-border rounded-lg text-sm text-input-text placeholder:text-input-placeholder outline-none focus:ring-1 focus:ring-focus-ring/30" @keyup.enter="confirmQuickLog" />
               </div>
             </div>
             <div class="flex gap-3 mt-5">
@@ -562,7 +562,7 @@
                 {{ isQuickLogging ? 'Guardando...' : 'Registrar' }}
               </button>
               <button
-                class="px-4 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors "
+                class="px-4 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-border-muted transition-colors"
                 @click="quickLogProposal = null"
               >
                 Cancelar
@@ -872,8 +872,8 @@ const proposalActions = computed(() => {
     label: 'Ver preview',
     info: 'Abre la propuesta tal como la ve el cliente, sin registrar vistas.',
     href: `/proposal/${p.slug || p.uuid}?preview=1`,
-    bgClass: 'bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400',
-    textClass: 'text-purple-700 dark:text-purple-300',
+    bgClass: 'bg-primary-soft text-text-brand',
+    textClass: 'text-text-brand',
   });
 
   if (p.status === 'draft') {
@@ -882,8 +882,8 @@ const proposalActions = computed(() => {
       icon: '📤',
       label: 'Enviar al cliente',
       info: 'Envía un email al cliente con el enlace de la propuesta. Cambia el estado a "enviada".',
-      bgClass: 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400',
-      textClass: 'text-blue-700 dark:text-blue-300',
+      bgClass: 'bg-info-soft text-info-strong',
+      textClass: 'text-info-strong',
       onClick: () => { actionsModalProposal.value = null; handleSend(p.id); },
     });
   }
@@ -894,8 +894,8 @@ const proposalActions = computed(() => {
       icon: '🔄',
       label: 'Re-enviar email',
       info: 'Envía nuevamente el email al cliente. Mantiene la misma fecha de expiración.',
-      bgClass: 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400',
-      textClass: 'text-blue-700 dark:text-blue-300',
+      bgClass: 'bg-info-soft text-info-strong',
+      textClass: 'text-info-strong',
       onClick: () => { actionsModalProposal.value = null; handleResend(p.id); },
     });
   }
@@ -916,8 +916,8 @@ const proposalActions = computed(() => {
     label: 'Enviar por WhatsApp',
     info: 'Abre WhatsApp con un mensaje pre-escrito incluyendo el enlace de la propuesta.',
     href: buildWhatsAppUrl(p),
-    bgClass: 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400',
-    textClass: 'text-green-700 dark:text-green-300',
+    bgClass: 'bg-success-soft text-success-strong',
+    textClass: 'text-success-strong',
   });
 
   actions.push({
@@ -925,8 +925,8 @@ const proposalActions = computed(() => {
     icon: '📝',
     label: 'Registrar actividad',
     info: 'Registra rápidamente una llamada, reunión o nota sin entrar a la propuesta.',
-    bgClass: 'bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-400',
-    textClass: 'text-teal-700 dark:text-teal-300',
+    bgClass: 'bg-success-soft text-success-strong',
+    textClass: 'text-success-strong',
     onClick: () => { actionsModalProposal.value = null; openQuickLog(p); },
   });
 
@@ -935,8 +935,8 @@ const proposalActions = computed(() => {
     icon: '📋',
     label: 'Duplicar propuesta',
     info: 'Crea una copia exacta de esta propuesta para reutilizar con otro cliente.',
-    bgClass: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400',
-    textClass: 'text-indigo-700 dark:text-indigo-300',
+    bgClass: 'bg-info-soft text-info-strong',
+    textClass: 'text-info-strong',
     onClick: () => { actionsModalProposal.value = null; handleDuplicate(p.id); },
   });
 
@@ -947,8 +947,8 @@ const proposalActions = computed(() => {
     info: p.is_active
       ? 'Desactiva la propuesta. El cliente no podrá acceder al enlace.'
       : 'Reactiva la propuesta para que el cliente pueda verla nuevamente.',
-    bgClass: p.is_active ? 'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400' : 'bg-primary-soft text-text-brand ',
-    textClass: p.is_active ? 'text-yellow-700 dark:text-yellow-300' : 'text-text-brand',
+    bgClass: p.is_active ? 'bg-warning-soft text-warning-strong' : 'bg-primary-soft text-text-brand ',
+    textClass: p.is_active ? 'text-warning-strong' : 'text-text-brand',
     onClick: () => { actionsModalProposal.value = null; handleToggleActive(p.id, p.is_active); },
   });
 
@@ -1102,9 +1102,9 @@ function resolveAlertDate(alert) {
 }
 
 function alertBorderClass(priority) {
-  if (priority === 'critical') return 'border-danger-soft hover:border-danger-strong/40 dark:border-danger-strong/30 dark:hover:border-danger-strong/60';
-  if (priority === 'high') return 'border-warning-soft hover:border-warning-strong/40 dark:border-warning-strong/30 dark:hover:border-warning-strong/60';
-  return 'border-border-default hover:border-gray-300  dark:hover:border-gray-500';
+  if (priority === 'critical') return 'border-danger-strong/30 hover:border-danger-strong/60';
+  if (priority === 'high') return 'border-warning-strong/30 hover:border-warning-strong/60';
+  return 'border-border-default hover:border-focus-ring/40';
 }
 
 async function handleCreateAlert() {
@@ -1308,13 +1308,13 @@ function handleDelete(id) {
 function statusClass(status) {
   const map = {
     draft: 'bg-surface-raised text-text-muted',
-    sent: 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300',
-    viewed: 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300',
+    sent: 'bg-info-soft text-info-strong',
+    viewed: 'bg-success-soft text-success-strong',
     accepted: 'bg-primary-soft text-text-brand ',
-    finished: 'bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300',
-    rejected: 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300',
-    negotiating: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',
-    expired: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-300',
+    finished: 'bg-primary-soft text-text-brand',
+    rejected: 'bg-danger-soft text-danger-strong',
+    negotiating: 'bg-warning-soft text-warning-strong',
+    expired: 'bg-warning-soft text-warning-strong',
   };
   return map[status] || 'bg-surface-raised text-text-muted';
 }
@@ -1335,7 +1335,7 @@ function inactiveDays(p) {
 function heatScoreColor(score) {
   if (score >= 8) return 'bg-red-500';
   if (score >= 5) return 'bg-orange-400';
-  if (score >= 2) return 'bg-yellow-400 text-text-default dark:text-text-default';
+  if (score >= 2) return 'bg-yellow-400 text-text-default';
   return 'bg-surface-raised text-text-default';
 }
 

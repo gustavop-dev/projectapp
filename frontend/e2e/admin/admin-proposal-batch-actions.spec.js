@@ -82,8 +82,8 @@ test.describe('Batch Actions on Proposals', () => {
     // quality: allow-fragile-selector (table row checkboxes have no testid, first row is the target)
     await checkboxes.first().check();
 
-    // Scope assertions to the sticky batch bar (bg-gray-900 container)
-    const batchBar = page.locator('div.bg-gray-900.text-white');
+    // Scope assertions to the sticky batch bar
+    const batchBar = page.getByTestId('batch-action-bar');
     await expect(batchBar).toBeVisible({ timeout: 5000 });
     await expect(batchBar.getByRole('button', { name: /Re-enviar/ })).toBeVisible();
     await expect(batchBar.getByRole('button', { name: /Expirar/ })).toBeVisible();

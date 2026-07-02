@@ -65,7 +65,7 @@
         <span
           v-if="hasCustomizedEffectiveTotal"
           data-testid="general-finance-effective-total-badge"
-          class="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200 whitespace-nowrap"
+          class="text-xs px-2 py-0.5 rounded-full font-medium bg-warning-soft text-warning-strong whitespace-nowrap"
           :title="`Total efectivo visible al cliente según módulos seleccionados`"
         >
           Cliente ve: {{ formatInvestment(effectiveTotalInvestment, proposal.currency) }}
@@ -95,8 +95,8 @@
             URL personalizada
           </label>
           <div class="mt-2 flex flex-wrap items-stretch gap-2">
-            <div class="flex-1 min-w-[260px] flex items-stretch rounded-lg border border-border-default dark:border-white/[0.08] bg-surface-raised focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-focus-ring/30">
-              <span class="px-3 flex items-center text-xs text-text-subtle border-r border-border-default dark:border-white/[0.08] select-none">/proposal/</span>
+            <div class="flex-1 min-w-[260px] flex items-stretch rounded-lg border border-border-default bg-surface-raised focus-within:border-focus-ring focus-within:ring-1 focus-within:ring-focus-ring/30">
+              <span class="px-3 flex items-center text-xs text-text-subtle border-r border-border-default select-none">/proposal/</span>
               <input
                 id="proposal-slug-input"
                 v-model="slugDraft"
@@ -118,24 +118,24 @@
             </button>
             <button
               type="button"
-              class="px-3 py-2 text-xs font-medium rounded-lg border border-border-default dark:border-white/[0.08] text-text-muted hover:border-border-default"
+              class="px-3 py-2 text-xs font-medium rounded-lg border border-border-default text-text-muted hover:border-border-default"
               :title="'Regenerar desde el nombre del cliente'"
               @click="regenerateSlugFromName"
             >
               Regenerar
             </button>
           </div>
-          <p v-if="slugError" class="text-xs text-rose-500 mt-2">{{ slugError }}</p>
+          <p v-if="slugError" class="text-xs text-danger-strong mt-2">{{ slugError }}</p>
           <p v-else class="text-xs text-text-subtle mt-2">
             Solo minúsculas, números y guiones. El cliente verá esta URL en el enlace.
           </p>
         </div>
 
         <div
-          class="mb-4 rounded-xl border border-emerald-200/70 dark:border-emerald-500/20 bg-primary-soft dark:bg-primary/[0.06] px-4 py-3 sm:px-5 sm:py-4 text-sm"
+          class="mb-4 rounded-xl border border-primary/30 bg-primary-soft px-4 py-3 sm:px-5 sm:py-4 text-sm"
           aria-label="Identificación y estado de la propuesta"
         >
-          <span class="inline-flex items-center gap-1 mb-3 px-2 py-0.5 rounded-full bg-primary-soft dark:bg-primary/15 text-[10px] font-medium uppercase tracking-wider text-text-brand">
+          <span class="inline-flex items-center gap-1 mb-3 px-2 py-0.5 rounded-full bg-primary-soft text-[10px] font-medium uppercase tracking-wider text-text-brand">
             Identificación
           </span>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -151,7 +151,7 @@
                   @click="copyUrl"
                   class="text-text-subtle hover:text-text-brand transition-colors">
                   <DocumentDuplicateIcon v-if="!copied" class="w-3.5 h-3.5" />
-                  <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
+                  <CheckIcon v-else class="w-3.5 h-3.5 text-success-strong" />
                 </button>
               </div>
               <p class="mt-0.5">
@@ -167,7 +167,7 @@
                     @click="copyModeUrl(link.mode)"
                     class="text-text-subtle hover:text-text-brand transition-colors">
                     <DocumentDuplicateIcon v-if="copiedMode !== link.mode" class="w-3.5 h-3.5" />
-                    <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
+                    <CheckIcon v-else class="w-3.5 h-3.5 text-success-strong" />
                   </button>
                 </div>
                 <p class="mt-0.5">
@@ -280,7 +280,7 @@
               <p
                 v-if="hasCustomizedEffectiveTotal"
                 data-testid="general-finance-effective-total-note"
-                class="text-xs text-amber-700 dark:text-amber-300 mt-1.5"
+                class="text-xs text-warning-strong mt-1.5"
               >
                 Total efectivo visible al cliente:
                 <strong>{{ formatInvestment(effectiveTotalInvestment, proposal.currency) }}</strong>
@@ -296,8 +296,8 @@
               />
             </div>
           </div>
-          <div v-if="investmentSection" class="bg-primary-soft border border-emerald-200 dark:border-emerald-700/30 rounded-xl px-4 py-3">
-            <label class="block text-sm font-medium text-emerald-900 dark:text-emerald-200 mb-2">Porcentajes de pago (sección Inversión)</label>
+          <div v-if="investmentSection" class="bg-primary-soft border border-primary/30 rounded-xl px-4 py-3">
+            <label class="block text-sm font-medium text-text-brand mb-2">Porcentajes de pago (sección Inversión)</label>
             <div v-if="investmentPaymentPercentages.length" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <label
                 v-for="(_, idx) in investmentPaymentPercentages"
@@ -349,58 +349,58 @@
               />
               <span class="text-sm text-text-muted">%</span>
             </div>
-            <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-700/30 rounded-xl overflow-hidden">
-              <div class="px-4 py-2 text-[11px] uppercase tracking-wider text-blue-600 dark:text-blue-300/70 border-b border-blue-100 dark:border-blue-900/30">
+            <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-info-soft border border-info-strong/30 rounded-xl overflow-hidden">
+              <div class="px-4 py-2 text-[11px] uppercase tracking-wider text-info-strong/70 border-b border-info-strong/20">
                 Precio que verá el cliente (por mes)
               </div>
-              <div class="grid grid-cols-[1fr_auto_auto] gap-x-4 text-sm divide-y divide-blue-100 dark:divide-blue-900/30">
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Base mensual</div>
-                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right whitespace-nowrap">
+              <div class="grid grid-cols-[1fr_auto_auto] gap-x-4 text-sm divide-y divide-info-strong/20">
+                <div class="px-4 py-2 text-info-strong font-medium">Base mensual</div>
+                <div class="px-4 py-2 text-info-strong font-semibold text-right whitespace-nowrap">
                   ${{ hostingMonthlyBase.toLocaleString() }} {{ form.currency }}/mes
                 </div>
-                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">referencia</div>
+                <div class="px-4 py-2 text-[11px] text-info-strong/70 text-right whitespace-nowrap">referencia</div>
 
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
+                <div class="px-4 py-2 text-info-strong font-medium">
                   Trimestral
                   <span v-if="form.hosting_discount_quarterly" class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_quarterly }}% dcto)</span>
                 </div>
                 <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
-                     :class="form.hosting_discount_quarterly ? 'text-text-brand' : 'text-blue-800 dark:text-blue-200'">
+                     :class="form.hosting_discount_quarterly ? 'text-text-brand' : 'text-info-strong'">
                   ${{ hostingMonthlyWithDiscount(form.hosting_discount_quarterly).toLocaleString() }} {{ form.currency }}/mes
                 </div>
-                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
+                <div class="px-4 py-2 text-[11px] text-info-strong/70 text-right whitespace-nowrap">
                   total ${{ hostingPeriodTotal(form.hosting_discount_quarterly, 3).toLocaleString() }} / 3 meses
                 </div>
 
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
+                <div class="px-4 py-2 text-info-strong font-medium">
                   Semestral
                   <span v-if="form.hosting_discount_semiannual" class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_semiannual }}% dcto)</span>
                 </div>
                 <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
-                     :class="form.hosting_discount_semiannual ? 'text-text-brand' : 'text-blue-800 dark:text-blue-200'">
+                     :class="form.hosting_discount_semiannual ? 'text-text-brand' : 'text-info-strong'">
                   ${{ hostingMonthlyWithDiscount(form.hosting_discount_semiannual).toLocaleString() }} {{ form.currency }}/mes
                 </div>
-                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
+                <div class="px-4 py-2 text-[11px] text-info-strong/70 text-right whitespace-nowrap">
                   total ${{ hostingPeriodTotal(form.hosting_discount_semiannual, 6).toLocaleString() }} / 6 meses
                 </div>
 
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
+                <div class="px-4 py-2 text-info-strong font-medium">
                   Anual
                   <span v-if="form.hosting_discount_annual" class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_annual }}% dcto)</span>
                 </div>
                 <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
-                     :class="form.hosting_discount_annual ? 'text-text-brand' : 'text-blue-800 dark:text-blue-200'">
+                     :class="form.hosting_discount_annual ? 'text-text-brand' : 'text-info-strong'">
                   ${{ hostingMonthlyWithDiscount(form.hosting_discount_annual).toLocaleString() }} {{ form.currency }}/mes
                 </div>
-                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
+                <div class="px-4 py-2 text-[11px] text-info-strong/70 text-right whitespace-nowrap">
                   total ${{ hostingPeriodTotal(form.hosting_discount_annual, 12).toLocaleString() }} {{ form.currency }} / 12 meses
                 </div>
 
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">☁️ Anual (referencia)</div>
-                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right whitespace-nowrap">
+                <div class="px-4 py-2 text-info-strong font-medium">☁️ Anual (referencia)</div>
+                <div class="px-4 py-2 text-info-strong font-semibold text-right whitespace-nowrap">
                   ${{ hostingAnnualAmount.toLocaleString() }} {{ form.currency }}
                 </div>
-                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">sin descuento</div>
+                <div class="px-4 py-2 text-[11px] text-info-strong/70 text-right whitespace-nowrap">sin descuento</div>
               </div>
             </div>
             <p class="text-xs text-text-subtle mt-1">Sincronizado automáticamente con el Plan de Hosting que ve el cliente en "Tu inversión y cómo pagar".</p>
@@ -471,9 +471,9 @@
             <!-- Placeholder warning badge -->
             <div
               v-if="proposal?.client?.is_email_placeholder"
-              class="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20"
+              class="flex items-start gap-2 px-3 py-2 rounded-lg bg-warning-soft border border-warning-strong/30"
             >
-              <span class="text-amber-700 dark:text-amber-300 text-xs font-medium">
+              <span class="text-warning-strong text-xs font-medium">
                 📧 Email pendiente — las automatizaciones de correo están pausadas para este cliente.
               </span>
             </div>
@@ -933,7 +933,7 @@
             </div>
           </div>
 
-          <p v-if="promptText !== promptDefault" class="text-xs text-amber-600 mt-3">
+          <p v-if="promptText !== promptDefault" class="text-xs text-warning-strong mt-3">
             Este prompt ha sido personalizado. Usa "Restaurar original" para volver al valor por defecto.
           </p>
           </template>
@@ -987,7 +987,7 @@
               <pre class="text-xs leading-relaxed text-text-default whitespace-pre-wrap font-mono break-words">{{ technicalPromptText }}</pre>
             </div>
           </div>
-          <p v-if="technicalPromptText !== technicalPromptDefault" class="text-xs text-amber-600 mt-3">
+          <p v-if="technicalPromptText !== technicalPromptDefault" class="text-xs text-warning-strong mt-3">
             Prompt técnico personalizado. «Restaurar original» vuelve al texto por defecto.
           </p>
           </template>
@@ -1012,7 +1012,7 @@
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
               <h3 class="text-sm font-medium text-text-default">JSON de la propuesta</h3>
-              <p class="text-xs text-text-subtle dark:text-green-light/40 mt-0.5">Representación JSON completa — se actualiza al guardar cambios en otras pestañas.</p>
+              <p class="text-xs text-text-subtle mt-0.5">Representación JSON completa — se actualiza al guardar cambios en otras pestañas.</p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <BaseButton variant="secondary" size="sm" :disabled="jsonExportLoading" @click="refreshExportJson">
@@ -1042,7 +1042,7 @@
               readonly
               data-testid="proposal-export-json-textarea"
               :rows="JSON_TEXTAREA_ROWS"
-              class="w-full px-4 py-3 border border-border-default dark:border-white/[0.08] rounded-xl text-xs font-mono leading-relaxed
+              class="w-full px-4 py-3 border border-border-default rounded-xl text-xs font-mono leading-relaxed
                      bg-surface-raised text-text-default outline-none resize-y cursor-text select-all"
             />
           </template>
@@ -1058,7 +1058,7 @@
 
           <div class="flex items-center gap-3 mb-3">
             <label
-              class="inline-flex items-center gap-2 px-3 py-1.5 border border-border-default dark:border-white/[0.08] rounded-lg text-xs
+              class="inline-flex items-center gap-2 px-3 py-1.5 border border-border-default rounded-lg text-xs
                      text-text-default hover:bg-surface-raised cursor-pointer transition-colors"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1075,18 +1075,18 @@
             data-testid="proposal-import-json-textarea"
             :rows="JSON_TEXTAREA_ROWS"
             placeholder='Pega aquí el JSON completo de la propuesta...'
-            class="bg-input-bg w-full px-4 py-3 border border-border-default dark:border-white/[0.08]  rounded-xl text-xs font-mono leading-relaxed
-                   focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none resize-y"
+            class="bg-input-bg w-full px-4 py-3 border border-border-default rounded-xl text-xs font-mono leading-relaxed
+                   focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
             @input="parseImportJson"
           />
 
           <!-- Parse error -->
-          <div v-if="jsonImportError" class="mt-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-lg">
+          <div v-if="jsonImportError" class="mt-2 text-sm text-danger-strong bg-danger-soft px-4 py-2 rounded-lg">
             {{ jsonImportError }}
           </div>
 
           <!-- Preview -->
-          <div v-if="jsonImportParsed && !jsonImportError" class="mt-3 bg-primary-soft border border-emerald-200 dark:border-emerald-700/30 rounded-lg px-4 py-3">
+          <div v-if="jsonImportParsed && !jsonImportError" class="mt-3 bg-primary-soft border border-primary/30 rounded-lg px-4 py-3">
             <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
               <span><span class="text-text-muted">Cliente:</span> <span class="font-medium text-text-default">{{ jsonImportPreview.clientName }}</span></span>
               <span><span class="text-text-muted">Secciones:</span> <span class="font-medium text-text-default">{{ jsonImportPreview.sectionCount }}</span></span>
@@ -1119,7 +1119,7 @@
               </svg>
               {{ proposalStore.isUpdating ? 'Aplicando...' : 'Aplicar JSON' }}
             </button>
-            <p class="text-xs text-text-subtle dark:text-green-light/40">Esto reemplazará la metadata y todas las secciones de la propuesta.</p>
+            <p class="text-xs text-text-subtle">Esto reemplazará la metadata y todas las secciones de la propuesta.</p>
           </div>
 
         </div>
@@ -1172,7 +1172,7 @@
               {{ tt.activityHistory }}
             </BaseTooltip>
           </div>
-          <div v-if="!changeLogs.length" class="text-center py-8 text-sm text-text-subtle dark:text-green-light/40">Sin actividad registrada.</div>
+          <div v-if="!changeLogs.length" class="text-center py-8 text-sm text-text-subtle">Sin actividad registrada.</div>
           <div v-else class="relative pl-6 space-y-0">
             <div class="absolute left-[9px] top-2 bottom-2 w-px bg-surface-raised" />
             <div v-for="log in changeLogs" :key="log.id" class="relative pb-5 last:pb-0">
@@ -1182,7 +1182,7 @@
               <div class="ml-2">
                 <div class="flex items-baseline gap-2">
                   <span class="text-xs font-semibold" :class="activityLabelClass(log.change_type)">{{ activityLabel(log.change_type) }}</span>
-                  <span class="text-[10px] text-text-subtle dark:text-green-light/40">{{ formatLogDate(log.created_at) }}</span>
+                  <span class="text-[10px] text-text-subtle">{{ formatLogDate(log.created_at) }}</span>
                 </div>
                 <!-- eslint-disable-next-line vue/no-v-html -->
                 <p class="text-sm text-text-muted/60 mt-0.5" v-html="formatActivityDescription(log)"></p>
@@ -1209,7 +1209,7 @@
           ]"
         />
         <div v-show="technicalSubTab === 'editor'">
-          <p v-if="!technicalSection" class="text-sm text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-700/30 rounded-lg px-4 py-3">
+          <p v-if="!technicalSection" class="text-sm text-warning-strong bg-warning-soft border border-warning-strong/30 rounded-lg px-4 py-3">
             No se encontró la sección «Detalle técnico». Ejecuta migraciones o crea la propuesta de nuevo.
           </p>
           <template v-else>
@@ -1261,14 +1261,14 @@
                 {{ tt.sectionCompleteness }}
               </BaseTooltip>
             </div>
-            <span class="text-sm font-bold" :class="sectionCompleteness >= 80 ? 'text-text-brand' : sectionCompleteness >= 50 ? 'text-amber-600' : 'text-red-500'">
+            <span class="text-sm font-bold" :class="sectionCompleteness >= 80 ? 'text-text-brand' : sectionCompleteness >= 50 ? 'text-warning-strong' : 'text-danger-strong'">
               {{ sectionCompleteness }}%
             </span>
           </div>
           <div class="w-full h-2 bg-surface-raised rounded-full overflow-hidden">
             <div
               class="h-full rounded-full transition-all duration-500"
-              :class="sectionCompleteness >= 80 ? 'bg-primary' : sectionCompleteness >= 50 ? 'bg-amber-500' : 'bg-red-400'"
+              :class="sectionCompleteness >= 80 ? 'bg-primary' : sectionCompleteness >= 50 ? 'bg-warning-strong' : 'bg-danger-strong'"
               :style="{ width: sectionCompleteness + '%' }"
             />
           </div>
@@ -1299,7 +1299,7 @@
                   <input
                     type="checkbox"
                     :checked="section.is_enabled"
-                    class="rounded border-gray-300 text-text-brand focus:ring-focus-ring/30"
+                    class="rounded border-input-border text-text-brand focus:ring-focus-ring/30"
                     @change="toggleEnabled(section)"
                   />
                   <span class="text-text-muted">Visible</span>
@@ -2577,11 +2577,11 @@ function formatInvestment(value, currency = 'COP') {
 function statusClass(status) {
   const map = {
     draft: 'bg-surface-raised text-text-muted',
-    sent: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300',
-    viewed: 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300',
+    sent: 'bg-info-soft text-info-strong',
+    viewed: 'bg-success-soft text-success-strong',
     accepted: 'bg-primary-soft text-text-brand',
-    rejected: 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300',
-    expired: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
+    rejected: 'bg-danger-soft text-danger-strong',
+    expired: 'bg-warning-soft text-warning-strong',
   };
   return map[status] || 'bg-surface-raised text-text-muted';
 }

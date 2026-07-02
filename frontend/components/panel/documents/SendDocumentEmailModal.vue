@@ -23,7 +23,7 @@
             </div>
             <button
               type="button"
-              class="w-8 h-8 flex-shrink-0 ml-2 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised dark:hover:bg-gray-700 transition-colors"
+              class="w-8 h-8 flex-shrink-0 ml-2 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised transition-colors"
               @click="close"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,7 +68,7 @@
                   v-model="recipient"
                   type="email"
                   placeholder="correo@ejemplo.com"
-                  class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08] rounded-lg text-sm text-text-default focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+                  class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-lg text-sm text-text-default focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
                 />
               </div>
 
@@ -79,7 +79,7 @@
                   v-model="subject"
                   type="text"
                   placeholder="Asunto del correo"
-                  class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08] rounded-lg text-sm text-text-default focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+                  class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-lg text-sm text-text-default focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
                 />
               </div>
 
@@ -90,7 +90,7 @@
                   v-model="greeting"
                   type="text"
                   placeholder="Hola Carlos"
-                  class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08] rounded-lg text-sm text-text-default focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+                  class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-lg text-sm text-text-default focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
                 />
               </div>
 
@@ -131,7 +131,7 @@
                         <button
                           v-if="sections.length > 1"
                           type="button"
-                          class="p-1 rounded text-text-subtle hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          class="p-1 rounded text-text-subtle hover:text-danger-strong hover:bg-danger-soft"
                           title="Eliminar sección"
                           @click="removeSection(idx)"
                         >
@@ -145,7 +145,7 @@
                       v-model="section.text"
                       rows="3"
                       placeholder="Escribe el contenido de esta sección..."
-                      class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08] rounded-lg text-sm text-text-default focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
+                      class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-lg text-sm text-text-default focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
                     />
                   </div>
                 </div>
@@ -168,7 +168,7 @@
                   v-model="footer"
                   rows="2"
                   placeholder="Saludos cordiales..."
-                  class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08] rounded-lg text-sm text-text-default focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
+                  class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-lg text-sm text-text-default focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
                 />
               </div>
 
@@ -188,7 +188,7 @@
                     <button
                       v-if="docId !== document.id"
                       type="button"
-                      class="p-1 rounded text-text-subtle hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      class="p-1 rounded text-text-subtle hover:text-danger-strong hover:bg-danger-soft"
                       title="Quitar"
                       @click="removeAttachment(docId)"
                     >
@@ -236,7 +236,7 @@
                             v-model="selectedDocIds"
                             type="checkbox"
                             :value="d.id"
-                            class="rounded border-gray-300 dark:border-white/[0.15] text-text-brand focus:ring-focus-ring/30"
+                            class="rounded border-input-border text-text-brand focus:ring-focus-ring/30"
                           />
                           <label :for="`pick-${d.id}`" class="flex-1 min-w-0 cursor-pointer">
                             <div class="text-sm text-text-default truncate">{{ d.title }}</div>
@@ -295,12 +295,12 @@
               v-if="errorMsg"
               class="text-xs px-3 py-2 rounded-lg"
               :class="rateLimited
-                ? 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20'
-                : 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'"
+                ? 'text-warning-strong bg-warning-soft'
+                : 'text-danger-strong bg-danger-soft'"
             >
               {{ errorMsg }}
             </p>
-            <p v-else-if="successMsg" class="text-xs text-emerald-700 dark:text-emerald-400 bg-success-soft px-3 py-2 rounded-lg">
+            <p v-else-if="successMsg" class="text-xs text-success-strong bg-success-soft px-3 py-2 rounded-lg">
               {{ successMsg }}
             </p>
           </div>
@@ -309,7 +309,7 @@
           <div class="px-6 py-4 border-t border-border-muted flex justify-end gap-2 flex-shrink-0">
             <button
               type="button"
-              class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised dark:hover:bg-gray-700 rounded-lg transition-colors"
+              class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised rounded-lg transition-colors"
               @click="close"
             >
               Cancelar

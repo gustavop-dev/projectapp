@@ -51,6 +51,16 @@ const FORBIDDEN = [
   { pattern: /\btext-lemon\b(?!\/[0-9])/, suggest: 'text-accent (or use a contextual token)' },
   { pattern: /\bdark:bg-gray-[5-9]00\b/, suggest: 'remove dark: variant — bg-surface auto-flips' },
   { pattern: /\bdark:bg-esmerald(?:-dark|-light)?\b/, suggest: 'remove dark: variant — bg-surface auto-flips' },
+  // Mid-scale grays are never right with the token system: as a surface they
+  // break one of the two modes (tokens auto-flip), as an "always-dark" chrome
+  // the brand-dark token is the convention. Matches the dark:-prefixed form
+  // too (the \b boundary sits after the colon).
+  { pattern: /\bbg-gray-[3-9]00(?:\/\d+)?\b/, suggest: 'bg-surface / bg-surface-raised (or bg-primary-strong for always-dark chrome)' },
+  { pattern: /\bhover:bg-gray-[1-9]00(?:\/\d+)?\b/, suggest: 'hover:bg-surface-raised (on bg-surface) / hover:bg-border-muted (on bg-surface-raised)' },
+  { pattern: /\btext-gray-200\b/, suggest: 'text-text-default / text-text-muted' },
+  { pattern: /\bborder-gray-[3-9]00(?:\/\d+)?\b/, suggest: 'border-border-default / border-input-border' },
+  { pattern: /\bdivide-gray-\d+00?\b/, suggest: 'divide-border-muted' },
+  { pattern: /\b(?:dark:)?placeholder-gray-\d00\b/, suggest: 'placeholder:text-input-placeholder' },
   { pattern: /\btext-gray-[3-9]00\b/, suggest: 'text-text-default / text-text-muted / text-text-subtle' },
   { pattern: /\bdark:text-gray-[1-3]00\b/, suggest: 'remove dark: variant — text-text-* auto-flips' },
   { pattern: /\bborder-gray-[12]00\b/, suggest: 'border-border-default / border-border-muted / border-input-border' },
@@ -92,7 +102,7 @@ const ALPHA_BAKED_TOKENS = [
   'border', 'border-muted',
   'primary-soft',
   'input-border', 'input-placeholder',
-  'success-soft', 'warning-soft', 'danger-soft',
+  'success-soft', 'warning-soft', 'danger-soft', 'info-soft',
 ];
 
 const ALPHA_BAKED_PATTERN = new RegExp(
@@ -222,7 +232,9 @@ const NON_COLOR_BY_UTILITY = {
   ring: new Set(['inset', 'offset', 'opacity', 'solid', 'dashed', 'dotted', 'double']),
   divide: new Set(['solid', 'dashed', 'dotted', 'double', 'none', 'opacity', 'reverse']),
   outline: new Set(['solid', 'dashed', 'dotted', 'double', 'offset']),
-  shadow: new Set(['inner']),
+  // card/raised/overlay are the elevation scale from theme.extend.boxShadow,
+  // not colors (the color parser only reads theme.extend.colors).
+  shadow: new Set(['inner', 'card', 'raised', 'overlay']),
   // SVG `stroke-linecap`, `stroke-linejoin`, `stroke-width`, `stroke-dasharray`
   // are SVG attribute names that look like Tailwind classes when scanned.
   stroke: new Set(['linecap', 'linejoin', 'width', 'dasharray', 'dashoffset', 'miterlimit', 'opacity']),
@@ -425,7 +437,18 @@ const SCOPES = {
   panel: (rel) =>
     rel.startsWith('pages/panel/') ||
     rel.startsWith('components/panel/') ||
+    rel.startsWith('components/Panel/') ||
+    rel.startsWith('components/Tasks/') ||
+    rel.startsWith('components/accounting/') ||
+    rel.startsWith('components/clients/') ||
+    rel.startsWith('components/proposals/') ||
+    rel.startsWith('components/views/') ||
     rel.startsWith('components/BusinessProposal/admin/'),
+  // Public business-proposal viewer only — carved out of `public` so it can
+  // graduate to a hard CI gate independently of blog/portfolio/landings.
+  'proposal-public': (rel) =>
+    rel.startsWith('pages/proposal/') ||
+    (rel.startsWith('components/BusinessProposal/') && !rel.startsWith('components/BusinessProposal/admin/')),
   public: (rel) =>
     rel.startsWith('pages/proposal/') ||
     rel.startsWith('pages/diagnostic/') ||

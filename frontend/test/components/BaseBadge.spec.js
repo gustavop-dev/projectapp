@@ -18,8 +18,9 @@ describe('BaseBadge', () => {
     ['success', 'bg-success-soft', 'text-success-strong'],
     ['warning', 'bg-warning-soft', 'text-warning-strong'],
     ['danger', 'bg-danger-soft', 'text-danger-strong'],
+    ['info', 'bg-info-soft', 'text-info-strong'],
     ['accent', 'bg-accent-soft', 'text-primary-strong'],
-    ['primary', 'bg-primary-soft', 'text-primary-strong'],
+    ['primary', 'bg-primary-soft', 'text-text-brand'],
   ])('applies %s variant tokens', (variant, bg, text) => {
     const wrapper = mount(BaseBadge, { props: { variant }, slots: { default: 'x' } })
     const cls = wrapper.find('span').classes()

@@ -37,12 +37,12 @@
                class="timeline-item relative">
             <div class="flex flex-col sm:flex-row items-start gap-4 sm:gap-0">
               <div class="flex-shrink-0 sm:mr-8 relative z-10">
-                <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center shadow-lg bg-primary">
+                <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center shadow-raised bg-primary">
                   <span class="text-xl sm:text-2xl font-bold text-accent">{{ index + 1 }}</span>
                 </div>
               </div>
               
-              <div class="flex-1 bg-surface p-5 sm:p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <div class="flex-1 bg-surface p-5 sm:p-8 rounded-2xl border border-border-default shadow-card hover:shadow-raised transition-shadow">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                   <div>
                     <h3 class="text-2xl font-bold text-text-brand mb-2">{{ phase.title }}</h3>

@@ -6,8 +6,7 @@
       <NuxtLink
         :to="createLink"
         class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl
-               font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm
-               dark:bg-primary-strong dark:hover:bg-primary"
+               font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -25,7 +24,7 @@
         v-model="searchQuery"
         type="text"
         placeholder="Buscar por título o cliente..."
-        class="w-full pl-10 pr-10 py-2.5 bg-surface border border-border-default rounded-xl text-sm text-text-default placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none shadow-sm transition-colors"
+        class="w-full pl-10 pr-10 py-2.5 bg-surface border border-border-default rounded-xl text-sm text-text-default placeholder:text-input-placeholder focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none shadow-sm transition-colors"
       />
       <button
         v-if="searchQuery"
@@ -77,7 +76,7 @@
           Cargando...
         </div>
 
-        <div v-else-if="!hasContent" class="text-center py-16 dark:text-text-subtle">
+        <div v-else-if="!hasContent" class="text-center py-16">
           <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-raised  flex items-center justify-center">
             <svg v-if="searchQuery" class="w-8 h-8 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -122,12 +121,12 @@
                 <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
+            <tbody class="divide-y divide-border-muted">
               <!-- Filas de subcarpeta — fijas arriba, fuera de la paginación -->
               <tr
                 v-for="sub in currentSubfolders"
                 :key="`folder-${sub.id}`"
-                class="transition-colors cursor-pointer select-none hover:bg-surface-muted dark:hover:bg-gray-700/50"
+                class="transition-colors cursor-pointer select-none hover:bg-surface-muted"
                 :class="{ 'ring-2 ring-inset ring-emerald-400': dragOverFolderId === sub.id }"
                 draggable="true"
                 @click="handleSelectFolder(sub.id)"
@@ -157,7 +156,7 @@
               <tr
                 v-for="doc in pagedDocuments"
                 :key="doc.id"
-                class="hover:bg-surface-muted dark:hover:bg-gray-700/50 transition-colors cursor-grab active:cursor-grabbing select-none"
+                class="hover:bg-surface-muted transition-colors cursor-grab active:cursor-grabbing select-none"
                 :class="[
                   { 'opacity-50': draggingDoc?.id === doc.id },
                   { 'bg-primary-soft transition-colors duration-1000': doc.id === newlyCreatedId }
@@ -208,7 +207,7 @@
                 <td class="px-6 py-4" @click.stop>
                   <button
                     type="button"
-                    class="p-1.5 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-text-default"
+                    class="p-1.5 rounded-lg hover:bg-surface-raised transition-colors text-text-subtle hover:text-text-default"
                     title="Acciones"
                     @click="actionDoc = doc"
                   >
@@ -268,7 +267,7 @@
               <div class="flex items-center" @click.stop>
                 <button
                   type="button"
-                  class="p-2 rounded-lg hover:bg-surface-raised dark:hover:bg-gray-600 transition-colors text-text-subtle hover:text-text-default"
+                  class="p-2 rounded-lg hover:bg-surface-raised transition-colors text-text-subtle hover:text-text-default"
                   title="Más acciones"
                   @click="actionDoc = doc"
                 >
@@ -345,7 +344,7 @@
                 {{ documentStore.isUpdating ? 'Eliminando...' : 'Eliminar' }}
               </button>
               <button
-                class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors   dark:hover:bg-gray-600"
+                class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-border-muted transition-colors"
                 @click="deleteConfirm = null"
               >
                 Cancelar
@@ -609,7 +608,7 @@ function statusBadgeClass(status) {
   const map = {
     draft: 'bg-surface-raised text-text-default ',
     published: 'bg-primary-soft text-text-brand ',
-    archived: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
+    archived: 'bg-warning-soft text-warning-strong',
   };
   return map[status] || map.draft;
 }

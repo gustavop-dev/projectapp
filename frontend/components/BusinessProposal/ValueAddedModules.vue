@@ -19,7 +19,7 @@
 
         <!-- Free badge + intro -->
         <div data-animate="fade-up" class="mb-10">
-          <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-soft text-text-brand text-xs font-semibold uppercase tracking-wider mb-5 border border-emerald-200">
+          <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-soft text-text-brand text-xs font-semibold uppercase tracking-wider mb-5">
             <span>✨</span>
             <span>{{ noCostLabel }}</span>
           </span>
@@ -70,8 +70,8 @@
         </div>
 
         <!-- Footer note -->
-        <div v-if="content.footer_note" data-animate="fade-up" class="bg-primary-soft border border-emerald-200 rounded-xl px-5 py-4 text-center">
-          <p class="text-emerald-800 text-sm md:text-base font-medium">
+        <div v-if="content.footer_note" data-animate="fade-up" class="bg-primary-soft border border-primary/20 rounded-xl px-5 py-4 text-center">
+          <p class="text-text-brand text-sm md:text-base font-medium">
             {{ content.footer_note }}
           </p>
         </div>

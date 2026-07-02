@@ -204,7 +204,7 @@
         Para editar el contenido detallado, abre un diagnóstico real y modifícalo allí — el editor por
         defecto se gestiona desde el JSON de cada sección.
       </p>
-      <div class="bg-surface rounded-xl shadow-sm border border-border-muted divide-y divide-gray-100 dark:divide-gray-700">
+      <div class="bg-surface rounded-xl shadow-card border border-border-muted divide-y divide-border-muted">
         <div
           v-for="section in sectionsList"
           :key="section.section_type"
@@ -266,7 +266,7 @@
         </span>
       </div>
       <pre
-        class="bg-gray-900 text-gray-100 rounded-xl p-4 text-xs overflow-x-auto"
+        class="bg-primary-strong text-white rounded-xl p-4 text-xs overflow-x-auto"
         data-testid="defaults-json-view"
       >{{ rawConfigPretty }}</pre>
     </section>

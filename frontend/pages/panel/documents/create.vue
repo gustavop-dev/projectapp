@@ -53,7 +53,7 @@
                 required
                 placeholder="Mi Documento"
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default placeholder:text-text-subtle
-                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               />
             </div>
             <div>
@@ -64,7 +64,7 @@
                 type="text"
                 placeholder="Empresa S.A."
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default placeholder:text-text-subtle
-                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               />
             </div>
           </div>
@@ -78,7 +78,7 @@
               <select
                 v-model="form.folder_id"
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
-                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               >
                 <option :value="null">Sin carpeta</option>
                 <option v-for="folder in folderStore.folders" :key="folder.id" :value="folder.id">
@@ -98,7 +98,7 @@
               <select
                 v-model="form.language"
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
-                       focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               >
                 <option value="es">Español</option>
                 <option value="en">English</option>
@@ -134,7 +134,7 @@
             :class="[
               'inline-flex items-center justify-center gap-2 flex-1 sm:flex-none sm:min-w-[11rem] px-4 py-2 text-sm rounded-lg transition-all',
               mode === tab.id
-                ? 'bg-surface shadow-sm font-medium text-text-default ring-1 ring-focus-ring/30/20'
+                ? 'bg-surface shadow-sm font-medium text-text-default ring-1 ring-focus-ring/20'
                 : 'text-text-muted hover:text-text-default'
             ]"
             @click="mode = tab.id"
@@ -178,7 +178,7 @@
               v-model="form.content_markdown"
               placeholder="# Mi Documento&#10;&#10;Escribe o pega tu contenido en formato Markdown..."
               class="w-full px-4 py-3 border border-border-default rounded-xl text-sm font-mono leading-relaxed bg-surface text-text-default placeholder:text-text-subtle
-                     focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none resize-none
+                     focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-none
                      min-h-[24rem] lg:h-[calc(100vh-20rem)]"
             ></textarea>
             <div
@@ -245,7 +245,7 @@
           ></textarea>
         </div>
 
-        <div v-if="errorMsg" class="mt-4 text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl dark:bg-red-900/20 dark:text-red-400">
+        <div v-if="errorMsg" class="mt-4 text-sm text-danger-strong bg-danger-soft px-4 py-3 rounded-xl">
           {{ errorMsg }}
         </div>
 

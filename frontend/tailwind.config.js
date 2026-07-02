@@ -99,6 +99,16 @@ export default {
         'warning-strong': 'rgb(var(--color-warning-strong-rgb) / <alpha-value>)',
         'danger-soft': 'var(--color-danger-soft)',
         'danger-strong': 'rgb(var(--color-danger-strong-rgb) / <alpha-value>)',
+        'info-soft': 'var(--color-info-soft)',
+        'info-strong': 'rgb(var(--color-info-strong-rgb) / <alpha-value>)',
+      },
+      // Elevation scale bound to theme.css vars (adjusted per mode).
+      // card → cards/panels; raised → dropdowns/popovers/floating; overlay →
+      // modals/drawers. Pair shadow-reliant surfaces with border-border-default.
+      boxShadow: {
+        'card': 'var(--shadow-card)',
+        'raised': 'var(--shadow-raised)',
+        'overlay': 'var(--shadow-overlay)',
       },
       animation: {
         first: "moveVertical 30s ease infinite",

@@ -20,7 +20,7 @@
             </div>
             <button
               type="button"
-              class="w-8 h-8 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised dark:hover:bg-gray-700 transition-colors"
+              class="w-8 h-8 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised transition-colors"
               @click="close"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,20 +38,20 @@
                 v-model="editingTitle"
                 type="text"
                 placeholder="Nombre del documento"
-                class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08] rounded-lg text-sm text-text-default focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+                class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-lg text-sm text-text-default focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
                 :disabled="isSaving"
                 @keyup.esc="close"
               />
             </div>
 
-            <p v-if="errorMsg" class="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">
+            <p v-if="errorMsg" class="text-xs text-danger-strong bg-danger-soft px-3 py-2 rounded-lg">
               {{ errorMsg }}
             </p>
 
             <div class="flex justify-end gap-2 pt-2">
               <button
                 type="button"
-                class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised dark:hover:bg-gray-700 rounded-lg transition-colors"
+                class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised rounded-lg transition-colors"
                 @click="close"
               >
                 Cancelar

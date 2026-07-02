@@ -89,13 +89,13 @@
             placeholder="tu@email.com"
             required
             class="flex-1 px-4 py-2.5 border border-border-default rounded-xl text-sm
-                   focus:ring-1 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
+                   focus:ring-1 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
           />
           <button
             type="submit"
             :disabled="magicLoading"
-            class="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium
-                   hover:bg-gray-800 transition-colors disabled:opacity-50"
+            class="px-5 py-2.5 bg-primary-strong text-white rounded-xl text-sm font-medium
+                   hover:bg-primary-strong/90 transition-colors disabled:opacity-50"
           >
             {{ magicLoading ? '...' : 'Enviar' }}
           </button>

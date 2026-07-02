@@ -8,7 +8,8 @@ describe('BaseCard', () => {
     expect(wrapper.html()).toContain('<p>hola</p>')
     const cls = wrapper.classes()
     expect(cls).toContain('bg-surface')
-    expect(cls).toContain('border-border-muted')
+    expect(cls).toContain('border-border-default')
+    expect(cls).toContain('shadow-card')
     expect(cls).toContain('rounded-xl')
   })
 

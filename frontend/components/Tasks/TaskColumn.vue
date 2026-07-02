@@ -1,17 +1,17 @@
 <template>
   <section
-    class="flex flex-col bg-gray-50/40 rounded-xl border border-border-default min-w-[260px] flex-1"
+    class="flex flex-col bg-surface-raised rounded-xl border border-border-default min-w-[260px] flex-1"
     :data-testid="`column-${status}`"
   >
     <header class="flex items-center justify-between px-4 py-3 border-b border-border-default">
       <div class="flex items-center gap-2">
         <span class="w-2 h-2 rounded-full" :class="dotClass"></span>
         <h2 class="text-sm font-semibold text-text-default">{{ label }}</h2>
-        <span class="text-[11px] text-gray-400 dark:text-text-muted">{{ tasks.length }}</span>
+        <span class="text-[11px] text-text-subtle">{{ tasks.length }}</span>
       </div>
       <button
         type="button"
-        class="text-gray-400 hover:text-text-brand dark:hover:text-emerald-400 transition-colors"
+        class="text-text-subtle hover:text-text-brand transition-colors"
         :aria-label="`New task in ${label}`"
         :data-testid="`add-task-${status}`"
         @click="$emit('add')"
@@ -36,7 +36,7 @@
       </draggable>
 
       <div v-for="([name, groupTasks, groupOffset]) in groupedTasks" :key="name">
-        <div class="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-text-muted px-1 mb-1">
+        <div class="text-[10px] font-semibold uppercase tracking-wide text-text-subtle px-1 mb-1">
           {{ name }}
         </div>
         <draggable
@@ -71,12 +71,12 @@ const emit = defineEmits(['add', 'edit', 'move']);
 
 const dotClass = computed(() => {
   const map = {
-    todo: 'bg-gray-400',
-    in_progress: 'bg-blue-500',
-    blocked: 'bg-red-500',
-    done: 'bg-emerald-500',
+    todo: 'bg-text-subtle',
+    in_progress: 'bg-info-strong',
+    blocked: 'bg-danger-strong',
+    done: 'bg-success-strong',
   };
-  return map[props.status] || 'bg-gray-400';
+  return map[props.status] || 'bg-text-subtle';
 });
 
 const groupedTasks = computed(() => {

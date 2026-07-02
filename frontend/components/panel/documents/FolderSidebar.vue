@@ -141,7 +141,7 @@ watch(() => props.folders, (v) => {
 }, { immediate: true });
 
 const ACTIVE_CLASS = 'bg-primary-soft text-text-brand font-medium';
-const INACTIVE_CLASS = 'text-text-default hover:bg-surface-muted dark:text-text-subtle dark:hover:bg-gray-700/50';
+const INACTIVE_CLASS = 'text-text-default hover:bg-surface-muted';
 
 function entryClass(id) {
   return props.activeId === id ? ACTIVE_CLASS : INACTIVE_CLASS;
@@ -154,7 +154,7 @@ function dropZoneClass(id) {
   if (dragOverId.value === id) {
     return 'ring-2 ring-emerald-400 bg-primary-soft !text-text-brand dark:!text-emerald-300';
   }
-  return 'ring-1 ring-dashed ring-gray-200 dark:ring-gray-600';
+  return 'ring-1 ring-dashed ring-border-default';
 }
 
 function onDrop(folderId) {

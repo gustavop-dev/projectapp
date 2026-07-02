@@ -11,8 +11,8 @@
           <!-- Header -->
           <div class="flex items-center justify-between px-6 py-4 border-b border-border-muted">
             <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
-                <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="w-8 h-8 rounded-lg bg-info-soft flex items-center justify-center">
+                <svg class="w-4 h-4 text-info-strong" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
               </div>
@@ -23,7 +23,7 @@
             </div>
             <button
               type="button"
-              class="w-8 h-8 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised dark:hover:bg-gray-700 transition-colors"
+              class="w-8 h-8 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised transition-colors"
               @click="close"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -40,8 +40,8 @@
               :disabled="isMoving"
               class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left disabled:opacity-50"
               :class="document.folder_id === null
-                ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
-                : 'border-border-muted hover:border-border-default dark:hover:border-gray-600 hover:bg-surface-muted dark:hover:bg-gray-700/50'"
+                ? 'border-info-strong/30 bg-info-soft'
+                : 'border-border-muted hover:border-border-default hover:bg-surface-muted'"
               @click="moveToFolder(null)"
             >
               <div class="w-7 h-7 rounded-lg bg-surface-raised flex items-center justify-center flex-shrink-0">
@@ -52,7 +52,7 @@
               <span class="flex-1 text-sm font-medium text-text-default">Sin carpeta</span>
               <svg
                 v-if="document.folder_id === null"
-                class="w-4 h-4 text-blue-500 flex-shrink-0"
+                class="w-4 h-4 text-info-strong flex-shrink-0"
                 fill="currentColor"
                 viewBox="0 0 24 24"
               >
@@ -68,8 +68,8 @@
               :disabled="isMoving"
               class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left disabled:opacity-50"
               :class="document.folder_id === folder.id
-                ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
-                : 'border-border-muted hover:border-border-default dark:hover:border-gray-600 hover:bg-surface-muted dark:hover:bg-gray-700/50'"
+                ? 'border-info-strong/30 bg-info-soft'
+                : 'border-border-muted hover:border-border-default hover:bg-surface-muted'"
               :style="{ paddingLeft: `${12 + folder.depth * 18}px` }"
               @click="moveToFolder(folder.id)"
             >
@@ -82,7 +82,7 @@
               <span class="flex-shrink-0 text-xs text-text-subtle">{{ folder.document_count }}</span>
               <svg
                 v-if="document.folder_id === folder.id"
-                class="w-4 h-4 text-blue-500 flex-shrink-0"
+                class="w-4 h-4 text-info-strong flex-shrink-0"
                 fill="currentColor"
                 viewBox="0 0 24 24"
               >
@@ -97,14 +97,14 @@
 
           <!-- Error -->
           <div v-if="errorMsg" class="px-4 pb-2">
-            <p class="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">{{ errorMsg }}</p>
+            <p class="text-xs text-danger-strong bg-danger-soft px-3 py-2 rounded-lg">{{ errorMsg }}</p>
           </div>
 
           <!-- Footer -->
           <div class="px-6 py-4 border-t border-border-muted flex justify-end">
             <button
               type="button"
-              class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default dark:text-text-subtle dark:hover:text-gray-100 hover:bg-surface-raised dark:hover:bg-gray-700 rounded-lg transition-colors"
+              class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised rounded-lg transition-colors"
               @click="close"
             >
               Cancelar

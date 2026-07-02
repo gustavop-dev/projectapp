@@ -1,9 +1,9 @@
 <template>
   <div v-show="isOpen" class="mb-4">
-    <div class="divide-y divide-gray-100 rounded-xl border border-border-default bg-surface dark:divide-gray-700/60">
+    <div class="divide-y divide-border-muted rounded-xl border border-border-default bg-surface">
 
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
-        <span class="w-[5.5rem] shrink-0 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-text-muted">Categoria</span>
+        <span class="w-[5.5rem] shrink-0 text-[10px] font-semibold uppercase tracking-wider text-text-subtle">Categoria</span>
         <ProposalFilterDropdown
           label="Seccion"
           :options="categoryOptions"
@@ -13,7 +13,7 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
-        <span class="w-[5.5rem] shrink-0 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-text-muted">Audiencia</span>
+        <span class="w-[5.5rem] shrink-0 text-[10px] font-semibold uppercase tracking-wider text-text-subtle">Audiencia</span>
         <ProposalFilterDropdown
           label="Quien la ve"
           :options="audienceOptions"
@@ -23,7 +23,7 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
-        <span class="w-[5.5rem] shrink-0 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-text-muted">Tipo</span>
+        <span class="w-[5.5rem] shrink-0 text-[10px] font-semibold uppercase tracking-wider text-text-subtle">Tipo</span>
         <ProposalFilterDropdown
           label="Tipo de vista"
           :options="typeOptions"
@@ -37,7 +37,7 @@
         <button
           v-if="filterCount > 0"
           type="button"
-          class="whitespace-nowrap text-xs font-medium text-gray-400 transition-colors hover:text-red-500 dark:text-text-muted dark:hover:text-red-400"
+          class="whitespace-nowrap text-xs font-medium text-text-subtle transition-colors hover:text-danger-strong"
           @click="emit('reset')"
         >
           Limpiar todo
@@ -47,16 +47,16 @@
 
     <!-- Active filter chips -->
     <div v-if="activeChips.length > 0" class="mt-2 flex flex-wrap items-center gap-1.5 px-1">
-      <span class="mr-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-text-muted">Activos:</span>
+      <span class="mr-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-subtle">Activos:</span>
       <span
         v-for="chip in activeChips"
         :key="chip.key"
-        class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-primary-soft px-2.5 py-1 text-xs font-medium text-text-brand dark:border-emerald-700"
+        class="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-text-brand"
       >
         {{ chip.label }}
         <button
           type="button"
-          class="ml-0.5 leading-none hover:text-red-500 dark:hover:text-red-400"
+          class="ml-0.5 leading-none hover:text-danger-strong"
           @click="clearChip(chip.key)"
         >&times;</button>
       </span>

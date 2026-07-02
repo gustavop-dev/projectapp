@@ -5,7 +5,7 @@
       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors border whitespace-nowrap focus-visible:ring-2 focus-visible:ring-focus-ring/30 focus-visible:outline-none"
       :class="isActive
         ? 'bg-primary text-white border-emerald-600 hover:bg-primary-strong'
-        : 'bg-surface text-text-muted dark:text-gray-400 border-border-default hover:border-gray-300 dark:hover:border-gray-500'"
+        : 'bg-surface text-text-muted border-border-default hover:border-text-muted'"
       @click="isOpen = !isOpen"
     >
       <span v-if="icon" class="text-sm leading-none">{{ icon }}</span>
@@ -29,12 +29,12 @@
           <label
             v-for="opt in options"
             :key="opt.value"
-            class="flex items-center gap-2.5 px-3 py-2 text-sm text-text-default hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+            class="flex items-center gap-2.5 px-3 py-2 text-sm text-text-default hover:bg-surface-raised cursor-pointer"
           >
             <input
               type="checkbox"
               :checked="modelValue.includes(opt.value)"
-              class="w-3.5 h-3.5 rounded border-gray-300 text-text-brand focus:ring-focus-ring/30 focus:ring-1 accent-emerald-600"
+              class="w-3.5 h-3.5 rounded border-input-border text-text-brand focus:ring-focus-ring/30 focus:ring-1 accent-emerald-600"
               @change="toggle(opt.value)"
             />
             <span class="truncate">{{ opt.label }}</span>
@@ -43,7 +43,7 @@
         <div v-if="modelValue.length > 0" class="border-t border-border-muted px-3 py-1.5">
           <button
             type="button"
-            class="text-xs text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+            class="text-xs text-text-subtle hover:text-danger-strong transition-colors"
             @click="$emit('update:modelValue', [])"
           >
             Limpiar
