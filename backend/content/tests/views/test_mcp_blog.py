@@ -58,6 +58,56 @@ class TestMcpEndpointAuth:
 
 
 @pytest.mark.django_db
+class TestMcpEndpointProtocolCompat:
+    """Streamable HTTP transport compliance for claude.ai's client probes."""
+
+    def test_get_sse_probe_returns_405_not_406(self, api_client, blog_connector):
+        # Spec: GET must get text/event-stream or exactly 405 — DRF's default
+        # negotiation used to 406 on an SSE-only Accept header.
+        _, token = blog_connector
+        response = api_client.get(_url(token), HTTP_ACCEPT='text/event-stream')
+        assert response.status_code == 405
+        assert 'POST' in response['Allow']
+
+    def test_delete_session_termination_returns_405(self, api_client, blog_connector):
+        _, token = blog_connector
+        response = api_client.delete(_url(token))
+        assert response.status_code == 405
+
+    def test_head_returns_405(self, api_client, blog_connector):
+        _, token = blog_connector
+        response = api_client.head(_url(token))
+        assert response.status_code == 405
+
+    def test_post_with_foreign_origin_is_rejected(self, api_client, blog_connector):
+        _, token = blog_connector
+        response = api_client.post(
+            _url(token), _rpc('ping'), format='json',
+            HTTP_ORIGIN='https://evil.example',
+        )
+        assert response.status_code == 403
+
+    def test_post_with_same_host_origin_is_accepted(self, api_client, blog_connector):
+        _, token = blog_connector
+        response = api_client.post(
+            _url(token), _rpc('ping'), format='json',
+            HTTP_ORIGIN='http://testserver',
+        )
+        assert response.status_code == 200
+
+    @pytest.mark.parametrize('probe_path', [
+        '/.well-known/oauth-authorization-server',
+        '/.well-known/oauth-protected-resource',
+        '/.well-known/openid-configuration',
+    ])
+    def test_oauth_discovery_probes_return_404(self, api_client, probe_path):
+        # The SPA catch-all must not answer these with 200 HTML: claude.ai
+        # reads that as "OAuth-protected server" and derails connector setup.
+        response = api_client.get(probe_path)
+        assert response.status_code == 404
+
+
+@pytest.mark.django_db
 class TestMcpEndpointFlow:
     def test_initialize_handshake(self, api_client, blog_connector):
         _, token = blog_connector
