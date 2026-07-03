@@ -8,6 +8,8 @@ jest.mock('@vueuse/core', () => ({
   onClickOutside: jest.fn((_, handler) => {
     outsideHandler = handler;
   }),
+  // Immediate execution: live-mode emissions become synchronous in tests.
+  useDebounceFn: jest.fn((fn) => fn),
 }));
 
 function mountDropdown(props = {}) {
