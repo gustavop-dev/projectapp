@@ -22,6 +22,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 
 from content.mcp.protocol import handle_message
+from content.mcp.document_tools import DOCUMENT_TOOLS
 from content.mcp.tools import BLOG_TOOLS
 from content.models import McpConnector, McpRequestLog
 from content.permissions import IsSuperUser
@@ -33,6 +34,7 @@ LAST_USED_TOUCH_SECONDS = 60
 # One entry per exposed MCP connector: slug -> tool registry.
 TOOLS_BY_SLUG = {
     'blog': BLOG_TOOLS,
+    'documents': DOCUMENT_TOOLS,
 }
 
 

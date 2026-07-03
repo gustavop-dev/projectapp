@@ -10,8 +10,10 @@ const props = defineProps({
   // Color shown when modelValue is true. Defaults to brand primary.
   // Use a semantic class like 'bg-warning-strong' to convey state instead of action.
   onClass: { type: String, default: 'bg-primary' },
-  // Color shown when modelValue is false. Defaults to muted raised surface.
-  offClass: { type: String, default: 'bg-surface-raised border border-border-default' },
+  // Color shown when modelValue is false. A brand-tinted border keeps the
+  // (near-white) off track visible on light surfaces — a plain neutral border
+  // is out-competed by the base `border-transparent`, so force it important.
+  offClass: { type: String, default: 'bg-surface-raised !border-primary' },
 })
 
 const emit = defineEmits(['update:modelValue'])
