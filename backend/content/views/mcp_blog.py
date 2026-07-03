@@ -67,7 +67,12 @@ def _origin_is_foreign(request):
         return False
     if origin in getattr(settings, 'MCP_ALLOWED_ORIGINS', []):
         return False
-    return urlparse(origin).netloc != request.get_host()
+    if urlparse(origin).netloc != request.get_host():
+        # Record the exact rejected value: MCP clients' headers are not
+        # documented anywhere, so this log is how we learn what they send.
+        logger.warning('[MCP] rejected foreign Origin: %s', origin)
+        return True
+    return False
 
 
 def _touch_last_used(connector):
