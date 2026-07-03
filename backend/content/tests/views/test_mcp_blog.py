@@ -95,6 +95,18 @@ class TestMcpEndpointProtocolCompat:
         )
         assert response.status_code == 200
 
+    def test_post_without_trailing_slash_works(self, api_client, blog_connector):
+        # Hand-copied connector URLs often lose the trailing slash; without
+        # this route the POST fell into the SPA catch-all and got a 403 CSRF.
+        _, token = blog_connector
+        response = api_client.post(
+            f'/api/mcp/blog/{token}',
+            _rpc('initialize', {'protocolVersion': '2025-06-18'}),
+            format='json',
+        )
+        assert response.status_code == 200
+        assert response.data['result']['serverInfo']['name'] == 'projectapp-blog-mcp'
+
     @pytest.mark.parametrize('probe_path', [
         '/.well-known/oauth-authorization-server',
         '/.well-known/oauth-protected-resource',
