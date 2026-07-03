@@ -117,6 +117,7 @@ function buildHandler({ calls }) {
         body: JSON.stringify({
           notification_recipients: ['gustavo@projectapp.co'],
           notifications_enabled: true,
+          card_reminder_enabled: true,
           updated_at: '2026-07-01T00:00:00Z',
         }),
       };
@@ -255,6 +256,25 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
       'gustavo@projectapp.co',
       'carlos@projectapp.co',
     ]);
+  });
+
+  test('settings persists the card-debt reminder toggle', {
+    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
+
+    await expect(
+      page.getByText('Recordatorio de deuda de tarjetas'),
+    ).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('settings-card-reminder-toggle').click();
+    await page.getByTestId('settings-save-button').click();
+
+    await expect(page.getByText('Configuración guardada')).toBeVisible();
+    const patch = calls.find((call) => call.method === 'PATCH');
+    expect(patch.body.card_reminder_enabled).toBe(false);
   });
 
   test('settings blocks saving an invalid email', {

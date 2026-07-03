@@ -327,6 +327,8 @@ export const ADMIN_ACCOUNTING_RECURRING     = ['@flow:admin-accounting-recurring
 export const ADMIN_ACCOUNTING_HISTORY       = ['@flow:admin-accounting-history',       '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_SETTINGS      = ['@flow:admin-accounting-settings',      '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_ADS           = ['@flow:admin-accounting-ads',           '@module:admin', '@priority:P3'];
+export const ADMIN_ACCOUNTING_CARDS         = ['@flow:admin-accounting-cards',         '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_EXPORT        = ['@flow:admin-accounting-export',        '@module:admin', '@priority:P2'];
 
 // ── MCP connectors panel (superuser-only) (Jul 2, 2026) ──
 export const ADMIN_MCPS = ['@flow:admin-mcps', '@module:admin', '@priority:P2'];

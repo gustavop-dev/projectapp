@@ -1,38 +1,24 @@
 <template>
   <div>
-    <AccountingSubnav active="hostings" />
+    <AccountingSubnav active="cards" />
 
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
-        <h1 class="text-2xl font-light text-text-default">Hostings</h1>
+        <h1 class="text-2xl font-light text-text-default">Tarjetas</h1>
         <p class="text-sm text-text-subtle mt-1">
-          Servicios de hosting cobrados a clientes y su ingreso mensual.
+          Registros semanales de disponible y deuda de las tarjetas de crédito.
         </p>
       </div>
       <BaseButton
         variant="primary"
         size="md"
-        data-testid="hostings-new-button"
+        data-testid="cards-new-button"
         @click="openCreateModal"
       >
         <PlusIcon class="w-4 h-4" />
-        <span>Nuevo hosting</span>
+        <span>Nuevo registro</span>
       </BaseButton>
-    </div>
-
-    <!-- Meta cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-      <AccountingStatCard
-        label="Hostings activos"
-        :value="String(hostingsMeta.active_count ?? 0)"
-        tone="brand"
-      />
-      <AccountingStatCard
-        label="Ingreso mensual"
-        :value="formatMoney(hostingsMeta.monthly_income ?? 0)"
-        tone="success"
-      />
     </div>
 
     <!-- Saved filter tabs -->
@@ -46,13 +32,13 @@
       @delete="deleteFilterTab"
     />
 
-    <!-- Search + Filter toggle -->
+    <!-- Search + Filter toggle + Export -->
     <div class="flex items-center gap-2 mb-5">
       <BaseInput
         v-model="searchInput"
         type="text"
-        placeholder="Buscar por cliente o dominio..."
-        data-testid="hostings-search-input"
+        placeholder="Buscar por tarjeta o notas..."
+        data-testid="cards-search-input"
         class="w-full sm:max-w-xs"
       />
       <UiFilterToggleButton
@@ -60,7 +46,7 @@
         :count="activeFilterCount"
         @click="isFilterPanelOpen = !isFilterPanelOpen"
       />
-      <AccountingExportButton section="hosting" :params="exportParams" />
+      <AccountingExportButton section="card_snapshot" :params="exportParams" />
     </div>
 
     <!-- Filter panel -->
@@ -75,9 +61,19 @@
       @clear-search="searchInput = ''"
     />
 
+    <!-- Summary chip (latest debt per card over filtered rows) -->
+    <div class="flex flex-wrap items-center gap-2 mb-4">
+      <span
+        class="text-xs px-2.5 py-1 rounded-full bg-danger-soft text-danger-strong font-medium tabular-nums"
+        data-testid="cards-total-debt"
+      >
+        Deuda total (últimos por tarjeta): {{ formatMoney(latestDebtTotal) }}
+      </span>
+    </div>
+
     <!-- Loading -->
     <div v-if="store.isLoading" class="text-center py-16 text-text-subtle text-sm">
-      Cargando hostings...
+      Cargando registros...
     </div>
 
     <!-- Empty -->
@@ -85,7 +81,7 @@
       v-else-if="filteredRecords.length === 0"
       class="text-center py-16 text-text-subtle text-sm"
     >
-      {{ hasActiveFilters ? 'No se encontraron hostings con ese criterio.' : 'No hay hostings aún.' }}
+      {{ hasActiveFilters ? 'No se encontraron registros con ese criterio.' : 'No hay registros de tarjetas aún.' }}
     </div>
 
     <!-- Table -->
@@ -100,32 +96,9 @@
         @delete="confirmDeleteRecord"
         @sort="toggleSort"
       >
-        <template #cell-domain_url="{ row }">
-          <a
-            v-if="row.domain_url"
-            :href="row.domain_url"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-text-brand hover:underline truncate inline-block max-w-[180px] align-middle"
-            :title="row.domain_url"
-          >
-            {{ row.domain_url }}
-          </a>
-          <span v-else class="text-text-subtle">—</span>
-        </template>
-        <template #cell-validity="{ row }">
-          <span class="text-text-muted text-xs whitespace-nowrap">
-            {{ row.valid_from || row.valid_to ? `${row.valid_from || '—'} → ${row.valid_to || '—'}` : '—' }}
-          </span>
-        </template>
-        <template #cell-is_active="{ row }">
-          <span
-            class="text-xs px-2.5 py-1 rounded-full font-medium"
-            :class="row.is_active
-              ? 'bg-success-soft text-success-strong'
-              : 'bg-surface-raised text-text-muted'"
-          >
-            {{ row.is_active ? 'Activo' : 'Inactivo' }}
+        <template #cell-debt_amount="{ row }">
+          <span class="tabular-nums text-danger-strong">
+            {{ formatMoney(Number(row.debt_amount)) }}
           </span>
         </template>
       </AccountingTable>
@@ -144,10 +117,11 @@
     </template>
 
     <!-- Create/edit modal -->
-    <HostingFormModal
+    <CardSnapshotFormModal
       :open="isModalOpen"
       :record="editingRecord"
       :saving="store.isUpdating"
+      :known-cards="knownCards"
       @close="closeModal"
       @submit="handleSubmit"
     />
@@ -176,8 +150,7 @@ import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
-import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
-import HostingFormModal from '~/components/accounting/HostingFormModal.vue';
+import CardSnapshotFormModal from '~/components/accounting/CardSnapshotFormModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
@@ -187,7 +160,6 @@ import {
   matchDateRange,
   matchNumberRange,
   matchIncludes,
-  matchBoolean,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
 import { buildExportParams } from '~/utils/accountingExportParams';
@@ -217,56 +189,43 @@ const {
   deleteTab: deleteFilterTab,
   renameTab: renameFilterTab,
 } = useAccountingFilters({
-  viewName: 'accounting_hosting',
+  viewName: 'accounting_cards',
   defaults: {
-    modalities: [],
-    valueMin: '',
-    valueMax: '',
-    validToAfter: '',
-    validToBefore: '',
-    isActive: '',
+    dateAfter: '',
+    dateBefore: '',
+    debtMin: '',
+    debtMax: '',
+    cardName: [],
   },
   matchers: {
-    modalities: matchIncludes('payment_modality', 'modalities'),
-    value: matchNumberRange('monthly_value', 'valueMin', 'valueMax'),
-    validTo: matchDateRange('valid_to', 'validToAfter', 'validToBefore'),
-    isActive: matchBoolean('is_active', 'isActive'),
+    date: matchDateRange('snapshot_date', 'dateAfter', 'dateBefore'),
+    debt: matchNumberRange('debt_amount', 'debtMin', 'debtMax'),
+    cardName: matchIncludes('card_name', 'cardName'),
   },
-  searchFields: ['client_name', 'domain_url', 'notes'],
+  searchFields: ['card_name', 'notes'],
 });
 
-const filterFields = [
+const knownCards = computed(() =>
+  [...new Set(store.cardSnapshots.map((r) => r.card_name))].sort(),
+);
+
+const filterFields = computed(() => [
+  { kind: 'daterange', label: 'Fecha', minKey: 'dateAfter', maxKey: 'dateBefore' },
+  { kind: 'range', label: 'Deuda', minKey: 'debtMin', maxKey: 'debtMax', type: 'number' },
   {
     kind: 'multi',
-    key: 'modalities',
-    label: 'Modalidad',
-    options: [
-      { value: 'monthly', label: 'Mensual' },
-      { value: 'quarterly', label: 'Trimestral' },
-      { value: 'semiannual', label: 'Semestral' },
-      { value: 'annual', label: 'Anual' },
-    ],
+    key: 'cardName',
+    label: 'Tarjeta',
+    options: knownCards.value.map((card) => ({ value: card, label: card })),
   },
-  { kind: 'range', label: 'Valor/mes', minKey: 'valueMin', maxKey: 'valueMax', type: 'number' },
-  { kind: 'daterange', label: 'Vencimiento', minKey: 'validToAfter', maxKey: 'validToBefore' },
-  {
-    kind: 'segmented',
-    key: 'isActive',
-    label: 'Estado',
-    options: [
-      { value: '', label: 'Todos' },
-      { value: 'true', label: 'Vigentes' },
-      { value: 'false', label: 'Inactivos' },
-    ],
-  },
-];
+]);
 
-// validTo range has no server-side equivalent (list filters valid_from)
 const EXPORT_MAPPING = {
-  valueMin: 'amount_min',
-  valueMax: 'amount_max',
-  modalities: 'payment_modality',
-  isActive: 'is_active',
+  dateAfter: 'date_from',
+  dateBefore: 'date_to',
+  debtMin: 'amount_min',
+  debtMax: 'amount_max',
+  cardName: 'card_name',
   search: 'q',
 };
 
@@ -278,9 +237,7 @@ const exportParams = computed(() =>
 // Data + CRUD controller (modal, delete confirm, pagination)
 // -------------------------------------------------------------------
 
-const hostingsMeta = computed(() => store.metaFor('hostings'));
-
-const filteredRecords = computed(() => applyFilters(store.hostings));
+const filteredRecords = computed(() => applyFilters(store.cardSnapshots));
 
 const {
   isModalOpen,
@@ -308,40 +265,49 @@ const {
   sortDir,
   toggleSort,
 } = useAccountingCrudPage({
-  entity: 'hostings',
+  entity: 'cards',
   store,
   filteredRecords,
   saveTab,
   resetFilters,
   isFilterPanelOpen,
   labels: {
-    entityName: 'hosting',
-    created: 'Hosting creado',
-    updated: 'Hosting actualizado',
-    deleted: 'Hosting eliminado',
+    entityName: 'registro de tarjeta',
+    created: 'Registro de tarjeta creado',
+    updated: 'Registro de tarjeta actualizado',
+    deleted: 'Registro de tarjeta eliminado',
     saveErrorTitle: 'No se pudo guardar',
     deleteErrorTitle: 'No se pudo eliminar',
-    deleteTitle: 'Eliminar hosting',
+    deleteTitle: 'Eliminar registro de tarjeta',
     deleteMessage: (record) =>
-      `Esto eliminará el hosting de "${record.client_name}" de forma permanente. Esta acción no se puede deshacer.`,
+      `Esto eliminará el registro de "${record.card_name}" del ${record.snapshot_date} de forma permanente. Esta acción no se puede deshacer.`,
   },
-  // Refresh meta (active_count / monthly_income) after changes.
-  onAfterMutation: () => loadRecords(),
+});
+
+const latestDebtTotal = computed(() => {
+  const latestByCard = new Map();
+  for (const row of filteredRecords.value) {
+    const current = latestByCard.get(row.card_name);
+    if (!current || row.snapshot_date > current.snapshot_date) {
+      latestByCard.set(row.card_name, row);
+    }
+  }
+  return [...latestByCard.values()].reduce(
+    (sum, row) => sum + (Number(row.debt_amount) || 0),
+    0,
+  );
 });
 
 const columns = [
-  { key: 'client_name', label: 'Cliente', sortable: true },
-  { key: 'domain_url', label: 'Dominio' },
-  { key: 'monthly_value', label: 'Valor/mes', format: 'money', sortable: true },
-  { key: 'payment_modality_label', label: 'Modalidad' },
-  { key: 'validity', label: 'Vigencia' },
-  { key: 'cycles_count', label: 'Ciclos', align: 'center' },
-  { key: 'total_paid', label: 'Total pagado', format: 'money', sortable: true },
-  { key: 'is_active', label: 'Estado' },
+  { key: 'card_name', label: 'Tarjeta', sortable: true },
+  { key: 'snapshot_date', label: 'Fecha', sortable: true },
+  { key: 'available_amount', label: 'Disponible', format: 'money', sortable: true },
+  { key: 'debt_amount', label: 'Deuda', sortable: true },
+  { key: 'notes', label: 'Notas' },
 ];
 
 async function loadRecords() {
-  await store.fetchRecords('hostings');
+  await store.fetchRecords('cards');
 }
 
 onMounted(loadRecords);

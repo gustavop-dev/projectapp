@@ -58,6 +58,7 @@
         :count="activeFilterCount"
         @click="isFilterPanelOpen = !isFilterPanelOpen"
       />
+      <AccountingExportButton section="pocket" :params="exportParams" />
     </div>
 
     <!-- Filter panel -->
@@ -65,8 +66,11 @@
       :fields="filterFields"
       :model-value="currentFilters"
       :is-open="isFilterPanelOpen"
+      :results-count="filteredMovements.length"
+      :search-value="currentFilters.search"
       @update:model-value="Object.assign(currentFilters, $event)"
       @reset="handleResetFilters"
+      @clear-search="searchInput = ''"
     />
 
     <!-- Loading -->
@@ -87,8 +91,12 @@
       <AccountingTable
         :columns="columns"
         :rows="pagedMovements"
+        :highlight-query="currentFilters.search"
+        :sort-key="sortKey"
+        :sort-dir="sortDir"
         @edit="handleEdit"
         @delete="handleDelete"
+        @sort="toggleSort"
       >
         <template #cell-concept="{ row }">
           <span class="inline-flex items-center gap-2">
@@ -167,6 +175,7 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
+import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import PocketMovementFormModal from '~/components/accounting/PocketMovementFormModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
@@ -180,6 +189,7 @@ import {
   matchEquals,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
+import { buildExportParams } from '~/utils/accountingExportParams';
 import { formatMoney } from '~/utils/formatMoney';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
@@ -238,6 +248,19 @@ const filterFields = [
   { kind: 'range', label: 'Valor', minKey: 'amountMin', maxKey: 'amountMax', type: 'number' },
 ];
 
+const EXPORT_MAPPING = {
+  dateAfter: 'date_from',
+  dateBefore: 'date_to',
+  direction: 'direction',
+  amountMin: 'amount_min',
+  amountMax: 'amount_max',
+  search: 'q',
+};
+
+const exportParams = computed(() =>
+  buildExportParams(currentFilters, EXPORT_MAPPING),
+);
+
 // -------------------------------------------------------------------
 // Data + CRUD controller (modal, delete confirm, pagination)
 // -------------------------------------------------------------------
@@ -286,6 +309,9 @@ const {
   goToPage,
   handleCreateFilterTab,
   handleResetFilters,
+  sortKey,
+  sortDir,
+  toggleSort,
 } = useAccountingCrudPage({
   entity: 'pocket',
   store,
@@ -309,10 +335,10 @@ const {
 });
 
 const columns = [
-  { key: 'movement_date', label: 'Fecha', format: 'date' },
-  { key: 'concept', label: 'Concepto' },
+  { key: 'movement_date', label: 'Fecha', format: 'date', sortable: true },
+  { key: 'concept', label: 'Concepto', sortable: true },
   { key: 'direction_label', label: 'Tipo' },
-  { key: 'amount', label: 'Valor', format: 'money' },
+  { key: 'amount', label: 'Valor', format: 'money', sortable: true },
   { key: 'running_balance', label: 'Saldo', format: 'money' },
 ];
 

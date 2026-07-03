@@ -8,8 +8,27 @@
             :key="col.key"
             class="px-4 py-3 first:px-5"
             :class="alignClass(col)"
+            :aria-sort="ariaSort(col)"
           >
-            {{ col.label }}
+            <button
+              v-if="col.sortable"
+              type="button"
+              class="inline-flex items-center gap-1 uppercase tracking-wider hover:text-text-default transition-colors"
+              :class="sortKey === col.key ? 'text-text-default' : ''"
+              :data-testid="`accounting-sort-${col.key}`"
+              @click="emit('sort', col.key)"
+            >
+              <span>{{ col.label }}</span>
+              <ChevronUpIcon
+                v-if="sortKey === col.key && sortDir === 'asc'"
+                class="w-3 h-3"
+              />
+              <ChevronDownIcon
+                v-else-if="sortKey === col.key && sortDir === 'desc'"
+                class="w-3 h-3"
+              />
+            </button>
+            <template v-else>{{ col.label }}</template>
           </th>
           <th v-if="showActions" class="px-4 py-3 text-right">Acciones</th>
         </tr>
@@ -43,6 +62,11 @@
               >
                 {{ row[col.key] }}
               </span>
+              <HighlightText
+                v-else-if="highlightQuery"
+                :text="row[col.key] ?? ''"
+                :query="highlightQuery"
+              />
               <template v-else>
                 {{ row[col.key] }}
               </template>
@@ -76,21 +100,39 @@
 
 <script setup>
 import { computed } from 'vue';
-import { PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  PencilSquareIcon,
+  TrashIcon,
+} from '@heroicons/vue/24/outline';
+import HighlightText from '~/components/ui/HighlightText.vue';
 import { formatMoney } from '~/utils/formatMoney';
 
 const props = defineProps({
   /**
    * Column config: { key, label, format ('money'|'date'|'text'|'badge'),
-   * align ('left'|'right'|'center'), badgeTones ({ value: tone }) }.
+   * align ('left'|'right'|'center'), badgeTones ({ value: tone }),
+   * sortable (Boolean) }.
    */
   columns: { type: Array, required: true },
   rows: { type: Array, default: () => [] },
   rowKey: { type: String, default: 'id' },
   showActions: { type: Boolean, default: true },
+  /** Search text to highlight inside default text cells. */
+  highlightQuery: { type: String, default: '' },
+  /** Active sort state (controlled by the page via @sort). */
+  sortKey: { type: String, default: '' },
+  sortDir: { type: String, default: 'asc' },
 });
 
-const emit = defineEmits(['edit', 'delete']);
+const emit = defineEmits(['edit', 'delete', 'sort']);
+
+function ariaSort(col) {
+  if (!col.sortable) return undefined;
+  if (props.sortKey !== col.key) return 'none';
+  return props.sortDir === 'desc' ? 'descending' : 'ascending';
+}
 
 const TONE_CLASSES = {
   success: 'bg-success-soft text-success-strong',

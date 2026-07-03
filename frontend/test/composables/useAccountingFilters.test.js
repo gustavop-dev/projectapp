@@ -225,6 +225,24 @@ describe('resetFilters', () => {
   });
 });
 
+describe('clearFilterKeys', () => {
+  it('resets only the given keys to their defaults', () => {
+    const { currentFilters, clearFilterKeys } = makeFilters();
+    currentFilters.statuses = ['paid'];
+    currentFilters.search = 'acme';
+    clearFilterKeys(['statuses']);
+    expect(currentFilters.statuses).toEqual([]);
+    expect(currentFilters.search).toBe('acme');
+  });
+
+  it('ignores keys that are not part of the defaults', () => {
+    const { currentFilters, clearFilterKeys } = makeFilters();
+    currentFilters.statuses = ['paid'];
+    clearFilterKeys(['nope']);
+    expect(currentFilters.statuses).toEqual(['paid']);
+  });
+});
+
 describe('saved tabs delegation', () => {
   it('saveTab delegates to the persistence layer with current filters', async () => {
     const { currentFilters, saveTab } = makeFilters();

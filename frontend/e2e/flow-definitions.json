@@ -2452,8 +2452,8 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Superuser opens /panel/accounting and sees the financial overview fed by GET /api/accounting/dashboard/?year=: expected vs liquid income, expenses, utilities and monthly breakdown computed from the company ledger only (personal-ledger records excluded), pocket balance, per-partner cards (Gustavo/Carlos combine company participation + personal ledger; ProjectApp (Empresa) shows the full company ledger totals), operative cost cards and latest card snapshots. Includes the superuser gate: staff non-superusers are redirected to /panel and the Accounting sidebar section is hidden.",
-      "expectedSpecs": 5
+      "description": "Superuser opens /panel/accounting and sees the financial overview fed by GET /api/accounting/dashboard/?year=: expected vs liquid income, expenses, utilities and monthly breakdown computed from the company ledger only (personal-ledger records excluded), pocket balance, per-partner cards (Gustavo/Carlos combine company participation + personal ledger; ProjectApp (Empresa) shows the full company ledger totals), operative cost cards and latest card snapshots. Includes the superuser gate: staff non-superusers are redirected to /panel and the Accounting sidebar section is hidden. Includes the Evolución section: two ApexCharts (expected vs liquid vs expenses per month, and card-debt evolution from snapshots) driven by the year selector plus a client-side month-range filter, a link to the cards history and the year persisted as a query param.",
+      "expectedSpecs": 7
     },
     "admin-accounting-income-crud": {
       "name": "Admin Accounting Income CRUD",
@@ -2462,7 +2462,7 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Superuser manages income records at /panel/accounting/incomes: create via modal with automatic 50/50 partner split (editable), ledger selector (Contabilidad: Empresa / Personal Gustavo / Personal Carlos — personal hides the split and pocket destination and uses a single Valor field), edit with prefill (PATCH /api/accounting/incomes/:id/update/), delete with ConfirmModal (DELETE .../delete/), HTML5 required validation and backend error toasts via usePanelNotify.",
+      "description": "Superuser manages income records at /panel/accounting/incomes: create via modal with automatic 50/50 partner split (editable), ledger selector (Contabilidad: Empresa / Personal Gustavo / Personal Carlos — personal hides the split and pocket destination and uses a single Valor field), edit with prefill (PATCH /api/accounting/incomes/:id/update/), delete with ConfirmModal (DELETE .../delete/), HTML5 required validation and backend error toasts via usePanelNotify. Each list also exposes column sorting (asc/desc/off) on key columns.",
       "expectedSpecs": 8
     },
     "admin-accounting-filters": {
@@ -2472,8 +2472,8 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Superuser filters the incomes list client-side: period date range, total amount min/max, kind segmented (Esperado/Líquido), partner segmented (Gustavo/Carlos/ProjectApp), ledger segmented (Todas/Empresa/Personal Gustavo/Personal Carlos), free-text search with debounce, active-filter count badge and reset. Powered by useAccountingFilters + AccountingFilterPanel.",
-      "expectedSpecs": 6
+      "description": "Superuser filters the incomes list client-side: period date range, total amount min/max, kind segmented (Esperado/Líquido), partner segmented (Gustavo/Carlos/ProjectApp), ledger segmented (Todas/Empresa/Personal Gustavo/Personal Carlos), free-text search with debounce, active-filter count badge and reset. Powered by useAccountingFilters + AccountingFilterPanel. The revamped panel adds live-updating range dropdowns (debounced input), removable applied-filter chips, a filtered results counter and <mark> highlighting of search occurrences in the table.",
+      "expectedSpecs": 10
     },
     "admin-accounting-expenses-crud": {
       "name": "Admin Accounting Expenses CRUD",
@@ -2532,8 +2532,8 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser configures accounting email notifications at /panel/accounting/settings: recipient list (add/remove emails with validation) and global enable toggle, saved via PATCH /api/accounting/settings/update/ (audited).",
-      "expectedSpecs": 2
+      "description": "Superuser configures accounting email notifications at /panel/accounting/settings: recipient list (add/remove emails with validation) and global enable toggle, saved via PATCH /api/accounting/settings/update/ (audited). Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá, re-alert every 2 days until the snapshot is registered).",
+      "expectedSpecs": 3
     },
     "admin-accounting-ads": {
       "name": "Admin Accounting Ads Log",
@@ -2554,6 +2554,26 @@
       "priority": "P2",
       "description": "Superuser manages MCP connectors at /panel/mcps: sees the Blog Publisher card with its tool catalog, generates/rotates the connector token (one-time URL modal with copy, GET /api/mcp-connectors/ + POST /api/mcp-connectors/<slug>/generate-token/), and toggles is_active. Includes the superuser gate: staff non-superusers are redirected to /panel.",
       "expectedSpecs": 4
+    },
+    "admin-accounting-cards": {
+      "name": "Admin Accounting Card Snapshots",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser manages weekly credit-card balance snapshots at /panel/accounting/cards: list with latest-debt-per-card chip, filters (date range, debt range, card multi-select), create via modal (date defaults to today, datalist of known cards), edit prefill and delete with ConfirmModal. Registering a snapshot dated on/after the cycle Friday silences the weekly card-debt email reminder.",
+      "expectedSpecs": 3
+    },
+    "admin-accounting-export": {
+      "name": "Admin Accounting Export",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser exports accounting data: every list view has an Exportar dropdown (CSV / Excel .xlsx) that calls GET /api/accounting/export/ with the active filters mapped to server query params, and the dashboard has an Exportar Excel button that downloads the full workbook (summary sheet + one sheet per section) from /api/accounting/export/workbook/?year=.",
+      "expectedSpecs": 1
     }
   }
 }

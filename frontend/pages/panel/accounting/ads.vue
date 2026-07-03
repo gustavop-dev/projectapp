@@ -37,6 +37,7 @@
         :count="activeFilterCount"
         @click="isFilterPanelOpen = !isFilterPanelOpen"
       />
+      <AccountingExportButton section="ads" :params="exportParams" />
     </div>
 
     <!-- Filter panel -->
@@ -44,8 +45,11 @@
       :fields="filterFields"
       :model-value="currentFilters"
       :is-open="isFilterPanelOpen"
+      :results-count="filteredRows.length"
+      :search-value="currentFilters.search"
       @update:model-value="Object.assign(currentFilters, $event)"
       @reset="resetFilters"
+      @clear-search="searchInput = ''"
     />
 
     <!-- Loading -->
@@ -57,8 +61,12 @@
       <AccountingTable
         :columns="columns"
         :rows="pagedRows"
+        :highlight-query="currentFilters.search"
+        :sort-key="sortKey"
+        :sort-dir="sortDir"
         @edit="openEditModal"
         @delete="confirmDelete"
+        @sort="toggleSort"
       >
         <template #cell-origin_card="{ row }">
           {{ row.origin_card || '—' }}
@@ -122,6 +130,7 @@ import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
+import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import AdSpendFormModal from '~/components/accounting/AdSpendFormModal.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
@@ -137,6 +146,7 @@ import {
   matchNumberRange,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
+import { buildExportParams } from '~/utils/accountingExportParams';
 import { formatMoney } from '~/utils/formatMoney';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
@@ -150,6 +160,7 @@ const notify = usePanelNotify();
 
 const {
   currentFilters,
+  searchInput,
   isFilterPanelOpen,
   activeFilterCount,
   applyFilters,
@@ -196,15 +207,29 @@ const filterFields = computed(() => [
   { kind: 'range', minKey: 'amount_min', maxKey: 'amount_max', label: 'Valor' },
 ]);
 
+const EXPORT_MAPPING = {
+  spend_from: 'date_from',
+  spend_to: 'date_to',
+  origin_card: 'origin_card',
+  platform: 'platform',
+  amount_min: 'amount_min',
+  amount_max: 'amount_max',
+  search: 'q',
+};
+
+const exportParams = computed(() =>
+  buildExportParams(currentFilters, EXPORT_MAPPING),
+);
+
 // -------------------------------------------------------------------
 // Data + table (keeps the backend chronological order)
 // -------------------------------------------------------------------
 
 const columns = [
-  { key: 'spend_date', label: 'Fecha', format: 'date' },
+  { key: 'spend_date', label: 'Fecha', format: 'date', sortable: true },
   { key: 'platform_label', label: 'Plataforma' },
   { key: 'origin_card', label: 'Tarjeta' },
-  { key: 'amount', label: 'Valor', format: 'money' },
+  { key: 'amount', label: 'Valor', format: 'money', sortable: true },
   { key: 'accumulated', label: 'Acumulado', align: 'right' },
 ];
 
@@ -238,6 +263,9 @@ const {
   prevPage: prev,
   nextPage: next,
   goToPage: goTo,
+  sortKey,
+  sortDir,
+  toggleSort,
 } = useAccountingCrudPage({
   entity: 'ads',
   store,

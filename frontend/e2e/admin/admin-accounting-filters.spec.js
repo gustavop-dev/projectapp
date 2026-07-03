@@ -137,6 +137,12 @@ async function openFilterPanel(page) {
   await page.getByRole('button', { name: /Filtros/ }).click();
 }
 
+// The sortable column headers share names with the filter dropdowns
+// ("Total"), so filter buttons are scoped to the panel container.
+function filterPanel(page) {
+  return page.getByTestId('accounting-filter-panel');
+}
+
 test.describe('Admin Accounting Filters', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, {
@@ -151,7 +157,7 @@ test.describe('Admin Accounting Filters', () => {
     await gotoIncomes(page);
     await openFilterPanel(page);
 
-    await page.getByRole('button', { name: /^Mes/ }).click();
+    await filterPanel(page).getByRole('button', { name: /^Mes/ }).click();
     const dateInputs = page.locator('input[type="date"]');
     await dateInputs.first().fill('2026-04-01');
     await dateInputs.nth(1).fill('2026-05-31');
@@ -167,7 +173,7 @@ test.describe('Admin Accounting Filters', () => {
     await gotoIncomes(page);
     await openFilterPanel(page);
 
-    await page.getByRole('button', { name: /^Total/ }).click();
+    await filterPanel(page).getByRole('button', { name: /^Total/ }).click();
     const numberInputs = page.locator('input[type="number"]');
     await numberInputs.first().fill('2000000');
     await numberInputs.nth(1).fill('4000000');
@@ -225,5 +231,60 @@ test.describe('Admin Accounting Filters', () => {
     await page.getByTestId('incomes-search-input').fill('vastago');
     await expect(visibleRows(page)).toHaveCount(1, { timeout: 10_000 });
     await expect(page.getByText('Vastago (Fase 1) - Inicio 40%')).toBeVisible();
+  });
+
+  test('search highlights occurrences with <mark> in the table', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin'],
+  }, async ({ page }) => {
+    await gotoIncomes(page);
+
+    await page.getByTestId('incomes-search-input').fill('inicio');
+    await expect(visibleRows(page)).toHaveCount(2, { timeout: 10_000 });
+    const marks = page.locator('mark');
+    await expect(marks).toHaveCount(2);
+    await expect(marks.first()).toHaveText('Inicio');
+  });
+
+  test('shows the filtered results count', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin'],
+  }, async ({ page }) => {
+    await gotoIncomes(page);
+    await expect(page.getByTestId('accounting-results-count')).toHaveText('4 resultados');
+
+    await openFilterPanel(page);
+    await page.getByRole('tab', { name: 'Líquido' }).click();
+    await expect(page.getByTestId('accounting-results-count')).toHaveText('2 resultados');
+  });
+
+  test('applied filters render removable chips that restore the rows', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin'],
+  }, async ({ page }) => {
+    await gotoIncomes(page);
+    await openFilterPanel(page);
+
+    await page.getByRole('tab', { name: 'Líquido' }).click();
+    await expect(visibleRows(page)).toHaveCount(2);
+
+    const chip = page.getByTestId('accounting-filter-chip');
+    await expect(chip).toHaveCount(1);
+    await expect(chip).toContainText('Tipo: Líquido');
+
+    await chip.getByRole('button').click();
+    await expect(visibleRows(page)).toHaveCount(4);
+    await expect(page.getByTestId('accounting-filter-chip')).toHaveCount(0);
+  });
+
+  test('amount range filters live while typing (no blur needed)', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin'],
+  }, async ({ page }) => {
+    await gotoIncomes(page);
+    await openFilterPanel(page);
+
+    await filterPanel(page).getByRole('button', { name: /^Total/ }).click();
+    const minInput = page.locator('input[type="number"]').first();
+    await minInput.pressSequentially('2000000');
+
+    // Live (debounced) emission: rows shrink without leaving the input.
+    await expect(visibleRows(page)).toHaveCount(2, { timeout: 10_000 });
   });
 });

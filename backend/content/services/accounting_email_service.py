@@ -23,7 +23,7 @@ _PANEL_PATHS = {
     'pocket': '/panel/accounting/pocket',
     'recurring': '/panel/accounting/recurring',
     'ads': '/panel/accounting/ads',
-    'card_snapshot': '/panel/accounting',
+    'card_snapshot': '/panel/accounting/cards',
     'settings': '/panel/accounting/settings',
 }
 

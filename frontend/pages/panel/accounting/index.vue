@@ -17,6 +17,16 @@
           @update:model-value="onYearChange"
         />
         <BaseButton
+          variant="secondary"
+          size="md"
+          :disabled="isExportingWorkbook"
+          data-testid="accounting-export-workbook-button"
+          @click="exportWorkbook"
+        >
+          <ArrowDownTrayIcon class="w-4 h-4" />
+          <span>{{ isExportingWorkbook ? 'Exportando...' : 'Exportar Excel' }}</span>
+        </BaseButton>
+        <BaseButton
           variant="primary"
           size="md"
           data-testid="accounting-new-income-button"
@@ -120,6 +130,45 @@
         <AccountingMonthlyTable :monthly="summary.monthly || []" />
       </div>
 
+      <!-- Row 4.5: evolution charts -->
+      <div class="mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
+          <h2 class="text-sm font-semibold text-text-subtle uppercase tracking-wider">
+            Evolución {{ summary.year }}
+          </h2>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Meses</span>
+            <BaseSelect
+              :model-value="String(monthFrom)"
+              :options="monthOptions"
+              class="w-32"
+              data-testid="accounting-month-from"
+              @update:model-value="onMonthFromChange"
+            />
+            <span class="text-text-subtle text-xs">—</span>
+            <BaseSelect
+              :model-value="String(monthTo)"
+              :options="monthOptions"
+              class="w-32"
+              data-testid="accounting-month-to"
+              @update:model-value="onMonthToChange"
+            />
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <AccountingMonthlyChart
+            :monthly="summary.monthly || []"
+            :month-from="monthFrom"
+            :month-to="monthTo"
+          />
+          <CardDebtChart
+            :snapshots="store.cardSnapshots"
+            :month-from="monthFrom"
+            :month-to="monthTo"
+          />
+        </div>
+      </div>
+
       <!-- Row 5: operative cards -->
       <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
         <AccountingStatCard
@@ -141,9 +190,18 @@
 
       <!-- Card snapshots -->
       <div v-if="(summary.latest_card_snapshots || []).length > 0" class="mb-6">
-        <h2 class="text-sm font-semibold text-text-subtle uppercase tracking-wider mb-2">
-          Tarjetas
-        </h2>
+        <div class="flex items-center justify-between gap-3 mb-2">
+          <h2 class="text-sm font-semibold text-text-subtle uppercase tracking-wider">
+            Tarjetas
+          </h2>
+          <NuxtLink
+            :to="localePath('/panel/accounting/cards')"
+            class="text-xs text-text-brand hover:underline"
+            data-testid="accounting-cards-link"
+          >
+            Ver historial de tarjetas →
+          </NuxtLink>
+        </div>
         <div class="overflow-x-auto bg-surface rounded-xl border border-border-muted shadow-sm">
           <table class="w-full min-w-[500px] text-sm">
             <thead>
@@ -192,20 +250,27 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { PlusIcon } from '@heroicons/vue/24/outline';
+import { ArrowDownTrayIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingMonthlyTable from '~/components/accounting/AccountingMonthlyTable.vue';
+import AccountingMonthlyChart from '~/components/accounting/charts/AccountingMonthlyChart.vue';
+import CardDebtChart from '~/components/accounting/charts/CardDebtChart.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
 import BaseSelect from '~/components/base/BaseSelect.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useAccountingStore } from '~/stores/accounting';
+import { get_request } from '~/stores/services/request_http';
+import { downloadBlob, filenameFromDisposition } from '~/utils/downloadFile';
 import { formatMoney } from '~/utils/formatMoney';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
+const localePath = useLocalePath();
+const route = useRoute();
+const router = useRouter();
 const store = useAccountingStore();
 const notify = usePanelNotify();
 
@@ -259,8 +324,75 @@ async function loadSummary(year) {
   }
 }
 
+async function loadCardSnapshots() {
+  await store.fetchRecords('cards', { year: store.selectedYear });
+}
+
+function syncYearQueryParam() {
+  const query = { ...route.query, year: String(store.selectedYear) };
+  router.replace({ query });
+}
+
 function onYearChange(value) {
-  loadSummary(Number(value));
+  loadSummary(Number(value)).then(() => {
+    syncYearQueryParam();
+    loadCardSnapshots();
+  });
+}
+
+// -------------------------------------------------------------------
+// Evolution charts: month range applied client-side to both charts
+// -------------------------------------------------------------------
+
+const MONTH_LABELS = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+
+const monthOptions = MONTH_LABELS.map((label, index) => ({
+  value: String(index + 1),
+  label,
+}));
+
+const monthFrom = ref(1);
+const monthTo = ref(12);
+
+function onMonthFromChange(value) {
+  monthFrom.value = Number(value);
+  if (monthFrom.value > monthTo.value) monthTo.value = monthFrom.value;
+}
+
+function onMonthToChange(value) {
+  monthTo.value = Number(value);
+  if (monthTo.value < monthFrom.value) monthFrom.value = monthTo.value;
+}
+
+// -------------------------------------------------------------------
+// Full workbook export (summary sheet + one sheet per section)
+// -------------------------------------------------------------------
+
+const isExportingWorkbook = ref(false);
+
+async function exportWorkbook() {
+  if (isExportingWorkbook.value) return;
+  isExportingWorkbook.value = true;
+  try {
+    const response = await get_request(
+      `accounting/export/workbook/?year=${store.selectedYear}`,
+      { responseType: 'blob' },
+    );
+    const filename = filenameFromDisposition(
+      response.headers?.['content-disposition'],
+    ) || `contabilidad_projectapp_${store.selectedYear}.xlsx`;
+    downloadBlob(response.data, filename);
+  } catch (error) {
+    notify.error({
+      title: 'No se pudo exportar el Excel',
+      detail: 'Intenta de nuevo en unos segundos.',
+    });
+  } finally {
+    isExportingWorkbook.value = false;
+  }
 }
 
 // -------------------------------------------------------------------
@@ -284,6 +416,16 @@ async function submitIncome(payload) {
   }
 }
 
-onMounted(() => loadSummary());
-usePanelRefresh(() => loadSummary(store.selectedYear));
+onMounted(() => {
+  const queryYear = Number(route.query.year);
+  if (Number.isInteger(queryYear) && queryYear >= 2000) {
+    store.selectedYear = queryYear;
+  }
+  loadSummary();
+  loadCardSnapshots();
+});
+usePanelRefresh(() => {
+  loadSummary(store.selectedYear);
+  loadCardSnapshots();
+});
 </script>
