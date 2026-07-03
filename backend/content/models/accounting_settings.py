@@ -14,6 +14,13 @@ class AccountingSettings(models.Model):
     notification_recipients = models.JSONField(default=list, blank=True)
     notifications_enabled = models.BooleanField(default=True)
 
+    # Weekly card-debt reminder (Fridays 9:00 Bogotá, re-alert every 2
+    # days until a CardBalanceSnapshot dated >= that Friday exists).
+    # cycle_start/last_sent_at are system state, not user settings.
+    card_reminder_enabled = models.BooleanField(default=True)
+    card_reminder_cycle_start = models.DateField(null=True, blank=True)
+    card_reminder_last_sent_at = models.DateField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

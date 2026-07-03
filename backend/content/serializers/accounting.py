@@ -497,5 +497,6 @@ class AccountingSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = AccountingSettings
         fields = (
-            'notification_recipients', 'notifications_enabled', 'updated_at',
+            'notification_recipients', 'notifications_enabled',
+            'card_reminder_enabled', 'updated_at',
         )

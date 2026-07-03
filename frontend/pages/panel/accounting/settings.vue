@@ -87,6 +87,28 @@
           </BaseButton>
         </div>
       </div>
+
+      <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
+        <h2 class="text-lg font-bold text-text-default mb-1">Recordatorio de deuda de tarjetas</h2>
+        <p class="text-sm text-text-muted mb-5">
+          Cada viernes a las 9:00 a.m. se envía un correo a los destinatarios
+          de arriba pidiendo registrar la actualización semanal de la deuda de
+          tarjetas; se repite cada 2 días hasta que quede registrada en
+          <NuxtLink :to="localePath('/panel/accounting/cards')" class="text-text-brand hover:underline">Tarjetas</NuxtLink>.
+        </p>
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-sm font-medium text-text-default">Recordatorio activo</span>
+          <BaseToggle
+            v-model="cardReminderEnabled"
+            aria-label="Recordatorio de deuda de tarjetas activo"
+            data-testid="settings-card-reminder-toggle"
+          />
+        </div>
+        <p v-if="!notificationsEnabled" class="text-xs text-warning-strong mt-3">
+          Las notificaciones generales están apagadas: el recordatorio tampoco
+          se enviará mientras sigan así.
+        </p>
+      </div>
     </div>
   </div>
 </template>
@@ -104,17 +126,20 @@ import { useAccountingStore } from '~/stores/accounting';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
+const localePath = useLocalePath();
 const store = useAccountingStore();
 const notify = usePanelNotify();
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const notificationsEnabled = ref(true);
+const cardReminderEnabled = ref(true);
 const recipients = ref([]);
 let rowId = 0;
 
 function syncFromSettings(settings) {
   notificationsEnabled.value = Boolean(settings?.notifications_enabled);
+  cardReminderEnabled.value = Boolean(settings?.card_reminder_enabled);
   recipients.value = (settings?.notification_recipients || []).map((email) => ({
     id: ++rowId,
     value: email,
@@ -155,6 +180,7 @@ async function save() {
   const result = await store.updateSettings({
     notification_recipients: nonEmpty,
     notifications_enabled: notificationsEnabled.value,
+    card_reminder_enabled: cardReminderEnabled.value,
   });
   if (result.success) {
     syncFromSettings(result.data);
