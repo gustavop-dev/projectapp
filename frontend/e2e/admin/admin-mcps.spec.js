@@ -20,6 +20,21 @@ const CONNECTOR = {
   has_token: false,
   token_prefix: '',
   last_used_at: null,
+  connection_status: 'error',
+  recent_events: [
+    {
+      event: 'origin_rejected',
+      ok: false,
+      detail: 'https://evil.example',
+      created_at: '2026-07-03T10:00:00-05:00',
+    },
+    {
+      event: 'handshake',
+      ok: true,
+      detail: 'initialize OK',
+      created_at: '2026-07-03T09:58:00-05:00',
+    },
+  ],
   tools: [
     { name: 'get_blog_template', description: 'Template JSON del blog.' },
     { name: 'create_blog_post', description: 'Crea un post.' },
@@ -85,6 +100,15 @@ test.describe('Panel MCPs', () => {
     await expect(page.getByText('Blog Publisher')).toBeVisible();
     await expect(page.getByText('create_blog_post')).toBeVisible();
     await expect(page.getByText('sin generar')).toBeVisible();
+
+    // Connection status derived from the latest MCP event
+    await expect(page.getByTestId('mcp-connection-blog')).toContainText('Error de conexión');
+    await expect(page.getByTestId('mcp-connection-blog')).toContainText('https://evil.example');
+
+    // Recent activity list expands with the event trail
+    await page.getByTestId('mcp-activity-toggle-blog').click();
+    await expect(page.getByTestId('mcp-activity-list-blog')).toContainText('Origin rechazado');
+    await expect(page.getByTestId('mcp-activity-list-blog')).toContainText('Conexión (initialize)');
   });
 
   test('generates a token and shows the one-time connector URL modal', {

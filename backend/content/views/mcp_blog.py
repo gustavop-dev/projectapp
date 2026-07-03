@@ -23,7 +23,7 @@ from rest_framework.throttling import AnonRateThrottle
 
 from content.mcp.protocol import handle_message
 from content.mcp.tools import BLOG_TOOLS
-from content.models import McpConnector
+from content.models import McpConnector, McpRequestLog
 from content.permissions import IsSuperUser
 
 logger = logging.getLogger(__name__)
@@ -82,6 +82,30 @@ def _touch_last_used(connector):
     McpConnector.objects.filter(pk=connector.pk).update(last_used_at=now)
 
 
+def _record_event(connector, event, ok=True, detail=''):
+    """Best-effort activity logging — must never break the MCP response."""
+    if connector is None:
+        return
+    try:
+        McpRequestLog.record(connector, event, ok=ok, detail=detail)
+    except Exception:
+        logger.exception('[MCP] failed to record %s event for %s', event, connector.slug)
+
+
+def _record_tools_call(connector, message, payload):
+    params = message.get('params') or {}
+    tool_name = params.get('name', '?') if isinstance(params, dict) else '?'
+    result = (payload or {}).get('result') or {}
+    error = (payload or {}).get('error')
+    if error:
+        _record_event(connector, 'tool_call', ok=False, detail=f'{tool_name}: {error.get("message", "")}')
+    elif result.get('isError'):
+        text = (result.get('content') or [{}])[0].get('text', '')
+        _record_event(connector, 'tool_call', ok=False, detail=f'{tool_name}: {text[:150]}')
+    else:
+        _record_event(connector, 'tool_call', detail=tool_name)
+
+
 @api_view(['POST'])
 @authentication_classes([])  # token in URL is the credential; no session ⇒ no CSRF
 @permission_classes([AllowAny])
@@ -94,19 +118,35 @@ def mcp_endpoint(request, slug, token):
     spec-mandated 405; McpContentNegotiation keeps an SSE-only Accept
     header from short-circuiting into a 406.
     """
+    connector_for_log = McpConnector.objects.filter(slug=slug).first()
+
     if _origin_is_foreign(request):
+        _record_event(
+            connector_for_log, 'origin_rejected', ok=False,
+            detail=request.headers.get('Origin', ''),
+        )
         return HttpResponse(status=403)
 
     tools = TOOLS_BY_SLUG.get(slug)
-    connector = McpConnector.objects.filter(slug=slug, is_active=True).first()
+    connector = connector_for_log if (connector_for_log and connector_for_log.is_active) else None
     if tools is None or connector is None or not connector.check_token(token):
+        if connector_for_log and not connector_for_log.is_active:
+            detail = 'Conector inactivo — actívalo en el panel'
+        else:
+            detail = 'Token inválido (¿fue regenerado?)'
+        _record_event(connector_for_log, 'auth_error', ok=False, detail=detail)
         raise Http404
 
     message = request.data
     http_status, payload = handle_message(message, tools)
 
-    if isinstance(message, dict) and message.get('method') == 'tools/call':
-        _touch_last_used(connector)
+    if isinstance(message, dict):
+        method = message.get('method')
+        if method == 'initialize':
+            _record_event(connector, 'handshake', detail='initialize OK')
+        elif method == 'tools/call':
+            _touch_last_used(connector)
+            _record_tools_call(connector, message, payload)
 
     if payload is None:
         return Response(status=http_status)
@@ -124,6 +164,21 @@ mcp_endpoint.cls.content_negotiation_class = McpContentNegotiation
 
 def _connector_payload(connector):
     tools = TOOLS_BY_SLUG.get(connector.slug, [])
+    recent = [
+        {
+            'event': e.event,
+            'ok': e.ok,
+            'detail': e.detail,
+            'created_at': e.created_at.isoformat(),
+        }
+        for e in connector.request_logs.all()[:10]
+    ]
+    if not recent:
+        connection_status = 'none'
+    elif recent[0]['ok']:
+        connection_status = 'connected'
+    else:
+        connection_status = 'error'
     return {
         'slug': connector.slug,
         'name': connector.name,
@@ -132,6 +187,8 @@ def _connector_payload(connector):
         'has_token': bool(connector.token_hash),
         'token_prefix': connector.token_prefix,
         'last_used_at': connector.last_used_at.isoformat() if connector.last_used_at else None,
+        'connection_status': connection_status,
+        'recent_events': recent,
         'tools': [{'name': t['name'], 'description': t['description']} for t in tools],
     }
 
