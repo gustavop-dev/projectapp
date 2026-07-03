@@ -113,7 +113,7 @@ class TestMonthlyAndPartners:
         assert march['expenses'] == Decimal('300.00')
         assert march['utility'] == Decimal('500.00')
 
-    def test_partner_totals_include_company_share(
+    def test_partner_totals_company_card_is_full_company_ledger(
         self, make_income, make_expense,
     ):
         make_income(
@@ -130,8 +130,80 @@ class TestMonthlyAndPartners:
         partners = accounting_service.partner_totals(2026)
         assert partners['gustavo']['liquid'] == Decimal('30.00')
         assert partners['gustavo']['net'] == Decimal('20.00')
-        assert partners['company']['liquid'] == Decimal('40.00')
-        assert partners['company']['expenses'] == Decimal('0.00')
+        # The company card is the company ledger itself, not the residue.
+        assert partners['company']['liquid'] == Decimal('100.00')
+        assert partners['company']['expenses'] == Decimal('20.00')
+        assert partners['company']['net'] == Decimal('80.00')
+
+    def test_personal_records_excluded_from_company_totals(
+        self, make_income, make_expense,
+    ):
+        make_income(
+            kind='liquid',
+            total_amount=Decimal('100.00'),
+            gustavo_amount=Decimal('50.00'),
+            carlos_amount=Decimal('50.00'),
+        )
+        make_income(
+            kind='liquid',
+            ledger=IncomeRecord.Ledger.GUSTAVO,
+            total_amount=Decimal('40.00'),
+            gustavo_amount=Decimal('40.00'),
+            carlos_amount=Decimal('0.00'),
+        )
+        make_expense(
+            ledger=IncomeRecord.Ledger.CARLOS,
+            total_amount=Decimal('15.00'),
+            gustavo_amount=Decimal('0.00'),
+            carlos_amount=Decimal('15.00'),
+        )
+        summary = accounting_service.dashboard_summary(2026)
+        assert summary['liquid_total'] == Decimal('100.00')
+        assert summary['expenses_total'] == Decimal('0')
+        assert summary['liquid_utility'] == Decimal('100.00')
+        march = summary['monthly'][2]
+        assert march['liquid'] == Decimal('100.00')
+        assert march['expenses'] == Decimal('0')
+        assert summary['partners']['company']['net'] == Decimal('100.00')
+
+    def test_partner_net_combines_participation_and_personal(
+        self, make_income, make_expense,
+    ):
+        make_income(
+            kind='liquid',
+            total_amount=Decimal('100.00'),
+            gustavo_amount=Decimal('50.00'),
+            carlos_amount=Decimal('50.00'),
+        )
+        make_income(
+            kind='liquid',
+            ledger=IncomeRecord.Ledger.GUSTAVO,
+            total_amount=Decimal('40.00'),
+            gustavo_amount=Decimal('40.00'),
+            carlos_amount=Decimal('0.00'),
+        )
+        make_expense(
+            ledger=IncomeRecord.Ledger.GUSTAVO,
+            total_amount=Decimal('25.00'),
+            gustavo_amount=Decimal('25.00'),
+            carlos_amount=Decimal('0.00'),
+        )
+        make_expense(
+            total_amount=Decimal('10.00'),
+            gustavo_amount=Decimal('5.00'),
+            carlos_amount=Decimal('5.00'),
+        )
+        partners = accounting_service.partner_totals(2026)
+        gustavo = partners['gustavo']
+        assert gustavo['liquid'] == Decimal('90.00')
+        assert gustavo['expenses'] == Decimal('30.00')
+        assert gustavo['net'] == Decimal('60.00')
+        assert gustavo['participation']['liquid'] == Decimal('50.00')
+        assert gustavo['personal']['liquid'] == Decimal('40.00')
+        assert gustavo['personal']['expenses'] == Decimal('25.00')
+        carlos = partners['carlos']
+        assert carlos['net'] == Decimal('45.00')
+        assert carlos['personal']['liquid'] == Decimal('0')
 
 
 @pytest.mark.django_db

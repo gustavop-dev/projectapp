@@ -48,7 +48,7 @@ from .diagnostic_section import DiagnosticSection
 from .diagnostic_change_log import DiagnosticChangeLog
 from .diagnostic_view_event import DiagnosticViewEvent, DiagnosticSectionView
 from .diagnostic_default_config import DiagnosticDefaultConfig
-from .accounting_base import AccountingRecordBase, PartnerSplitMixin
+from .accounting_base import AccountingRecordBase, Ledger, PartnerSplitMixin
 from .pocket_movement import PocketMovement
 from .income_record import IncomeRecord
 from .expense_record import ExpenseRecord

@@ -5077,10 +5077,10 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting`
-- **Description:** Annual financial overview fed by `GET /api/accounting/dashboard/?year=`: expected vs liquid income, expenses, expected/liquid utility, pocket balance, per-partner cards, 12-month breakdown, operative cost cards and latest card snapshots. Year selector re-fetches the summary.
+- **Description:** Annual financial overview fed by `GET /api/accounting/dashboard/?year=`: expected vs liquid income, expenses, expected/liquid utility, pocket balance, per-partner cards, 12-month breakdown, operative cost cards and latest card snapshots. Company totals aggregate the company ledger only (personal-ledger records are excluded); the "ProjectApp (Empresa)" card shows the full company ledger, and Gustavo/Carlos cards combine their company participation with their personal ledger (breakdown line shown when personal activity exists). Year selector re-fetches the summary.
 - **Steps:**
   1. Superuser opens `/panel/accounting`.
-  2. Stat cards render the summary totals; partner cards show Gustavo/Carlos/ProjectApp splits.
+  2. Stat cards render the summary totals; partner cards show Gustavo/Carlos (participation + personal) and ProjectApp (Empresa) company totals.
   3. Monthly table lists the 12 months with a totals row.
   4. Superuser switches the year → summary re-fetches.
   5. "Nuevo ingreso" opens the income modal from the dashboard.
@@ -5095,9 +5095,9 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting/incomes`
-- **Description:** Income records (expected vs liquid) with editable 50/50 partner split. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket.
+- **Description:** Income records (expected vs liquid) with editable 50/50 partner split and a ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos). Personal-ledger records belong 100% to their owner and are excluded from company totals. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket (company ledger only).
 - **Steps:**
-  1. Superuser opens the incomes list (kind badge, month, totals per partner, destination).
+  1. Superuser opens the incomes list (kind badge, ledger badge, month, totals per partner, destination).
   2. "Nuevo ingreso" opens the modal; PartnerSplitInput defaults to an exact 50/50 of the total.
   3. Submit POSTs `/api/accounting/incomes/create/` → success toast + audit + email.
   4. Row edit prefills the modal and PATCHes `.../update/`.
@@ -5105,6 +5105,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Branches:**
   - [Branch A] Manual split: turning off the 50/50 toggle allows custom per-partner amounts (sum must not exceed the total; backend validates too).
   - [Branch B] Backend 400 → error toast with the Spanish backend message; modal stays open.
+  - [Branch C] Personal ledger: selecting "Personal Gustavo/Carlos" hides the partner split and the pocket destination, shows a single "Valor" field, and the backend normalizes the split to the owner (pocket destination rejected).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 
@@ -5114,7 +5115,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting/incomes` (same pattern across subviews)
-- **Description:** Client-side dynamic filters via `useAccountingFilters`: period date range, amount min/max, kind segmented, partner segmented (Gustavo/Carlos/ProjectApp), debounced free search, active-count badge, reset and saved filter tabs per view.
+- **Description:** Client-side dynamic filters via `useAccountingFilters`: period date range, amount min/max, kind segmented, partner segmented (Gustavo/Carlos/ProjectApp), ledger segmented ("Contabilidad": Todas/Empresa/Personal Gustavo/Personal Carlos), debounced free search, active-count badge, reset and saved filter tabs per view.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-filters.spec.js`
 
@@ -5124,7 +5125,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/expenses`
-- **Description:** Expense records with category (Negocio/Personal), paid-from and partner split; same modal CRUD + filters pattern as incomes.
+- **Description:** Expense records with category (Negocio/Personal), paid-from, ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos — personal expenses hide the split and paid-from, use a single "Valor" field and are excluded from company totals) and partner split; same modal CRUD + filters pattern as incomes.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-expenses-hostings.spec.js`
 

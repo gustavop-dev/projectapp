@@ -98,6 +98,16 @@
             {{ row.category_label }}
           </span>
         </template>
+        <template #cell-ledger_label="{ row }">
+          <span
+            class="text-xs px-2.5 py-1 rounded-full font-medium"
+            :class="row.ledger === 'company'
+              ? 'bg-surface-raised text-text-muted'
+              : 'bg-info-soft text-info-strong'"
+          >
+            {{ row.ledger === 'company' ? 'Empresa' : row.ledger_label }}
+          </span>
+        </template>
       </AccountingTable>
 
       <BasePagination
@@ -155,6 +165,7 @@ import {
   matchDateRange,
   matchNumberRange,
   matchIncludes,
+  matchEquals,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
 import { formatMoney } from '~/utils/formatMoney';
@@ -191,12 +202,14 @@ const {
     amountMax: '',
     categories: [],
     paidFrom: [],
+    ledger: '',
   },
   matchers: {
     period: matchDateRange('period_date', 'periodAfter', 'periodBefore'),
     amount: matchNumberRange('total_amount', 'amountMin', 'amountMax'),
     categories: matchIncludes('category', 'categories'),
     paidFrom: matchIncludes('paid_from', 'paidFrom'),
+    ledger: matchEquals('ledger', 'ledger'),
   },
   searchFields: ['concept', 'notes'],
 });
@@ -220,6 +233,17 @@ const filterFields = [
     options: [
       { value: 'partners', label: 'Socios' },
       { value: 'pocket', label: 'Bolsillo ProjectApp' },
+    ],
+  },
+  {
+    kind: 'segmented',
+    key: 'ledger',
+    label: 'Contabilidad',
+    options: [
+      { value: '', label: 'Todas' },
+      { value: 'company', label: 'Empresa' },
+      { value: 'gustavo', label: 'Personal Gustavo' },
+      { value: 'carlos', label: 'Personal Carlos' },
     ],
   },
 ];
@@ -280,6 +304,7 @@ const columns = [
   { key: 'concept', label: 'Concepto' },
   { key: 'period_label', label: 'Mes' },
   { key: 'category_label', label: 'Categoría' },
+  { key: 'ledger_label', label: 'Contabilidad' },
   { key: 'paid_from_label', label: 'Pagado desde' },
   { key: 'total_amount', label: 'Total', format: 'money' },
   { key: 'gustavo_amount', label: 'Gustavo', format: 'money' },

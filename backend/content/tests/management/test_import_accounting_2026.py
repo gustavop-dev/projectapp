@@ -164,3 +164,100 @@ class TestImportAccounting2026:
         call_command('import_accounting_2026', '--file', fixture_file, '--dry-run')
         assert IncomeRecord.objects.count() == 0
         assert PocketMovement.objects.count() == 0
+
+    def test_ledger_field_is_persisted(self, fixture_file, tmp_path):
+        edited = json.loads(json.dumps(FIXTURE))
+        edited['incomes_liquid'][0]['ledger'] = 'gustavo'
+        edited['incomes_liquid'][0]['gustavo_amount'] = '1160000.00'
+        edited['incomes_liquid'][0]['carlos_amount'] = '0.00'
+        edited['expenses'][0]['ledger'] = 'carlos'
+        edited['expenses'][0]['gustavo_amount'] = '0.00'
+        edited['expenses'][0]['carlos_amount'] = '400000.00'
+        path = tmp_path / 'with_ledger.json'
+        path.write_text(json.dumps(edited), encoding='utf-8')
+
+        call_command('import_accounting_2026', '--file', str(path))
+        liquid = IncomeRecord.objects.get(kind='liquid', concept='Kore - Inicio 40%')
+        assert liquid.ledger == 'gustavo'
+        assert ExpenseRecord.objects.get().ledger == 'carlos'
+        # Rows without the key default to the company ledger.
+        assert IncomeRecord.objects.get(kind='expected').ledger == 'company'
+
+    def test_liquid_never_links_to_expected_of_other_ledger(
+        self, fixture_file, tmp_path,
+    ):
+        edited = json.loads(json.dumps(FIXTURE))
+        edited['incomes_expected'][0]['ledger'] = 'gustavo'
+        edited['incomes_expected'][0]['gustavo_amount'] = '1160000.00'
+        edited['incomes_expected'][0]['carlos_amount'] = '0.00'
+        path = tmp_path / 'cross_ledger.json'
+        path.write_text(json.dumps(edited), encoding='utf-8')
+
+        call_command('import_accounting_2026', '--file', str(path))
+        liquid = IncomeRecord.objects.get(
+            kind='liquid', concept='Kore - Inicio 40%',
+        )
+        assert liquid.expected_income is None
+
+    def test_prune_removes_rows_dropped_from_fixture(
+        self, fixture_file, tmp_path,
+    ):
+        call_command('import_accounting_2026', '--file', fixture_file)
+        edited = json.loads(json.dumps(FIXTURE))
+        edited['incomes_liquid'] = edited['incomes_liquid'][:1]
+        path = tmp_path / 'pruned.json'
+        path.write_text(json.dumps(edited), encoding='utf-8')
+
+        call_command('import_accounting_2026', '--file', str(path), '--prune')
+        assert not IncomeRecord.objects.filter(destination='pocket').exists()
+        assert IncomeRecord.objects.filter(kind='liquid').count() == 1
+
+    def test_prune_keeps_manual_and_fake_records(self, fixture_file):
+        IncomeRecord.objects.create(
+            concept='Manual', kind='liquid', period_date='2026-05-01',
+            total_amount=Decimal('100.00'),
+        )
+        ExpenseRecord.objects.create(
+            concept='Fake', period_date='2026-05-01',
+            total_amount=Decimal('50.00'), source_ref='fake:demo',
+        )
+        call_command('import_accounting_2026', '--file', fixture_file, '--prune')
+        assert IncomeRecord.objects.filter(concept='Manual').exists()
+        assert ExpenseRecord.objects.filter(concept='Fake').exists()
+
+    def test_prune_cleans_orphans_after_expense_amount_change(
+        self, fixture_file, tmp_path,
+    ):
+        call_command('import_accounting_2026', '--file', fixture_file)
+        edited = json.loads(json.dumps(FIXTURE))
+        edited['expenses'][0]['total_amount'] = '999999.00'
+        edited['expenses'][0]['gustavo_amount'] = '499999.00'
+        edited['expenses'][0]['carlos_amount'] = '500000.00'
+        path = tmp_path / 'amount_change.json'
+        path.write_text(json.dumps(edited), encoding='utf-8')
+
+        call_command('import_accounting_2026', '--file', str(path), '--prune')
+        assert ExpenseRecord.objects.count() == 1
+        assert ExpenseRecord.objects.get().total_amount == Decimal('999999.00')
+
+
+@pytest.mark.django_db
+class TestRealFixtureTotals:
+    def test_real_fixture_produces_target_partner_nets(self):
+        from content.services.accounting_service import partner_totals
+
+        call_command('import_accounting_2026')
+        totals = partner_totals(2026)
+        assert totals['company']['net'] == Decimal('1147378.00')
+        assert totals['gustavo']['net'] == Decimal('268760.00')
+        assert totals['carlos']['net'] == Decimal('9023246.00')
+
+    def test_real_fixture_company_totals_match_spreadsheet(self):
+        from content.services.accounting_service import dashboard_summary
+
+        call_command('import_accounting_2026')
+        summary = dashboard_summary(2026)
+        assert summary['liquid_total'] == Decimal('58062162.00')
+        assert summary['expenses_total'] == Decimal('56914784.00')
+        assert summary['expected_total'] == Decimal('80784600.00')
+        assert summary['liquid_utility'] == Decimal('1147378.00')

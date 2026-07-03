@@ -1,6 +1,6 @@
 {
   "version": "2.35.0",
-  "lastUpdated": "2026-07-02",
+  "lastUpdated": "2026-07-03",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -2452,7 +2452,7 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Superuser opens /panel/accounting and sees the financial overview fed by GET /api/accounting/dashboard/?year=: expected vs liquid income, expenses, utilities, pocket balance, per-partner cards (Gustavo/Carlos/ProjectApp), 12-month breakdown table, operative cost cards and latest card snapshots. Includes the superuser gate: staff non-superusers are redirected to /panel and the Accounting sidebar section is hidden.",
+      "description": "Superuser opens /panel/accounting and sees the financial overview fed by GET /api/accounting/dashboard/?year=: expected vs liquid income, expenses, utilities and monthly breakdown computed from the company ledger only (personal-ledger records excluded), pocket balance, per-partner cards (Gustavo/Carlos combine company participation + personal ledger; ProjectApp (Empresa) shows the full company ledger totals), operative cost cards and latest card snapshots. Includes the superuser gate: staff non-superusers are redirected to /panel and the Accounting sidebar section is hidden.",
       "expectedSpecs": 5
     },
     "admin-accounting-income-crud": {
@@ -2462,8 +2462,8 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Superuser manages income records at /panel/accounting/incomes: create via modal with automatic 50/50 partner split (editable), edit with prefill (PATCH /api/accounting/incomes/:id/update/), delete with ConfirmModal (DELETE .../delete/), HTML5 required validation and backend error toasts via usePanelNotify.",
-      "expectedSpecs": 7
+      "description": "Superuser manages income records at /panel/accounting/incomes: create via modal with automatic 50/50 partner split (editable), ledger selector (Contabilidad: Empresa / Personal Gustavo / Personal Carlos — personal hides the split and pocket destination and uses a single Valor field), edit with prefill (PATCH /api/accounting/incomes/:id/update/), delete with ConfirmModal (DELETE .../delete/), HTML5 required validation and backend error toasts via usePanelNotify.",
+      "expectedSpecs": 8
     },
     "admin-accounting-filters": {
       "name": "Admin Accounting Filters",
@@ -2472,7 +2472,7 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Superuser filters the incomes list client-side: period date range, total amount min/max, kind segmented (Esperado/Líquido), partner segmented (Gustavo/Carlos/ProjectApp), free-text search with debounce, active-filter count badge and reset. Powered by useAccountingFilters + AccountingFilterPanel.",
+      "description": "Superuser filters the incomes list client-side: period date range, total amount min/max, kind segmented (Esperado/Líquido), partner segmented (Gustavo/Carlos/ProjectApp), ledger segmented (Todas/Empresa/Personal Gustavo/Personal Carlos), free-text search with debounce, active-filter count badge and reset. Powered by useAccountingFilters + AccountingFilterPanel.",
       "expectedSpecs": 6
     },
     "admin-accounting-expenses-crud": {
@@ -2482,7 +2482,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser manages expense records at /panel/accounting/expenses with category (Negocio/Personal) and paid-from badges, partner split and the same modal CRUD + filters pattern as incomes.",
+      "description": "Superuser manages expense records at /panel/accounting/expenses with category (Negocio/Personal), paid-from and ledger (Contabilidad) badges, partner split (hidden for personal-ledger expenses, which use a single Valor field) and the same modal CRUD + filters pattern as incomes.",
       "expectedSpecs": 2
     },
     "admin-accounting-hostings": {

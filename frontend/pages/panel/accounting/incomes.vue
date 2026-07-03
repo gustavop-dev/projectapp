@@ -104,6 +104,16 @@
             {{ row.kind_label }}
           </span>
         </template>
+        <template #cell-ledger_label="{ row }">
+          <span
+            class="text-xs px-2.5 py-1 rounded-full font-medium"
+            :class="row.ledger === 'company'
+              ? 'bg-surface-raised text-text-muted'
+              : 'bg-info-soft text-info-strong'"
+          >
+            {{ row.ledger === 'company' ? 'Empresa' : row.ledger_label }}
+          </span>
+        </template>
         <template #cell-destination_label="{ row }">
           {{ row.destination === 'pocket' ? row.destination_label : '—' }}
         </template>
@@ -211,12 +221,14 @@ const {
     amountMax: '',
     kind: '',
     partner: '',
+    ledger: '',
   },
   matchers: {
     period: matchDateRange('period_date', 'periodAfter', 'periodBefore'),
     amount: matchNumberRange('total_amount', 'amountMin', 'amountMax'),
     kind: matchEquals('kind', 'kind'),
     partner: matchPartner,
+    ledger: matchEquals('ledger', 'ledger'),
   },
   searchFields: ['concept', 'notes'],
 });
@@ -243,6 +255,17 @@ const filterFields = [
       { value: 'gustavo', label: 'Gustavo' },
       { value: 'carlos', label: 'Carlos' },
       { value: 'projectapp', label: 'ProjectApp' },
+    ],
+  },
+  {
+    kind: 'segmented',
+    key: 'ledger',
+    label: 'Contabilidad',
+    options: [
+      { value: '', label: 'Todas' },
+      { value: 'company', label: 'Empresa' },
+      { value: 'gustavo', label: 'Personal Gustavo' },
+      { value: 'carlos', label: 'Personal Carlos' },
     ],
   },
 ];
@@ -310,6 +333,7 @@ const totalLiquid = computed(() =>
 const columns = [
   { key: 'concept', label: 'Concepto' },
   { key: 'kind_label', label: 'Tipo' },
+  { key: 'ledger_label', label: 'Contabilidad' },
   { key: 'period_label', label: 'Mes' },
   { key: 'total_amount', label: 'Total', format: 'money' },
   { key: 'gustavo_amount', label: 'Gustavo', format: 'money' },

@@ -91,6 +91,14 @@
               <dt class="text-text-muted">Gastos</dt>
               <dd class="tabular-nums text-text-default">{{ money(partner.data.expenses) }}</dd>
             </div>
+            <div
+              v-if="hasPersonalActivity(partner.data)"
+              class="text-xs text-text-subtle pt-1"
+            >
+              Participación empresa: {{ money(partner.data.participation?.liquid) }} líquido ·
+              Personal: {{ money(partner.data.personal?.liquid) }} líquido /
+              {{ money(partner.data.personal?.expenses) }} gastos
+            </div>
             <div class="flex items-center justify-between pt-1.5 border-t border-border-muted">
               <dt class="font-medium text-text-default">Neto</dt>
               <dd
@@ -233,9 +241,16 @@ const partnerCards = computed(() => {
   return [
     { key: 'gustavo', label: 'Gustavo', data: partners.gustavo || empty },
     { key: 'carlos', label: 'Carlos', data: partners.carlos || empty },
-    { key: 'company', label: 'ProjectApp', data: partners.company || empty },
+    { key: 'company', label: 'ProjectApp (Empresa)', data: partners.company || empty },
   ];
 });
+
+function hasPersonalActivity(data) {
+  const personal = data?.personal;
+  if (!personal) return false;
+  return Number(personal.liquid) !== 0 || Number(personal.expenses) !== 0
+    || Number(personal.expected) !== 0;
+}
 
 async function loadSummary(year) {
   const result = await store.fetchSummary(year || store.selectedYear);

@@ -23,12 +23,19 @@ const destinationOptions = [
   { value: 'pocket', label: 'Bolsillo ProjectApp' },
 ]
 
+const ledgerOptions = [
+  { value: 'company', label: 'Empresa' },
+  { value: 'gustavo', label: 'Personal Gustavo' },
+  { value: 'carlos', label: 'Personal Carlos' },
+]
+
 function defaultForm() {
   return {
     concept: '',
     kind: 'expected',
     period_date: '',
     destination: 'partners',
+    ledger: 'company',
     total_amount: '',
     gustavo_amount: '',
     carlos_amount: '',
@@ -37,6 +44,8 @@ function defaultForm() {
 }
 
 const form = ref(defaultForm())
+
+const isPersonal = computed(() => form.value.ledger !== 'company')
 
 watch(
   () => [props.open, props.record],
@@ -48,6 +57,7 @@ watch(
         kind: props.record.kind ?? 'expected',
         period_date: props.record.period ?? '',
         destination: props.record.destination ?? 'partners',
+        ledger: props.record.ledger ?? 'company',
         total_amount: props.record.total_amount ?? '',
         gustavo_amount: props.record.gustavo_amount ?? '',
         carlos_amount: props.record.carlos_amount ?? '',
@@ -67,15 +77,25 @@ watch(
   },
 )
 
+watch(
+  () => form.value.ledger,
+  (ledger) => {
+    if (ledger !== 'company') form.value.destination = 'partners'
+  },
+)
+
 function onSubmit() {
   const payload = {
     concept: form.value.concept,
     kind: form.value.kind,
     period_date: form.value.period_date,
     destination: form.value.destination,
+    ledger: form.value.ledger,
     total_amount: form.value.total_amount,
-    gustavo_amount: form.value.gustavo_amount,
-    carlos_amount: form.value.carlos_amount,
+  }
+  if (!isPersonal.value) {
+    payload.gustavo_amount = form.value.gustavo_amount
+    payload.carlos_amount = form.value.carlos_amount
   }
   payload.notes = form.value.notes
   emit('submit', payload)
@@ -101,15 +121,30 @@ function onSubmit() {
         </BaseFormField>
       </div>
 
-      <BaseFormField v-if="form.kind === 'liquid'" label="Destino">
+      <BaseFormField label="Contabilidad">
+        <BaseSegmented v-model="form.ledger" :options="ledgerOptions" full-width />
+      </BaseFormField>
+
+      <BaseFormField v-if="form.kind === 'liquid' && !isPersonal" label="Destino">
         <BaseSegmented v-model="form.destination" :options="destinationOptions" full-width />
       </BaseFormField>
 
       <PartnerSplitInput
+        v-if="!isPersonal"
         v-model:total="form.total_amount"
         v-model:gustavoAmount="form.gustavo_amount"
         v-model:carlosAmount="form.carlos_amount"
       />
+
+      <BaseFormField v-else label="Valor" required>
+        <BaseInput
+          v-model="form.total_amount"
+          type="number"
+          min="0"
+          step="0.01"
+          required
+        />
+      </BaseFormField>
 
       <BaseFormField label="Notas">
         <BaseTextarea v-model="form.notes" :rows="3" />

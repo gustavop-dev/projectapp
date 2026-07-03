@@ -7,7 +7,8 @@
       "gustavo_amount": "13054099.00",
       "carlos_amount": "0.00",
       "destination": "partners",
-      "notes": "Saldo de cierre de diciembre 2025"
+      "ledger": "gustavo",
+      "notes": "Saldo de cierre de diciembre 2025 (el Excel no lo cuenta en el total esperado de la empresa)"
     },
     {
       "concept": "Tendalux - Inicio 40%",
@@ -43,6 +44,7 @@
       "gustavo_amount": "1400000.00",
       "carlos_amount": "0.00",
       "destination": "partners",
+      "ledger": "gustavo",
       "notes": "Registro solo de Gustavo (sin total en el Excel)"
     },
     {
@@ -608,11 +610,21 @@
     {
       "concept": "Cierre Diciembre 2025",
       "period": "2026-01",
-      "total_amount": "13054099.00",
-      "gustavo_amount": "13054099.00",
+      "total_amount": "13000000.00",
+      "gustavo_amount": "13000000.00",
       "carlos_amount": "0.00",
       "destination": "partners",
-      "notes": "El Excel registra total $13.000.000 y Tavo $13.054.099 (inconsistente); se usa el valor de Tavo"
+      "notes": "Total de la empresa según el Excel; la diferencia de Tavo ($54.099) va como registro personal aparte"
+    },
+    {
+      "concept": "Cierre Diciembre 2025 (ajuste personal Tavo)",
+      "period": "2026-01",
+      "total_amount": "54099.00",
+      "gustavo_amount": "54099.00",
+      "carlos_amount": "0.00",
+      "destination": "partners",
+      "ledger": "gustavo",
+      "notes": "Diferencia entre Tavo $13.054.099 y total empresa $13.000.000 del Excel"
     },
     {
       "concept": "Tendalux - Inicio 40%",
@@ -648,6 +660,7 @@
       "gustavo_amount": "1400000.00",
       "carlos_amount": "0.00",
       "destination": "partners",
+      "ledger": "gustavo",
       "notes": "Registro solo de Gustavo (sin total en el Excel)"
     },
     {
@@ -1484,8 +1497,9 @@
       "total_amount": "2616581.00",
       "gustavo_amount": "2616581.00",
       "carlos_amount": "0.00",
-      "category": "business",
+      "category": "personal",
       "paid_from": "partners",
+      "ledger": "gustavo",
       "notes": "Registro solo de Gustavo (sin total en el Excel)"
     },
     {
@@ -1496,6 +1510,7 @@
       "carlos_amount": "0.00",
       "category": "personal",
       "paid_from": "partners",
+      "ledger": "gustavo",
       "notes": "Registro solo de Gustavo (sin total en el Excel)"
     },
     {
@@ -1536,6 +1551,7 @@
       "carlos_amount": "0.00",
       "category": "personal",
       "paid_from": "partners",
+      "ledger": "gustavo",
       "notes": "Registro solo de Gustavo (sin total en el Excel)"
     },
     {
@@ -1546,6 +1562,7 @@
       "carlos_amount": "0.00",
       "category": "personal",
       "paid_from": "partners",
+      "ledger": "gustavo",
       "notes": "Registro solo de Gustavo (sin total en el Excel)"
     },
     {
@@ -1556,6 +1573,7 @@
       "carlos_amount": "0.00",
       "category": "personal",
       "paid_from": "partners",
+      "ledger": "gustavo",
       "notes": "Registro solo de Gustavo (sin total en el Excel)"
     },
     {

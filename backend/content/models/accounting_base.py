@@ -34,6 +34,19 @@ class AccountingRecordBase(models.Model):
         abstract = True
 
 
+class Ledger(models.TextChoices):
+    """Which accounting a record belongs to.
+
+    The source spreadsheet interleaves two ledgers: the company one and
+    each partner's personal one. Personal records belong 100% to their
+    owner and never count toward company totals.
+    """
+
+    COMPANY = 'company', 'Empresa'
+    GUSTAVO = 'gustavo', 'Personal Gustavo'
+    CARLOS = 'carlos', 'Personal Carlos'
+
+
 class PartnerSplitMixin(models.Model):
     """
     Total amount plus editable per-partner amounts.
@@ -44,6 +57,14 @@ class PartnerSplitMixin(models.Model):
     a partner belongs to the company pocket (`company_amount`).
     """
 
+    Ledger = Ledger
+
+    ledger = models.CharField(
+        max_length=10,
+        choices=Ledger.choices,
+        default=Ledger.COMPANY,
+        db_index=True,
+    )
     total_amount = models.DecimalField(max_digits=14, decimal_places=2)
     gustavo_amount = models.DecimalField(
         max_digits=14, decimal_places=2, default=Decimal('0'),
@@ -76,3 +97,16 @@ class PartnerSplitMixin(models.Model):
             raise ValidationError(
                 'La suma de los montos de los socios no puede superar el monto total.'
             )
+        personal_owner = {
+            Ledger.GUSTAVO: ('gustavo_amount', 'carlos_amount'),
+            Ledger.CARLOS: ('carlos_amount', 'gustavo_amount'),
+        }.get(self.ledger)
+        if personal_owner is not None and self.total_amount is not None:
+            owner_field, other_field = personal_owner
+            if (
+                getattr(self, owner_field) != self.total_amount
+                or getattr(self, other_field)
+            ):
+                raise ValidationError(
+                    'Un movimiento personal debe asignarse 100% al socio dueño.'
+                )
