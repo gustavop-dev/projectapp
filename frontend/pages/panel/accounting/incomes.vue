@@ -46,6 +46,7 @@
         :count="activeFilterCount"
         @click="isFilterPanelOpen = !isFilterPanelOpen"
       />
+      <AccountingExportButton section="income" :params="exportParams" />
     </div>
 
     <!-- Filter panel -->
@@ -53,8 +54,11 @@
       :fields="filterFields"
       :model-value="currentFilters"
       :is-open="isFilterPanelOpen"
+      :results-count="filteredRecords.length"
+      :search-value="currentFilters.search"
       @update:model-value="Object.assign(currentFilters, $event)"
       @reset="handleResetFilters"
+      @clear-search="searchInput = ''"
     />
 
     <!-- Summary chips (filtered rows) -->
@@ -91,8 +95,12 @@
       <AccountingTable
         :columns="columns"
         :rows="pagedRecords"
+        :highlight-query="currentFilters.search"
+        :sort-key="sortKey"
+        :sort-dir="sortDir"
         @edit="openEditModal"
         @delete="confirmDeleteRecord"
+        @sort="toggleSort"
       >
         <template #cell-kind_label="{ row }">
           <span
@@ -102,6 +110,16 @@
               : 'bg-surface-raised text-text-muted'"
           >
             {{ row.kind_label }}
+          </span>
+        </template>
+        <template #cell-ledger_label="{ row }">
+          <span
+            class="text-xs px-2.5 py-1 rounded-full font-medium"
+            :class="row.ledger === 'company'
+              ? 'bg-surface-raised text-text-muted'
+              : 'bg-info-soft text-info-strong'"
+          >
+            {{ row.ledger === 'company' ? 'Empresa' : row.ledger_label }}
           </span>
         </template>
         <template #cell-destination_label="{ row }">
@@ -154,6 +172,7 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
+import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
@@ -166,6 +185,7 @@ import {
   matchEquals,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
+import { buildExportParams } from '~/utils/accountingExportParams';
 import { formatMoney } from '~/utils/formatMoney';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
@@ -211,12 +231,14 @@ const {
     amountMax: '',
     kind: '',
     partner: '',
+    ledger: '',
   },
   matchers: {
     period: matchDateRange('period_date', 'periodAfter', 'periodBefore'),
     amount: matchNumberRange('total_amount', 'amountMin', 'amountMax'),
     kind: matchEquals('kind', 'kind'),
     partner: matchPartner,
+    ledger: matchEquals('ledger', 'ledger'),
   },
   searchFields: ['concept', 'notes'],
 });
@@ -245,7 +267,33 @@ const filterFields = [
       { value: 'projectapp', label: 'ProjectApp' },
     ],
   },
+  {
+    kind: 'segmented',
+    key: 'ledger',
+    label: 'Contabilidad',
+    options: [
+      { value: '', label: 'Todas' },
+      { value: 'company', label: 'Empresa' },
+      { value: 'gustavo', label: 'Personal Gustavo' },
+      { value: 'carlos', label: 'Personal Carlos' },
+    ],
+  },
 ];
+
+const EXPORT_MAPPING = {
+  periodAfter: 'date_from',
+  periodBefore: 'date_to',
+  amountMin: 'amount_min',
+  amountMax: 'amount_max',
+  kind: 'kind',
+  partner: 'partner',
+  ledger: 'ledger',
+  search: 'q',
+};
+
+const exportParams = computed(() =>
+  buildExportParams(currentFilters, EXPORT_MAPPING),
+);
 
 // -------------------------------------------------------------------
 // Data + CRUD controller (modal, delete confirm, pagination)
@@ -275,6 +323,9 @@ const {
   goToPage,
   handleCreateFilterTab,
   handleResetFilters,
+  sortKey,
+  sortDir,
+  toggleSort,
 } = useAccountingCrudPage({
   entity: 'incomes',
   store,
@@ -308,12 +359,13 @@ const totalLiquid = computed(() =>
 );
 
 const columns = [
-  { key: 'concept', label: 'Concepto' },
+  { key: 'concept', label: 'Concepto', sortable: true },
   { key: 'kind_label', label: 'Tipo' },
+  { key: 'ledger_label', label: 'Contabilidad' },
   { key: 'period_label', label: 'Mes' },
-  { key: 'total_amount', label: 'Total', format: 'money' },
-  { key: 'gustavo_amount', label: 'Gustavo', format: 'money' },
-  { key: 'carlos_amount', label: 'Carlos', format: 'money' },
+  { key: 'total_amount', label: 'Total', format: 'money', sortable: true },
+  { key: 'gustavo_amount', label: 'Gustavo', format: 'money', sortable: true },
+  { key: 'carlos_amount', label: 'Carlos', format: 'money', sortable: true },
   { key: 'destination_label', label: 'Destino' },
 ];
 

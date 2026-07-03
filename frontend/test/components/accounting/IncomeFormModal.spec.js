@@ -127,11 +127,59 @@ describe('IncomeFormModal', () => {
       kind: 'liquid',
       period_date: '2026-06',
       destination: 'pocket',
+      ledger: 'company',
       total_amount: '1500',
       gustavo_amount: '900',
       carlos_amount: '600',
       notes: 'Con nota',
     });
+  });
+
+  it('personal ledger hides split and destination and omits split amounts', async () => {
+    const wrapper = mountModal();
+
+    expect(wrapper.find('[data-testid="partner-split-stub"]').exists()).toBe(true);
+
+    await segmentedButton(wrapper, 'Líquido').trigger('click');
+    await segmentedButton(wrapper, 'Personal Gustavo').trigger('click');
+
+    expect(wrapper.find('[data-testid="partner-split-stub"]').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain('Destino');
+    expect(wrapper.text()).toContain('Valor');
+
+    await wrapper.find('input[type="text"]').setValue('Ingreso personal');
+    await wrapper.find('input[type="month"]').setValue('2026-06');
+    await wrapper.find('input[type="number"]').setValue('54099');
+    await wrapper.find('form').trigger('submit');
+
+    const payload = wrapper.emitted('submit')[0][0];
+    expect(payload.ledger).toBe('gustavo');
+    expect(payload.destination).toBe('partners');
+    expect(payload.total_amount).toBe('54099');
+    expect(payload).not.toHaveProperty('gustavo_amount');
+    expect(payload).not.toHaveProperty('carlos_amount');
+  });
+
+  it('prefills ledger from record and switching back to company restores split', async () => {
+    const wrapper = mountModal({
+      record: {
+        concept: 'Universidad Nacional',
+        kind: 'liquid',
+        period: '2026-02',
+        destination: 'partners',
+        ledger: 'gustavo',
+        total_amount: '1400000',
+        gustavo_amount: '1400000',
+        carlos_amount: '0',
+        notes: '',
+      },
+    });
+
+    expect(segmentedButton(wrapper, 'Personal Gustavo').attributes('aria-selected')).toBe('true');
+    expect(wrapper.find('[data-testid="partner-split-stub"]').exists()).toBe(false);
+
+    await segmentedButton(wrapper, 'Empresa').trigger('click');
+    expect(wrapper.find('[data-testid="partner-split-stub"]').exists()).toBe(true);
   });
 
   it('always includes notes so edits can clear them', async () => {
@@ -165,6 +213,7 @@ describe('IncomeFormModal', () => {
     const payload = wrapper.emitted('submit')[0][0];
     expect(payload.kind).toBe('expected');
     expect(payload.destination).toBe('partners');
+    expect(payload.ledger).toBe('company');
   });
 
   it('emits close when Cancelar is clicked', async () => {

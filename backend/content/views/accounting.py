@@ -105,7 +105,7 @@ _ENTITIES = {
         'date_field': 'period_date',
         'amount_field': 'total_amount',
         'search_fields': ('concept', 'notes'),
-        'choice_filters': ('kind', 'destination'),
+        'choice_filters': ('kind', 'destination', 'ledger'),
         'has_split': True,
         'pocket_filter': Q(destination=IncomeRecord.Destination.POCKET),
     },
@@ -117,7 +117,7 @@ _ENTITIES = {
         'date_field': 'period_date',
         'amount_field': 'total_amount',
         'search_fields': ('concept', 'notes'),
-        'choice_filters': ('category', 'paid_from'),
+        'choice_filters': ('category', 'paid_from', 'ledger'),
         'has_split': True,
         'pocket_filter': Q(paid_from=ExpenseRecord.PaidFrom.POCKET),
     },
@@ -221,7 +221,12 @@ def _apply_filters(queryset, params, config):
     for field in config.get('choice_filters', ()):
         value = params.get(field)
         if value:
-            queryset = queryset.filter(**{field: value})
+            # Comma-separated values filter as OR (multi-select filters).
+            values = [item for item in value.split(',') if item]
+            if len(values) > 1:
+                queryset = queryset.filter(**{f'{field}__in': values})
+            elif values:
+                queryset = queryset.filter(**{field: values[0]})
 
     for field in config.get('bool_filters', ()):
         value = params.get(field)

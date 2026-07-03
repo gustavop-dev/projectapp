@@ -20,6 +20,9 @@ from content.views.accounting import (
     list_accounting_change_logs,
     get_accounting_settings, update_accounting_settings,
 )
+from content.views.accounting_export import (
+    export_accounting_records, export_accounting_workbook,
+)
 from content.views.contact import contact_list, new_contact
 from content.views.portfolio_works import (
     list_portfolio_works, retrieve_portfolio_work,
@@ -447,4 +450,7 @@ urlpatterns = [
 
     path('accounting/settings/', get_accounting_settings, name='get-accounting-settings'),
     path('accounting/settings/update/', update_accounting_settings, name='update-accounting-settings'),
+
+    path('accounting/export/', export_accounting_records, name='export-accounting-records'),
+    path('accounting/export/workbook/', export_accounting_workbook, name='export-accounting-workbook'),
 ]

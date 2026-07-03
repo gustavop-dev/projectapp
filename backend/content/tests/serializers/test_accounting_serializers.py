@@ -101,6 +101,103 @@ class TestPartnerSplitDefaults:
 
 
 @pytest.mark.django_db
+class TestPersonalLedger:
+    def test_personal_ledger_normalizes_split_to_owner(self):
+        serializer = IncomeRecordCreateUpdateSerializer(
+            data=income_payload(
+                ledger='gustavo',
+                gustavo_amount='100.00', carlos_amount='200.00',
+            ),
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['gustavo_amount'] == Decimal('1280000.00')
+        assert serializer.validated_data['carlos_amount'] == Decimal('0')
+
+    def test_personal_ledger_without_split_assigns_owner(self):
+        serializer = ExpenseRecordCreateUpdateSerializer(data={
+            'concept': 'Aporte Carro Onix',
+            'period_date': '2026-06',
+            'ledger': 'carlos',
+            'total_amount': '3000000.00',
+        })
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['carlos_amount'] == Decimal('3000000.00')
+        assert serializer.validated_data['gustavo_amount'] == Decimal('0')
+
+    def test_patch_to_personal_ledger_renormalizes_split(self, make_income):
+        income = make_income(
+            total_amount=Decimal('100.00'),
+            gustavo_amount=Decimal('50.00'),
+            carlos_amount=Decimal('50.00'),
+        )
+        serializer = IncomeRecordCreateUpdateSerializer(
+            income, data={'ledger': 'gustavo'}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['gustavo_amount'] == Decimal('100.00')
+        assert serializer.validated_data['carlos_amount'] == Decimal('0')
+
+    def test_patch_amount_on_personal_record_renormalizes(self, make_income):
+        income = make_income(
+            ledger=IncomeRecord.Ledger.CARLOS,
+            total_amount=Decimal('100.00'),
+            gustavo_amount=Decimal('0.00'),
+            carlos_amount=Decimal('100.00'),
+        )
+        serializer = IncomeRecordCreateUpdateSerializer(
+            income, data={'total_amount': '250.00'}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['carlos_amount'] == Decimal('250.00')
+        assert serializer.validated_data['gustavo_amount'] == Decimal('0')
+
+    def test_personal_income_cannot_target_pocket(self):
+        serializer = IncomeRecordCreateUpdateSerializer(
+            data=income_payload(
+                kind='liquid', destination='pocket', ledger='gustavo',
+            ),
+        )
+        assert not serializer.is_valid()
+        assert 'personales' in str(serializer.errors)
+
+    def test_personal_expense_cannot_be_paid_from_pocket(self):
+        serializer = ExpenseRecordCreateUpdateSerializer(data={
+            'concept': 'Gasto personal',
+            'period_date': '2026-06',
+            'ledger': 'gustavo',
+            'paid_from': 'pocket',
+            'total_amount': '100.00',
+        })
+        assert not serializer.is_valid()
+        assert 'personales' in str(serializer.errors)
+
+    def test_expected_income_link_must_share_ledger(self, make_income):
+        expected = make_income(
+            kind=IncomeRecord.Kind.EXPECTED,
+            ledger=IncomeRecord.Ledger.GUSTAVO,
+            total_amount=Decimal('100.00'),
+            gustavo_amount=Decimal('100.00'),
+            carlos_amount=Decimal('0.00'),
+        )
+        serializer = IncomeRecordCreateUpdateSerializer(
+            data=income_payload(kind='liquid', expected_income=expected.pk),
+        )
+        assert not serializer.is_valid()
+        assert 'contabilidad' in str(serializer.errors)
+
+    def test_read_serializer_exposes_ledger_label(self, make_income):
+        income = make_income(
+            ledger=IncomeRecord.Ledger.GUSTAVO,
+            total_amount=Decimal('100.00'),
+            gustavo_amount=Decimal('100.00'),
+            carlos_amount=Decimal('0.00'),
+        )
+        data = IncomeRecordSerializer(income).data
+        assert data['ledger'] == 'gustavo'
+        assert data['ledger_label'] == 'Personal Gustavo'
+
+
+@pytest.mark.django_db
 class TestIncomeRules:
     def test_pocket_destination_requires_liquid_kind(self):
         serializer = IncomeRecordCreateUpdateSerializer(

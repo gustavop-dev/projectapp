@@ -35,9 +35,9 @@ const DASHBOARD_SUMMARY = {
   monthly: MONTHS.map((label, index) => ({
     period: `2026-${String(index + 1).padStart(2, '0')}`,
     label: `${label} 2026`,
-    expected: '0.00',
-    liquid: '0.00',
-    expenses: '0.00',
+    expected: index === 1 ? '1160000.00' : '0.00',
+    liquid: index === 1 ? '900000.00' : '0.00',
+    expenses: index === 2 ? '400000.00' : '0.00',
     expected_utility: '0.00',
     utility: '0.00',
   })),
@@ -79,6 +79,25 @@ function buildHandler({ isSuperuser = true } = {}) {
         body: JSON.stringify({ results: [], meta: {} }),
       };
     }
+    if (apiPath.startsWith('accounting/card-snapshots/') && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [
+            {
+              id: 1, card_name: 'T.C 0064', snapshot_date: '2026-06-17',
+              available_amount: '413226.00', debt_amount: '7586774.00', notes: '',
+            },
+            {
+              id: 2, card_name: 'T.C 0064', snapshot_date: '2026-07-01',
+              available_amount: '3849046.00', debt_amount: '4150954.00', notes: '',
+            },
+          ],
+          meta: {},
+        }),
+      };
+    }
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {
       return { status: 200, contentType: 'application/json', body: '[]' };
     }
@@ -117,11 +136,42 @@ test.describe('Admin Accounting Dashboard', () => {
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByText('Detalle mensual 2026')).toBeVisible({ timeout: 25_000 });
-    await expect(page.getByText('Enero 2026')).toBeVisible();
-    await expect(page.getByText('Diciembre 2026')).toBeVisible();
+    // Month labels also appear inside the charts' SVG: assert on the cells.
+    await expect(page.getByRole('cell', { name: 'Enero 2026' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Diciembre 2026' })).toBeVisible();
     await expect(
       page.getByRole('cell', { name: 'Total', exact: true }),
     ).toBeVisible();
+  });
+
+  test('renders the evolution charts and reacts to the month range', {
+    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler());
+    await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByText('Evolución 2026')).toBeVisible({ timeout: 25_000 });
+    const monthlyChart = page.getByTestId('accounting-monthly-chart');
+    await expect(monthlyChart.locator('.apexcharts-canvas')).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.getByTestId('accounting-card-debt-chart').locator('.apexcharts-canvas'),
+    ).toBeVisible();
+
+    // Narrow the range to a window without movements: empty state appears.
+    await page.getByTestId('accounting-month-from').selectOption('7');
+    await page.getByTestId('accounting-month-to').selectOption('8');
+    await expect(monthlyChart.getByText('Sin movimientos en el rango')).toBeVisible();
+  });
+
+  test('links to the cards history from the Tarjetas table', {
+    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler());
+    await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByTestId('accounting-cards-link')).toBeVisible({ timeout: 25_000 });
+    await page.getByTestId('accounting-cards-link').click();
+    await expect(page).toHaveURL(/\/panel\/accounting\/cards/);
   });
 
   test('subnav pill navigates to the incomes subview', {

@@ -102,4 +102,38 @@ describe('AccountingTable', () => {
     expect(custom).toHaveLength(2);
     expect(custom[0].text()).toBe('Página web (1)');
   });
+
+  it('highlights search occurrences in default text cells with <mark>', () => {
+    const wrapper = mountTable({ highlightQuery: 'web' });
+    const marks = wrapper.findAll('mark');
+    expect(marks).toHaveLength(1);
+    expect(marks[0].text()).toBe('web');
+    // Money cells are not highlighted.
+    expect(wrapper.text()).toContain(formatMoney(2500000, 'COP'));
+  });
+
+  it('sortable columns render a button with aria-sort and emit sort', async () => {
+    const sortableColumns = [
+      { key: 'concept', label: 'Concepto', sortable: true },
+      { key: 'amount', label: 'Valor', format: 'money' },
+    ];
+    const wrapper = mountTable({
+      columns: sortableColumns,
+      sortKey: 'concept',
+      sortDir: 'desc',
+    });
+    const th = wrapper.find('th[aria-sort]');
+    expect(th.attributes('aria-sort')).toBe('descending');
+
+    await wrapper.find('[data-testid="accounting-sort-concept"]').trigger('click');
+    expect(wrapper.emitted('sort')).toEqual([['concept']]);
+  });
+
+  it('non-sorted sortable columns expose aria-sort none', () => {
+    const wrapper = mountTable({
+      columns: [{ key: 'concept', label: 'Concepto', sortable: true }],
+      sortKey: '',
+    });
+    expect(wrapper.find('th[aria-sort]').attributes('aria-sort')).toBe('none');
+  });
 });

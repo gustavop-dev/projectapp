@@ -60,6 +60,7 @@
         :count="activeFilterCount"
         @click="isFilterPanelOpen = !isFilterPanelOpen"
       />
+      <AccountingExportButton section="hosting" :params="exportParams" />
     </div>
 
     <!-- Filter panel -->
@@ -67,8 +68,11 @@
       :fields="filterFields"
       :model-value="currentFilters"
       :is-open="isFilterPanelOpen"
+      :results-count="filteredRecords.length"
+      :search-value="currentFilters.search"
       @update:model-value="Object.assign(currentFilters, $event)"
       @reset="handleResetFilters"
+      @clear-search="searchInput = ''"
     />
 
     <!-- Loading -->
@@ -89,8 +93,12 @@
       <AccountingTable
         :columns="columns"
         :rows="pagedRecords"
+        :highlight-query="currentFilters.search"
+        :sort-key="sortKey"
+        :sort-dir="sortDir"
         @edit="openEditModal"
         @delete="confirmDeleteRecord"
+        @sort="toggleSort"
       >
         <template #cell-domain_url="{ row }">
           <a
@@ -167,6 +175,7 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
+import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import HostingFormModal from '~/components/accounting/HostingFormModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
@@ -181,6 +190,7 @@ import {
   matchBoolean,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
+import { buildExportParams } from '~/utils/accountingExportParams';
 import { formatMoney } from '~/utils/formatMoney';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
@@ -251,6 +261,19 @@ const filterFields = [
   },
 ];
 
+// validTo range has no server-side equivalent (list filters valid_from)
+const EXPORT_MAPPING = {
+  valueMin: 'amount_min',
+  valueMax: 'amount_max',
+  modalities: 'payment_modality',
+  isActive: 'is_active',
+  search: 'q',
+};
+
+const exportParams = computed(() =>
+  buildExportParams(currentFilters, EXPORT_MAPPING),
+);
+
 // -------------------------------------------------------------------
 // Data + CRUD controller (modal, delete confirm, pagination)
 // -------------------------------------------------------------------
@@ -281,6 +304,9 @@ const {
   goToPage,
   handleCreateFilterTab,
   handleResetFilters,
+  sortKey,
+  sortDir,
+  toggleSort,
 } = useAccountingCrudPage({
   entity: 'hostings',
   store,
@@ -304,13 +330,13 @@ const {
 });
 
 const columns = [
-  { key: 'client_name', label: 'Cliente' },
+  { key: 'client_name', label: 'Cliente', sortable: true },
   { key: 'domain_url', label: 'Dominio' },
-  { key: 'monthly_value', label: 'Valor/mes', format: 'money' },
+  { key: 'monthly_value', label: 'Valor/mes', format: 'money', sortable: true },
   { key: 'payment_modality_label', label: 'Modalidad' },
   { key: 'validity', label: 'Vigencia' },
   { key: 'cycles_count', label: 'Ciclos', align: 'center' },
-  { key: 'total_paid', label: 'Total pagado', format: 'money' },
+  { key: 'total_paid', label: 'Total pagado', format: 'money', sortable: true },
   { key: 'is_active', label: 'Estado' },
 ];
 

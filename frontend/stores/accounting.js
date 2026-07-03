@@ -11,8 +11,6 @@ import { normalizeApiError } from './services/normalize_api_error';
  * Accounting entities exposed by the backend (/api/accounting/...).
  * Every entity shares the same CRUD URL shape, so the store maps a key
  * to its endpoint path and the state array holding its records.
- * (card-snapshots exists in the API but has no panel view yet — add its
- * entry here when that page is built.)
  */
 const ACCOUNTING_ENTITIES = {
   incomes: { stateKey: 'incomes', path: 'accounting/incomes/' },
@@ -21,6 +19,7 @@ const ACCOUNTING_ENTITIES = {
   pocket: { stateKey: 'pocketMovements', path: 'accounting/pocket/' },
   recurring: { stateKey: 'recurringPayments', path: 'accounting/recurring/' },
   ads: { stateKey: 'adsRecords', path: 'accounting/ads/' },
+  cards: { stateKey: 'cardSnapshots', path: 'accounting/card-snapshots/' },
 };
 
 function entityConfig(entity) {
@@ -46,7 +45,7 @@ export const useAccountingStore = defineStore('accounting', {
    *
    * Properties:
    * - incomes/expenses/hostings/pocketMovements/recurringPayments/
-   *   adsRecords (Array): records per entity.
+   *   adsRecords/cardSnapshots (Array): records per entity.
    * - metas (Object): list meta per entity key (balance, totals...).
    * - summary (Object|null): dashboard payload for selectedYear.
    * - changelog (Object): paginated audit log {results, count, page, numPages}.
@@ -59,6 +58,7 @@ export const useAccountingStore = defineStore('accounting', {
     pocketMovements: [],
     recurringPayments: [],
     adsRecords: [],
+    cardSnapshots: [],
     metas: {},
     summary: null,
     changelog: { results: [], count: 0, page: 1, numPages: 1 },

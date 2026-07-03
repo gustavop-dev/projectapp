@@ -35,6 +35,7 @@
             :placeholder="minPlaceholder"
             class="w-full px-2.5 py-1.5 border border-border-default rounded-lg text-xs bg-surface text-text-default outline-none focus:ring-1 focus:ring-focus-ring/30"
             @change="emit('update:minValue', parseValue($event.target.value))"
+            @input="onLiveInput('update:minValue', $event.target.value)"
           />
           <span v-if="type !== 'date'" class="text-text-subtle text-xs shrink-0">—</span>
           <input
@@ -43,6 +44,7 @@
             :placeholder="maxPlaceholder"
             class="w-full px-2.5 py-1.5 border border-border-default rounded-lg text-xs bg-surface text-text-default outline-none focus:ring-1 focus:ring-focus-ring/30"
             @change="emit('update:maxValue', parseValue($event.target.value))"
+            @input="onLiveInput('update:maxValue', $event.target.value)"
           />
         </div>
         <div v-if="isActive" class="mt-2 pt-2 border-t border-border-muted">
@@ -61,7 +63,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import { onClickOutside } from '@vueuse/core';
+import { onClickOutside, useDebounceFn } from '@vueuse/core';
 
 const props = defineProps({
   label: { type: String, required: true },
@@ -72,9 +74,22 @@ const props = defineProps({
   maxPlaceholder: { type: String, default: 'Máx' },
   unit: { type: String, default: null },
   icon: { type: String, default: null },
+  /** Emit while typing (debounced) instead of waiting for blur. */
+  live: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:minValue', 'update:maxValue']);
+
+const debouncedEmit = useDebounceFn((event, value) => {
+  emit(event, parseValue(value));
+}, 250);
+
+function onLiveInput(event, value) {
+  if (!props.live) return;
+  // Partial dates ("2026-0...") would blank the list mid-typing.
+  if (props.type === 'date' && value !== '' && value.length !== 10) return;
+  debouncedEmit(event, value);
+}
 
 const isOpen = ref(false);
 const containerRef = ref(null);

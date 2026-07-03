@@ -1454,3 +1454,21 @@ def send_accounting_change_email(change_log_id):
     )
 
     return _send(change_log_id)
+
+
+# 14:00 UTC = 09:00 Bogotá. America/Bogota does not observe DST, so the
+# offset (UTC-5) is stable year-round.
+@periodic_task(crontab(hour='14', minute='0'))
+@lock_task('accounting-card-reminder')
+def send_card_debt_reminder():
+    """
+    Huey task (daily 9:00 Bogotá): weekly card-debt reminder.
+
+    All cycle logic (Friday cycles, snapshot check, 2-day re-alerts)
+    lives in content.services.accounting_card_reminder_service.
+    """
+    from content.services.accounting_card_reminder_service import (
+        run_card_reminder,
+    )
+
+    return run_card_reminder()

@@ -20,6 +20,7 @@ from content.models import (
     ExpenseRecord,
     HostingRecord,
     IncomeRecord,
+    Ledger,
     PocketMovement,
     RecurringPayment,
 )
@@ -44,6 +45,7 @@ TRACKED_FIELDS = {
     EntityType.INCOME: [
         ('concept', 'Concepto'),
         ('kind', 'Tipo'),
+        ('ledger', 'Contabilidad'),
         ('period_date', 'Período'),
         ('destination', 'Destino'),
         ('total_amount', 'Monto total'),
@@ -54,6 +56,7 @@ TRACKED_FIELDS = {
     ],
     EntityType.EXPENSE: [
         ('concept', 'Concepto'),
+        ('ledger', 'Contabilidad'),
         ('period_date', 'Período'),
         ('category', 'Categoría'),
         ('paid_from', 'Pagado desde'),
@@ -112,6 +115,7 @@ TRACKED_FIELDS = {
     EntityType.SETTINGS: [
         ('notification_recipients', 'Destinatarios de notificación'),
         ('notifications_enabled', 'Notificaciones activas'),
+        ('card_reminder_enabled', 'Recordatorio de deuda de tarjetas'),
     ],
 }
 
@@ -437,35 +441,81 @@ def _split_sums(queryset):
 
 
 def _year_split_sums(year):
-    """The three split aggregates every year summary is derived from."""
+    """The three company-ledger aggregates every year summary derives from.
+
+    Personal-ledger records never count toward company totals.
+    """
     return {
         'expected': _split_sums(IncomeRecord.objects.filter(
             kind=IncomeRecord.Kind.EXPECTED, period_date__year=year,
+            ledger=Ledger.COMPANY,
         )),
         'liquid': _split_sums(IncomeRecord.objects.filter(
             kind=IncomeRecord.Kind.LIQUID, period_date__year=year,
+            ledger=Ledger.COMPANY,
         )),
-        'expenses': _split_sums(
-            ExpenseRecord.objects.filter(period_date__year=year),
-        ),
+        'expenses': _split_sums(ExpenseRecord.objects.filter(
+            period_date__year=year, ledger=Ledger.COMPANY,
+        )),
     }
 
 
-def _build_partner_totals(sums):
-    return {
-        party: {
-            'expected': sums['expected'][party],
-            'liquid': sums['liquid'][party],
-            'expenses': sums['expenses'][party],
-            'net': sums['liquid'][party] - sums['expenses'][party],
+def _personal_sums(year):
+    """Per-partner totals of their personal-ledger records."""
+    result = {}
+    for party in (Ledger.GUSTAVO, Ledger.CARLOS):
+        result[str(party)] = {
+            'expected': _sum(IncomeRecord.objects.filter(
+                kind=IncomeRecord.Kind.EXPECTED, period_date__year=year,
+                ledger=party,
+            ), 'total_amount'),
+            'liquid': _sum(IncomeRecord.objects.filter(
+                kind=IncomeRecord.Kind.LIQUID, period_date__year=year,
+                ledger=party,
+            ), 'total_amount'),
+            'expenses': _sum(ExpenseRecord.objects.filter(
+                period_date__year=year, ledger=party,
+            ), 'total_amount'),
         }
-        for party in ('gustavo', 'carlos', 'company')
+    return result
+
+
+def _build_partner_totals(sums, personal):
+    """Partner cards combine company participation + personal ledger.
+
+    The `company` card is the company ledger itself (its full totals),
+    not the per-row unassigned residue.
+    """
+    totals = {}
+    for party in ('gustavo', 'carlos'):
+        participation = {
+            key: sums[key][party]
+            for key in ('expected', 'liquid', 'expenses')
+        }
+        own = personal[party]
+        totals[party] = {
+            'expected': participation['expected'] + own['expected'],
+            'liquid': participation['liquid'] + own['liquid'],
+            'expenses': participation['expenses'] + own['expenses'],
+            'net': (
+                participation['liquid'] + own['liquid']
+                - participation['expenses'] - own['expenses']
+            ),
+            'participation': participation,
+            'personal': own,
+        }
+    totals['company'] = {
+        'expected': sums['expected']['total'],
+        'liquid': sums['liquid']['total'],
+        'expenses': sums['expenses']['total'],
+        'net': sums['liquid']['total'] - sums['expenses']['total'],
     }
+    return totals
 
 
 def partner_totals(year):
     """Expected/liquid income, expenses and net per partner + company."""
-    return _build_partner_totals(_year_split_sums(year))
+    return _build_partner_totals(_year_split_sums(year), _personal_sums(year))
 
 
 def _totals_by_month(queryset, date_field, amount_field):
@@ -483,17 +533,21 @@ def monthly_breakdown(year):
     expected_by_month = _totals_by_month(
         IncomeRecord.objects.filter(
             kind=IncomeRecord.Kind.EXPECTED, period_date__year=year,
+            ledger=Ledger.COMPANY,
         ),
         'period_date', 'total_amount',
     )
     liquid_by_month = _totals_by_month(
         IncomeRecord.objects.filter(
             kind=IncomeRecord.Kind.LIQUID, period_date__year=year,
+            ledger=Ledger.COMPANY,
         ),
         'period_date', 'total_amount',
     )
     expenses_by_month = _totals_by_month(
-        ExpenseRecord.objects.filter(period_date__year=year),
+        ExpenseRecord.objects.filter(
+            period_date__year=year, ledger=Ledger.COMPANY,
+        ),
         'period_date', 'total_amount',
     )
 
@@ -566,7 +620,7 @@ def dashboard_summary(year):
         'expected_utility': expected_total - expenses_total,
         'liquid_utility': liquid_total - expenses_total,
         'pocket_balance': pocket_balance(),
-        'partners': _build_partner_totals(sums),
+        'partners': _build_partner_totals(sums, _personal_sums(year)),
         'monthly': monthly_breakdown(year),
         'recurring_monthly_cost': recurring_monthly_cost(),
         'ads': {

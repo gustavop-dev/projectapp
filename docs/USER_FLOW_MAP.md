@@ -5077,10 +5077,10 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting`
-- **Description:** Annual financial overview fed by `GET /api/accounting/dashboard/?year=`: expected vs liquid income, expenses, expected/liquid utility, pocket balance, per-partner cards, 12-month breakdown, operative cost cards and latest card snapshots. Year selector re-fetches the summary.
+- **Description:** Annual financial overview fed by `GET /api/accounting/dashboard/?year=`: expected vs liquid income, expenses, expected/liquid utility, pocket balance, per-partner cards, 12-month breakdown, operative cost cards and latest card snapshots. Company totals aggregate the company ledger only (personal-ledger records are excluded); the "ProjectApp (Empresa)" card shows the full company ledger, and Gustavo/Carlos cards combine their company participation with their personal ledger (breakdown line shown when personal activity exists). Year selector re-fetches the summary and persists as a query param. The "Evolución" section renders two ApexCharts — expected vs liquid vs expenses per month, and card-debt evolution from snapshots — filtered by the year plus a client-side month-range selector; a "Exportar Excel" button downloads the full workbook and the Tarjetas table links to the cards history.
 - **Steps:**
   1. Superuser opens `/panel/accounting`.
-  2. Stat cards render the summary totals; partner cards show Gustavo/Carlos/ProjectApp splits.
+  2. Stat cards render the summary totals; partner cards show Gustavo/Carlos (participation + personal) and ProjectApp (Empresa) company totals.
   3. Monthly table lists the 12 months with a totals row.
   4. Superuser switches the year → summary re-fetches.
   5. "Nuevo ingreso" opens the income modal from the dashboard.
@@ -5095,9 +5095,9 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting/incomes`
-- **Description:** Income records (expected vs liquid) with editable 50/50 partner split. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket.
+- **Description:** Income records (expected vs liquid) with editable 50/50 partner split and a ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos). Personal-ledger records belong 100% to their owner and are excluded from company totals. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket (company ledger only).
 - **Steps:**
-  1. Superuser opens the incomes list (kind badge, month, totals per partner, destination).
+  1. Superuser opens the incomes list (kind badge, ledger badge, month, totals per partner, destination).
   2. "Nuevo ingreso" opens the modal; PartnerSplitInput defaults to an exact 50/50 of the total.
   3. Submit POSTs `/api/accounting/incomes/create/` → success toast + audit + email.
   4. Row edit prefills the modal and PATCHes `.../update/`.
@@ -5105,6 +5105,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Branches:**
   - [Branch A] Manual split: turning off the 50/50 toggle allows custom per-partner amounts (sum must not exceed the total; backend validates too).
   - [Branch B] Backend 400 → error toast with the Spanish backend message; modal stays open.
+  - [Branch C] Personal ledger: selecting "Personal Gustavo/Carlos" hides the partner split and the pocket destination, shows a single "Valor" field, and the backend normalizes the split to the owner (pocket destination rejected).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 
@@ -5114,7 +5115,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting/incomes` (same pattern across subviews)
-- **Description:** Client-side dynamic filters via `useAccountingFilters`: period date range, amount min/max, kind segmented, partner segmented (Gustavo/Carlos/ProjectApp), debounced free search, active-count badge, reset and saved filter tabs per view.
+- **Description:** Client-side dynamic filters via `useAccountingFilters`: period date range, amount min/max, kind segmented, partner segmented (Gustavo/Carlos/ProjectApp), ledger segmented ("Contabilidad": Todas/Empresa/Personal Gustavo/Personal Carlos), debounced free search, active-count badge, reset and saved filter tabs per view. The revamped panel adds live-updating range dropdowns (debounced typing, no blur needed), removable applied-filter chips (one per value, plus a search chip), a filtered results counter visible even with the panel closed, `<mark>` highlighting of search occurrences in table text cells, and column sorting (asc/desc/off) on key columns of every list.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-filters.spec.js`
 
@@ -5124,7 +5125,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/expenses`
-- **Description:** Expense records with category (Negocio/Personal), paid-from and partner split; same modal CRUD + filters pattern as incomes.
+- **Description:** Expense records with category (Negocio/Personal), paid-from, ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos — personal expenses hide the split and paid-from, use a single "Valor" field and are excluded from company totals) and partner split; same modal CRUD + filters pattern as incomes.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-expenses-hostings.spec.js`
 
@@ -5168,13 +5169,38 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-ads-history-settings.spec.js`
 
+### FLOW: `admin-accounting-cards`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/cards`
+- **Description:** Weekly credit-card balance snapshots (CardBalanceSnapshot): list with a latest-debt-per-card chip, filters (date range, debt range, card multi-select) and search; modal create (snapshot date defaults to today, card name with datalist of known cards), edit prefill and ConfirmModal delete. Registering a snapshot dated on/after the cycle Friday silences the weekly card-debt reminder email.
+- **Steps:**
+  1. Superuser opens `/panel/accounting/cards` (subnav "Tarjetas" or the dashboard "Ver historial de tarjetas" link).
+  2. "Nuevo registro" opens the modal with today's date preselected; superuser fills card, available and debt amounts.
+  3. Submit POSTs `/api/accounting/card-snapshots/create/` → success toast + audit + email.
+  4. Row edit prefills the modal and PATCHes `.../update/`; delete asks for confirmation.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-cards.spec.js`
+
+### FLOW: `admin-accounting-export`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/*` (list views) and `/panel/accounting` (workbook)
+- **Description:** Data export: every list view has an "Exportar" dropdown (CSV / Excel .xlsx) calling `GET /api/accounting/export/?section=&file_format=` with the active filters mapped to the server query params (`buildExportParams`), and the dashboard's "Exportar Excel" button downloads the full workbook (Resumen sheet + one sheet per section) from `GET /api/accounting/export/workbook/?year=`. Spanish headers, numeric money cells, filenames stamped with the Bogotá date.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-export.spec.js`
+
 ### FLOW: `admin-accounting-settings`
 
 - **Module:** admin
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/settings`
-- **Description:** Notification recipients (email list with add/remove + validation) and the global notifications toggle; changes are themselves audited.
+- **Description:** Notification recipients (email list with add/remove + validation) and the global notifications toggle; changes are themselves audited. Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá via Huey, re-alerts every 2 days until a snapshot dated on/after the cycle Friday exists; the global notifications toggle also gates it).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-ads-history-settings.spec.js`
 
@@ -5200,6 +5226,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-pocket` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-pocket-recurring.spec.js` |
 | `admin-accounting-recurring` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-pocket-recurring.spec.js` |
 | `admin-accounting-history` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
+| `admin-accounting-cards` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-cards.spec.js` |
+| `admin-accounting-export` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-export.spec.js` |
 | `admin-accounting-settings` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
 | `admin-accounting-ads` | admin | superuser | P3 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
 

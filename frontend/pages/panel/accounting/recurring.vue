@@ -83,6 +83,7 @@
         :count="activeFilterCount"
         @click="isFilterPanelOpen = !isFilterPanelOpen"
       />
+      <AccountingExportButton section="recurring" :params="exportParams" />
     </div>
 
     <!-- Filter panel -->
@@ -90,8 +91,11 @@
       :fields="filterFields"
       :model-value="currentFilters"
       :is-open="isFilterPanelOpen"
+      :results-count="filteredRows.length"
+      :search-value="currentFilters.search"
       @update:model-value="Object.assign(currentFilters, $event)"
       @reset="resetFilters"
+      @clear-search="searchInput = ''"
     />
 
     <!-- Loading -->
@@ -103,8 +107,12 @@
       <AccountingTable
         :columns="columns"
         :rows="pagedRows"
+        :highlight-query="currentFilters.search"
+        :sort-key="sortKey"
+        :sort-dir="sortDir"
         @edit="openEditModal"
         @delete="confirmDelete"
+        @sort="toggleSort"
       >
         <template #cell-price="{ row }">
           <span class="tabular-nums">{{ formatMoney(Number(row.price), row.currency) }}</span>
@@ -180,6 +188,7 @@ import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
+import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import RecurringPaymentFormModal from '~/components/accounting/RecurringPaymentFormModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
@@ -198,6 +207,7 @@ import {
   matchNumberRange,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
+import { buildExportParams } from '~/utils/accountingExportParams';
 import { formatMoney } from '~/utils/formatMoney';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
@@ -299,17 +309,32 @@ const filterFields = [
   },
 ];
 
+const EXPORT_MAPPING = {
+  frequency: 'frequency',
+  payment_method: 'payment_method',
+  currency: 'currency',
+  cost_type: 'cost_type',
+  price_min: 'amount_min',
+  price_max: 'amount_max',
+  is_active: 'is_active',
+  search: 'q',
+};
+
+const exportParams = computed(() =>
+  buildExportParams(currentFilters, EXPORT_MAPPING),
+);
+
 // -------------------------------------------------------------------
 // Data + table
 // -------------------------------------------------------------------
 
 const columns = [
-  { key: 'name', label: 'Nombre' },
+  { key: 'name', label: 'Nombre', sortable: true },
   { key: 'price', label: 'Precio', align: 'right' },
-  { key: 'cop_equivalent', label: 'Equiv. COP', format: 'money' },
+  { key: 'cop_equivalent', label: 'Equiv. COP', format: 'money', sortable: true },
   { key: 'payment_method_label', label: 'Método' },
   { key: 'frequency_label', label: 'Frecuencia' },
-  { key: 'billing_day', label: 'Día', align: 'center' },
+  { key: 'billing_day', label: 'Día', align: 'center', sortable: true },
   { key: 'cost_type_label', label: 'Tipo' },
   { key: 'is_active', label: 'Estado' },
 ];
@@ -337,6 +362,9 @@ const {
   nextPage: next,
   goToPage: goTo,
   handleCreateFilterTab: handleCreateTab,
+  sortKey,
+  sortDir,
+  toggleSort,
 } = useAccountingCrudPage({
   entity: 'recurring',
   store,

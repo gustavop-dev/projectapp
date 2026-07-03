@@ -18,9 +18,15 @@ from content.models import (
     ExpenseRecord,
     HostingRecord,
     IncomeRecord,
+    Ledger,
     PocketMovement,
     RecurringPayment,
 )
+
+PERSONAL_LEDGER_OWNER = {
+    Ledger.GUSTAVO: ('gustavo_amount', 'carlos_amount'),
+    Ledger.CARLOS: ('carlos_amount', 'gustavo_amount'),
+}
 
 MONTH_PERIOD_RE = re.compile(r'^\d{4}-(0[1-9]|1[0-2])$')
 
@@ -67,7 +73,12 @@ class PeriodReadMixin(serializers.Serializer):
 
 
 class PartnerSplitWriteMixin(serializers.Serializer):
-    """Split fields + validation shared by income/expense write serializers."""
+    """Split fields + validation shared by income/expense write serializers.
+
+    Company records keep the 50/50 default split. Personal-ledger records
+    always belong 100% to their owner: any split sent by the client is
+    normalized instead of rejected.
+    """
 
     total_amount = serializers.DecimalField(
         max_digits=14, decimal_places=2, min_value=Decimal('0'),
@@ -80,6 +91,7 @@ class PartnerSplitWriteMixin(serializers.Serializer):
         max_digits=14, decimal_places=2, min_value=Decimal('0'),
         required=False,
     )
+    ledger = serializers.ChoiceField(choices=Ledger.choices, required=False)
 
     def validate(self, data):
         data = super().validate(data)
@@ -92,6 +104,15 @@ class PartnerSplitWriteMixin(serializers.Serializer):
             return default
 
         total = effective('total_amount')
+        ledger = effective('ledger', Ledger.COMPANY)
+
+        if ledger in PERSONAL_LEDGER_OWNER:
+            if total is not None:
+                owner_field, other_field = PERSONAL_LEDGER_OWNER[ledger]
+                data[owner_field] = total
+                data[other_field] = Decimal('0')
+            return data
+
         split_provided = 'gustavo_amount' in data or 'carlos_amount' in data
         if self.instance is None and not split_provided and total is not None:
             gustavo, carlos = split_half(total)
@@ -114,6 +135,9 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     destination_label = serializers.CharField(
         source='get_destination_display', read_only=True,
     )
+    ledger_label = serializers.CharField(
+        source='get_ledger_display', read_only=True,
+    )
     company_amount = serializers.DecimalField(
         max_digits=14, decimal_places=2, read_only=True,
     )
@@ -123,7 +147,7 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
         fields = (
             'id', 'concept', 'kind', 'kind_label',
             'period', 'period_label', 'period_date',
-            'destination', 'destination_label',
+            'destination', 'destination_label', 'ledger', 'ledger_label',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'company_amount',
             'expected_income', 'pocket_movement',
             'notes', 'created_at', 'updated_at',
@@ -143,7 +167,7 @@ class IncomeRecordCreateUpdateSerializer(
     class Meta:
         model = IncomeRecord
         fields = (
-            'concept', 'kind', 'period_date', 'destination',
+            'concept', 'kind', 'period_date', 'destination', 'ledger',
             'total_amount', 'gustavo_amount', 'carlos_amount',
             'expected_income', 'notes',
         )
@@ -151,19 +175,34 @@ class IncomeRecordCreateUpdateSerializer(
     def validate(self, data):
         data = super().validate(data)
 
-        def effective(field):
+        def effective(field, default=None):
             if field in data:
                 return data[field]
-            return getattr(self.instance, field, None)
+            if self.instance is not None:
+                return getattr(self.instance, field)
+            return default
 
         kind = effective('kind')
         destination = effective('destination')
+        ledger = effective('ledger', Ledger.COMPANY)
         if (
             destination == IncomeRecord.Destination.POCKET
             and kind != IncomeRecord.Kind.LIQUID
         ):
             raise serializers.ValidationError(
                 'El destino Bolsillo ProjectApp solo aplica a ingresos líquidos.'
+            )
+        if (
+            ledger != Ledger.COMPANY
+            and destination == IncomeRecord.Destination.POCKET
+        ):
+            raise serializers.ValidationError(
+                'Los movimientos personales no pueden ir al Bolsillo ProjectApp.'
+            )
+        expected = effective('expected_income')
+        if expected is not None and expected.ledger != ledger:
+            raise serializers.ValidationError(
+                'El ingreso esperado vinculado debe ser de la misma contabilidad.'
             )
         return data
 
@@ -177,6 +216,9 @@ class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     paid_from_label = serializers.CharField(
         source='get_paid_from_display', read_only=True,
     )
+    ledger_label = serializers.CharField(
+        source='get_ledger_display', read_only=True,
+    )
     company_amount = serializers.DecimalField(
         max_digits=14, decimal_places=2, read_only=True,
     )
@@ -187,6 +229,7 @@ class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'id', 'concept',
             'period', 'period_label', 'period_date',
             'category', 'category_label', 'paid_from', 'paid_from_label',
+            'ledger', 'ledger_label',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'company_amount',
             'pocket_movement',
             'notes', 'created_at', 'updated_at',
@@ -201,9 +244,30 @@ class ExpenseRecordCreateUpdateSerializer(
     class Meta:
         model = ExpenseRecord
         fields = (
-            'concept', 'period_date', 'category', 'paid_from',
+            'concept', 'period_date', 'category', 'paid_from', 'ledger',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'notes',
         )
+
+    def validate(self, data):
+        data = super().validate(data)
+
+        def effective(field, default=None):
+            if field in data:
+                return data[field]
+            if self.instance is not None:
+                return getattr(self.instance, field)
+            return default
+
+        ledger = effective('ledger', Ledger.COMPANY)
+        paid_from = effective('paid_from')
+        if (
+            ledger != Ledger.COMPANY
+            and paid_from == ExpenseRecord.PaidFrom.POCKET
+        ):
+            raise serializers.ValidationError(
+                'Los gastos personales no pueden pagarse desde el Bolsillo ProjectApp.'
+            )
+        return data
 
 
 # ── Hosting ──
@@ -433,5 +497,6 @@ class AccountingSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = AccountingSettings
         fields = (
-            'notification_recipients', 'notifications_enabled', 'updated_at',
+            'notification_recipients', 'notifications_enabled',
+            'card_reminder_enabled', 'updated_at',
         )

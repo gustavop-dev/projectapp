@@ -1,0 +1,77 @@
+{% load date_filters %}{% autoescape on %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>[Contabilidad] Recordatorio: deuda de tarjetas</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f4f7; font-family:Arial, Helvetica, sans-serif; color:#1f2933;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7; padding:24px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:8px; overflow:hidden; max-width:600px; width:100%;">
+          <tr>
+            <td style="padding:20px 32px; background-color:{% if is_first %}#b45309{% else %}#b91c1c{% endif %}; color:#ffffff;">
+              <h1 style="margin:0; font-size:18px; font-weight:bold;">
+                Contabilidad · Actualización semanal de tarjetas{% if not is_first %} (recordatorio #{{ reminder_number }}){% endif %}
+              </h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 32px;">
+              {% if is_first %}
+              <p style="margin:0 0 16px 0; font-size:15px;">
+                Hoy es viernes: recuerda ingresar al sistema y registrar el
+                valor actualizado de la deuda de las tarjetas de crédito.
+              </p>
+              {% else %}
+              <p style="margin:0 0 16px 0; font-size:15px;">
+                Hace <strong>{{ days_since }} día{{ days_since|pluralize }}</strong>
+                (desde el viernes {{ cycle_friday|bogota_date }}) no se registra
+                la actualización semanal de la deuda de tarjetas. Este
+                recordatorio se repetirá cada 2 días hasta que se registre.
+              </p>
+              {% endif %}
+              {% if snapshots %}
+              <p style="margin:0 0 8px 0; font-size:13px; color:#6b7280;">Últimos registros por tarjeta:</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px; border-collapse:collapse; margin-bottom:20px;">
+                <tr>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Tarjeta</th>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Fecha</th>
+                  <th align="right" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Deuda</th>
+                </tr>
+                {% for snapshot in snapshots %}
+                <tr>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{{ snapshot.card_name }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{{ snapshot.snapshot_date }}</td>
+                  <td align="right" style="padding:8px; border-bottom:1px solid #f3f4f6; color:#b91c1c;">${{ snapshot.debt_amount }}</td>
+                </tr>
+                {% endfor %}
+              </table>
+              {% endif %}
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 4px 0;">
+                <tr>
+                  <td style="border-radius:6px; background-color:#1d4ed8;">
+                    <a href="{{ panel_url }}" style="display:inline-block; padding:10px 20px; font-size:14px; color:#ffffff; text-decoration:none; font-weight:bold;">
+                      Registrar deuda de tarjetas
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 32px; background-color:#f9fafb; font-size:12px; color:#9ca3af;">
+              Recordatorio automático del módulo contable · ProjectApp. Se
+              apaga al registrar un snapshot con fecha del viernes en curso o
+              posterior.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+{% endautoescape %}

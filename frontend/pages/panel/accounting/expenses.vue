@@ -46,6 +46,7 @@
         :count="activeFilterCount"
         @click="isFilterPanelOpen = !isFilterPanelOpen"
       />
+      <AccountingExportButton section="expense" :params="exportParams" />
     </div>
 
     <!-- Filter panel -->
@@ -53,8 +54,11 @@
       :fields="filterFields"
       :model-value="currentFilters"
       :is-open="isFilterPanelOpen"
+      :results-count="filteredRecords.length"
+      :search-value="currentFilters.search"
       @update:model-value="Object.assign(currentFilters, $event)"
       @reset="handleResetFilters"
+      @clear-search="searchInput = ''"
     />
 
     <!-- Summary chip (filtered rows) -->
@@ -85,8 +89,12 @@
       <AccountingTable
         :columns="columns"
         :rows="pagedRecords"
+        :highlight-query="currentFilters.search"
+        :sort-key="sortKey"
+        :sort-dir="sortDir"
         @edit="openEditModal"
         @delete="confirmDeleteRecord"
+        @sort="toggleSort"
       >
         <template #cell-category_label="{ row }">
           <span
@@ -96,6 +104,16 @@
               : 'bg-surface-raised text-text-muted'"
           >
             {{ row.category_label }}
+          </span>
+        </template>
+        <template #cell-ledger_label="{ row }">
+          <span
+            class="text-xs px-2.5 py-1 rounded-full font-medium"
+            :class="row.ledger === 'company'
+              ? 'bg-surface-raised text-text-muted'
+              : 'bg-info-soft text-info-strong'"
+          >
+            {{ row.ledger === 'company' ? 'Empresa' : row.ledger_label }}
           </span>
         </template>
       </AccountingTable>
@@ -145,6 +163,7 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
+import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import ExpenseFormModal from '~/components/accounting/ExpenseFormModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
@@ -155,8 +174,10 @@ import {
   matchDateRange,
   matchNumberRange,
   matchIncludes,
+  matchEquals,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
+import { buildExportParams } from '~/utils/accountingExportParams';
 import { formatMoney } from '~/utils/formatMoney';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
@@ -191,12 +212,14 @@ const {
     amountMax: '',
     categories: [],
     paidFrom: [],
+    ledger: '',
   },
   matchers: {
     period: matchDateRange('period_date', 'periodAfter', 'periodBefore'),
     amount: matchNumberRange('total_amount', 'amountMin', 'amountMax'),
     categories: matchIncludes('category', 'categories'),
     paidFrom: matchIncludes('paid_from', 'paidFrom'),
+    ledger: matchEquals('ledger', 'ledger'),
   },
   searchFields: ['concept', 'notes'],
 });
@@ -222,7 +245,33 @@ const filterFields = [
       { value: 'pocket', label: 'Bolsillo ProjectApp' },
     ],
   },
+  {
+    kind: 'segmented',
+    key: 'ledger',
+    label: 'Contabilidad',
+    options: [
+      { value: '', label: 'Todas' },
+      { value: 'company', label: 'Empresa' },
+      { value: 'gustavo', label: 'Personal Gustavo' },
+      { value: 'carlos', label: 'Personal Carlos' },
+    ],
+  },
 ];
+
+const EXPORT_MAPPING = {
+  periodAfter: 'date_from',
+  periodBefore: 'date_to',
+  amountMin: 'amount_min',
+  amountMax: 'amount_max',
+  categories: 'category',
+  paidFrom: 'paid_from',
+  ledger: 'ledger',
+  search: 'q',
+};
+
+const exportParams = computed(() =>
+  buildExportParams(currentFilters, EXPORT_MAPPING),
+);
 
 // -------------------------------------------------------------------
 // Data + CRUD controller (modal, delete confirm, pagination)
@@ -252,6 +301,9 @@ const {
   goToPage,
   handleCreateFilterTab,
   handleResetFilters,
+  sortKey,
+  sortDir,
+  toggleSort,
 } = useAccountingCrudPage({
   entity: 'expenses',
   store,
@@ -277,13 +329,14 @@ const totalFiltered = computed(() =>
 );
 
 const columns = [
-  { key: 'concept', label: 'Concepto' },
+  { key: 'concept', label: 'Concepto', sortable: true },
   { key: 'period_label', label: 'Mes' },
   { key: 'category_label', label: 'Categoría' },
+  { key: 'ledger_label', label: 'Contabilidad' },
   { key: 'paid_from_label', label: 'Pagado desde' },
-  { key: 'total_amount', label: 'Total', format: 'money' },
-  { key: 'gustavo_amount', label: 'Gustavo', format: 'money' },
-  { key: 'carlos_amount', label: 'Carlos', format: 'money' },
+  { key: 'total_amount', label: 'Total', format: 'money', sortable: true },
+  { key: 'gustavo_amount', label: 'Gustavo', format: 'money', sortable: true },
+  { key: 'carlos_amount', label: 'Carlos', format: 'money', sortable: true },
 ];
 
 async function loadRecords() {

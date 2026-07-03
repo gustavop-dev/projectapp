@@ -1,10 +1,22 @@
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePagination } from '~/composables/usePagination';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 
 const PAGE_SIZE = 15;
+
+function compareValues(a, b, key) {
+  const left = a?.[key];
+  const right = b?.[key];
+  const leftNumber = Number(left);
+  const rightNumber = Number(right);
+  if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
+    return leftNumber - rightNumber;
+  }
+  // ISO dates and plain text both sort correctly with localeCompare.
+  return String(left ?? '').localeCompare(String(right ?? ''), 'es');
+}
 
 /**
  * Shared page-controller for the accounting CRUD subviews (incomes,
@@ -46,8 +58,31 @@ export function useAccountingCrudPage({
     useConfirmModal();
 
   // -----------------------------------------------------------------
-  // Pagination over the filtered rows
+  // Column sorting (asc → desc → off) + pagination over the rows
   // -----------------------------------------------------------------
+
+  const sortKey = ref('');
+  const sortDir = ref('asc');
+
+  function toggleSort(key) {
+    if (sortKey.value !== key) {
+      sortKey.value = key;
+      sortDir.value = 'asc';
+    } else if (sortDir.value === 'asc') {
+      sortDir.value = 'desc';
+    } else {
+      sortKey.value = '';
+      sortDir.value = 'asc';
+    }
+  }
+
+  const sortedRecords = computed(() => {
+    if (!sortKey.value) return filteredRecords.value;
+    const direction = sortDir.value === 'desc' ? -1 : 1;
+    return [...filteredRecords.value].sort(
+      (a, b) => direction * compareValues(a, b, sortKey.value),
+    );
+  });
 
   const {
     currentPage,
@@ -60,7 +95,7 @@ export function useAccountingCrudPage({
     next: nextPage,
     prev: prevPage,
     reset: resetPage,
-  } = usePagination(filteredRecords, { pageSize: PAGE_SIZE });
+  } = usePagination(sortedRecords, { pageSize: PAGE_SIZE });
 
   watch(filteredRecords, () => resetPage(), { deep: false });
 
@@ -161,6 +196,10 @@ export function useAccountingCrudPage({
     confirmState,
     handleConfirmed,
     handleCancelled,
+    // sorting
+    sortKey,
+    sortDir,
+    toggleSort,
     // pagination
     currentPage,
     totalPages,

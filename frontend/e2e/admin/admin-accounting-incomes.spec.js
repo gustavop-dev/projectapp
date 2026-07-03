@@ -24,6 +24,8 @@ function incomeRow(overrides = {}) {
     period_date: '2026-02-01',
     destination: 'partners',
     destination_label: 'Socios',
+    ledger: 'company',
+    ledger_label: 'Empresa',
     total_amount: '1160000.00',
     gustavo_amount: '580000.00',
     carlos_amount: '580000.00',
@@ -141,6 +143,33 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     expect(calls[0].body.concept).toBe('Vastago (Fase 1) - Inicio 40%');
     expect(Number(calls[0].body.gustavo_amount)).toBe(1061500);
     expect(Number(calls[0].body.carlos_amount)).toBe(1061500);
+  });
+
+  test('creates a personal-ledger income with a single value field', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [], calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('incomes-new-button').click();
+    await expect(page.getByRole('heading', { name: 'Nuevo ingreso' })).toBeVisible();
+
+    await page.locator('form input[type="text"]').first().fill('Universidad Nacional');
+    await page.locator('form input[type="month"]').fill('2026-02');
+    await page.getByRole('tab', { name: 'Personal Gustavo' }).click();
+
+    // Personal ledger swaps the partner split for a single value input.
+    await expect(page.getByTestId('partner-split-total')).toHaveCount(0);
+    await page.locator('form input[type="number"]').fill('1400000');
+    await page.getByTestId('income-form-submit').click();
+
+    await expect(page.getByText('Ingreso creado')).toBeVisible();
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body.ledger).toBe('gustavo');
+    expect(Number(calls[0].body.total_amount)).toBe(1400000);
+    expect(calls[0].body.gustavo_amount).toBeUndefined();
+    expect(calls[0].body.carlos_amount).toBeUndefined();
   });
 
   test('empty required fields block the POST via HTML5 validation', {

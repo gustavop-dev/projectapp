@@ -270,6 +270,14 @@ export function useAccountingFilters({
     activeTabId.value = 'all';
   }
 
+  /** Reset only the given filter keys to their defaults (chip removal). */
+  function clearFilterKeys(keys) {
+    const fresh = freshFilters();
+    for (const key of keys) {
+      if (key in fresh) currentFilters[key] = fresh[key];
+    }
+  }
+
   function selectTab(tabId) {
     activeTabId.value = tabId;
     if (tabId === 'all') {
@@ -310,6 +318,7 @@ export function useAccountingFilters({
     isTabLimitReached,
     applyFilters,
     resetFilters,
+    clearFilterKeys,
     selectTab,
     saveTab,
     deleteTab,
