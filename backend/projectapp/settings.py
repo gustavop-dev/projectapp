@@ -348,6 +348,12 @@ REST_FRAMEWORK = {
     },
 }
 
+# Origins allowed to call the MCP endpoints (besides our own host).
+# claude.ai's MCP client sends Origin: https://claude.ai on its requests.
+MCP_ALLOWED_ORIGINS = [
+    'https://claude.ai',
+]
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),

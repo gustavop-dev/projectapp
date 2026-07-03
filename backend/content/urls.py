@@ -255,8 +255,12 @@ urlpatterns = [
     path('blog/admin/<int:post_id>/upload-cover/', upload_blog_cover_image, name='upload-blog-cover-image'),
     path('blog/admin/calendar/', blog_calendar, name='blog-calendar'),
 
-    # MCP (Model Context Protocol) — token-authenticated remote connectors
+    # MCP (Model Context Protocol) — token-authenticated remote connectors.
+    # Both slash variants: a POST to the unslashed URL must not fall through
+    # to the SPA catch-all (403 CSRF) — connector URLs get hand-copied and
+    # the trailing slash is the first thing that gets lost.
     path('mcp/<slug:slug>/<str:token>/', mcp_endpoint, name='mcp-endpoint'),
+    path('mcp/<slug:slug>/<str:token>', mcp_endpoint, name='mcp-endpoint-noslash'),
     path('mcp-connectors/', list_mcp_connectors, name='list-mcp-connectors'),
     path('mcp-connectors/<slug:slug>/', update_mcp_connector, name='update-mcp-connector'),
     path('mcp-connectors/<slug:slug>/generate-token/', generate_mcp_connector_token, name='generate-mcp-connector-token'),

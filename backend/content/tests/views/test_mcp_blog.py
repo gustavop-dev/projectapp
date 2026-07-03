@@ -1,7 +1,7 @@
 """Tests for the Blog Publisher MCP HTTP endpoint."""
 import pytest
 
-from content.models import BlogPost, McpConnector
+from content.models import BlogPost, McpConnector, McpRequestLog
 
 
 @pytest.fixture
@@ -95,6 +95,28 @@ class TestMcpEndpointProtocolCompat:
         )
         assert response.status_code == 200
 
+    def test_post_with_claude_ai_origin_is_accepted(self, api_client, blog_connector):
+        # claude.ai's MCP client sends this Origin; rejecting it broke
+        # connector creation with "could not connect".
+        _, token = blog_connector
+        response = api_client.post(
+            _url(token), _rpc('ping'), format='json',
+            HTTP_ORIGIN='https://claude.ai',
+        )
+        assert response.status_code == 200
+
+    def test_post_without_trailing_slash_works(self, api_client, blog_connector):
+        # Hand-copied connector URLs often lose the trailing slash; without
+        # this route the POST fell into the SPA catch-all and got a 403 CSRF.
+        _, token = blog_connector
+        response = api_client.post(
+            f'/api/mcp/blog/{token}',
+            _rpc('initialize', {'protocolVersion': '2025-06-18'}),
+            format='json',
+        )
+        assert response.status_code == 200
+        assert response.data['result']['serverInfo']['name'] == 'projectapp-blog-mcp'
+
     @pytest.mark.parametrize('probe_path', [
         '/.well-known/oauth-authorization-server',
         '/.well-known/oauth-protected-resource',
@@ -105,6 +127,86 @@ class TestMcpEndpointProtocolCompat:
         # reads that as "OAuth-protected server" and derails connector setup.
         response = api_client.get(probe_path)
         assert response.status_code == 404
+
+
+@pytest.mark.django_db
+class TestMcpActivityLog:
+    def _events(self):
+        return list(McpRequestLog.objects.values_list('event', 'ok', 'detail'))
+
+    def test_initialize_records_handshake(self, api_client, blog_connector):
+        _, token = blog_connector
+        api_client.post(
+            _url(token), _rpc('initialize', {'protocolVersion': '2025-06-18'}), format='json',
+        )
+        assert ('handshake', True, 'initialize OK') in self._events()
+
+    def test_successful_tool_call_records_tool_name(self, api_client, blog_connector):
+        _, token = blog_connector
+        api_client.post(
+            _url(token),
+            _rpc('tools/call', {'name': 'get_blog_template', 'arguments': {}}),
+            format='json',
+        )
+        assert ('tool_call', True, 'get_blog_template') in self._events()
+
+    def test_failed_tool_call_records_error_detail(self, api_client, blog_connector):
+        _, token = blog_connector
+        api_client.post(
+            _url(token),
+            _rpc('tools/call', {'name': 'create_blog_post', 'arguments': {'title_es': 'x'}}),
+            format='json',
+        )
+        events = self._events()
+        failed = [e for e in events if e[0] == 'tool_call' and e[1] is False]
+        assert failed and 'create_blog_post' in failed[0][2]
+
+    def test_bad_token_records_auth_error(self, api_client, blog_connector):
+        api_client.post(_url('bad-token'), _rpc('ping'), format='json')
+        events = self._events()
+        assert any(e[0] == 'auth_error' and 'Token inválido' in e[2] for e in events)
+
+    def test_inactive_connector_records_specific_detail(self, api_client, blog_connector):
+        connector, token = blog_connector
+        connector.is_active = False
+        connector.save(update_fields=['is_active'])
+        api_client.post(_url(token), _rpc('ping'), format='json')
+        assert any(e[0] == 'auth_error' and 'inactivo' in e[2] for e in self._events())
+
+    def test_foreign_origin_records_rejected_origin(self, api_client, blog_connector):
+        _, token = blog_connector
+        api_client.post(
+            _url(token), _rpc('ping'), format='json', HTTP_ORIGIN='https://evil.example',
+        )
+        assert ('origin_rejected', False, 'https://evil.example') in self._events()
+
+    def test_trail_is_pruned_to_keep_limit(self, blog_connector):
+        connector, _ = blog_connector
+        for i in range(McpRequestLog.KEEP_PER_CONNECTOR + 7):
+            McpRequestLog.record(connector, 'handshake', detail=f'n{i}')
+        assert McpRequestLog.objects.filter(connector=connector).count() == McpRequestLog.KEEP_PER_CONNECTOR
+
+    def test_panel_payload_exposes_status_and_events(self, superuser_client, blog_connector):
+        connector, token = blog_connector
+        McpRequestLog.record(connector, 'handshake', detail='initialize OK')
+        response = superuser_client.get('/api/mcp-connectors/')
+        blog = next(c for c in response.data if c['slug'] == 'blog')
+        assert blog['connection_status'] == 'connected'
+        assert blog['recent_events'][0]['event'] == 'handshake'
+
+    def test_panel_payload_error_status_when_last_event_failed(self, superuser_client, blog_connector):
+        connector, _ = blog_connector
+        McpRequestLog.record(connector, 'handshake', detail='initialize OK')
+        McpRequestLog.record(connector, 'origin_rejected', ok=False, detail='https://evil.example')
+        response = superuser_client.get('/api/mcp-connectors/')
+        blog = next(c for c in response.data if c['slug'] == 'blog')
+        assert blog['connection_status'] == 'error'
+
+    def test_panel_payload_none_status_without_events(self, superuser_client, blog_connector):
+        response = superuser_client.get('/api/mcp-connectors/')
+        blog = next(c for c in response.data if c['slug'] == 'blog')
+        assert blog['connection_status'] == 'none'
+        assert blog['recent_events'] == []
 
 
 @pytest.mark.django_db

@@ -60,6 +60,51 @@
           </span>
         </div>
 
+        <!-- Connection status derived from the latest MCP request -->
+        <div
+          class="flex items-start gap-2 text-sm rounded-lg px-3 py-2 mb-4"
+          :class="statusFor(connector).box"
+          :data-testid="`mcp-connection-${connector.slug}`"
+        >
+          <span class="mt-1 h-2 w-2 rounded-full flex-shrink-0" :class="statusFor(connector).dot" />
+          <div>
+            <span class="font-medium">{{ statusFor(connector).label }}</span>
+            <template v-if="connector.recent_events?.length">
+              <span class="text-text-muted">
+                · {{ formatDate(connector.recent_events[0].created_at) }}
+                · {{ eventLabel(connector.recent_events[0]) }}
+              </span>
+              <p v-if="!connector.recent_events[0].ok && connector.recent_events[0].detail" class="text-xs text-text-muted mt-0.5">
+                {{ connector.recent_events[0].detail }}
+              </p>
+            </template>
+          </div>
+        </div>
+
+        <details v-if="connector.recent_events?.length" class="mb-4">
+          <summary
+            class="text-xs font-semibold text-text-subtle uppercase tracking-wider cursor-pointer select-none"
+            :data-testid="`mcp-activity-toggle-${connector.slug}`"
+          >
+            Actividad reciente ({{ connector.recent_events.length }})
+          </summary>
+          <ul class="mt-2 space-y-1.5" :data-testid="`mcp-activity-list-${connector.slug}`">
+            <li
+              v-for="(event, index) in connector.recent_events"
+              :key="index"
+              class="flex items-start gap-2 text-xs"
+            >
+              <span
+                class="mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0"
+                :class="event.ok ? 'bg-success-strong' : 'bg-danger-strong'"
+              />
+              <span class="text-text-subtle whitespace-nowrap">{{ formatDate(event.created_at) }}</span>
+              <span class="text-text-default">{{ eventLabel(event) }}</span>
+              <span v-if="showDetail(event)" class="text-text-muted truncate">{{ event.detail }}</span>
+            </li>
+          </ul>
+        </details>
+
         <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mb-2">
           Funciones disponibles
         </p>
@@ -122,6 +167,37 @@ const store = useMcpsStore();
 const notify = usePanelNotify();
 
 const tokenModal = reactive({ open: false, url: '', copied: false });
+
+const statusStyles = {
+  connected: { label: 'Conectado', dot: 'bg-success-strong', box: 'bg-success-soft text-success-strong' },
+  error: { label: 'Error de conexión', dot: 'bg-danger-strong', box: 'bg-danger-soft text-danger-strong' },
+  none: { label: 'Sin actividad', dot: 'bg-surface-raised border border-border-default', box: 'bg-surface-muted text-text-muted' },
+};
+
+const eventLabels = {
+  handshake: 'Conexión (initialize)',
+  tool_call: 'Tool',
+  auth_error: 'Error de autenticación',
+  origin_rejected: 'Origin rechazado',
+};
+
+function statusFor(connector) {
+  return statusStyles[connector.connection_status] || statusStyles.none;
+}
+
+function eventLabel(event) {
+  const base = eventLabels[event.event] || event.event;
+  if (event.event === 'tool_call' && event.ok && event.detail) {
+    return `${base}: ${event.detail}`;
+  }
+  return base;
+}
+
+function showDetail(event) {
+  // tool_call OK already carries its detail (the tool name) in the label.
+  if (!event.detail) return false;
+  return !(event.event === 'tool_call' && event.ok);
+}
 
 onMounted(() => {
   store.fetchConnectors();
