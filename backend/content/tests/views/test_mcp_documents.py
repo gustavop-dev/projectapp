@@ -67,12 +67,12 @@ def _make_doc(doc_type, **kwargs):
 
 @pytest.mark.django_db
 class TestDocumentsMcpToolList:
-    def test_exposes_the_seven_tools(self, api_client, documents_connector):
+    def test_exposes_the_eight_tools(self, api_client, documents_connector):
         _, token = documents_connector
         response = api_client.post(_url(token), _rpc('tools/list'), format='json')
         names = [t['name'] for t in response.data['result']['tools']]
         assert names == [
-            'list_folders', 'create_folder', 'list_documents',
+            'list_folders', 'create_folder', 'rename_folder', 'list_documents',
             'read_document', 'create_document', 'update_document',
             'delete_document',
         ]
@@ -110,6 +110,21 @@ class TestDocumentsMcpFolders:
     def test_create_folder_requires_name(self, api_client, documents_connector):
         _, token = documents_connector
         response = _call(api_client, token, 'create_folder', {'name': '   '})
+        assert response.data['result']['isError'] is True
+
+    def test_rename_folder_changes_name_keeps_slug(self, api_client, documents_connector):
+        folder = DocumentFolder.objects.create(name='Viejo')
+        original_slug = folder.slug
+        _, token = documents_connector
+        response = _call(api_client, token, 'rename_folder', {'folder_id': folder.id, 'name': 'Nuevo'})
+        assert response.data['result']['isError'] is False
+        folder.refresh_from_db()
+        assert folder.name == 'Nuevo'
+        assert folder.slug == original_slug
+
+    def test_rename_folder_requires_folder_id(self, api_client, documents_connector):
+        _, token = documents_connector
+        response = _call(api_client, token, 'rename_folder', {'name': 'Nuevo'})
         assert response.data['result']['isError'] is True
 
 

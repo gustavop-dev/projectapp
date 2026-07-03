@@ -11,7 +11,7 @@ Guardrails baked in:
   collection accounts (cuentas de cobro) live in the same table and are
   deliberately out of reach.
 - Published documents cannot be deleted (unpublish first or use the panel).
-- Folders can be listed and created, but not renamed or deleted, so the MCP
+- Folders can be listed, created and renamed, but not deleted, so the MCP
   cannot dismantle the existing structure.
 
 Each entry: {'name', 'description', 'input_schema', 'handler'}. Handlers
@@ -123,6 +123,21 @@ def create_folder(arguments):
         raise ToolError('El nombre de la carpeta es obligatorio.')
     parent = _resolve_folder(arguments.get('parent_id'))
     folder = DocumentFolder.objects.create(name=name, parent=parent)
+    return _folder_payload(folder)
+
+
+def rename_folder(arguments):
+    folder_id = arguments.get('folder_id')
+    if folder_id in (None, '', 'none', 'null'):
+        raise ToolError('folder_id es obligatorio para renombrar una carpeta.')
+    folder = _resolve_folder(folder_id)
+    name = (arguments.get('name') or '').strip()
+    if not name:
+        raise ToolError('El nuevo nombre de la carpeta es obligatorio.')
+    # The slug is set once on creation and left untouched, so links and PDF
+    # references stay stable when only the display name changes.
+    folder.name = name
+    folder.save(update_fields=['name', 'updated_at'])
     return _folder_payload(folder)
 
 
@@ -288,6 +303,22 @@ DOCUMENT_TOOLS = [
             'required': ['name'],
         },
         'handler': create_folder,
+    },
+    {
+        'name': 'rename_folder',
+        'description': (
+            'Cambia el nombre de una carpeta existente. Envía folder_id (de '
+            'list_folders) y el nuevo name. No mueve ni borra la carpeta.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                'folder_id': {'type': 'integer', 'description': 'ID de la carpeta a renombrar.'},
+                'name': {'type': 'string', 'description': 'Nuevo nombre.'},
+            },
+            'required': ['folder_id', 'name'],
+        },
+        'handler': rename_folder,
     },
     {
         'name': 'list_documents',
