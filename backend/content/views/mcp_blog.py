@@ -5,6 +5,7 @@ the panel management endpoints backing /panel/mcps.
 import logging
 from urllib.parse import urlparse
 
+from django.conf import settings
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone as tz
@@ -57,11 +58,14 @@ class McpContentNegotiation(DefaultContentNegotiation):
 def _origin_is_foreign(request):
     """
     Streamable HTTP spec: servers MUST validate the Origin header (DNS
-    rebinding defense). Server-to-server clients (claude.ai) send none;
-    a browser Origin from another host is rejected.
+    rebinding defense). claude.ai's MCP client DOES send
+    Origin: https://claude.ai, so known MCP client origins are allowed
+    alongside our own host; anything else is rejected.
     """
     origin = request.headers.get('Origin')
     if not origin:
+        return False
+    if origin in getattr(settings, 'MCP_ALLOWED_ORIGINS', []):
         return False
     return urlparse(origin).netloc != request.get_host()
 

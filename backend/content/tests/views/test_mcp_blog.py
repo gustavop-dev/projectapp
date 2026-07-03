@@ -95,6 +95,16 @@ class TestMcpEndpointProtocolCompat:
         )
         assert response.status_code == 200
 
+    def test_post_with_claude_ai_origin_is_accepted(self, api_client, blog_connector):
+        # claude.ai's MCP client sends this Origin; rejecting it broke
+        # connector creation with "could not connect".
+        _, token = blog_connector
+        response = api_client.post(
+            _url(token), _rpc('ping'), format='json',
+            HTTP_ORIGIN='https://claude.ai',
+        )
+        assert response.status_code == 200
+
     def test_post_without_trailing_slash_works(self, api_client, blog_connector):
         # Hand-copied connector URLs often lose the trailing slash; without
         # this route the POST fell into the SPA catch-all and got a 403 CSRF.
