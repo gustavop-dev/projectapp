@@ -221,7 +221,12 @@ def _apply_filters(queryset, params, config):
     for field in config.get('choice_filters', ()):
         value = params.get(field)
         if value:
-            queryset = queryset.filter(**{field: value})
+            # Comma-separated values filter as OR (multi-select filters).
+            values = [item for item in value.split(',') if item]
+            if len(values) > 1:
+                queryset = queryset.filter(**{f'{field}__in': values})
+            elif values:
+                queryset = queryset.filter(**{field: values[0]})
 
     for field in config.get('bool_filters', ()):
         value = params.get(field)

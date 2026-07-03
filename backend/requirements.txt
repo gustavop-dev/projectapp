@@ -29,6 +29,9 @@ freezegun==1.5.5
 reportlab>=4.0,<5.0
 pypdf>=4.0,<5.0
 
+# Spreadsheet export
+openpyxl>=3.1,<4.0
+
 # Production server
 gunicorn>=23.0,<24.0
 mysqlclient>=2.2,<3.0
