@@ -5470,3 +5470,32 @@ Also registered/updated in this audit and documented in their home sections:
 | `admin-client-first-login-notification` | admin | system | P2 | ⚠️ Backend-only | `accounts/services/client_flow_notifications.py` |
 | `admin-client-email-validated-notification` | admin | system | P2 | ⚠️ Backend-only | `accounts/services/client_flow_notifications.py` |
 | `admin-client-document-signed-notification` | admin | system | P2 | ⚠️ Backend-only | `accounts/services/client_flow_notifications.py` |
+
+---
+
+## Section 26 — LinkedIn Content Module (Jul 4, 2026)
+
+> The LinkedIn integration was promoted from the blog edit page to a first-class panel module at `/panel/linkedin`, under the renamed sidebar section **ProjectApp content** (formerly "Website content"). Blog→LinkedIn publishing (Section 11) keeps working unchanged; OAuth store actions moved from `stores/blog.js` to `stores/linkedin.js`.
+
+#### FLOW: `admin-linkedin-module`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/linkedin`
+- **API:** `GET /api/linkedin/status/`, `GET /api/linkedin/auth-url/`, `POST /api/linkedin/callback/`, `GET /api/linkedin/posts/`, `POST /api/linkedin/posts/create/`, `PUT /api/linkedin/posts/:id/update/`, `DELETE /api/linkedin/posts/:id/delete/`, `POST /api/linkedin/posts/:id/publish/`
+- **Frontend pages involved:** `/panel/linkedin`, `/auth/linkedin/callback`
+- **Description:** Admin manages freeform LinkedIn posts: connection card (OAuth popup + token expiry date from `expires_at`), posts list with status chips (Borrador/Programado/Publicado/Fallido), create/edit modal (commentary ≤3000 chars, optional image, optional schedule datetime), publish-now with confirm, delete with confirm. Scheduled posts are auto-published server-side by Huey (per-post ETA task + every-minute sweep with atomic double-publish guards). A daily Huey task emails staff when the token expires in ≤7 days.
+- **Steps:**
+  1. Admin opens `/panel/linkedin` (sidebar: ProjectApp content → LinkedIn).
+  2. Connection card loads from `GET /api/linkedin/status/` (connect/reconnect via the same OAuth popup + postMessage flow as the blog).
+  3. Posts list loads from `GET /api/linkedin/posts/` (desktop table / mobile cards via `useIsMobile`).
+  4. "Nuevo post" opens the modal → save as draft, or set a future datetime → status `scheduled` + Huey ETA task enqueued.
+  5. "Publicar ahora" (confirm modal) → `POST /api/linkedin/posts/:id/publish/` → chip flips to Publicado with link to the LinkedIn post.
+- **Branches:**
+  - [Branch A — publish failure] LinkedIn API error → status `failed`, `error_message` persisted and shown inline; manual retry allowed.
+  - [Branch B — already published] second publish attempt → 409, post immutable (edit blocked).
+  - [Branch C — past schedule] `scheduled_at` in the past → 400 validation error.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-linkedin-module.spec.js`
+- **Backend tests:** `content/tests/models/test_linkedin_post.py`, `content/tests/services/test_linkedin_post_service.py`, `content/tests/services/test_linkedin_expiry_service.py`, `content/tests/views/test_linkedin_post_views.py`, `content/tests/views/test_linkedin_post_publish.py`, `content/tests/tasks/test_linkedin_post_publish_guards.py`
