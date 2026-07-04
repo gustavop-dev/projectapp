@@ -494,6 +494,8 @@ onMounted(async () => {
 });
 
 function handleLinkedInMessage(event) {
+  // Only trust messages from our own origin (the /auth/linkedin/callback popup)
+  if (event.origin !== window.location.origin) return;
   if (event.data?.type === 'linkedin-connected') {
     linkedinStatus.value = event.data.data || { connected: true };
     linkedinMsg.value = 'LinkedIn conectado correctamente.';
