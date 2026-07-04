@@ -47,6 +47,8 @@ def test_eta_task_noop_when_already_published(mock_pub):
     )
     _run_single(post.id)
     mock_pub.assert_not_called()
+    post.refresh_from_db()
+    assert post.status == LinkedInPost.STATUS_PUBLISHED
 
 
 @patch(SVC, return_value={'success': True, 'post_id': 'urn:li:share:7', 'message': 'ok'})

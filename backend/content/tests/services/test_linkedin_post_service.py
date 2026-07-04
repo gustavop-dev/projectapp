@@ -55,15 +55,17 @@ def test_failed_image_upload_publishes_text_only(mock_tok, mock_urn, mock_post, 
 
 @patch(f'{MOD}.get_access_token', return_value=None)
 def test_not_connected_raises(mock_tok):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as exc_info:
         publish_post_to_linkedin('Hola')
+    assert 'not connected' in str(exc_info.value)
 
 
 @patch(f'{MOD}.get_member_urn', return_value='urn:li:person:abc')
 @patch(f'{MOD}.get_access_token', return_value='tok')
 def test_empty_commentary_raises(mock_tok, mock_urn):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as exc_info:
         publish_post_to_linkedin('')
+    assert 'required' in str(exc_info.value)
 
 
 @patch(f'{MOD}.requests.post')
