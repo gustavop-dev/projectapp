@@ -1,0 +1,9 @@
+Firma registrada — ProjectApp
+
+Hola {{ client_name }},
+
+Confirmamos que tu firma para el documento "{{ document_title }}" quedó registrada{% if signed_at %} el {{ signed_at }}{% endif %}.
+
+Gracias por confiar en nosotros.
+
+{% include "emails/_branded_footer.txt" %}

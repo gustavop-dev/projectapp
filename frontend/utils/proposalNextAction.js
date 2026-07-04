@@ -37,6 +37,13 @@ export function getProposalNextAction(proposal) {
   }
 
   if (status === 'negotiating') {
+    if (!proposal.platform_onboarding_completed_at) {
+      return {
+        key: 'launch',
+        label: 'Lanzar a Plataforma',
+        colorClass: 'bg-indigo-600 text-white hover:bg-indigo-700',
+      };
+    }
     if (transitions.includes('accepted')) {
       return {
         key: 'approve',

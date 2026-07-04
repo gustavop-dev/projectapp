@@ -9,6 +9,14 @@ from accounts.collection_account_views import (
     collection_account_pdf_view,
     project_collection_account_list_view,
 )
+from accounts.document_views import (
+    client_document_detail_view,
+    client_document_list_view,
+    client_document_pdf_view,
+    client_document_sign_view,
+    email_verify_confirm_view,
+    email_verify_request_view,
+)
 from accounts.views_bridge import session_token_bridge
 from accounts.views_saved_filter_tabs import (
     saved_filter_tab_detail,
@@ -38,6 +46,7 @@ from accounts.views import (
     deliverable_detail_view,
     project_data_model_entities_view,
     project_data_model_template_view,
+    project_scope_items_view,
     deliverable_list_view,
     deliverable_sync_technical_requirements_view,
     deliverable_technical_document_pdf_view,
@@ -230,6 +239,11 @@ urlpatterns = [
         project_data_model_template_view,
         name='platform-project-data-model-template',
     ),
+    path(
+        'projects/<int:project_id>/scope-items/',
+        project_scope_items_view,
+        name='platform-project-scope-items',
+    ),
 
     # Notifications
     path('notifications/', notification_list_view, name='platform-notification-list'),
@@ -286,6 +300,16 @@ urlpatterns = [
     path('projects/<int:project_id>/payments/<int:payment_id>/charge/', payment_charge_stored_view, name='platform-payment-charge-stored'),
     path('projects/<int:project_id>/payments/<int:payment_id>/verify/', payment_verify_transaction_view, name='platform-payment-verify'),
     path('webhooks/wompi/', wompi_webhook_view, name='platform-wompi-webhook'),
+
+    # Client document portal
+    path('documents/', client_document_list_view, name='platform-client-document-list'),
+    path('documents/<uuid:doc_uuid>/', client_document_detail_view, name='platform-client-document-detail'),
+    path('documents/<uuid:doc_uuid>/pdf/', client_document_pdf_view, name='platform-client-document-pdf'),
+    path('documents/<uuid:doc_uuid>/sign/', client_document_sign_view, name='platform-client-document-sign'),
+
+    # Email validation (client portal)
+    path('email/verify/request/', email_verify_request_view, name='platform-email-verify-request'),
+    path('email/verify/confirm/', email_verify_confirm_view, name='platform-email-verify-confirm'),
 
     # Cover gallery
     path('cover-gallery/', cover_gallery_view, name='platform-cover-gallery'),

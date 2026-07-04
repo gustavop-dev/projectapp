@@ -1292,6 +1292,19 @@ export const useProposalStore = defineStore('proposals', {
       }
     },
 
+    async sendDiscountOffer(proposalId) {
+      try {
+        const response = await create_request(
+          `proposals/${proposalId}/discount-offer/send/`,
+          {},
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error sending discount offer:', error);
+        return { success: false, message: error.response?.data?.error };
+      }
+    },
+
     /**
      * deleteProposalDocument: Delete a user-uploaded proposal document.
      * @param {number} proposalId

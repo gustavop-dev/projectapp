@@ -103,14 +103,20 @@ def test_handle_proposal_accepted_skips_when_already_completed(proposal_with_del
 
 
 @pytest.mark.django_db
-@pytest.mark.skip(reason='Sync service is a no-op for Requirements after the Phase refactor — pending redesign')
 def test_sync_technical_requirements_for_deliverable_creates_requirement(
     proposal_with_deliverable, admin_user,
 ):
+    from accounts.models import ProjectPhase, Requirement
+
     d = proposal_with_deliverable.deliverable
     result = sync_technical_requirements_for_deliverable(d, admin_user)
     assert result['ok'] is True
     assert result['requirements_created'] >= 1
+    # The sync auto-ensures a phase and attaches the card to it.
+    phase = ProjectPhase.objects.get(
+        project=d.project, business_proposal=proposal_with_deliverable,
+    )
+    assert Requirement.objects.filter(phase=phase, source_flow_key='f1').exists()
 
 
 @pytest.mark.django_db

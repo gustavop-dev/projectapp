@@ -93,8 +93,8 @@ flowchart TD
     URLRouter -->|/api/health/| HealthCheck
     URLRouter -->|/admin/| DjangoAdmin
 
-    URLRouter -->|/api/*| ContentURLs["content.urls (115 patterns)"]
-    URLRouter -->|/api/auth/*<br>/api/platform/*| AccountsURLs["accounts.urls (65 patterns)"]
+    URLRouter -->|/api/*| ContentURLs["content.urls (229 patterns)"]
+    URLRouter -->|/api/auth/*<br>/api/platform/*| AccountsURLs["accounts.urls (93 patterns)"]
     URLRouter -->|/sitemap.xml| Sitemap
     URLRouter -->|/*| ServeNuxt["serve_nuxt (catch-all)"]
 
@@ -132,11 +132,17 @@ erDiagram
 
     UserProfile ||--o{ Project : "owns projects"
     UserProfile ||--o{ VerificationCode : "has codes"
+    UserProfile ||--o{ Document : "signs (optional)"
+    Project ||--o{ ProjectPhase : "has phases"
+    ProjectPhase ||--o{ ProjectScopeItem : "has scope items"
+    ProjectScopeItem ||--o{ Requirement : "groups requirements"
     Project ||--o{ Requirement : "has requirements"
     Project ||--o{ ProjectDataModelEntity : "has data model entities"
     Requirement ||--o{ RequirementComment : "has comments"
     Requirement ||--o{ RequirementHistory : "has history"
     DataModelEntity ||--o{ ProjectDataModelEntity : "linked to projects"
+    WebAppDiagnostic ||--o{ DiagnosticSection : "has sections"
+    McpConnector ||--o{ McpRequestLog : "has activity"
 ```
 
 ### 4.2 Model Details
@@ -160,16 +166,18 @@ erDiagram
 | **Contact** | Contact form submissions | email, phone_number, subject, message, budget |
 | **PortfolioWork** | Portfolio case studies | title_en/es, slug, cover_image, project_url, content_json_en/es, SEO fields |
 | **BlogPost** | Blog articles | title_en/es, slug, cover_image, excerpt, content_json/html, category, author, SEO fields |
-| **Document** | Generic branded PDF document | uuid, title, slug, status (draft/published/archived), language (es/en), cover_type (generic/none/proposal), content_json, created_at |
+| **Document** | Generic branded PDF document (also the client signing portal source) | uuid, title, slug, status (draft/published/archived), language (es/en), cover_type, content_json, **requires_signature, signed_at, signed_by (FK→User), signature_name, signature_ip, signature_user_agent**, client_user/project/deliverable/folder FKs, created_at |
+| **DocumentFolder / DocumentTag** | Document organization | name, color, parent (folder), created_by |
 | **ContractTemplate** | Reusable contract template | title, sections_json, parameters_json, created_at |
 | **ProposalDocument** | Links a proposal to a generated contract | proposal_fk, contract_template_fk, title, pdf_file, is_draft, signed_at, contractor_signature |
 | **CompanySettings** | Company-level branding and info used in PDFs | name, logo, address, tax_id, email, phone, website |
-| **UserProfile** | Platform user (extends Django User) | user_fk, role (admin/client), company_name, phone, avatar, onboarding_completed, is_active |
-| **VerificationCode** | OTP codes for login | user_fk, code, expires_at, is_used |
-| **UserProfile** | Platform user (extends Django User) | user_fk, role (admin/client), company_name, phone, avatar, is_onboarded, profile_completed, is_active |
-| **VerificationCode** | OTP codes for login | user_fk, code, expires_at, is_used |
+| **UserProfile** | Platform user (extends Django User) | user_fk, role (admin/client), company_name, phone, avatar, is_onboarded, profile_completed, **email_verified, email_verified_at**, is_active |
+| **VerificationCode** | OTP codes (login + email validation) | user_fk, code, purpose, expires_at, is_used |
+| **SavedFilterTab** | Persisted admin filter tabs | user_fk, scope, name, filters_json, order |
 | **Project** | Client project in platform | client_fk, name, description, status (active/paused/completed/archived), progress, start_date, estimated_end_date, payment_milestones, hosting_tiers, hosting_start_date, production_url, staging_url, admin_url, repository_url, admin_username, admin_password_encrypted |
-| **Requirement** | Kanban board card | project_fk, title, description, status (backlog/todo/in_progress/in_review), priority, order, deliverable_fk |
+| **ProjectPhase** | Execution phase of a project (from an accepted proposal) | project_fk, business_proposal_fk (unique per project), order, hosting_start_date, hosting_activated_at |
+| **ProjectScopeItem** | Scope grouping mirrored from proposal FR groups | phase_fk, title, description, kind, order, archived. Chain: Project → ProjectPhase → ProjectScopeItem → Requirement |
+| **Requirement** | Kanban board card | project_fk, phase_fk, **scope_item_fk**, title, description, status (backlog/todo/in_progress/in_review), priority, order, deliverable_fk, **content_overridden** |
 | **RequirementComment** | Comment on a requirement | requirement_fk, author_fk, text, created_at |
 | **RequirementHistory** | Audit trail for requirements | requirement_fk, field_name, old_value, new_value, changed_by |
 | **BugReport** | Bug reports per project | project_fk, title, description, status, priority, reported_by |
@@ -181,6 +189,15 @@ erDiagram
 | **PaymentHistory** | Payment audit trail | payment_fk, event_type, amount, notes |
 | **DataModelEntity** | Reusable JSON-defined data model schema | name, description, schema_json, created_at |
 | **ProjectDataModelEntity** | Links a data model entity to a project | project_fk, data_model_entity_fk, custom_schema_json |
+| **WebAppDiagnostic** | App-diagnostic entity (JSON-section architecture, mirrors BusinessProposal) | uuid, title, client snapshots, status, currency, investment, expires_at, view_count |
+| **DiagnosticSection** | Section within a diagnostic | diagnostic_fk, section_type (8), content_json, visibility (initial/final/both), order |
+| **DiagnosticChangeLog / DiagnosticViewEvent / DiagnosticSectionView** | Diagnostic audit + analytics | mirror the Proposal event/log models |
+| **Task / TaskComment / TaskAlert** | Internal admin Kanban board (`/panel/tasks`) | status/priority TextChoices, position, assignee FK, due_date; comments + alerts |
+| **IncomeRecord / ExpenseRecord / HostingRecord / RecurringPayment / AdsSpendRecord / PocketMovement** | Accounting ledgers (superuser) | via `PartnerSplitMixin`: ledger, date, total_amount, gustavo_amount, carlos_amount (company derived), source_ref (idempotency). Personal ledgers must be 100% the owner's (`clean()` invariant) |
+| **CardBalanceSnapshot / AccountingChangeLog / AccountingSettings** | Accounting card-debt snapshots, audit trail, notification settings | weekly snapshots gate the card-debt reminder cron; settings hold recipients + toggles |
+| **McpConnector** | Remote MCP connector (claude.ai) config | slug, name, is_active, token hash (SHA-256), tool catalog; plaintext token shown once |
+| **McpRequestLog** | MCP endpoint activity feed | connector_fk, event (handshake/tool_call/auth_error/origin_rejected), created_at |
+| **LinkedInToken** | Fernet-encrypted LinkedIn OAuth token (singleton) | access/refresh tokens, expiry |
 
 ---
 
@@ -295,6 +312,12 @@ flowchart TD
         DocumentEdit["/panel/documents/:id/edit"]
         EmailsPage["/panel/emails"]
         ViewsPage["/panel/views"]
+        TasksPage["/panel/tasks (internal Kanban)"]
+        DiagnosticsAdmin["/panel/diagnostics + /create + /:id/edit + /defaults"]
+        DefaultsPage["/panel/defaults (Propuesta / Diagnóstico)"]
+        StyleguidePage["/panel/styleguide"]
+        McpsPage["/panel/mcps (superuser)"]
+        AccountingPage["/panel/accounting/* (superuser: incomes, expenses, recurring, cards, hostings, ads, pocket, history, settings)"]
     end
 
     subgraph Platform["Platform Pages (JWT Auth)"]
@@ -324,6 +347,7 @@ flowchart TD
         PlatformDeliverableDetail["/platform/projects/:id/deliverables/:did"]
         PlatformProfilePage["/platform/profile"]
         PlatformAccess["/platform/access (admin-only)"]
+        PlatformDocuments["/platform/documents (client document-signing portal — post-login landing for clients)"]
     end
 
     Panel -->|middleware: admin-auth| AuthCheck["/api/auth/check/"]
@@ -334,9 +358,15 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph Stores["Pinia Stores (Options API) — 20 total"]
+    subgraph Stores["Pinia Stores (Options API) — 31 total"]
         ProposalStore["proposals.js"]
         ProposalClientsStore["proposalClients.js"]
+        DiagnosticsStore["diagnostics.js"]
+        AccountingStore["accounting.js"]
+        McpsStore["mcps.js"]
+        TasksStore["tasks.js"]
+        DocumentFoldersStore["document_folders.js / document_tags.js"]
+        PlatformDocumentsStore["platform-documents.js"]
         BlogStore["blog.js"]
         PortfolioStore["portfolio_works.js"]
         ContactStore["contacts.js"]
@@ -420,7 +450,7 @@ flowchart TD
     ProposalPage --> useSectionAnimations
     ProposalPage --> GSAP["GSAP ScrollTrigger (horizontal scroll)"]
 
-    ProposalPage --> Sections["12 Section Components"]
+    ProposalPage --> Sections["Section Components (17 section types; web-only types like roi_projection render here but skip the PDF)"]
     Sections --> Greeting
     Sections --> ExecutiveSummary
     Sections --> ContextDiagnostic
@@ -469,6 +499,14 @@ flowchart TD
         RefreshHeatScores["refresh_all_heat_scores (periodic)"]
         AutoArchive["auto_archive_stale_proposals (periodic)"]
         StageDeadlines["notify_proposal_stage_deadlines (periodic — daily 13:30 UTC = 08:30 Bogotá)"]
+        AutoChargeSubs["auto_charge_due_subscriptions (periodic — daily 06:00; stored-card hosting billing + prorated phase onboarding)"]
+        CardDebtReminder["send_card_debt_reminder (periodic — Fridays; accounting card-debt, re-alerts every 2 days until a snapshot clears the cycle)"]
+        NightlyRebuild["nightly_frontend_rebuild (periodic — 02:30, @lock_task 'frontend-rebuild')"]
+        RebuildPrerender["rebuild_frontend_prerender (on blog publish; @lock_task 'frontend-rebuild', retries=2)"]
+    end
+
+    subgraph MoreTriggers["More Triggers"]
+        BlogPublish["Blog create/update/delete or scheduled publish"]
     end
 
     SendAction -->|schedule delay| SendReminder
@@ -477,6 +515,10 @@ flowchart TD
     DailyCron --> RefreshHeatScores
     DailyCron --> AutoArchive
     DailyCron --> StageDeadlines
+    DailyCron --> AutoChargeSubs
+    DailyCron --> CardDebtReminder
+    DailyCron --> NightlyRebuild
+    BlogPublish -->|coalesced 120s| RebuildPrerender
     TrackEndpoint -->|conditional| SendAbandon
     TrackEndpoint -->|conditional| SendRevisit
     TrackEndpoint -->|conditional| SendInvestment
@@ -540,7 +582,7 @@ flowchart LR
 
 1. Admin creates proposal via `/panel/proposals/create` (or JSON import)
 2. Admin selects an existing client from `<ClientAutocomplete>` (or types a new one). Backend resolves the client via `proposal_client_service.get_or_create_client_for_proposal()` — case-insensitive dedup by `User.email`, never hijacks admin accounts. Empty emails get a placeholder `cliente_<id>@temp.example.com` (RFC 2606 reserved TLD) generated via two-step save, which automatically pauses every email automation for that proposal until a real address is entered.
-3. 12 sections auto-generated with default content per language
+3. 17 section types auto-generated with default content per language (some web-only, skipping the PDF)
 4. Admin edits sections via `/panel/proposals/{id}/edit` (client picker also available there; can be swapped or its profile updated via the propagate-changes checkbox which cascades the snapshot to every other linked proposal)
 5. Admin clicks "Send" → email sent to client + admin notification + reminders scheduled (skipped silently if client email is a placeholder)
 6. Client opens unique link `/proposal/{uuid}`

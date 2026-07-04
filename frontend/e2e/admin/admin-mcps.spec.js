@@ -101,6 +101,10 @@ test.describe('Panel MCPs', () => {
     await expect(page.getByText('create_blog_post')).toBeVisible();
     await expect(page.getByText('sin generar')).toBeVisible();
 
+    // Collapsible step-by-step connection guide (native <details>) is present.
+    await expect(page.getByTestId('mcps-guide')).toBeVisible();
+    await expect(page.getByText('¿Cómo conectar un conector a Claude?')).toBeVisible();
+
     // Connection status derived from the latest MCP event
     await expect(page.getByTestId('mcp-connection-blog')).toContainText('Error de conexión');
     await expect(page.getByTestId('mcp-connection-blog')).toContainText('https://evil.example');

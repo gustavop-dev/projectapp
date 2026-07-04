@@ -1952,6 +1952,26 @@ describe('useProposalStore', () => {
     });
   });
 
+  describe('sendDiscountOffer', () => {
+    it('posts to the discount-offer endpoint and returns success', async () => {
+      create_request.mockResolvedValueOnce({ data: { message: 'ok' } });
+
+      const result = await store.sendDiscountOffer(7);
+
+      expect(result.success).toBe(true);
+      expect(create_request).toHaveBeenCalledWith('proposals/7/discount-offer/send/', {});
+    });
+
+    it('returns failure with backend message on rejection', async () => {
+      create_request.mockRejectedValueOnce({ response: { data: { error: 'sin descuento' } } });
+
+      const result = await store.sendDiscountOffer(7);
+
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('sin descuento');
+    });
+  });
+
   describe('deleteProposalDocument', () => {
     it('returns success on resolved request', async () => {
       delete_request.mockResolvedValueOnce({ data: {} });

@@ -32,6 +32,7 @@
       @launch="handleLaunchToPlatform"
       @finish="handleMarkAsFinished"
       @reject="handleStatusChange('rejected')"
+      @discount-offer="openDiscountOfferModal"
     />
     <ProposalMultiSendModal
       :visible="showMultiSendModal"
@@ -1454,6 +1455,66 @@
         </div>
       </div>
     </BaseModal>
+
+    <BaseModal v-model="showDiscountModal" size="5xl" padding="none">
+      <div class="flex flex-col h-[85vh]">
+        <div class="flex items-center justify-between gap-4 p-4 border-b border-input-border">
+          <div class="flex items-center gap-4">
+            <div class="flex flex-col items-center justify-center rounded-2xl bg-rose-500 px-4 py-2 text-white leading-none">
+              <span class="text-3xl font-black tracking-tight">-{{ proposal?.discount_percent }}%</span>
+              <span class="text-[10px] font-semibold uppercase tracking-widest opacity-90">descuento</span>
+            </div>
+            <div>
+              <h3 class="text-base font-medium text-text-default">Enviar oferta de descuento</h3>
+              <p class="text-xs text-text-muted mt-0.5">
+                Revisa el correo antes de enviarlo a {{ proposal?.client_email }}.
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="px-3 py-2 text-sm font-medium border border-input-border rounded-lg hover:bg-surface-raised transition-colors"
+              :disabled="discountPreviewLoading"
+              @click="loadDiscountPreview"
+            >
+              {{ discountPreviewLoading ? 'Cargando…' : '↻ Recargar' }}
+            </button>
+            <BaseButton
+              variant="primary"
+              size="md"
+              class="!bg-rose-500 hover:!bg-rose-600"
+              :disabled="discountSending || discountPreviewLoading"
+              @click="confirmSendDiscountOffer"
+            >
+              {{ discountSending ? 'Enviando…' : 'Enviar oferta' }}
+            </BaseButton>
+            <button
+              type="button"
+              class="px-3 py-2 text-sm font-medium text-text-muted hover:text-text-default transition-colors"
+              @click="showDiscountModal = false"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+        <div class="flex-1 overflow-hidden bg-[#f4f1ea]">
+          <div v-if="discountPreviewLoading" class="flex items-center justify-center h-full text-text-muted text-sm">
+            Generando vista previa…
+          </div>
+          <div v-else-if="discountPreviewError" class="flex items-center justify-center h-full text-danger-strong text-sm px-6 text-center">
+            {{ discountPreviewError }}
+          </div>
+          <iframe
+            v-else-if="discountPreviewHtml"
+            :srcdoc="discountPreviewHtml"
+            class="w-full h-full border-0"
+            sandbox="allow-same-origin"
+            title="Vista previa de la oferta de descuento"
+          ></iframe>
+        </div>
+      </div>
+    </BaseModal>
   </div>
 </template>
 
@@ -2089,6 +2150,47 @@ async function openEmailPreview() {
 watch(previewTemplateKey, () => {
   if (isPreviewOpen.value) loadPreview();
 });
+
+// ── Discount offer (manual send with preview) ──────────────────────
+const showDiscountModal = ref(false);
+const discountPreviewHtml = ref('');
+const discountPreviewLoading = ref(false);
+const discountPreviewError = ref('');
+const discountSending = ref(false);
+
+async function loadDiscountPreview() {
+  if (!proposal.value?.id) return;
+  discountPreviewLoading.value = true;
+  discountPreviewError.value = '';
+  discountPreviewHtml.value = '';
+  const result = await proposalStore.previewProposalEmail(proposal.value.id, {
+    template_key: 'proposal_urgency',
+  });
+  discountPreviewLoading.value = false;
+  if (result.success) {
+    discountPreviewHtml.value = result.html;
+  } else {
+    discountPreviewError.value = result.error;
+  }
+}
+
+async function openDiscountOfferModal() {
+  showDiscountModal.value = true;
+  await loadDiscountPreview();
+}
+
+async function confirmSendDiscountOffer() {
+  if (!proposal.value?.id) return;
+  discountSending.value = true;
+  const result = await proposalStore.sendDiscountOffer(proposal.value.id);
+  discountSending.value = false;
+  if (result.success) {
+    showDiscountModal.value = false;
+    showToast({ type: 'success', text: 'Oferta de descuento enviada al cliente.' });
+  } else {
+    showToast({ type: 'error', text: result.message || 'No se pudo enviar la oferta.' });
+  }
+}
 
 // True when the admin chose "create a new client" from the autocomplete: the
 // backend must build a fresh UserProfile from the inline fields instead of

@@ -28,6 +28,20 @@
             </select>
           </label>
 
+          <!-- Scope filter (vistas / componentes / funcionalidades) -->
+          <label v-if="scopeFilterOptions.length" class="flex items-center gap-2 rounded-full border border-border-default px-3 py-2 text-xs font-medium text-green-light">
+            <span class="uppercase tracking-wider text-[10px] text-green-light/70">Alcance</span>
+            <select
+              v-model="scopeFilterId"
+              class="max-w-[12rem] truncate bg-transparent text-xs font-semibold text-text-default outline-none dark:text-white"
+            >
+              <option value="">Todas</option>
+              <option v-for="opt in scopeFilterOptions" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </option>
+            </select>
+          </label>
+
           <!-- Progress pill -->
           <div class="flex items-center gap-2 rounded-full border border-border-default px-4 py-2">
             <div class="h-2 w-16 overflow-hidden rounded-full bg-primary/10 dark:bg-white/10">
@@ -74,13 +88,13 @@
         <Transition name="done-list">
           <div v-if="showBacklog" class="mt-3 space-y-1 rounded-xl border border-border-muted bg-surface px-3 py-2">
             <div
-              v-for="card in reqStore.backlogCards"
+              v-for="card in visibleBacklogCards"
               :key="card.id"
               class="flex items-center gap-3 rounded-lg px-3 py-2.5 transition hover:bg-surface-muted/30 dark:hover:bg-white/5"
             >
-              <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400" />
+              <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-text-muted" />
               <button type="button" class="flex-1 text-left text-sm text-text-default" @click="openDetailModal(card)">
-                <span v-if="epicLabel(card)" class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-teal-600/80 dark:text-teal-300/80">{{ epicLabel(card) }}</span>
+                <span v-if="scopeLabel(card)" class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-teal-600/80 dark:text-teal-300/80">{{ scopeLabel(card) }}</span>
                 {{ card.title }}
               </button>
               <button
@@ -100,7 +114,7 @@
       <!-- Kanban columns (full width grid) -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" data-enter>
         <div
-          v-for="col in reqStore.columns"
+          v-for="col in visibleColumns"
           :key="col.key"
           class="flex flex-col rounded-2xl border border-border-muted bg-surface-muted/30"
         >
@@ -148,8 +162,8 @@
                 <span class="h-1.5 w-1.5 rounded-full" :class="priorityDotClass(card.priority)" />
               </div>
 
-              <p v-if="epicLabel(card)" class="mb-1 line-clamp-2 text-[10px] font-semibold uppercase tracking-wide text-teal-600/90 dark:text-teal-300/90">
-                {{ epicLabel(card) }}
+              <p v-if="scopeLabel(card)" class="mb-1 line-clamp-2 text-[10px] font-semibold uppercase tracking-wide text-teal-600/90 dark:text-teal-300/90">
+                {{ scopeLabel(card) }}
               </p>
 
               <!-- Title -->
@@ -310,8 +324,8 @@
                     <span class="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-medium text-green-light dark:bg-white/10">{{ statusLabel(detailCard.status) }}</span>
                   </div>
                   <h2 class="text-lg font-bold text-text-default">{{ detailCard.title }}</h2>
-                  <p v-if="epicLabel(detailCard)" class="mt-2 text-xs font-medium text-teal-600 dark:text-teal-300">
-                    Módulo: {{ epicLabel(detailCard) }}
+                  <p v-if="scopeLabel(detailCard)" class="mt-2 text-xs font-medium text-teal-600 dark:text-teal-300">
+                    {{ scopeQualifier(detailCard) }}: {{ scopeLabel(detailCard) }}
                   </p>
                   <p v-if="detailCard.source_flow_key" class="mt-1 text-[10px] text-green-light/70">
                     Ref. flujo: {{ detailCard.source_flow_key }}
@@ -421,6 +435,7 @@ import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 import { usePlatformRequirementsStore } from '~/stores/platform-requirements'
+import { usePlatformScopeItemsStore } from '~/stores/platform-scope-items'
 import { usePlatformApi } from '~/composables/usePlatformApi'
 import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
@@ -437,6 +452,7 @@ const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const projectsStore = usePlatformProjectsStore()
 const reqStore = usePlatformRequirementsStore()
+const scopeStore = usePlatformScopeItemsStore()
 
 const projectId = computed(() => route.params.id)
 /** Resolved phase id used to scope the board's requirements. */
@@ -447,6 +463,8 @@ const detailCard = ref(null)
 const newComment = ref('')
 const commentInternal = ref(false)
 const showBacklog = ref(false)
+// Scope filter: '' = all, 'none' = ungrouped, or a scope_item id (string).
+const scopeFilterId = ref('')
 
 const isMoveOpen = ref(false)
 const moveSingleCard = ref(null)
@@ -474,13 +492,13 @@ const phaseOptions = computed(() => {
 })
 
 function colDotClass(color) {
-  const map = { gray: 'bg-gray-400', blue: 'bg-blue-500', amber: 'bg-amber-500', purple: 'bg-purple-500', teal: 'bg-teal-500', green: 'bg-emerald-500' }
-  return map[color] || 'bg-gray-400'
+  const map = { gray: 'bg-text-muted', blue: 'bg-blue-500', amber: 'bg-amber-500', purple: 'bg-purple-500', teal: 'bg-teal-500', green: 'bg-emerald-500' }
+  return map[color] || 'bg-text-muted'
 }
 
 function priorityDotClass(priority) {
-  const map = { critical: 'bg-red-500', high: 'bg-amber-500', medium: 'bg-blue-400', low: 'bg-gray-400' }
-  return map[priority] || 'bg-gray-400'
+  const map = { critical: 'bg-red-500', high: 'bg-amber-500', medium: 'bg-blue-400', low: 'bg-text-muted' }
+  return map[priority] || 'bg-text-muted'
 }
 
 function priorityBadgeClass(priority) {
@@ -488,7 +506,7 @@ function priorityBadgeClass(priority) {
     critical: 'bg-red-500/15 text-red-600 dark:text-red-400',
     high: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     medium: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-    low: 'bg-gray-500/15 text-text-muted',
+    low: 'bg-surface-muted text-text-muted',
   }
   return map[priority] || map.medium
 }
@@ -498,10 +516,57 @@ function priorityLabel(p) {
   return map[p] || p
 }
 
-function epicLabel(card) {
+// Friendly ES qualifier per scope-item group (the new paradigm). Cards synced
+// before scope items existed fall back to the legacy "Módulo" (epic) grouping.
+const SCOPE_GROUP_LABELS = {
+  views: 'Vista',
+  components: 'Componente',
+  features: 'Funcionalidad',
+  admin_module: 'Módulo admin',
+  analytics_dashboard: 'Analítica',
+}
+
+function scopeQualifier(card) {
   if (!card) return ''
+  if (card.scope_item_id) return SCOPE_GROUP_LABELS[card.scope_item_group_id] || 'Alcance'
+  return 'Módulo'
+}
+
+function scopeLabel(card) {
+  if (!card) return ''
+  if (card.scope_item_name) return card.scope_item_name.trim()
   return (card.source_epic_title || card.source_epic_key || '').trim()
 }
+
+function matchesScope(card) {
+  if (!scopeFilterId.value) return true
+  if (scopeFilterId.value === 'none') return !card.scope_item_id
+  return String(card.scope_item_id) === String(scopeFilterId.value)
+}
+
+const visibleColumns = computed(() =>
+  reqStore.columns.map((col) => ({ ...col, cards: col.cards.filter(matchesScope) })),
+)
+const visibleBacklogCards = computed(() => reqStore.backlogCards.filter(matchesScope))
+
+// Filter options: only scope items that actually carry cards, plus an
+// "ungrouped" bucket when some cards have no scope item.
+const scopeFilterOptions = computed(() => {
+  const withCards = new Set()
+  let ungrouped = 0
+  for (const card of reqStore.requirements) {
+    if (card.scope_item_id) withCards.add(card.scope_item_id)
+    else ungrouped += 1
+  }
+  const opts = scopeStore.items
+    .filter((it) => withCards.has(it.id))
+    .map((it) => ({
+      value: String(it.id),
+      label: `${SCOPE_GROUP_LABELS[it.group_id] || 'Alcance'} · ${it.name}`,
+    }))
+  if (ungrouped > 0) opts.push({ value: 'none', label: 'Sin agrupar' })
+  return opts
+})
 
 function statusLabel(s) {
   const map = { backlog: 'Backlog', todo: 'Por hacer', in_progress: 'En progreso', in_review: 'En revisión', approval: 'Aprobación', done: 'Aprobado' }
@@ -734,9 +799,14 @@ async function refreshBoard() {
   activePhaseId.value = pid
   if (!pid) {
     reqStore.requirements = []
+    scopeStore.items = []
     return
   }
-  await reqStore.fetchRequirements(projectId.value, pid)
+  scopeFilterId.value = ''
+  await Promise.all([
+    reqStore.fetchRequirements(projectId.value, pid),
+    scopeStore.fetchScopeItems(projectId.value, pid),
+  ])
 }
 
 onMounted(async () => {

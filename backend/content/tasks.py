@@ -118,6 +118,15 @@ def send_urgency_reminder(proposal_id):
         )
         return
 
+    if proposal.discount_percent and proposal.discount_percent > 0:
+        # Discount offers are never auto-sent; the seller sends them manually
+        # via the "Enviar oferta de descuento" proposal action.
+        logger.info(
+            'Skipping urgency for proposal %s: discount emails are sent manually',
+            proposal.uuid,
+        )
+        return
+
     ProposalEmailService.send_urgency_email(proposal)
 
 
@@ -164,6 +173,15 @@ def send_rejection_reengagement(proposal_id):
     if already_sent:
         logger.info(
             'Skipping re-engagement for proposal %s: already sent',
+            proposal.uuid,
+        )
+        return
+
+    if proposal.discount_percent and proposal.discount_percent > 0:
+        # Discount-bearing re-engagement is never auto-sent; the seller offers
+        # the discount manually via the proposal action.
+        logger.info(
+            'Skipping re-engagement for proposal %s: discount emails are sent manually',
             proposal.uuid,
         )
         return
@@ -1087,13 +1105,17 @@ def notify_first_view(proposal_id):
 
 
 @task()
-def run_platform_onboarding(proposal_id, acting_user_id=None, is_relaunch=False):
+def run_platform_onboarding(proposal_id, acting_user_id=None, is_relaunch=False, send_email=None):
     """
     Huey task: run platform onboarding for an accepted proposal.
 
     Creates project, deliverable, syncs requirements and documents,
     and sends acceptance email (first launch only). Wrapped in
     transaction.atomic() so partial failures roll back cleanly.
+
+    ``send_email``: None → decide automatically (first launch of an accepted
+    proposal). Callers that own the acceptance email themselves (e.g. the
+    client-response view) pass ``False`` to suppress a duplicate send.
 
     Updates platform_onboarding_status to 'completed' or 'failed'.
     """
@@ -1122,11 +1144,21 @@ def run_platform_onboarding(proposal_id, acting_user_id=None, is_relaunch=False)
                 handle_proposal_accepted_for_platform,
             )
 
+            # The "propuesta aceptada" confirmation email must only go out on a
+            # first launch of a genuinely accepted proposal — not when launching
+            # early from negotiation (the client still gets their invitation with
+            # the temp password via create_client). Callers that already sent the
+            # acceptance email themselves pass send_email=False to suppress it.
+            effective_send_email = (
+                (not is_relaunch and proposal.status == BusinessProposal.Status.ACCEPTED)
+                if send_email is None
+                else send_email
+            )
             handle_proposal_accepted_for_platform(
                 proposal,
                 source='admin_panel',
                 acting_user=acting_user,
-                send_email=not is_relaunch,
+                send_email=effective_send_email,
             )
 
         proposal.platform_onboarding_status = BusinessProposal.ONBOARDING_COMPLETED

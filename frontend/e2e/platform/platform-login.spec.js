@@ -13,6 +13,7 @@ import { PLATFORM_LOGIN } from '../helpers/flow-tags.js';
 import {
   setPlatformAuth,
   mockPlatformAdmin,
+  mockPlatformClient,
   mockPlatformClientIncompleteProfile,
 } from '../helpers/platform-auth.js';
 
@@ -144,6 +145,52 @@ test.describe('Platform Login', () => {
 
     await page.waitForURL('**/platform/dashboard', { timeout: 15000 });
     await expect(page).toHaveURL(/\/platform\/dashboard/);
+  });
+
+  test('successful login redirects an onboarded client to the documents portal', {
+    tag: [...PLATFORM_LOGIN, '@role:platform-client'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'accounts/login/' && method === 'POST') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            requires_verification: false,
+            tokens: { access: 'mock-access', refresh: 'mock-refresh' },
+            user: mockPlatformClient,
+          }),
+        };
+      }
+      if (apiPath === 'accounts/me/' && method === 'GET') {
+        return meResponse(mockPlatformClient);
+      }
+      // Landing target: the client document portal loads its own documents.
+      if (apiPath === 'accounts/documents/' && method === 'GET') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ documents: [], email: mockPlatformClient.email, email_verified: true }),
+        };
+      }
+      if (apiPath === 'accounts/notifications/unread-count/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ unread_count: 0 }) };
+      }
+      if (apiPath.startsWith('accounts/projects')) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      return null;
+    });
+
+    await page.goto('/platform/login', { waitUntil: 'domcontentloaded' });
+    await loginFormReady(page);
+
+    await emailField(page).fill('client@e2e-test.com');
+    await passwordField(page).fill('validpassword');
+    await page.getByRole('button', { name: /iniciar sesión/i }).click();
+
+    await page.waitForURL('**/platform/documents', { timeout: 15000 });
+    await expect(page).toHaveURL(/\/platform\/documents/);
   });
 
   test('login of non-onboarded user redirects to verify page', {

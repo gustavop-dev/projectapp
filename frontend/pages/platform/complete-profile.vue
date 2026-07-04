@@ -1,5 +1,5 @@
 <template>
-  <div id="platform-complete-profile" class="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
+  <div id="platform-complete-profile" class="flex min-h-screen items-center justify-center bg-surface-muted px-4 py-12">
     <div class="w-full max-w-lg">
       <!-- Logo -->
       <div class="mb-8 text-center">
@@ -288,6 +288,6 @@ async function handleSubmit() {
     return
   }
 
-  await navigateTo(useLocalePath()('/platform/dashboard'))
+  await navigateTo(useLocalePath()(authStore.isClient ? '/platform/documents' : '/platform/dashboard'))
 }
 </script>

@@ -4,19 +4,20 @@
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| **Backend Framework** | Django | 5.0.6 |
-| **REST API** | Django REST Framework | 3.15.1 |
-| **Frontend Framework** | Nuxt 3 | ^3.14.0 |
-| **Vue** | Vue 3 | ^3.4.21 |
-| **State Management** | Pinia (Options API) | ^2.1.7 |
-| **CSS Framework** | TailwindCSS | ^6.12.0 (@nuxtjs/tailwindcss) |
+| **Backend Framework** | Django | 5.2.13 |
+| **REST API** | Django REST Framework | 3.17.1 |
+| **JWT (platform)** | djangorestframework-simplejwt | >=5.3,<6.0 |
+| **Frontend Framework** | Nuxt 3 | ^3.21.4 |
+| **Vue** | Vue 3 | ^3.5.33 |
+| **State Management** | Pinia (Options API) | ^2.3.1 |
+| **CSS Framework** | TailwindCSS | ^6.14.0 (@nuxtjs/tailwindcss) |
 | **Animations** | GSAP + ScrollTrigger + ScrollToPlugin | ^3.13.0 |
 | **i18n** | @nuxtjs/i18n | ^9.1.0 |
 | **Task Queue** | Huey (RedisHuey) | >=2.5.0 |
 | **Cache/Queue Backend** | Redis | >=4.0.0 |
 | **Database (prod)** | MySQL 8+ | via mysqlclient >=2.2 |
 | **Database (dev)** | SQLite 3 | built-in |
-| **HTTP Client** | Axios | ^1.7.2 |
+| **HTTP Client** | Axios | ^1.15.2 |
 | **PDF Generation** | ReportLab + pypdf | ^4.0 |
 | **Image Processing** | Pillow | 10.3.0 |
 | **Email** | Django EmailMultiAlternatives | SMTP (GoDaddy) |
@@ -67,7 +68,7 @@ npm run dev                             # http://localhost:3000
   - `AGENTS.md`
   - `backend/AGENTS.md`
   - `frontend/AGENTS.md`
-- Native repo skills: 17 directories under `.agents/skills/` (`backend-test-coverage`, `blog-ai-weekly`, `debug`, `debugme`, `deploy-and-check`, `e2e-user-flows-check`, `fix-broken-tests`, `frontend-e2e-test-coverage`, `frontend-unit-test-coverage`, `git-commit`, `git-sync`, `human`, `implement`, `methodology-setup`, `new-feature-checklist`, `plan`, `test-quality-gate`)
+- Native repo skills: 33 directories under `.agents/skills/` (incl. `backend-test-coverage`, `client-report`, `debug`, `e2e-user-flows-check`, `fix-broken-tests`, `frontend-e2e-test-coverage`, `frontend-unit-test-coverage`, `git-sync`, `human`, `implement`, `methodology-setup`, `new-feature-checklist`, `plan`, `requirement-calculator`, `test-quality-gate`, `user-walkthrough`, `view-map-audit`, `vuln-audit`, plus accounting/MCP-related helpers). The parallel `.claude/skills/` tree has 34 directories.
 - Project config: `.codex/config.toml`
 - Methodology guide: `docs/CODEX_METHODOLOGY_GUIDE.md`
 - Setup & activation: `docs/CODEX_SETUP.md`
@@ -172,7 +173,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 ### Backend Patterns
 
 - **Function-based views** (`@api_view`) — all DRF views are FBV, not class-based
-- **Service layer** — business logic in `content/services/` (ProposalService, ProposalEmailService, ProposalPdfService, ProposalStageTracker, ContractPdfService, EmailTemplateRegistry, PdfUtils, DocumentPdfService, MarkdownParser, CollectionAccountService, CollectionAccountPdfService, TechnicalDocumentPdf, TechnicalDocumentFilter, PlatformOnboardingPdf) and in `accounts/services/` (archive, credential_cipher, image_utils, notifications, onboarding, payment_history, proposal_client_service, proposal_platform_onboarding, technical_requirements_sync, tokens, verification, wompi). Services are class-based with `@classmethod` static methods (matching `ProposalEmailService`), or function modules for stateless flows. `proposal_client_service` is the silent variant of `accounts/services/onboarding.create_client` — same User+UserProfile shape but **never sends invitation emails**, so the proposal admin panel can create/reuse clients without triggering platform onboarding.
+- **Service layer** — business logic in `content/services/` (30 modules: ProposalService, ProposalEmailService, ProposalPdfService, ProposalStageTracker, ContractPdfService, EmailTemplateRegistry, PdfUtils, DocumentPdfService, MarkdownParser, CollectionAccountService, CollectionAccountPdfService, TechnicalDocumentPdf, TechnicalDocumentFilter, PlatformOnboardingPdf, DiagnosticService, DiagnosticEmailService, DiagnosticPdfService, DiagnosticDocumentsService, AccountingService, AccountingExportService, AccountingEmailService, AccountingCardReminderService, plus the `content/mcp/` tool package) and in `accounts/services/` (19 modules: archive, client_flow_notifications, credential_cipher, hosting_billing, image_utils, impersonation, notifications, onboarding, password_reset, payment_history, payment_notifications, project_phases, proposal_client_service, proposal_platform_onboarding, technical_requirements_sync, tokens, verification, wompi). Services are class-based with `@classmethod` static methods (matching `ProposalEmailService`), or function modules for stateless flows. `proposal_client_service` is the silent variant of `accounts/services/onboarding.create_client` — same User+UserProfile shape but **never sends invitation emails**, so the proposal admin panel can create/reuse clients without triggering platform onboarding.
 - **Model layer** — thin models with properties (`is_expired`, `days_remaining`, `public_url`)
 - **Huey tasks** — async operations: reminders, expiration, engagement-based emails, project-stage deadline scans, hosting recurring billing (`accounts/tasks.py::auto_charge_due_subscriptions` — daily 06:00 UTC, charges due hosting payments with the subscription's stored Wompi payment source)
 - **Custom admin site** — `content/admin.py` with custom `AdminSite` class; `accounts/admin.py` registers `ProjectAdmin` (URLs + encrypted credentials)
@@ -187,8 +188,8 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - **Pinia Options API** — all stores use Options API (state, getters, actions), not Composition API
 - **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place by index (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
-- **Composables** — 35 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, `useProposalFilters`, `useClientFilters`, `useSeoJsonLd`, `useIncludeArchivedQuery`, `useStageStatus`, etc.)
-- **Component architecture** — 122 Vue component/source files under `frontend/components/`; 50 files under `components/BusinessProposal/`; admin-only proposal components live under `components/BusinessProposal/admin/` (e.g., `ProjectScheduleEditor.vue`, `ProposalEmailsTab.vue`, `ProposalDocumentsTab.vue`); quick-access micro-components under `components/platform/access/` (`CopyField.vue`, `UrlRow.vue`)
+- **Composables** — 53 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, `useProposalFilters`, `useClientFilters`, `useSeoJsonLd`, `useIncludeArchivedQuery`, `useStageStatus`, etc.)
+- **Component architecture** — 226 Vue component/source files under `frontend/components/`; 50 files under `components/BusinessProposal/`; admin-only proposal components live under `components/BusinessProposal/admin/` (e.g., `ProjectScheduleEditor.vue`, `ProposalEmailsTab.vue`, `ProposalDocumentsTab.vue`); quick-access micro-components under `components/platform/access/` (`CopyField.vue`, `UrlRow.vue`)
 - **GSAP animations** — horizontal scroll with ScrollTrigger for proposal client view, reveal animations for marketing pages
 - **Layouts** — `default.vue` (public pages with navbar), `admin.vue` (admin panel with sidebar), `platform.vue` (platform with sidebar + theme)
 - **Middleware** — `admin-auth.js` route guard for `/panel/**` routes, `platform-auth.js` route guard for `/platform/**` routes
@@ -201,7 +202,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `backend/content/tests/`, `backend/accounts/tests/`, `backend/tests/`
 - Structure: `models/`, `serializers/`, `views/`, `services/`, `tasks/`, `utils/`, `management/`
-- Test files: **124 total**
+- Test files: **199 total** (content 130, accounts 65, root/project 4)
 - Fixtures: `conftest.py` at root and `content/tests/conftest.py` (provides `proposal`, `accepted_proposal`, `admin_user`, `admin_client`, etc.)
 - Coverage: custom terminal report with per-file bars and Top-N focus
 - Config: `backend/pytest.ini`
@@ -211,15 +212,15 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `frontend/test/`
 - Structure: `components/`, `composables/`, `stores/` (incl. services), `utils/`
-- Test files: **77 total**
+- Test files: **290 total**
 - Config: `frontend/jest.config.cjs`
 - Run: `npm test -- test/<specific_file>.test.js`
 
 ### Frontend E2E (Playwright)
 
 - Location: `frontend/e2e/`
-- Structure: `admin/`, `auth/`, `blog/`, `layout/`, `platform/`, `proposal/`, `public/`
-- Spec files: **131 total**
+- Structure: `admin/`, `auth/`, `blog/`, `layout/`, `platform/`, `proposal/`, `public/`, `visual/`
+- Spec files: **191 total**
 - Flow definitions: `frontend/e2e/flow-definitions.json` (must be updated for every new flow)
 - Flow tags: `frontend/e2e/helpers/flow-tags.js` (constants imported by spec files)
 - Config: `frontend/playwright.config.js`
@@ -258,42 +259,44 @@ Triggers: Push/PR to `main`/`master`. Concurrency group cancels in-progress runs
 projectapp/
 ├── backend/
 │   ├── accounts/               # Platform app (auth, onboarding, projects, kanban, bug reports, changes, deliverables, notifications, payments, collection accounts, quick-access)
-│   │   ├── models.py            # 21 models (UserProfile, VerificationCode, Project, Requirement, RequirementComment, RequirementHistory, BugReport, BugComment, ChangeRequest, ChangeRequestComment, Deliverable, DeliverableVersion, DeliverableFile, DeliverableClientFolder, DeliverableClientUpload, DataModelEntity, ProjectDataModelEntity, Notification, HostingSubscription, Payment, PaymentHistory)
+│   │   ├── models.py            # 24 models (UserProfile, VerificationCode, SavedFilterTab, Project, ProjectPhase, ProjectScopeItem, Requirement, RequirementComment, RequirementHistory, BugReport, BugComment, ChangeRequest, ChangeRequestComment, Deliverable, DeliverableVersion, DeliverableFile, DeliverableClientFolder, DeliverableClientUpload, DataModelEntity, ProjectDataModelEntity, Notification, HostingSubscription, Payment, PaymentHistory)
 │   │   ├── admin.py             # ProjectAdmin — URL + encrypted credential fields
-│   │   ├── services/            # 12 service modules (archive, credential_cipher, image_utils, notifications, onboarding, payment_history, proposal_client_service, proposal_platform_onboarding, technical_requirements_sync, tokens, verification, wompi)
-│   │   ├── management/commands/ # 4 commands (create_platform_admin, seed_demo_clients, seed_platform_data, seed_mihuella)
-│   │   ├── tests/               # 28 test files
-│   │   └── urls.py              # 65 URL patterns
+│   │   ├── services/            # 19 service modules (archive, client_flow_notifications, credential_cipher, hosting_billing, image_utils, impersonation, notifications, onboarding, password_reset, payment_history, payment_notifications, project_phases, proposal_client_service, proposal_platform_onboarding, technical_requirements_sync, tokens, verification, wompi)
+│   │   ├── management/commands/ # 6 commands (create_platform_admin, seed_demo_clients, seed_platform_data, seed_mihuella, …)
+│   │   ├── document_views.py    # Client document portal (list/retrieve/pdf/sign) + email OTP verify (request/confirm)
+│   │   ├── tests/               # 65 test files
+│   │   └── urls.py              # 93 URL patterns
 │   ├── content/                 # Main Django app
-│   │   ├── models/              # 29 model files (proposal, blog, portfolio, contact, document, email, contract, proposal_project_stage, task, etc.)
-│   │   ├── serializers/         # DRF serializers (proposal, blog, portfolio, contact, proposal_clients)
-│   │   ├── views/               # FBV views (proposal is the dominant module; blog, portfolio, email_templates, document, contact, and proposal_clients are split separately)
-│   │   ├── services/            # 17 service/support modules (proposal_service, proposal_email_service, proposal_pdf_service, proposal_stage_tracker, email_template_registry, contract_pdf_service, document_pdf_service, markdown_parser, linkedin_service, collection_account*, technical_document*, document_type_*, platform_onboarding_pdf)
-│   │   ├── tasks.py             # Huey async tasks (incl. notify_proposal_stage_deadlines daily at 13:30 UTC = 08:30 Bogotá)
-│   │   ├── templates/emails/    # 54 content email templates (27 HTML + 27 TXT)
-│   │   ├── migrations/          # 87 migrations (latest: 0087_task.py)
-│   │   ├── management/commands/ # 8 management commands
-│   │   ├── tests/               # 61 test files (models, serializers, views, services, tasks, utils)
-│   │   └── urls.py              # 128 URL patterns
+│   │   ├── models/              # 50 model files (business_proposal, proposal_section, blog, portfolio, contact, document, email, diagnostic, accounting_base/income_record/expense_record/…, task, mcp_connector, mcp_request_log, linkedin_token, etc.)
+│   │   ├── serializers/         # DRF serializers (proposal, blog, portfolio, contact, proposal_clients, diagnostic, accounting, document, mcp)
+│   │   ├── views/               # 19 FBV modules (proposal is dominant; blog, portfolio, diagnostic, diagnostic_template, accounting, accounting_export, document*, email_templates, standalone_email, task, mcp_blog, contact, proposal_clients)
+│   │   ├── mcp/                 # MCP tool package (protocol, actor, tools + blog/documents/proposals/diagnostics/clients/tasks/accounting connectors for claude.ai)
+│   │   ├── services/            # 30 service/support modules (proposal_*, contract_pdf_service, document_pdf_service, markdown_parser, linkedin_service, collection_account*, technical_document*, document_type_*, platform_onboarding_pdf, diagnostic_* (service/email/pdf/documents), accounting_* (service/export/email/card_reminder))
+│   │   ├── tasks.py             # Huey async tasks (incl. notify_proposal_stage_deadlines daily 13:30 UTC = 08:30 Bogotá; send_card_debt_reminder Fridays)
+│   │   ├── templates/emails/    # 73 content email templates (37 HTML + 36 TXT)
+│   │   ├── migrations/          # 136 migrations (latest: 0137_alter_businessproposal_automations_paused.py)
+│   │   ├── management/commands/ # 21 management commands
+│   │   ├── tests/               # 130 test files (models, serializers, views, services, tasks, utils)
+│   │   └── urls.py              # 229 URL patterns
 │   ├── projectapp/              # Django project (settings, urls, wsgi, views, 1 test file)
 │   ├── tests/                   # Root-level tests (test_document_pdf_service.py, test_markdown_parser.py)
 │   ├── static/                  # Static files (Nuxt build output in prod)
 │   └── media/                   # User uploads
 ├── frontend/
-│   ├── pages/                   # Nuxt file-based routing (64 pages)
-│   │   ├── panel/               # Admin pages (proposals, blog, portfolio, clients, documents, admins, tareas). Proposal edit page has Cronograma tab. `/panel/tareas` is the internal Kanban board.
-│   │   ├── platform/            # Platform pages (dashboard, board, projects, kanban, bugs, changes, deliverables, notifications, payments, clients, collection-accounts, profile, data-model, access)
+│   ├── pages/                   # Nuxt file-based routing (90 pages)
+│   │   ├── panel/               # Admin pages (proposals, diagnostics, blog, portfolio, clients, documents, admins, tasks, accounting/*, mcps, defaults, styleguide, views). Proposal edit page has Cronograma tab; `/panel/tasks` is the internal Kanban board; `/panel/accounting/*` and `/panel/mcps` are superuser-gated.
+│   │   ├── platform/            # Platform pages (login/verify/complete-profile, projects/*, board, bugs, changes, deliverables, collection-accounts, data-model, payments, notifications, clients, profile, documents — client document-signing portal)
 │   │   ├── blog/                # Blog listing + detail
 │   │   ├── portfolio-works/     # Portfolio listing + detail
 │   │   └── proposal/            # Client proposal view
-│   ├── components/              # Vue components (130 files)
+│   ├── components/              # Vue components (226 files)
 │   │   ├── BusinessProposal/    # 50 proposal component/source files. Admin-only under `admin/` (incl. `ProjectScheduleEditor.vue`)
 │   │   ├── platform/access/     # CopyField.vue, UrlRow.vue — quick-access micro-components
 │   │   └── Tasks/               # TaskCard.vue, TaskColumn.vue (vuedraggable), TaskFormModal.vue — internal Kanban board
-│   ├── stores/                  # 23 Pinia stores (proposals, blog, portfolio_works, contacts, language, documents, document_folders, document_tags, tasks, emails, panel_admins, proposalClients, platform-auth, platform-clients, platform-projects, platform-requirements, platform-bug-reports, platform-change-requests, platform-deliverables, platform-notifications, platform-payments, platform-collection-accounts, platform-data-model)
-│   ├── composables/             # 35 composables (incl. useStageStatus.js)
-│   ├── e2e/                     # Playwright E2E tests (129 spec files)
-│   ├── test/                    # Jest unit tests (73 test files)
+│   ├── stores/                  # 31 Pinia stores (proposals, diagnostics, blog, portfolio_works, contacts, language, documents, document_folders, document_tags, tasks, emails, accounting, mcps, panel_admins, proposalClients, platform-auth, platform-clients, platform-projects, platform-requirements, platform-bug-reports, platform-change-requests, platform-deliverables, platform-notifications, platform-payments, platform-collection-accounts, platform-data-model, platform-documents)
+│   ├── composables/             # 53 composables (incl. useStageStatus.js)
+│   ├── e2e/                     # Playwright E2E tests (191 spec files)
+│   ├── test/                    # Jest unit tests (290 test files)
 │   ├── layouts/                 # default.vue, admin.vue, platform.vue
 │   ├── middleware/              # admin-auth.js, platform-auth.js
 │   ├── plugins/                 # 4 plugins (gsap, geo-locale, language-sync, cal-booking)

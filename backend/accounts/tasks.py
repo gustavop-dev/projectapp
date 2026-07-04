@@ -26,6 +26,36 @@ def send_payment_status_team_email_task(payment_id, to_status, source=''):
     return send_payment_status_team_email(payment_id, to_status, source)
 
 
+@task()
+def notify_team_client_first_login_task(user_id):
+    """Async wrapper: notify the team that a client logged in for the first time."""
+    from accounts.services.client_flow_notifications import (
+        send_client_first_login_notification,
+    )
+
+    return send_client_first_login_notification(user_id)
+
+
+@task()
+def notify_team_email_validated_task(user_id):
+    """Async wrapper: notify the team that a client validated their email."""
+    from accounts.services.client_flow_notifications import (
+        send_client_email_validated_notification,
+    )
+
+    return send_client_email_validated_notification(user_id)
+
+
+@task()
+def notify_team_document_signed_task(document_id):
+    """Async wrapper: notify the team that a client signed a document."""
+    from accounts.services.client_flow_notifications import (
+        send_document_signed_notification,
+    )
+
+    return send_document_signed_notification(document_id)
+
+
 @periodic_task(crontab(hour='6', minute='0'))
 def auto_charge_due_subscriptions():
     """

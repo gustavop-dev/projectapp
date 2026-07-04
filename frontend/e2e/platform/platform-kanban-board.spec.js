@@ -44,6 +44,9 @@ const mockRequirements = [
     status: 'todo',
     priority: 'high',
     order: 0,
+    scope_item_id: 501,
+    scope_item_name: 'Landing page',
+    scope_item_group_id: 'views',
     comments_count: 2,
     created_at: '2025-01-15T10:00:00Z',
     history: [],
@@ -72,6 +75,9 @@ const mockRequirements = [
     status: 'in_progress',
     priority: 'critical',
     order: 0,
+    scope_item_id: 502,
+    scope_item_name: 'Autenticación',
+    scope_item_group_id: 'features',
     comments_count: 0,
     created_at: '2025-01-16T10:00:00Z',
     history: [{ id: 1, from_status: 'todo', to_status: 'in_progress', created_at: '2025-01-17T10:00:00Z' }],
@@ -107,6 +113,11 @@ const mockRequirements = [
   },
 ];
 
+const mockScopeItems = [
+  { id: 501, source_item_id: 'item-views-landing', group_id: 'views', group_title: 'Vistas', group_icon: '🖥️', name: 'Landing page', requirements_count: 1, is_archived: false },
+  { id: 502, source_item_id: 'item-features-auth', group_id: 'features', group_title: 'Funcionalidades', group_icon: '⚙️', name: 'Autenticación', requirements_count: 1, is_archived: false },
+];
+
 const meResponse = (user) => ({
   status: 200,
   contentType: 'application/json',
@@ -129,6 +140,9 @@ function setupPlatformMocks(page, { user }) {
     }
     if (apiPath === 'accounts/projects/1/requirements/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockRequirements) };
+    }
+    if (apiPath === 'accounts/projects/1/scope-items/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockScopeItems) };
     }
     if (apiPath === 'accounts/projects/1/requirements/bulk/' && method === 'POST') {
       return { status: 201, contentType: 'application/json', body: JSON.stringify({ created: 0, requirements: [] }) };
@@ -193,6 +207,26 @@ test.describe('Platform Kanban Board — Admin', () => {
 
     await expect(page.getByText('1/5')).toBeVisible();
     await expect(page.getByText('20%')).toBeVisible();
+  });
+
+  test('labels cards by scope item and filters the board by scope', {
+    tag: [...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
+  }, async ({ page }) => {
+    await setupPlatformMocks(page, { user: mockPlatformAdmin });
+    await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
+
+    // Cards are labeled by their proposal scope item (vista/componente/funcionalidad).
+    await expect(page.getByText('Landing page', { exact: true })).toBeVisible();
+    await expect(page.getByText('Diseño de landing page')).toBeVisible();
+    await expect(page.getByText('API de autenticación')).toBeVisible();
+
+    // The "Alcance" filter narrows the board to a single scope item.
+    const scopeSelect = page.locator('label:has-text("Alcance") select');
+    await scopeSelect.selectOption({ label: 'Funcionalidad · Autenticación' });
+
+    await expect(page.getByText('Diseño de landing page')).toBeHidden();
+    await expect(page.getByText('API de autenticación')).toBeVisible();
   });
 
   test('admin can open the import JSON modal and close it', {

@@ -41,10 +41,20 @@ describe('getProposalNextAction', () => {
     expect(result.key).toBe('negotiate');
   });
 
-  it('suggests "approve" when negotiating allows accepted', () => {
+  it('suggests "launch" for negotiating without onboarding', () => {
     const result = getProposalNextAction({
       status: 'negotiating',
       available_transitions: ['accepted', 'rejected'],
+      platform_onboarding_completed_at: null,
+    });
+    expect(result.key).toBe('launch');
+  });
+
+  it('suggests "approve" when negotiating is already onboarded and allows accepted', () => {
+    const result = getProposalNextAction({
+      status: 'negotiating',
+      available_transitions: ['accepted', 'rejected'],
+      platform_onboarding_completed_at: '2026-01-01T00:00:00Z',
     });
     expect(result.key).toBe('approve');
   });

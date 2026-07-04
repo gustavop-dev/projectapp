@@ -2,7 +2,14 @@ import pytest
 from django.contrib.auth import get_user_model
 from decimal import Decimal
 
-from accounts.models import DataModelEntity, Deliverable, Project, Requirement, UserProfile
+from accounts.models import (
+    DataModelEntity,
+    Deliverable,
+    Project,
+    ProjectPhase,
+    Requirement,
+    UserProfile,
+)
 from accounts.services.technical_requirements_sync import (
     compute_sync_diff,
     sync_technical_requirements_for_deliverable,
@@ -12,13 +19,11 @@ from content.models import BusinessProposal, ProposalSection
 
 User = get_user_model()
 
-# TODO: Rebuild this service around ProjectPhase instead of Deliverable.
-# Requirement.deliverable was removed in the 2026-05-17 refactor; the sync
-# service was stubbed to skip Requirement creation. Tests below that assert
-# requirements are created from the technical document are obsolete until
-# the service is redesigned to attach requirements to a phase. Until then we
-# skip the whole module to keep the suite green.
-pytestmark = pytest.mark.skip(reason='Technical requirements sync pending Phase-aware redesign')
+# The sync service was rebuilt around ProjectPhase (see the module docstring in
+# accounts/services/technical_requirements_sync.py). Requirements are now
+# attached to a phase (auto-ensured by the sync) instead of the removed
+# Requirement.deliverable FK. Scope-item + preservation behavior is covered
+# separately in test_proposal_scope_sync.py.
 
 
 @pytest.mark.django_db
@@ -70,7 +75,7 @@ def test_sync_creates_deliverable_and_requirements_from_technical_document():
 
     epic_d = Deliverable.objects.get(project=project, source_epic_key='epic-a')
     assert epic_d.title == 'Épica A'
-    req = Requirement.objects.get(deliverable=epic_d, source_flow_key='flow-1')
+    req = Requirement.objects.get(phase__project=project, source_flow_key='flow-1')
     assert req.title == 'Req uno'
     assert req.synced_from_proposal is True
 
@@ -480,8 +485,13 @@ def test_compute_sync_diff_reports_requirement_to_update_when_title_changed():
         project=project, title='E', source_epic_key='epic-q',
         category=Deliverable.CATEGORY_DOCUMENTS, file=None, uploaded_by=admin,
     )
+    bp = BusinessProposal.objects.create(
+        title='BP', client_name='C', total_investment=Decimal('1'),
+        hosting_percent=30, status='accepted',
+    )
+    phase = ProjectPhase.objects.create(project=project, business_proposal=bp, order=1)
     Requirement.objects.create(
-        deliverable=d, title='Old Req', source_flow_key='flow-q',
+        phase=phase, title='Old Req', source_flow_key='flow-q',
         status=Requirement.STATUS_BACKLOG, priority=Requirement.PRIORITY_MEDIUM,
     )
     new_json = {'epics': [
@@ -504,8 +514,13 @@ def test_compute_sync_diff_reports_requirement_to_delete():
         project=project, title='E', source_epic_key='epic-s',
         category=Deliverable.CATEGORY_DOCUMENTS, file=None, uploaded_by=admin,
     )
+    bp = BusinessProposal.objects.create(
+        title='BP', client_name='C', total_investment=Decimal('1'),
+        hosting_percent=30, status='accepted',
+    )
+    phase = ProjectPhase.objects.create(project=project, business_proposal=bp, order=1)
     Requirement.objects.create(
-        deliverable=d, title='Old', source_flow_key='flow-s',
+        phase=phase, title='Old', source_flow_key='flow-s',
         status=Requirement.STATUS_BACKLOG, priority=Requirement.PRIORITY_MEDIUM,
     )
     new_json = {'epics': [{'epicKey': 'epic-s', 'title': 'E', 'requirements': []}]}
@@ -641,7 +656,7 @@ def test_sync_updates_existing_requirement_on_second_sync():
     result = sync_technical_requirements_for_project(project, admin)
 
     assert result['requirements_updated'] == 1
-    req = Requirement.objects.get(deliverable__project=project, source_flow_key='flow-upd')
+    req = Requirement.objects.get(phase__project=project, source_flow_key='flow-upd')
     assert req.title == 'Updated Req'
 
 

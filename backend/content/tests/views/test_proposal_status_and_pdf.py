@@ -60,15 +60,36 @@ class TestUpdateProposalStatusAccepted:
             new_value='negotiating',
         ).exists()
 
-    def test_accepted_transition_does_not_trigger_platform_onboarding(self, admin_client, negotiating_proposal):
-        resp = admin_client.patch(
-            self._url(negotiating_proposal), {'status': 'accepted'}, format='json'
-        )
+    def test_accepted_transition_triggers_platform_onboarding(self, admin_client, negotiating_proposal):
+        # negotiating → accepted now auto-enqueues platform onboarding.
+        with patch('content.tasks.run_platform_onboarding') as mock_task:
+            resp = admin_client.patch(
+                self._url(negotiating_proposal), {'status': 'accepted'}, format='json'
+            )
 
         assert resp.status_code == 200
         negotiating_proposal.refresh_from_db()
         assert negotiating_proposal.status == 'accepted'
-        assert negotiating_proposal.platform_onboarding_completed_at is None
+        mock_task.assert_called_once()
+        # Admin inline accept sends no client email today, so the task suppresses
+        # its own acceptance email.
+        assert mock_task.call_args.kwargs.get('send_email') is False
+
+    def test_accepted_transition_skips_onboarding_when_already_completed(
+        self, admin_client, negotiating_proposal,
+    ):
+        from django.utils import timezone
+
+        negotiating_proposal.platform_onboarding_completed_at = timezone.now()
+        negotiating_proposal.save(update_fields=['platform_onboarding_completed_at'])
+
+        with patch('content.tasks.run_platform_onboarding') as mock_task:
+            resp = admin_client.patch(
+                self._url(negotiating_proposal), {'status': 'accepted'}, format='json'
+            )
+
+        assert resp.status_code == 200
+        mock_task.assert_not_called()
 
     def test_non_accepted_transition_does_not_call_platform_onboarding(
         self, admin_client, sent_proposal
@@ -87,6 +108,44 @@ class TestUpdateProposalStatusAccepted:
         resp = api_client.patch(self._url(sent_proposal), {'status': 'negotiating'}, format='json')
 
         assert resp.status_code == 401
+
+
+class TestRespondToProposalTriggersOnboarding:
+    """Client acceptance (respond_to_proposal) auto-provisions the platform project."""
+
+    def _url(self, proposal):
+        return reverse('respond-to-proposal', kwargs={'proposal_uuid': proposal.uuid})
+
+    def test_client_accept_enqueues_onboarding_and_sends_single_email(
+        self, api_client, viewed_proposal,
+    ):
+        with patch('content.tasks.run_platform_onboarding') as mock_task, patch(
+            'content.services.proposal_email_service.ProposalEmailService'
+        ) as mock_email_svc:
+            resp = api_client.post(
+                self._url(viewed_proposal), {'action': 'accepted'}, format='json',
+            )
+
+        assert resp.status_code == 200
+        viewed_proposal.refresh_from_db()
+        assert viewed_proposal.status == 'accepted'
+        # The view owns the acceptance email (sent exactly once)...
+        mock_email_svc.send_acceptance_confirmation.assert_called_once_with(viewed_proposal)
+        # ...and the onboarding task is enqueued with its own email suppressed.
+        mock_task.assert_called_once()
+        assert mock_task.call_args.kwargs.get('send_email') is False
+        assert mock_task.call_args.kwargs.get('acting_user_id') is None
+
+    def test_client_reject_does_not_enqueue_onboarding(self, api_client, viewed_proposal):
+        with patch('content.tasks.run_platform_onboarding') as mock_task, patch(
+            'content.services.proposal_email_service.ProposalEmailService'
+        ):
+            resp = api_client.post(
+                self._url(viewed_proposal), {'action': 'rejected', 'reason': 'x'}, format='json',
+            )
+
+        assert resp.status_code == 200
+        mock_task.assert_not_called()
 
 
 class TestUpdateProposalStatusFinished:
@@ -180,6 +239,20 @@ class TestLaunchToPlatform:
         assert resp.status_code == 400
         assert 'aceptada' in resp.json()['error']
 
+    def test_launch_to_platform_from_negotiating_returns_200(
+        self, admin_client, negotiating_proposal
+    ):
+        with patch('content.tasks.run_platform_onboarding') as mock_task:
+            resp = admin_client.post(self._url(negotiating_proposal), format='json')
+
+        assert resp.status_code == 200
+        assert resp.json()['platform_onboarding_status'] == 'pending'
+        mock_task.assert_called_once_with(
+            negotiating_proposal.id,
+            acting_user_id=resp.wsgi_request.user.id,
+            is_relaunch=False,
+        )
+
     def test_launch_to_platform_already_onboarded_no_force_returns_409(self, admin_client, accepted_proposal):
         accepted_proposal.platform_onboarding_completed_at = '2026-04-01T10:00:00Z'
         accepted_proposal.save(update_fields=['platform_onboarding_completed_at'])
@@ -269,6 +342,21 @@ class TestRunPlatformOnboardingTask:
             mock_onboard.return_value = {'skipped': False, 'deliverable_id': None, 'sync': {}}
             from content.tasks import run_platform_onboarding
             run_platform_onboarding.call_local(accepted_proposal.id, is_relaunch=True)
+
+        _, kwargs = mock_onboard.call_args
+        assert kwargs['send_email'] is False
+
+    def test_task_skips_acceptance_email_when_negotiating(self, negotiating_proposal):
+        # First launch from negotiation must NOT send the "propuesta aceptada" email.
+        negotiating_proposal.platform_onboarding_status = 'pending'
+        negotiating_proposal.save(update_fields=['platform_onboarding_status'])
+
+        with patch(
+            'accounts.services.proposal_platform_onboarding.handle_proposal_accepted_for_platform'
+        ) as mock_onboard:
+            mock_onboard.return_value = {'skipped': False, 'deliverable_id': None, 'sync': {}}
+            from content.tasks import run_platform_onboarding
+            run_platform_onboarding.call_local(negotiating_proposal.id, is_relaunch=False)
 
         _, kwargs = mock_onboard.call_args
         assert kwargs['send_email'] is False

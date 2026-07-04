@@ -201,9 +201,10 @@ async function handleSubmit() {
     return
   }
 
+  const defaultTarget = localePath(authStore.isClient ? '/platform/documents' : '/platform/dashboard')
   const redirectTarget = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
     ? route.query.redirect
-    : localePath('/platform/dashboard')
+    : defaultTarget
 
   await navigateTo(redirectTarget)
 }

@@ -7,6 +7,53 @@
       </p>
     </div>
 
+    <!-- Guía paso a paso (acordeón nativo, colapsado por defecto) -->
+    <details
+      class="group mb-6 bg-surface border border-border-muted rounded-xl shadow-sm"
+      data-testid="mcps-guide"
+    >
+      <summary
+        class="flex items-center gap-3 p-4 sm:p-5 cursor-pointer select-none list-none marker:hidden [&::-webkit-details-marker]:hidden"
+      >
+        <span class="text-sm font-semibold text-text-default">
+          ¿Cómo conectar un conector a Claude?
+        </span>
+        <BaseBadge variant="primary" size="sm">Guía paso a paso</BaseBadge>
+        <svg
+          class="ml-auto h-4 w-4 flex-shrink-0 text-text-subtle transition-transform duration-200 group-open:rotate-180"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </summary>
+
+      <div class="px-4 sm:px-5 pb-5 pt-1 border-t border-border-muted">
+        <ol class="space-y-3 mt-4">
+          <li
+            v-for="(step, index) in guideSteps"
+            :key="index"
+            class="flex items-start gap-3"
+          >
+            <span
+              class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary-soft text-text-brand text-xs font-semibold"
+            >
+              {{ index + 1 }}
+            </span>
+            <p class="text-sm text-text-muted leading-relaxed" v-html="step" />
+          </li>
+        </ol>
+
+        <p class="text-xs text-text-subtle mt-4 leading-relaxed">
+          🔒 El token <strong class="font-semibold text-text-muted">es la credencial</strong>:
+          trátalo como una contraseña (sólo <code class="text-xs bg-surface-muted rounded px-1 py-0.5">claude.ai</code>
+          puede usarlo). <strong class="font-semibold text-text-muted">Contabilidad</strong> da acceso total de
+          escritura a datos financieros — actívala sólo cuando la vayas a usar.
+        </p>
+      </div>
+    </details>
+
     <div v-if="store.loading && store.connectors.length === 0" class="text-center py-16 text-text-subtle text-sm">
       Cargando conectores...
     </div>
@@ -14,7 +61,7 @@
     <div
       v-else-if="store.error && store.connectors.length === 0"
       data-testid="mcps-error"
-      class="max-w-2xl bg-surface border border-border-muted rounded-xl shadow-sm p-6 text-center"
+      class="max-w-md bg-surface border border-border-muted rounded-xl shadow-sm p-6 text-center"
     >
       <p class="text-sm text-text-muted mb-4">{{ store.error }}</p>
       <BaseButton variant="secondary" size="sm" @click="store.fetchConnectors()">
@@ -22,7 +69,7 @@
       </BaseButton>
     </div>
 
-    <div v-else class="max-w-2xl space-y-4">
+    <div v-else class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-5 items-start">
       <div
         v-for="connector in store.connectors"
         :key="connector.slug"
@@ -155,6 +202,7 @@
 
 <script setup>
 import { onMounted, reactive } from 'vue';
+import BaseBadge from '~/components/base/BaseBadge.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
@@ -167,6 +215,16 @@ const store = useMcpsStore();
 const notify = usePanelNotify();
 
 const tokenModal = reactive({ open: false, url: '', copied: false });
+
+// Pasos accionables para conectar un MCP, mostrados en el acordeón de la vista.
+// Se permiten <strong> para resaltar la acción/etiqueta real de la UI.
+const guideSteps = [
+  '<strong>Genera el token:</strong> en la card del conector, pulsa «Generar token».',
+  '<strong>Copia la URL:</strong> se muestra una sola vez en el modal («Copiar URL»). Formato <code class="text-xs bg-surface-muted rounded px-1 py-0.5">…/api/mcp/&lt;slug&gt;/&lt;token&gt;/</code>.',
+  '<strong>Actívalo:</strong> enciende el toggle de la card (pasa a «Activo»).',
+  '<strong>Conéctalo en claude.ai:</strong> Settings → Connectors → «Add custom connector» → pega la URL.',
+  '<strong>Verifica:</strong> pídele algo al conector en el chat; aquí verás «Conectado» y la actividad reciente.',
+];
 
 const statusStyles = {
   connected: { label: 'Conectado', dot: 'bg-success-strong', box: 'bg-success-soft text-success-strong' },

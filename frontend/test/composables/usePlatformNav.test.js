@@ -10,7 +10,7 @@
 global.useLocalePath = jest.fn(() => (path) => path)
 global.useRoute = jest.fn(() => ({ path: '/platform/projects' }))
 
-const mockAuth = { isAdmin: false }
+const mockAuth = { isAdmin: false, isClient: false }
 jest.mock('../../stores/platform-auth', () => ({
   usePlatformAuthStore: jest.fn(() => mockAuth),
 }))
@@ -23,6 +23,7 @@ import { usePlatformNav } from '../../composables/usePlatformNav'
 describe('usePlatformNav', () => {
   beforeEach(() => {
     mockAuth.isAdmin = false
+    mockAuth.isClient = false
     global.useRoute = jest.fn(() => ({ path: '/platform/projects' }))
   })
 
@@ -56,6 +57,20 @@ describe('usePlatformNav', () => {
     ]) {
       expect(hrefs).not.toContain(dead)
     }
+  })
+
+  it('muestra Documentos apuntando al portal del cliente para el rol client', () => {
+    mockAuth.isClient = true
+    const { primaryItems } = usePlatformNav()
+    const documentos = primaryItems.value.find((i) => i.label === 'Documentos')
+    expect(documentos).toBeTruthy()
+    expect(documentos.href).toBe('/platform/documents')
+  })
+
+  it('oculta Documentos cuando el usuario no es client', () => {
+    mockAuth.isAdmin = true
+    const { primaryItems } = usePlatformNav()
+    expect(primaryItems.value.map((i) => i.label)).not.toContain('Documentos')
   })
 
   it('isActive coincide en ruta exacta y anidada, ignorando el prefijo de locale', () => {
