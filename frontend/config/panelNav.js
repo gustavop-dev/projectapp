@@ -55,11 +55,12 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
     },
     {
       id: 'site',
-      label: 'Website content',
+      label: 'ProjectApp content',
       items: [
         { label: 'Blog', href: lp('/panel/blog'), icon: 'blog' },
         { label: 'Blog calendar', href: lp('/panel/blog/calendar'), icon: 'calendar' },
         { label: 'Portfolio', href: lp('/panel/portfolio'), icon: 'portfolio' },
+        { label: 'LinkedIn', href: lp('/panel/linkedin'), icon: 'linkedin' },
       ],
     },
     {
