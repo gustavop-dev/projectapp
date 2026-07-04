@@ -159,6 +159,7 @@ export const PLATFORM_CHANGE_REQUESTS = ['@flow:platform-change-requests', '@mod
 export const PLATFORM_BUG_REPORTS = ['@flow:platform-bug-reports', '@module:platform', '@priority:P2'];
 export const PLATFORM_DELIVERABLES = ['@flow:platform-deliverables', '@module:platform', '@priority:P2'];
 export const PLATFORM_HOSTING_SUBSCRIPTION = ['@flow:platform-hosting-subscription', '@module:platform', '@priority:P1'];
+export const PLATFORM_HOSTING_CARD_SETUP = ['@flow:platform-hosting-card-setup', '@module:platform', '@priority:P1'];
 export const PLATFORM_NOTIFICATIONS = ['@flow:platform-notifications', '@module:platform', '@priority:P2'];
 export const PLATFORM_KANBAN_JSON_UPLOAD = ['@flow:platform-kanban-json-upload', '@module:platform', '@priority:P2'];
 export const PLATFORM_REQUIREMENT_CLIENT_REVIEW = ['@flow:platform-requirement-client-review', '@module:platform', '@priority:P2'];
@@ -332,3 +333,9 @@ export const ADMIN_ACCOUNTING_EXPORT        = ['@flow:admin-accounting-export', 
 
 // ── MCP connectors panel (superuser-only) (Jul 2, 2026) ──
 export const ADMIN_MCPS = ['@flow:admin-mcps', '@module:admin', '@priority:P2'];
+
+// ── Client document portal + discount offer (Jul 4, 2026) ──
+export const PLATFORM_CLIENT_DOCUMENT_PORTAL  = ['@flow:platform-client-document-portal',  '@module:platform', '@priority:P1'];
+export const PLATFORM_CLIENT_EMAIL_VALIDATION = ['@flow:platform-client-email-validation', '@module:platform', '@priority:P1'];
+export const PLATFORM_CLIENT_DOCUMENT_SIGN    = ['@flow:platform-client-document-sign',    '@module:platform', '@priority:P1'];
+export const ADMIN_PROPOSAL_DISCOUNT_OFFER_SEND = ['@flow:admin-proposal-discount-offer-send', '@module:admin', '@priority:P2'];

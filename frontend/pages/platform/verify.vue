@@ -220,7 +220,7 @@ async function handleSubmit() {
     return
   }
 
-  await navigateTo(localePath('/platform/dashboard'))
+  await navigateTo(localePath(authStore.isClient ? '/platform/documents' : '/platform/dashboard'))
 }
 
 async function handleResendCode() {

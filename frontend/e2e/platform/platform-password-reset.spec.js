@@ -34,7 +34,7 @@ test.describe('Platform password recovery', () => {
 
   test(
     'happy path — login link to forgot, code accepted, new password accepted, redirect to platform',
-    { tag: PLATFORM_PASSWORD_RESET },
+    { tag: [...PLATFORM_PASSWORD_RESET] },
     async ({ page }) => {
       await mockApi(page, async ({ apiPath, method }) => {
         if (method === 'POST' && apiPath === 'accounts/password-reset/request/') {
@@ -100,7 +100,7 @@ test.describe('Platform password recovery', () => {
 
   test(
     'wrong code surfaces attempts_left and stays on verify-code',
-    { tag: PLATFORM_PASSWORD_RESET },
+    { tag: [...PLATFORM_PASSWORD_RESET] },
     async ({ page }) => {
       await mockApi(page, async ({ apiPath, method }) => {
         if (method === 'POST' && apiPath === 'accounts/password-reset/request/') {

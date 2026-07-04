@@ -2,7 +2,7 @@ import logging
 import uuid
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives, send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -102,6 +102,41 @@ class ProposalEmailService:
         return cls.FROM_EMAIL or getattr(
             settings, 'DEFAULT_FROM_EMAIL', 'team@projectapp.co'
         )
+
+    @classmethod
+    def _send_team_copy(cls, *, subject, text_body, html_body, proposal):
+        """Send a copy of an automated client email to the team inbox.
+
+        Same body as the client received, but with a subject prefixed with the
+        client's name so the team can tell whose email it is. Best-effort:
+        never raises (a failure here must not break the client send).
+        """
+        recipient = getattr(settings, 'AUTOMATED_EMAIL_TEAM_COPY', 'team@projectapp.co')
+        if not recipient:
+            return
+        who = proposal.client_name or proposal.client_email or 'cliente'
+        team_subject = f'[Cliente: {who}] {subject}'
+        try:
+            # Uses send_mail (not EmailMultiAlternatives) so it is a genuinely
+            # separate send: the client-facing send stays the single, testable
+            # message and this copy rides alongside it.
+            send_mail(
+                subject=team_subject,
+                message=text_body,
+                from_email=cls._get_from_email(),
+                recipient_list=[recipient],
+                html_message=html_body,
+                fail_silently=True,
+            )
+            cls._log_email(
+                'team_copy', recipient, subject=team_subject,
+                proposal=proposal, status='sent', metadata={'team_copy': True},
+            )
+        except Exception:
+            logger.warning(
+                'Failed to send team copy for proposal %s',
+                getattr(proposal, 'uuid', proposal.pk),
+            )
 
     @classmethod
     def _get_notification_recipients(cls):
@@ -586,6 +621,11 @@ class ProposalEmailService:
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
 
+            cls._send_team_copy(
+                subject=subject, text_body=text_content,
+                html_body=html_content, proposal=proposal,
+            )
+
             proposal.reminder_sent_at = timezone.now()
             proposal.save(update_fields=['reminder_sent_at'])
 
@@ -612,7 +652,7 @@ class ProposalEmailService:
             return False
 
     @classmethod
-    def send_urgency_email(cls, proposal):
+    def send_urgency_email(cls, proposal, *, force=False):
         """
         Send an urgency/reminder email at day 15.
 
@@ -621,6 +661,8 @@ class ProposalEmailService:
 
         Args:
             proposal: BusinessProposal instance with client_email set.
+            force: When True (manual admin send), bypass the 24h cooldown so the
+                seller can offer the discount on demand.
 
         Returns:
             bool: True if the email was sent successfully.
@@ -645,7 +687,7 @@ class ProposalEmailService:
             logger.info('Skipping %s: template disabled', template_key)
             return False
 
-        if not cls._check_cooldown(proposal):
+        if not force and not cls._check_cooldown(proposal):
             return False
 
         context = {
@@ -691,6 +733,11 @@ class ProposalEmailService:
             )
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
+
+            cls._send_team_copy(
+                subject=subject, text_body=text_content,
+                html_body=html_content, proposal=proposal,
+            )
 
             proposal.urgency_email_sent_at = timezone.now()
             proposal.save(update_fields=['urgency_email_sent_at'])
@@ -1259,6 +1306,11 @@ class ProposalEmailService:
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
 
+            cls._send_team_copy(
+                subject=subject, text_body=text_content,
+                html_body=html_content, proposal=proposal,
+            )
+
             logger.info(
                 'Sent rejection re-engagement email for proposal %s to %s',
                 proposal.uuid, proposal.client_email,
@@ -1392,6 +1444,11 @@ class ProposalEmailService:
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
 
+            cls._send_team_copy(
+                subject=subject, text_body=text_content,
+                html_body=html_content, proposal=proposal,
+            )
+
             proposal.abandonment_email_sent_at = timezone.now()
             proposal.save(update_fields=['abandonment_email_sent_at'])
 
@@ -1473,6 +1530,11 @@ class ProposalEmailService:
             )
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
+
+            cls._send_team_copy(
+                subject=subject, text_body=text_content,
+                html_body=html_content, proposal=proposal,
+            )
 
             proposal.investment_interest_email_sent_at = timezone.now()
             proposal.save(update_fields=['investment_interest_email_sent_at'])
@@ -1605,6 +1667,11 @@ class ProposalEmailService:
             )
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
+
+            cls._send_team_copy(
+                subject=subject, text_body=text_content,
+                html_body=html_content, proposal=proposal,
+            )
 
             logger.info(
                 'Sent scheduled followup for proposal %s to %s',

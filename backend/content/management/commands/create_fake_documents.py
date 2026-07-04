@@ -273,6 +273,9 @@ class Command(BaseCommand):
             self._apply_lifecycle(doc, ext, issuer, admin, lifecycle, rng)
             created_ca += 1
 
+        # ── Client-portal signable contracts (unsigned + signed) ─────────────
+        self._create_signable_documents(admin, md_type, leaves)
+
         self.stdout.write(self.style.SUCCESS(
             f'Documents created: {created_md} markdown + {created_ca} collection accounts. '
             f'Issuer "{issuer.name}", {len(leaves)} leaf folders, {len(tags)} tags.'
@@ -350,3 +353,99 @@ class Command(BaseCommand):
             ca_service.mark_collection_account_paid(doc, acting_user=admin)
         elif lifecycle == 'cancelled':
             ca_service.mark_collection_account_cancelled(doc, acting_user=admin)
+
+    def _create_signable_documents(self, admin, md_type, leaves):
+        """Create one unsigned + one signed contract for a project-backed client.
+
+        Exercises the client-portal signature flow (/platform/documents): a
+        published, signature-required contract the client must accept, plus an
+        already-signed sibling carrying the acceptance stamp. Idempotent — guarded
+        by (title, project, requires_signature) so re-runs never duplicate.
+        """
+        project = (
+            Project.objects.filter(client__isnull=False)
+            .select_related('client')
+            .order_by('id')
+            .first()
+        )
+        if not project or not project.client_id:
+            self.stdout.write(self.style.WARNING(
+                '  No project-backed client found — skipping signable documents. '
+                'Run seed_platform_data first.'
+            ))
+            return
+
+        client_user = project.client
+        client_full_name = (
+            (getattr(client_user, 'get_full_name', lambda: '')() or '').strip()
+            or client_user.email
+        )
+        contract_folder = (
+            next((f for f in leaves if f.name == 'Contratos'), None)
+            or (leaves[0] if leaves else None)
+        )
+
+        created = 0
+
+        # Unsigned, signature-required contract (client must sign in the portal).
+        unsigned_title = 'Contrato de servicios'
+        if not Document.objects.filter(
+            title=unsigned_title, project=project, requires_signature=True,
+        ).exists():
+            Document.objects.create(
+                document_type=md_type,
+                folder=contract_folder,
+                title=unsigned_title,
+                status=Document.Status.PUBLISHED,
+                language=Document.Language.ES,
+                content_markdown=(
+                    '# Contrato de servicios\n\n'
+                    'Contrato de prestación de servicios de desarrollo web. '
+                    'Por favor revise y firme para dar inicio al proyecto.\n'
+                ),
+                project=project,
+                client_user=client_user,
+                client_name=client_full_name,
+                requires_signature=True,
+                created_by=admin,
+                updated_by=admin,
+            )
+            created += 1
+
+        # Already-signed contract (acceptance stamp filled in).
+        signed_title = 'Contrato de servicios firmado'
+        if not Document.objects.filter(
+            title=signed_title, project=project, requires_signature=True,
+        ).exists():
+            Document.objects.create(
+                document_type=md_type,
+                folder=contract_folder,
+                title=signed_title,
+                status=Document.Status.PUBLISHED,
+                language=Document.Language.ES,
+                content_markdown=(
+                    '# Contrato de servicios\n\n'
+                    'Contrato de prestación de servicios de desarrollo web '
+                    '(aceptado por el cliente).\n'
+                ),
+                project=project,
+                client_user=client_user,
+                client_name=client_full_name,
+                requires_signature=True,
+                signed_at=timezone.now(),
+                signed_by=client_user,
+                signature_name=client_full_name,
+                signature_ip='127.0.0.1',
+                signature_user_agent='Mozilla/5.0 (fake-data)',
+                created_by=admin,
+                updated_by=admin,
+            )
+            created += 1
+
+        if created:
+            self.stdout.write(self.style.SUCCESS(
+                f'  Signable documents created: {created} '
+                f'(client "{client_full_name}", project "{project.name}").'
+            ))
+        else:
+            self.stdout.write('  Signable documents already present — skipped.')

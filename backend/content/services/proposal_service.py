@@ -3085,3 +3085,318 @@ class ProposalService:
             if cfg['section_type'] == section_type:
                 return cfg
         return None
+
+
+# ---------------------------------------------------------------------------
+# From-JSON create/update (shared by the panel views and the MCP connector)
+#
+# These hold the section-merge logic that protects default functional-
+# requirements groups/modules, stamps item ids and normalizes technical-doc
+# links — behavior that is load-bearing for the PDF pipeline. Both the panel
+# `*_from_json` views and the proposals MCP call these so the rules never drift.
+# They operate purely on validated data (no request); callers serialize the
+# result themselves.
+# ---------------------------------------------------------------------------
+
+def build_proposal_from_json(validated_data):
+    """Create a BusinessProposal + its sections from validated from-JSON data.
+
+    ``validated_data`` is the output of ProposalFromJSONSerializer (it still
+    contains ``sections`` and, optionally, a resolved ``client``). Returns
+    ``(proposal, unmapped_keys)``.
+    """
+    import copy
+
+    from accounts.services import proposal_client_service
+    from content.models import BusinessProposal, ProposalSection
+    from content.serializers.proposal import SECTION_KEY_MAP, SECTION_TYPE_TO_KEY
+    from content.services.proposal_module_links import (
+        ensure_functional_requirements_item_ids,
+        normalize_technical_document_module_links,
+    )
+
+    data = dict(validated_data)
+    sections_data = data.pop('sections')
+    explicit_client = data.pop('client', None)
+
+    expires_at = data.get('expires_at')
+    if not expires_at:
+        expires_at = ProposalService.compute_default_expires_at(
+            data.get('language', 'es'),
+        )
+
+    if explicit_client is not None:
+        client_profile = explicit_client
+    else:
+        client_profile = proposal_client_service.get_or_create_client_for_proposal(
+            name=data.get('client_name', ''),
+            email=data.get('client_email', ''),
+            phone=data.get('client_phone', ''),
+            company=data.get('client_company', ''),
+        )
+
+    proposal = BusinessProposal.objects.create(
+        title=data['title'],
+        client_name=data['client_name'],
+        client_email=data.get('client_email', ''),
+        client_phone=data.get('client_phone', ''),
+        project_type=data.get('project_type', ''),
+        market_type=data.get('market_type', ''),
+        language=data.get('language', 'es'),
+        total_investment=data.get('total_investment', 0),
+        currency=data.get('currency', 'COP'),
+        expires_at=expires_at,
+        reminder_days=data.get('reminder_days', 10),
+        urgency_reminder_days=data.get('urgency_reminder_days', 15),
+        discount_percent=data.get('discount_percent', 0),
+        client=client_profile,
+    )
+    proposal_client_service.sync_snapshot(proposal)
+
+    default_sections = ProposalService.get_default_sections(proposal.language)
+    resolved_sections = []
+
+    for section_cfg in default_sections:
+        section_type = section_cfg['section_type']
+        json_key = SECTION_TYPE_TO_KEY.get(section_type)
+
+        if json_key and json_key in sections_data:
+            content_json = copy.deepcopy(sections_data[json_key])
+        else:
+            content_json = copy.deepcopy(section_cfg['content_json'])
+
+        if section_type == 'greeting':
+            general = sections_data.get('general', {})
+            content_json.setdefault('proposalTitle', proposal.title)
+            content_json.setdefault('clientName', proposal.client_name)
+            if general.get('inspirationalQuote'):
+                content_json['inspirationalQuote'] = general['inspirationalQuote']
+
+        if section_type == 'functional_requirements' and json_key in sections_data:
+            default_cj = copy.deepcopy(section_cfg['content_json'])
+            default_groups = default_cj.get('groups', [])
+            default_modules = default_cj.get('additionalModules', [])
+            json_groups = content_json.get('groups', [])
+            json_modules = content_json.get('additionalModules', [])
+
+            json_groups_by_id = {
+                g['id']: g for g in json_groups if isinstance(g, dict) and g.get('id')
+            }
+            json_modules_by_id = {
+                m['id']: m for m in json_modules if isinstance(m, dict) and m.get('id')
+            }
+
+            merged_groups = []
+            for dg in default_groups:
+                gid = dg.get('id')
+                if gid and gid in json_groups_by_id:
+                    merged = json_groups_by_id.pop(gid)
+                    merged['id'] = gid
+                    merged.setdefault('is_visible', dg.get('is_visible', True))
+                    merged_groups.append(merged)
+                else:
+                    merged_groups.append(dg)
+            for gid, g in json_groups_by_id.items():
+                merged_groups.append(g)
+
+            merged_modules = []
+            for dm in default_modules:
+                mid = dm.get('id')
+                if mid and mid in json_modules_by_id:
+                    merged = json_modules_by_id.pop(mid)
+                    merged['id'] = mid
+                    merged.setdefault('is_visible', dm.get('is_visible', True))
+                    merged_modules.append(merged)
+                else:
+                    merged_modules.append(dm)
+            for mid, m in json_modules_by_id.items():
+                merged_modules.append(m)
+
+            content_json['groups'] = merged_groups
+            content_json['additionalModules'] = merged_modules
+
+            final_groups = []
+            existing_mod_ids = {m.get('id') for m in content_json['additionalModules']}
+            for g in content_json['groups']:
+                if g.get('is_calculator_module'):
+                    if g.get('id') not in existing_mod_ids:
+                        content_json['additionalModules'].append(g)
+                else:
+                    final_groups.append(g)
+            content_json['groups'] = final_groups
+
+        if section_type == 'functional_requirements':
+            content_json = ensure_functional_requirements_item_ids(content_json)
+
+        resolved_sections.append({
+            'section_type': section_type,
+            'title': section_cfg['title'],
+            'order': section_cfg['order'],
+            'is_wide_panel': section_cfg.get('is_wide_panel', False),
+            'content_json': content_json,
+        })
+
+    technical_section = next(
+        (
+            section
+            for section in resolved_sections
+            if section['section_type'] == ProposalSection.SectionType.TECHNICAL_DOCUMENT
+        ),
+        None,
+    )
+    if technical_section:
+        technical_section['content_json'] = normalize_technical_document_module_links(
+            technical_section['content_json'],
+            resolved_sections,
+        )
+
+    for section in resolved_sections:
+        ProposalSection.objects.create(proposal=proposal, **section)
+
+    known_keys = set(SECTION_KEY_MAP.keys()) | {'_meta', '_seller_prompt'}
+    provided_keys = set(sections_data.keys())
+    unmapped_keys = sorted(provided_keys - known_keys)
+    return proposal, unmapped_keys
+
+
+def apply_proposal_json_update(proposal, validated_data):
+    """Update an existing proposal + its sections from validated from-JSON data.
+
+    Returns ``(proposal, updated_sections, unmapped_keys)``.
+    """
+    from accounts.services import proposal_client_service
+    from content.models import ProposalChangeLog, ProposalSection
+    from content.serializers.proposal import SECTION_KEY_MAP, SECTION_TYPE_TO_KEY
+    from content.services.proposal_module_links import (
+        ensure_functional_requirements_item_ids,
+        normalize_technical_document_module_links,
+    )
+
+    data = dict(validated_data)
+    sections_data = data.pop('sections')
+    old_status = proposal.status
+
+    metadata_fields = [
+        'title', 'client_name', 'client_email', 'client_phone',
+        'project_type', 'market_type', 'project_type_custom',
+        'market_type_custom', 'language', 'total_investment', 'currency',
+        'reminder_days', 'urgency_reminder_days', 'discount_percent',
+    ]
+    tracked_old = {}
+    for field in metadata_fields:
+        tracked_old[field] = str(getattr(proposal, field, ''))
+        if field in data:
+            setattr(proposal, field, data[field])
+
+    if 'expires_at' in data:
+        tracked_old['expires_at'] = str(proposal.expires_at or '')
+        proposal.expires_at = data['expires_at']
+
+    if data.get('client_name') or data.get('client_email'):
+        client_profile = proposal_client_service.get_or_create_client_for_proposal(
+            name=data.get('client_name', '') or proposal.client_name,
+            email=data.get('client_email', ''),
+            phone=data.get('client_phone', ''),
+            company=data.get('client_company', ''),
+        )
+        proposal.client = client_profile
+
+    reopened_status = ProposalService.reopen_if_unexpired(
+        proposal, old_status=old_status,
+    )
+
+    proposal.save()
+    if proposal.client_id:
+        proposal_client_service.sync_snapshot(proposal)
+
+    if reopened_status:
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type='updated',
+            field_name='status',
+            old_value=old_status,
+            new_value=reopened_status,
+            actor_type='seller',
+            description=(
+                f'Auto-reopened from expired after expires_at moved to the future '
+                f'({old_status} → {reopened_status}).'
+            ),
+        )
+
+    for field in list(metadata_fields) + ['expires_at']:
+        new_val = str(getattr(proposal, field, ''))
+        old_val = tracked_old.get(field, '')
+        if old_val != new_val:
+            ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type='updated',
+                field_name=field,
+                old_value=old_val,
+                new_value=new_val,
+                actor_type='seller',
+                description=f'JSON import — {field}: {old_val} → {new_val}',
+            )
+
+    updated_sections = []
+    all_sections = list(proposal.sections.all())
+    for section in all_sections:
+        json_key = SECTION_TYPE_TO_KEY.get(section.section_type)
+        if json_key and json_key in sections_data:
+            new_content = sections_data[json_key]
+
+            if section.section_type == 'greeting':
+                general = sections_data.get('general', {})
+                new_content.setdefault('proposalTitle', proposal.title)
+                new_content.setdefault('clientName', proposal.client_name)
+                if general.get('inspirationalQuote'):
+                    new_content['inspirationalQuote'] = general['inspirationalQuote']
+
+            if section.section_type == 'functional_requirements':
+                final_groups = []
+                new_content.setdefault('additionalModules', [])
+                existing_mod_ids = {m.get('id') for m in new_content['additionalModules']}
+                for g in new_content.get('groups', []):
+                    if g.get('is_calculator_module'):
+                        if g.get('id') not in existing_mod_ids:
+                            new_content['additionalModules'].append(g)
+                    else:
+                        final_groups.append(g)
+                new_content['groups'] = final_groups
+                new_content = ensure_functional_requirements_item_ids(new_content)
+
+            section.content_json = new_content
+            section.save(update_fields=['content_json'])
+            updated_sections.append(json_key)
+
+    if {'technicalDocument', 'functionalRequirements'} & set(updated_sections):
+        technical_section = next(
+            (s for s in all_sections
+             if s.section_type == ProposalSection.SectionType.TECHNICAL_DOCUMENT),
+            None,
+        )
+        if technical_section and isinstance(technical_section.content_json, dict):
+            normalized = normalize_technical_document_module_links(
+                technical_section.content_json,
+                [
+                    {'section_type': s.section_type, 'content_json': s.content_json}
+                    for s in all_sections
+                ],
+            )
+            if normalized != technical_section.content_json:
+                technical_section.content_json = normalized
+                technical_section.save(update_fields=['content_json'])
+
+    ProposalChangeLog.objects.create(
+        proposal=proposal,
+        change_type='updated',
+        actor_type='seller',
+        description=(
+            f'Proposal updated from JSON import. '
+            f'Sections updated: {", ".join(updated_sections) if updated_sections else "none"}.'
+        ),
+    )
+
+    known_keys = set(SECTION_KEY_MAP.keys()) | {'_meta', '_seller_prompt'}
+    provided_keys = set(sections_data.keys())
+    unmapped_keys = sorted(provided_keys - known_keys)
+    return proposal, updated_sections, unmapped_keys

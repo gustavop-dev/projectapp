@@ -172,6 +172,27 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
     await activateBtn.click();
   });
 
+  test('selecting the annual plan recomputes the total and activates with plan:annual', {
+    tag: [...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
+  }, async ({ page }) => {
+    await setupMocksNoSubscription(page, { user: mockPlatformClient });
+    await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Activa tu plan de hosting' }).waitFor({ state: 'visible', timeout: 30000 });
+
+    await page.getByRole('button', { name: 'Anual', exact: true }).click();
+
+    // Total recomputes to the annual billing amount (1.800.000 COP) and the CTA reflects the annual plan.
+    await expect(page.getByRole('row').filter({ hasText: 'Total a pagar ahora' })).toContainText('1.800.000');
+    const activateBtn = page.getByRole('button', { name: /activar plan anual/i });
+    await expect(activateBtn).toBeEnabled();
+
+    const [req] = await Promise.all([
+      page.waitForRequest((r) => r.url().includes('accounts/projects/1/subscription/') && r.method() === 'POST'),
+      activateBtn.click(),
+    ]);
+    expect(req.postDataJSON()).toMatchObject({ plan: 'annual' });
+  });
+
   test('active subscription shows auto-renewal up-to-date card', {
     tag: [...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
   }, async ({ page }) => {

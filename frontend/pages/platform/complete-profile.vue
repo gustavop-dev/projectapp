@@ -288,6 +288,6 @@ async function handleSubmit() {
     return
   }
 
-  await navigateTo(useLocalePath()('/platform/dashboard'))
+  await navigateTo(useLocalePath()(authStore.isClient ? '/platform/documents' : '/platform/dashboard'))
 }
 </script>

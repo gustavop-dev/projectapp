@@ -72,6 +72,11 @@ class UserProfile(models.Model):
         default=False,
         help_text='True after the client sets their own password.',
     )
+    email_verified = models.BooleanField(
+        default=False,
+        help_text='True after the client confirms ownership of their email via an OTP code.',
+    )
+    email_verified_at = models.DateTimeField(null=True, blank=True)
     company_name = models.CharField(max_length=200, blank=True, default='')
     phone = models.CharField(max_length=30, blank=True, default='')
     cedula = models.CharField(max_length=20, blank=True, default='')
@@ -184,9 +189,11 @@ class VerificationCode(models.Model):
 
     PURPOSE_ONBOARDING = 'onboarding'
     PURPOSE_PASSWORD_RESET = 'password_reset'
+    PURPOSE_EMAIL_VALIDATION = 'email_validation'
     PURPOSE_CHOICES = [
         (PURPOSE_ONBOARDING, 'Onboarding'),
         (PURPOSE_PASSWORD_RESET, 'Password Reset'),
+        (PURPOSE_EMAIL_VALIDATION, 'Email Validation'),
     ]
 
     MAX_ATTEMPTS = 5
@@ -440,7 +447,18 @@ class Requirement(models.Model):
     source_epic_key = models.CharField(max_length=200, blank=True, default='', db_index=True)
     source_epic_title = models.CharField(max_length=300, blank=True, default='')
     source_flow_key = models.CharField(max_length=200, blank=True, default='', db_index=True)
+    scope_item = models.ForeignKey(
+        'ProjectScopeItem', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='requirements',
+        help_text='Primary client-facing scope item (from the first linked_item_id) '
+                  'used to group this card on the board.',
+    )
     synced_from_proposal = models.BooleanField(default=False)
+    content_overridden = models.BooleanField(
+        default=False,
+        help_text='Admin manually edited descriptive fields; a proposal re-sync '
+                  'will not overwrite title/description/flow/configuration/priority.',
+    )
     is_archived = models.BooleanField(
         default=False,
         db_index=True,
@@ -462,6 +480,85 @@ class Requirement(models.Model):
 
     def __str__(self):
         return f'{self.title} [{self.get_status_display()}]'
+
+    @property
+    def project(self):
+        return self.phase.project if self.phase else None
+
+    @property
+    def project_id(self):
+        return self.phase.project_id if self.phase else None
+
+
+class ProjectScopeItem(models.Model):
+    """
+    Platform mirror of ONE commercial item (vista/componente/funcionalidad) from a
+    proposal's ``functional_requirements`` section. Acts as the client-facing
+    grouping backbone for the Kanban: ``Requirement`` cards point to a primary
+    ``ProjectScopeItem`` instead of the legacy epic ("Módulo") grouping.
+
+    Phase-scoped (like ``Requirement``) because commercial item ids are only
+    unique within a single proposal. Idempotently upserted by ``source_item_id``.
+    """
+
+    ORIGIN_GROUP = 'group'            # from content_json['groups']
+    ORIGIN_ADDITIONAL = 'additional'  # from content_json['additionalModules']
+    ORIGIN_CHOICES = [
+        (ORIGIN_GROUP, 'Grupo'),
+        (ORIGIN_ADDITIONAL, 'Módulo adicional'),
+    ]
+
+    phase = models.ForeignKey(
+        'ProjectPhase', on_delete=models.CASCADE, related_name='scope_items',
+    )
+
+    # --- identity / idempotency ---
+    source_item_id = models.CharField(
+        max_length=300, blank=True, default='', db_index=True,
+        help_text="Stable commercial item id ('item-<group>-<slug>') from the "
+                  'proposal, used for idempotent sync and requirement linking.',
+    )
+
+    # --- faithful group mirror (arbitrary group ids incl. additionalModules) ---
+    origin = models.CharField(
+        max_length=20, choices=ORIGIN_CHOICES, default=ORIGIN_GROUP,
+    )
+    group_id = models.CharField(
+        max_length=200, blank=True, default='', db_index=True,
+        help_text="Raw group id, e.g. 'views'/'components'/'features'/'admin_module'.",
+    )
+    group_title = models.CharField(max_length=300, blank=True, default='')
+    group_icon = models.CharField(max_length=50, blank=True, default='')
+    group_order = models.PositiveIntegerField(default=0)
+    group_is_visible = models.BooleanField(default=True)
+
+    # --- the item itself ---
+    name = models.CharField(max_length=300)
+    description = models.TextField(blank=True, default='')
+    icon = models.CharField(max_length=50, blank=True, default='')
+    item_order = models.PositiveIntegerField(default=0)
+
+    synced_from_proposal = models.BooleanField(default=True)
+    is_archived = models.BooleanField(
+        default=False, db_index=True,
+        help_text='Hidden from default lists; row kept for audit.',
+    )
+    archived_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['group_order', 'item_order', 'id']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['phase', 'source_item_id'],
+                condition=~models.Q(source_item_id=''),
+                name='uniq_scope_item_phase_source',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.name} [{self.group_id}]'
 
     @property
     def project(self):

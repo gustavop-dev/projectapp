@@ -84,6 +84,38 @@ describe('ProposalActionsModal', () => {
     expect(wrapper.find('[data-testid="proposal-action-finish"]').exists()).toBe(true);
   });
 
+  it('includes launch action while negotiating', () => {
+    const wrapper = mountModal({
+      status: 'negotiating',
+      available_transitions: ['accepted', 'rejected'],
+    });
+    const launch = wrapper.find('[data-testid="proposal-action-launch"]');
+    expect(launch.exists()).toBe(true);
+    expect(launch.text()).toContain('Lanzar a Plataforma');
+  });
+
+  it('shows the discount-offer action when a discount is set and there is a client email', () => {
+    const wrapper = mountModal({
+      status: 'sent',
+      available_transitions: [],
+      client_email: 'a@b.com',
+      discount_percent: 15,
+    });
+    const offer = wrapper.find('[data-testid="proposal-action-discount-offer"]');
+    expect(offer.exists()).toBe(true);
+    expect(offer.text()).toContain('Enviar oferta de descuento');
+  });
+
+  it('hides the discount-offer action when there is no discount', () => {
+    const wrapper = mountModal({
+      status: 'sent',
+      available_transitions: [],
+      client_email: 'a@b.com',
+      discount_percent: 0,
+    });
+    expect(wrapper.find('[data-testid="proposal-action-discount-offer"]').exists()).toBe(false);
+  });
+
   it('shows empty state message when no proposal context produces actions', () => {
     const wrapper = mountModal({
       status: 'expired',

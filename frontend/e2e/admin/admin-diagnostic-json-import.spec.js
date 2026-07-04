@@ -190,4 +190,32 @@ test.describe('Admin Diagnostic — JSON tab (import)', () => {
 
     await expect(page.getByText(/fallaron las secciones/i)).toBeVisible({ timeout: 10000 });
   });
+
+  test('legacy ?tab= URLs resolve to the new tab ids', {
+    tag: [...ADMIN_DIAGNOSTIC_JSON_IMPORT, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authOk;
+      if (apiPath === `diagnostics/${DIAG_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(buildDiagnostic()) };
+      }
+      return null;
+    });
+
+    // The redirect is state-level (activeTab), not a URL rewrite: a bookmarked legacy
+    // tab id lands the user on the new tab (aria-selected on the resolved tab button).
+    const redirects = [
+      { legacy: 'plantillas', tabName: 'JSON' },
+      { legacy: 'pricing', tabName: 'General' },
+      { legacy: 'radiography', tabName: 'Secciones' },
+    ];
+    for (const { legacy, tabName } of redirects) {
+      await page.goto(`/panel/diagnostics/${DIAG_ID}/edit?tab=${legacy}`, { waitUntil: 'domcontentloaded' });
+      await expect(page.getByRole('tab', { name: tabName })).toHaveAttribute('aria-selected', 'true', { timeout: 15000 });
+    }
+
+    // Content-level confirmation for plantillas → json: the import textarea is shown.
+    await page.goto(`/panel/diagnostics/${DIAG_ID}/edit?tab=plantillas`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByPlaceholder(/Pega aquí el JSON completo/i)).toBeVisible({ timeout: 15000 });
+  });
 });

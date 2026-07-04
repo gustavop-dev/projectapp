@@ -215,6 +215,9 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='team@projectapp.co')
 NOTIFICATION_EMAIL = config('NOTIFICATION_EMAIL', default='dev.gustavo.perezp@gmail.com')
+# Inbox that receives a copy of every automated client-facing proposal email
+# (reminder, urgency, followups, re-engagement) with a client-tagged subject.
+AUTOMATED_EMAIL_TEAM_COPY = config('AUTOMATED_EMAIL_TEAM_COPY', default='team@projectapp.co')
 # Inbox that receives a notification for every hosting payment outcome
 # (approved / failed) so the team can track transaction status.
 TEAM_PAYMENTS_EMAIL = config('TEAM_PAYMENTS_EMAIL', default='teams@proyegarts.co')
@@ -224,8 +227,9 @@ TEAM_PAYMENTS_EMAIL = config('TEAM_PAYMENTS_EMAIL', default='teams@proyegarts.co
 EMAIL_SIGNATURES = {
     'gustavo': {'name': 'Gustavo Pérez', 'role': 'CEO · ProjectApp.'},
     'carlos':  {'name': 'Carlos Blanco', 'role': 'CTO · ProjectApp.'},
+    'vanessa': {'name': 'Vanessa Rodríguez', 'role': 'Asistente Comercial · ProjectApp.'},
 }
-EMAIL_DEFAULT_SIGNER = 'gustavo'
+EMAIL_DEFAULT_SIGNER = 'vanessa'
 
 # ==============================================================================
 # WHATSAPP — CallMeBot API
@@ -353,6 +357,12 @@ REST_FRAMEWORK = {
 MCP_ALLOWED_ORIGINS = [
     'https://claude.ai',
 ]
+
+# Superuser that MCP writes are attributed to (accounting created_by, task
+# comment author). The endpoint authenticates by token, not by user, so tools
+# that need an actor resolve one here. Empty ⇒ first active superuser.
+# See content/mcp/actor.py.
+MCP_ACTOR_USERNAME = os.environ.get('MCP_ACTOR_USERNAME', '')
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),

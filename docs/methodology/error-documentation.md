@@ -24,6 +24,8 @@ This file tracks known errors, their context, and resolutions. When a reusable f
 
 ## Known Issues
 
+_Reviewed 2026-07-04 during the methodology refresh: no new production incidents from the Accounting / MCP-connector / client-signing wave. KNOWN-001 and KNOWN-002 remain open (not re-verified this pass). The E2E flow-tag pitfall found in this session is a workflow lesson, captured in `lessons-learned.md` §20, not a runtime incident._
+
 ### [KNOWN-001] kore_project Next.js server occupies port 3000
 - **Date**: 2025-07-07
 - **Context**: A Windsurf terminal runs `npm run dev --port 3000` for `kore_project`, which respawns after being killed

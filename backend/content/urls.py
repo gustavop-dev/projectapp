@@ -58,6 +58,7 @@ from content.views.proposal import (
     save_contract_and_negotiate, update_contract_params,
     download_contract_pdf, download_draft_contract_pdf,
     send_documents_to_client,
+    send_discount_offer,
     get_company_settings,
     get_default_contract_template,
     list_proposal_documents, upload_proposal_document,
@@ -213,6 +214,7 @@ urlpatterns = [
     path('proposals/<int:proposal_id>/documents/', list_proposal_documents, name='list-proposal-documents'),
     path('proposals/<int:proposal_id>/documents/upload/', upload_proposal_document, name='upload-proposal-document'),
     path('proposals/<int:proposal_id>/documents/send/', send_documents_to_client, name='send-documents-to-client'),
+    path('proposals/<int:proposal_id>/discount-offer/send/', send_discount_offer, name='send-discount-offer'),
     path('proposals/<int:proposal_id>/documents/<int:doc_id>/delete/', delete_proposal_document, name='delete-proposal-document'),
 
     # Branded email — admin

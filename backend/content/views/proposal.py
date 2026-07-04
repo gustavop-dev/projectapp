@@ -972,171 +972,9 @@ def create_proposal_from_json(request):
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    data = serializer.validated_data
-    sections_data = data.pop('sections')
-    explicit_client = data.pop('client', None)
+    from content.services.proposal_service import build_proposal_from_json
 
-    from content.services.proposal_service import ProposalService
-
-    expires_at = data.get('expires_at')
-    if not expires_at:
-        expires_at = ProposalService.compute_default_expires_at(
-            data.get('language', 'es'),
-        )
-
-    # Resolve the canonical client (UserProfile, role=client). When the caller
-    # picked an existing client, use that profile as-is; otherwise auto-create
-    # via placeholder when no email is provided so the FK is always populated.
-    from accounts.services import proposal_client_service
-
-    if explicit_client is not None:
-        client_profile = explicit_client
-    else:
-        client_profile = proposal_client_service.get_or_create_client_for_proposal(
-            name=data.get('client_name', ''),
-            email=data.get('client_email', ''),
-            phone=data.get('client_phone', ''),
-            company=data.get('client_company', ''),
-        )
-
-    # Create the BusinessProposal
-    proposal = BusinessProposal.objects.create(
-        title=data['title'],
-        client_name=data['client_name'],
-        client_email=data.get('client_email', ''),
-        client_phone=data.get('client_phone', ''),
-        project_type=data.get('project_type', ''),
-        market_type=data.get('market_type', ''),
-        language=data.get('language', 'es'),
-        total_investment=data.get('total_investment', 0),
-        currency=data.get('currency', 'COP'),
-        expires_at=expires_at,
-        reminder_days=data.get('reminder_days', 10),
-        urgency_reminder_days=data.get('urgency_reminder_days', 15),
-        discount_percent=data.get('discount_percent', 0),
-        client=client_profile,
-    )
-    proposal_client_service.sync_snapshot(proposal)
-
-    # Use DEFAULT_SECTIONS as a template for title/order/is_wide_panel
-    default_sections = ProposalService.get_default_sections(proposal.language)
-    from content.services.proposal_module_links import (
-        ensure_functional_requirements_item_ids,
-        normalize_technical_document_module_links,
-    )
-
-    resolved_sections = []
-
-    for section_cfg in default_sections:
-        section_type = section_cfg['section_type']
-        json_key = SECTION_TYPE_TO_KEY.get(section_type)
-
-        if json_key and json_key in sections_data:
-            content_json = copy.deepcopy(sections_data[json_key])
-        else:
-            content_json = copy.deepcopy(section_cfg['content_json'])
-
-        # Special handling for greeting — ensure clientName and proposalTitle are set
-        if section_type == 'greeting':
-            general = sections_data.get('general', {})
-            content_json.setdefault('proposalTitle', proposal.title)
-            content_json.setdefault('clientName', proposal.client_name)
-            if general.get('inspirationalQuote'):
-                content_json['inspirationalQuote'] = general['inspirationalQuote']
-
-        # Protect default groups/modules in functional_requirements:
-        # merge JSON groups with defaults so the AI cannot remove them.
-        if section_type == 'functional_requirements' and json_key in sections_data:
-            default_cj = copy.deepcopy(section_cfg['content_json'])
-            default_groups = default_cj.get('groups', [])
-            default_modules = default_cj.get('additionalModules', [])
-            json_groups = content_json.get('groups', [])
-            json_modules = content_json.get('additionalModules', [])
-
-            # Build lookup of JSON groups by id for merging
-            json_groups_by_id = {
-                g['id']: g for g in json_groups if isinstance(g, dict) and g.get('id')
-            }
-            json_modules_by_id = {
-                m['id']: m for m in json_modules if isinstance(m, dict) and m.get('id')
-            }
-
-            # Merge: keep all default groups, update with JSON content if provided
-            merged_groups = []
-            for dg in default_groups:
-                gid = dg.get('id')
-                if gid and gid in json_groups_by_id:
-                    # Use JSON version but preserve the id and is_visible from default
-                    merged = json_groups_by_id.pop(gid)
-                    merged['id'] = gid
-                    merged.setdefault('is_visible', dg.get('is_visible', True))
-                    merged_groups.append(merged)
-                else:
-                    merged_groups.append(dg)
-            # Append any new groups from JSON that don't exist in defaults
-            for gid, g in json_groups_by_id.items():
-                merged_groups.append(g)
-
-            merged_modules = []
-            for dm in default_modules:
-                mid = dm.get('id')
-                if mid and mid in json_modules_by_id:
-                    merged = json_modules_by_id.pop(mid)
-                    merged['id'] = mid
-                    merged.setdefault('is_visible', dm.get('is_visible', True))
-                    merged_modules.append(merged)
-                else:
-                    merged_modules.append(dm)
-            for mid, m in json_modules_by_id.items():
-                merged_modules.append(m)
-
-            content_json['groups'] = merged_groups
-            content_json['additionalModules'] = merged_modules
-
-            # Normalize: move any group with is_calculator_module=True
-            # from groups[] to additionalModules[] (AI sometimes merges them)
-            final_groups = []
-            existing_mod_ids = {m.get('id') for m in content_json['additionalModules']}
-            for g in content_json['groups']:
-                if g.get('is_calculator_module'):
-                    if g.get('id') not in existing_mod_ids:
-                        content_json['additionalModules'].append(g)
-                else:
-                    final_groups.append(g)
-            content_json['groups'] = final_groups
-
-        if section_type == 'functional_requirements':
-            content_json = ensure_functional_requirements_item_ids(content_json)
-
-        resolved_sections.append({
-            'section_type': section_type,
-            'title': section_cfg['title'],
-            'order': section_cfg['order'],
-            'is_wide_panel': section_cfg.get('is_wide_panel', False),
-            'content_json': content_json,
-        })
-
-    technical_section = next(
-        (
-            section
-            for section in resolved_sections
-            if section['section_type'] == ProposalSection.SectionType.TECHNICAL_DOCUMENT
-        ),
-        None,
-    )
-    if technical_section:
-        technical_section['content_json'] = normalize_technical_document_module_links(
-            technical_section['content_json'],
-            resolved_sections,
-        )
-
-    for section in resolved_sections:
-        ProposalSection.objects.create(proposal=proposal, **section)
-
-    # Detect unrecognized section keys (silent bug prevention)
-    known_keys = set(SECTION_KEY_MAP.keys()) | {'_meta', '_seller_prompt'}
-    provided_keys = set(sections_data.keys())
-    unmapped_keys = sorted(provided_keys - known_keys)
+    proposal, unmapped_keys = build_proposal_from_json(serializer.validated_data)
 
     detail = ProposalDetailSerializer(
         proposal, context={'request': request, 'is_admin': True}
@@ -1507,152 +1345,11 @@ def update_proposal_from_json(request, proposal_id):
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    data = serializer.validated_data
-    sections_data = data.pop('sections')
+    from content.services.proposal_service import apply_proposal_json_update
 
-    old_status = proposal.status
-
-    # --- Update metadata fields ---
-    metadata_fields = [
-        'title', 'client_name', 'client_email', 'client_phone',
-        'project_type', 'market_type', 'project_type_custom',
-        'market_type_custom', 'language', 'total_investment', 'currency',
-        'reminder_days', 'urgency_reminder_days', 'discount_percent',
-    ]
-    tracked_old = {}
-    for field in metadata_fields:
-        tracked_old[field] = str(getattr(proposal, field, ''))
-        if field in data:
-            setattr(proposal, field, data[field])
-
-    if 'expires_at' in data:
-        tracked_old['expires_at'] = str(proposal.expires_at or '')
-        proposal.expires_at = data['expires_at']
-
-    from accounts.services import proposal_client_service
-    from content.services.proposal_module_links import (
-        ensure_functional_requirements_item_ids,
-        normalize_technical_document_module_links,
+    proposal, updated_sections, unmapped_keys = apply_proposal_json_update(
+        proposal, serializer.validated_data,
     )
-    from content.services.proposal_service import ProposalService
-
-    # When the JSON import includes client identity fields, route them through
-    # the service so we reuse/create a UserProfile and keep the FK consistent.
-    if data.get('client_name') or data.get('client_email'):
-        client_profile = proposal_client_service.get_or_create_client_for_proposal(
-            name=data.get('client_name', '') or proposal.client_name,
-            email=data.get('client_email', ''),
-            phone=data.get('client_phone', ''),
-            company=data.get('client_company', ''),
-        )
-        proposal.client = client_profile
-
-    reopened_status = ProposalService.reopen_if_unexpired(
-        proposal, old_status=old_status
-    )
-
-    proposal.save()
-    if proposal.client_id:
-        proposal_client_service.sync_snapshot(proposal)
-
-    if reopened_status:
-        ProposalChangeLog.objects.create(
-            proposal=proposal,
-            change_type='updated',
-            field_name='status',
-            old_value=old_status,
-            new_value=reopened_status,
-            actor_type='seller',
-            description=(
-                f'Auto-reopened from expired after expires_at moved to the future '
-                f'({old_status} → {reopened_status}).'
-            ),
-        )
-
-    # Log field-level changes
-    for field in list(metadata_fields) + ['expires_at']:
-        new_val = str(getattr(proposal, field, ''))
-        old_val = tracked_old.get(field, '')
-        if old_val != new_val:
-            ProposalChangeLog.objects.create(
-                proposal=proposal,
-                change_type='updated',
-                field_name=field,
-                old_value=old_val,
-                new_value=new_val,
-                actor_type='seller',
-                description=f'JSON import — {field}: {old_val} → {new_val}',
-            )
-
-    # --- Update section content_json ---
-    updated_sections = []
-    all_sections = list(proposal.sections.all())
-    for section in all_sections:
-        json_key = SECTION_TYPE_TO_KEY.get(section.section_type)
-        if json_key and json_key in sections_data:
-            new_content = sections_data[json_key]
-
-            # Special handling for greeting
-            if section.section_type == 'greeting':
-                general = sections_data.get('general', {})
-                new_content.setdefault('proposalTitle', proposal.title)
-                new_content.setdefault('clientName', proposal.client_name)
-                if general.get('inspirationalQuote'):
-                    new_content['inspirationalQuote'] = general['inspirationalQuote']
-
-            # Normalize functional_requirements: move calculator modules
-            # from groups[] to additionalModules[]
-            if section.section_type == 'functional_requirements':
-                final_groups = []
-                new_content.setdefault('additionalModules', [])
-                existing_mod_ids = {m.get('id') for m in new_content['additionalModules']}
-                for g in new_content.get('groups', []):
-                    if g.get('is_calculator_module'):
-                        if g.get('id') not in existing_mod_ids:
-                            new_content['additionalModules'].append(g)
-                    else:
-                        final_groups.append(g)
-                new_content['groups'] = final_groups
-                new_content = ensure_functional_requirements_item_ids(new_content)
-
-            section.content_json = new_content
-            section.save(update_fields=['content_json'])
-            updated_sections.append(json_key)
-
-    # Re-normalize the technical document only when the import touched it or
-    # the functional requirements (whose item ids its links reference).
-    if {'technicalDocument', 'functionalRequirements'} & set(updated_sections):
-        technical_section = next(
-            (s for s in all_sections
-             if s.section_type == ProposalSection.SectionType.TECHNICAL_DOCUMENT),
-            None,
-        )
-        if technical_section and isinstance(technical_section.content_json, dict):
-            normalized = normalize_technical_document_module_links(
-                technical_section.content_json,
-                [
-                    {'section_type': s.section_type, 'content_json': s.content_json}
-                    for s in all_sections
-                ],
-            )
-            if normalized != technical_section.content_json:
-                technical_section.content_json = normalized
-                technical_section.save(update_fields=['content_json'])
-
-    ProposalChangeLog.objects.create(
-        proposal=proposal,
-        change_type='updated',
-        actor_type='seller',
-        description=(
-            f'Proposal updated from JSON import. '
-            f'Sections updated: {", ".join(updated_sections) if updated_sections else "none"}.'
-        ),
-    )
-
-    # Detect unrecognized section keys
-    known_keys = set(SECTION_KEY_MAP.keys()) | {'_meta', '_seller_prompt'}
-    provided_keys = set(sections_data.keys())
-    unmapped_keys = sorted(provided_keys - known_keys)
 
     detail = ProposalDetailSerializer(
         proposal, context={'request': request, 'is_admin': True}
@@ -2209,6 +1906,12 @@ def update_proposal_status(request, proposal_id):
                     proposal.id,
                 )
 
+        if new_status == BusinessProposal.Status.ACCEPTED:
+            # Auto-provision the client's platform project (idempotent, async).
+            # Admin inline accept sends no client email today, so onboarding
+            # suppresses its own acceptance email as well.
+            _enqueue_onboarding_on_accept(proposal, acting_user_id=request.user.id)
+
     return _proposal_admin_response(request, proposal, delivery)
 
 
@@ -2225,9 +1928,12 @@ def launch_to_platform(request, proposal_id):
     """
     proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
 
-    if proposal.status != BusinessProposal.Status.ACCEPTED:
+    if proposal.status not in (
+        BusinessProposal.Status.ACCEPTED,
+        BusinessProposal.Status.NEGOTIATING,
+    ):
         return Response(
-            {'error': 'La propuesta debe estar aceptada para lanzar a plataforma.'},
+            {'error': 'La propuesta debe estar aceptada o en negociación para lanzar a plataforma.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -2747,6 +2453,8 @@ def respond_to_proposal(request, proposal_uuid):
         ProposalEmailService.send_negotiation_confirmation(proposal)
     elif action == 'accepted':
         ProposalEmailService.send_acceptance_confirmation(proposal)
+        # Auto-provision the client's platform project (idempotent, async).
+        _enqueue_onboarding_on_accept(proposal, acting_user_id=None)
 
     return Response(
         {'status': action, 'message': f'Proposal {action} successfully.'},
@@ -2777,6 +2485,45 @@ def _schedule_reengagement_if_budget(proposal):
             'Failed to schedule re-engagement for proposal %s',
             proposal.uuid,
         )
+
+
+def _enqueue_onboarding_on_accept(proposal, *, acting_user_id):
+    """
+    Fire idempotent platform onboarding when a proposal becomes accepted.
+
+    The acceptance email is owned by the calling view (preserving existing
+    per-path email behavior), so the onboarding task is told to suppress its
+    own acceptance email (``send_email=False``). No-ops when the proposal was
+    already onboarded (e.g. launched early during negotiation).
+    """
+    if proposal.platform_onboarding_completed_at is not None:
+        return
+
+    proposal.platform_onboarding_status = BusinessProposal.ONBOARDING_PENDING
+    proposal.save(update_fields=['platform_onboarding_status'])
+    ProposalChangeLog.objects.create(
+        proposal=proposal,
+        change_type=ProposalChangeLog.ChangeType.PLATFORM_LAUNCH,
+        field_name='platform_onboarding_status',
+        new_value='pending',
+        actor_type='system',
+        description='Auto-launch to platform on acceptance.',
+    )
+    try:
+        from content.tasks import run_platform_onboarding
+
+        run_platform_onboarding(
+            proposal.id,
+            acting_user_id=acting_user_id,
+            is_relaunch=False,
+            send_email=False,
+        )
+    except Exception:
+        logger.exception(
+            'Failed to auto-queue platform onboarding for proposal %s.', proposal.id,
+        )
+        proposal.platform_onboarding_status = BusinessProposal.ONBOARDING_FAILED
+        proposal.save(update_fields=['platform_onboarding_status'])
 
 
 @api_view(['POST'])
@@ -5606,6 +5353,42 @@ def send_documents_to_client(request, proposal_id):
     if sent:
         return Response(
             {'message': f'Documentos enviados a {proposal.client_email}.'},
+            status=status.HTTP_200_OK,
+        )
+    return Response(
+        {'error': 'Error al enviar el correo. Intenta de nuevo.'},
+        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def send_discount_offer(request, proposal_id):
+    """Manually send the discount-offer email (proposal_urgency) to the client.
+
+    Discount emails are never auto-sent; the seller triggers this action after
+    reviewing the preview. Requires a configured discount and client email.
+    """
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+
+    if not proposal.client_email:
+        return Response(
+            {'error': 'No hay email del cliente configurado.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not (proposal.discount_percent and proposal.discount_percent > 0):
+        return Response(
+            {'error': 'La propuesta no tiene descuento configurado.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    from content.services.proposal_email_service import ProposalEmailService
+    sent = ProposalEmailService.send_urgency_email(proposal, force=True)
+
+    if sent:
+        return Response(
+            {'message': f'Oferta de descuento enviada a {proposal.client_email}.'},
             status=status.HTTP_200_OK,
         )
     return Response(

@@ -7,6 +7,7 @@
       :confirm-text="confirmState.confirmText"
       :cancel-text="confirmState.cancelText"
       :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />

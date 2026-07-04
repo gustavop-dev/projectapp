@@ -356,6 +356,97 @@ class Command(BaseCommand):
         self._create_seed_comments(ecommerce_project, admin_user, client_user)
         self._create_seed_markdown_documents(admin_user, client_user, ecommerce_project)
         self._create_data_model_entities(ecommerce_project)
+        self._verify_some_client_emails(client_user)
+        self._sync_scope_items_from_proposal(ecommerce_project, admin_user)
+
+    def _verify_some_client_emails(self, client_user):
+        """Mark a deterministic subset of client emails as verified (idempotent).
+
+        The demo portal client is always verified (login happy-path); remaining
+        client profiles are split verified/unverified so the portal's OTP gate is
+        exercised both ways. Only sets fields when not already verified.
+        """
+        now = timezone.now()
+        verified = 0
+        for profile in (
+            UserProfile.objects.filter(role=UserProfile.ROLE_CLIENT).order_by('id')
+        ):
+            # Verify the demo client + every even-id profile; leave the rest unverified.
+            should_verify = (
+                profile.user_id == client_user.id or profile.id % 2 == 0
+            )
+            if should_verify and not profile.email_verified:
+                profile.email_verified = True
+                profile.email_verified_at = now
+                profile.save(update_fields=['email_verified', 'email_verified_at'])
+                verified += 1
+        if verified:
+            self.stdout.write(self.style.SUCCESS(
+                f'  Marked {verified} client email(s) as verified (others left unverified)'
+            ))
+        else:
+            self.stdout.write('  Client email verification already applied — skipped')
+
+    def _sync_scope_items_from_proposal(self, project, admin_user):
+        """Run the proposal→platform sync so ProjectScopeItem rows + scope-linked
+        Requirements exist end-to-end for the demo project (idempotent).
+
+        Guarded: the service returns ``ok=False`` when the linked proposal lacks an
+        enabled technical_document section, so we check the result and skip
+        gracefully instead of crashing the seeder.
+        """
+        from accounts.services.technical_requirements_sync import (
+            sync_technical_requirements_for_project,
+        )
+
+        if not project:
+            return
+
+        try:
+            result = sync_technical_requirements_for_project(project, admin_user)
+        except Exception as exc:  # defensive: never let seeding crash on sync
+            self.stdout.write(self.style.WARNING(
+                f'  Scope-item sync skipped for {project.name}: {exc}'
+            ))
+            return
+
+        if not result.get('ok'):
+            self.stdout.write(self.style.WARNING(
+                f'  Scope-item sync no-op for {project.name}: {result.get("error")}'
+            ))
+            return
+
+        self.stdout.write(self.style.SUCCESS(
+            f'  Synced scope items for {project.name}: '
+            f'{result.get("scope_items_created", 0)} scope items created, '
+            f'{result.get("requirements_created", 0)} requirements created'
+        ))
+
+        # Edge case: represent one admin-overridden requirement so re-sync
+        # content preservation is exercised. Idempotent: only when none exists.
+        already_overridden = Requirement.objects.filter(
+            phase__project=project,
+            synced_from_proposal=True,
+            content_overridden=True,
+        ).exists()
+        if not already_overridden:
+            overridden = (
+                Requirement.objects.filter(
+                    phase__project=project,
+                    synced_from_proposal=True,
+                    content_overridden=False,
+                    is_archived=False,
+                )
+                .exclude(source_flow_key='')
+                .order_by('id')
+                .first()
+            )
+            if overridden:
+                overridden.content_overridden = True
+                overridden.save(update_fields=['content_overridden', 'updated_at'])
+                self.stdout.write(self.style.SUCCESS(
+                    f'  Flagged 1 requirement as admin-overridden ({overridden.title[:40]})'
+                ))
 
     def _extend_subscription_payments(self, project):
         sub = HostingSubscription.objects.filter(project=project).first()

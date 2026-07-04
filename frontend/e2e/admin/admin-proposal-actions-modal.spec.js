@@ -141,3 +141,69 @@ test.describe('Admin Proposal Actions Modal', () => {
     await expect(page.getByText('Editar propuesta')).not.toBeVisible({ timeout: 5000 });
   });
 });
+
+/**
+ * The edit page (/panel/proposals/:id/edit) mounts a different actions modal
+ * (BusinessProposal/admin/ProposalActionsModal.vue) whose "Lanzar a Plataforma"
+ * action was widened to show for `negotiating` proposals, not only `accepted`.
+ */
+const futureDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+const json = (body) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+
+const mockEditProposal = (overrides = {}) => ({
+  id: 3,
+  uuid: '33333333-3333-3333-3333-333333333333',
+  title: 'Launch Action Proposal',
+  client_name: 'Nego Client',
+  client_email: 'nego@test.com',
+  status: 'negotiating',
+  language: 'es',
+  total_investment: '8000000',
+  currency: 'COP',
+  discount_percent: 0,
+  available_transitions: ['accepted', 'rejected'],
+  platform_onboarding_completed_at: null,
+  view_count: 4,
+  sent_at: '2026-03-02T12:00:00Z',
+  expires_at: futureDate,
+  is_active: true,
+  sections: [
+    { id: 30, section_type: 'greeting', title: 'Bienvenido', order: 0, is_enabled: true, content_json: { clientName: 'Nego Client' } },
+  ],
+  requirement_groups: [],
+  ...overrides,
+});
+
+function setupEditMocks(page, proposal) {
+  return mockApi(page, async ({ apiPath }) => {
+    if (apiPath === 'auth/check/') return json({ user: { username: 'admin', is_staff: true } });
+    if (apiPath === `proposals/${proposal.id}/detail/`) return json(proposal);
+    return null;
+  });
+}
+
+test.describe('Proposal Actions Modal — edit page launch action', () => {
+  test.setTimeout(60_000);
+
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-admin-token',
+      userAuth: { id: 8300, role: 'admin', is_staff: true },
+    });
+  });
+
+  test('launch-to-platform action is available while the proposal is negotiating', {
+    tag: [...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
+  }, async ({ page }) => {
+    const proposal = mockEditProposal({ status: 'negotiating' });
+    await setupEditMocks(page, proposal);
+
+    await page.goto(`/panel/proposals/${proposal.id}/edit`, { waitUntil: 'domcontentloaded' });
+
+    await page.getByTestId('proposal-actions-menu').click();
+
+    const launch = page.getByTestId('proposal-action-launch');
+    await expect(launch).toBeVisible({ timeout: 15000 });
+    await expect(launch).toContainText('Lanzar a Plataforma');
+  });
+});

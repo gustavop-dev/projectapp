@@ -1,6 +1,6 @@
 {
-  "version": "2.35.0",
-  "lastUpdated": "2026-07-03",
+  "version": "2.38.0",
+  "lastUpdated": "2026-07-04",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -130,7 +130,7 @@
         "guest"
       ],
       "priority": "P1",
-      "description": "Client responds to (accepts/rejects) a business proposal.",
+      "description": "Client responds to (accepts/rejects) a business proposal. Acceptance auto-provisions the client's platform project (scope items + Kanban cards) via async onboarding; see platform-proposal-auto-onboarding.",
       "expectedSpecs": 1
     },
     "proposal-download-pdf": {
@@ -224,8 +224,7 @@
       ],
       "priority": "P2",
       "description": "Delete an existing business proposal from /panel/proposals. A confirm modal requires typing 'DELETE'; on success the list refreshes and a success toast shows; on 409 (proposal linked to a launched project via ProjectPhase on_delete=PROTECT) the proposal stays and an error toast surfaces the backend message.",
-      "expectedSpecs": 1,
-      "knownGaps": "The spec only navigates + mocks DELETE; it does not exercise the confirm modal (type 'DELETE'), the success toast + list refresh, or the 409 blocked-delete path for project-linked proposals."
+      "expectedSpecs": 1
     },
     "admin-proposal-delete-from-client": {
       "name": "Admin Proposal Delete From Client",
@@ -247,7 +246,7 @@
       "priority": "P1",
       "description": "Send a proposal to a client via email from the proposals list (actions modal) or from the edit page. The email body now interpolates the editable email_intro field from the proposal and the commercial PDF is attached automatically. Backend returns email_delivery: {ok, reason, detail}; when ok=false, the panel surfaces a red toast with the reason (placeholder_email, template_disabled, send_failed) instead of generic success.",
       "expectedSpecs": 1,
-      "knownGaps": "email_intro textarea editing on /panel/proposals/:id/edit and the PDF-attachment side effect have no dedicated UI assertions; failure-feedback toast is also not asserted."
+      "knownGaps": "The server-side PDF-attachment side effect on send is backend-only and not asserted at the UI layer."
     },
     "admin-proposal-multi-send": {
       "name": "Admin Proposal Multi Send",
@@ -457,8 +456,7 @@
       ],
       "priority": "P2",
       "description": "View client list with search, tab filtering (Todos/Activos/Huérfanos), expand client to see linked proposals, and empty state. The global panel refresh button invalidates the per-client detail cache and refetches expanded rows so renamed/reassigned proposals appear.",
-      "expectedSpecs": 3,
-      "knownGaps": "No E2E asserts that the refresh button re-fetches an already-expanded client's proposals (the cache-invalidation fix for stale rename/reassignment)."
+      "expectedSpecs": 3
     },
     "admin-portfolio-list": {
       "name": "Admin Portfolio List",
@@ -810,8 +808,7 @@
       ],
       "priority": "P1",
       "description": "Expired proposal returns 410 with partial data; frontend renders ProposalExpired with client name, WhatsApp CTA, and email contact.",
-      "expectedSpecs": 1,
-      "knownGaps": "When the full proposal still renders with the persistent expired banner (pages/proposal/[uuid]/index.vue isExpired), the top-left index toggle must drop below the banner (ProposalIndex bannerActive → top-28 sm:top-20). No E2E asserts this no-overlap; only a unit test covers the offset class."
+      "expectedSpecs": 1
     },
     "admin-proposal-batch-actions": {
       "name": "Admin Proposal Batch Actions",
@@ -1242,7 +1239,37 @@
         "platform-client"
       ],
       "priority": "P1",
-      "description": "First-login OTP verification with 6-digit code input, new password set, and redirect to complete-profile or dashboard.",
+      "description": "First-login OTP verification with 6-digit code input, new password set, and role-aware redirect: clients land on /platform/documents, admins on the dashboard (via complete-profile when pending).",
+      "expectedSpecs": 1
+    },
+    "platform-client-document-portal": {
+      "name": "Platform Client Document Portal",
+      "module": "platform",
+      "roles": [
+        "platform-client"
+      ],
+      "priority": "P1",
+      "description": "Client lands on /platform/documents after first login: main contract plus annexes render and each can be downloaded as PDF.",
+      "expectedSpecs": 1
+    },
+    "platform-client-email-validation": {
+      "name": "Platform Client Email Validation",
+      "module": "platform",
+      "roles": [
+        "platform-client"
+      ],
+      "priority": "P1",
+      "description": "Client validates their account email via a 6-digit OTP sent from the documents portal before signing is unlocked.",
+      "expectedSpecs": 1
+    },
+    "platform-client-document-sign": {
+      "name": "Platform Client Document Sign",
+      "module": "platform",
+      "roles": [
+        "platform-client"
+      ],
+      "priority": "P1",
+      "description": "Client accepts/signs the main document via click-to-accept (gated on a verified email); the signature is recorded and the team is notified.",
       "expectedSpecs": 1
     },
     "platform-complete-profile": {
@@ -1264,8 +1291,18 @@
         "platform-client"
       ],
       "priority": "P1",
-      "description": "3-column kanban board (Por hacer, En progreso, En revisión) with collapsible Completados checklist. HTML5 drag & drop between columns, checkmark to complete, card detail modal with comments and history timeline. Admin has full control; client can only approve in_review cards.",
+      "description": "3-column kanban board (Por hacer, En progreso, En revisión) with collapsible Completados checklist. HTML5 drag & drop between columns, checkmark to complete, card detail modal with comments and history timeline. Cards are labeled and filterable by their proposal scope item (vista/componente/funcionalidad) with an 'Sin agrupar' bucket. Admin has full control; client can only approve in_review cards.",
       "expectedSpecs": 1
+    },
+    "platform-proposal-auto-onboarding": {
+      "name": "Proposal Acceptance Auto-Onboarding",
+      "module": "platform",
+      "roles": [
+        "system"
+      ],
+      "priority": "P1",
+      "description": "When a proposal becomes accepted (client response or admin inline), an async task provisions the client's platform project: creates the project/phase, mirrors the functional_requirements items as ProjectScopeItem rows, and upserts Kanban Requirement cards from the technical_document, linked to their scope item. Idempotent (runs once) and preserves client-owned Kanban state on re-sync. Backend-triggered; not a browser E2E journey.",
+      "expectedSpecs": 0
     },
     "platform-dashboard": {
       "name": "Platform Dashboard",
@@ -1441,7 +1478,7 @@
       "description": "On the project payments page the client sees a per-phase hosting cost table (one row per project phase + total) with frequency pills (quarterly/semiannual/annual — annual carries the biggest discount; month-to-month is not offered, minimum commitment is quarterly) that recompute the total live, and activates the subscription at the chosen frequency. The subscription bills the sum of all started phases; future-dated phases join later prorated. Billing always starts on the 1st of a calendar month and the client gets a free hosting period from project delivery until that first billing date (always at least one full month), so the first charge is deferred to the 1st rather than charged on activation day. While the subscription is pending the client can still change the frequency (pills stay editable, the first payment realigns); it locks once the first payment settles (table becomes display-only). Card is the only payment method. After activation the client registers a card (see platform-hosting-card-setup) for automatic recurring billing. Admin sees subscription status and stored-card info. Netflix-style active state shows the next automatic renewal date. Per-project view at /platform/projects/:id/payments and unified view at /platform/payments.",
       "expectedSpecs": 1,
       "knownGaps": [
-        "The annual (12-month) frequency pill, the free-month gift (first charge deferred to the 1st of the month, >= 1 month free) and the always-bill-on-the-1st alignment are new and have no dedicated E2E assertions yet. Backend date logic is unit-tested (accounts/tests/test_hosting_multiphase.py: TestFirstBillingDate, TestAnnualPlan)."
+        "The free-month gift (first charge deferred to the 1st, >= 1 month free) and always-bill-on-the-1st alignment are backend date rules, unit-tested in accounts/tests/test_hosting_multiphase.py (TestFirstBillingDate, TestAnnualPlan); no dedicated UI assertion. The annual pill select + recompute + activate is now covered."
       ]
     },
     "platform-hosting-card-setup": {
@@ -1451,8 +1488,8 @@
         "platform-client"
       ],
       "priority": "P1",
-      "description": "Client registers a card once for automatic hosting billing. From the project payments page the client opens the card modal, enters card data, and the card is tokenized into a Wompi payment source. When the card requires 3D Secure, an authentication flow runs (browser-info/fingerprint hidden iframes, then a visible bank challenge iframe) polled every 2s until the source is AVAILABLE. On success the card is stored on the subscription and the first open payment is charged. The same flow handles 'Cambiar tarjeta'. A failed payment can be retried manually with the stored card.",
-      "expectedSpecs": 0
+      "description": "Client registers a card once for automatic hosting billing. From the project payments page the client opens the card modal, enters card data, and the card is tokenized into a Wompi payment source. When the card requires 3D Secure, an authentication flow runs (browser-info/fingerprint hidden iframes, then a visible bank challenge iframe) polled every 2s until the source is AVAILABLE. On success the card is stored on the subscription and the first open payment is charged. The same flow handles 'Cambiar tarjeta'. A failed payment can be retried manually with the stored card. E2E mocks Wompi + 3DS (the challenge iframe is :srcdoc, no live sandbox): the AVAILABLE happy path and the PENDING → 3DS challenge path.",
+      "expectedSpecs": 1
     },
     "platform-hosting-card-delete": {
       "name": "Platform Hosting Card Delete",
@@ -2231,10 +2268,7 @@
       ],
       "priority": "P2",
       "description": "Admin imports a JSON blob from the JSON tab of /panel/diagnostics/:id/edit, either by pasting into the textarea or uploading a .json file (FileReader → textarea). Parse runs on every input; validation requires a root object with an array `sections`. A preview strip shows client name, section count, and formatted investment. Aplicar JSON runs PATCH /update/ for metadata first, then POST /sections/bulk-update/; success emits an inline toast and resyncs the pricing/radiography forms. Errors surface inline and abort the apply.",
-      "expectedSpecs": 1,
-      "knownGaps": [
-        "Legacy deep-links ?tab=plantillas|pricing|radiography redirect to the new tab ids — not yet asserted."
-      ]
+      "expectedSpecs": 1
     },
     "admin-diagnostic-defaults-config": {
       "name": "Admin Diagnostic Defaults Config",
@@ -2390,10 +2424,7 @@
       ],
       "priority": "P2",
       "description": "Admin uses the SyncPreviewModal on the proposal edit page to preview a server-computed diff between the current section's content_json and the canonical default, then applies the sync to overwrite. Backend endpoints: GET /api/proposals/sections/:id/sync-preview/ and POST /api/proposals/sections/:id/apply-sync/. UI lives at frontend/components/BusinessProposal/admin/SyncPreviewModal.vue (mounted in pages/panel/proposals/[id]/edit.vue).",
-      "expectedSpecs": 1,
-      "knownGaps": [
-        "No Playwright spec yet. Suggested spec asserts: modal opens with diff payload mocked, apply triggers POST and updates the section, dismiss leaves content unchanged."
-      ]
+      "expectedSpecs": 1
     },
     "proposal-magic-link-request": {
       "name": "Proposal Magic Link Request (Expired)",
@@ -2574,6 +2605,59 @@
       "priority": "P2",
       "description": "Superuser exports accounting data: every list view has an Exportar dropdown (CSV / Excel .xlsx) that calls GET /api/accounting/export/ with the active filters mapped to server query params, and the dashboard has an Exportar Excel button that downloads the full workbook (summary sheet + one sheet per section) from /api/accounting/export/workbook/?year=.",
       "expectedSpecs": 1
+    },
+    "admin-proposal-discount-offer-send": {
+      "name": "Admin Proposal Discount Offer Send",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "From /panel/proposals/:id/edit the seller opens the actions menu and picks 'Enviar oferta de descuento' — only shown when discount_percent > 0 and the client has an email. A modal renders the server-side email preview (POST /api/proposals/:id/email-preview/, template proposal_urgency); confirming sends the offer (POST /api/proposals/:id/discount-offer/send/ → ProposalEmailService.send_urgency_email force=True) and shows a success toast. Never auto-sent.",
+      "expectedSpecs": 1
+    },
+    "platform-password-reset": {
+      "name": "Platform Password Reset",
+      "module": "platform",
+      "roles": [
+        "platform-client"
+      ],
+      "priority": "P1",
+      "description": "Client recovers access from /platform/login → 'Olvidé mi contraseña': requests a reset code (POST /api/accounts/password-reset/request/), enters the 6-digit code (POST /api/accounts/password-reset/verify-code/) and sets a new password (POST /api/accounts/password-reset/confirm/), then returns to login. Public platform pages: forgot-password, verify-code, reset-password.",
+      "expectedSpecs": 1
+    },
+    "admin-client-first-login-notification": {
+      "name": "Admin Client First-Login Notification",
+      "module": "admin",
+      "roles": [
+        "system"
+      ],
+      "priority": "P2",
+      "description": "When a platform client sets their password and logs in for the first time (POST /api/accounts/verify/, only when was_onboarded was False), client_flow_notifications fires a team milestone alert: an in-app notification to the project admins plus an email to the notification recipients. Best-effort; never blocks onboarding.",
+      "expectedSpecs": 0,
+      "knownGaps": "Server-triggered side-effect (in-app + email). Out of browser-E2E scope, consistent with the other system-triggered flows; may be asserted as a branch of platform-verify-onboarding."
+    },
+    "admin-client-email-validated-notification": {
+      "name": "Admin Client Email-Validated Notification",
+      "module": "admin",
+      "roles": [
+        "system"
+      ],
+      "priority": "P2",
+      "description": "When a client confirms their email OTP from the documents portal (POST /api/accounts/email/verify/confirm/), client_flow_notifications fires a team milestone alert (in-app to project admins + email to recipients). Best-effort; already-verified confirmations do not re-notify.",
+      "expectedSpecs": 0,
+      "knownGaps": "Server-triggered side-effect (in-app + email). Out of browser-E2E scope; may be asserted as a branch of platform-client-email-validation."
+    },
+    "admin-client-document-signed-notification": {
+      "name": "Admin Client Document-Signed Notification",
+      "module": "admin",
+      "roles": [
+        "system"
+      ],
+      "priority": "P2",
+      "description": "When a client click-to-accept signs a document (POST /api/accounts/documents/:uuid/sign/), notify_team_document_signed_task fires a team milestone alert (in-app to project admins + email) and the client receives a signature-confirmation email. Best-effort; idempotent re-signs do not re-notify.",
+      "expectedSpecs": 0,
+      "knownGaps": "Server-triggered side-effect (in-app + email). Out of browser-E2E scope; may be asserted as a branch of platform-client-document-sign."
     }
   }
 }

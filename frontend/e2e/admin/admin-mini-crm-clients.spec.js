@@ -251,6 +251,27 @@ test.describe('Admin Mini CRM Clients', () => {
     await expect(page.getByText('accepted')).toBeVisible();
   });
 
+  test('the refresh button re-fetches an already-expanded client (cache invalidation)', {
+    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin'],
+  }, async ({ page }) => {
+    // Isolated, mutable detail so we can simulate a server-side rename after expansion.
+    const details = { 101: JSON.parse(JSON.stringify(mockClientDetails[101])) };
+    await setupMock(page, { details });
+    await gotoClients(page);
+
+    await page.getByTestId('client-row-101').getByText('Carlos López').click();
+    await expect(page.getByRole('link', { name: 'Propuesta Alpha', exact: true })).toBeVisible();
+
+    // Server-side rename after the detail was cached client-side.
+    details[101].proposals[0].title = 'Propuesta Alpha RENOMBRADA';
+
+    await page.getByRole('button', { name: 'Actualizar datos' }).click();
+
+    // Refresh must drop the cache and re-fetch → the renamed proposal appears.
+    await expect(page.getByRole('link', { name: 'Propuesta Alpha RENOMBRADA' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Propuesta Alpha', exact: true })).not.toBeVisible();
+  });
+
   test('search filters clients by name or email', {
     tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin'],
   }, async ({ page }) => {

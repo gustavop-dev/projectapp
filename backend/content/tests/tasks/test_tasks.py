@@ -225,6 +225,24 @@ class TestSendUrgencyReminderTask:
         proposal.refresh_from_db()
         assert proposal.urgency_email_sent_at is None
 
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email',
+           return_value=True)
+    def test_skips_auto_send_when_discount_configured(self, mock_send):
+        """Discount offers are sent manually, so the auto task must skip them."""
+        proposal = BusinessProposal.objects.create(
+            title='Discount Urgency',
+            client_name='Client',
+            client_email='client@test.com',
+            status='sent',
+            automations_paused=False,
+            discount_percent=15,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_urgency_reminder.call_local(proposal.id)
+
+        assert mock_send.call_count == 0
+
     @freeze_time('2026-03-01 12:00:00')
     @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email')
     def test_skips_when_urgency_already_sent(self, mock_send):
@@ -461,6 +479,26 @@ class TestSendRejectionReengagementTask:
 
         import content.tasks as tasks_module
         tasks_module.send_rejection_reengagement.call_local(proposal.id)
+        assert not ProposalChangeLog.objects.filter(change_type='reengagement').exists()
+
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_rejection_reengagement',
+        return_value=True,
+    )
+    def test_skips_auto_send_when_discount_configured(self, mock_send):
+        """A discount-bearing re-engagement is offered manually, not auto-sent."""
+        proposal = BusinessProposal.objects.create(
+            title='Discount Reengage',
+            client_name='Client',
+            client_email='client@test.com',
+            status='rejected',
+            discount_percent=20,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_rejection_reengagement.call_local(proposal.id)
+
+        assert mock_send.call_count == 0
         assert not ProposalChangeLog.objects.filter(change_type='reengagement').exists()
 
     def test_skips_when_no_client_email(self):

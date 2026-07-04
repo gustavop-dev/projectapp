@@ -89,7 +89,7 @@ test.describe('Platform Verify & Onboarding', () => {
     await expect(page.getByText(/contraseñas no coinciden/)).toBeVisible();
   });
 
-  test('successful verification with completed profile redirects to dashboard', {
+  test('successful verification of an onboarded client redirects to the documents portal', {
     tag: [...PLATFORM_VERIFY_ONBOARDING, '@role:platform-client'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
@@ -105,6 +105,17 @@ test.describe('Platform Verify & Onboarding', () => {
       }
       if (apiPath === 'accounts/me/' && method === 'GET') {
         return meResponse(mockPlatformClient);
+      }
+      // Landing target: the client document portal loads its own documents.
+      if (apiPath === 'accounts/documents/' && method === 'GET') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ documents: [], email: mockPlatformClient.email, email_verified: true }),
+        };
+      }
+      if (apiPath === 'accounts/notifications/unread-count/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ unread_count: 0 }) };
       }
       if (apiPath.startsWith('accounts/projects/')) {
         return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
@@ -123,8 +134,8 @@ test.describe('Platform Verify & Onboarding', () => {
     await page.getByLabel('Confirmar contraseña').fill('newpassword123');
     await page.getByRole('button', { name: /completar verificación/i }).click();
 
-    await page.waitForURL('**/platform/dashboard', { timeout: 30000 });
-    await expect(page).toHaveURL(/\/platform\/dashboard/);
+    await page.waitForURL('**/platform/documents', { timeout: 30000 });
+    await expect(page).toHaveURL(/\/platform\/documents/);
   });
 
   test('successful verification with incomplete profile redirects to complete-profile', {

@@ -125,4 +125,73 @@ test.describe('Admin Proposal Send', () => {
 
     await expect(page.getByRole('button', { name: 'Enviar al Cliente' })).not.toBeVisible();
   });
+
+  test('editing the email intro persists it through the update PATCH', {
+    tag: [...ADMIN_PROPOSAL_SEND, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDraftProposal) };
+      if (apiPath === `proposals/${PROPOSAL_ID}/update/` && method === 'PATCH') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDraftProposal) };
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`, { waitUntil: 'domcontentloaded' });
+
+    const intro = page.getByTestId('edit-email-intro');
+    await intro.waitFor({ state: 'visible', timeout: 15000 });
+    await intro.fill('Hola María, adjunto la propuesta actualizada.');
+
+    const [req] = await Promise.all([
+      page.waitForRequest((r) => r.url().includes(`proposals/${PROPOSAL_ID}/update/`) && r.method() === 'PATCH'),
+      page.getByRole('button', { name: 'Guardar Cambios' }).click(),
+    ]);
+    expect(req.postDataJSON().email_intro).toBe('Hola María, adjunto la propuesta actualizada.');
+  });
+
+  test('shows a warning toast when the email delivery fails on send', {
+    tag: [...ADMIN_PROPOSAL_SEND, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDraftProposal) };
+      if (apiPath === `proposals/${PROPOSAL_ID}/send/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockDraftProposal, status: 'sent', sent_at: '2026-03-04T12:00:00Z', email_delivery: { ok: false, detail: 'El servidor SMTP rechazó el correo.' } }) };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.getByRole('button', { name: 'Enviar al Cliente' }).first().click();
+    await expect(page.getByText('Scorecard pre-envío')).toBeVisible();
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes(`proposals/${PROPOSAL_ID}/send/`)),
+      page.locator('.fixed').getByRole('button', { name: 'Enviar al Cliente' }).click(),
+    ]);
+
+    await expect(page.getByText('Propuesta marcada como enviada')).toBeVisible();
+  });
+
+  test('shows a success toast when the send delivers', {
+    tag: [...ADMIN_PROPOSAL_SEND, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDraftProposal) };
+      if (apiPath === `proposals/${PROPOSAL_ID}/send/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockDraftProposal, status: 'sent', sent_at: '2026-03-04T12:00:00Z', email_delivery: { ok: true } }) };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.getByRole('button', { name: 'Enviar al Cliente' }).first().click();
+    await expect(page.getByText('Scorecard pre-envío')).toBeVisible();
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes(`proposals/${PROPOSAL_ID}/send/`)),
+      page.locator('.fixed').getByRole('button', { name: 'Enviar al Cliente' }).click(),
+    ]);
+
+    await expect(page.getByText('Propuesta enviada al cliente')).toBeVisible();
+  });
 });

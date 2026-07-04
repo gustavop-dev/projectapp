@@ -43,7 +43,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
       if (authStore.needsProfileCompletion) {
         return navigateTo(lp('/platform/complete-profile'))
       }
-      return navigateTo(lp('/platform/dashboard'))
+      return navigateTo(lp(authStore.isClient ? '/platform/documents' : '/platform/dashboard'))
     }
 
     if (authStore.hasVerificationToken && !authStore.isOnboarded) {
@@ -58,7 +58,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
       if (authStore.needsProfileCompletion) {
         return navigateTo(lp('/platform/complete-profile'))
       }
-      return navigateTo(lp('/platform/dashboard'))
+      return navigateTo(lp(authStore.isClient ? '/platform/documents' : '/platform/dashboard'))
     }
 
     if (!authStore.hasVerificationToken && !authStore.isAuthenticated) {

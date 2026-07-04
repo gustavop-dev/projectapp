@@ -29,6 +29,26 @@ class ResendCodeSerializer(serializers.Serializer):
     pass
 
 
+class EmailVerifyConfirmSerializer(serializers.Serializer):
+    """Confirm email ownership by submitting the OTP code sent to the client."""
+    code = serializers.CharField(max_length=6, min_length=6)
+
+
+class DocumentSignSerializer(serializers.Serializer):
+    """Client acceptance ("firma") of a document via click-to-accept."""
+    accept = serializers.BooleanField()
+    signature_name = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, default='',
+    )
+
+    def validate_accept(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                'Debes aceptar el documento para firmarlo.',
+            )
+        return value
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source='user.email', read_only=True)
     first_name = serializers.CharField(source='user.first_name', read_only=True)
@@ -43,11 +63,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'role', 'company_name', 'phone', 'cedula',
             'date_of_birth', 'gender', 'education_level',
             'avatar_display_url', 'is_onboarded', 'profile_completed',
+            'email_verified', 'email_verified_at',
             'theme_color', 'cover_image', 'custom_cover_image',
             'created_at', 'updated_at',
         ]
         read_only_fields = [
             'role', 'is_onboarded', 'profile_completed',
+            'email_verified', 'email_verified_at',
             'created_at', 'updated_at',
         ]
 
@@ -513,6 +535,8 @@ class RequirementHistorySerializer(serializers.ModelSerializer):
 class RequirementListSerializer(serializers.ModelSerializer):
     comments_count = serializers.SerializerMethodField()
     phase_title = serializers.SerializerMethodField()
+    scope_item_name = serializers.SerializerMethodField()
+    scope_item_group_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Requirement
@@ -521,6 +545,7 @@ class RequirementListSerializer(serializers.ModelSerializer):
             'title', 'description', 'configuration', 'flow',
             'status', 'priority', 'order',
             'source_epic_key', 'source_epic_title', 'source_flow_key', 'synced_from_proposal',
+            'scope_item_id', 'scope_item_name', 'scope_item_group_id',
             'is_archived', 'archived_at',
             'comments_count', 'created_at', 'updated_at',
         ]
@@ -534,6 +559,12 @@ class RequirementListSerializer(serializers.ModelSerializer):
             return ''
         bp = getattr(ph, 'business_proposal', None)
         return getattr(bp, 'title', '') if bp else f'Fase {ph.order}'
+
+    def get_scope_item_name(self, obj):
+        return obj.scope_item.name if obj.scope_item_id else ''
+
+    def get_scope_item_group_id(self, obj):
+        return obj.scope_item.group_id if obj.scope_item_id else ''
 
 
 class _SourceRequirementSerializer(serializers.Serializer):
@@ -555,6 +586,8 @@ class _SourceRequirementSerializer(serializers.Serializer):
 class RequirementDetailSerializer(serializers.ModelSerializer):
     comments = serializers.SerializerMethodField()
     history = RequirementHistorySerializer(many=True, read_only=True)
+    scope_item_name = serializers.SerializerMethodField()
+    scope_item_group_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Requirement
@@ -562,10 +595,17 @@ class RequirementDetailSerializer(serializers.ModelSerializer):
             'id', 'phase_id', 'title', 'description', 'configuration', 'flow',
             'status', 'priority', 'order',
             'source_epic_key', 'source_epic_title', 'source_flow_key', 'synced_from_proposal',
+            'scope_item_id', 'scope_item_name', 'scope_item_group_id',
             'is_archived', 'archived_at',
             'comments', 'history',
             'created_at', 'updated_at',
         ]
+
+    def get_scope_item_name(self, obj):
+        return obj.scope_item.name if obj.scope_item_id else ''
+
+    def get_scope_item_group_id(self, obj):
+        return obj.scope_item.group_id if obj.scope_item_id else ''
 
     def get_comments(self, obj):
         request = self.context.get('request')
@@ -914,6 +954,7 @@ from accounts.models import (  # noqa: E402
     DeliverableFile,
     DeliverableVersion,
     ProjectDataModelEntity,
+    ProjectScopeItem,
 )
 
 
@@ -1093,6 +1134,29 @@ class ProjectDataModelEntityItemSerializer(serializers.Serializer):
 
 class ProjectDataModelUploadSerializer(serializers.Serializer):
     entities = ProjectDataModelEntityItemSerializer(many=True)
+
+
+class ProjectScopeItemSerializer(serializers.ModelSerializer):
+    """Platform mirror of a proposal's vista/componente/funcionalidad."""
+
+    requirements_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProjectScopeItem
+        fields = [
+            'id', 'phase_id', 'source_item_id',
+            'origin', 'group_id', 'group_title', 'group_icon',
+            'group_order', 'group_is_visible',
+            'name', 'description', 'icon', 'item_order',
+            'requirements_count', 'is_archived', 'archived_at',
+            'created_at', 'updated_at',
+        ]
+
+    def get_requirements_count(self, obj):
+        return getattr(
+            obj, '_requirements_count',
+            obj.requirements.filter(is_archived=False).count(),
+        )
 
 
 class DeliverableDetailSerializer(DeliverableListSerializer):

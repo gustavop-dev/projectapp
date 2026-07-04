@@ -1,0 +1,8 @@
+{{ event_label }} — ProjectApp
+
+Cliente: {{ client_name }}{% if client_email %} <{{ client_email }}>{% endif %}
+{% if project_name %}Proyecto: {{ project_name }}{% if project_id %} (#{{ project_id }}){% endif %}
+{% endif %}{% if document_title %}Documento: {{ document_title }}
+{% endif %}{% if signed_at %}Firmado: {{ signed_at }}
+{% endif %}
+Notificación automática del portal de clientes · ProjectApp.

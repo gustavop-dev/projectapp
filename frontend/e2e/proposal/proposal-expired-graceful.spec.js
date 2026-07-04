@@ -33,6 +33,38 @@ function setup410Mock(page) {
   });
 }
 
+// New behaviour: an expired proposal returns 200 with the full proposal + expired_meta,
+// so the whole proposal renders under a persistent banner (rather than the 410 fallback page).
+const expiredFullProposal = {
+  id: 1,
+  uuid: MOCK_UUID,
+  title: 'Landing Profesional — María',
+  client_name: 'María García',
+  status: 'sent',
+  language: 'es',
+  total_investment: '15000.00',
+  currency: 'COP',
+  expired_meta: {
+    expired_at: '2026-02-28T12:00:00Z',
+    seller_name: 'Gustavo',
+    whatsapp_url: 'https://wa.me/573001112222',
+  },
+  sections: [
+    { id: 1, section_type: 'greeting', title: '👋 Bienvenido', order: 0, is_enabled: true, content_json: { clientName: 'María García', inspirationalQuote: 'Design is how it works.' } },
+    { id: 2, section_type: 'executive_summary', title: '🧾 Resumen', order: 1, is_enabled: true, content_json: { index: '1', title: 'Resumen ejecutivo', paragraphs: ['Solución diseñada para escalar.'], highlightsTitle: 'Incluye', highlights: ['Diseño UX'] } },
+  ],
+  requirement_groups: [],
+};
+
+function setup200ExpiredMock(page) {
+  return mockApi(page, async ({ apiPath }) => {
+    if (apiPath === `proposals/${MOCK_UUID}/`) {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(expiredFullProposal) };
+    }
+    return null;
+  });
+}
+
 test.describe('Expired Proposal Graceful Page', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((_uuid) => {
@@ -96,5 +128,29 @@ test.describe('Expired Proposal Graceful Page', () => {
 
     // The expired message should be the main content
     await expect(page.getByText(/propuesta ha expirado/)).toBeVisible();
+  });
+
+  test('200 + expired_meta renders the full proposal under a persistent banner with the index toggle offset below it', {
+    tag: [...PROPOSAL_EXPIRED_GRACEFUL, '@role:guest'],
+  }, async ({ page }) => {
+    await setup200ExpiredMock(page);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
+
+    // Persistent expired banner is shown OVER the full proposal (not the 410 fallback page).
+    await expect(page.getByText(/Esta propuesta expiró/)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Gustavo te envíe una versión actualizada/)).toBeVisible();
+    // The full proposal renders (the 410 page would not mount .proposal-wrapper).
+    await expect(page.locator('.proposal-wrapper')).toBeVisible();
+
+    // The index toggle drops below the banner (bannerActive → top-28 sm:top-20, no overlap).
+    const toggle = page.getByTestId('index-toggle');
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveClass(/top-28/);
+
+    // Geometry check: the toggle's top edge is at/below the banner's bottom edge.
+    // quality: allow-fragile-selector (the expired banner has no testid; scope by its fixed-top class for the no-overlap measurement)
+    const bannerBox = await page.locator('div.fixed.top-0.z-\\[9998\\]').boundingBox();
+    const toggleBox = await toggle.boundingBox();
+    expect(toggleBox.y).toBeGreaterThanOrEqual(bannerBox.y + bannerBox.height - 2);
   });
 });

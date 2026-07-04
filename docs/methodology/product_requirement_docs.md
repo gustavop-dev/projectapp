@@ -5,9 +5,11 @@
 **ProjectApp** is the full-stack web application for **Project App** (projectapp.co), a custom software development company based in Colombia. The platform serves as:
 
 1. **Company website** — marketing pages, portfolio showcase, blog, and contact form
-2. **Business proposal CRM** — create, send, track, and close personalized proposals for prospective clients
+2. **Business proposal & diagnostic CRM** — create, send, track, and close personalized proposals and web-app diagnostics for prospective clients
+3. **Client delivery platform** — post-sale client portal (`/platform/`) for projects, kanban, deliverables, payments/hosting, bug reports, change requests, and click-to-accept document signing
+4. **Internal operations** — admin panel for diagnostics + an internal Kanban, a superuser accounting module (personal ledgers, exports, card-debt reminders), and MCP connectors that expose panel modules to claude.ai
 
-The application is bilingual (English / Spanish) and targets two distinct user personas: the **Admin** (company seller/owner) and the **Client** (prospective customer).
+The application is bilingual (English / Spanish) and targets two distinct user personas: the **Admin** (company seller/owner) and the **Client** (prospective customer, and — post-sale — platform user).
 
 ---
 
@@ -15,7 +17,7 @@ The application is bilingual (English / Spanish) and targets two distinct user p
 
 | Problem | Solution |
 |---------|----------|
-| No centralized way to create and send client proposals | Full proposal builder with 12 auto-generated sections |
+| No centralized way to create and send client proposals | Full proposal builder with 17 auto-generated section types |
 | Proposals sent as static PDFs with no tracking | Interactive fullscreen web experience with engagement analytics |
 | No visibility into client interest or behavior | View tracking, section-level time analytics, heat score, engagement signals |
 | Manual follow-up prone to human error | Automated email reminders (day 10, day 15, urgency, inactivity, re-engagement) |
@@ -32,7 +34,7 @@ The application is bilingual (English / Spanish) and targets two distinct user p
 The proposal system is the most complex and central feature. It allows the admin to:
 
 - **Create proposals** with client name, email, investment amount, currency, expiration date, language, project type, and market type
-- **12 sections auto-generated** per proposal: Greeting, Executive Summary, Context & Diagnostic, Conversion Strategy, Design & UX, Creative Support, Development Stages, Functional Requirements, Timeline, Investment, Final Note, Next Steps
+- **17 section types auto-generated** per proposal: Greeting, Executive Summary, Context & Diagnostic, Conversion Strategy, Design & UX, Creative Support, Development Stages, Process & Methodology, Functional Requirements, Timeline, Investment, Proposal Summary, Final Note, Next Steps, Technical Document, Value Added Modules, ROI Projection (the last few are order-dependent; some — e.g. `roi_projection`, `value_added_modules`, `proposal_summary` — are web-only and intentionally skip the PDF)
 - **Edit section content** — each section stores structured JSON matching a specific Vue component's props schema
 - **Send to client** — triggers email with unique UUID link, schedules automated reminders
 - **Track engagement** — view count, first viewed date, per-section time analytics, session tracking, engagement scoring (heat score 1-10)
@@ -40,6 +42,7 @@ The proposal system is the most complex and central feature. It allows the admin
 - **PDF generation** — downloadable PDF version via ReportLab
 - **Investment calculator** — interactive modal for clients to explore payment options (hosting plans, discounts)
 - **Client responses** — accept, reject (with reason/comment), or negotiate proposals directly from the proposal page
+- **Manual discount offer** — from the proposal actions menu the seller can send a one-off discount/urgency email (`proposal_urgency` template) after previewing it; shown only when a discount percentage is configured and the client has an email (never auto-sent)
 
 #### Proposal Lifecycle
 
@@ -166,6 +169,15 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - JSON upload endpoint to bulk-import entity schemas
 - Accessible via platform project data model tab (`/platform/projects/:id/data-model`)
 
+### 3.8 Web App Diagnostics
+
+A second sales product alongside proposals: a structured **web-app diagnostic** delivered to a prospect via a public UUID link, mirroring the proposal's JSON-section architecture (rewritten Apr 16, 2026).
+
+- **`WebAppDiagnostic` entity** with 8 typed `DiagnosticSection`s (`purpose`, `radiography`, `categories`, `delivery_structure`, `executive_summary`, `cost`, `timeline`, `scope`), each with `visibility` ∈ initial/final/both.
+- **Admin** (`/panel/diagnostics/`): create, edit (base + status-gated tabs: General, Correos, Documentos, Secciones, Prompt, JSON, Activity, Analytics), a send-initial → mark-in-analysis → send-final lifecycle, per-language defaults (`/panel/diagnostics/defaults`), and full analytics parity with proposals (engagement score, funnel, device breakdown, sessions).
+- **Public view** (`/diagnostic/{uuid}/`): sidebar-indexed sections, PDF download, share, dark-mode toggle, per-section dwell tracking.
+- **NDA / confidentiality**: an optional confidentiality PDF can be attached to diagnostic emails.
+
 ### 3.9 Platform — Expanded Modules
 
 Building on the base Platform (auth, projects, kanban), these modules extend client collaboration:
@@ -220,7 +232,7 @@ Admin-only space at `/platform/access` for rapid access to operational URLs and 
 
 - **Panel Login** (`/panel/login`) — dedicated login page for admin panel
 - **Panel Admins** (`/panel/admins`) — admin user management (invite, list, manage admin accounts)
-- **Internal Kanban Task Board** (`/panel/tareas`) — admin-only Kanban board for managing internal ProjectApp team work. Four columns: TO DO, In Progress, Blocked, Done. Tasks have title, description, status, priority (low/medium/high), assignee (FK to any admin User, optional), and due_date (optional). Cards display priority badge and due_date highlighted in red when overdue. Drag-and-drop between columns and reorder within columns via vuedraggable. Create/edit modal with confirm-guarded delete. Tasks are independent — no FK link to proposals or documents.
+- **Internal Kanban Task Board** (`/panel/tasks`) — admin-only Kanban board for managing internal ProjectApp team work. Four columns: TO DO, In Progress, Blocked, Done. Tasks have title, description, status, priority (low/medium/high), assignee (FK to any admin User, optional), and due_date (optional). Cards display priority badge and due_date highlighted in red when overdue. Drag-and-drop between columns and reorder within columns via vuedraggable. Create/edit modal with confirm-guarded delete. Tasks are independent — no FK link to proposals or documents.
 
 ### 3.13 Internationalization (i18n)
 
@@ -229,6 +241,34 @@ Admin-only space at `/platform/access` for rapid access to operational URLs and 
 - Lazy-loaded translation files
 - Geo-locale detection plugin for automatic language suggestion
 - Language store with sync plugin
+
+### 3.14 Accounting (Superuser Finance)
+
+Internal double-ledger bookkeeping at `/panel/accounting/*`, restricted to superusers (shipped 2026-07-03).
+
+- **Three ledgers** — company + two partners (Gustavo, Carlos) — with a **partner-split invariant**: a personal-ledger record must be 100% the owning partner's (enforced in `PartnerSplitMixin.clean()`).
+- **Sub-ledgers**: incomes, expenses, hosting, recurring payments, ads spend, pocket movements, and weekly card-balance snapshots — each with server-side + client-side filters and modal CRUD.
+- **Dashboard & charts** per year; **exports** to CSV/XLSX per section and a full-year multi-sheet workbook.
+- **Card-debt reminder**: a weekly Huey task emails the partners every Friday cycle until a card snapshot dated on/after that Friday is registered (re-alerts every 2 days).
+- **Audit trail** (`AccountingChangeLog`) + notification-recipient settings.
+
+### 3.15 MCP Connectors (claude.ai)
+
+Remote Model-Context-Protocol connectors that expose panel modules to claude.ai custom connectors, managed at `/panel/mcps` (superuser-gated; shipped 2026-07-02/03).
+
+- **Connectors**: blog, documents, proposals, diagnostics, clients, tasks, accounting — each a token-authenticated JSON-RPC tool server (`content/mcp/*`).
+- **Management**: generate/rotate a one-time connector URL (plaintext token shown once, only its SHA-256 hash stored), toggle active, and watch a connection-activity feed (handshake / tool_call / auth_error / origin_rejected).
+- **Security**: Origin validation (DNS-rebinding defense), per-connector token, active-state gate.
+- The `client-report` skill publishes session change-reports to the Documents connector.
+
+### 3.16 Client Document Portal & Signing
+
+Client-facing document delivery + click-to-accept signing at `/platform/documents` — the landing page for a client after first login.
+
+- Lists the **main contract** (`requires_signature`) first, then annexes; each downloadable as a branded PDF.
+- **Email-ownership OTP**: before signing, the client validates their email via a 6-digit code (`email/verify/request` + `/confirm`); `UserProfile.email_verified` gates the sign button.
+- **Signing**: click-to-accept with a consent checkbox records `signed_at/signed_by/signature_name/signature_ip/signature_user_agent`; idempotent re-signs.
+- **Team milestone notifications** fire (best-effort, in-app + email) on first login, email validated, and document signed.
 
 ---
 
@@ -269,10 +309,14 @@ Admin-only space at `/platform/access` for rapid access to operational URLs and 
 3. 24h cooldown between automated client-facing emails per proposal
 4. Automations can be paused per proposal
 5. Engagement heat score (1-10) computed from views, section time, recency
-6. Proposal sections map 1:1 to Vue components via `section_type`
+6. Proposal sections map 1:1 to Vue components via `section_type` (17 section types; some are web-only and skip the PDF)
 7. Default section content is configurable per language (admin-editable)
 8. Email templates are editable and resettable via admin panel
 9. Share links track independent view counts from main proposal views
 10. Change logs record full audit trail of proposal lifecycle events
 11. **Project stage notifications**: Stage rows are admin-managed (not auto-derived from JSON timeline). Warning fires once at 70% elapsed; overdue alert fires immediately when `today > end_date` and repeats every 3 days until `completed_at` is set. All day-level arithmetic uses Bogotá time (`today_bogota()` from `content/utils.py`). Internal team recipients live in `NOTIFICATION_EMAIL` CSV.
 12. **Proposal client identity**: `BusinessProposal.client` is a FK to `accounts.UserProfile` filtered to `role='client'` (`on_delete=PROTECT`). Legacy denormalized fields `client_name` / `client_email` / `client_phone` are kept as write-through snapshots, synced via `proposal_client_service.sync_snapshot()` after every FK assignment. Empty client emails get a placeholder `cliente_<profile_id>@temp.example.com` (RFC 2606 reserved TLD) generated via two-step save. Clients with placeholder emails are excluded from **all 13 client-facing email methods** in `ProposalEmailService` and from the 4 huey reminder/urgency/abandonment tasks via `_is_unsendable_client_email(email)`. Two candidate-selection querysets (`abandonment_candidates`, `interest_candidates`) also exclude placeholders directly via `.exclude(client_email__iendswith=UserProfile.PLACEHOLDER_EMAIL_DOMAIN)`. Shipped 2026-04-09.
+13. **Project scope items**: an accepted proposal's functional-requirement groups are mirrored into `ProjectScopeItem` rows (chain Project → ProjectPhase → ProjectScopeItem → Requirement) by `technical_requirements_sync`. Re-sync overwrites proposal-authored content unless an admin took over a card (`Requirement.content_overridden=True`); removed items are archived and re-added ones resurrected.
+14. **Client document signing**: a client can only sign a `requires_signature` document after their email is verified via OTP. Signing records name/timestamp/IP/user-agent and is idempotent; it fires best-effort team milestone notifications (first login, email validated, document signed) that never block the client flow.
+15. **Accounting partner split**: every accounting record carries a total plus per-partner amounts; a record on a personal ledger (Gustavo/Carlos) must be 100% that partner's (the other partner's amount = 0), enforced at `clean()`. Company amount is derived, not stored.
+16. **Manual-only discount offer**: the discount/urgency email from the proposal actions menu is never sent automatically — it requires an explicit send and is only offered when a discount percentage is configured and the client has a real email.

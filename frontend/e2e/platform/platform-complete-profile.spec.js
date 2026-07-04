@@ -65,7 +65,7 @@ test.describe('Platform Complete Profile', () => {
     await expect(submitBtn).toBeDisabled();
   });
 
-  test('successful profile completion redirects to dashboard', {
+  test('successful profile completion redirects a client to the documents portal', {
     tag: [...PLATFORM_COMPLETE_PROFILE, '@role:platform-client'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformClientIncompleteProfile });
@@ -90,6 +90,20 @@ test.describe('Platform Complete Profile', () => {
       if (apiPath === 'accounts/me/complete-profile/' && method === 'POST') {
         return { status: 200, contentType: 'application/json', body: JSON.stringify(completedUser) };
       }
+      // Landing target: the client document portal loads its own documents.
+      if (apiPath === 'accounts/documents/' && method === 'GET') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ documents: [], email: completedUser.email, email_verified: true }),
+        };
+      }
+      if (apiPath === 'accounts/notifications/unread-count/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ unread_count: 0 }) };
+      }
+      if (apiPath.startsWith('accounts/projects')) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
       return null;
     });
 
@@ -107,8 +121,8 @@ test.describe('Platform Complete Profile', () => {
 
     await page.getByRole('button', { name: /completar perfil/i }).click();
 
-    await page.waitForURL('**/platform/dashboard', { timeout: 15000 });
-    await expect(page).toHaveURL(/\/platform\/dashboard/);
+    await page.waitForURL('**/platform/documents', { timeout: 15000 });
+    await expect(page).toHaveURL(/\/platform\/documents/);
   });
 
   test('shows error on API failure', {

@@ -143,6 +143,24 @@ class Document(models.Model):
     include_subportada = models.BooleanField(default=True)
     include_contraportada = models.BooleanField(default=True)
 
+    # Client-facing signature (click-to-accept). requires_signature marks the
+    # main contract the client must sign; siblings in the same project are annexes.
+    requires_signature = models.BooleanField(
+        default=False,
+        help_text='True when the client must accept/sign this document in the platform.',
+    )
+    signed_at = models.DateTimeField(null=True, blank=True)
+    signed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='documents_signed',
+    )
+    signature_name = models.CharField(max_length=255, blank=True, default='')
+    signature_ip = models.GenericIPAddressField(null=True, blank=True)
+    signature_user_agent = models.TextField(blank=True, default='')
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

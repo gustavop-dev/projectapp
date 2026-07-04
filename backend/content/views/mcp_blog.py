@@ -22,7 +22,12 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 
 from content.mcp.protocol import handle_message
+from content.mcp.accounting_tools import ACCOUNTING_TOOLS
+from content.mcp.client_tools import CLIENT_TOOLS
+from content.mcp.diagnostic_tools import DIAGNOSTIC_TOOLS
 from content.mcp.document_tools import DOCUMENT_TOOLS
+from content.mcp.proposal_tools import PROPOSAL_TOOLS
+from content.mcp.task_tools import TASK_TOOLS
 from content.mcp.tools import BLOG_TOOLS
 from content.models import McpConnector, McpRequestLog
 from content.permissions import IsSuperUser
@@ -35,6 +40,11 @@ LAST_USED_TOUCH_SECONDS = 60
 TOOLS_BY_SLUG = {
     'blog': BLOG_TOOLS,
     'documents': DOCUMENT_TOOLS,
+    'clients': CLIENT_TOOLS,
+    'tasks': TASK_TOOLS,
+    'accounting': ACCOUNTING_TOOLS,
+    'diagnostics': DIAGNOSTIC_TOOLS,
+    'proposals': PROPOSAL_TOOLS,
 }
 
 

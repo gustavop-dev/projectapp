@@ -72,7 +72,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'send', 'send-multi', 'resend', 'negotiate', 'approve', 'launch', 'finish', 'reject', 'close',
+  'send', 'send-multi', 'resend', 'negotiate', 'approve', 'launch', 'finish', 'reject',
+  'discount-offer', 'close',
 ]);
 
 const suggestedKey = computed(() => getProposalNextAction(props.proposal)?.key || null);
@@ -124,12 +125,20 @@ const actions = computed(() => {
       dotClass: 'bg-emerald-500',
     });
   }
-  if (status === 'accepted') {
+  if (['accepted', 'negotiating'].includes(status)) {
     list.push({
       key: 'launch',
       label: p.platform_onboarding_completed_at ? 'Re-lanzar a Plataforma' : 'Lanzar a Plataforma',
       description: 'Ejecuta el onboarding: crea proyecto, entregables y requerimientos.',
       dotClass: 'bg-indigo-500',
+    });
+  }
+  if (Number(p.discount_percent) > 0 && hasEmail) {
+    list.push({
+      key: 'discount-offer',
+      label: 'Enviar oferta de descuento',
+      description: `Ofrece el descuento del ${p.discount_percent}% al cliente, con previsualización antes de enviar.`,
+      dotClass: 'bg-rose-500',
     });
   }
   if (transitions.includes('finished')) {

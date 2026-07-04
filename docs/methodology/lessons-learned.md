@@ -25,7 +25,8 @@ This file captures important patterns, preferences, and project intelligence tha
 ### Service Layer Pattern
 - Business logic lives in `content/services/`, not in views
 - Views are thin FBV wrappers that call service methods
-- Services: `ProposalService`, `ProposalEmailService`, `ProposalPdfService`, `ContractPdfService`, `EmailTemplateRegistry`, `PdfUtils`, `DocumentPdfService`, `MarkdownParser`, `CollectionAccountService`, `CollectionAccountPdfService`, `TechnicalDocumentPdf`, `TechnicalDocumentFilter`, `PlatformOnboardingPdf`, `LinkedInService`
+- Services (30 modules): `ProposalService`, `ProposalEmailService`, `ProposalPdfService`, `ContractPdfService`, `EmailTemplateRegistry`, `PdfUtils`, `DocumentPdfService`, `MarkdownParser`, `CollectionAccountService`, `CollectionAccountPdfService`, `TechnicalDocumentPdf`, `TechnicalDocumentFilter`, `PlatformOnboardingPdf`, `LinkedInService`, `DiagnosticService`, `DiagnosticEmailService`, `DiagnosticPdfService`, `DiagnosticDocumentsService`, `AccountingService`, `AccountingExportService`, `AccountingEmailService`, `AccountingCardReminderService`
+- MCP tool servers live in `content/mcp/` (`protocol`, `actor`, `tools` + per-domain connector modules), not in `services/` — they wrap existing service/ORM calls behind a token-authed JSON-RPC surface for claude.ai
 
 ### External API Integration Pattern (LinkedIn)
 - External OAuth integrations follow the singleton model + service module pattern
@@ -193,10 +194,15 @@ venv/bin/python <command>
 - Platform stores use kebab-case: `platform-auth.js`, `platform-clients.js`, `platform-projects.js`, `platform-requirements.js`
 - Content stores use snake_case: `portfolio_works.js`, `proposals.js`
 
-### Accounts Services
+### Accounts Services (19 modules)
 - `services/onboarding.py` — profile completion flow
 - `services/tokens.py` — JWT token generation/refresh
-- `services/verification.py` — OTP code generation and validation
+- `services/verification.py` — OTP code generation and validation (login + email validation purposes)
+- `services/password_reset.py` — password-reset OTP flow
+- `services/client_flow_notifications.py` — best-effort team milestone alerts (first login / email validated / document signed); never raises
+- `services/technical_requirements_sync.py` — mirrors accepted-proposal FR groups into `ProjectScopeItem` + `Requirement` rows (respects `content_overridden`)
+- `services/hosting_billing.py` + `services/payment_notifications.py` + `services/project_phases.py` — hosting multi-phase billing/proration + payment alerts
+- `services/impersonation.py` — panel→platform admin impersonation exchange
 - `services/image_utils.py` — avatar processing
 - `services/credential_cipher.py` — Fernet encrypt/decrypt for project admin passwords; `_get_cipher()` is `@lru_cache(maxsize=1)` so the key is read once; `PROJECT_ACCESS_CIPHER_KEY` env var; call `_get_cipher.cache_clear()` in tests after setting the env var
 
@@ -267,7 +273,7 @@ venv/bin/python <command>
 
 ---
 
-## 12. Pinia Reactivity (Vue 3 + Options API stores)
+## 11. Pinia Reactivity (Vue 3 + Options API stores)
 
 ### In-place mutation, not spread + reassign
 
@@ -317,7 +323,7 @@ This supersedes the earlier rule "stores self-maintain state after CRUD, parents
 
 ---
 
-## 13. Internal Team Notifications vs Client-Facing Sends
+## 12. Internal Team Notifications vs Client-Facing Sends
 
 ### `_log_email` is for client-facing emails only
 
@@ -341,7 +347,7 @@ All internal team notifications resolve recipients via `cls._get_notification_re
 
 ---
 
-## 14. Single Source of Truth for Small Catalogs
+## 13. Single Source of Truth for Small Catalogs
 
 When you have a small enum-like catalog (e.g., the two project stages `design` + `development`), put the canonical list in **one place** and have all consumers delegate to it.
 
@@ -376,7 +382,7 @@ class ProposalProjectStage(models.Model):
 
 ---
 
-## 15. Bogotá Timezone Arithmetic
+## 14. Bogotá Timezone Arithmetic
 
 All day-level arithmetic (e.g., "is the stage overdue today?") must use Bogotá time, not Django's default UTC.
 
@@ -395,7 +401,7 @@ All day-level arithmetic (e.g., "is the stage overdue today?") must use Bogotá 
 
 ---
 
-## 16. Internal-Only Model Fields in Shared Serializers
+## 15. Internal-Only Model Fields in Shared Serializers
 
 When a model is internal-only by design (e.g., `ProposalProjectStage` per its docstring: "internal-only and never rendered to the client"), the corresponding field on a shared serializer must be **gated by admin context**, not exposed via plain nested-model rendering.
 
@@ -426,7 +432,7 @@ Don't forget to `prefetch_related('project_stages')` in the admin queryset, othe
 
 ---
 
-## 11. Methodology Maintenance
+## 16. Methodology Maintenance
 
 ### Memory Bank Source
 - Methodology rules based on [rules_template](https://github.com/Bhartendu-Kumar/rules_template)
@@ -439,6 +445,8 @@ Don't forget to `prefetch_related('project_stages')` in the admin queryset, othe
 - After significant changes to test infrastructure or counts
 - When file counts drift by >10% from documented values
 - After methodology rule updates from upstream template
+
+**Last full refresh: 2026-07-04.** Drift had far exceeded the >10% trigger (e.g. migrations documented at `0087` vs actual `0137`; test files 124/77/131 vs 199/290/191) because the Accounting, MCP-connector, and client-signing waves shipped without a memory-bank pass. Lesson: run `/methodology-setup` at the end of a feature *wave*, not just per-feature — the >10% rule only helps if something actually checks it.
 
 ---
 
@@ -635,4 +643,24 @@ A build step that prerenders pages by fetching the app's **own public API** is, 
 - **A loopback build server needs a no-TLS settings module.** `settings_prod` forces `SECURE_SSL_REDIRECT=True`, which 301s plain-HTTP loopback fetches to `https://127.0.0.1` and breaks them. `backend/projectapp/settings_build.py` extends prod (real DB/content) but disables SSL redirect / HSTS / secure cookies. It exists only for the build server.
 - **Put the fix at the single build chokepoint.** Both `/deploy-and-check` and the on-publish `run_frontend_rebuild` task call `npm run build:django`, so fixing it there covers every path. Keep a graceful fallback (env-provided origin) for environments with no backend (CI/dev).
 - **Make a dropped prerender loud, not silent.** Set `PRERENDER_REQUIRE_BLOG=1` once the build can reliably reach the API, so a regression fails the build instead of silently shipping un-prerendered SEO pages.
+
+---
+
+## 20. Panel Modules Wave — MCP, Accounting, Client Signing (Jul 2026)
+
+### MCP connector security (claude.ai remote connectors)
+- The connector token is a **capability URL**: shown in full exactly once at generation, then only its **SHA-256 hash** is stored (`McpConnector`). Regenerating rotates the hash and instantly 404s the old URL.
+- The MCP endpoint (`content/views/mcp_blog.py`) validates **Origin** (DNS-rebinding defense) + token + active-state on every JSON-RPC call, and logs `handshake/tool_call/auth_error/origin_rejected` to `McpRequestLog` (the panel's connection-activity feed reads this).
+- MCP tools wrap existing services/ORM — they are **not** a new business layer. Guardrails live in the tool module (e.g. Documents connector only exposes MARKDOWN docs, refuses to delete published docs). The machine-facing endpoint is integration-tested in pytest, not E2E.
+
+### Accounting partner-split invariant
+- `PartnerSplitMixin.clean()` is the single source of truth for the money rule: no negative amounts, `gustavo + carlos ≤ total`, and a **personal-ledger record must be 100% the owning partner's** (other partner = 0). `company_amount` is a derived property, never stored. Keep validation in `clean()` so both the API and the admin enforce it; don't re-implement in serializers.
+- `source_ref` is an idempotency key (`import:<hash>` / `fake:<tag>`) — dedups re-imports and fake-data reseeds.
+
+### Client document signing
+- Two independent gates before a signature is accepted: the document must be `requires_signature`, and the client's email must be **verified via OTP** (`UserProfile.email_verified`). The sign button is disabled client-side and the endpoint returns 403 server-side — test both.
+- Signing is **idempotent** (re-sign returns the signed doc, doesn't re-notify). Milestone team notifications are best-effort and must never raise into the client flow (`client_flow_notifications` swallows errors).
+
+### E2E flow tags must be array literals, not bare constants
+- The flow-definitions sync checker (`scripts/lib/e2e-flow-refs.mjs`) only detects `@flow:` references inside `tag: [ ... ]` **array literals**. A spec that applies `{ tag: PLATFORM_PASSWORD_RESET }` (bare imported constant) is invisible to it — its coverage silently doesn't count. Always spread: `{ tag: [...PLATFORM_PASSWORD_RESET] }` / `{ tag: [...CONST, '@role:client'] }`. This stayed hidden until the flow was registered in `flow-definitions.json` (an unregistered flow trips neither the "unknown-in-specs" nor the "required-but-unreferenced" check).
 - **Verify at the served-HTML layer, not just HTTP 200.** A Nuxt SPA shell returns 200 with no article content. Confirm `<article>` + per-post `og:title` + JSON-LD are present in `curl` output, and spot-check a real browser render.

@@ -116,8 +116,9 @@ class BusinessProposal(models.Model):
     discount_percent = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     automations_paused = models.BooleanField(
-        default=True,
-        help_text='When true, no automatic emails (reminder, urgency, inactivity) are sent for this proposal.',
+        default=False,
+        help_text='When true, no automatic emails (reminder, urgency, inactivity) are sent for this proposal. '
+                  'New proposals default to automations enabled (not paused).',
     )
     reminder_sent_at = models.DateTimeField(null=True, blank=True)
     urgency_email_sent_at = models.DateTimeField(null=True, blank=True)

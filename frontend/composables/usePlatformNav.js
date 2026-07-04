@@ -23,6 +23,10 @@ export function usePlatformNav() {
       { label: 'Notificaciones', href: lp('/platform/notifications'), icon: 'bell', badge: notifStore.unreadCount },
       { label: 'Proyectos',      href: lp('/platform/projects'),      icon: 'folder' },
     ]
+    if (authStore.isClient) {
+      // Client-facing document portal (view/download/sign). Admins use /panel/documents.
+      items.push({ label: 'Documentos', href: lp('/platform/documents'), icon: 'file' })
+    }
     if (authStore.isAdmin) {
       items.push({ label: 'Clientes', href: lp('/platform/clients'), icon: 'users' })
     }

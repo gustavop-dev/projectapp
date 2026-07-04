@@ -109,4 +109,51 @@ test.describe('Admin Proposal Section Sync (Preview & Apply)', () => {
 
     expect(applySyncCalled).toBe(true);
   });
+
+  test('dismissing the sync preview renders the diff but does not apply it', {
+    tag: [...ADMIN_PROPOSAL_SECTION_SYNC, '@role:admin'],
+  }, async ({ page }) => {
+    let applySyncCalled = false;
+
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockAcceptedProposal) };
+      }
+      if (apiPath === `proposals/sections/${SECTION_ID}/sync-preview/` && method === 'POST') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            ...mockSyncPreviewResponse,
+            diff: {
+              epics: { to_create: [{ title: 'Nueva Épica: Autenticación' }], to_update: [], to_delete: [] },
+              requirements: { to_create: [], to_update: [], to_delete: [] },
+            },
+          }),
+        };
+      }
+      if (apiPath === `proposals/sections/${SECTION_ID}/apply-sync/` && method === 'POST') {
+        applySyncCalled = true;
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ id: SECTION_ID, content_json: mockTechnicalSection.content_json }) };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.getByRole('tab', { name: 'Det. técnico' }).click();
+    await page.getByRole('button', { name: 'Guardar detalle técnico' }).click();
+
+    await expect(page.getByText('Vista previa de sincronización')).toBeVisible({ timeout: 10000 });
+    // The non-empty diff renders the new-epic row.
+    await expect(page.getByText('Nueva Épica: Autenticación')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+
+    await expect(page.getByText('Vista previa de sincronización')).not.toBeVisible();
+    // Dismiss must NOT trigger the apply-sync POST.
+    expect(applySyncCalled).toBe(false);
+  });
 });

@@ -1,12 +1,19 @@
 """
-Sync platform Kanban requirements from BusinessProposal technical_document JSON.
+Sync platform data from a BusinessProposal into the client's project:
 
-NOTE (refactor 2026-05-17): Requirements moved from Deliverable to ProjectPhase.
-This service still wires Requirements via the legacy deliverable-per-epic structure
-in places — calls below currently no-op the Requirement.create path because the
-``deliverable`` FK no longer exists on Requirement. Sync of Deliverables (files)
-still works. A full redesign is pending so callers that depend on Requirement
-sync via proposal flow will be a no-op until rebuilt around phases.
+* ``ProjectScopeItem`` rows mirror the commercial vistas/componentes/funcionalidades
+  from the ``functional_requirements`` section (the client-facing grouping backbone
+  for the Kanban).
+* ``Requirement`` cards (the trackable work) are upserted from the
+  ``technical_document`` epics/requirements and linked to their primary scope item
+  via ``linked_item_ids``.
+* ``Deliverable`` (one per epic) and ``DataModelEntity`` rows keep mirroring the
+  ``technical_document`` epics/dataModel as before.
+
+Requirements are phase-scoped (rebuilt around ``ProjectPhase`` after the 2026-05-17
+refactor); ``_ensure_phase`` guarantees a phase exists before any card is attached.
+Re-sync is idempotent and preserves client/team-owned Kanban state (status, order,
+comments); proposal-authored content is overwritten unless ``content_overridden``.
 """
 
 from __future__ import annotations
@@ -15,12 +22,159 @@ from typing import Any
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Max
 
-from accounts.models import DataModelEntity, Deliverable, Requirement
-from accounts.services.archive import archive_record
+from accounts.models import (
+    DataModelEntity,
+    Deliverable,
+    ProjectPhase,
+    ProjectScopeItem,
+    Requirement,
+)
+from accounts.services.archive import archive_record, unarchive_record
 from content.models import ProposalSection
+from content.services.proposal_module_links import (
+    ensure_functional_requirements_item_ids,
+    normalize_linked_module_ids,
+)
 
 User = get_user_model()
+
+
+def _str(value: Any) -> str:
+    """Normalize any value to a stripped string ('' for None)."""
+    if value is None:
+        return ''
+    if not isinstance(value, str):
+        value = str(value)
+    return value.strip()
+
+
+def _map_priority(value: Any) -> str:
+    """Map a proposal priority string to a valid Requirement priority (default medium)."""
+    v = _str(value).lower()
+    valid = {choice[0] for choice in Requirement.PRIORITY_CHOICES}
+    return v if v in valid else Requirement.PRIORITY_MEDIUM
+
+
+def _ensure_phase(project, bp) -> ProjectPhase:
+    """
+    Return the ProjectPhase for (project, bp), creating it if missing.
+
+    The acceptance/onboarding path creates a Project + root Deliverable but no
+    ProjectPhase; since Requirements/ProjectScopeItems are phase-scoped, this
+    closes that gap. Keyed on the unique (project, business_proposal).
+    """
+    phase = ProjectPhase.objects.filter(project=project, business_proposal=bp).first()
+    if phase:
+        return phase
+    next_order = (project.phases.aggregate(m=Max('order'))['m'] or 0) + 1
+    return ProjectPhase.objects.create(
+        project=project, business_proposal=bp, order=next_order,
+    )
+
+
+def _read_functional_requirements(bp) -> dict[str, Any] | None:
+    """
+    Return the proposal's functional_requirements content_json with item ids
+    ensured (in memory only), or None if the section is absent/disabled.
+    """
+    section = (
+        ProposalSection.objects.filter(
+            proposal=bp,
+            section_type=ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS,
+            is_enabled=True,
+        )
+        .values('content_json')
+        .first()
+    )
+    if not section:
+        return None
+    return ensure_functional_requirements_item_ids(section['content_json'] or {})
+
+
+def _sync_scope_items(phase, fr_json: dict[str, Any], stats: dict[str, Any]) -> dict[str, ProjectScopeItem]:
+    """
+    Upsert ProjectScopeItem rows (keyed by source_item_id) from a
+    functional_requirements content_json. Faithful mirror of every group in
+    ``groups`` + ``additionalModules`` (incl. hidden groups). Scope items carry
+    no client-owned state, so descriptive fields are always overwritten and
+    re-added items are resurrected; items removed from the proposal are archived.
+
+    Returns {source_item_id: ProjectScopeItem} for requirement linking.
+    """
+    scope_by_source: dict[str, ProjectScopeItem] = {}
+    if not isinstance(fr_json, dict):
+        return scope_by_source
+
+    seen_item_ids: set[str] = set()
+    group_order = 0
+
+    for section_key in ('groups', 'additionalModules'):
+        entries = fr_json.get(section_key)
+        if not isinstance(entries, list):
+            continue
+        origin = (
+            ProjectScopeItem.ORIGIN_ADDITIONAL
+            if section_key == 'additionalModules'
+            else ProjectScopeItem.ORIGIN_GROUP
+        )
+        for group in entries:
+            if not isinstance(group, dict):
+                continue
+            gid = _str(group.get('id'))[:200]
+            gtitle = _str(group.get('title'))[:300]
+            gicon = _str(group.get('icon'))[:50]
+            gvisible = group.get('is_visible') is not False
+            item_order = 0
+            for item in group.get('items') or []:
+                if not isinstance(item, dict):
+                    continue
+                sid = _str(item.get('id'))
+                if not sid:
+                    continue
+                seen_item_ids.add(sid)
+                defaults = {
+                    'origin': origin,
+                    'group_id': gid,
+                    'group_title': gtitle,
+                    'group_icon': gicon,
+                    'group_order': group_order,
+                    'group_is_visible': gvisible,
+                    'name': _str(item.get('name'))[:300] or sid[:300],
+                    'description': (item.get('description') or '')[:5000],
+                    'icon': _str(item.get('icon'))[:50],
+                    'item_order': item_order,
+                    'synced_from_proposal': True,
+                }
+                si, created = ProjectScopeItem.objects.get_or_create(
+                    phase=phase, source_item_id=sid, defaults=defaults,
+                )
+                if created:
+                    stats['scope_items_created'] += 1
+                else:
+                    changed = [f for f, v in defaults.items() if getattr(si, f) != v]
+                    if changed:
+                        for f in changed:
+                            setattr(si, f, defaults[f])
+                        si.save(update_fields=changed + ['updated_at'])
+                        stats['scope_items_updated'] += 1
+                    if si.is_archived:
+                        unarchive_record(si)
+                        stats['scope_items_unarchived'] += 1
+                scope_by_source[sid] = si
+                item_order += 1
+            group_order += 1
+
+    # Archive scope items removed from the proposal (safe: no client-owned state).
+    for si in (
+        ProjectScopeItem.objects.filter(phase=phase, is_archived=False)
+        .exclude(source_item_id__in=seen_item_ids)
+    ):
+        archive_record(si)
+        stats['scope_items_archived'] += 1
+
+    return scope_by_source
 
 
 def _parse_epics_from_json(content_json: dict) -> list:
@@ -205,8 +359,13 @@ def _sync_technical_requirements_core(
     delete_removed: bool = False,
 ) -> dict[str, Any]:
     """
-    Upsert one Deliverable per epic (by source_epic_key) and Requirements per flowKey.
-    Skips requirement rows without title or without flowKey.
+    Upsert, from the linked proposal:
+      * ProjectScopeItem rows (per functional_requirements item) — grouping backbone;
+      * one Deliverable per epic (by source_epic_key);
+      * Requirement cards per flowKey, linked to their primary scope item;
+      * DataModelEntity rows (per dataModel entity).
+    Skips requirement rows without title or without flowKey. Preserves client-owned
+    Kanban state on re-sync (see module docstring).
     """
     section = (
         ProposalSection.objects.filter(
@@ -228,6 +387,10 @@ def _sync_technical_requirements_core(
     stats = {
         'ok': True,
         'epics_processed': 0,
+        'scope_items_created': 0,
+        'scope_items_updated': 0,
+        'scope_items_unarchived': 0,
+        'scope_items_archived': 0,
         'deliverables_created': 0,
         'deliverables_updated': 0,
         'deliverables_deleted': 0,
@@ -241,9 +404,18 @@ def _sync_technical_requirements_core(
     }
 
     with transaction.atomic():
+        phase = _ensure_phase(project, bp)
+        fr_json = _read_functional_requirements(bp)
+        scope_by_source = (
+            _sync_scope_items(phase, fr_json, stats) if fr_json is not None else {}
+        )
+
         seen_epic_keys: set[str] = set()
         seen_flow_keys: set[str] = set()
         synced_deliverables: list[Deliverable] = []
+        next_req_order = (
+            Requirement.objects.filter(phase=phase).aggregate(m=Max('order'))['m'] or 0
+        ) + 1
 
         for idx, epic in enumerate(epics):
             if not isinstance(epic, dict):
@@ -294,14 +466,83 @@ def _sync_technical_requirements_core(
 
             stats['epics_processed'] += 1
 
-            # Requirement sync via proposal flow is disabled after the
-            # Requirement→Phase refactor. Track skipped count for callers.
-            stats['requirements_skipped'] += len(reqs)
             for r in reqs:
-                if isinstance(r, dict):
-                    flow_key = (r.get('flowKey') or '').strip()
-                    if flow_key:
-                        seen_flow_keys.add(flow_key)
+                if not isinstance(r, dict):
+                    stats['requirements_skipped'] += 1
+                    continue
+                flow_key = _str(r.get('flowKey'))
+                r_title = _str(r.get('title'))
+                if not flow_key or not r_title:
+                    stats['requirements_skipped'] += 1
+                    continue
+                seen_flow_keys.add(flow_key)
+
+                r_desc = (r.get('description') or '')[:5000]
+                r_flow = (r.get('usageFlow') or r.get('flow') or '')[:5000]
+                r_conf = (r.get('configuration') or '')[:5000]
+                r_priority = _map_priority(r.get('priority'))
+
+                # Primary scope item = first linked_item_id that resolves in this phase.
+                scope_item = None
+                for sid in normalize_linked_module_ids(
+                    r.get('linked_item_ids') or r.get('linkedItemIds')
+                ):
+                    if sid in scope_by_source:
+                        scope_item = scope_by_source[sid]
+                        break
+
+                req, created = Requirement.objects.get_or_create(
+                    phase=phase,
+                    source_flow_key=flow_key,
+                    defaults={
+                        'title': r_title[:300],
+                        'description': r_desc,
+                        'flow': r_flow,
+                        'configuration': r_conf,
+                        'priority': r_priority,
+                        'status': Requirement.STATUS_BACKLOG,
+                        'order': next_req_order,
+                        'source_epic_key': key[:200],
+                        'source_epic_title': title[:300],
+                        'scope_item': scope_item,
+                        'synced_from_proposal': True,
+                    },
+                )
+                if created:
+                    stats['requirements_created'] += 1
+                    next_req_order += 1
+                    continue
+
+                # Existing card: re-point grouping/provenance every sync; overwrite
+                # proposal-authored content unless an admin has taken it over.
+                changed: list[str] = []
+                new_scope_id = scope_item.id if scope_item else None
+                if req.scope_item_id != new_scope_id:
+                    req.scope_item = scope_item
+                    changed.append('scope_item')
+                if req.source_epic_key != key[:200]:
+                    req.source_epic_key = key[:200]
+                    changed.append('source_epic_key')
+                if req.source_epic_title != title[:300]:
+                    req.source_epic_title = title[:300]
+                    changed.append('source_epic_title')
+                if not req.synced_from_proposal:
+                    req.synced_from_proposal = True
+                    changed.append('synced_from_proposal')
+                if not req.content_overridden:
+                    for field, value in (
+                        ('title', r_title[:300]),
+                        ('description', r_desc),
+                        ('flow', r_flow),
+                        ('configuration', r_conf),
+                        ('priority', r_priority),
+                    ):
+                        if getattr(req, field) != value:
+                            setattr(req, field, value)
+                            changed.append(field)
+                if changed:
+                    req.save(update_fields=changed + ['updated_at'])
+                    stats['requirements_updated'] += 1
 
         if delete_removed and seen_epic_keys:
             to_del_d = Deliverable.objects.filter(
@@ -315,10 +556,9 @@ def _sync_technical_requirements_core(
 
         if delete_removed and seen_flow_keys:
             to_del_r = Requirement.objects.filter(
-                phase__project=project,
-                source_flow_key__isnull=False,
+                phase=phase,
                 is_archived=False,
-            ).exclude(source_flow_key__in=seen_flow_keys)
+            ).exclude(source_flow_key='').exclude(source_flow_key__in=seen_flow_keys)
             for r_del in to_del_r:
                 archive_record(r_del)
                 stats['requirements_deleted'] += 1

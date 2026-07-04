@@ -2408,6 +2408,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `public-landing-apps` | public | guest | P3 | ✅ Covered | `e2e/public/public-landing-apps.spec.js` |
 | `platform-login` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-login.spec.js` |
 | `platform-verify-onboarding` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-verify.spec.js` |
+| `platform-client-document-portal` | platform | platform-client | P1 | ✅ Covered | `e2e/platform/platform-client-documents.spec.js` |
+| `platform-client-email-validation` | platform | platform-client | P1 | ✅ Covered | `e2e/platform/platform-client-documents.spec.js` |
+| `platform-client-document-sign` | platform | platform-client | P1 | ✅ Covered | `e2e/platform/platform-client-documents.spec.js` |
 | `platform-complete-profile` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-complete-profile.spec.js` |
 | `platform-kanban-board` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-kanban-board.spec.js` |
 | `platform-dashboard` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-dashboard.spec.js` |
@@ -2419,7 +2422,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `platform-admin-client-detail` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-admin-client-detail.spec.js` |
 | `platform-profile-edit` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-profile.spec.js` |
 | `platform-hosting-subscription` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-hosting-subscription.spec.js` |
-| `platform-hosting-card-setup` | platform | platform-client | P1 | ❌ Missing | _none_ |
+| `platform-hosting-card-setup` | platform | platform-client | P1 | ✅ Covered | `e2e/platform/platform-hosting-card-setup.spec.js` |
 | `platform-hosting-card-delete` | platform | platform-client | P2 | ❌ Missing | _none_ |
 | `platform-change-requests` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-change-requests.spec.js` |
 | `platform-bug-reports` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-bug-reports.spec.js` |
@@ -2656,17 +2659,34 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   2. Back link to project detail renders with project name.
   3. Progress pill renders with percentage and completed count.
   4. Three kanban columns render: "Por hacer" (todo), "En progreso" (in_progress), "En revisión" (in_review).
-  5. Requirement cards render in their respective columns with priority dot, module tag, title, estimated hours, and comment count.
+  5. Requirement cards render in their respective columns with priority dot, scope-item label (the vista/componente/funcionalidad from the proposal; falls back to the legacy "Módulo"/epic for older cards), title, and comment count.
   6. Collapsible "Completados" section renders below columns with done cards as a checklist.
 - **Branches:**
   - [Branch A — Admin drag & drop] Admin drags a card from one column to another → `POST .../move/` API updates status → card moves to target column.
   - [Branch B — Admin create card] Admin clicks "Card" button → create modal opens with title, description, priority, column, module, hours → submit creates requirement.
   - [Branch C — Complete card] Admin (or client for in_review) clicks checkmark → card moves to "done" column.
-  - [Branch D — Card detail] User clicks any card → detail modal opens showing description, meta (status, estimated hours, created date), history timeline, and comments section.
+  - [Branch D — Card detail] User clicks any card → detail modal opens showing description, meta (status, scope item, created date), history timeline, and comments section.
   - [Branch E — Client approval] Client sees "Aprobar requerimiento" button for cards in approval status → clicking approves and moves to done.
   - [Branch F — Toggle completed] User clicks "Completados" bar → expands/collapses the done cards list.
+  - [Branch G — Scope filter] User picks a vista/componente/funcionalidad (or "Sin agrupar") from the "Alcance" selector → columns and backlog show only cards linked to that scope item. Populated from `GET /api/accounts/projects/:id/scope-items/`.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/platform/platform-kanban-board.spec.js`
+- **Related:** Scope items and cards are auto-created on proposal acceptance — see `platform-proposal-auto-onboarding`.
+
+#### FLOW: `platform-proposal-auto-onboarding` *(system-triggered, no browser E2E)*
+
+- **Module:** platform
+- **Role:** system
+- **Priority:** P1
+- **Trigger:** A `BusinessProposal` transitions to `accepted` — client response (`respond_to_proposal`) or admin inline (`update_proposal_status`).
+- **Description:** Async onboarding provisions the client's platform project so it reflects the accepted proposal. Idempotent (runs once, guarded by `platform_onboarding_completed_at`); the manual "Lanzar a Plataforma" button remains as a re-sync/fallback.
+- **Steps (backend):**
+  1. Acceptance enqueues `run_platform_onboarding` (with the task's acceptance email suppressed; the view owns the client email).
+  2. `handle_proposal_accepted_for_platform` ensures the client `User`, `Project`, root `Deliverable`, and (via the sync) a `ProjectPhase`.
+  3. `functional_requirements` items (vistas/componentes/funcionalidades) are mirrored as `ProjectScopeItem` rows keyed by `source_item_id`.
+  4. `technical_document` epics/requirements are upserted as Kanban `Requirement` cards keyed by `(phase, source_flow_key)`, each linked to its primary scope item via `linked_item_ids`.
+- **Re-sync policy:** preserves client-owned state (`status`, `order`, comments); overwrites proposal-authored content unless the card was manually edited (`content_overridden`); archives scope items removed from the proposal and resurrects re-added ones.
+- **Coverage:** Backend tests (`accounts/tests/test_proposal_scope_sync.py`, `test_proposal_platform_onboarding.py`, `content/tests/views/test_proposal_status_and_pdf.py`). No Playwright journey (`roles: ["system"]`, `expectedSpecs: 0`).
 
 #### FLOW: `platform-unified-board`
 
@@ -2883,8 +2903,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch B — Declined/Error] Source returns `DECLINED`/`ERROR`; modal shows an error with "Intentar de nuevo".
   - [Branch C — Change card] An existing stored card is replaced; the new payment source overwrites the old one.
   - [Branch D — Manual retry] A `failed` payment shows "Reintentar cobro" → `POST .../payments/:pid/charge/` with the stored card.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** _none — needs `e2e/platform/platform-hosting-card-setup.spec.js`_
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-hosting-card-setup.spec.js` (Wompi + 3DS mocked via `:srcdoc` — covers the AVAILABLE happy path and the PENDING → 3DS challenge path)
 
 #### FLOW: `platform-hosting-card-delete`
 
@@ -3080,16 +3100,74 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/platform/platform-access.spec.js`
 
+### 8.14 Client Document Portal
+
+#### FLOW: `platform-client-document-portal`
+
+- **Module:** platform
+- **Role:** platform-client
+- **Priority:** P1
+- **Routes:** `/platform/documents`
+- **API:** `GET /api/accounts/documents/`, `GET /api/accounts/documents/:uuid/pdf/`
+- **Description:** After first login the client lands here. The main contract (`requires_signature`) is shown first, followed by its annexes. Each document can be downloaded as a PDF. The page also surfaces the client's email-verification state to gate signing.
+- **Steps:**
+  1. Client logs in for the first time, sets password (onboarding), and is redirected to `/platform/documents`.
+  2. List loads from `GET /api/accounts/documents/` → main document card + annex rows render.
+  3. Client clicks Descargar PDF on the main document or an annex → PDF downloaded (blob).
+- **Branches:**
+  - [Branch A — Empty] No published documents → "Todavía no tienes documentos disponibles." empty state.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-client-documents.spec.js`
+
+#### FLOW: `platform-client-email-validation`
+
+- **Module:** platform
+- **Role:** platform-client
+- **Priority:** P1
+- **Routes:** `/platform/documents`
+- **API:** `POST /api/accounts/email/verify/request/`, `POST /api/accounts/email/verify/confirm/`
+- **Description:** Client confirms ownership of their account email via a 6-digit OTP before they can sign. The email-validation card shows the current email, sends a code, and accepts the code in an input.
+- **Steps:**
+  1. On `/platform/documents`, the client sees the "Valida tu correo electrónico" card (only while unverified).
+  2. Client clicks Enviar código → `POST /api/accounts/email/verify/request/` sends an OTP to their email.
+  3. Client enters the 6-digit code and clicks Validar correo → `POST /api/accounts/email/verify/confirm/`.
+  4. On success the card is replaced by a "Tu correo está validado" banner and signing is unlocked.
+- **Branches:**
+  - [Branch A — Bad code] Wrong/expired code → inline error, stays unverified.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-client-documents.spec.js`
+
+#### FLOW: `platform-client-document-sign`
+
+- **Module:** platform
+- **Role:** platform-client
+- **Priority:** P1
+- **Routes:** `/platform/documents`
+- **API:** `POST /api/accounts/documents/:uuid/sign/`
+- **Description:** Client accepts/signs the main document via click-to-accept. The Aceptar y firmar button is disabled until the email is verified. A confirmation modal with an acceptance checkbox records the signature (name, timestamp, IP, user-agent) and notifies the team.
+- **Steps:**
+  1. With a verified email, the client clicks Aceptar y firmar on the main document.
+  2. Confirmation modal opens; client ticks "He leído el documento y acepto sus términos." and clicks Confirmar firma.
+  3. `POST /api/accounts/documents/:uuid/sign/` records the signature; the card shows "Firmado el <fecha>".
+- **Branches:**
+  - [Branch A — Email not verified] Button disabled; signing blocked (backend returns 403).
+  - [Branch B — Already signed] Endpoint is idempotent; the signed state persists.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-client-documents.spec.js`
+
 ### 8.13 Platform Coverage Index
 
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
+| `platform-client-document-portal` | platform | platform-client | P1 | ✅ Covered | `e2e/platform/platform-client-documents.spec.js` |
+| `platform-client-email-validation` | platform | platform-client | P1 | ✅ Covered | `e2e/platform/platform-client-documents.spec.js` |
+| `platform-client-document-sign` | platform | platform-client | P1 | ✅ Covered | `e2e/platform/platform-client-documents.spec.js` |
 | `platform-login` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-login.spec.js` |
 | `platform-verify-onboarding` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-verify.spec.js` |
 | `platform-complete-profile` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-complete-profile.spec.js` |
 | `platform-kanban-board` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-kanban-board.spec.js` |
 | `platform-hosting-subscription` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-hosting-subscription.spec.js` |
-| `platform-hosting-card-setup` | platform | platform-client | P1 | ❌ Missing | _none_ |
+| `platform-hosting-card-setup` | platform | platform-client | P1 | ✅ Covered | `e2e/platform/platform-hosting-card-setup.spec.js` |
 | `platform-hosting-card-delete` | platform | platform-client | P2 | ❌ Missing | _none_ |
 | `platform-dashboard` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-dashboard.spec.js` |
 | `platform-sidebar-navigation` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-sidebar.spec.js` |
@@ -5259,3 +5337,136 @@ Management UI for remote MCP connectors that expose panel modules to Claude (cla
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
 | `admin-mcps` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-mcps.spec.js` |
+
+---
+
+## Section 25 — Flows Audit Gaps (Jul 4, 2026)
+
+Registered by the `/e2e-user-flows-check` audit of the `feat/03072026-panel-modules-mcp-connectors` branch. Covers the new admin discount-offer action, backfills six flows that were already tested but undocumented here, and registers three system-triggered client-milestone notifications for traceability.
+
+Also registered/updated in this audit and documented in their home sections:
+- The three `platform-client-*` flows (§8.14) — now **✅ Covered** by `e2e/platform/platform-client-documents.spec.js`.
+- `platform-password-reset` (§8.1) — added to `flow-definitions.json`; **✅ Covered** by `e2e/platform/platform-password-reset.spec.js`.
+
+### FLOW: `admin-proposal-discount-offer-send`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/:id/edit`
+- **API:** `POST /api/proposals/:id/email-preview/` (template `proposal_urgency`), `POST /api/proposals/:id/discount-offer/send/`
+- **Description:** From the proposal actions menu the seller picks "Enviar oferta de descuento" — only shown when `discount_percent > 0` and the client has an email. A modal renders the server-side email preview; confirming sends the offer (`ProposalEmailService.send_urgency_email(force=True)`) and shows a success toast. Never auto-sent.
+- **Steps:**
+  1. Admin opens `/panel/proposals/:id/edit` and clicks the actions menu.
+  2. Picks "Enviar oferta de descuento" → discount modal opens and loads the email preview.
+  3. Clicks "Enviar oferta" → offer is emailed to the client → success toast.
+- **Branches:**
+  - [Branch A — no discount] `discount_percent = 0` → the action is hidden.
+  - [Branch B — no email] Client without an email → the action is hidden.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-discount-offer.spec.js`
+
+### FLOW: `admin-styleguide`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/styleguide`
+- **Description:** Admin browses the base-component and design-token catalog (BaseInput/BaseButton/BaseModal/etc. plus semantic tokens) used across the panel.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/visual/styleguide.spec.js`
+
+### FLOW: `admin-layout-title-mapping`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/*`
+- **Description:** The browser tab `<title>` updates to the human-readable name of the active panel route (dynamic title mapping in the admin layout).
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-layout-title-mapping.spec.js`
+
+### FLOW: `platform-layout-title-mapping`
+
+- **Module:** platform
+- **Role:** platform-admin
+- **Priority:** P3
+- **Routes:** `/platform/*`
+- **Description:** The browser tab `<title>` updates to the human-readable name of the active platform route (dynamic title mapping in the platform layout).
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-layout-title-mapping.spec.js`
+
+### FLOW: `admin-proposal-json-import-client-picker`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/create`
+- **Description:** When a pasted/imported proposal JSON does not resolve to an existing client, a client-picker prompts the admin to bind the imported proposal to a client before creating it.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-json-import-client-picker.spec.js`
+
+### FLOW: `proposal-calculator-reopen-after-nav`
+
+- **Module:** proposal
+- **Role:** guest
+- **Priority:** P1
+- **Routes:** `/proposal/:uuid`
+- **Description:** On the public proposal, reopening the investment calculator after navigating between sections preserves the previously selected modules and calculator state.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-calculator-reopen-after-nav.spec.js`
+
+### FLOW: `proposal-slug-access`
+
+- **Module:** proposal
+- **Role:** guest
+- **Priority:** P1
+- **Routes:** `/proposal/:slug`
+- **Description:** The public proposal is reachable via a human-readable slug URL (in addition to its UUID), resolving to the same proposal view.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-slug-access.spec.js`
+
+### FLOW: `admin-client-first-login-notification`
+
+- **Module:** admin
+- **Role:** system
+- **Priority:** P2
+- **Trigger:** `POST /api/accounts/verify/` (first-time onboarding, `was_onboarded == False`)
+- **Description:** On a client's first platform login (password set), `client_flow_notifications` fires a team milestone alert: an in-app notification to the project admins plus an email to the notification recipients. Best-effort; never blocks onboarding; fires only on the first login.
+- **Coverage:** ⚠️ Backend-only
+- **Evidence:** Backend service `accounts/services/client_flow_notifications.py` (out of browser-E2E scope; may be asserted as a branch of `platform-verify-onboarding`).
+
+### FLOW: `admin-client-email-validated-notification`
+
+- **Module:** admin
+- **Role:** system
+- **Priority:** P2
+- **Trigger:** `POST /api/accounts/email/verify/confirm/`
+- **Description:** When a client confirms their email OTP from the documents portal, `client_flow_notifications` fires a team milestone alert (in-app to project admins + email). Best-effort; already-verified confirmations do not re-notify.
+- **Coverage:** ⚠️ Backend-only
+- **Evidence:** Backend service `accounts/services/client_flow_notifications.py` (out of browser-E2E scope; may be asserted as a branch of `platform-client-email-validation`).
+
+### FLOW: `admin-client-document-signed-notification`
+
+- **Module:** admin
+- **Role:** system
+- **Priority:** P2
+- **Trigger:** `POST /api/accounts/documents/:uuid/sign/`
+- **Description:** When a client click-to-accept signs a document, `notify_team_document_signed_task` fires a team milestone alert (in-app to project admins + email) and the client receives a signature-confirmation email. Best-effort; idempotent re-signs do not re-notify.
+- **Coverage:** ⚠️ Backend-only
+- **Evidence:** Backend service `accounts/services/client_flow_notifications.py` + Huey task `notify_team_document_signed_task` (out of browser-E2E scope; may be asserted as a branch of `platform-client-document-sign`).
+
+### 25.1 Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `admin-proposal-discount-offer-send` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-discount-offer.spec.js` |
+| `admin-styleguide` | admin | admin | P3 | ✅ Covered | `e2e/visual/styleguide.spec.js` |
+| `admin-layout-title-mapping` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-layout-title-mapping.spec.js` |
+| `platform-layout-title-mapping` | platform | platform-admin | P3 | ✅ Covered | `e2e/platform/platform-layout-title-mapping.spec.js` |
+| `admin-proposal-json-import-client-picker` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-json-import-client-picker.spec.js` |
+| `proposal-calculator-reopen-after-nav` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-calculator-reopen-after-nav.spec.js` |
+| `proposal-slug-access` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-slug-access.spec.js` |
+| `admin-client-first-login-notification` | admin | system | P2 | ⚠️ Backend-only | `accounts/services/client_flow_notifications.py` |
+| `admin-client-email-validated-notification` | admin | system | P2 | ⚠️ Backend-only | `accounts/services/client_flow_notifications.py` |
+| `admin-client-document-signed-notification` | admin | system | P2 | ⚠️ Backend-only | `accounts/services/client_flow_notifications.py` |

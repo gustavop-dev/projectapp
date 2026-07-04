@@ -197,8 +197,15 @@ def verify_view(request):
     user.save(update_fields=['password'])
 
     profile = user.profile
+    was_onboarded = profile.is_onboarded
     profile.is_onboarded = True
     profile.save(update_fields=['is_onboarded'])
+
+    # First-ever platform login (password just set): notify the team.
+    if not was_onboarded:
+        from accounts.tasks import notify_team_client_first_login_task
+
+        notify_team_client_first_login_task(user.id)
 
     tokens = get_tokens_for_user(user)
     return Response({
@@ -1047,7 +1054,7 @@ def requirement_list_view(request, project_id):
     is_admin = profile and profile.is_admin
 
     if request.method == 'GET':
-        qs = Requirement.objects.filter(phase__project=proj).select_related('phase')
+        qs = Requirement.objects.filter(phase__project=proj).select_related('phase', 'scope_item')
         qs = filter_requirements_for_list(qs, request, is_admin=is_admin)
         phase_id = request.query_params.get('phase_id')
         if phase_id:
@@ -1221,6 +1228,13 @@ def requirement_detail_view(request, project_id, req_id):
         if field in data:
             setattr(req, field, data[field])
             upd_fields.append(field)
+    # An admin edit of proposal-authored content marks the card as overridden so
+    # a later proposal re-sync will not clobber it (status/order are workflow
+    # fields, always preserved by the sync regardless).
+    content_fields = {'title', 'description', 'priority', 'configuration', 'flow'}
+    if content_fields & data.keys() and not req.content_overridden:
+        req.content_overridden = True
+        upd_fields.append('content_overridden')
     if len(upd_fields) > 1:
         req.save(update_fields=upd_fields)
 
@@ -2811,6 +2825,38 @@ def project_data_model_entities_view(request, project_id):
         ProjectDataModelEntitySerializer(qs, many=True).data,
         status=status.HTTP_201_CREATED,
     )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_scope_items_view(request, project_id):
+    """
+    GET — List the project's scope items (vistas/componentes/funcionalidades)
+    mirrored from the accepted proposal's functional_requirements section.
+    Read-only; admin or owning client. Optional ?phase_id=X filter; admins may
+    pass ?include_archived=1.
+    """
+    from django.db.models import Count, Q
+
+    from accounts.models import ProjectScopeItem
+    from accounts.serializers import ProjectScopeItemSerializer
+    from accounts.services.archive import filter_not_archived
+
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    qs = ProjectScopeItem.objects.filter(phase__project=proj).select_related('phase')
+    qs = filter_not_archived(qs, request, admin_may_include_archived=True)
+    phase_id = request.query_params.get('phase_id')
+    if phase_id:
+        qs = qs.filter(phase_id=phase_id)
+    qs = qs.annotate(
+        _requirements_count=Count(
+            'requirements', filter=Q(requirements__is_archived=False),
+        ),
+    )
+    return Response(ProjectScopeItemSerializer(qs, many=True).data)
 
 
 @api_view(['GET'])
