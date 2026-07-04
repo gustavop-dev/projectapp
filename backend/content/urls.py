@@ -88,6 +88,8 @@ from content.views.mcp_blog import (
 from content.views.linkedin import (
     linkedin_auth_url, linkedin_callback, linkedin_status,
     publish_to_linkedin,
+    list_linkedin_posts, create_linkedin_post,
+    update_linkedin_post, delete_linkedin_post,
 )
 from content.views.standalone_email import (
     send_standalone_email, get_standalone_email_defaults, list_standalone_emails,
@@ -275,6 +277,12 @@ urlpatterns = [
     path('linkedin/auth-url/', linkedin_auth_url, name='linkedin-auth-url'),
     path('linkedin/callback/', linkedin_callback, name='linkedin-callback'),
     path('linkedin/status/', linkedin_status, name='linkedin-status'),
+
+    # Freeform LinkedIn posts (panel module)
+    path('linkedin/posts/', list_linkedin_posts, name='list-linkedin-posts'),
+    path('linkedin/posts/create/', create_linkedin_post, name='create-linkedin-post'),
+    path('linkedin/posts/<int:post_id>/update/', update_linkedin_post, name='update-linkedin-post'),
+    path('linkedin/posts/<int:post_id>/delete/', delete_linkedin_post, name='delete-linkedin-post'),
 
     # Blog — public
     path('blog/', list_blog_posts, name='list-blog-posts'),

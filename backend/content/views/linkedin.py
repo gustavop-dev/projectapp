@@ -18,7 +18,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
-from content.models import BlogPost
+from content.models import BlogPost, LinkedInPost
+from content.serializers.linkedin_post import LinkedInPostSerializer
+from content.services.linkedin_post_service import schedule_linkedin_post_eta
 from content.services.linkedin_service import (
     exchange_code_for_token,
     get_authorization_url,
@@ -187,3 +189,74 @@ def publish_to_linkedin(request, post_id):
         post.save(update_fields=['linkedin_post_id', 'linkedin_published_at'])
 
     return Response(result, status=status.HTTP_200_OK if result['success'] else status.HTTP_502_BAD_GATEWAY)
+
+
+# ---------------------------------------------------------------------------
+# Freeform LinkedIn posts (panel module)
+# ---------------------------------------------------------------------------
+
+def _apply_schedule_transition(post):
+    """Sync status with scheduled_at after create/update and enqueue ETA."""
+    if post.status == LinkedInPost.STATUS_PUBLISHED:
+        return
+    if post.scheduled_at:
+        post.status = LinkedInPost.STATUS_SCHEDULED
+        post.save(update_fields=['status', 'updated_at'])
+        schedule_linkedin_post_eta(post)
+    elif post.status == LinkedInPost.STATUS_SCHEDULED:
+        post.status = LinkedInPost.STATUS_DRAFT
+        post.save(update_fields=['status', 'updated_at'])
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def list_linkedin_posts(request):
+    """List freeform LinkedIn posts, newest first."""
+    posts = LinkedInPost.objects.all()
+    return Response(LinkedInPostSerializer(posts, many=True).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def create_linkedin_post(request):
+    """Create a freeform LinkedIn post (draft, or scheduled when scheduled_at set)."""
+    serializer = LinkedInPostSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    post = serializer.save()
+    _apply_schedule_transition(post)
+    return Response(
+        LinkedInPostSerializer(post).data, status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['PUT'])
+@permission_classes([IsAdminUser])
+def update_linkedin_post(request, post_id):
+    """Update a draft/scheduled/failed post. Published posts are immutable."""
+    post = LinkedInPost.objects.filter(pk=post_id).first()
+    if not post:
+        return Response({'error': 'Post no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+    if post.status == LinkedInPost.STATUS_PUBLISHED:
+        return Response(
+            {'error': 'Un post ya publicado no se puede editar.'},
+            status=status.HTTP_409_CONFLICT,
+        )
+    data = request.data.copy()
+    if data.get('scheduled_at') == '':
+        data['scheduled_at'] = None
+    serializer = LinkedInPostSerializer(post, data=data, partial=True)
+    serializer.is_valid(raise_exception=True)
+    post = serializer.save()
+    _apply_schedule_transition(post)
+    return Response(LinkedInPostSerializer(post).data)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def delete_linkedin_post(request, post_id):
+    """Delete a freeform LinkedIn post (local record only)."""
+    post = LinkedInPost.objects.filter(pk=post_id).first()
+    if not post:
+        return Response({'error': 'Post no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+    post.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
