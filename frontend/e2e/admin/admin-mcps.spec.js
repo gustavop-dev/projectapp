@@ -98,21 +98,33 @@ test.describe('Panel MCPs', () => {
 
     await expect(page.getByTestId('mcp-card-blog')).toBeVisible({ timeout: 25_000 });
     await expect(page.getByText('Blog Publisher')).toBeVisible();
-    await expect(page.getByText('create_blog_post')).toBeVisible();
-    await expect(page.getByText('sin generar')).toBeVisible();
+
+    // Collapsed accordion row: token, status and tools live in the body and
+    // are hidden until the row is expanded.
+    await expect(page.getByText('sin generar')).not.toBeVisible();
+    await expect(page.getByText('create_blog_post')).not.toBeVisible();
 
     // Collapsible step-by-step connection guide (native <details>) is present.
     await expect(page.getByTestId('mcps-guide')).toBeVisible();
     await expect(page.getByText('¿Cómo conectar un conector a Claude?')).toBeVisible();
 
-    // Connection status derived from the latest MCP event
+    // Expanding the row reveals the detail body: token, connection status,
+    // and the activity/tools sub-accordions.
+    await page.getByTestId('mcp-card-header-blog').click();
+    await expect(page.getByTestId('mcp-detail-blog')).toBeVisible();
+    await expect(page.getByText('sin generar')).toBeVisible();
+
     await expect(page.getByTestId('mcp-connection-blog')).toContainText('Error de conexión');
     await expect(page.getByTestId('mcp-connection-blog')).toContainText('https://evil.example');
 
-    // Recent activity list expands with the event trail
+    // Recent activity sub-accordion expands with the event trail.
     await page.getByTestId('mcp-activity-toggle-blog').click();
     await expect(page.getByTestId('mcp-activity-list-blog')).toContainText('Origin rechazado');
     await expect(page.getByTestId('mcp-activity-list-blog')).toContainText('Conexión (initialize)');
+
+    // Available tools sub-accordion expands with the tool list.
+    await page.getByTestId('mcp-tools-toggle-blog').click();
+    await expect(page.getByText('create_blog_post')).toBeVisible();
   });
 
   test('generates a token and shows the one-time connector URL modal', {
@@ -122,6 +134,8 @@ test.describe('Panel MCPs', () => {
     await page.goto('/panel/mcps', { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByTestId('mcp-card-blog')).toBeVisible({ timeout: 25_000 });
+    // The generate-token button lives in the expanded body, so open the row first.
+    await page.getByTestId('mcp-card-header-blog').click();
     await page.getByTestId('mcp-generate-token-blog').click();
 
     await expect(page.getByTestId('mcp-token-modal')).toBeVisible();

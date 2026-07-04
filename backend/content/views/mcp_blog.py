@@ -26,6 +26,7 @@ from content.mcp.accounting_tools import ACCOUNTING_TOOLS
 from content.mcp.client_tools import CLIENT_TOOLS
 from content.mcp.diagnostic_tools import DIAGNOSTIC_TOOLS
 from content.mcp.document_tools import DOCUMENT_TOOLS
+from content.mcp.linkedin_tools import LINKEDIN_TOOLS
 from content.mcp.proposal_tools import PROPOSAL_TOOLS
 from content.mcp.task_tools import TASK_TOOLS
 from content.mcp.tools import BLOG_TOOLS
@@ -45,6 +46,7 @@ TOOLS_BY_SLUG = {
     'accounting': ACCOUNTING_TOOLS,
     'diagnostics': DIAGNOSTIC_TOOLS,
     'proposals': PROPOSAL_TOOLS,
+    'linkedin-personal': LINKEDIN_TOOLS,
 }
 
 

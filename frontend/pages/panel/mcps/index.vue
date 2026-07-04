@@ -69,108 +69,178 @@
       </BaseButton>
     </div>
 
-    <div v-else class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-5 items-start">
+    <div v-else class="space-y-3">
       <div
         v-for="connector in store.connectors"
         :key="connector.slug"
         :data-testid="`mcp-card-${connector.slug}`"
-        class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6"
+        class="bg-surface border border-border-muted rounded-xl shadow-sm overflow-hidden"
       >
-        <div class="flex items-start justify-between gap-3 mb-1">
-          <h2 class="text-lg font-bold text-text-default">{{ connector.name }}</h2>
-          <div class="flex items-center gap-2 flex-shrink-0">
-            <span
-              class="text-xs font-medium"
-              :class="connector.is_active ? 'text-success-strong' : 'text-text-subtle'"
-              :data-testid="`mcp-status-${connector.slug}`"
-            >
-              {{ connector.is_active ? 'Activo' : 'Inactivo' }}
-            </span>
-            <BaseToggle
-              :model-value="connector.is_active"
-              :aria-label="`Activar ${connector.name}`"
-              :data-testid="`mcp-toggle-${connector.slug}`"
-              @update:model-value="(value) => onToggle(connector, value)"
-            />
-          </div>
-        </div>
-        <p class="text-sm text-text-muted mb-4">{{ connector.description }}</p>
-
-        <div class="flex items-center gap-2 text-sm mb-4">
-          <span class="text-text-subtle">Token:</span>
-          <code v-if="connector.has_token" class="text-xs bg-surface-muted rounded px-2 py-1">
-            {{ connector.token_prefix }}…
-          </code>
-          <span v-else class="text-text-subtle">sin generar</span>
-          <span v-if="connector.last_used_at" class="text-xs text-text-subtle ml-auto">
-            Último uso: {{ formatDate(connector.last_used_at) }}
-          </span>
-        </div>
-
-        <!-- Connection status derived from the latest MCP request -->
+        <!-- Accordion header (always visible; click toggles the detail body) -->
         <div
-          class="flex items-start gap-2 text-sm rounded-lg px-3 py-2 mb-4"
-          :class="statusFor(connector).box"
-          :data-testid="`mcp-connection-${connector.slug}`"
+          role="button"
+          tabindex="0"
+          :aria-expanded="isExpanded(connector.slug)"
+          :data-testid="`mcp-card-header-${connector.slug}`"
+          class="flex items-center gap-3 px-4 sm:px-5 py-4 cursor-pointer select-none transition-colors hover:bg-surface-muted focus:outline-none focus:ring-2 focus:ring-focus-ring/30"
+          @click="toggleRow(connector.slug)"
+          @keydown.enter.prevent="toggleRow(connector.slug)"
+          @keydown.space.prevent="toggleRow(connector.slug)"
         >
-          <span class="mt-1 h-2 w-2 rounded-full flex-shrink-0" :class="statusFor(connector).dot" />
-          <div>
-            <span class="font-medium">{{ statusFor(connector).label }}</span>
-            <template v-if="connector.recent_events?.length">
-              <span class="text-text-muted">
-                · {{ formatDate(connector.recent_events[0].created_at) }}
-                · {{ eventLabel(connector.recent_events[0]) }}
+          <svg
+            class="h-4 w-4 flex-shrink-0 text-text-subtle transition-transform duration-200"
+            :class="{ 'rotate-180': isExpanded(connector.slug) }"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+          <h2 class="text-base font-bold text-text-default truncate">{{ connector.name }}</h2>
+
+          <div class="ml-auto flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <!-- Connection status at a glance (hidden on narrow screens) -->
+            <BaseBadge
+              :variant="statusVariant(connector)"
+              size="sm"
+              class="hidden sm:inline-flex"
+              :data-testid="`mcp-connection-badge-${connector.slug}`"
+            >
+              <span class="h-1.5 w-1.5 rounded-full" :class="statusFor(connector).dot" />
+              {{ statusFor(connector).label }}
+            </BaseBadge>
+
+            <!-- Active status + toggle: click must not collapse/expand the row -->
+            <div class="flex items-center gap-2" @click.stop @keydown.enter.stop @keydown.space.stop>
+              <span
+                class="text-xs font-medium"
+                :class="connector.is_active ? 'text-success-strong' : 'text-text-subtle'"
+                :data-testid="`mcp-status-${connector.slug}`"
+              >
+                {{ connector.is_active ? 'Activo' : 'Inactivo' }}
               </span>
-              <p v-if="!connector.recent_events[0].ok && connector.recent_events[0].detail" class="text-xs text-text-muted mt-0.5">
-                {{ connector.recent_events[0].detail }}
-              </p>
-            </template>
+              <BaseToggle
+                :model-value="connector.is_active"
+                :aria-label="`Activar ${connector.name}`"
+                :data-testid="`mcp-toggle-${connector.slug}`"
+                @update:model-value="(value) => onToggle(connector, value)"
+              />
+            </div>
           </div>
         </div>
 
-        <details v-if="connector.recent_events?.length" class="mb-4">
-          <summary
-            class="text-xs font-semibold text-text-subtle uppercase tracking-wider cursor-pointer select-none"
-            :data-testid="`mcp-activity-toggle-${connector.slug}`"
+        <!-- Accordion body: description, status, metadata, sub-accordions, actions -->
+        <div
+          v-if="isExpanded(connector.slug)"
+          :data-testid="`mcp-detail-${connector.slug}`"
+          class="border-t border-border-muted px-4 sm:px-5 py-4 space-y-4"
+        >
+          <p class="text-sm text-text-muted">{{ connector.description }}</p>
+
+          <!-- Connection status derived from the latest MCP request -->
+          <div
+            class="flex items-start gap-2 text-sm rounded-lg px-3 py-2"
+            :class="statusFor(connector).box"
+            :data-testid="`mcp-connection-${connector.slug}`"
           >
-            Actividad reciente ({{ connector.recent_events.length }})
-          </summary>
-          <ul class="mt-2 space-y-1.5" :data-testid="`mcp-activity-list-${connector.slug}`">
-            <li
-              v-for="(event, index) in connector.recent_events"
-              :key="index"
-              class="flex items-start gap-2 text-xs"
+            <span class="mt-1 h-2 w-2 rounded-full flex-shrink-0" :class="statusFor(connector).dot" />
+            <div>
+              <span class="font-medium">{{ statusFor(connector).label }}</span>
+              <template v-if="connector.recent_events?.length">
+                <span class="text-text-muted">
+                  · {{ formatDate(connector.recent_events[0].created_at) }}
+                  · {{ eventLabel(connector.recent_events[0]) }}
+                </span>
+                <p v-if="!connector.recent_events[0].ok && connector.recent_events[0].detail" class="text-xs text-text-muted mt-0.5">
+                  {{ connector.recent_events[0].detail }}
+                </p>
+              </template>
+            </div>
+          </div>
+
+          <!-- Token + last used -->
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span class="inline-flex items-center gap-1.5 text-text-subtle">
+              <KeyIcon class="h-4 w-4" />
+              Token:
+            </span>
+            <code v-if="connector.has_token" class="text-xs bg-surface-muted rounded px-2 py-1">
+              {{ connector.token_prefix }}…
+            </code>
+            <span v-else class="text-text-subtle">sin generar</span>
+            <span v-if="connector.last_used_at" class="text-xs text-text-subtle sm:ml-auto">
+              Último uso: {{ formatDate(connector.last_used_at) }}
+            </span>
+          </div>
+
+          <!-- Sub-accordion: recent activity (collapsed by default) -->
+          <details v-if="connector.recent_events?.length" class="group">
+            <summary
+              class="flex items-center gap-2 text-xs font-semibold text-text-subtle uppercase tracking-wider cursor-pointer select-none list-none marker:hidden [&::-webkit-details-marker]:hidden"
+              :data-testid="`mcp-activity-toggle-${connector.slug}`"
             >
-              <span
-                class="mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0"
-                :class="event.ok ? 'bg-success-strong' : 'bg-danger-strong'"
-              />
-              <span class="text-text-subtle whitespace-nowrap">{{ formatDate(event.created_at) }}</span>
-              <span class="text-text-default">{{ eventLabel(event) }}</span>
-              <span v-if="showDetail(event)" class="text-text-muted truncate">{{ event.detail }}</span>
-            </li>
-          </ul>
-        </details>
+              <svg
+                class="h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 group-open:rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+              Actividad reciente ({{ connector.recent_events.length }})
+            </summary>
+            <ul class="mt-2 space-y-1.5" :data-testid="`mcp-activity-list-${connector.slug}`">
+              <li
+                v-for="(event, index) in connector.recent_events"
+                :key="index"
+                class="flex items-start gap-2 text-xs"
+              >
+                <span
+                  class="mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0"
+                  :class="event.ok ? 'bg-success-strong' : 'bg-danger-strong'"
+                />
+                <span class="text-text-subtle whitespace-nowrap">{{ formatDate(event.created_at) }}</span>
+                <span class="text-text-default">{{ eventLabel(event) }}</span>
+                <span v-if="showDetail(event)" class="text-text-muted truncate">{{ event.detail }}</span>
+              </li>
+            </ul>
+          </details>
 
-        <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mb-2">
-          Funciones disponibles
-        </p>
-        <ul class="space-y-1 mb-5">
-          <li v-for="tool in connector.tools" :key="tool.name" class="text-sm">
-            <code class="text-xs bg-surface-muted rounded px-1.5 py-0.5">{{ tool.name }}</code>
-            <span class="text-text-muted ml-1">{{ tool.description }}</span>
-          </li>
-        </ul>
+          <!-- Sub-accordion: available tools (collapsed by default) -->
+          <details v-if="connector.tools?.length" class="group">
+            <summary
+              class="flex items-center gap-2 text-xs font-semibold text-text-subtle uppercase tracking-wider cursor-pointer select-none list-none marker:hidden [&::-webkit-details-marker]:hidden"
+              :data-testid="`mcp-tools-toggle-${connector.slug}`"
+            >
+              <svg
+                class="h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 group-open:rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+              Funciones disponibles ({{ connector.tools.length }})
+            </summary>
+            <ul class="mt-2 space-y-1 max-h-72 overflow-y-auto pr-1" :data-testid="`mcp-tools-list-${connector.slug}`">
+              <li v-for="tool in connector.tools" :key="tool.name" class="text-sm">
+                <code class="text-xs bg-surface-muted rounded px-1.5 py-0.5">{{ tool.name }}</code>
+                <span class="text-text-muted ml-1">{{ tool.description }}</span>
+              </li>
+            </ul>
+          </details>
 
-        <div class="flex items-center justify-end pt-4 border-t border-border-muted">
-          <BaseButton
-            variant="primary"
-            size="sm"
-            :data-testid="`mcp-generate-token-${connector.slug}`"
-            @click="onGenerateToken(connector)"
-          >
-            {{ connector.has_token ? 'Regenerar token' : 'Generar token' }}
-          </BaseButton>
+          <!-- Token action -->
+          <div class="flex items-center justify-end pt-4 border-t border-border-muted">
+            <BaseButton
+              variant="primary"
+              size="sm"
+              :data-testid="`mcp-generate-token-${connector.slug}`"
+              @click="onGenerateToken(connector)"
+            >
+              {{ connector.has_token ? 'Regenerar token' : 'Generar token' }}
+            </BaseButton>
+          </div>
         </div>
       </div>
     </div>
@@ -201,7 +271,8 @@
 </template>
 
 <script setup>
-import { onMounted, reactive } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
+import { KeyIcon } from '@heroicons/vue/24/outline';
 import BaseBadge from '~/components/base/BaseBadge.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
@@ -215,6 +286,21 @@ const store = useMcpsStore();
 const notify = usePanelNotify();
 
 const tokenModal = reactive({ open: false, url: '', copied: false });
+
+// Which connector rows are expanded (by slug). Reassign a new Set on each
+// toggle so Vue's reactivity picks up the change (Set mutations aren't tracked).
+const expandedConnectors = ref(new Set());
+
+function isExpanded(slug) {
+  return expandedConnectors.value.has(slug);
+}
+
+function toggleRow(slug) {
+  const next = new Set(expandedConnectors.value);
+  if (next.has(slug)) next.delete(slug);
+  else next.add(slug);
+  expandedConnectors.value = next;
+}
 
 // Pasos accionables para conectar un MCP, mostrados en el acordeón de la vista.
 // Se permiten <strong> para resaltar la acción/etiqueta real de la UI.
@@ -239,8 +325,15 @@ const eventLabels = {
   origin_rejected: 'Origin rechazado',
 };
 
+// Maps the connection status to a BaseBadge variant for the header indicator.
+const statusVariants = { connected: 'success', error: 'danger', none: 'neutral' };
+
 function statusFor(connector) {
   return statusStyles[connector.connection_status] || statusStyles.none;
+}
+
+function statusVariant(connector) {
+  return statusVariants[connector.connection_status] || 'neutral';
 }
 
 function eventLabel(event) {

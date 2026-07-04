@@ -2583,7 +2583,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser manages MCP connectors at /panel/mcps: sees the Blog Publisher card with its tool catalog, generates/rotates the connector token (one-time URL modal with copy, GET /api/mcp-connectors/ + POST /api/mcp-connectors/<slug>/generate-token/), and toggles is_active. Includes the superuser gate: staff non-superusers are redirected to /panel.",
+      "description": "Superuser manages MCP connectors at /panel/mcps: each connector is a collapsible accordion row (name, connection-status badge, active toggle) that expands inline to reveal connection status, recent activity and the tool catalog in nested sub-accordions; generates/rotates the connector token (one-time URL modal with copy, GET /api/mcp-connectors/ + POST /api/mcp-connectors/<slug>/generate-token/), and toggles is_active. Includes the superuser gate: staff non-superusers are redirected to /panel.",
       "expectedSpecs": 4
     },
     "admin-accounting-cards": {
