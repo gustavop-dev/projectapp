@@ -335,6 +335,8 @@ onUnmounted(() => {
 });
 
 function handleLinkedInMessage(event) {
+  // Only trust messages from our own origin (the /auth/linkedin/callback popup)
+  if (event.origin !== window.location.origin) return;
   if (event.data?.type === 'linkedin-connected') {
     store.connectionStatus = event.data.data || { connected: true };
     flashMessage('LinkedIn conectado correctamente.');
