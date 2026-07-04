@@ -90,6 +90,7 @@ from content.views.linkedin import (
     publish_to_linkedin,
     list_linkedin_posts, create_linkedin_post,
     update_linkedin_post, delete_linkedin_post,
+    publish_linkedin_post,
 )
 from content.views.standalone_email import (
     send_standalone_email, get_standalone_email_defaults, list_standalone_emails,
@@ -283,6 +284,7 @@ urlpatterns = [
     path('linkedin/posts/create/', create_linkedin_post, name='create-linkedin-post'),
     path('linkedin/posts/<int:post_id>/update/', update_linkedin_post, name='update-linkedin-post'),
     path('linkedin/posts/<int:post_id>/delete/', delete_linkedin_post, name='delete-linkedin-post'),
+    path('linkedin/posts/<int:post_id>/publish/', publish_linkedin_post, name='publish-linkedin-post'),
 
     # Blog — public
     path('blog/', list_blog_posts, name='list-blog-posts'),

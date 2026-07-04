@@ -20,7 +20,10 @@ from rest_framework.response import Response
 
 from content.models import BlogPost, LinkedInPost
 from content.serializers.linkedin_post import LinkedInPostSerializer
-from content.services.linkedin_post_service import schedule_linkedin_post_eta
+from content.services.linkedin_post_service import (
+    publish_linkedin_post_now,
+    schedule_linkedin_post_eta,
+)
 from content.services.linkedin_service import (
     exchange_code_for_token,
     get_authorization_url,
@@ -249,6 +252,30 @@ def update_linkedin_post(request, post_id):
     post = serializer.save()
     _apply_schedule_transition(post)
     return Response(LinkedInPostSerializer(post).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def publish_linkedin_post(request, post_id):
+    """Publish a freeform LinkedIn post immediately."""
+    post = LinkedInPost.objects.filter(pk=post_id).first()
+    if not post:
+        return Response({'error': 'Post no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    result = publish_linkedin_post_now(post)
+
+    if result.get('already'):
+        return Response({'error': result['message']}, status=status.HTTP_409_CONFLICT)
+    if result.get('not_connected'):
+        return Response({'error': result['message']}, status=status.HTTP_400_BAD_REQUEST)
+
+    post.refresh_from_db()
+    payload = LinkedInPostSerializer(post).data
+    payload['message'] = result['message']
+    return Response(
+        payload,
+        status=status.HTTP_200_OK if result['success'] else status.HTTP_502_BAD_GATEWAY,
+    )
 
 
 @api_view(['DELETE'])
