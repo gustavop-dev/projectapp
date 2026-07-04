@@ -27,8 +27,9 @@ def test_raises_when_configured_username_has_no_superuser(settings):
     settings.MCP_ACTOR_USERNAME = 'ghost'
     User.objects.create_superuser(username='real', email='real@t.com', password='p')
 
-    with pytest.raises(ToolError):
+    with pytest.raises(ToolError) as exc:
         mcp_actor()
+    assert 'superuser' in str(exc.value)
 
 
 def test_falls_back_to_first_active_superuser_by_pk(settings):
@@ -47,5 +48,6 @@ def test_raises_when_no_active_superuser_exists(settings):
     User.objects.filter(is_superuser=True).delete()
     User.objects.create_user(username='plain', email='plain@t.com', password='p')
 
-    with pytest.raises(ToolError):
+    with pytest.raises(ToolError) as exc:
         mcp_actor()
+    assert 'superuser' in str(exc.value)

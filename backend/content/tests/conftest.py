@@ -64,6 +64,24 @@ def _skip_mx_validation(monkeypatch):
         yield
 
 
+@pytest.fixture(autouse=True)
+def _reset_throttle_cache():
+    """Isolate DRF throttle state between tests.
+
+    The MCP endpoint uses an AnonRateThrottle ('mcp' scope, 60/min) that keys by
+    client IP and stores its request history in the cache. Under the test client
+    every request shares one IP, so without a reset the bucket accumulates across
+    the whole suite and later MCP calls get 429 — the response then has no
+    'result' key and assertions on ``response.data['result']`` raise KeyError.
+    Clearing the cache around each test keeps throttle state per-test.
+    """
+    from django.core.cache import cache
+
+    cache.clear()
+    yield
+    cache.clear()
+
+
 # ── API Clients ──
 
 @pytest.fixture

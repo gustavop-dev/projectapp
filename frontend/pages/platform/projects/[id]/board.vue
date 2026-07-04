@@ -92,7 +92,7 @@
               :key="card.id"
               class="flex items-center gap-3 rounded-lg px-3 py-2.5 transition hover:bg-surface-muted/30 dark:hover:bg-white/5"
             >
-              <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400" />
+              <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-text-muted" />
               <button type="button" class="flex-1 text-left text-sm text-text-default" @click="openDetailModal(card)">
                 <span v-if="scopeLabel(card)" class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-teal-600/80 dark:text-teal-300/80">{{ scopeLabel(card) }}</span>
                 {{ card.title }}
@@ -492,13 +492,13 @@ const phaseOptions = computed(() => {
 })
 
 function colDotClass(color) {
-  const map = { gray: 'bg-gray-400', blue: 'bg-blue-500', amber: 'bg-amber-500', purple: 'bg-purple-500', teal: 'bg-teal-500', green: 'bg-emerald-500' }
-  return map[color] || 'bg-gray-400'
+  const map = { gray: 'bg-text-muted', blue: 'bg-blue-500', amber: 'bg-amber-500', purple: 'bg-purple-500', teal: 'bg-teal-500', green: 'bg-emerald-500' }
+  return map[color] || 'bg-text-muted'
 }
 
 function priorityDotClass(priority) {
-  const map = { critical: 'bg-red-500', high: 'bg-amber-500', medium: 'bg-blue-400', low: 'bg-gray-400' }
-  return map[priority] || 'bg-gray-400'
+  const map = { critical: 'bg-red-500', high: 'bg-amber-500', medium: 'bg-blue-400', low: 'bg-text-muted' }
+  return map[priority] || 'bg-text-muted'
 }
 
 function priorityBadgeClass(priority) {
@@ -506,7 +506,7 @@ function priorityBadgeClass(priority) {
     critical: 'bg-red-500/15 text-red-600 dark:text-red-400',
     high: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     medium: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-    low: 'bg-gray-500/15 text-text-muted',
+    low: 'bg-surface-muted text-text-muted',
   }
   return map[priority] || map.medium
 }
