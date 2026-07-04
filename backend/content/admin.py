@@ -40,6 +40,7 @@ from .models import (
     DiagnosticSection,
     EmailLog,
     LinkedInToken,
+    LinkedInPost,
     Task,
 )
 
@@ -394,6 +395,15 @@ admin_site.register(WebAppDiagnostic)
 admin_site.register(DiagnosticSection)
 admin_site.register(EmailLog)
 admin_site.register(LinkedInToken)
+
+
+class LinkedInPostAdmin(admin.ModelAdmin):
+    list_display = ('id', 'status', 'scheduled_at', 'published_at', 'created_at')
+    list_filter = ('status',)
+    search_fields = ('commentary',)
+
+
+admin_site.register(LinkedInPost, LinkedInPostAdmin)
 
 class ProjectAppUserAdmin(UserAdmin):
     """Stock ``auth.User`` admin plus a "Log in as this user" button."""

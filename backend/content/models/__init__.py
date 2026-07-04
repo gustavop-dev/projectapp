@@ -39,6 +39,7 @@ from .proposal_document import ProposalDocument
 from .contract_template import ContractTemplate
 from .confidentiality_template import ConfidentialityTemplate
 from .linkedin_token import LinkedInToken
+from .linkedin_post import LinkedInPost
 from .task import Task
 from .task_alert import TaskAlert
 from .task_comment import TaskComment
