@@ -542,6 +542,7 @@ def get_connection_status() -> dict:
             'profile_name': token.profile_name,
             'profile_picture': token.profile_picture,
             'email': token.profile_email,
+            'expires_at': token.expires_at.isoformat() if token.expires_at else None,
         }
 
     # Fallback: fetch from API and cache
@@ -564,4 +565,5 @@ def get_connection_status() -> dict:
         'profile_name': token.profile_name,
         'profile_picture': token.profile_picture,
         'email': token.profile_email,
+        'expires_at': token.expires_at.isoformat() if token.expires_at else None,
     }

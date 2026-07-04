@@ -659,6 +659,13 @@ def publish_scheduled_linkedin_posts():
             logger.exception('[LI-Sched-Sweep] error publicando post %s', post.id)
 
 
+@periodic_task(crontab(hour='9', minute='30'))
+def warn_linkedin_token_expiry():
+    """Daily: email staff when the LinkedIn token expires in <=7 days."""
+    from content.services.linkedin_expiry_service import check_linkedin_token_expiry
+    return check_linkedin_token_expiry()
+
+
 @task(retries=2, retry_delay=600)
 @lock_task('frontend-rebuild')
 def rebuild_frontend_prerender():
