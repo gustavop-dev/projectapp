@@ -25,7 +25,7 @@ def test_create_draft(admin_client):
     assert resp.data['status'] == 'draft'
 
 
-@patch('content.views.linkedin.schedule_linkedin_post_eta')
+@patch('content.services.linkedin_post_service.schedule_linkedin_post_eta')
 def test_create_with_future_schedule_sets_scheduled(mock_eta, admin_client):
     eta = (timezone.now() + timedelta(hours=2)).isoformat()
     resp = admin_client.post(

@@ -69,3 +69,22 @@ def schedule_linkedin_post_eta(post):
         'Encolado publish_single_scheduled_linkedin_post para post %s a %s',
         post.id, post.scheduled_at,
     )
+
+
+def apply_schedule_transition(post):
+    """Sync status with scheduled_at after create/update and enqueue ETA.
+
+    Shared by the panel views and the MCP handlers so scheduling rules
+    live in one place.
+    """
+    from content.models import LinkedInPost
+
+    if post.status == LinkedInPost.STATUS_PUBLISHED:
+        return
+    if post.scheduled_at:
+        post.status = LinkedInPost.STATUS_SCHEDULED
+        post.save(update_fields=['status', 'updated_at'])
+        schedule_linkedin_post_eta(post)
+    elif post.status == LinkedInPost.STATUS_SCHEDULED:
+        post.status = LinkedInPost.STATUS_DRAFT
+        post.save(update_fields=['status', 'updated_at'])

@@ -21,8 +21,8 @@ from rest_framework.response import Response
 from content.models import BlogPost, LinkedInPost
 from content.serializers.linkedin_post import LinkedInPostSerializer
 from content.services.linkedin_post_service import (
+    apply_schedule_transition,
     publish_linkedin_post_now,
-    schedule_linkedin_post_eta,
 )
 from content.services.linkedin_service import (
     exchange_code_for_token,
@@ -198,19 +198,6 @@ def publish_to_linkedin(request, post_id):
 # Freeform LinkedIn posts (panel module)
 # ---------------------------------------------------------------------------
 
-def _apply_schedule_transition(post):
-    """Sync status with scheduled_at after create/update and enqueue ETA."""
-    if post.status == LinkedInPost.STATUS_PUBLISHED:
-        return
-    if post.scheduled_at:
-        post.status = LinkedInPost.STATUS_SCHEDULED
-        post.save(update_fields=['status', 'updated_at'])
-        schedule_linkedin_post_eta(post)
-    elif post.status == LinkedInPost.STATUS_SCHEDULED:
-        post.status = LinkedInPost.STATUS_DRAFT
-        post.save(update_fields=['status', 'updated_at'])
-
-
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def list_linkedin_posts(request):
@@ -226,7 +213,7 @@ def create_linkedin_post(request):
     serializer = LinkedInPostSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     post = serializer.save()
-    _apply_schedule_transition(post)
+    apply_schedule_transition(post)
     return Response(
         LinkedInPostSerializer(post).data, status=status.HTTP_201_CREATED,
     )
@@ -250,7 +237,7 @@ def update_linkedin_post(request, post_id):
     serializer = LinkedInPostSerializer(post, data=data, partial=True)
     serializer.is_valid(raise_exception=True)
     post = serializer.save()
-    _apply_schedule_transition(post)
+    apply_schedule_transition(post)
     return Response(LinkedInPostSerializer(post).data)
 
 
