@@ -24,11 +24,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useBlogStore } from '~/stores/blog';
+import { useLinkedInStore } from '~/stores/linkedin';
 
 definePageMeta({ layout: 'blank' });
 
-const blogStore = useBlogStore();
+const linkedInStore = useLinkedInStore();
 const isLoading = ref(true);
 const success = ref(false);
 const errorMessage = ref('');
@@ -51,7 +51,7 @@ onMounted(async () => {
   }
 
   const state = params.get('state') || '';
-  const result = await blogStore.linkedinCallback(code, state);
+  const result = await linkedInStore.linkedinCallback(code, state);
   isLoading.value = false;
 
   if (result.success) {

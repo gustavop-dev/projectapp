@@ -398,6 +398,7 @@
 <script setup>
 import { reactive, ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useBlogStore } from '~/stores/blog';
+import { useLinkedInStore } from '~/stores/linkedin';
 
 const localePath = useLocalePath();
 import BlogContentRenderer from '~/components/blog/BlogContentRenderer.vue';
@@ -408,6 +409,7 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const route = useRoute();
 const blogStore = useBlogStore();
+const linkedInStore = useLinkedInStore();
 const post = computed(() => blogStore.currentPost);
 const loaded = ref(false);
 const errorMsg = ref('');
@@ -469,7 +471,7 @@ const isPublishingLinkedIn = ref(false);
 async function reloadPost() {
   const [result, liStatus] = await Promise.all([
     blogStore.fetchAdminPost(route.params.id),
-    blogStore.fetchLinkedInStatus(),
+    linkedInStore.fetchLinkedInStatus(),
   ]);
   if (result.success && result.data) {
     populateForm(result.data);
@@ -592,7 +594,7 @@ function removeSource(idx) {
 }
 
 async function connectLinkedIn() {
-  const result = await blogStore.fetchLinkedInAuthUrl();
+  const result = await linkedInStore.fetchLinkedInAuthUrl();
   if (result.success && result.data?.authorization_url) {
     window.open(result.data.authorization_url, '_blank', 'width=600,height=700');
   }
