@@ -98,21 +98,26 @@ test.describe('Panel MCPs', () => {
 
     await expect(page.getByTestId('mcp-card-blog')).toBeVisible({ timeout: 25_000 });
     await expect(page.getByText('Blog Publisher')).toBeVisible();
-    await expect(page.getByText('create_blog_post')).toBeVisible();
     await expect(page.getByText('sin generar')).toBeVisible();
+
+    // Compact card: tools are NOT on the card anymore (they live in the modal)
+    await expect(page.getByText('create_blog_post')).not.toBeVisible();
 
     // Collapsible step-by-step connection guide (native <details>) is present.
     await expect(page.getByTestId('mcps-guide')).toBeVisible();
     await expect(page.getByText('¿Cómo conectar un conector a Claude?')).toBeVisible();
 
-    // Connection status derived from the latest MCP event
+    // Clicking the card opens the detail modal with connection status,
+    // activity trail and available tools.
+    await page.getByTestId('mcp-card-blog').click();
+    await expect(page.getByTestId('mcp-detail-modal')).toBeVisible();
+
     await expect(page.getByTestId('mcp-connection-blog')).toContainText('Error de conexión');
     await expect(page.getByTestId('mcp-connection-blog')).toContainText('https://evil.example');
 
-    // Recent activity list expands with the event trail
-    await page.getByTestId('mcp-activity-toggle-blog').click();
     await expect(page.getByTestId('mcp-activity-list-blog')).toContainText('Origin rechazado');
     await expect(page.getByTestId('mcp-activity-list-blog')).toContainText('Conexión (initialize)');
+    await expect(page.getByText('create_blog_post')).toBeVisible();
   });
 
   test('generates a token and shows the one-time connector URL modal', {

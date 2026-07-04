@@ -69,16 +69,20 @@
       </BaseButton>
     </div>
 
-    <div v-else class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-5 items-start">
+    <div v-else class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-5 items-stretch">
       <div
         v-for="connector in store.connectors"
         :key="connector.slug"
         :data-testid="`mcp-card-${connector.slug}`"
-        class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6"
+        role="button"
+        tabindex="0"
+        class="flex flex-col bg-surface border border-border-muted rounded-xl shadow-sm p-5 cursor-pointer transition-colors hover:border-border-default focus:outline-none focus:ring-2 focus:ring-focus-ring/30"
+        @click="openDetail(connector)"
+        @keydown.enter="openDetail(connector)"
       >
         <div class="flex items-start justify-between gap-3 mb-1">
           <h2 class="text-lg font-bold text-text-default">{{ connector.name }}</h2>
-          <div class="flex items-center gap-2 flex-shrink-0">
+          <div class="flex items-center gap-2 flex-shrink-0" @click.stop>
             <span
               class="text-xs font-medium"
               :class="connector.is_active ? 'text-success-strong' : 'text-text-subtle'"
@@ -94,9 +98,9 @@
             />
           </div>
         </div>
-        <p class="text-sm text-text-muted mb-4">{{ connector.description }}</p>
+        <p class="text-sm text-text-muted mb-4 line-clamp-2">{{ connector.description }}</p>
 
-        <div class="flex items-center gap-2 text-sm mb-4">
+        <div class="flex items-center gap-2 text-sm mb-4 mt-auto">
           <span class="text-text-subtle">Token:</span>
           <code v-if="connector.has_token" class="text-xs bg-surface-muted rounded px-2 py-1">
             {{ connector.token_prefix }}…
@@ -107,37 +111,62 @@
           </span>
         </div>
 
+        <div class="flex items-center justify-between pt-4 border-t border-border-muted">
+          <span class="text-xs text-text-subtle">Clic para ver actividad y funciones</span>
+          <BaseButton
+            variant="primary"
+            size="sm"
+            :data-testid="`mcp-generate-token-${connector.slug}`"
+            @click.stop="onGenerateToken(connector)"
+          >
+            {{ connector.has_token ? 'Regenerar token' : 'Generar token' }}
+          </BaseButton>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connector detail modal: connection status, recent activity, available tools -->
+    <BaseModal v-model="detailModal.open" size="2xl" padding="md">
+      <div v-if="detailConnector" data-testid="mcp-detail-modal">
+        <div class="flex items-start justify-between gap-3 mb-1">
+          <h3 class="text-lg font-bold text-text-default">{{ detailConnector.name }}</h3>
+          <span
+            class="text-xs font-medium flex-shrink-0"
+            :class="detailConnector.is_active ? 'text-success-strong' : 'text-text-subtle'"
+          >
+            {{ detailConnector.is_active ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+        <p class="text-sm text-text-muted mb-4">{{ detailConnector.description }}</p>
+
         <!-- Connection status derived from the latest MCP request -->
         <div
           class="flex items-start gap-2 text-sm rounded-lg px-3 py-2 mb-4"
-          :class="statusFor(connector).box"
-          :data-testid="`mcp-connection-${connector.slug}`"
+          :class="statusFor(detailConnector).box"
+          :data-testid="`mcp-connection-${detailConnector.slug}`"
         >
-          <span class="mt-1 h-2 w-2 rounded-full flex-shrink-0" :class="statusFor(connector).dot" />
+          <span class="mt-1 h-2 w-2 rounded-full flex-shrink-0" :class="statusFor(detailConnector).dot" />
           <div>
-            <span class="font-medium">{{ statusFor(connector).label }}</span>
-            <template v-if="connector.recent_events?.length">
+            <span class="font-medium">{{ statusFor(detailConnector).label }}</span>
+            <template v-if="detailConnector.recent_events?.length">
               <span class="text-text-muted">
-                · {{ formatDate(connector.recent_events[0].created_at) }}
-                · {{ eventLabel(connector.recent_events[0]) }}
+                · {{ formatDate(detailConnector.recent_events[0].created_at) }}
+                · {{ eventLabel(detailConnector.recent_events[0]) }}
               </span>
-              <p v-if="!connector.recent_events[0].ok && connector.recent_events[0].detail" class="text-xs text-text-muted mt-0.5">
-                {{ connector.recent_events[0].detail }}
+              <p v-if="!detailConnector.recent_events[0].ok && detailConnector.recent_events[0].detail" class="text-xs text-text-muted mt-0.5">
+                {{ detailConnector.recent_events[0].detail }}
               </p>
             </template>
           </div>
         </div>
 
-        <details v-if="connector.recent_events?.length" class="mb-4">
-          <summary
-            class="text-xs font-semibold text-text-subtle uppercase tracking-wider cursor-pointer select-none"
-            :data-testid="`mcp-activity-toggle-${connector.slug}`"
-          >
-            Actividad reciente ({{ connector.recent_events.length }})
-          </summary>
-          <ul class="mt-2 space-y-1.5" :data-testid="`mcp-activity-list-${connector.slug}`">
+        <template v-if="detailConnector.recent_events?.length">
+          <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mb-2">
+            Actividad reciente ({{ detailConnector.recent_events.length }})
+          </p>
+          <ul class="space-y-1.5 mb-5" :data-testid="`mcp-activity-list-${detailConnector.slug}`">
             <li
-              v-for="(event, index) in connector.recent_events"
+              v-for="(event, index) in detailConnector.recent_events"
               :key="index"
               class="flex items-start gap-2 text-xs"
             >
@@ -150,30 +179,19 @@
               <span v-if="showDetail(event)" class="text-text-muted truncate">{{ event.detail }}</span>
             </li>
           </ul>
-        </details>
+        </template>
 
         <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mb-2">
           Funciones disponibles
         </p>
-        <ul class="space-y-1 mb-5">
-          <li v-for="tool in connector.tools" :key="tool.name" class="text-sm">
+        <ul class="space-y-1 max-h-72 overflow-y-auto pr-1">
+          <li v-for="tool in detailConnector.tools" :key="tool.name" class="text-sm">
             <code class="text-xs bg-surface-muted rounded px-1.5 py-0.5">{{ tool.name }}</code>
             <span class="text-text-muted ml-1">{{ tool.description }}</span>
           </li>
         </ul>
-
-        <div class="flex items-center justify-end pt-4 border-t border-border-muted">
-          <BaseButton
-            variant="primary"
-            size="sm"
-            :data-testid="`mcp-generate-token-${connector.slug}`"
-            @click="onGenerateToken(connector)"
-          >
-            {{ connector.has_token ? 'Regenerar token' : 'Generar token' }}
-          </BaseButton>
-        </div>
       </div>
-    </div>
+    </BaseModal>
 
     <!-- One-time token modal -->
     <BaseModal v-model="tokenModal.open" size="lg" padding="md" :close-on-backdrop="false">
@@ -201,7 +219,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive } from 'vue';
+import { computed, onMounted, reactive } from 'vue';
 import BaseBadge from '~/components/base/BaseBadge.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
@@ -215,6 +233,18 @@ const store = useMcpsStore();
 const notify = usePanelNotify();
 
 const tokenModal = reactive({ open: false, url: '', copied: false });
+
+// Detail modal holds only the slug: the connector object is looked up in the
+// store so the modal stays in sync after toggles or refetches.
+const detailModal = reactive({ open: false, slug: '' });
+const detailConnector = computed(
+  () => store.connectors.find((c) => c.slug === detailModal.slug) || null,
+);
+
+function openDetail(connector) {
+  detailModal.slug = connector.slug;
+  detailModal.open = true;
+}
 
 // Pasos accionables para conectar un MCP, mostrados en el acordeón de la vista.
 // Se permiten <strong> para resaltar la acción/etiqueta real de la UI.
