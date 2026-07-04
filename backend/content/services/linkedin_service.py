@@ -446,6 +446,76 @@ def publish_blog_to_linkedin(
     }
 
 
+def publish_post_to_linkedin(commentary: str, image_url: str = '') -> dict:
+    """
+    Publish a freeform post (text, optionally one image) to LinkedIn.
+
+    Unlike publish_blog_to_linkedin there is no article preview: a
+    text-only post sends no 'content' key; with an image the media URN
+    from the Images API is attached as content.media.
+
+    Returns dict with 'success', 'post_id' (LinkedIn URN) and 'message'.
+    Raises ValueError if not connected or commentary is empty.
+    """
+    access_token = get_access_token()
+    if not access_token:
+        raise ValueError('LinkedIn not connected. Please authorize first.')
+
+    member_urn = get_member_urn()
+    if not member_urn:
+        raise ValueError('Could not retrieve LinkedIn member URN.')
+
+    if not commentary:
+        raise ValueError('Commentary text is required for LinkedIn post.')
+
+    image_urn = None
+    if image_url:
+        image_urn = _upload_image_to_linkedin(image_url)
+        if not image_urn:
+            logger.warning('Image upload failed, publishing text-only post.')
+
+    # Ensure newlines are real characters (not escaped \\n literals)
+    commentary = commentary.replace('\\n', '\n')
+
+    post_data = {
+        'author': member_urn,
+        'commentary': commentary,
+        'visibility': 'PUBLIC',
+        'distribution': {
+            'feedDistribution': 'MAIN_FEED',
+            'targetEntities': [],
+            'thirdPartyDistributionChannels': [],
+        },
+        'lifecycleState': 'PUBLISHED',
+        'isReshareDisabledByAuthor': False,
+    }
+    if image_urn:
+        post_data['content'] = {'media': {'id': image_urn}}
+
+    resp = requests.post(
+        LINKEDIN_POSTS_URL,
+        json=post_data,
+        headers=_api_headers(access_token),
+        timeout=15,
+    )
+
+    if resp.status_code in (200, 201):
+        post_id = resp.headers.get('x-restli-id', '')
+        logger.info('LinkedIn freeform post published: %s', post_id)
+        return {
+            'success': True,
+            'post_id': post_id,
+            'message': 'Post published to LinkedIn successfully.',
+        }
+
+    logger.error('LinkedIn freeform publish failed: %s %s', resp.status_code, resp.text)
+    return {
+        'success': False,
+        'post_id': '',
+        'message': f'LinkedIn API error ({resp.status_code}): {resp.text}',
+    }
+
+
 # ---------------------------------------------------------------------------
 # Connection status
 # ---------------------------------------------------------------------------
@@ -472,6 +542,7 @@ def get_connection_status() -> dict:
             'profile_name': token.profile_name,
             'profile_picture': token.profile_picture,
             'email': token.profile_email,
+            'expires_at': token.expires_at.isoformat() if token.expires_at else None,
         }
 
     # Fallback: fetch from API and cache
@@ -494,4 +565,5 @@ def get_connection_status() -> dict:
         'profile_name': token.profile_name,
         'profile_picture': token.profile_picture,
         'email': token.profile_email,
+        'expires_at': token.expires_at.isoformat() if token.expires_at else None,
     }

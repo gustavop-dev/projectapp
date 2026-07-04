@@ -147,6 +147,13 @@
       <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
     </template>
 
+    <!-- LinkedIn -->
+    <template v-else-if="name === 'linkedin'">
+      <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-4 0v7h-4v-7a6 6 0 016-6z" />
+      <rect x="2" y="9" width="4" height="12" rx="1" />
+      <circle cx="4" cy="4" r="2" />
+    </template>
+
     <!-- Fallback: circle -->
     <template v-else>
       <circle cx="12" cy="12" r="10" />

@@ -1,5 +1,5 @@
 {
-  "version": "2.38.0",
+  "version": "2.39.0",
   "lastUpdated": "2026-07-04",
   "flows": {
     "layout-navbar-navigation": {
@@ -2658,6 +2658,19 @@
       "description": "When a client click-to-accept signs a document (POST /api/accounts/documents/:uuid/sign/), notify_team_document_signed_task fires a team milestone alert (in-app to project admins + email) and the client receives a signature-confirmation email. Best-effort; idempotent re-signs do not re-notify.",
       "expectedSpecs": 0,
       "knownGaps": "Server-triggered side-effect (in-app + email). Out of browser-E2E scope; may be asserted as a branch of platform-client-document-sign."
+    },
+    "admin-linkedin-module": {
+      "name": "Admin LinkedIn Content Module",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin manages freeform LinkedIn posts at /panel/linkedin (sidebar section ProjectApp content): connection card shows OAuth status (connect/reconnect popup, token expiry date via GET /api/linkedin/status/), posts list from GET /api/linkedin/posts/ with status chips (Borrador/Programado/Publicado/Fallido), create/edit modal (commentary max 3000, optional image, optional schedule datetime) posting to /api/linkedin/posts/create/ | :id/update/, publish-now with confirm via POST /api/linkedin/posts/:id/publish/ (502 error surfaces inline), delete with confirm via /api/linkedin/posts/:id/delete/. Scheduled posts are published by Huey (ETA + minute sweep) server-side.",
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Scheduled auto-publish is a server-side Huey task — covered by backend tests, not browser E2E"
+      ]
     }
   }
 }

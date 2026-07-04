@@ -292,6 +292,14 @@ export const viewCatalogSections = [
         viewType: 'config',
       },
       {
+        label: 'LinkedIn del panel',
+        url: '/panel/linkedin',
+        file: 'frontend/pages/panel/linkedin/index.vue',
+        reference: 'modulo de posts de LinkedIn (crear, programar, publicar)',
+        audience: 'admin',
+        viewType: 'list',
+      },
+      {
         label: 'Portafolio del panel',
         url: '/panel/portfolio',
         file: 'frontend/pages/panel/portfolio/index.vue',

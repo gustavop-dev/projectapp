@@ -339,3 +339,6 @@ export const PLATFORM_CLIENT_DOCUMENT_PORTAL  = ['@flow:platform-client-document
 export const PLATFORM_CLIENT_EMAIL_VALIDATION = ['@flow:platform-client-email-validation', '@module:platform', '@priority:P1'];
 export const PLATFORM_CLIENT_DOCUMENT_SIGN    = ['@flow:platform-client-document-sign',    '@module:platform', '@priority:P1'];
 export const ADMIN_PROPOSAL_DISCOUNT_OFFER_SEND = ['@flow:admin-proposal-discount-offer-send', '@module:admin', '@priority:P2'];
+
+// ── LinkedIn content module /panel/linkedin (Jul 4, 2026) ──
+export const ADMIN_LINKEDIN_MODULE = ['@flow:admin-linkedin-module', '@module:admin', '@priority:P2'];

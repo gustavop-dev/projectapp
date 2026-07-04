@@ -359,48 +359,8 @@ export const useBlogStore = defineStore('blog', {
 
     // -----------------------------------------------------------------
     // LinkedIn integration
+    // (OAuth/status actions live in stores/linkedin.js — useLinkedInStore)
     // -----------------------------------------------------------------
-
-    /**
-     * fetchLinkedInStatus: Check LinkedIn connection status.
-     */
-    async fetchLinkedInStatus() {
-      try {
-        const response = await get_request('linkedin/status/');
-        return { success: true, data: response.data };
-      } catch (error) {
-        console.error('Error fetching LinkedIn status:', error);
-        return { success: false };
-      }
-    },
-
-    /**
-     * fetchLinkedInAuthUrl: Get the LinkedIn OAuth authorization URL.
-     */
-    async fetchLinkedInAuthUrl() {
-      try {
-        const response = await get_request('linkedin/auth-url/');
-        return { success: true, data: response.data };
-      } catch (error) {
-        console.error('Error fetching LinkedIn auth URL:', error);
-        return { success: false };
-      }
-    },
-
-    /**
-     * linkedinCallback: Exchange authorization code for token.
-     * @param {string} code - Authorization code from LinkedIn redirect.
-     * @param {string} state - OAuth CSRF state parameter.
-     */
-    async linkedinCallback(code, state) {
-      try {
-        const response = await create_request('linkedin/callback/', { code, state });
-        return { success: true, data: response.data };
-      } catch (error) {
-        console.error('Error exchanging LinkedIn code:', error);
-        return { success: false, error: error.response?.data?.error };
-      }
-    },
 
     /**
      * publishToLinkedIn: Publish a blog post summary to LinkedIn.
