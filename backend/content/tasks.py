@@ -605,6 +605,60 @@ def publish_scheduled_blog_posts():
         schedule_rebuild_after_publish()
 
 
+@task()
+def publish_single_scheduled_linkedin_post(post_id):
+    """
+    Publish a single scheduled freeform LinkedIn post by id.
+
+    Enqueued with eta=scheduled_at on create/update. Re-entrant: the
+    atomic claim inside publish_linkedin_post_now prevents doubles.
+    """
+    from content.models import LinkedInPost
+    from content.services.linkedin_post_service import publish_linkedin_post_now
+
+    now = timezone.now()
+    post = LinkedInPost.objects.filter(pk=post_id).first()
+    if not post:
+        logger.warning('[LI-Sched-ETA] post %s no existe', post_id)
+        return
+    if post.status != LinkedInPost.STATUS_SCHEDULED:
+        logger.info('[LI-Sched-ETA] post %s status=%s, skip', post_id, post.status)
+        return
+    if not post.scheduled_at or post.scheduled_at > now:
+        logger.info('[LI-Sched-ETA] post %s aún no es hora, skip', post_id)
+        return
+
+    result = publish_linkedin_post_now(post)
+    logger.info('[LI-Sched-ETA] post %s → success=%s', post_id, result.get('success'))
+
+
+@periodic_task(crontab(minute='*'))
+def publish_scheduled_linkedin_posts():
+    """
+    Periodic safety-net (every minute) for scheduled LinkedIn posts whose
+    time has passed (Huey down at ETA, migrated data, etc.).
+    """
+    from content.models import LinkedInPost
+    from content.services.linkedin_post_service import publish_linkedin_post_now
+
+    now = timezone.now()
+    due = list(LinkedInPost.objects.filter(
+        status=LinkedInPost.STATUS_SCHEDULED,
+        scheduled_at__isnull=False,
+        scheduled_at__lte=now,
+    ))
+    if not due:
+        return
+
+    logger.info('[LI-Sched-Sweep] %d post(s) listos para publicar', len(due))
+    for post in due:
+        try:
+            result = publish_linkedin_post_now(post)
+            logger.info('[LI-Sched-Sweep] post %s → success=%s', post.id, result.get('success'))
+        except Exception:
+            logger.exception('[LI-Sched-Sweep] error publicando post %s', post.id)
+
+
 @task(retries=2, retry_delay=600)
 @lock_task('frontend-rebuild')
 def rebuild_frontend_prerender():
