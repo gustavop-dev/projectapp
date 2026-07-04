@@ -1024,6 +1024,198 @@ git commit -m "FEAT: Huey ETA + sweep tasks for scheduled LinkedIn posts"
 
 ---
 
+### Task 5b: Token expiry visibility + email warning
+
+**Context:** LinkedIn does not issue refresh tokens to non-MDP apps, so the access token hard-expires every 60 days and the operator must reconnect manually. This task makes the expiry visible in the API and warns by email ~7 days before, so scheduled posts don't silently fail on an expired token.
+
+**Files:**
+- Modify: `backend/content/services/linkedin_service.py` (`get_connection_status` gains `expires_at`)
+- Create: `backend/content/services/linkedin_expiry_service.py`
+- Modify: `backend/content/tasks.py` (daily periodic task)
+- Test: `backend/content/tests/services/test_linkedin_expiry_service.py`
+
+**Interfaces:**
+- Consumes: `LinkedInToken.load()` (existing singleton), `EmailMultiAlternatives` pattern from `accounting_card_reminder_service.py`.
+- Produces:
+  - `get_connection_status()` connected responses include `'expires_at': token.expires_at.isoformat() if token.expires_at else None` (add to BOTH connected return branches — cached-profile and API-fallback).
+  - `check_linkedin_token_expiry() -> str` in `linkedin_expiry_service.py`: returns `'not_connected' | 'ok' | 'warned' | 'already_warned'`.
+  - Task `warn_linkedin_token_expiry` — `@periodic_task(crontab(hour='9', minute='30'))`, thin wrapper calling the service.
+
+**Warning logic (implement exactly):**
+- Not connected or no `expires_at` → `'not_connected'`.
+- More than 7 days remaining → `'ok'`.
+- ≤7 days remaining: build cache key `f'linkedin_expiry_warned:{token.expires_at.date().isoformat()}'`. If already set → `'already_warned'`. Otherwise send the email, `cache.set(key, True, timeout=60*60*24*10)` and return `'warned'`. (Key includes the expiry date, so reconnecting re-arms the warning for the new token.)
+- Recipients: `get_user_model().objects.filter(is_staff=True, is_active=True).exclude(email='')` emails; if empty, log a warning and skip (mirror the card-reminder service's no-recipients behavior).
+- Email (plain text is enough, Spanish): subject `'LinkedIn: la conexión expira pronto'`, body stating the expiry date and that reconnection is done from `/panel/linkedin`. `from_email=settings.DEFAULT_FROM_EMAIL`.
+
+- [ ] **Step 1: Write the failing tests**
+
+```python
+# backend/content/tests/services/test_linkedin_expiry_service.py
+"""Expiry warning service: threshold, dedup via cache, recipients."""
+from datetime import timedelta
+from unittest.mock import patch
+
+import pytest
+from django.contrib.auth import get_user_model
+from django.core import mail
+from django.core.cache import cache
+from django.utils import timezone
+
+from content.models import LinkedInToken
+from content.services.linkedin_expiry_service import check_linkedin_token_expiry
+
+pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def _clear_cache():
+    cache.clear()
+    yield
+    cache.clear()
+
+
+@pytest.fixture
+def staff_user():
+    return get_user_model().objects.create_user(
+        username='admin', password='x', is_staff=True, email='admin@projectapp.co',
+    )
+
+
+def _token_expiring_in(days):
+    token = LinkedInToken.load()
+    token.access_token_encrypted = 'x'  # non-empty → "connected" for this check
+    token.expires_at = timezone.now() + timedelta(days=days)
+    token.save()
+    return token
+
+
+def test_not_connected_returns_early(staff_user):
+    assert check_linkedin_token_expiry() == 'not_connected'
+    assert len(mail.outbox) == 0
+
+
+def test_far_from_expiry_is_ok(staff_user):
+    _token_expiring_in(30)
+    assert check_linkedin_token_expiry() == 'ok'
+    assert len(mail.outbox) == 0
+
+
+def test_warns_once_within_seven_days(staff_user):
+    _token_expiring_in(5)
+    assert check_linkedin_token_expiry() == 'warned'
+    assert len(mail.outbox) == 1
+    assert 'admin@projectapp.co' in mail.outbox[0].to
+    assert check_linkedin_token_expiry() == 'already_warned'
+    assert len(mail.outbox) == 1
+
+
+def test_no_staff_recipients_skips_email():
+    _token_expiring_in(5)
+    result = check_linkedin_token_expiry()
+    assert result in ('warned', 'already_warned')
+    assert len(mail.outbox) == 0
+```
+
+NOTE: the "connected" check must not depend on Fernet decryption succeeding — in the service use `token.expires_at` presence plus `token.access_token_encrypted` truthiness, NOT `get_access_token()` (which would attempt a refresh/clear). If `LinkedInToken` requires a valid encrypted payload for other reasons, adjust the fixture to use `token.set_access_token('fake')` with a test `LINKEDIN_ENCRYPTION_KEY` — check how `backend/content/tests/services/test_linkedin_service.py` builds tokens and copy that.
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `cd backend && pytest content/tests/services/test_linkedin_expiry_service.py -v`
+Expected: FAIL with `ModuleNotFoundError`
+
+- [ ] **Step 3: Implement service + expose expires_at + task**
+
+```python
+# backend/content/services/linkedin_expiry_service.py
+"""
+Daily check that warns staff by email when the LinkedIn access token is
+about to expire (<=7 days). LinkedIn issues no refresh tokens to non-MDP
+apps, so the operator must reconnect manually every ~60 days; this makes
+that proactive instead of discovering it via a failed publish.
+"""
+import logging
+
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.core.mail import EmailMultiAlternatives
+from django.utils import timezone
+
+logger = logging.getLogger(__name__)
+
+WARN_THRESHOLD_DAYS = 7
+_CACHE_TIMEOUT = 60 * 60 * 24 * 10  # 10 days — outlives the warning window
+
+
+def check_linkedin_token_expiry() -> str:
+    from content.models import LinkedInToken
+
+    token = LinkedInToken.load()
+    if not token.access_token_encrypted or not token.expires_at:
+        return 'not_connected'
+
+    remaining = token.expires_at - timezone.now()
+    if remaining.days >= WARN_THRESHOLD_DAYS:
+        return 'ok'
+
+    cache_key = f'linkedin_expiry_warned:{token.expires_at.date().isoformat()}'
+    if cache.get(cache_key):
+        return 'already_warned'
+    cache.set(cache_key, True, timeout=_CACHE_TIMEOUT)
+
+    recipients = list(
+        get_user_model().objects.filter(is_staff=True, is_active=True)
+        .exclude(email='').values_list('email', flat=True)
+    )
+    if not recipients:
+        logger.warning('LinkedIn token expiry warning due but no staff recipients.')
+        return 'warned'
+
+    expiry_str = timezone.localtime(token.expires_at).strftime('%d/%m/%Y')
+    body = (
+        f'La conexión con LinkedIn expira el {expiry_str}.\n\n'
+        'Para renovarla entra a /panel/linkedin y usa "Reconectar" '
+        '(toma menos de un minuto). Los posts programados después de esa '
+        'fecha fallarán si el token no se renueva.'
+    )
+    email = EmailMultiAlternatives(
+        subject='LinkedIn: la conexión expira pronto',
+        body=body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=recipients,
+    )
+    email.send(fail_silently=True)
+    logger.info('LinkedIn expiry warning sent to %s', ', '.join(recipients))
+    return 'warned'
+```
+
+In `get_connection_status` (`linkedin_service.py`): add `'expires_at': token.expires_at.isoformat() if token.expires_at else None,` to both connected return dicts.
+
+Append to `backend/content/tasks.py`:
+
+```python
+@periodic_task(crontab(hour='9', minute='30'))
+def warn_linkedin_token_expiry():
+    """Daily: email staff when the LinkedIn token expires in <=7 days."""
+    from content.services.linkedin_expiry_service import check_linkedin_token_expiry
+    return check_linkedin_token_expiry()
+```
+
+- [ ] **Step 4: Run tests to verify pass**
+
+Run: `cd backend && pytest content/tests/services/test_linkedin_expiry_service.py -v`
+Expected: 4 PASS. Also re-run `pytest content/tests/views/test_linkedin_views.py -v` (get_connection_status changed — existing status tests must still pass; if any asserts exact dict keys, update it to include `expires_at`).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/content/services/ backend/content/tasks.py backend/content/tests/services/test_linkedin_expiry_service.py
+git commit -m "FEAT: LinkedIn token expiry surfaced in status + daily email warning"
+```
+
+---
+
 ### Task 6: Frontend store `stores/linkedin.js` + OAuth action move
 
 **Files:**
@@ -1358,7 +1550,7 @@ git commit -m "FEAT: rename sidebar section to ProjectApp content and add Linked
 
 1. `definePageMeta({ layout: 'admin', middleware: 'panel-auth' })` — first check the middleware name used by `frontend/pages/panel/blog/index.vue` and copy it verbatim (it may be `auth-admin` or similar; also copy its `layout`).
 2. On mount: `Promise.all([store.fetchLinkedInStatus(), store.fetchPosts()])`; register a `window.addEventListener('message', handler)` that, on `event.data?.type === 'linkedin-connected'`, sets the connection status (same pattern as blog edit); remove the listener `onUnmounted`.
-3. **Connection card** (top): when disconnected → "LinkedIn no conectado" + `Conectar LinkedIn` button (`bg-[#0A66C2]` like blog edit) that calls `fetchLinkedInAuthUrl()` and `window.open(url, '_blank', 'width=600,height=700')`. When connected → "Conectado como **{{ profile_name }}**" + a smaller "Reconectar" text button doing the same.
+3. **Connection card** (top): when disconnected → "LinkedIn no conectado" + `Conectar LinkedIn` button (`bg-[#0A66C2]` like blog edit) that calls `fetchLinkedInAuthUrl()` and `window.open(url, '_blank', 'width=600,height=700')`. When connected → "Conectado como **{{ profile_name }}**" + a smaller "Reconectar" text button doing the same. When `connectionStatus.expires_at` is present, show "La conexión expira el {{ date }}" (`toLocaleDateString()`); if it expires within 7 days, render that line with `text-danger-strong` and prepend "⚠".
 4. **Posts list**: desktop = table (columns: Texto (truncated 80 chars), Estado (chip), Programado, Publicado, Acciones); mobile (`useIsMobile`, `v-if` — NOT CSS hidden) = stacked cards with the same data. Status chips: draft `bg-surface-muted text-text-muted`, scheduled `bg-warning-soft text-warning-strong`, published `bg-primary-soft text-text-brand`, failed `bg-danger-soft text-danger-strong` (verify these token names exist in the styleguide/tailwind config; substitute the project's closest semantic tokens if any is missing). Published rows show a link `https://www.linkedin.com/feed/update/{{ linkedin_post_id }}/` (target `_blank`). Failed rows show `error_message` truncated with `title` attr.
 5. **Actions per row**: Editar (draft/scheduled/failed only), Publicar ahora (draft/scheduled/failed), Eliminar (all — with `useConfirmModal` if that composable is the project pattern, otherwise a BaseModal confirm).
 6. **Create/edit modal** (`BaseModal`): textarea bound to `form.commentary` with live counter `{{ form.commentary.length }} / 3000` and `maxlength="3000"`; `<input type="file" accept="image/*">` (show current image thumbnail when editing); `<input type="datetime-local">` bound to `form.scheduledLocal`. Footer buttons: `Guardar` (creates/updates: builds `FormData` with `commentary`, `image` only when a new file was picked, `scheduled_at` = ISO string from `scheduledLocal` or `''` to clear) and, when editing an existing non-published post, `Publicar ahora`. On success: close modal, `fetchPosts()`, show a transient success message (`text-text-brand`, 5s timeout — same pattern as blog edit `linkedinMsg`).
