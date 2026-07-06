@@ -2,6 +2,7 @@ import logging
 from copy import deepcopy
 from datetime import timedelta
 
+from django.db import transaction
 from django.utils import timezone
 
 from content.technical_document_defaults import EMPTY_TECHNICAL_DOCUMENT_JSON
@@ -3098,8 +3099,13 @@ class ProposalService:
 # result themselves.
 # ---------------------------------------------------------------------------
 
+@transaction.atomic
 def build_proposal_from_json(validated_data):
     """Create a BusinessProposal + its sections from validated from-JSON data.
+
+    Runs atomically: the proposal, its client profile snapshot and all
+    sections are committed together or not at all (no email/side effects
+    happen inside this function).
 
     ``validated_data`` is the output of ProposalFromJSONSerializer (it still
     contains ``sections`` and, optionally, a resolved ``client``). Returns
@@ -3259,8 +3265,12 @@ def build_proposal_from_json(validated_data):
     return proposal, unmapped_keys
 
 
+@transaction.atomic
 def apply_proposal_json_update(proposal, validated_data):
     """Update an existing proposal + its sections from validated from-JSON data.
+
+    Runs atomically: metadata, change logs and section updates are committed
+    together or not at all (no email/side effects happen inside this function).
 
     Returns ``(proposal, updated_sections, unmapped_keys)``.
     """
