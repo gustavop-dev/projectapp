@@ -810,6 +810,36 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-section-reorder.spec.js`
 
+### FLOW: `admin-proposal-section-dirty-guard`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/:id/edit` (Secciones tab)
+- **Description:** Unsaved-changes protection in the section editor.
+- **Steps:**
+  1. Admin edits a field of an expanded section; a «Sin guardar» badge appears on the section header.
+  2. Collapsing the dirty section opens a confirmation modal («Cerrar sin guardar» / «Seguir editando»).
+  3. Cancelling keeps the editor open with the edits intact; confirming discards them and clears the badge.
+  4. Route navigation, page unload and the panel refresh button also confirm before discarding dirty sections.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-section-dirty-guard.spec.js`
+
+### FLOW: `admin-proposal-section-add-delete`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/:id/edit` (Secciones tab)
+- **Description:** Admin adds a missing section type and deletes sections from the editor.
+- **Steps:**
+  1. Admin clicks «＋ Agregar sección»; the modal lists only the types not yet present.
+  2. Picking a type calls `POST /api/proposals/:id/sections/create/` (seeded from language defaults) and the new section appears expanded at the end.
+  3. The trash action on a section header asks for confirmation and calls `DELETE /api/proposals/sections/:id/delete/`.
+  4. Deleting `functional_requirements` with a confirmed calculator selection is blocked by the backend (`fr_has_confirmed_selection`) and the error surfaces as a notification.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-section-add-delete.spec.js`
+
 ### FLOW: `admin-proposal-section-sync`
 
 - **Module:** admin
@@ -826,7 +856,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — No drift] Diff is empty; modal shows "Sin cambios" and the apply button is disabled.
   - [Branch B — Cancel] Admin closes the modal without applying; section unchanged.
-- **Coverage:** ❌ Missing — deferred (high mocking surface)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-section-sync.spec.js`
 - **Note:** The modal only appears when saving a `technical_document` section on a proposal whose platform project already exists (`has_project: true`). An E2E would need to mock the full proposal detail with a launched project, simulate the section editor save flow, and intercept both `sync-preview/` and `apply-sync/`. The cost outweighs the P2 value; component-level coverage of `SyncPreviewModal.vue` would be a better fit.
 - **Suggested E2E Spec:** `e2e/admin/admin-proposal-section-sync.spec.js`
 
@@ -2312,7 +2343,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-section-edit-form` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-section-form.spec.js` |
 | `admin-proposal-section-edit-paste` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-section-paste.spec.js` |
 | `admin-proposal-section-reorder` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-section-reorder.spec.js` |
-| `admin-proposal-section-sync` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-proposal-section-sync.spec.js` (suggested) |
+| `admin-proposal-section-dirty-guard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-section-dirty-guard.spec.js` |
+| `admin-proposal-section-add-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-section-add-delete.spec.js` |
+| `admin-proposal-section-sync` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-section-sync.spec.js` |
 | `admin-proposal-functional-requirements-form` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-requirements.spec.js` |
 | `admin-proposal-functional-requirements-paste` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-requirements.spec.js` |
 | `admin-proposal-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-delete.spec.js` |
