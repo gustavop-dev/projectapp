@@ -1,7 +1,5 @@
 <template>
   <div>
-    <AccountingSubnav active="hostings" />
-
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -20,6 +18,8 @@
         <span>Nuevo hosting</span>
       </BaseButton>
     </div>
+
+    <AccountingSubnav active="hostings" />
 
     <!-- Meta cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">

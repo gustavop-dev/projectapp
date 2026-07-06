@@ -1,7 +1,5 @@
 <template>
   <div>
-    <AccountingSubnav active="pocket" />
-
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -20,6 +18,8 @@
         <span>Nuevo movimiento</span>
       </BaseButton>
     </div>
+
+    <AccountingSubnav active="pocket" />
 
     <!-- Balance card -->
     <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-5 sm:p-6 mb-6">

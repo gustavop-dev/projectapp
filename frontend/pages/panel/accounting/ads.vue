@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
-        <h1 class="text-2xl font-light text-text-default">Contabilidad — Ads</h1>
+        <h1 class="text-2xl font-light text-text-default">Ads</h1>
         <p class="text-sm text-text-subtle mt-1">
           Gastos en publicidad por plataforma y tarjeta de origen.
         </p>

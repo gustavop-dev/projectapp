@@ -1,7 +1,5 @@
 <template>
   <div>
-    <AccountingSubnav active="cards" />
-
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -20,6 +18,8 @@
         <span>Nuevo registro</span>
       </BaseButton>
     </div>
+
+    <AccountingSubnav active="cards" />
 
     <!-- Saved filter tabs -->
     <ProposalFilterTabs

@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
-        <h1 class="text-2xl font-light text-text-default">Contabilidad — Pagos recurrentes</h1>
+        <h1 class="text-2xl font-light text-text-default">Pagos recurrentes</h1>
         <p class="text-sm text-text-subtle mt-1">
           Suscripciones y costos operativos que se repiten mes a mes o año a año.
         </p>

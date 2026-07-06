@@ -2,7 +2,7 @@
   <div>
     <!-- Header -->
     <div class="mb-6">
-      <h1 class="text-2xl font-light text-text-default">Contabilidad — Configuración</h1>
+      <h1 class="text-2xl font-light text-text-default">Configuración</h1>
       <p class="text-sm text-text-subtle mt-1">
         Preferencias de notificaciones del módulo contable.
       </p>

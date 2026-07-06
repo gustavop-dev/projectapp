@@ -120,7 +120,7 @@ test.describe('Admin Accounting Dashboard', () => {
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByRole('heading', { name: 'Contabilidad — Resumen' }),
+      page.getByRole('heading', { name: 'Resumen', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
     await expect(page.getByText('Ingresos esperados')).toBeVisible();
     await expect(page.getByText('$95.238.699 COP')).toBeVisible();
@@ -181,7 +181,7 @@ test.describe('Admin Accounting Dashboard', () => {
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByRole('heading', { name: 'Contabilidad — Resumen' }),
+      page.getByRole('heading', { name: 'Resumen', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
     await page.getByTestId('accounting-subnav-incomes').click();
 
@@ -196,7 +196,7 @@ test.describe('Admin Accounting Dashboard', () => {
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByRole('heading', { name: 'Contabilidad — Resumen' }),
+      page.getByRole('heading', { name: 'Resumen', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
     await expect(
       page

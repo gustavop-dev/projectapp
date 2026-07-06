@@ -2,7 +2,7 @@
   <div>
     <!-- Header -->
     <div class="mb-6">
-      <h1 class="text-2xl font-light text-text-default">Contabilidad — Historial</h1>
+      <h1 class="text-2xl font-light text-text-default">Historial</h1>
       <p class="text-sm text-text-subtle mt-1">
         Registro de auditoría de todos los cambios del módulo contable. Solo lectura.
       </p>

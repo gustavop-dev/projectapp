@@ -1,7 +1,5 @@
 <template>
   <div>
-    <AccountingSubnav active="expenses" />
-
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -20,6 +18,8 @@
         <span>Nuevo gasto</span>
       </BaseButton>
     </div>
+
+    <AccountingSubnav active="expenses" />
 
     <!-- Saved filter tabs -->
     <ProposalFilterTabs
