@@ -331,6 +331,7 @@ import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useDiagnosticFilters } from '~/composables/useDiagnosticFilters';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -353,6 +354,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium'
 const localePath = useLocalePath();
 const router = useRouter();
 const store = useDiagnosticsStore();
+const notify = usePanelNotify();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
 const searchQuery = ref('');
@@ -480,7 +482,14 @@ function handleDelete(d) {
     message: `¿Eliminar el diagnóstico "${target.title}"? Esta acción no se puede deshacer.`,
     variant: 'danger',
     confirmText: 'Eliminar',
-    onConfirm: () => store.remove(target.id),
+    onConfirm: async () => {
+      const r = await store.remove(target.id);
+      if (r?.success) {
+        notify.success('Diagnóstico eliminado.');
+      } else {
+        notify.error({ title: r?.message || 'No se pudo eliminar el diagnóstico.', detail: r?.hint || '' });
+      }
+    },
   });
 }
 
@@ -495,8 +504,15 @@ function formatDate(iso) {
   return dateTimeFormatter.format(new Date(iso));
 }
 
-onMounted(() => store.fetchAll());
-usePanelRefresh(() => store.fetchAll());
+async function loadDiagnostics() {
+  const r = await store.fetchAll();
+  if (!r?.success) {
+    notify.error({ title: r?.message || 'No se pudieron cargar los diagnósticos.', detail: r?.hint || '' });
+  }
+}
+
+onMounted(loadDiagnostics);
+usePanelRefresh(loadDiagnostics);
 </script>
 
 <style scoped>

@@ -536,7 +536,6 @@
       </div>
     </template>
 
-    <PanelToast />
   </div>
 </template>
 
@@ -554,11 +553,10 @@ import DiagnosticDocumentsTab from '~/components/WebAppDiagnostic/DiagnosticDocu
 import DiagnosticActionsModal from '~/components/WebAppDiagnostic/DiagnosticActionsModal.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
-import PanelToast from '~/components/panel/PanelToast.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import { DocumentDuplicateIcon, CheckIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
 import { useConfirmModal } from '~/composables/useConfirmModal';
-import { usePanelToast } from '~/composables/usePanelToast';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { getDiagnosticNextAction } from '~/utils/diagnosticNextAction';
 import { toSlug } from '~/utils/slugify';
@@ -570,7 +568,7 @@ const router = useRouter();
 const localePath = useLocalePath();
 const store = useDiagnosticsStore();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
-const panelToast = usePanelToast();
+const notify = usePanelNotify();
 
 const moneyFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
 const dateTimeFormatter = new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
@@ -795,14 +793,15 @@ async function handleUpdate() {
     payload.client_id = form.client_id;
   }
   const result = await store.update(id.value, payload);
-  showToast(
-    result.success ? 'Diagnóstico actualizado.' : (result.error || 'Error al actualizar.'),
-    result.success ? 'success' : 'error',
-  );
+  notifyResult(result, 'Diagnóstico actualizado.', 'Error al actualizar.');
 }
 
-function showToast(message, type) {
-  panelToast.showToast({ type, text: message });
+function notifyResult(result, successTitle, failTitle) {
+  if (result?.success) {
+    notify.success(successTitle);
+  } else {
+    notify.error({ title: result?.message || failTitle, detail: result?.hint || '' });
+  }
 }
 
 watch(() => store.current?.id, syncFormGeneral, { immediate: true });
@@ -875,7 +874,7 @@ function scheduleSectionUpdate(sectionId, payload, delay = 600) {
       if (res.success) {
         sectionLastSaved[sectionId] = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
       } else {
-        showToast(res.error || 'Error al guardar la sección.', 'error');
+        notify.error({ title: res.message || 'Error al guardar la sección.', detail: res.hint || '' });
       }
     } finally {
       sectionSavingId.value = null;
@@ -897,7 +896,7 @@ async function onSectionReset(section) {
     confirmText: 'Restaurar',
     onConfirm: async () => {
       const r = await store.resetSection(id.value, section.id);
-      showToast(r?.success ? 'Sección restaurada.' : (r?.error || 'Error.'), r?.success ? 'success' : 'error');
+      notifyResult(r, 'Sección restaurada.', 'No se pudo restaurar la sección.');
     },
   });
 }
@@ -1109,7 +1108,7 @@ async function handleApplyImportJson() {
 // ── Activity ──────────────────────────────────────────────────────────
 async function onLogActivity(payload) {
   const r = await store.logActivity(id.value, payload.change_type, payload.description);
-  showToast(r.success ? 'Actividad registrada.' : (r.error || 'Error al registrar.'), r.success ? 'success' : 'error');
+  notifyResult(r, 'Actividad registrada.', 'Error al registrar.');
 }
 
 // ── Transitions ───────────────────────────────────────────────────────
@@ -1121,7 +1120,7 @@ function onSendInitial() {
     confirmText: 'Enviar',
     onConfirm: async () => {
       const r = await store.sendInitial(id.value);
-      showToast(r.success ? 'Envío inicial entregado.' : (r.message || r.error || 'Error al enviar.'), r.success ? 'success' : 'error');
+      notifyResult(r, 'Envío inicial entregado.', 'Error al enviar.');
     },
   });
 }
@@ -1134,7 +1133,7 @@ function onMarkAnalysis() {
     confirmText: 'Confirmar',
     onConfirm: async () => {
       const r = await store.markInAnalysis(id.value);
-      showToast(r.success ? 'Diagnóstico en negociación.' : (r.message || r.error || 'Error.'), r.success ? 'success' : 'error');
+      notifyResult(r, 'Diagnóstico en negociación.', 'No se pudo cambiar el estado.');
     },
   });
 }
@@ -1147,7 +1146,7 @@ function onSendFinal() {
     confirmText: 'Enviar',
     onConfirm: async () => {
       const r = await store.sendFinal(id.value);
-      showToast(r.success ? 'Diagnóstico final enviado.' : (r.message || r.error || 'Error al enviar.'), r.success ? 'success' : 'error');
+      notifyResult(r, 'Diagnóstico final enviado.', 'Error al enviar.');
     },
   });
 }
@@ -1163,7 +1162,7 @@ function onDelete() {
       if (r?.success) {
         router.push(localePath('/panel/diagnostics'));
       } else {
-        showToast(r?.error || 'Error al eliminar.', 'error');
+        notify.error({ title: r?.message || 'Error al eliminar.', detail: r?.hint || '' });
       }
     },
   });
