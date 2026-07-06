@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.29.0
-> **Last updated:** 2026-04-20
+> **Version:** 2.30.0
+> **Last updated:** 2026-07-06
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -5501,3 +5501,32 @@ Also registered/updated in this audit and documented in their home sections:
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-linkedin-module.spec.js`
 - **Backend tests:** `content/tests/models/test_linkedin_post.py`, `content/tests/services/test_linkedin_post_service.py`, `content/tests/services/test_linkedin_expiry_service.py`, `content/tests/views/test_linkedin_post_views.py`, `content/tests/views/test_linkedin_post_publish.py`, `content/tests/tasks/test_linkedin_post_publish_guards.py`
+
+
+---
+
+## 19. Diagnostics Phase-1 Hardening Flows (Jul 2026)
+
+> Flow identified during the Jul 6 diagnostics module audit (Phase 1: error
+> handling + feedback). A failed list load used to be indistinguishable from
+> the empty state; the page now renders a dedicated error state with retry.
+
+#### FLOW: `admin-diagnostic-list-error-retry`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-list-error-retry` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P3 |
+| **Status** | ❌ Missing — no E2E spec yet |
+
+**Routes:** `/panel/diagnostics/`
+
+**Description:** When `GET /api/diagnostics/` fails, the list page shows a dedicated error block (`data-testid="diagnostics-error-state"`) with the normalized Spanish error message and a "Reintentar" button that re-fires the fetch. An error notification is also raised via `usePanelNotify`. Distinct from the empty state, which only renders on a successful-but-empty response.
+
+**Steps:**
+1. Admin navigates to `/panel/diagnostics/` while the API is failing (5xx/network).
+2. `GET /api/diagnostics/` rejects; the error block renders instead of the empty state, plus an error toast.
+3. Admin clicks "Reintentar" → the fetch re-fires.
+4. On success the table renders; on repeat failure the error block persists.

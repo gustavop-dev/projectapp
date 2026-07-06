@@ -1,6 +1,6 @@
 {
-  "version": "2.39.0",
-  "lastUpdated": "2026-07-04",
+  "version": "2.40.0",
+  "lastUpdated": "2026-07-06",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -2671,6 +2671,16 @@
       "knownGaps": [
         "Scheduled auto-publish is a server-side Huey task — covered by backend tests, not browser E2E"
       ]
+    },
+    "admin-diagnostic-list-error-retry": {
+      "name": "Admin Diagnostic List — Load Error & Retry",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "When GET /api/diagnostics/ fails, the list page shows a dedicated error state (data-testid=diagnostics-error-state) with the normalized Spanish error message and a 'Reintentar' button that re-fires the fetch; an error notification is also raised via usePanelNotify. Distinct from the empty state.",
+      "expectedSpecs": 1
     }
   }
 }
