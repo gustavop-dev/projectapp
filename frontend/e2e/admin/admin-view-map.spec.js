@@ -63,6 +63,45 @@ test.describe('Admin View Map', () => {
     await expect(page.getByRole('heading', { name: 'Mapa de vistas', level: 3 })).toBeVisible();
   });
 
+  test('map mode drills down into a module and back', {
+    tag: [...ADMIN_VIEW_MAP, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      return null;
+    });
+
+    await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Mapa de vistas', level: 1 })).toBeVisible({ timeout: 30_000 });
+
+    await page.getByTestId('view-mode-map').click();
+    await expect(page.getByTestId('view-module-grid')).toBeVisible();
+
+    await page.getByTestId('view-module-card-admin-panel').click();
+    await expect(page.getByTestId('view-module-detail')).toBeVisible();
+    await expect(page).toHaveURL(/viewMode=map/);
+    await expect(page).toHaveURL(/module=admin-panel/);
+    await expect(page.getByRole('heading', { name: 'Blog', level: 3 })).toBeVisible();
+
+    await page.getByTestId('view-module-back').click();
+    await expect(page.getByTestId('view-module-grid')).toBeVisible();
+    await expect(page).not.toHaveURL(/module=/);
+  });
+
+  test('deep link opens map mode with a module preselected', {
+    tag: [...ADMIN_VIEW_MAP, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      return null;
+    });
+
+    await page.goto('/panel/views?viewMode=map&module=client-platform', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByTestId('view-module-detail')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('Plataforma de clientes').first()).toBeVisible();
+  });
+
   test('copy reference button shows copied feedback', {
     tag: [...ADMIN_VIEW_MAP, '@role:admin'],
   }, async ({ page }) => {

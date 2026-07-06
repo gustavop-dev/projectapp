@@ -54,7 +54,7 @@ Verificar que el Mapa de vistas (`/panel/views`, `frontend/pages/panel/views.vue
 | 3 | La `url` de cada entrada concuerda con la ruta Nuxt derivada del `file` (con `[param]` → `:param`). | MEDIUM |
 | 4 | `audience` está en el set válido. `viewType` está en el set válido. | MEDIUM |
 | 5 | La sección asignada concuerda con el prefijo de ruta (`panel/*` ⇒ sección admin, `platform/*` ⇒ sección client, etc.). Heurística. | LOW |
-| 6 | Cada entrada tiene `label`, `url`, `file`, `reference`, `audience`, `viewType` no vacíos. | MEDIUM |
+| 6 | Cada entrada tiene `label`, `url`, `file`, `reference`, `audience`, `viewType`, `group` no vacíos. `group` es el sub-módulo curado (string en español) que agrupa vistas dentro de su sección en el modo mapa; no se valida contra rutas. | MEDIUM |
 | 7 | Ninguna `url` ni `file` aparece duplicada entre entradas. | HIGH |
 | 8 | Las opciones de `viewMapFilterOptions.js` cubren exactamente los valores reales del catálogo (sin huérfanos en ninguna dirección). | MEDIUM |
 

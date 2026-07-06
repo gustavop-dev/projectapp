@@ -11,12 +11,22 @@
         </p>
       </div>
 
-      <div class="rounded-xl border border-border-muted bg-surface px-4 py-3 text-sm shadow-sm">
-        <span class="block text-xs text-text-subtle">Total</span>
-        <div class="flex items-baseline gap-1">
-          <strong class="text-2xl font-light text-text-brand">{{ filteredViewCount }}</strong>
-          <span v-if="isFiltering" class="text-sm text-text-subtle">/ {{ totalViews }}</span>
-          <span class="ml-1 text-text-muted">vistas</span>
+      <div class="flex items-end gap-3">
+        <BaseSegmented
+          v-model="viewMode"
+          size="sm"
+          :options="[
+            { value: 'list', label: 'Lista', testId: 'view-mode-list' },
+            { value: 'map', label: 'Mapa', testId: 'view-mode-map' },
+          ]"
+        />
+        <div class="rounded-xl border border-border-muted bg-surface px-4 py-3 text-sm shadow-sm">
+          <span class="block text-xs text-text-subtle">Total</span>
+          <div class="flex items-baseline gap-1">
+            <strong class="text-2xl font-light text-text-brand">{{ filteredViewCount }}</strong>
+            <span v-if="isFiltering" class="text-sm text-text-subtle">/ {{ totalViews }}</span>
+            <span class="ml-1 text-text-muted">vistas</span>
+          </div>
         </div>
       </div>
     </div>
@@ -70,8 +80,8 @@
       @reset="resetFilters"
     />
 
-    <!-- Proposal reference guide -->
-    <section class="mb-8 rounded-xl border border-primary/20 bg-primary-soft p-5">
+    <!-- Proposal reference guide (list mode only) -->
+    <section v-if="viewMode === 'list'" class="mb-8 rounded-xl border border-primary/20 bg-primary-soft p-5">
       <h2 class="text-base font-medium text-text-brand">Como referirse a las vistas de propuestas</h2>
       <p class="mt-2 text-sm leading-6 text-text-muted">
         Si dices "detalle de propuesta" puede confundirse la pantalla interna del panel con el enlace publico del cliente. Usa el contexto, el tipo de identificador y la URL.
@@ -92,8 +102,23 @@
       </div>
     </section>
 
-    <!-- View catalog -->
-    <div v-if="filteredSections.length > 0" class="space-y-6">
+    <!-- Map mode: module grid with drill-down -->
+    <template v-if="viewMode === 'map' && filteredSections.length > 0">
+      <ViewMapLegend />
+      <ViewModuleDetail
+        v-if="selectedSection"
+        :section="selectedSection"
+        @back="clearModule"
+      />
+      <ViewModuleGrid
+        v-else
+        :sections="filteredSections"
+        @select="selectModule"
+      />
+    </template>
+
+    <!-- List mode: view catalog -->
+    <div v-else-if="viewMode === 'list' && filteredSections.length > 0" class="space-y-6">
       <details
         v-for="section in filteredSections"
         :key="section.id"
@@ -185,9 +210,14 @@ import {
   viewCatalogSections,
 } from '~/config/viewCatalog'
 import { useViewMapFilters } from '~/composables/useViewMapFilters'
+import { useViewMapMode } from '~/composables/useViewMapMode'
 import ViewMapFilterPanel from '~/components/views/ViewMapFilterPanel.vue'
+import ViewMapLegend from '~/components/views/ViewMapLegend.vue'
+import ViewModuleDetail from '~/components/views/ViewModuleDetail.vue'
+import ViewModuleGrid from '~/components/views/ViewModuleGrid.vue'
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue'
 import FilterToggleButton from '~/components/ui/FilterToggleButton.vue'
+import BaseSegmented from '~/components/base/BaseSegmented.vue'
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] })
 
@@ -210,6 +240,8 @@ const {
   deleteTab,
   renameTab,
 } = useViewMapFilters()
+
+const { viewMode, selectedModuleId, selectModule, clearModule } = useViewMapMode()
 
 const search = ref('')
 const copiedKey = ref(null)
@@ -236,6 +268,12 @@ const filteredSections = computed(() => {
 })
 
 const filteredViewCount = computed(() => countCatalogViews(filteredSections.value))
+
+const selectedSection = computed(() =>
+  selectedModuleId.value
+    ? filteredSections.value.find((s) => s.id === selectedModuleId.value) || null
+    : null,
+)
 
 const isFiltering = computed(() => hasActiveFilters.value || search.value.trim().length > 0)
 
