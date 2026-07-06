@@ -38,32 +38,22 @@ export const PANEL_BREADCRUMB_LABELS = {
   '/panel/accounting/settings': 'Config. contable',
 }
 
+// Dynamic :id/edit routes carry only their display label; the breadcrumb
+// SECTION comes from the closest nav ancestor (e.g. /panel/blog), so a
+// section rename in panelNav propagates here without edits.
 export const PANEL_BREADCRUMB_DYNAMIC = [
-  { re: /^\/panel\/proposals\/[^/]+\/edit/, label: 'Edit. propuesta', section: 'Sales' },
-  { re: /^\/panel\/diagnostics\/[^/]+\/edit/, label: 'Edit. diagnóstico', section: 'Sales' },
-  { re: /^\/panel\/blog\/[^/]+\/edit/, label: 'Edit. post', section: 'ProjectApp content' },
-  { re: /^\/panel\/portfolio\/[^/]+\/edit/, label: 'Edit. portfolio', section: 'ProjectApp content' },
-  { re: /^\/panel\/documents\/[^/]+\/edit/, label: 'Edit. documento', section: 'Documents' },
+  { re: /^\/panel\/proposals\/[^/]+\/edit/, label: 'Edit. propuesta' },
+  { re: /^\/panel\/diagnostics\/[^/]+\/edit/, label: 'Edit. diagnóstico' },
+  { re: /^\/panel\/blog\/[^/]+\/edit/, label: 'Edit. post' },
+  { re: /^\/panel\/portfolio\/[^/]+\/edit/, label: 'Edit. portfolio' },
+  { re: /^\/panel\/documents\/[^/]+\/edit/, label: 'Edit. documento' },
 ]
 
 function cleanPath(path) {
   return stripLocalePrefix(path || '').replace(/\/$/, '') || '/'
 }
 
-/**
- * Resolve `{ label, section }` for a panel route, or `null` when the route
- * has no breadcrumb (unknown paths keep the plain "Project App" title).
- *
- * @param {string} routePath - Full path from vue-router (may include locale prefix).
- * @param {Array<{ label: string, items: Array }>} sections - Output of getPanelNavSections().
- */
-export function resolvePanelBreadcrumb(routePath, sections) {
-  const path = cleanPath(routePath)
-
-  for (const { re, label, section } of PANEL_BREADCRUMB_DYNAMIC) {
-    if (re.test(path)) return { label, section }
-  }
-
+function bestNavMatch(path, sections) {
   // Longest matching nav href wins, so /panel/proposals/create resolves to
   // the "New proposal" item rather than the "Proposals" prefix.
   let best = null
@@ -77,6 +67,27 @@ export function resolvePanelBreadcrumb(routePath, sections) {
       }
     }
   }
+  return best
+}
+
+/**
+ * Resolve `{ label, section }` for a panel route, or `null` when the route
+ * has no breadcrumb (unknown paths keep the plain "Project App" title).
+ *
+ * @param {string} routePath - Full path from vue-router (may include locale prefix).
+ * @param {Array<{ label: string, items: Array }>} sections - Output of getPanelNavSections().
+ */
+export function resolvePanelBreadcrumb(routePath, sections) {
+  const path = cleanPath(routePath)
+
+  for (const { re, label } of PANEL_BREADCRUMB_DYNAMIC) {
+    if (re.test(path)) {
+      const ancestor = bestNavMatch(path, sections)
+      return { label, section: ancestor ? ancestor.section.label : null }
+    }
+  }
+
+  const best = bestNavMatch(path, sections)
 
   // Direct overrides also cover sub-routes that have no nav item of their
   // own (create pages, redirect stubs); their section comes from the
