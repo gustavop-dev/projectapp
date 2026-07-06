@@ -53,7 +53,12 @@ from content.services.proposal_totals_service import (
     safe_decimal as _safe_decimal,
     selected_group_ids_from_modules as _selected_group_ids_from_modules,
 )
-from content.throttles import TrackingAnonThrottle
+from content.throttles import (
+    MagicLinkRequestThrottle,
+    ProposalPdfThrottle,
+    PublicProposalActionThrottle,
+    TrackingAnonThrottle,
+)
 from content.utils import get_client_ip
 
 from content.models import (
@@ -287,6 +292,7 @@ def retrieve_public_proposal_by_slug(request, proposal_slug):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@throttle_classes([ProposalPdfThrottle])
 def download_proposal_pdf(request, proposal_uuid):
     """
     Generate and download a PDF of the proposal using ReportLab.
@@ -2048,6 +2054,7 @@ def delete_proposal_section(request, section_id):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([PublicProposalActionThrottle])
 def respond_to_proposal(request, proposal_uuid):
     """
     Client accepts, rejects, or negotiates a proposal.
@@ -2215,6 +2222,7 @@ def _enqueue_onboarding_on_accept(proposal, *, acting_user_id):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([PublicProposalActionThrottle])
 def comment_on_proposal(request, proposal_uuid):
     """
     Client submits a negotiation comment before deciding.
@@ -2696,6 +2704,7 @@ def track_requirement_click(request, proposal_uuid):
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([AllowAny])
+@throttle_classes([MagicLinkRequestThrottle])
 def request_magic_link(request):
     """
     Magic link re-access: client provides their email and receives
@@ -2755,6 +2764,7 @@ def request_magic_link(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([PublicProposalActionThrottle])
 def create_share_link(request, proposal_uuid):
     """
     Create a tracked share link for a proposal.
@@ -2857,6 +2867,7 @@ def retrieve_shared_proposal(request, share_uuid):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([PublicProposalActionThrottle])
 def schedule_followup(request, proposal_uuid):
     """
     Schedule a follow-up reminder for a rejected proposal.
