@@ -67,7 +67,7 @@ const options = computed(() => ({
         :series="chartData.series"
       />
       <template #fallback>
-        <div class="h-72 rounded-xl bg-surface-raised animate-pulse" />
+        <div class="h-72 rounded-xl bg-surface-raised motion-safe:animate-pulse" />
       </template>
     </ClientOnly>
   </div>
