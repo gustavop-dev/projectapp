@@ -133,7 +133,6 @@
           Previsualizar
         </span>
       </button>
-      <span v-if="savedMsg" class="text-xs text-green-600">{{ savedMsg }}</span>
     </div>
     <p v-if="sectionType !== 'technical_document' && validationError" class="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">{{ validationError }}</p>
 
@@ -204,7 +203,6 @@ const previewSection = computed(() => {
     content_json: contentJson,
   };
 });
-const savedMsg = ref('');
 const validationError = ref('');
 const showRawJson = ref(false);
 const initialContent = props.section.content_json || {};
@@ -288,7 +286,6 @@ function validateOptionalPrices() {
 
 function handleSave() {
   isSaving.value = true;
-  savedMsg.value = '';
   validationError.value = '';
   try {
     // Hard validation: optional items must have a price
@@ -319,8 +316,8 @@ function handleSave() {
     if (sectionType.value === 'investment' && form.hostingPlan?.hostingPercent != null) {
       emit('syncHostingPercent', form.hostingPlan.hostingPercent);
     }
-    savedMsg.value = '✓ Guardado';
-    setTimeout(() => { savedMsg.value = ''; }, 3000);
+    // Success/failure feedback is owned by the parent (collapse on success,
+    // notification on error) — the save request is still in flight here.
   } finally {
     isSaving.value = false;
   }

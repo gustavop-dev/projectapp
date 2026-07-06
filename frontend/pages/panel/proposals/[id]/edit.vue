@@ -2125,6 +2125,11 @@ async function handleSend() {
     const result = await proposalStore.fetchScorecard(proposal.value.id);
     if (result.success) {
       scorecardData.value = result.data;
+    } else {
+      notify.warning({
+        title: 'No se pudo cargar el scorecard.',
+        detail: 'Se muestran las verificaciones locales.',
+      });
     }
   } catch (_e) { /* use local fallback */ }
   scorecardLoading.value = false;
@@ -2211,7 +2216,10 @@ function collapseSection(id) {
 }
 
 async function toggleEnabled(section) {
-  await proposalStore.updateSection(section.id, { is_enabled: !section.is_enabled });
+  const result = await proposalStore.updateSection(section.id, { is_enabled: !section.is_enabled });
+  if (!result.success) {
+    notifyProposalFailure(result, 'No se pudo actualizar la sección');
+  }
 }
 
 async function handleSaveSection({ sectionId, payload }) {
@@ -2240,7 +2248,11 @@ async function handleSaveSection({ sectionId, payload }) {
   }
 
   const r = await proposalStore.updateSection(sectionId, payload);
-  if (r.success) collapseSection(sectionId);
+  if (r.success) {
+    collapseSection(sectionId);
+  } else {
+    notifyProposalFailure(r, 'No se pudo guardar la sección');
+  }
 }
 
 async function handleSyncConfirm() {
