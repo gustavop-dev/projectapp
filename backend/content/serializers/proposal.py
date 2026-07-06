@@ -272,10 +272,10 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         confirmed the calculator yet. Same rule as the PDF and the admin
         metrics map so every consumer sees the same number.
         """
-        # Deferred import — views/proposal.py imports from this module at
-        # load time, so a top-level import would be circular.
-        from content.views.proposal import _effective_total_for_proposal
-        return str(_effective_total_for_proposal(obj))
+        from content.services.proposal_totals_service import (
+            effective_total_for_proposal,
+        )
+        return str(effective_total_for_proposal(obj))
 
     def get_available_transitions(self, obj):
         return obj.available_transitions
