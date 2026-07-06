@@ -19,7 +19,11 @@ from rest_framework.decorators import (
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
-from content.api_errors import error_response, error_response_from_exc
+from content.api_errors import (
+    ProposalActionError,
+    error_response,
+    error_response_from_exc,
+)
 from content.services.proposal_audit import log_proposal_change
 from content.services.proposal_analytics_service import (
     COMPUTED_ALERT_DISMISS_PREFIX as _COMPUTED_ALERT_DISMISS_PREFIX,
@@ -530,32 +534,11 @@ def create_proposal(request):
             ),
         )
 
-        # Auto-create default sections
+        # Auto-create default sections, personalized like single-section adds
+        from content.services.proposal_service import _personalize_seeded_section
         default_sections = ProposalService.get_default_sections(proposal.language)
         for section_cfg in default_sections:
-            if section_cfg['section_type'] == 'greeting':
-                section_cfg['content_json']['proposalTitle'] = proposal.title
-                section_cfg['content_json']['clientName'] = proposal.client_name
-            if section_cfg['section_type'] == 'investment' and proposal.total_investment:
-                total = float(proposal.total_investment)
-                cur = proposal.currency or 'COP'
-                fmt = '${:,.0f}'.format
-                section_cfg['content_json']['totalInvestment'] = fmt(total)
-                section_cfg['content_json']['currency'] = cur
-                section_cfg['content_json']['paymentOptions'] = [
-                    {
-                        'label': '40% al firmar el contrato ✍️',
-                        'description': f'{fmt(total * 0.4)} {cur}',
-                    },
-                    {
-                        'label': '30% al aprobar el diseño final ✅',
-                        'description': f'{fmt(total * 0.3)} {cur}',
-                    },
-                    {
-                        'label': '30% al desplegar el sitio web 🚀',
-                        'description': f'{fmt(total * 0.3)} {cur}',
-                    },
-                ]
+            _personalize_seeded_section(proposal, section_cfg)
             ProposalSection.objects.create(proposal=proposal, **section_cfg)
 
     # Return the full detail
@@ -1945,9 +1928,9 @@ def bulk_reorder_sections(request, proposal_id):
     sections_data = request.data.get('sections', [])
 
     if not isinstance(sections_data, list):
-        return Response(
-            {'error': '"sections" must be a list of {id, order} objects.'},
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'El campo "sections" debe ser una lista de objetos {id, order}.',
+            code='invalid_sections_payload',
         )
 
     section_ids = {s['id'] for s in sections_data if 'id' in s}
@@ -1965,6 +1948,88 @@ def bulk_reorder_sections(request, proposal_id):
         ProposalSection.objects.bulk_update(updated, ['order'])
 
     return Response({'reordered': len(updated)}, status=status.HTTP_200_OK)
+
+
+def _proposal_totals_payload(proposal):
+    """Totals block returned by every section-mutation endpoint."""
+    return {
+        'total_investment': str(proposal.total_investment),
+        'effective_total_investment': str(_effective_total_for_proposal(proposal)),
+    }
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def create_proposal_section(request, proposal_id):
+    """Add a section of a given type to a proposal, seeded from defaults.
+
+    Body: {"section_type": str, "title"?: str}
+    → 201 {"section": <ProposalSectionDetailSerializer>, "proposal_totals": {...}}
+    """
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+    section_type = request.data.get('section_type')
+    if not section_type or not isinstance(section_type, str):
+        return error_response('Debes indicar el tipo de sección.', code='missing_section_type')
+    title = request.data.get('title') or None
+
+    from content.services.proposal_service import create_section_for_proposal
+    try:
+        with transaction.atomic():
+            section = create_section_for_proposal(proposal, section_type, title=title)
+            log_proposal_change(
+                proposal,
+                'updated',
+                actor_type='seller',
+                field_name='sections',
+                description=f'Sección «{section.title}» agregada desde el editor.',
+            )
+    except ProposalActionError as exc:
+        return error_response_from_exc(exc)
+
+    from content.serializers.proposal import ProposalSectionDetailSerializer
+    return Response(
+        {
+            'section': ProposalSectionDetailSerializer(section).data,
+            'proposal_totals': _proposal_totals_payload(proposal),
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def delete_proposal_section(request, section_id):
+    """Delete a proposal section from the editor.
+
+    → 200 {"deleted": true, "section_type": str, "proposal_totals": {...}}
+    """
+    section = get_object_or_404(
+        ProposalSection.objects.select_related('proposal'), pk=section_id,
+    )
+    proposal = section.proposal
+
+    from content.services.proposal_service import delete_section_from_proposal
+    try:
+        with transaction.atomic():
+            info = delete_section_from_proposal(section)
+            log_proposal_change(
+                proposal,
+                'updated',
+                actor_type='seller',
+                field_name='sections',
+                description=f'Sección «{info["title"]}» eliminada desde el editor.',
+            )
+    except ProposalActionError as exc:
+        return error_response_from_exc(exc)
+
+    return Response(
+        {
+            'deleted': True,
+            'section_type': info['section_type'],
+            'proposal_totals': _proposal_totals_payload(proposal),
+        },
+        status=status.HTTP_200_OK,
+    )
 
 
 # ---------------------------------------------------------------------------
