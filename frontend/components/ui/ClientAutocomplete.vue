@@ -136,7 +136,7 @@ import {
   XMarkIcon,
   PlusIcon,
 } from '@heroicons/vue/24/outline';
-import { useProposalClientsStore } from '~/stores/proposalClients';
+import { useProposalClientsStore } from '~/stores/proposal_clients';
 
 /**
  * Searchable client picker for the proposal create/edit forms.

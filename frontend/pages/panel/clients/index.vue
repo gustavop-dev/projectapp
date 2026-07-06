@@ -550,7 +550,7 @@ import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge';
 import { usePagination } from '~/composables/usePagination';
-import { useProposalClientsStore } from '~/stores/proposalClients';
+import { useProposalClientsStore } from '~/stores/proposal_clients';
 import { useProposalStore } from '~/stores/proposals';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 
