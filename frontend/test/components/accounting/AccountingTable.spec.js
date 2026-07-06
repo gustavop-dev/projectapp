@@ -169,4 +169,13 @@ describe('AccountingTable', () => {
     expect(wrapper.text()).toContain('No hay nada por aquí');
     expect(wrapper.text()).not.toContain('Sin registros.');
   });
+
+  it('flashes only the row matching highlightId', () => {
+    const wrapper = mountTable({ highlightId: 2 });
+
+    expect(wrapper.find('[data-testid="accounting-row-2"]').classes())
+      .toContain('accounting-row-flash');
+    expect(wrapper.find('[data-testid="accounting-row-1"]').classes())
+      .not.toContain('accounting-row-flash');
+  });
 });

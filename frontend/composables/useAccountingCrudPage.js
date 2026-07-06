@@ -1,10 +1,11 @@
-import { computed, ref, watch } from 'vue';
+import { computed, getCurrentScope, onScopeDispose, ref, watch } from 'vue';
 
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePagination } from '~/composables/usePagination';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 
 const PAGE_SIZE = 15;
+const HIGHLIGHT_MS = 2500;
 
 function compareValues(a, b, key) {
   const left = a?.[key];
@@ -120,6 +121,27 @@ export function useAccountingCrudPage({
   const isModalOpen = ref(false);
   const editingRecord = ref(null);
 
+  // Row-flash feedback: id of the last created/edited record, cleared after
+  // a short delay. If sorting/filters hide the row the highlight is a no-op.
+  const lastMutatedId = ref(null);
+  let highlightTimer = null;
+
+  function markMutated(id) {
+    if (id === undefined || id === null) return;
+    lastMutatedId.value = id;
+    if (highlightTimer) clearTimeout(highlightTimer);
+    highlightTimer = setTimeout(() => {
+      lastMutatedId.value = null;
+      highlightTimer = null;
+    }, HIGHLIGHT_MS);
+  }
+
+  if (getCurrentScope()) {
+    onScopeDispose(() => {
+      if (highlightTimer) clearTimeout(highlightTimer);
+    });
+  }
+
   function openCreateModal() {
     editingRecord.value = null;
     isModalOpen.value = true;
@@ -150,6 +172,7 @@ export function useAccountingCrudPage({
 
     if (result.success) {
       notify.success({ title: editing ? labels.updated : labels.created });
+      markMutated(result.data?.id ?? editing?.id);
       closeModal();
       if (onAfterMutation) {
         await onAfterMutation(editing, payload, editing ? 'update' : 'create');
@@ -191,6 +214,8 @@ export function useAccountingCrudPage({
     openEditModal,
     closeModal,
     handleSubmit,
+    // row-flash feedback
+    lastMutatedId,
     // delete confirm
     confirmDeleteRecord,
     confirmState,

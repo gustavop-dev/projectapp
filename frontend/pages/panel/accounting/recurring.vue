@@ -133,6 +133,7 @@
     <template v-else>
       <AccountingTable
         :loading="store.isLoading"
+        :highlight-id="lastMutatedId"
         :columns="columns"
         :rows="pagedRows"
         :highlight-query="currentFilters.search"
@@ -377,6 +378,7 @@ const {
   isModalOpen: showFormModal,
   editingRecord,
   openCreateModal,
+  lastMutatedId,
   openEditModal,
   closeModal: closeFormModal,
   handleSubmit: submitForm,

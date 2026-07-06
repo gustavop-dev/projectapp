@@ -71,6 +71,7 @@
           :key="row[rowKey]"
           :data-testid="`accounting-row-${row[rowKey]}`"
           class="hover:bg-surface-raised transition-colors bg-surface"
+          :class="row[rowKey] === highlightId ? 'accounting-row-flash' : ''"
         >
           <td
             v-for="col in columns"
@@ -154,6 +155,8 @@ const props = defineProps({
   /** When true, renders skeleton placeholder rows instead of data. */
   loading: { type: Boolean, default: false },
   skeletonRows: { type: Number, default: 5 },
+  /** Row key of the last created/edited record: flashes that row. */
+  highlightId: { type: [String, Number], default: null },
 });
 
 const emit = defineEmits(['edit', 'delete', 'sort']);
@@ -201,3 +204,27 @@ function badgeClass(col, value) {
   return TONE_CLASSES[tone] || TONE_CLASSES.neutral;
 }
 </script>
+
+<style scoped>
+/* Feedback flash for the row that was just created or edited. The color
+ * holds briefly and then decays; with reduced motion it stays solid until
+ * the page clears highlightId (the information is kept, not the motion). */
+@keyframes accounting-row-flash {
+  0%,
+  55% {
+    background-color: var(--color-primary-soft);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.accounting-row-flash {
+  animation: accounting-row-flash 2.5s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .accounting-row-flash {
+    animation: none;
+    background-color: var(--color-primary-soft);
+  }
+}
+</style>
