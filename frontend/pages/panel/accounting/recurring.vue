@@ -98,13 +98,41 @@
       @clear-search="searchInput = ''"
     />
 
-    <!-- Loading -->
-    <div v-if="store.isLoading" class="text-center py-16 text-text-subtle text-sm">
-      Cargando pagos recurrentes...
-    </div>
+    <!-- Error -->
+    <AccountingErrorState
+      v-if="store.error === 'fetch_failed'"
+      title="No se pudieron cargar los pagos recurrentes"
+      :retrying="store.isLoading"
+      @retry="loadRecords"
+    />
+
+    <!-- Empty -->
+    <BaseEmptyState
+      v-else-if="!store.isLoading && filteredRows.length === 0"
+      :title="hasActiveFilters ? 'Sin resultados con esos filtros' : 'No hay pagos recurrentes aún'"
+      :description="hasActiveFilters
+        ? 'Ajusta o limpia los filtros para ver más registros.'
+        : 'Registra la primera suscripción o costo operativo.'"
+    >
+      <template #actions>
+        <BaseButton
+          v-if="hasActiveFilters"
+          variant="secondary"
+          size="sm"
+          @click="resetFilters"
+        >
+          Limpiar filtros
+        </BaseButton>
+        <BaseButton v-else variant="primary" size="sm" @click="openCreateModal">
+          <PlusIcon class="w-4 h-4" />
+          <span>Nuevo pago recurrente</span>
+        </BaseButton>
+      </template>
+    </BaseEmptyState>
 
     <template v-else>
       <AccountingTable
+        :loading="store.isLoading"
         :columns="columns"
         :rows="pagedRows"
         :highlight-query="currentFilters.search"
@@ -143,6 +171,7 @@
       </AccountingTable>
 
       <BasePagination
+        v-if="!store.isLoading"
         v-if="filteredRows.length > 0"
         :current-page="currentPage"
         :total-pages="totalPages"
@@ -187,6 +216,8 @@ import { PlusIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
+import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import RecurringPaymentFormModal from '~/components/accounting/RecurringPaymentFormModal.vue';
@@ -226,6 +257,7 @@ const {
   activeTabId,
   isFilterPanelOpen,
   activeFilterCount,
+  hasActiveFilters,
   isTabLimitReached,
   applyFilters,
   resetFilters,

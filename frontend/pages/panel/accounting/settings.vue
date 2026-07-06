@@ -10,8 +10,16 @@
 
     <AccountingSubnav active="settings" />
 
+    <!-- Error -->
+    <AccountingErrorState
+      v-if="store.error === 'settings_failed' && !store.settings"
+      title="No se pudo cargar la configuración"
+      :retrying="store.isLoading"
+      @retry="loadSettings"
+    />
+
     <!-- Loading -->
-    <div v-if="store.isLoading && !store.settings" class="text-center py-16 text-text-subtle text-sm">
+    <div v-else-if="store.isLoading && !store.settings" class="text-center py-16 text-text-subtle text-sm">
       Cargando configuración...
     </div>
 
@@ -117,6 +125,7 @@
 import { onMounted, ref } from 'vue';
 import { PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
+import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';

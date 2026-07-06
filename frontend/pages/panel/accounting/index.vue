@@ -233,7 +233,15 @@
       </div>
     </template>
 
-    <!-- Empty / error -->
+    <!-- Error -->
+    <AccountingErrorState
+      v-else-if="store.error === 'summary_failed'"
+      title="No se pudo cargar el resumen contable"
+      :retrying="store.isLoading"
+      @retry="loadSummary()"
+    />
+
+    <!-- Empty -->
     <div v-else class="text-center py-16 text-text-subtle text-sm">
       No hay datos del resumen contable para mostrar.
     </div>
@@ -252,6 +260,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { ArrowDownTrayIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
+import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingMonthlyTable from '~/components/accounting/AccountingMonthlyTable.vue';
 import AccountingMonthlyChart from '~/components/accounting/charts/AccountingMonthlyChart.vue';

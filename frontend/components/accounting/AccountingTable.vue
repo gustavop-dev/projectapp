@@ -1,5 +1,11 @@
 <template>
-  <div class="overflow-x-auto bg-surface rounded-xl border border-border-muted shadow-sm">
+  <div
+    class="overflow-x-auto bg-surface rounded-xl border border-border-muted shadow-sm"
+    :aria-busy="loading ? 'true' : undefined"
+  >
+    <p class="sr-only" aria-live="polite">
+      {{ loading ? 'Cargando registros...' : `${rows.length} registros en la tabla` }}
+    </p>
     <table class="w-full min-w-[600px] text-sm">
       <thead>
         <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
@@ -13,7 +19,7 @@
             <button
               v-if="col.sortable"
               type="button"
-              class="inline-flex items-center gap-1 uppercase tracking-wider hover:text-text-default transition-colors"
+              class="inline-flex items-center gap-1 uppercase tracking-wider rounded hover:text-text-default transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
               :class="sortKey === col.key ? 'text-text-default' : ''"
               :data-testid="`accounting-sort-${col.key}`"
               @click="emit('sort', col.key)"
@@ -34,13 +40,34 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-border-muted">
-        <tr v-if="rows.length === 0">
+        <template v-if="loading">
+          <tr
+            v-for="n in skeletonRows"
+            :key="`skeleton-${n}`"
+            class="bg-surface"
+            data-testid="accounting-skeleton-row"
+          >
+            <td
+              v-for="(col, colIndex) in columns"
+              :key="col.key"
+              class="px-4 py-3.5 first:px-5"
+              :class="alignClass(col)"
+            >
+              <div
+                class="h-3 rounded bg-surface-raised motion-safe:animate-pulse inline-block"
+                :class="skeletonWidthClass(n, colIndex)"
+              />
+            </td>
+            <td v-if="showActions" class="px-4 py-3.5" />
+          </tr>
+        </template>
+        <tr v-else-if="rows.length === 0">
           <td :colspan="colspan" class="px-5 py-8 text-center text-sm text-text-subtle">
-            Sin registros.
+            <slot name="empty">Sin registros.</slot>
           </td>
         </tr>
         <tr
-          v-for="row in rows"
+          v-for="row in loading ? [] : rows"
           :key="row[rowKey]"
           :data-testid="`accounting-row-${row[rowKey]}`"
           class="hover:bg-surface-raised transition-colors bg-surface"
@@ -77,19 +104,19 @@
               type="button"
               aria-label="Editar"
               :data-testid="`accounting-edit-${row[rowKey]}`"
-              class="p-1.5 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors"
+              class="p-2 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
               @click.stop="emit('edit', row)"
             >
-              <PencilSquareIcon class="w-4 h-4" />
+              <PencilSquareIcon class="w-5 h-5" />
             </button>
             <button
               type="button"
               aria-label="Eliminar"
               :data-testid="`accounting-delete-${row[rowKey]}`"
-              class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
+              class="p-2 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
               @click.stop="emit('delete', row)"
             >
-              <TrashIcon class="w-4 h-4" />
+              <TrashIcon class="w-5 h-5" />
             </button>
           </td>
         </tr>
@@ -124,6 +151,9 @@ const props = defineProps({
   /** Active sort state (controlled by the page via @sort). */
   sortKey: { type: String, default: '' },
   sortDir: { type: String, default: 'asc' },
+  /** When true, renders skeleton placeholder rows instead of data. */
+  loading: { type: Boolean, default: false },
+  skeletonRows: { type: Number, default: 5 },
 });
 
 const emit = defineEmits(['edit', 'delete', 'sort']);
@@ -142,6 +172,14 @@ const TONE_CLASSES = {
 };
 
 const colspan = computed(() => props.columns.length + (props.showActions ? 1 : 0));
+
+// Deterministic width variety for skeleton cells (no randomness so SSR
+// markup and snapshots stay stable).
+const SKELETON_WIDTHS = ['w-24', 'w-16', 'w-32', 'w-20'];
+
+function skeletonWidthClass(rowIndex, colIndex) {
+  return SKELETON_WIDTHS[(rowIndex + colIndex) % SKELETON_WIDTHS.length];
+}
 
 function alignClass(col) {
   const align = col.align || (col.format === 'money' ? 'right' : 'left');

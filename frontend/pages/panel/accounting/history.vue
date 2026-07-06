@@ -46,8 +46,16 @@
       </div>
     </div>
 
+    <!-- Error -->
+    <AccountingErrorState
+      v-if="store.error === 'changelog_failed'"
+      title="No se pudo cargar el historial"
+      :retrying="store.isLoading"
+      @retry="load(store.changelog.page)"
+    />
+
     <!-- Loading -->
-    <div v-if="store.isLoading" class="text-center py-16 text-text-subtle text-sm">
+    <div v-else-if="store.isLoading" class="text-center py-16 text-text-subtle text-sm">
       Cargando historial...
     </div>
 
@@ -78,6 +86,7 @@
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, watch } from 'vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
+import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import ChangelogTable from '~/components/accounting/ChangelogTable.vue';
 import BaseFormField from '~/components/base/BaseFormField.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
