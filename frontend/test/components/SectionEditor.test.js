@@ -1832,3 +1832,29 @@ describe('functional_requirements item ids (traceability)', () => {
     expect(wrapper.text()).toContain('ID (enlace técnico)');
   });
 });
+
+describe('SectionEditor dirty tracking', () => {
+  it('emits dirty-change(true) when a field is edited', async () => {
+    const wrapper = mountSectionEditor();
+    const titleInput = wrapper.find('input[type="text"]');
+    await titleInput.setValue('Nuevo título');
+
+    const emitted = wrapper.emitted('dirty-change');
+    expect(emitted).toBeTruthy();
+    expect(emitted[emitted.length - 1][0]).toBe(true);
+  });
+
+  it('re-baselines to clean when the section prop is replaced (store refresh)', async () => {
+    const wrapper = mountSectionEditor();
+    await wrapper.find('input[type="text"]').setValue('Nuevo título');
+    expect(wrapper.emitted('dirty-change').at(-1)[0]).toBe(true);
+
+    await wrapper.setProps({
+      section: buildSection('greeting', { proposalTitle: 'Guardado', clientName: 'Cliente' }, { title: 'Nuevo título' }),
+    });
+    await wrapper.vm.$nextTick();
+
+    const emitted = wrapper.emitted('dirty-change');
+    expect(emitted[emitted.length - 1][0]).toBe(false);
+  });
+});

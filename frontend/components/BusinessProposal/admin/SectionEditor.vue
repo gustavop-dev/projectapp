@@ -177,7 +177,7 @@ const props = defineProps({
   allSections: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(['save', 'syncHostingPercent']);
+const emit = defineEmits(['save', 'syncHostingPercent', 'dirty-change']);
 // emit exposed for TechnicalDocumentEditor @save in template
 
 const sectionType = computed(() => props.section.section_type);
@@ -233,6 +233,8 @@ const form = reactive(buildFormFromJson(props.section.content_json || {}, props.
 watch(() => props.section, (s) => {
   sectionTitle.value = s.title;
   Object.assign(form, buildFormFromJson(s.content_json || {}, s.section_type));
+  // A store refresh (save success, panel refresh) is the new clean state.
+  baselineSignature.value = dirtySignature();
 }, { deep: true });
 
 // Auto-sync paste text from form data (keeps paste area current while editing in form mode)
@@ -242,6 +244,22 @@ watch(
     if (!pasteMode.value) pasteText.value = newText;
   },
 );
+
+// --- Dirty tracking ---
+// Paste text only participates while in paste mode: in form mode the
+// auto-sync watch above mutates it constantly, which would false-flag.
+function dirtySignature() {
+  return JSON.stringify({
+    title: sectionTitle.value,
+    json: formToJson(form, sectionType.value),
+    paste: pasteMode.value ? pasteText.value : null,
+  });
+}
+const baselineSignature = ref(dirtySignature());
+const isDirty = computed(() => dirtySignature() !== baselineSignature.value);
+watch(isDirty, (dirty) => emit('dirty-change', dirty));
+
+defineExpose({ save: handleSave, isDirty });
 
 // --- Helpers: JSON ↔ form conversion (delegated to sectionEditorUtils.js) ---
 

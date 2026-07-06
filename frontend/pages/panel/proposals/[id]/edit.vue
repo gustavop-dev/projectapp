@@ -999,6 +999,11 @@
               <div class="flex items-center gap-4">
                 <span class="text-xs text-text-subtle font-mono w-6">{{ section.order + 1 }}</span>
                 <span class="text-sm font-medium text-text-default">{{ section.title }}</span>
+                <BaseBadge
+                  v-if="sectionDirty.isDirty(section.id)"
+                  variant="warning"
+                  :data-testid="`section-dirty-badge-${section.section_type}`"
+                >Sin guardar</BaseBadge>
                 <span class="text-xs text-text-subtle">({{ section.section_type }})</span>
               </div>
               <div class="flex items-center gap-3">
@@ -1031,6 +1036,7 @@
                 :all-sections="allSections"
                 @save="handleSaveSection"
                 @syncHostingPercent="handleSyncHostingPercent"
+                @dirty-change="sectionDirty.setDirty(section.id, $event)"
               />
             </div>
           </div>
@@ -1244,7 +1250,9 @@ import ProjectScheduleEditor from '~/components/BusinessProposal/admin/ProjectSc
 import JsonStatsPanel from '~/components/BusinessProposal/admin/JsonStatsPanel.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
+import { onBeforeRouteLeave } from 'vue-router';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { useDirtyTracker } from '~/composables/useDirtyTracker';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { buildProposalItemLinkOptions, buildProposalModuleLinkOptions } from '~/utils/proposalModuleLinkOptions';
 import { getProposalNextAction } from '~/utils/proposalNextAction';
@@ -1263,6 +1271,7 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const route = useRoute();
 const proposalStore = useProposalStore();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
+const sectionDirty = useDirtyTracker();
 
 const proposal = computed(() => proposalStore.currentProposal);
 
@@ -2011,9 +2020,37 @@ onMounted(async () => {
   const id = route.params.id;
   await proposalStore.fetchProposal(id);
   hydrateFormFromProposal();
+  window.addEventListener('beforeunload', warnUnsavedBeforeUnload);
+});
+
+const UNSAVED_CONFIRM = {
+  title: 'Cambios sin guardar',
+  message: 'Hay secciones con cambios sin guardar. Si continúas, se perderán.',
+  variant: 'warning',
+  confirmText: 'Continuar sin guardar',
+  cancelText: 'Seguir editando',
+};
+
+function warnUnsavedBeforeUnload(e) {
+  if (sectionDirty.hasDirty.value) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+}
+
+onBeforeRouteLeave(async () => {
+  if (!sectionDirty.hasDirty.value) return true;
+  return await requestConfirm(UNSAVED_CONFIRM);
 });
 
 async function refreshData() {
+  // fetchProposal re-hydrates every open SectionEditor via its deep watch,
+  // silently clobbering unsaved edits — confirm before refreshing.
+  if (sectionDirty.hasDirty.value) {
+    const ok = await requestConfirm(UNSAVED_CONFIRM);
+    if (!ok) return;
+    sectionDirty.clear();
+  }
   isRefreshing.value = true;
   try {
     await proposalStore.fetchProposal(route.params.id);
@@ -2027,6 +2064,7 @@ usePanelRefresh(refreshData);
 
 onBeforeUnmount(() => {
   if (cancelOnboardingPoll) cancelOnboardingPoll();
+  window.removeEventListener('beforeunload', warnUnsavedBeforeUnload);
 });
 
 async function toggleAutomationsPaused() {
@@ -2201,8 +2239,20 @@ async function handleToggleActive() {
   }
 }
 
-function toggleSection(id) {
+async function toggleSection(id) {
   if (expandedSections.value.has(id)) {
+    // Collapsing unmounts the editor and discards unsaved edits.
+    if (sectionDirty.isDirty(id)) {
+      const ok = await requestConfirm({
+        title: 'Cambios sin guardar',
+        message: 'Si cierras esta sección perderás los cambios que no guardaste.',
+        variant: 'warning',
+        confirmText: 'Cerrar sin guardar',
+        cancelText: 'Seguir editando',
+      });
+      if (!ok) return;
+      sectionDirty.setDirty(id, false);
+    }
     expandedSections.value.delete(id);
   } else {
     expandedSections.value.add(id);
@@ -2211,6 +2261,7 @@ function toggleSection(id) {
 }
 
 function collapseSection(id) {
+  sectionDirty.setDirty(id, false);
   expandedSections.value.delete(id);
   expandedSections.value = new Set(expandedSections.value);
 }
