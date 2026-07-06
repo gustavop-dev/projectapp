@@ -6,6 +6,7 @@ from content.services.proposal_module_links import (
     ensure_functional_requirements_item_ids,
     normalize_technical_document_module_links,
 )
+from content.services.section_content_schemas import validate_section_content
 from content.models import (
     BusinessProposal,
     EmailTemplateConfig,
@@ -524,11 +525,17 @@ class ProposalSectionUpdateSerializer(serializers.ModelSerializer):
         fields = ('title', 'order', 'is_enabled', 'is_wide_panel', 'content_json')
 
     def validate_content_json(self, value):
-        """Ensure content_json is a dictionary."""
+        """Ensure content_json is a dictionary and matches the section schema."""
         if not isinstance(value, dict):
             raise serializers.ValidationError(
                 'content_json must be a JSON object (dict).'
             )
+        if self.instance is not None:
+            schema_errors = validate_section_content(
+                self.instance.section_type, value,
+            )
+            if schema_errors:
+                raise serializers.ValidationError(schema_errors)
         if (
             self.instance
             and self.instance.section_type == ProposalSection.SectionType.TECHNICAL_DOCUMENT
@@ -652,6 +659,18 @@ class ProposalFromJSONSerializer(serializers.Serializer):
             )
         # Strip _meta helper key if present (template download artifact)
         value.pop('_meta', None)
+        # Per-section-type schema validation: each camelCase key maps to a
+        # section_type and its dict becomes that section's content_json.
+        schema_errors = {}
+        for key, content in value.items():
+            section_type = SECTION_KEY_MAP.get(key)
+            if section_type is None or not isinstance(content, dict):
+                continue
+            section_errors = validate_section_content(section_type, content)
+            if section_errors:
+                schema_errors[key] = section_errors
+        if schema_errors:
+            raise serializers.ValidationError(schema_errors)
         return value
 
 
@@ -750,15 +769,24 @@ class ProposalDefaultConfigSerializer(serializers.ModelSerializer):
                 )
         normalized_sections = []
         technical_content = None
+        schema_errors = []
         for section in value:
             cloned = dict(section)
             content_json = cloned.get('content_json')
             cloned['content_json'] = content_json if isinstance(content_json, dict) else {}
+            schema_errors.extend(
+                validate_section_content(
+                    cloned.get('section_type'), cloned['content_json'],
+                )
+            )
             if cloned.get('section_type') == ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS:
                 cloned['content_json'] = ensure_functional_requirements_item_ids(cloned['content_json'])
             if cloned.get('section_type') == ProposalSection.SectionType.TECHNICAL_DOCUMENT:
                 technical_content = cloned['content_json']
             normalized_sections.append(cloned)
+
+        if schema_errors:
+            raise serializers.ValidationError(schema_errors)
 
         if technical_content is not None:
             canonical_technical = normalize_technical_document_module_links(
