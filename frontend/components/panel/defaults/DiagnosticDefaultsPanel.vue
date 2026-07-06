@@ -241,7 +241,7 @@
           as="NuxtLink"
           variant="primary"
           size="md"
-          :to="localePath('/panel/email-templates')"
+          :to="localePath('/panel/defaults') + '?mode=proposal&tab=emails'"
         >Ir a Plantillas de Email →</BaseButton>
       </div>
     </section>
