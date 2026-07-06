@@ -98,6 +98,25 @@
       Cargando…
     </div>
 
+    <!-- Load error (distinct from the empty state) -->
+    <BaseEmptyState
+      v-else-if="store.error && !store.diagnostics.length"
+      data-testid="diagnostics-error-state"
+      :description="store.error"
+    >
+      <template #icon>
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>
+      </template>
+      <template #actions>
+        <BaseButton variant="secondary" size="md" @click="loadDiagnostics">
+          Reintentar
+        </BaseButton>
+      </template>
+    </BaseEmptyState>
+
     <!-- Empty state -->
     <BaseEmptyState
       v-else-if="!sortedDiagnostics.length"
