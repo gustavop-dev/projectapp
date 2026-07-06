@@ -125,7 +125,7 @@ def test_create_diagnostic_endpoint(admin_client, diag_client_profile):
 def test_create_diagnostic_requires_client_id(admin_client):
     response = admin_client.post('/api/diagnostics/create/', {}, format='json')
     assert response.status_code == 400
-    assert response.json()['error'] == 'client_id_required'
+    assert response.json()['code'] == 'client_id_required'
 
 
 def test_send_initial_transitions_status(admin_client, diagnostic, mailoutbox):
@@ -179,7 +179,7 @@ def test_track_section_rejects_non_numeric_time_spent(api_client, diagnostic):
         format='json',
     )
     assert response.status_code == 400
-    assert response.json().get('error') == 'invalid_time_spent_seconds'
+    assert response.json().get('code') == 'invalid_time_spent_seconds'
 
 
 def test_track_section_respects_client_entered_at(api_client, diagnostic):
@@ -349,7 +349,7 @@ def test_bulk_update_rejects_non_list_payload(admin_client, diagnostic):
         format='json',
     )
     assert response.status_code == 400
-    assert response.json()['error'] == 'sections_must_be_list'
+    assert response.json()['code'] == 'sections_must_be_list'
 
 
 def test_bulk_update_skips_unknown_section_ids(admin_client, diagnostic):
@@ -373,7 +373,7 @@ def test_respond_public_rejects_invalid_decision(api_client, diagnostic):
         {'decision': 'maybe'}, format='json',
     )
     assert response.status_code == 400
-    assert response.json()['error'] == 'invalid_decision'
+    assert response.json()['code'] == 'invalid_decision'
 
 
 def test_respond_public_conflict_when_status_not_sent(api_client, diagnostic):
@@ -391,7 +391,7 @@ def test_create_activity_rejects_invalid_change_type(admin_client, diagnostic):
         {'change_type': 'bogus', 'description': 'x'}, format='json',
     )
     assert response.status_code == 400
-    assert response.json()['error'] == 'invalid_change_type'
+    assert response.json()['code'] == 'invalid_change_type'
 
 
 def test_create_activity_requires_description(admin_client, diagnostic):
@@ -400,7 +400,7 @@ def test_create_activity_requires_description(admin_client, diagnostic):
         {'change_type': 'note', 'description': '   '}, format='json',
     )
     assert response.status_code == 400
-    assert response.json()['error'] == 'description_required'
+    assert response.json()['code'] == 'description_required'
 
 
 def test_track_section_requires_session_and_type(api_client, diagnostic):

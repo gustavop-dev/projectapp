@@ -16,6 +16,7 @@ from rest_framework.decorators import api_view, permission_classes, throttle_cla
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
+from content.api_errors import error_response
 from content.throttles import TrackingAnonThrottle
 
 from accounts.models import UserProfile
@@ -86,16 +87,17 @@ def list_diagnostics(request):
 def create_diagnostic(request):
     client_id = request.data.get('client_id')
     if not client_id:
-        return Response(
-            {'error': 'client_id_required'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Selecciona un cliente antes de continuar.',
+            code='client_id_required',
         )
     client = UserProfile.objects.filter(
         pk=client_id, role=UserProfile.ROLE_CLIENT,
     ).first()
     if client is None:
-        return Response(
-            {'error': 'client_not_found'},
+        return error_response(
+            'El cliente no existe o no tiene rol de cliente.',
+            code='client_not_found',
             status=http_status.HTTP_404_NOT_FOUND,
         )
 
@@ -132,8 +134,11 @@ def update_diagnostic(request, diagnostic_id):
         diagnostic, data=request.data, partial=True,
     )
     if not serializer.is_valid():
-        return Response(serializer.errors,
-                        status=http_status.HTTP_400_BAD_REQUEST)
+        return error_response(
+            'Datos inválidos.',
+            code='validation_error',
+            errors=serializer.errors,
+        )
     propagate = serializer.validated_data.get('propagate_client_updates', False)
     serializer.save()
     if propagate:
@@ -186,8 +191,11 @@ def update_diagnostic_section(request, diagnostic_id, section_id):
         section, data=request.data, partial=True,
     )
     if not serializer.is_valid():
-        return Response(serializer.errors,
-                        status=http_status.HTTP_400_BAD_REQUEST)
+        return error_response(
+            'Datos inválidos.',
+            code='validation_error',
+            errors=serializer.errors,
+        )
     serializer.save()
     diagnostic_service.log_change(
         section.diagnostic,
@@ -206,9 +214,9 @@ def bulk_update_diagnostic_sections(request, diagnostic_id):
     diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
     payload = request.data.get('sections') or []
     if not isinstance(payload, list):
-        return Response(
-            {'error': 'sections_must_be_list'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Las secciones deben ser una lista.',
+            code='sections_must_be_list',
         )
 
     updated_ids = []
@@ -276,15 +284,15 @@ def create_diagnostic_activity(request, diagnostic_id):
     change_type = (request.data.get('change_type') or 'note').strip()
     valid = {c[0] for c in DiagnosticChangeLog.ChangeType.choices}
     if change_type not in valid:
-        return Response(
-            {'error': 'invalid_change_type'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Tipo de actividad no válido.',
+            code='invalid_change_type',
         )
     description = (request.data.get('description') or '').strip()
     if not description:
-        return Response(
-            {'error': 'description_required'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'La descripción es obligatoria.',
+            code='description_required',
         )
     log = diagnostic_service.log_change(
         diagnostic,
@@ -706,8 +714,10 @@ def _send_and_transition(diagnostic, kind: str):
         target = WebAppDiagnostic.Status.SENT
         email_fn = DiagnosticEmailService.send_final_to_client
     else:
-        return False, Response({'error': 'unknown_kind'},
-                               status=http_status.HTTP_400_BAD_REQUEST)
+        return False, error_response(
+            'Tipo de envío desconocido.',
+            code='unknown_kind',
+        )
 
     try:
         diagnostic_service.transition_status(
@@ -715,9 +725,10 @@ def _send_and_transition(diagnostic, kind: str):
             actor_type=DiagnosticChangeLog.ActorType.SELLER,
         )
     except ValueError as exc:
-        return False, Response(
-            {'error': str(exc).split(':')[0], 'message': str(exc)},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return False, error_response(
+            'No se puede cambiar el estado del diagnóstico desde su estado actual.',
+            code=str(exc).split(':')[0],
+            hint='Recarga la página para ver el estado vigente.',
         )
 
     try:
@@ -761,9 +772,10 @@ def mark_in_analysis(request, diagnostic_id):
             actor_type=DiagnosticChangeLog.ActorType.SELLER,
         )
     except ValueError as exc:
-        return Response(
-            {'error': str(exc).split(':')[0], 'message': str(exc)},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'No se puede cambiar el estado del diagnóstico desde su estado actual.',
+            code=str(exc).split(':')[0],
+            hint='Recarga la página para ver el estado vigente.',
         )
     diagnostic = _admin_qs(include_attachments=True).get(pk=diagnostic.pk)
     return Response(DiagnosticDetailSerializer(diagnostic).data)
@@ -852,15 +864,15 @@ def track_diagnostic_section_view(request, diagnostic_uuid):
     try:
         time_spent = float(request.data.get('time_spent_seconds') or 0)
     except (TypeError, ValueError):
-        return Response(
-            {'error': 'invalid_time_spent_seconds'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Tiempo de lectura no válido.',
+            code='invalid_time_spent_seconds',
         )
 
     if not session_id or not section_type:
-        return Response(
-            {'error': 'session_id_and_section_type_required'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Faltan datos de sesión.',
+            code='session_id_and_section_type_required',
         )
 
     entered_at = None
@@ -890,15 +902,17 @@ def download_public_diagnostic_pdf(request, diagnostic_uuid):
         uuid=diagnostic_uuid,
     )
     if diagnostic.status not in diagnostic_service.PUBLIC_VISIBLE_STATUSES:
-        return Response(
-            {'error': 'not_available'},
+        return error_response(
+            'El diagnóstico no está disponible.',
+            code='not_available',
             status=http_status.HTTP_404_NOT_FOUND,
         )
 
     pdf_bytes = DiagnosticPdfService.generate(diagnostic)
     if not pdf_bytes:
-        return Response(
-            {'error': 'pdf_generation_failed'},
+        return error_response(
+            'No se pudo generar el PDF.',
+            code='pdf_generation_failed',
             status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -920,9 +934,9 @@ def respond_public_diagnostic(request, diagnostic_uuid):
     diagnostic = get_object_or_404(WebAppDiagnostic, uuid=diagnostic_uuid)
     decision = (request.data.get('decision') or '').strip().lower()
     if decision not in ('accept', 'reject'):
-        return Response(
-            {'error': 'invalid_decision'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'La decisión debe ser aceptar o rechazar.',
+            code='invalid_decision',
         )
     target = (
         WebAppDiagnostic.Status.ACCEPTED
@@ -935,8 +949,10 @@ def respond_public_diagnostic(request, diagnostic_uuid):
             actor_type=DiagnosticChangeLog.ActorType.CLIENT,
         )
     except ValueError as exc:
-        return Response(
-            {'error': str(exc).split(':')[0], 'message': str(exc)},
+        return error_response(
+            'El diagnóstico ya no admite esta acción.',
+            code=str(exc).split(':')[0],
+            hint='Recarga la página para ver el estado vigente.',
             status=http_status.HTTP_409_CONFLICT,
         )
     return Response(PublicDiagnosticSerializer(diagnostic).data)
@@ -970,20 +986,22 @@ def upload_diagnostic_attachment(request, diagnostic_id):
     diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
     file = request.FILES.get('file')
     if not file:
-        return Response({'error': 'No se adjuntó ningún archivo.'},
-                        status=http_status.HTTP_400_BAD_REQUEST)
+        return error_response(
+            'No se adjuntó ningún archivo.',
+            code='attachment_file_required',
+        )
 
     ext = Path(file.name).suffix.lower()
     if ext not in _ATTACHMENT_ALLOWED_EXTENSIONS:
         allowed = ', '.join(sorted(_ATTACHMENT_ALLOWED_EXTENSIONS))
-        return Response(
-            {'error': f'Tipo de archivo {ext} no permitido. Permitidos: {allowed}'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            f'Tipo de archivo {ext} no permitido. Permitidos: {allowed}',
+            code='attachment_type_not_allowed',
         )
     if file.size > _ATTACHMENT_MAX_SIZE:
-        return Response(
-            {'error': 'El archivo es demasiado grande. El tamaño máximo es 15 MB.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'El archivo es demasiado grande. El tamaño máximo es 15 MB.',
+            code='attachment_too_large',
         )
 
     document_type = request.data.get(
@@ -991,9 +1009,9 @@ def upload_diagnostic_attachment(request, diagnostic_id):
     )
     valid_types = {c[0] for c in DiagnosticAttachment.DOC_TYPE_CHOICES}
     if document_type not in valid_types:
-        return Response(
-            {'error': f'Tipo de documento no válido: {document_type}'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            f'Tipo de documento no válido: {document_type}',
+            code='invalid_document_type',
         )
 
     title = (request.data.get('title') or file.name).strip()[:300] or file.name
@@ -1025,9 +1043,9 @@ def delete_diagnostic_attachment(request, diagnostic_id, attachment_id):
         pk=attachment_id, diagnostic_id=diagnostic_id,
     )
     if attachment.is_generated:
-        return Response(
-            {'error': 'No se puede eliminar un documento generado por el sistema; regénerelo desde Editar parámetros.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'No se puede eliminar un documento generado por el sistema; regénerelo desde Editar parámetros.',
+            code='generated_attachment_locked',
         )
     if attachment.file:
         attachment.file.delete(save=False)
@@ -1068,14 +1086,14 @@ def send_diagnostic_attachments(request, diagnostic_id):
 
     invalid = set(documents) - _SEND_ALLOWED_DOC_KEYS
     if invalid:
-        return Response(
-            {'error': f'Claves de documento no reconocidas: {sorted(invalid)}'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            f'Claves de documento no reconocidas: {sorted(invalid)}',
+            code='unknown_document_keys',
         )
     if not attachment_ids and not documents:
-        return Response(
-            {'error': 'Debes seleccionar al menos un documento.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Debes seleccionar al menos un documento.',
+            code='documents_selection_required',
         )
 
     extra_files = []
@@ -1086,14 +1104,15 @@ def send_diagnostic_attachments(request, diagnostic_id):
             is_generated=True,
         ).exists()
         if not has_params and not has_generated:
-            return Response(
-                {'error': 'Debes generar el Acuerdo de Confidencialidad antes de enviarlo (Documentos → Generar acuerdo).'},
-                status=http_status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                'Debes generar el Acuerdo de Confidencialidad antes de enviarlo (Documentos → Generar acuerdo).',
+                code='nda_not_generated',
             )
         nda_bytes = generate_confidentiality_pdf(diagnostic, draft=True)
         if not nda_bytes:
-            return Response(
-                {'error': 'No se pudo generar el Acuerdo de Confidencialidad.'},
+            return error_response(
+                'No se pudo generar el Acuerdo de Confidencialidad.',
+                code='nda_generation_failed',
                 status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
         watermarked = add_watermark_to_pdf(nda_bytes)
@@ -1115,9 +1134,9 @@ def send_diagnostic_attachments(request, diagnostic_id):
         extra_files=extra_files,
     )
     if not ok:
-        return Response(
-            {'error': error or 'Error al enviar.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            error or 'Error al enviar.',
+            code='attachments_send_failed',
         )
     diagnostic_service.log_change(
         diagnostic,
@@ -1179,15 +1198,21 @@ def update_confidentiality_params(request, diagnostic_id):
     serializer = ConfidentialityParamsSerializer(
         data=request.data.get('confidentiality_params', request.data),
     )
-    serializer.is_valid(raise_exception=True)
+    if not serializer.is_valid():
+        return error_response(
+            'Datos inválidos.',
+            code='validation_error',
+            errors=serializer.errors,
+        )
 
     diagnostic.confidentiality_params = serializer.validated_data
     diagnostic.save(update_fields=['confidentiality_params', 'updated_at'])
 
     attachment = _generate_and_save_confidentiality_pdf(diagnostic)
     if not attachment:
-        return Response(
-            {'error': 'Parámetros guardados pero no se pudo generar el PDF.'},
+        return error_response(
+            'Parámetros guardados pero no se pudo generar el PDF.',
+            code='nda_generation_failed',
             status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     diagnostic_service.log_change(
@@ -1210,8 +1235,9 @@ def generate_confidentiality_pdf_view(request, diagnostic_id):
     diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
     attachment = _generate_and_save_confidentiality_pdf(diagnostic)
     if not attachment:
-        return Response(
-            {'error': 'No se pudo generar el PDF.'},
+        return error_response(
+            'No se pudo generar el PDF.',
+            code='nda_generation_failed',
             status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     return Response({'attachment': serialize_diagnostic_attachment(attachment)})
@@ -1235,8 +1261,9 @@ def download_confidentiality_pdf(request, diagnostic_id):
         is_generated=True,
     ).first()
     if not attachment or not attachment.file:
-        return Response(
-            {'error': 'El acuerdo aún no ha sido generado.'},
+        return error_response(
+            'El acuerdo aún no ha sido generado.',
+            code='nda_not_generated',
             status=http_status.HTTP_404_NOT_FOUND,
         )
     return FileResponse(
@@ -1255,8 +1282,9 @@ def download_draft_confidentiality_pdf(request, diagnostic_id):
     diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
     pdf_bytes = generate_confidentiality_pdf(diagnostic, draft=True)
     if not pdf_bytes:
-        return Response(
-            {'error': 'No se pudo generar el borrador.'},
+        return error_response(
+            'No se pudo generar el borrador.',
+            code='nda_generation_failed',
             status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     filename = _confidentiality_filename(diagnostic, 'Borrador_Acuerdo_Confidencialidad')
@@ -1376,30 +1404,31 @@ def _parse_diagnostic_email(request, diagnostic):
         sent_at__gte=one_min_ago,
     ).exists()
     if recent:
-        return None, Response(
-            {'error': 'Espera al menos 1 minuto entre envíos.'},
+        return None, error_response(
+            'Espera al menos 1 minuto entre envíos.',
+            code='email_rate_limited',
             status=http_status.HTTP_429_TOO_MANY_REQUESTS,
         )
 
     recipient_email = (request.data.get('recipient_email') or '').strip()
     if not recipient_email:
-        return None, Response(
-            {'error': 'El campo destinatario es obligatorio.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return None, error_response(
+            'El campo destinatario es obligatorio.',
+            code='recipient_required',
         )
     try:
         validate_email(recipient_email)
     except DjangoValidationError:
-        return None, Response(
-            {'error': 'El correo del destinatario no es válido.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return None, error_response(
+            'El correo del destinatario no es válido.',
+            code='invalid_recipient_email',
         )
 
     subject = (request.data.get('subject') or '').strip()
     if not subject:
-        return None, Response(
-            {'error': 'El asunto es obligatorio.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return None, error_response(
+            'El asunto es obligatorio.',
+            code='subject_required',
         )
 
     greeting = (request.data.get('greeting') or '').strip()
@@ -1412,17 +1441,17 @@ def _parse_diagnostic_email(request, diagnostic):
             else raw_sections
         )
     except (json.JSONDecodeError, TypeError):
-        return None, Response(
-            {'error': 'Las secciones deben ser un JSON válido.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return None, error_response(
+            'Las secciones deben ser un JSON válido.',
+            code='invalid_sections_json',
         )
 
     if not isinstance(sections, list) or not any(
         s.strip() for s in sections if isinstance(s, str)
     ):
-        return None, Response(
-            {'error': 'Debe incluir al menos una sección con contenido.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return None, error_response(
+            'Debe incluir al menos una sección con contenido.',
+            code='sections_content_required',
         )
     sections = [s for s in sections if isinstance(s, str) and s.strip()]
 
@@ -1430,14 +1459,14 @@ def _parse_diagnostic_email(request, diagnostic):
     for f in request.FILES.getlist('attachments'):
         ext = Path(f.name).suffix.lower()
         if ext not in _COMPOSED_EMAIL_ALLOWED_EXT:
-            return None, Response(
-                {'error': f'Tipo de archivo {ext} no permitido.'},
-                status=http_status.HTTP_400_BAD_REQUEST,
+            return None, error_response(
+                f'Tipo de archivo {ext} no permitido.',
+                code='attachment_type_not_allowed',
             )
         if f.size > _COMPOSED_EMAIL_MAX_FILE:
-            return None, Response(
-                {'error': f'El archivo "{f.name}" excede el límite de 15 MB.'},
-                status=http_status.HTTP_400_BAD_REQUEST,
+            return None, error_response(
+                f'El archivo "{f.name}" excede el límite de 15 MB.',
+                code='attachment_too_large',
             )
         mime_type = mimetypes.guess_type(f.name)[0] or 'application/octet-stream'
         attachments.append((f.name, f.read(), mime_type))
@@ -1450,10 +1479,10 @@ def _parse_diagnostic_email(request, diagnostic):
 
         pdf_bytes = generate_confidentiality_pdf(diagnostic)
         if not pdf_bytes:
-            return None, Response(
-                {'error': 'No se pudo generar el acuerdo de confidencialidad. '
-                          'Completa los parámetros en la pestaña Documentos.'},
-                status=http_status.HTTP_400_BAD_REQUEST,
+            return None, error_response(
+                'No se pudo generar el acuerdo de confidencialidad. '
+                'Completa los parámetros en la pestaña Documentos.',
+                code='nda_generation_failed',
             )
         nda_filename = _confidentiality_filename(diagnostic, 'Acuerdo_Confidencialidad')
         attachments.append((nda_filename, pdf_bytes, 'application/pdf'))
@@ -1461,15 +1490,15 @@ def _parse_diagnostic_email(request, diagnostic):
     # ── References to existing documents (NDA, MD templates, uploads) ──
     from content.views._doc_refs import DocRefError, parse_doc_refs_field
 
-    doc_refs, error_response = parse_doc_refs_field(request)
-    if error_response:
-        return None, error_response
+    doc_refs, doc_refs_error = parse_doc_refs_field(request)
+    if doc_refs_error:
+        return None, doc_refs_error
     try:
         attachments.extend(_resolve_diagnostic_doc_refs(diagnostic, doc_refs))
     except DocRefError as err:
-        return None, Response(
-            {'error': str(err)},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return None, error_response(
+            str(err),
+            code='invalid_doc_ref',
         )
 
     return {
@@ -1509,8 +1538,9 @@ def send_diagnostic_email(request, diagnostic_id):
             actor_type=DiagnosticChangeLog.ActorType.SELLER,
         )
         return Response({'message': f'Correo enviado a {parsed["recipient_email"]}.'})
-    return Response(
-        {'error': 'Error al enviar el correo. Intenta de nuevo.'},
+    return error_response(
+        'Error al enviar el correo. Intenta de nuevo.',
+        code='email_send_failed',
         status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
 
@@ -1555,9 +1585,9 @@ def diagnostic_defaults(request):
     """GET — DB config for *lang* or hardcoded fallback. PUT — upsert."""
     lang = request.query_params.get('lang', request.data.get('language', 'es'))
     if lang not in ('es', 'en'):
-        return Response(
-            {'detail': 'El idioma debe ser "es" o "en".'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'El idioma debe ser "es" o "en".',
+            code='invalid_language',
         )
 
     if request.method == 'GET':
@@ -1595,7 +1625,11 @@ def diagnostic_defaults(request):
         else DiagnosticDefaultConfigSerializer(data=payload)
     )
     if not serializer.is_valid():
-        return Response(serializer.errors, status=http_status.HTTP_400_BAD_REQUEST)
+        return error_response(
+            'Datos inválidos.',
+            code='validation_error',
+            errors=serializer.errors,
+        )
     serializer.save()
     return Response(serializer.data, status=http_status.HTTP_200_OK)
 
@@ -1606,9 +1640,9 @@ def reset_diagnostic_defaults(request):
     """Delete the DB-backed defaults for a language; reverts to hardcoded seed."""
     lang = request.data.get('language', 'es')
     if lang not in ('es', 'en'):
-        return Response(
-            {'detail': 'El idioma debe ser "es" o "en".'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'El idioma debe ser "es" o "en".',
+            code='invalid_language',
         )
     deleted_count, _ = DiagnosticDefaultConfig.objects.filter(language=lang).delete()
     return Response(

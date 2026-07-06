@@ -63,13 +63,13 @@ def test_list_diagnostics_with_nonmatching_client_returns_empty(admin_client, di
 def test_create_diagnostic_returns_400_when_no_client_id(admin_client):
     response = admin_client.post('/api/diagnostics/create/', data={}, format='json')
     assert response.status_code == 400
-    assert response.json()['error'] == 'client_id_required'
+    assert response.json()['code'] == 'client_id_required'
 
 
 def test_create_diagnostic_returns_404_when_client_not_found(admin_client):
     response = admin_client.post('/api/diagnostics/create/', data={'client_id': 99999}, format='json')
     assert response.status_code == 404
-    assert response.json()['error'] == 'client_not_found'
+    assert response.json()['code'] == 'client_not_found'
 
 
 def test_create_diagnostic_returns_404_when_user_is_not_client_role(admin_client, admin_user):
@@ -82,7 +82,7 @@ def test_create_diagnostic_returns_404_when_user_is_not_client_role(admin_client
         format='json',
     )
     assert response.status_code == 404
-    assert response.json()['error'] == 'client_not_found'
+    assert response.json()['code'] == 'client_not_found'
 
 
 # ---------------------------------------------------------------------------
@@ -96,7 +96,7 @@ def test_bulk_update_returns_400_when_sections_is_not_list(admin_client, diagnos
         format='json',
     )
     assert response.status_code == 400
-    assert response.json()['error'] == 'sections_must_be_list'
+    assert response.json()['code'] == 'sections_must_be_list'
 
 
 def test_bulk_update_with_empty_list_returns_200(admin_client, diagnostic):
@@ -139,7 +139,7 @@ def test_create_diagnostic_activity_returns_400_for_invalid_change_type(
         format='json',
     )
     assert response.status_code == 400
-    assert response.json()['error'] == 'invalid_change_type'
+    assert response.json()['code'] == 'invalid_change_type'
 
 
 def test_create_diagnostic_activity_returns_400_for_empty_description(
@@ -151,7 +151,7 @@ def test_create_diagnostic_activity_returns_400_for_empty_description(
         format='json',
     )
     assert response.status_code == 400
-    assert response.json()['error'] == 'description_required'
+    assert response.json()['code'] == 'description_required'
 
 
 def test_create_diagnostic_activity_returns_400_for_whitespace_description(
@@ -163,7 +163,7 @@ def test_create_diagnostic_activity_returns_400_for_whitespace_description(
         format='json',
     )
     assert response.status_code == 400
-    assert response.json()['error'] == 'description_required'
+    assert response.json()['code'] == 'description_required'
 
 
 # ---------------------------------------------------------------------------
@@ -179,7 +179,7 @@ def test_respond_public_diagnostic_returns_400_for_invalid_decision(diagnostic):
         format='json',
     )
     assert response.status_code == 400
-    assert response.json()['error'] == 'invalid_decision'
+    assert response.json()['code'] == 'invalid_decision'
 
 
 def test_respond_public_diagnostic_returns_409_for_invalid_transition(diagnostic):
