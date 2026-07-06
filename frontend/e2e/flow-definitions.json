@@ -1612,7 +1612,7 @@
         "admin"
       ],
       "priority": "P4",
-      "description": "Open the panel route inventory, filter grouped views, and copy route references for support and QA communication.",
+      "description": "Open the panel route inventory, filter grouped views, and copy route references for support and QA communication. Includes the interactive map mode: Lista/Mapa toggle, module cards with stats, drill-down into curated sub-modules, and deep-linking via ?viewMode=map&module=<id>.",
       "expectedSpecs": 1
     },
     "public-landing-software": {
