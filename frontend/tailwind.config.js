@@ -110,6 +110,20 @@ export default {
         'raised': 'var(--shadow-raised)',
         'overlay': 'var(--shadow-overlay)',
       },
+      // Meta text one step below text-xs (replaces ad-hoc text-[10px]/[11px]).
+      fontSize: {
+        '2xs': ['0.6875rem', { lineHeight: '1rem' }],
+      },
+      // Motion scale: fast → hovers/toggles; base → collapses/tab panels;
+      // slow → progress bars/large reveals. Pair with motion-safe: variants.
+      transitionDuration: {
+        fast: '150ms',
+        base: '250ms',
+        slow: '400ms',
+      },
+      transitionTimingFunction: {
+        'out-soft': 'cubic-bezier(0.22, 1, 0.36, 1)',
+      },
       animation: {
         first: "moveVertical 30s ease infinite",
         second: "moveInCircle 20s reverse infinite",

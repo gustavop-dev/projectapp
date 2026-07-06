@@ -23,6 +23,7 @@ const filterCount = ref(2)
 const baseTab = ref('a')
 const alertVisible = ref(true)
 const dropdownLog = ref('')
+const collapseOpen = ref(false)
 
 const tokenSwatches = [
   { group: 'Surface', items: ['bg-surface', 'bg-surface-muted', 'bg-surface-raised'] },
@@ -362,6 +363,39 @@ const shadowScale = [
             Spec de tooltip: <code>bg-primary-strong</code> + <code>text-white</code> — oscuro de marca, legible sobre ambos washes.
           </BaseTooltip>
           <span class="text-xs text-text-muted">Mismo fondo en claro y oscuro; nunca <code>bg-gray-900</code>.</span>
+        </div>
+      </BaseCard>
+    </section>
+
+    <!-- Collapse + Skeleton -->
+    <section class="space-y-4">
+      <h2 class="text-lg font-semibold text-text-default">13. BaseCollapse / BaseSkeleton</h2>
+      <BaseCard padding="md">
+        <button
+          type="button"
+          class="flex items-center gap-2 text-sm font-medium text-text-default focus:outline-none focus:ring-2 focus:ring-focus-ring/40 rounded-lg px-2 py-1"
+          :aria-expanded="collapseOpen"
+          aria-controls="styleguide-collapse"
+          @click="collapseOpen = !collapseOpen"
+        >
+          <svg class="w-4 h-4 motion-safe:transition-transform motion-safe:duration-fast" :class="collapseOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+          Acordeón animado (grid 0fr→1fr, sin medir altura; se congela bajo reduced-motion)
+        </button>
+        <BaseCollapse id="styleguide-collapse" :open="collapseOpen">
+          <p class="text-sm text-text-muted px-2 pt-2">
+            El trigger vive en el consumidor y debe ser un <code>&lt;button aria-expanded aria-controls&gt;</code>.
+            El cuerpo cerrado queda <code>inert</code> (fuera del orden de tabulación).
+          </p>
+        </BaseCollapse>
+        <div class="mt-6 space-y-2 max-w-sm">
+          <BaseSkeleton variant="line" class="w-3/4" />
+          <BaseSkeleton variant="line" class="w-1/2" />
+          <div class="flex items-center gap-3 mt-3">
+            <BaseSkeleton variant="circle" />
+            <BaseSkeleton variant="card" class="flex-1" />
+          </div>
         </div>
       </BaseCard>
     </section>
