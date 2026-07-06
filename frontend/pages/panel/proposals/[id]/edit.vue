@@ -984,6 +984,45 @@
           </p>
         </div>
 
+        <div class="mb-3 flex justify-end">
+          <BaseButton
+            variant="secondary"
+            size="sm"
+            data-testid="add-section-button"
+            @click="showAddSectionModal = true"
+          >
+            ＋ Agregar sección
+          </BaseButton>
+        </div>
+
+        <BaseModal v-model="showAddSectionModal" size="md">
+          <div class="p-5">
+            <h3 class="text-sm font-semibold text-text-default mb-1">Agregar sección</h3>
+            <p class="text-xs text-text-subtle mb-4">
+              La sección se crea con el contenido por defecto del idioma de la propuesta y se agrega al final.
+            </p>
+            <BaseEmptyState
+              v-if="!availableSectionTypes.length"
+              title="Nada por agregar"
+              description="La propuesta ya tiene todas las secciones disponibles."
+            />
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                v-for="option in availableSectionTypes"
+                :key="option.type"
+                type="button"
+                :data-testid="`add-section-option-${option.type}`"
+                :disabled="proposalStore.isUpdating"
+                class="text-left px-4 py-2.5 rounded-xl border border-border-default text-sm text-text-default hover:bg-surface-raised transition-colors disabled:opacity-50"
+                @click="handleAddSection(option.type)"
+              >
+                {{ option.label }}
+                <span class="block text-[11px] text-text-subtle">{{ option.type }}</span>
+              </button>
+            </div>
+          </div>
+        </BaseModal>
+
         <draggable
           v-model="localSections"
           item-key="id"
@@ -1029,6 +1068,17 @@
                   />
                   <span class="text-text-muted">Visible</span>
                 </label>
+                <button
+                  type="button"
+                  :data-testid="`section-delete-${section.section_type}`"
+                  class="text-text-subtle hover:text-danger-strong transition-colors"
+                  title="Eliminar sección"
+                  @click.stop="handleDeleteSection(section)"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
                 <svg
                   class="w-4 h-4 text-text-subtle transition-transform"
                   :class="{ 'rotate-180': expandedSections.has(section.id) }"
@@ -1252,6 +1302,7 @@ import {
   CheckIcon,
 } from '@heroicons/vue/24/outline';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
+import { SECTION_TYPE_OPTIONS } from '~/components/BusinessProposal/admin/section-forms/index.js';
 import { DEFAULT_HOSTING_PERCENT } from '~/stores/proposals_constants';
 import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
@@ -1392,6 +1443,49 @@ async function onSectionReorderEnd() {
     localSections.value = [...commercialSections.value];
     notifyProposalFailure(result || {}, 'No se pudo reordenar las secciones');
   }
+}
+
+// --- Add / delete sections ---
+const showAddSectionModal = ref(false);
+
+const availableSectionTypes = computed(() => {
+  const present = new Set((proposal.value?.sections || []).map((s) => s.section_type));
+  return SECTION_TYPE_OPTIONS.filter((o) => !present.has(o.type));
+});
+
+async function handleAddSection(sectionType) {
+  const result = await proposalStore.createSection(proposal.value.id, sectionType);
+  if (result.success) {
+    showAddSectionModal.value = false;
+    notify.success({ title: 'Sección agregada.' });
+    if (result.data?.id) {
+      expandedSections.value.add(result.data.id);
+      expandedSections.value = new Set(expandedSections.value);
+    }
+  } else {
+    notifyProposalFailure(result, 'No se pudo agregar la sección');
+  }
+}
+
+function handleDeleteSection(section) {
+  requestConfirm({
+    title: 'Eliminar sección',
+    message: `¿Eliminar la sección «${section.title}»? Esta acción no se puede deshacer.`,
+    variant: 'danger',
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar',
+    onConfirm: async () => {
+      const result = await proposalStore.deleteSection(section.id);
+      if (result.success) {
+        sectionDirty.setDirty(section.id, false);
+        expandedSections.value.delete(section.id);
+        expandedSections.value = new Set(expandedSections.value);
+        notify.success({ title: 'Sección eliminada.' });
+      } else {
+        notifyProposalFailure(result, 'No se pudo eliminar la sección');
+      }
+    },
+  });
 }
 
 const technicalSection = computed(() =>

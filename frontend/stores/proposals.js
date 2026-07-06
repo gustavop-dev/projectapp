@@ -674,6 +674,72 @@ export const useProposalStore = defineStore('proposals', {
       }
     },
 
+    /**
+     * createSection: add a section of a given type, seeded server-side from
+     * the language defaults. Pushes the returned section into currentProposal.
+     */
+    async createSection(proposalId, sectionType) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          `proposals/${proposalId}/sections/create/`,
+          { section_type: sectionType },
+        );
+        const { section, proposal_totals } = response.data || {};
+        if (this.currentProposal && section) {
+          this.currentProposal.sections = [
+            ...(this.currentProposal.sections || []),
+            section,
+          ];
+          if (proposal_totals) {
+            this.currentProposal.total_investment = proposal_totals.total_investment;
+            this.currentProposal.effective_total_investment =
+              proposal_totals.effective_total_investment;
+          }
+        }
+        return { success: true, data: section };
+      } catch (error) {
+        this.error = 'create_section_failed';
+        console.error('Error creating section:', error);
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * deleteSection: remove a section from the proposal (guarded server-side
+     * for functional_requirements with a confirmed calculator selection).
+     */
+    async deleteSection(sectionId) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await delete_request(`proposals/sections/${sectionId}/delete/`);
+        const proposal_totals = response.data?.proposal_totals;
+        if (this.currentProposal?.sections) {
+          this.currentProposal.sections = this.currentProposal.sections.filter(
+            (s) => s.id !== sectionId,
+          );
+          if (proposal_totals) {
+            this.currentProposal.total_investment = proposal_totals.total_investment;
+            this.currentProposal.effective_total_investment =
+              proposal_totals.effective_total_investment;
+          }
+        }
+        return { success: true };
+      } catch (error) {
+        this.error = 'delete_section_failed';
+        console.error('Error deleting section:', error);
+        return { success: false, errors: error.response?.data, ...normalizeApiError(error) };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
     // -----------------------------------------------------------------
     // Auth
     // -----------------------------------------------------------------
