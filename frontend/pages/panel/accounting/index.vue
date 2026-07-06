@@ -344,7 +344,7 @@ const receivedProgress = computed(() => {
 
 const receivedProgressLabel = computed(() => {
   if (receivedProgress.value === null) return '';
-  return `${Math.round(receivedProgress.value)}% de los ingresos esperados ya está recibido`;
+  return `${Math.round(receivedProgress.value)}% de lo esperado ya está recibido`;
 });
 
 const utilitySpark = computed(() =>

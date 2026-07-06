@@ -127,7 +127,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByRole('heading', { name: 'Bolsillo ProjectApp' }),
+      page.getByRole('heading', { name: 'Bolsillo ProjectApp', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
     await expect(page.getByTestId('pocket-balance')).toBeVisible();
     await expect(page.getByText('Saldo del bolsillo')).toBeVisible();

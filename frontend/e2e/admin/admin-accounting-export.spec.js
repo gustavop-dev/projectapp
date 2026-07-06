@@ -107,7 +107,7 @@ test.describe('Admin Accounting Export', () => {
     await mockApi(page, buildHandler({ exportCalls }));
     await page.goto('/panel/accounting/incomes', { waitUntil: 'domcontentloaded' });
     await expect(
-      page.getByRole('heading', { name: 'Ingresos' }),
+      page.getByRole('heading', { name: 'Ingresos', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
 
     // Apply a filter so the export carries it.

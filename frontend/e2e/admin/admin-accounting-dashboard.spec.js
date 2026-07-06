@@ -186,7 +186,7 @@ test.describe('Admin Accounting Dashboard', () => {
     await page.getByTestId('accounting-subnav-incomes').click();
 
     await expect(page).toHaveURL(/\/panel\/accounting\/incomes/);
-    await expect(page.getByRole('heading', { name: 'Ingresos' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Ingresos', exact: true })).toBeVisible();
   });
 
   test('sidebar shows the Accounting section for superusers', {
