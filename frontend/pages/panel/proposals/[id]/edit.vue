@@ -877,120 +877,7 @@
 
       <!-- Tab: Prompt Proposal -->
       <div v-show="activeTab === 'prompt'" class="max-w-7xl mx-auto">
-        <PromptSubTabsPanel v-model="promptSubTab">
-          <template #commercial>
-          <p class="text-sm text-text-muted mb-6">
-            Este prompt se usa con IA (ChatGPT, Claude, etc.) para generar propuestas comerciales personalizadas a partir del JSON plantilla.
-          </p>
-
-          <!-- Action bar -->
-          <div class="flex flex-wrap items-center gap-2 mb-4">
-            <template v-if="!promptIsEditing">
-              <BaseButton variant="secondary" size="md" @click="startEditPrompt">
-                <PencilIcon class="w-4 h-4" />
-                Editar
-              </BaseButton>
-              <BaseButton variant="secondary" size="md" @click="handleCopyPrompt">
-                <DocumentDuplicateIcon class="w-4 h-4" />
-                {{ promptCopied ? '¡Copiado!' : 'Copiar' }}
-              </BaseButton>
-              <BaseButton variant="secondary" size="md" @click="promptDownload">
-                <ArrowDownTrayIcon class="w-4 h-4" />
-                Descargar .md
-              </BaseButton>
-              <BaseButton
-                v-if="promptText !== promptDefault"
-                variant="secondary"
-                size="md"
-                class="!text-danger-strong"
-                @click="handleResetPrompt"
-              >
-                Restaurar original
-              </BaseButton>
-            </template>
-            <template v-else>
-              <BaseButton variant="primary" size="md" @click="saveEditPrompt">
-                Guardar cambios
-              </BaseButton>
-              <BaseButton variant="ghost" size="md" @click="cancelEditPrompt">
-                Cancelar
-              </BaseButton>
-            </template>
-          </div>
-
-          <div v-if="promptIsEditing" class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
-            <textarea
-              v-model="promptEditBuffer"
-              rows="30"
-              class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-text-default bg-transparent border-0 outline-none resize-y focus:ring-0"
-            />
-          </div>
-
-          <div v-else class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
-            <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
-              <pre class="text-xs leading-relaxed text-text-default whitespace-pre-wrap font-mono break-words">{{ promptText }}</pre>
-            </div>
-          </div>
-
-          <p v-if="promptText !== promptDefault" class="text-xs text-warning-strong mt-3">
-            Este prompt ha sido personalizado. Usa "Restaurar original" para volver al valor por defecto.
-          </p>
-          </template>
-
-          <template #technical>
-          <p class="text-sm text-text-muted mb-6">
-            Prompt para generar solo la clave <code class="text-xs bg-surface-raised px-1 rounded">technicalDocument</code> del JSON (arquitectura, módulos del producto, requerimientos, integraciones, etc.). Sin narrativa comercial ni precios.
-          </p>
-          <div class="flex flex-wrap items-center gap-2 mb-4">
-            <template v-if="!technicalPromptIsEditing">
-              <BaseButton variant="secondary" size="md" @click="startEditTechnicalPrompt">
-                <PencilIcon class="w-4 h-4" />
-                Editar
-              </BaseButton>
-              <BaseButton variant="secondary" size="md" @click="handleCopyTechnicalPrompt">
-                <DocumentDuplicateIcon class="w-4 h-4" />
-                {{ technicalPromptCopied ? '¡Copiado!' : 'Copiar' }}
-              </BaseButton>
-              <BaseButton variant="secondary" size="md" @click="technicalPromptDownload">
-                <ArrowDownTrayIcon class="w-4 h-4" />
-                Descargar .md
-              </BaseButton>
-              <BaseButton
-                v-if="technicalPromptText !== technicalPromptDefault"
-                variant="secondary"
-                size="md"
-                class="!text-danger-strong"
-                @click="handleResetTechnicalPrompt"
-              >
-                Restaurar original
-              </BaseButton>
-            </template>
-            <template v-else>
-              <BaseButton variant="primary" size="md" @click="saveEditTechnicalPrompt">
-                Guardar cambios
-              </BaseButton>
-              <BaseButton variant="ghost" size="md" @click="cancelEditTechnicalPrompt">
-                Cancelar
-              </BaseButton>
-            </template>
-          </div>
-          <div v-if="technicalPromptIsEditing" class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
-            <textarea
-              v-model="technicalPromptEditBuffer"
-              rows="28"
-              class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-text-default bg-transparent border-0 outline-none resize-y focus:ring-0"
-            />
-          </div>
-          <div v-else class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
-            <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
-              <pre class="text-xs leading-relaxed text-text-default whitespace-pre-wrap font-mono break-words">{{ technicalPromptText }}</pre>
-            </div>
-          </div>
-          <p v-if="technicalPromptText !== technicalPromptDefault" class="text-xs text-warning-strong mt-3">
-            Prompt técnico personalizado. «Restaurar original» vuelve al texto por defecto.
-          </p>
-          </template>
-        </PromptSubTabsPanel>
+        <ProposalPromptTab :proposal="proposal" />
       </div>
 
       <!-- Tab: Desarrollo (checklist Markdown) -->
@@ -1004,191 +891,12 @@
 
       <!-- Tab: JSON -->
       <div v-show="activeTab === 'json'">
-        <TabSplitLayout>
-          <template #main>
-        <!-- Current JSON (read-only) -->
-        <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4 sm:p-6">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <div>
-              <h3 class="text-sm font-medium text-text-default">JSON de la propuesta</h3>
-              <p class="text-xs text-text-subtle mt-0.5">Representación JSON completa — se actualiza al guardar cambios en otras pestañas.</p>
-            </div>
-            <div class="flex items-center gap-2 flex-shrink-0">
-              <BaseButton variant="secondary" size="sm" :disabled="jsonExportLoading" @click="refreshExportJson">
-                <svg class="w-3.5 h-3.5" :class="{ 'animate-spin': jsonExportLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Actualizar
-              </BaseButton>
-              <BaseButton variant="secondary" size="sm" @click="copyExportJson">
-                <DocumentDuplicateIcon class="w-3.5 h-3.5" />
-                {{ jsonCopied ? '¡Copiado!' : 'Copiar' }}
-              </BaseButton>
-              <BaseButton variant="secondary" size="sm" @click="downloadExportJson">
-                <ArrowDownTrayIcon class="w-3.5 h-3.5" />
-                Descargar
-              </BaseButton>
-            </div>
-          </div>
-
-          <div v-if="jsonExportLoading" class="text-center py-8 text-text-subtle text-sm">
-            Cargando JSON...
-          </div>
-          <template v-else>
-            <JsonStatsPanel class="mb-4" :stats="proposalJsonStats" test-id="proposal-json-stats" />
-            <textarea
-              :value="exportJsonString"
-              readonly
-              data-testid="proposal-export-json-textarea"
-              :rows="JSON_TEXTAREA_ROWS"
-              class="w-full px-4 py-3 border border-border-default rounded-xl text-xs font-mono leading-relaxed
-                     bg-surface-raised text-text-default outline-none resize-y cursor-text select-all"
-            />
-          </template>
-        </div>
-
-          </template>
-
-          <template #aside>
-        <!-- Import JSON -->
-        <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4 sm:p-6">
-          <h3 class="text-sm font-medium text-text-default mb-1">Importar JSON</h3>
-          <p class="text-xs text-text-subtle mb-4">Pega o sube un JSON para reemplazar el contenido de la propuesta (metadata + secciones).</p>
-
-          <div class="flex items-center gap-3 mb-3">
-            <label
-              class="inline-flex items-center gap-2 px-3 py-1.5 border border-border-default rounded-lg text-xs
-                     text-text-default hover:bg-surface-raised cursor-pointer transition-colors"
-            >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              Subir .json
-              <input type="file" accept=".json" class="hidden" @change="handleJsonFileUpload" />
-            </label>
-            <span v-if="jsonImportFileName" class="text-xs text-text-muted">{{ jsonImportFileName }}</span>
-          </div>
-
-          <textarea
-            v-model="jsonImportRaw"
-            data-testid="proposal-import-json-textarea"
-            :rows="JSON_TEXTAREA_ROWS"
-            placeholder='Pega aquí el JSON completo de la propuesta...'
-            class="bg-input-bg w-full px-4 py-3 border border-border-default rounded-xl text-xs font-mono leading-relaxed
-                   focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
-            @input="parseImportJson"
-          />
-
-          <!-- Parse error -->
-          <div v-if="jsonImportError" class="mt-2 text-sm text-danger-strong bg-danger-soft px-4 py-2 rounded-lg">
-            {{ jsonImportError }}
-          </div>
-
-          <!-- Preview -->
-          <div v-if="jsonImportParsed && !jsonImportError" class="mt-3 bg-primary-soft border border-primary/30 rounded-lg px-4 py-3">
-            <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-              <span><span class="text-text-muted">Cliente:</span> <span class="font-medium text-text-default">{{ jsonImportPreview.clientName }}</span></span>
-              <span><span class="text-text-muted">Secciones:</span> <span class="font-medium text-text-default">{{ jsonImportPreview.sectionCount }}</span></span>
-              <span v-if="jsonImportPreview.epicCount != null"><span class="text-text-muted">Módulos (téc.):</span> <span class="font-medium text-text-default">{{ jsonImportPreview.epicCount }}</span></span>
-              <span v-if="jsonImportPreview.investment"><span class="text-text-muted">Inversión:</span> <span class="font-medium text-text-default">{{ jsonImportPreview.investment }}</span></span>
-            </div>
-          </div>
-
-          <!-- Legacy format warning -->
-          <LegacyFormatWarning
-            v-if="jsonImportParsed && !jsonImportError"
-            :issues="jsonImportLegacyIssues"
-            :field-labels="LEGACY_FIELD_LABELS"
-            action-label="Descarga la versión corregida y úsala para actualizar la propuesta:"
-            @download="downloadMigratedProposalJson(jsonImportParsed)"
-          />
-
-          <!-- Apply button -->
-          <div v-if="jsonImportParsed && !jsonImportError && !jsonImportLegacyIssues.length" class="mt-4 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              :disabled="proposalStore.isUpdating"
-              class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl font-medium text-sm
-                     hover:bg-primary transition-colors shadow-sm disabled:opacity-50 disabled:cursor-wait"
-              @click="handleApplyImportJson"
-            >
-              <svg v-if="proposalStore.isUpdating" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              {{ proposalStore.isUpdating ? 'Aplicando...' : 'Aplicar JSON' }}
-            </button>
-            <p class="text-xs text-text-subtle">Esto reemplazará la metadata y todas las secciones de la propuesta.</p>
-          </div>
-
-        </div>
-          </template>
-        </TabSplitLayout>
+        <ProposalJsonTab :proposal="proposal" :active="activeTab === 'json'" @applied="handleJsonApplied" />
       </div>
 
       <!-- Tab: Activity -->
       <div v-show="activeTab === 'activity'" class="max-w-5xl mx-auto">
-        <!-- Log activity form -->
-        <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-5 mb-6">
-          <div class="flex items-center gap-1.5 mb-3">
-            <h3 class="text-sm font-semibold text-text-default">Registrar actividad</h3>
-            <BaseTooltip position="right">
-              <template #trigger>
-                <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-text-subtle hover:text-text-muted transition-colors" />
-              </template>
-              {{ tt.logActivity }}
-            </BaseTooltip>
-          </div>
-          <div class="flex flex-col sm:flex-row gap-3">
-            <BaseSelect v-model="activityForm.change_type" size="sm" class="sm:w-40">
-              <option value="call">📞 Llamada</option>
-              <option value="meeting">🤝 Reunión</option>
-              <option value="followup">📩 Seguimiento</option>
-              <option value="note">📝 Nota</option>
-            </BaseSelect>
-            <BaseInput
-              v-model="activityForm.description"
-              type="text"
-              size="sm"
-              placeholder="Descripción de la actividad..."
-              class="flex-1"
-              @keydown.enter.prevent="submitActivity"
-            />
-            <button type="button" :disabled="!activityForm.description.trim() || isSubmittingActivity" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary transition-colors disabled:opacity-50 whitespace-nowrap" @click="submitActivity">
-              {{ isSubmittingActivity ? 'Guardando...' : 'Agregar' }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Timeline -->
-        <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-5">
-          <div class="flex items-center gap-1.5 mb-4">
-            <h3 class="text-sm font-semibold text-text-default">Historial de actividad</h3>
-            <BaseTooltip position="right">
-              <template #trigger>
-                <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-text-subtle hover:text-text-muted transition-colors" />
-              </template>
-              {{ tt.activityHistory }}
-            </BaseTooltip>
-          </div>
-          <div v-if="!changeLogs.length" class="text-center py-8 text-sm text-text-subtle">Sin actividad registrada.</div>
-          <div v-else class="relative pl-6 space-y-0">
-            <div class="absolute left-[9px] top-2 bottom-2 w-px bg-surface-raised" />
-            <div v-for="log in changeLogs" :key="log.id" class="relative pb-5 last:pb-0">
-              <div class="absolute -left-6 top-1 w-[18px] h-[18px] rounded-full border-2 border-border-default shadow-sm flex items-center justify-center text-[10px]" :class="activityDotClass(log.change_type)">
-                {{ activityIcon(log.change_type) }}
-              </div>
-              <div class="ml-2">
-                <div class="flex items-baseline gap-2">
-                  <span class="text-xs font-semibold" :class="activityLabelClass(log.change_type)">{{ activityLabel(log.change_type) }}</span>
-                  <span class="text-[10px] text-text-subtle">{{ formatLogDate(log.created_at) }}</span>
-                </div>
-                <!-- eslint-disable-next-line vue/no-v-html -->
-                <p class="text-sm text-text-muted/60 mt-0.5" v-html="formatActivityDescription(log)"></p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ProposalActivityTab :proposal="proposal" />
       </div>
 
       <!-- Tab: Analytics -->
@@ -1520,9 +1228,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import {
   QuestionMarkCircleIcon,
-  PencilIcon,
   DocumentDuplicateIcon,
-  ArrowDownTrayIcon,
   CheckIcon,
 } from '@heroicons/vue/24/outline';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
@@ -1536,19 +1242,18 @@ import ProposalDocumentsTab from '~/components/BusinessProposal/admin/ProposalDo
 import ProposalEmailsTab from '~/components/BusinessProposal/admin/ProposalEmailsTab.vue';
 import ProjectScheduleEditor from '~/components/BusinessProposal/admin/ProjectScheduleEditor.vue';
 import JsonStatsPanel from '~/components/BusinessProposal/admin/JsonStatsPanel.vue';
-import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
-import { useSellerPrompt } from '~/composables/useSellerPrompt';
-import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
 import { buildProposalItemLinkOptions, buildProposalModuleLinkOptions } from '~/utils/proposalModuleLinkOptions';
 import { getProposalNextAction } from '~/utils/proposalNextAction';
 import { toSlug } from '~/utils/slugify';
-import { detectLegacyTechnicalFormat, downloadMigratedProposalJson, LEGACY_FIELD_LABELS } from '~/utils/proposalJsonMigration';
-import LegacyFormatWarning from '~/components/panel/LegacyFormatWarning.vue';
+import { JSON_TEXTAREA_ROWS, makeJsonStats } from '~/utils/proposalJsonStats';
 import DevChecklistTab from '~/components/panel/proposal/DevChecklistTab.vue';
+import ProposalActivityTab from '~/components/panel/proposal/ProposalActivityTab.vue';
+import ProposalJsonTab from '~/components/panel/proposal/ProposalJsonTab.vue';
+import ProposalPromptTab from '~/components/panel/proposal/ProposalPromptTab.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 
 const localePath = useLocalePath();
@@ -1895,80 +1600,6 @@ async function handleLaunchToPlatform() {
         : 'El onboarding falló. Revisa los logs del servidor.',
     });
   }
-}
-
-// ── Prompt Proposal ──
-const {
-  promptText,
-  isEditing: promptIsEditing,
-  DEFAULT_PROMPT: promptDefault,
-  loadSavedPrompt,
-  savePrompt: promptSave,
-  resetPrompt: promptReset,
-  copyPrompt: promptCopy,
-  downloadPrompt: promptDownload,
-} = useSellerPrompt();
-
-const promptEditBuffer = ref('');
-const promptCopied = ref(false);
-
-function startEditPrompt() {
-  promptEditBuffer.value = promptText.value;
-  promptIsEditing.value = true;
-}
-function cancelEditPrompt() {
-  promptIsEditing.value = false;
-}
-function saveEditPrompt() {
-  promptSave(promptEditBuffer.value);
-  promptIsEditing.value = false;
-  notify.success({ title: 'Prompt comercial guardado.' });
-}
-async function handleCopyPrompt() {
-  await promptCopy();
-  promptCopied.value = true;
-  setTimeout(() => { promptCopied.value = false; }, 2000);
-}
-function handleResetPrompt() {
-  promptReset();
-}
-
-const promptSubTab = ref('commercial');
-
-const {
-  promptText: technicalPromptText,
-  isEditing: technicalPromptIsEditing,
-  DEFAULT_PROMPT: technicalPromptDefault,
-  loadSavedPrompt: loadTechnicalPrompt,
-  savePrompt: technicalPromptSave,
-  resetPrompt: technicalPromptReset,
-  copyPrompt: technicalPromptCopy,
-  downloadPrompt: technicalPromptDownload,
-} = useTechnicalPrompt();
-
-const technicalPromptEditBuffer = ref('');
-const technicalPromptCopied = ref(false);
-
-function startEditTechnicalPrompt() {
-  technicalPromptEditBuffer.value = technicalPromptText.value;
-  technicalPromptIsEditing.value = true;
-}
-function cancelEditTechnicalPrompt() {
-  technicalPromptIsEditing.value = false;
-}
-function saveEditTechnicalPrompt() {
-  technicalPromptSave(technicalPromptEditBuffer.value);
-  technicalPromptIsEditing.value = false;
-  notify.success({ title: 'Prompt técnico guardado.' });
-}
-async function handleCopyTechnicalPrompt() {
-  await technicalPromptCopy();
-  technicalPromptCopied.value = true;
-  setTimeout(() => { technicalPromptCopied.value = false; }, 2000);
-}
-function handleResetTechnicalPrompt() {
-  technicalPromptReset();
-  technicalPromptIsEditing.value = false;
 }
 
 const technicalJsonRaw = ref('');
@@ -2379,8 +2010,6 @@ function hydrateFormFromProposal() {
 onMounted(async () => {
   const id = route.params.id;
   await proposalStore.fetchProposal(id);
-  loadSavedPrompt();
-  loadTechnicalPrompt();
   hydrateFormFromProposal();
 });
 
@@ -2679,80 +2308,13 @@ function statusClass(status) {
   return map[status] || 'bg-surface-raised text-text-muted';
 }
 
-// --- JSON tab ---
-const EXPECTED_SECTION_KEYS = [
-  'general', 'executiveSummary', 'contextDiagnostic', 'conversionStrategy',
-  'designUX', 'creativeSupport', 'developmentStages', 'processMethodology',
-  'valueAddedModules', 'functionalRequirements', 'timeline', 'investment',
-  'proposalSummary', 'finalNote', 'nextSteps', 'technicalDocument',
-];
-
+// --- JSON tab (export/import live in ProposalJsonTab) ---
 const TECHNICAL_EXPECTED_KEYS = [
   'purpose', 'stack', 'architecture', 'dataModel', 'growthReadiness',
   'epics', 'apiSummary', 'apiDomains', 'integrations', 'environmentsNote',
   'environments', 'security', 'performanceQuality', 'backupsNote',
   'quality', 'decisions',
 ];
-
-const JSON_TEXTAREA_ROWS = 18;
-
-const jsonExportLoading = ref(false);
-const exportJsonData = ref(null);
-const jsonCopied = ref(false);
-
-const jsonImportRaw = ref('');
-const jsonImportParsed = ref(null);
-const jsonImportError = ref('');
-const jsonImportFileName = ref('');
-const jsonImportLegacyIssues = ref([]);
-
-const exportJsonString = computed(() => {
-  if (!exportJsonData.value) return '';
-  return JSON.stringify(exportJsonData.value, null, 2);
-});
-
-function countPresentKeys(source, expectedKeys) {
-  if (!source || typeof source !== 'object' || Array.isArray(source)) return 0;
-  return expectedKeys.filter((key) => key in source).length;
-}
-
-function calculateProgress(completed, total) {
-  if (!total) return 0;
-  return Math.round((completed / total) * 100);
-}
-
-function formatJsonSize(raw) {
-  const normalized = typeof raw === 'string' ? raw : JSON.stringify(raw || {}, null, 2);
-  const bytes = new Blob([normalized]).size;
-  if (bytes < 1024) return `${bytes} B`;
-  const kilobytes = bytes / 1024;
-  return `${kilobytes >= 10 ? kilobytes.toFixed(0) : kilobytes.toFixed(1)} KB`;
-}
-
-function formatDateTime(value) {
-  if (!value) return '—';
-  return new Date(value).toLocaleString();
-}
-
-function makeJsonStats({ sourceRef, rawStringRef, expectedKeys }) {
-  return computed(() => {
-    const source = sourceRef.value;
-    const sectionCount = countPresentKeys(source, expectedKeys);
-    const rawString = rawStringRef?.value || (source ? JSON.stringify(source, null, 2) : '');
-    return {
-      sectionCount,
-      progress: calculateProgress(sectionCount, expectedKeys.length),
-      size: formatJsonSize(rawString),
-      updatedAt: formatDateTime(proposal.value?.updated_at),
-    };
-  });
-}
-
-const proposalJsonStats = makeJsonStats({
-  sourceRef: exportJsonData,
-  rawStringRef: exportJsonString,
-  expectedKeys: EXPECTED_SECTION_KEYS,
-});
 
 const technicalJsonParsed = computed(() => {
   const raw = technicalJsonRaw.value.trim();
@@ -2773,197 +2335,15 @@ const technicalJsonStats = makeJsonStats({
   sourceRef: technicalJsonSource,
   rawStringRef: technicalJsonRaw,
   expectedKeys: TECHNICAL_EXPECTED_KEYS,
+  updatedAtRef: computed(() => proposal.value?.updated_at),
 });
 
-const jsonImportPreview = computed(() => {
-  if (!jsonImportParsed.value) return {};
-  const p = jsonImportParsed.value;
-  const clientName = p.general?.clientName || '';
-  const sectionCount = EXPECTED_SECTION_KEYS.filter((k) => k in p).length;
-  const investment = p.investment?.totalInvestment || '';
-  const epics = p.technicalDocument?.epics;
-  const epicCount = Array.isArray(epics) ? epics.length : null;
-  return { clientName, sectionCount, investment, epicCount };
-});
-
-async function refreshExportJson() {
-  if (!proposal.value?.id) return;
-  jsonExportLoading.value = true;
-  try {
-    const result = await proposalStore.exportProposalJSON(proposal.value.id);
-    if (result.success) {
-      exportJsonData.value = result.data;
-    }
-  } finally {
-    jsonExportLoading.value = false;
-  }
+function handleJsonApplied() {
+  // The store already refreshed currentProposal; resync the General form.
+  hydrateFormFromProposal();
 }
 
-async function copyExportJson() {
-  if (!exportJsonString.value) return;
-  try {
-    await navigator.clipboard.writeText(exportJsonString.value);
-    jsonCopied.value = true;
-    setTimeout(() => { jsonCopied.value = false; }, 2000);
-  } catch (e) {
-    console.error('Copy failed:', e);
-  }
-}
-
-function downloadExportJson() {
-  if (!exportJsonString.value || !proposal.value) return;
-  const blob = new Blob([exportJsonString.value], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `proposal-${proposal.value.uuid || proposal.value.id}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-function parseImportJson() {
-  jsonImportError.value = '';
-  jsonImportParsed.value = null;
-  jsonImportLegacyIssues.value = [];
-
-  const raw = jsonImportRaw.value.trim();
-  if (!raw) return;
-
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    jsonImportError.value = 'JSON inválido. Revisa la sintaxis.';
-    return;
-  }
-
-  if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-    jsonImportError.value = 'El JSON debe ser un objeto, no un array.';
-    return;
-  }
-
-  if (!parsed.general || !parsed.general.clientName) {
-    jsonImportError.value = 'El JSON debe incluir "general" con "clientName".';
-    return;
-  }
-
-  jsonImportLegacyIssues.value = detectLegacyTechnicalFormat(parsed).issues;
-
-  jsonImportParsed.value = parsed;
-}
-
-function handleJsonFileUpload(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
-  jsonImportFileName.value = file.name;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    jsonImportRaw.value = e.target.result;
-    parseImportJson();
-  };
-  reader.readAsText(file);
-}
-
-function parseInvestmentString(str) {
-  if (!str) return 0;
-  if (typeof str === 'number') return str;
-  const cleaned = String(str).replace(/[^0-9]/g, '');
-  return cleaned ? Number(cleaned) : 0;
-}
-
-function handleApplyImportJson() {
-  if (!jsonImportParsed.value || !proposal.value?.id) return;
-
-  requestConfirm({
-    title: 'Aplicar JSON',
-    message: 'Esto reemplazará la metadata y todas las secciones de la propuesta. ¿Continuar?',
-    variant: 'warning',
-    confirmText: 'Aplicar',
-    cancelText: 'Cancelar',
-    onConfirm: async () => {
-      const sections = { ...jsonImportParsed.value };
-      delete sections._meta;
-      delete sections._seller_prompt;
-
-      const meta = jsonImportParsed.value._meta || {};
-      const payload = {
-        title: meta.title || proposal.value.title,
-        client_name: jsonImportParsed.value.general?.clientName || proposal.value.client_name,
-        client_email: meta.client_email || proposal.value.client_email || '',
-        client_phone: meta.client_phone || proposal.value.client_phone || '',
-        project_type: meta.project_type || proposal.value.project_type || '',
-        market_type: meta.market_type || proposal.value.market_type || '',
-        project_type_custom: meta.project_type_custom || proposal.value.project_type_custom || '',
-        market_type_custom: meta.market_type_custom || proposal.value.market_type_custom || '',
-        language: meta.language || proposal.value.language || 'es',
-        total_investment: parseInvestmentString(meta.total_investment || jsonImportParsed.value.investment?.totalInvestment) || Number(proposal.value.total_investment) || 0,
-        currency: meta.currency || jsonImportParsed.value.investment?.currency || proposal.value.currency || 'COP',
-        expires_at: meta.expires_at || (proposal.value.expires_at ? proposal.value.expires_at : null),
-        reminder_days: meta.reminder_days || proposal.value.reminder_days || 10,
-        urgency_reminder_days: meta.urgency_reminder_days || proposal.value.urgency_reminder_days || 15,
-        discount_percent: meta.discount_percent ?? proposal.value.discount_percent ?? 0,
-        sections,
-      };
-
-      const result = await proposalStore.updateProposalFromJSON(proposal.value.id, payload);
-      if (result.success) {
-        notify.success({ title: 'Propuesta actualizada desde JSON.' });
-        jsonImportRaw.value = '';
-        jsonImportParsed.value = null;
-        jsonImportFileName.value = '';
-        jsonImportLegacyIssues.value = [];
-
-        // Sync local form with updated proposal
-        if (proposal.value) {
-          Object.assign(form, {
-            title: proposal.value.title,
-            client_name: proposal.value.client_name,
-            client_email: proposal.value.client_email || '',
-            client_phone: proposal.value.client_phone || '',
-            project_type: proposal.value.project_type || '',
-            market_type: proposal.value.market_type || '',
-            project_type_custom: proposal.value.project_type_custom || '',
-            market_type_custom: proposal.value.market_type_custom || '',
-            language: proposal.value.language || 'es',
-            total_investment: Number(proposal.value.total_investment),
-            currency: proposal.value.currency,
-            hosting_percent: proposal.value.hosting_percent ?? DEFAULT_HOSTING_PERCENT,
-            hosting_discount_annual: proposal.value.hosting_discount_annual ?? 40,
-    hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
-            hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
-            expires_at: proposal.value.expires_at ? proposal.value.expires_at.slice(0, 16) : '',
-            reminder_days: proposal.value.reminder_days,
-            urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
-            discount_percent: proposal.value.discount_percent ?? 0,
-            automations_paused: proposal.value.automations_paused ?? true,
-          });
-        }
-
-        // Refresh the export JSON view
-        await refreshExportJson();
-      } else {
-        const errors = result.errors;
-        notify.error({
-          title: 'Error al aplicar el JSON.',
-          detail: errors
-            ? (typeof errors === 'object'
-              ? Object.entries(errors).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' | ')
-              : String(errors))
-            : '',
-        });
-      }
-    },
-  });
-}
-
-// Auto-load JSON export when switching to json tab
 watch(activeTab, (newTab) => {
-  if (newTab === 'json' && proposal.value?.id) {
-    refreshExportJson();
-  }
   if (newTab === 'technical') {
     refreshTechnicalJsonFromProposal();
   }
@@ -2975,222 +2355,4 @@ watch(technicalSubTab, (sub) => {
   }
 });
 
-// --- Activity timeline ---
-const activityForm = reactive({ change_type: 'note', description: '' });
-const isSubmittingActivity = ref(false);
-const changeLogs = computed(() => proposal.value?.change_logs || []);
-
-async function submitActivity() {
-  if (!activityForm.description.trim() || isSubmittingActivity.value) return;
-  isSubmittingActivity.value = true;
-  try {
-    const result = await proposalStore.logActivity(proposal.value.id, {
-      change_type: activityForm.change_type,
-      description: activityForm.description.trim(),
-    });
-    if (result.success) {
-      activityForm.description = '';
-      await proposalStore.fetchProposal(proposal.value.id);
-      notify.success({ title: 'Actividad registrada.' });
-    } else {
-      notify.error({ title: 'No se pudo registrar la actividad.' });
-    }
-  } finally {
-    isSubmittingActivity.value = false;
-  }
-}
-
-const AC = {
-  gray:    { dot: 'bg-surface-raised',    text: 'text-text-muted' },
-  grayMd:  { dot: 'bg-surface-raised',    text: 'text-text-muted' },
-  blue:    { dot: 'bg-blue-100 dark:bg-blue-900/30',    text: 'text-blue-600 dark:text-blue-400' },
-  green:   { dot: 'bg-green-100 dark:bg-green-900/30',   text: 'text-green-600 dark:text-green-400' },
-  emerald: { dot: 'bg-primary-soft', text: 'text-text-brand' },
-  red:     { dot: 'bg-red-100 dark:bg-red-900/30',     text: 'text-red-600 dark:text-red-400' },
-  yellow:  { dot: 'bg-yellow-100 dark:bg-yellow-900/30',  text: 'text-yellow-600 dark:text-yellow-400' },
-  purple:  { dot: 'bg-purple-100 dark:bg-purple-900/30',  text: 'text-purple-600 dark:text-purple-400' },
-  indigo:  { dot: 'bg-indigo-100 dark:bg-indigo-900/30',  text: 'text-indigo-600 dark:text-indigo-400' },
-  orange:  { dot: 'bg-orange-100 dark:bg-orange-900/30',  text: 'text-orange-600 dark:text-orange-400' },
-  sky:     { dot: 'bg-sky-100 dark:bg-sky-900/30',     text: 'text-sky-600 dark:text-sky-400' },
-  amber:   { dot: 'bg-amber-100 dark:bg-amber-900/30',   text: 'text-amber-600 dark:text-amber-400' },
-};
-const activityMeta = {
-  created:       { icon: '✨', label: 'Creada',                   ...AC.gray },
-  updated:       { icon: '✏️', label: 'Editada',                  ...AC.gray },
-  sent:          { icon: '📤', label: 'Enviada',                  ...AC.blue },
-  viewed:        { icon: '👁',  label: 'Vista',                    ...AC.green },
-  accepted:      { icon: '✅', label: 'Aceptada',                 ...AC.emerald },
-  rejected:      { icon: '❌', label: 'Rechazada',                ...AC.red },
-  resent:        { icon: '🔁', label: 'Re-enviada',               ...AC.blue },
-  expired:       { icon: '⏰', label: 'Expirada',                 ...AC.yellow },
-  duplicated:    { icon: '📋', label: 'Duplicada',                ...AC.gray },
-  commented:     { icon: '💬', label: 'Comentario',               ...AC.purple },
-  negotiating:   { icon: '🤝', label: 'Negociando',               ...AC.indigo },
-  reengagement:  { icon: '🔔', label: 'Reengagement',             ...AC.orange },
-  call:          { icon: '📞', label: 'Llamada',                  ...AC.sky },
-  meeting:       { icon: '🤝', label: 'Reunión',                  ...AC.indigo },
-  followup:      { icon: '📩', label: 'Seguimiento',              ...AC.amber },
-  note:          { icon: '📝', label: 'Nota',                     ...AC.grayMd },
-  calc_confirmed:{ icon: '🧮', label: 'Calculadora confirmada',   ...AC.emerald },
-  calc_abandoned:{ icon: '🧮', label: 'Calculadora abandonada',   ...AC.red },
-  calc_followup: { icon: '🧮', label: 'Seguimiento calculadora',  ...AC.orange },
-  auto_archived: { icon: '📦', label: 'Auto-archivada',           ...AC.gray },
-  status_change: { icon: '🔄', label: 'Cambio de estado',         ...AC.blue },
-  cond_accepted: { icon: '⚠️', label: 'Aceptación condicional',   ...AC.amber },
-  req_clicked:   { icon: '🔗', label: 'Requerimiento consultado', ...AC.sky },
-  email_sent:    { icon: '📧', label: 'Correo enviado',           ...AC.emerald },
-};
-function activityIcon(type) { return activityMeta[type]?.icon || '•'; }
-function activityLabel(type) { return activityMeta[type]?.label || type; }
-function activityDotClass(type) { return activityMeta[type]?.dot || AC.gray.dot; }
-function activityLabelClass(type) { return activityMeta[type]?.text || AC.gray.text; }
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function fmtDate(val) {
-  if (!val) return '(vacío)';
-  const d = new Date(val);
-  if (isNaN(d.getTime())) return escapeHtml(val);
-  return escapeHtml(d.toLocaleString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
-}
-
-function formatActivityDescription(log) {
-  const desc = log.description || '';
-
-  // Calculator events — plain text (no v-html needed for counts)
-  if (log.change_type === 'calc_abandoned' || log.change_type === 'calc_confirmed') {
-    try {
-      const data = JSON.parse(desc);
-      const selected = data.selected || [];
-      const deselected = data.deselected || [];
-      const total = data.total;
-      const elapsed = data.elapsed_seconds || 0;
-      const mins = Math.floor(elapsed / 60);
-      const secs = Math.round(elapsed % 60);
-      const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-      const totalStr = total != null ? `<strong>$${Number(total).toLocaleString('es-CO')}</strong>` : '';
-      if (log.change_type === 'calc_confirmed') {
-        return `Confirmó <strong>${selected.length}</strong> módulo${selected.length !== 1 ? 's' : ''}`
-          + (totalStr ? ` — Total: ${totalStr}` : '')
-          + (elapsed ? ` — Tiempo en calculadora: <strong>${timeStr}</strong>` : '');
-      }
-      return `Abandonó calculadora con <strong>${selected.length}</strong> módulo${selected.length !== 1 ? 's' : ''} seleccionado${selected.length !== 1 ? 's' : ''}`
-        + (deselected.length ? `, <strong>${deselected.length}</strong> desmarcado${deselected.length !== 1 ? 's' : ''}` : '')
-        + (totalStr ? ` — Total: ${totalStr}` : '')
-        + (elapsed ? ` — Tiempo: <strong>${timeStr}</strong>` : '');
-    } catch (_e) {
-      return escapeHtml(desc);
-    }
-  }
-
-  // Requirement clicked
-  if (log.change_type === 'req_clicked') {
-    try {
-      const data = JSON.parse(desc);
-      return `Cliente consultó <strong>${escapeHtml(data.group_title || 'módulo')}</strong>`;
-    } catch (_e) { return escapeHtml(desc); }
-  }
-
-  // Field updates with old/new values
-  const FIELD_LABELS_MAP = {
-    title: 'Título', total_investment: 'Inversión total', currency: 'Moneda',
-    client_name: 'Nombre del cliente', client_email: 'Email del cliente',
-    status: 'Estado', expires_at: 'Fecha de expiración',
-    followup_scheduled_at: 'Seguimiento programado',
-  };
-  if (log.change_type === 'updated' && log.field_name) {
-    const fieldLabel = FIELD_LABELS_MAP[log.field_name] || log.field_name;
-    const isCurrency = log.field_name === 'total_investment';
-    const isDate = ['expires_at', 'followup_scheduled_at'].includes(log.field_name);
-    const fmtCurrency = (val) => {
-      const num = parseFloat(val);
-      if (isNaN(num)) return escapeHtml(val || '(vacío)');
-      return `<strong>$${num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</strong>`;
-    };
-    const oldDisplay = isCurrency ? fmtCurrency(log.old_value) : isDate ? fmtDate(log.old_value) : escapeHtml(log.old_value || '(vacío)');
-    const newDisplay = isCurrency ? fmtCurrency(log.new_value) : isDate ? `<strong>${fmtDate(log.new_value)}</strong>` : `<strong>${escapeHtml(log.new_value || '(vacío)')}</strong>`;
-    return `<strong>${escapeHtml(fieldLabel)}</strong>: ${oldDisplay} → ${newDisplay}`;
-  }
-
-  // Status change
-  if (log.change_type === 'status_change' && log.old_value && log.new_value) {
-    return `<strong>Estado</strong>: ${escapeHtml(log.old_value)} → <strong>${escapeHtml(log.new_value)}</strong>`;
-  }
-
-  // Client comment — bold the comment body
-  if (log.change_type === 'commented') {
-    const prefix = 'Client left a comment: ';
-    if (desc.startsWith(prefix)) {
-      return `Client left a comment: <strong>${escapeHtml(desc.slice(prefix.length))}</strong>`;
-    }
-    return escapeHtml(desc);
-  }
-
-  // Negotiating — bold the comment when present
-  if (log.change_type === 'negotiating') {
-    const key = ' Comment: ';
-    const idx = desc.indexOf(key);
-    if (idx !== -1) {
-      return `${escapeHtml(desc.slice(0, idx))} Comment: <strong>${escapeHtml(desc.slice(idx + key.length))}</strong>`;
-    }
-    return escapeHtml(desc);
-  }
-
-  // Rejected — bold the rejection reason when present
-  if (log.change_type === 'rejected') {
-    const key = ' Reason: ';
-    const idx = desc.indexOf(key);
-    if (idx !== -1) {
-      return `${escapeHtml(desc.slice(0, idx))} Reason: <strong>${escapeHtml(desc.slice(idx + key.length))}</strong>`;
-    }
-    return escapeHtml(desc);
-  }
-
-  // Conditional acceptance — bold the condition text
-  if (log.change_type === 'cond_accepted') {
-    const prefix = 'Conditional acceptance: ';
-    if (desc.startsWith(prefix)) {
-      return `Conditional acceptance: <strong>${escapeHtml(desc.slice(prefix.length))}</strong>`;
-    }
-    return escapeHtml(desc);
-  }
-
-  // Accepted — bold condition when present
-  if (log.change_type === 'accepted') {
-    const key = ' Condition: ';
-    const idx = desc.indexOf(key);
-    if (idx !== -1) {
-      return `${escapeHtml(desc.slice(0, idx))} Condition: <strong>${escapeHtml(desc.slice(idx + key.length))}</strong>`;
-    }
-    return escapeHtml(desc);
-  }
-
-  // Sent / resent — bold the recipient email
-  if (log.change_type === 'sent' || log.change_type === 'resent') {
-    const key = ' to ';
-    const idx = desc.indexOf(key);
-    if (idx !== -1) {
-      const afterTo = desc.slice(idx + key.length);
-      const email = afterTo.endsWith('.') ? afterTo.slice(0, -1) : afterTo;
-      return `${escapeHtml(desc.slice(0, idx))} to <strong>${escapeHtml(email)}</strong>.`;
-    }
-    return escapeHtml(desc);
-  }
-
-  // Created / duplicated — bold the proposal title between quotes
-  if (log.change_type === 'created' || log.change_type === 'duplicated') {
-    return escapeHtml(desc).replace(/&quot;(.+?)&quot;/, '<strong>&quot;$1&quot;</strong>');
-  }
-
-  return escapeHtml(desc);
-}
-
-function formatLogDate(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
 </script>
