@@ -264,7 +264,9 @@ def _serve_public_proposal(request, proposal):
 def retrieve_public_proposal(request, proposal_uuid):
     """Retrieve a proposal by UUID for client viewing."""
     proposal = get_object_or_404(
-        BusinessProposal.objects.select_related('client__user'),
+        BusinessProposal.objects
+        .select_related('client__user')
+        .prefetch_related('sections', 'requirement_groups__items'),
         uuid=proposal_uuid,
     )
     return _serve_public_proposal(request, proposal)
@@ -275,7 +277,9 @@ def retrieve_public_proposal(request, proposal_uuid):
 def retrieve_public_proposal_by_slug(request, proposal_slug):
     """Retrieve a proposal by its editable slug for client viewing."""
     proposal = get_object_or_404(
-        BusinessProposal.objects.select_related('client__user'),
+        BusinessProposal.objects
+        .select_related('client__user')
+        .prefetch_related('sections', 'requirement_groups__items'),
         slug=proposal_slug,
     )
     return _serve_public_proposal(request, proposal)
@@ -493,7 +497,13 @@ def retrieve_proposal(request, proposal_id):
     proposal = get_object_or_404(
         BusinessProposal.objects
         .select_related('client__user')
-        .prefetch_related('project_stages'),
+        .prefetch_related(
+            'project_stages',
+            'sections',
+            'requirement_groups__items',
+            'change_logs',
+            'proposal_documents',
+        ),
         pk=proposal_id,
     )
     serializer = ProposalDetailSerializer(
@@ -2795,18 +2805,25 @@ def retrieve_shared_proposal(request, share_uuid):
     Increments the share link's view_count and sets first_viewed_at.
     Returns the full proposal detail (same as public view).
     """
-    share_link = get_object_or_404(ProposalShareLink, uuid=share_uuid)
+    share_link = get_object_or_404(
+        ProposalShareLink.objects
+        .select_related('proposal__client__user')
+        .prefetch_related('proposal__sections', 'proposal__requirement_groups__items'),
+        uuid=share_uuid,
+    )
     proposal = share_link.proposal
 
     if not proposal.is_active:
-        return Response(
-            {'error': 'This proposal is not available.'},
+        return error_response(
+            'Esta propuesta no está disponible.',
+            code='proposal_unavailable',
             status=status.HTTP_404_NOT_FOUND,
         )
 
     if proposal.is_expired:
-        return Response(
-            {'error': 'This proposal has expired.'},
+        return error_response(
+            'Esta propuesta ha expirado.',
+            code='proposal_expired',
             status=status.HTTP_410_GONE,
         )
 

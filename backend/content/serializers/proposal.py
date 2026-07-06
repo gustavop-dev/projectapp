@@ -223,10 +223,13 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         For admin requests, all sections are returned.
         """
         is_admin = self.context.get('is_admin', False)
-        qs = obj.sections.all().order_by('order')
+        # Plain .all() reuses the view's prefetch cache (Meta ordering is
+        # already ['order']); chaining .filter()/.order_by() would issue a
+        # fresh query per proposal.
+        sections = list(obj.sections.all())
         if not is_admin:
-            qs = qs.filter(is_enabled=True)
-        return ProposalSectionDetailSerializer(qs, many=True).data
+            sections = [s for s in sections if s.is_enabled]
+        return ProposalSectionDetailSerializer(sections, many=True).data
 
     def get_days_remaining(self, obj):
         return obj.days_remaining
@@ -242,7 +245,9 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         is_admin = self.context.get('is_admin', False)
         if not is_admin:
             return []
-        logs = obj.change_logs.all().order_by('-created_at')[:50]
+        # Meta ordering is ['-created_at']; plain .all() + slice keeps the
+        # prefetch cache warm.
+        logs = list(obj.change_logs.all())[:50]
         return [
             {
                 'id': log.id,
@@ -285,7 +290,8 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         is_admin = self.context.get('is_admin', False)
         if not is_admin:
             return []
-        docs = obj.proposal_documents.all().order_by('-created_at')
+        # Meta ordering is ['-created_at']; plain .all() keeps prefetch warm.
+        docs = list(obj.proposal_documents.all())
         return [serialize_proposal_document(d) for d in docs]
 
 
