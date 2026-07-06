@@ -20,6 +20,7 @@ export const viewTypeOptions = [
   { value: 'dashboard', label: 'Dashboard' },
   { value: 'config', label: 'Configuracion' },
   { value: 'auth', label: 'Autenticacion' },
+  { value: 'redirect', label: 'Redirección' },
 ];
 
 export const viewCategoryLabelMap = Object.fromEntries(
