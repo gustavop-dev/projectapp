@@ -1183,10 +1183,11 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
     if adjusted is not None:
         display_num = adjusted
     else:
-        # Lazy import to avoid circular dependency with views.proposal.
         try:
-            from content.views.proposal import _effective_total_for_proposal
-            _eff = (_effective_total_for_proposal(_proposal)
+            from content.services.proposal_totals_service import (
+                effective_total_for_proposal,
+            )
+            _eff = (effective_total_for_proposal(_proposal)
                     if _proposal is not None else None)
             display_num = int(_eff) if _eff else base_num
         except Exception:
