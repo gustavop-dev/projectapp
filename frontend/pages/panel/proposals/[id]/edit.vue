@@ -984,10 +984,17 @@
           </p>
         </div>
 
-        <div class="space-y-3">
+        <draggable
+          v-model="localSections"
+          item-key="id"
+          handle=".section-drag-handle"
+          ghost-class="opacity-30"
+          :disabled="proposalStore.isUpdating"
+          class="space-y-3"
+          @end="onSectionReorderEnd"
+        >
+          <template #item="{ element: section }">
           <div
-            v-for="section in commercialSections"
-            :key="section.id"
             class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden"
           >
             <!-- Section header -->
@@ -997,6 +1004,12 @@
               @click="toggleSection(section.id)"
             >
               <div class="flex items-center gap-4">
+                <span
+                  class="section-drag-handle cursor-grab select-none text-text-subtle"
+                  :data-testid="`section-drag-handle-${section.section_type}`"
+                  title="Arrastra para reordenar"
+                  @click.stop
+                >⠿</span>
                 <span class="text-xs text-text-subtle font-mono w-6">{{ section.order + 1 }}</span>
                 <span class="text-sm font-medium text-text-default">{{ section.title }}</span>
                 <BaseBadge
@@ -1040,7 +1053,8 @@
               />
             </div>
           </div>
-        </div>
+          </template>
+        </draggable>
 
         <!-- Sticky send bar for sections tab -->
         <div v-if="proposal.client_email" class="sticky bottom-0 mt-4 bg-surface/95 backdrop-blur-sm border border-border-muted rounded-xl shadow-lg px-5 py-3 flex items-center justify-between gap-3 z-10">
@@ -1251,6 +1265,7 @@ import JsonStatsPanel from '~/components/BusinessProposal/admin/JsonStatsPanel.v
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import { onBeforeRouteLeave } from 'vue-router';
+import draggable from 'vuedraggable';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useDirtyTracker } from '~/composables/useDirtyTracker';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
@@ -1356,6 +1371,28 @@ const allSections = computed(() =>
 const commercialSections = computed(() =>
   allSections.value.filter(s => s.section_type !== 'technical_document')
 );
+
+// Mutable mirror of commercialSections for vuedraggable's v-model.
+const localSections = ref([]);
+watch(commercialSections, (list) => {
+  localSections.value = [...list];
+}, { immediate: true });
+
+async function onSectionReorderEnd() {
+  // Permute within the commercial sections' own order slots so the hidden
+  // technical_document section keeps its place in the global sequence.
+  const slots = localSections.value.map((s) => s.order).sort((a, b) => a - b);
+  const payload = localSections.value.map((s, i) => ({ id: s.id, order: slots[i] }));
+  const changed = payload.some((p, i) => localSections.value[i].order !== p.order);
+  if (!changed) return;
+
+  const result = await proposalStore.reorderSections(proposal.value.id, payload);
+  if (!result?.success) {
+    // Snap back to the store's canonical order.
+    localSections.value = [...commercialSections.value];
+    notifyProposalFailure(result || {}, 'No se pudo reordenar las secciones');
+  }
+}
 
 const technicalSection = computed(() =>
   allSections.value.find(s => s.section_type === 'technical_document') || null
