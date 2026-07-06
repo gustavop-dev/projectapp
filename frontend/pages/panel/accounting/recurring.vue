@@ -172,8 +172,7 @@
       </AccountingTable>
 
       <BasePagination
-        v-if="!store.isLoading"
-        v-if="filteredRows.length > 0"
+        v-if="!store.isLoading && filteredRows.length > 0"
         :current-page="currentPage"
         :total-pages="totalPages"
         :total-items="totalItems"
