@@ -446,3 +446,46 @@ class TestParseDiagnosticEmail:
 
         assert response.status_code == 400
         assert 'secciones' in response.json()['error']
+
+
+# ---------------------------------------------------------------------------
+# Public endpoints — visibility gate + throttling
+# ---------------------------------------------------------------------------
+
+class TestPublicVisibilityGate:
+    def test_public_retrieve_hides_draft(self, api_client, diagnostic):
+        response = api_client.get(f'/api/diagnostics/public/{diagnostic.uuid}/')
+        assert response.status_code == 404
+        assert response.json()['code'] == 'not_available'
+
+    def test_public_retrieve_by_slug_hides_draft(self, api_client, diagnostic):
+        diagnostic.slug = 'draft-hidden-slug'
+        diagnostic.save(update_fields=['slug'])
+        response = api_client.get(
+            '/api/diagnostics/public/by-slug/draft-hidden-slug/',
+        )
+        assert response.status_code == 404
+        assert response.json()['code'] == 'not_available'
+
+    def test_public_retrieve_serves_sent(self, api_client, diagnostic):
+        diagnostic.status = WebAppDiagnostic.Status.SENT
+        diagnostic.save(update_fields=['status'])
+        response = api_client.get(f'/api/diagnostics/public/{diagnostic.uuid}/')
+        assert response.status_code == 200
+        assert response.json()['client_name']
+
+
+class TestPublicThrottling:
+    """The mutating/expensive public endpoints must carry the anon throttle."""
+
+    def test_respond_public_has_tracking_throttle(self):
+        from content.throttles import TrackingAnonThrottle
+        from content.views.diagnostic import respond_public_diagnostic
+
+        assert TrackingAnonThrottle in respond_public_diagnostic.cls.throttle_classes
+
+    def test_public_pdf_has_tracking_throttle(self):
+        from content.throttles import TrackingAnonThrottle
+        from content.views.diagnostic import download_public_diagnostic_pdf
+
+        assert TrackingAnonThrottle in download_public_diagnostic_pdf.cls.throttle_classes

@@ -411,10 +411,11 @@ def test_track_section_requires_session_and_type(api_client, diagnostic):
     assert response.status_code == 400
 
 
-def test_public_retrieve_on_draft_returns_empty_sections(api_client, diagnostic):
+def test_public_retrieve_on_draft_is_hidden(api_client, diagnostic):
+    """DRAFT diagnostics must not leak client metadata through the public URL."""
     response = api_client.get(f'/api/diagnostics/public/{diagnostic.uuid}/')
-    assert response.status_code == 200
-    assert response.json()['sections'] == []
+    assert response.status_code == 404
+    assert response.json()['code'] == 'not_available'
 
 
 def test_public_render_context_is_whitelisted(api_client, diagnostic):

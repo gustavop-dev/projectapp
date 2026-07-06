@@ -798,6 +798,22 @@ def send_final(request, diagnostic_id):
 # Public — view / track / respond
 # ──────────────────────────────────────────────────────────────────────────
 
+def _serve_public_diagnostic(diagnostic):
+    """Shared handler for the public retrieve endpoints.
+
+    Hides diagnostics whose status is not publicly visible (e.g. DRAFT) so
+    client metadata never leaks before the initial send — same gate the
+    public PDF endpoint applies.
+    """
+    if diagnostic.status not in diagnostic_service.PUBLIC_VISIBLE_STATUSES:
+        return error_response(
+            'El diagnóstico no está disponible.',
+            code='not_available',
+            status=http_status.HTTP_404_NOT_FOUND,
+        )
+    return Response(PublicDiagnosticSerializer(diagnostic).data)
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def retrieve_public_diagnostic(request, diagnostic_uuid):
@@ -807,7 +823,7 @@ def retrieve_public_diagnostic(request, diagnostic_uuid):
         uuid=diagnostic_uuid,
     )
     # view_count is bumped only by POST /track/ to avoid double-counting.
-    return Response(PublicDiagnosticSerializer(diagnostic).data)
+    return _serve_public_diagnostic(diagnostic)
 
 
 @api_view(['GET'])
@@ -819,7 +835,7 @@ def retrieve_public_diagnostic_by_slug(request, diagnostic_slug):
         .prefetch_related('sections'),
         slug=diagnostic_slug,
     )
-    return Response(PublicDiagnosticSerializer(diagnostic).data)
+    return _serve_public_diagnostic(diagnostic)
 
 
 def _ensure_view_event(diagnostic, request, session_id):
@@ -895,6 +911,7 @@ def track_diagnostic_section_view(request, diagnostic_uuid):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@throttle_classes([TrackingAnonThrottle])
 def download_public_diagnostic_pdf(request, diagnostic_uuid):
     """Stream a PDF of the diagnostic's enabled sections."""
     diagnostic = get_object_or_404(
@@ -930,6 +947,7 @@ def download_public_diagnostic_pdf(request, diagnostic_uuid):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([TrackingAnonThrottle])
 def respond_public_diagnostic(request, diagnostic_uuid):
     diagnostic = get_object_or_404(WebAppDiagnostic, uuid=diagnostic_uuid)
     decision = (request.data.get('decision') or '').strip().lower()
