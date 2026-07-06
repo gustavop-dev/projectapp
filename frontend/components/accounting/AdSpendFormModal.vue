@@ -62,9 +62,9 @@ function onSubmit() {
 </script>
 
 <template>
-  <BaseModal :model-value="open" size="lg" @close="emit('close')">
+  <BaseModal :model-value="open" size="lg" title-id="ad-spend-form-title" @close="emit('close')">
     <div class="px-6 pt-6 pb-2">
-      <h3 class="text-lg font-bold text-text-default">{{ title }}</h3>
+      <h3 id="ad-spend-form-title" class="text-lg font-bold text-text-default">{{ title }}</h3>
     </div>
     <form class="px-6 py-4 space-y-4" @submit.prevent="onSubmit">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

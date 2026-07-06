@@ -78,4 +78,72 @@ describe('BaseModal', () => {
     expect(panel.className).toContain('p-6')
     wrapper.unmount()
   })
+
+  it('links aria-labelledby to the titleId prop when provided', async () => {
+    const wrapper = mountModal(
+      { titleId: 'my-modal-title' },
+      { default: '<h3 id="my-modal-title">Título</h3>' },
+    )
+    await wrapper.vm.$nextTick()
+    const dialog = document.body.querySelector('[role="dialog"]')
+    expect(dialog.getAttribute('aria-labelledby')).toBe('my-modal-title')
+    wrapper.unmount()
+  })
+
+  it('auto-detects a slot heading and links aria-labelledby to it', async () => {
+    const wrapper = mountModal({}, { default: '<h3>Editar registro</h3>' })
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+    const dialog = document.body.querySelector('[role="dialog"]')
+    const heading = dialog.querySelector('h3')
+    expect(heading.id).toBeTruthy()
+    expect(dialog.getAttribute('aria-labelledby')).toBe(heading.id)
+    wrapper.unmount()
+  })
+
+  it('moves focus to the panel when opened', async () => {
+    const wrapper = mountModal()
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+    const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
+    expect(document.activeElement).toBe(panel)
+    wrapper.unmount()
+  })
+
+  it('restores focus to the previously focused element on close', async () => {
+    document.body.innerHTML = '<div id="app"></div><button id="opener" type="button">abrir</button>'
+    document.getElementById('opener').focus()
+    const wrapper = mount(BaseModal, {
+      props: { modelValue: false },
+      slots: { default: '<p>contenido</p>' },
+      attachTo: document.body,
+    })
+    await wrapper.setProps({ modelValue: true })
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+    expect(document.activeElement.id).not.toBe('opener')
+
+    await wrapper.setProps({ modelValue: false })
+    expect(document.activeElement.id).toBe('opener')
+    wrapper.unmount()
+  })
+
+  it('keeps Tab focus inside the panel', async () => {
+    const wrapper = mountModal({}, {
+      default: '<button id="first" type="button">uno</button><button id="last" type="button">dos</button>',
+    })
+    await wrapper.vm.$nextTick()
+    await wrapper.vm.$nextTick()
+
+    const last = document.getElementById('last')
+    last.focus()
+    last.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'Tab',
+      bubbles: true,
+      cancelable: true,
+    }))
+
+    expect(document.activeElement.id).toBe('first')
+    wrapper.unmount()
+  })
 })
