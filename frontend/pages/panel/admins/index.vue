@@ -183,27 +183,13 @@
         </div>
       </div>
     </Teleport>
-
-    <!-- Toast notification -->
-    <Teleport to="body">
-      <Transition name="toast">
-        <div
-          v-if="toast"
-          class="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium"
-          :class="toast.type === 'success'
-            ? 'bg-primary text-white'
-            : 'bg-danger-strong text-white'"
-        >
-          {{ toast.message }}
-        </div>
-      </Transition>
-    </Teleport>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -216,7 +202,7 @@ const creating = ref(false);
 const createError = ref('');
 const resendingId = ref(null);
 const loggingInId = ref(null);
-const toast = ref(null);
+const notify = usePanelNotify();
 
 const form = ref({ email: '', first_name: '', last_name: '' });
 
@@ -257,11 +243,6 @@ function statusClass(admin) {
   return 'bg-primary-soft text-text-brand';
 }
 
-function showToast(message, type = 'success') {
-  toast.value = { message, type };
-  setTimeout(() => { toast.value = null; }, 3000);
-}
-
 function closeModal() {
   showCreateModal.value = false;
   form.value = { email: '', first_name: '', last_name: '' };
@@ -277,7 +258,7 @@ async function handleCreate() {
 
   if (result.success) {
     closeModal();
-    showToast('Administrador creado. Se envió la invitación por email.');
+    notify.success('Administrador creado. Se envió la invitación por email.');
   } else {
     createError.value = result.error;
   }
@@ -289,9 +270,9 @@ async function handleResendInvite(userId) {
   resendingId.value = null;
 
   if (result.success) {
-    showToast('Invitación reenviada.');
+    notify.success('Invitación reenviada.');
   } else {
-    showToast(result.error, 'error');
+    notify.error(result.error);
   }
 }
 
@@ -303,37 +284,25 @@ async function handleLoginAs(userId) {
   if (result.success && result.redirectUrl) {
     window.open(result.redirectUrl, '_blank', 'noopener');
   } else {
-    showToast(result.error || 'No pudimos iniciar sesión como este usuario.', 'error');
+    notify.error(result.error || 'No pudimos iniciar sesión como este usuario.');
   }
 }
 
 async function handleDeactivate(userId) {
   const result = await adminStore.deactivateAdmin(userId);
   if (result.success) {
-    showToast('Administrador desactivado.');
+    notify.success('Administrador desactivado.');
   } else {
-    showToast(result.error, 'error');
+    notify.error(result.error);
   }
 }
 
 async function handleReactivate(userId) {
   const result = await adminStore.reactivateAdmin(userId);
   if (result.success) {
-    showToast('Administrador reactivado.');
+    notify.success('Administrador reactivado.');
   } else {
-    showToast(result.error, 'error');
+    notify.error(result.error);
   }
 }
 </script>
-
-<style scoped>
-.toast-enter-active,
-.toast-leave-active {
-  transition: all 0.3s ease;
-}
-.toast-enter-from,
-.toast-leave-to {
-  opacity: 0;
-  transform: translateY(12px);
-}
-</style>

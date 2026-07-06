@@ -535,8 +535,6 @@
         />
       </div>
     </template>
-
-    <PanelToast />
   </div>
 </template>
 
@@ -554,11 +552,10 @@ import DiagnosticDocumentsTab from '~/components/WebAppDiagnostic/DiagnosticDocu
 import DiagnosticActionsModal from '~/components/WebAppDiagnostic/DiagnosticActionsModal.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
-import PanelToast from '~/components/panel/PanelToast.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import { DocumentDuplicateIcon, CheckIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
 import { useConfirmModal } from '~/composables/useConfirmModal';
-import { usePanelToast } from '~/composables/usePanelToast';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { getDiagnosticNextAction } from '~/utils/diagnosticNextAction';
 import { toSlug } from '~/utils/slugify';
@@ -570,7 +567,7 @@ const router = useRouter();
 const localePath = useLocalePath();
 const store = useDiagnosticsStore();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
-const panelToast = usePanelToast();
+const notify = usePanelNotify();
 
 const moneyFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
 const dateTimeFormatter = new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
@@ -802,7 +799,7 @@ async function handleUpdate() {
 }
 
 function showToast(message, type) {
-  panelToast.showToast({ type, text: message });
+  notify.push({ type, title: message });
 }
 
 watch(() => store.current?.id, syncFormGeneral, { immediate: true });

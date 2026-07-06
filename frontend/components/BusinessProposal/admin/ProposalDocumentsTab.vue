@@ -189,12 +189,12 @@
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { EyeIcon } from '@heroicons/vue/24/outline';
-import { usePanelToast } from '~/composables/usePanelToast';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 import { CONTRACT_LOCKED_STATUSES } from '~/stores/proposals_constants';
 import { isPdfUrl, isImageUrl, canPreviewFile } from '~/utils/filePreview';
 import MarkdownPreviewModal from '~/components/panel/documents/MarkdownPreviewModal.vue';
 
-const { showToast } = usePanelToast();
+const notify = usePanelNotify();
 
 const props = defineProps({
   proposal: { type: Object, required: true },
@@ -279,7 +279,7 @@ async function loadPreviewBlob(kind, title, url) {
   } catch (err) {
     if (requestId !== previewRequestId || err?.name === 'AbortError') return;
     previewError.value = 'No se pudo cargar la vista previa.';
-    showToast({ type: 'error', text: 'No se pudo cargar la vista previa.' });
+    notify.error('No se pudo cargar la vista previa.');
   } finally {
     if (requestId === previewRequestId) {
       previewLoading.value = false;
@@ -342,9 +342,9 @@ async function handleUpload() {
     uploadCustomLabel.value = '';
     if (fileInput.value) fileInput.value.value = '';
     emit('refresh');
-    showToast({ type: 'success', text: 'Documento subido.' });
+    notify.success('Documento subido.');
   } else {
-    showToast({ type: 'error', text: 'No se pudo subir el documento.' });
+    notify.error('No se pudo subir el documento.');
   }
   isUploading.value = false;
 }
@@ -353,9 +353,9 @@ async function handleDelete(docId) {
   const result = await proposalStore.deleteProposalDocument(props.proposal.id, docId);
   if (result.success) {
     emit('refresh');
-    showToast({ type: 'success', text: 'Documento eliminado.' });
+    notify.success('Documento eliminado.');
   } else {
-    showToast({ type: 'error', text: 'No se pudo eliminar el documento.' });
+    notify.error('No se pudo eliminar el documento.');
   }
 }
 </script>
