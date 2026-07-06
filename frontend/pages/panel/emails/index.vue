@@ -302,7 +302,7 @@ import { useEmailStore } from '~/stores/emails';
 import { validateEmailAttachments } from '~/utils/emailAttachments';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 
-definePageMeta({ layout: 'admin' });
+definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const emailStore = useEmailStore();
 
