@@ -2328,7 +2328,7 @@ class TestCalculatorAbandonmentEmptyDescription:
 
 
 class TestRefreshCachedHeatScoresTask:
-    @patch('content.views.proposal._compute_heat_score_for_proposal')
+    @patch('content.services.proposal_analytics_service.compute_heat_score_for_proposal')
     def test_updates_cached_score_when_new_value_differs(self, mock_score):
         mock_score.return_value = 7
         proposal = BusinessProposal.objects.create(
@@ -2344,7 +2344,7 @@ class TestRefreshCachedHeatScoresTask:
         proposal.refresh_from_db()
         assert proposal.cached_heat_score == 7
 
-    @patch('content.views.proposal._compute_heat_score_for_proposal')
+    @patch('content.services.proposal_analytics_service.compute_heat_score_for_proposal')
     def test_skips_update_when_new_value_matches_current(self, mock_score):
         mock_score.return_value = 5
         proposal = BusinessProposal.objects.create(
@@ -2362,7 +2362,7 @@ class TestRefreshCachedHeatScoresTask:
         assert proposal.cached_heat_score == 5
         assert proposal.updated_at == original_updated_at
 
-    @patch('content.views.proposal._compute_heat_score_for_proposal')
+    @patch('content.services.proposal_analytics_service.compute_heat_score_for_proposal')
     def test_ignores_inactive_proposals(self, mock_score):
         mock_score.return_value = 9
         proposal = BusinessProposal.objects.create(
@@ -2380,7 +2380,7 @@ class TestRefreshCachedHeatScoresTask:
         assert proposal.cached_heat_score == 1
         assert mock_score.call_count == 0
 
-    @patch('content.views.proposal._compute_heat_score_for_proposal')
+    @patch('content.services.proposal_analytics_service.compute_heat_score_for_proposal')
     def test_ignores_draft_proposals(self, mock_score):
         mock_score.return_value = 9
         proposal = BusinessProposal.objects.create(
@@ -2435,7 +2435,7 @@ class TestRefreshCachedHeatScores:
             title='Heat Proposal', client_name='Client',
             status='viewed', cached_heat_score=3,
         )
-        with patch('content.views.proposal._compute_heat_score_for_proposal', return_value=8):
+        with patch('content.services.proposal_analytics_service.compute_heat_score_for_proposal', return_value=8):
             import content.tasks as tasks_module
             tasks_module.refresh_cached_heat_scores.call_local()
 
@@ -2449,7 +2449,7 @@ class TestRefreshCachedHeatScores:
             title='Same Score', client_name='Client',
             status='sent', cached_heat_score=5,
         )
-        with patch('content.views.proposal._compute_heat_score_for_proposal', return_value=5):
+        with patch('content.services.proposal_analytics_service.compute_heat_score_for_proposal', return_value=5):
             import content.tasks as tasks_module
             tasks_module.refresh_cached_heat_scores.call_local()
 
@@ -2463,7 +2463,7 @@ class TestRefreshCachedHeatScores:
             title='Draft Proposal', client_name='Client',
             status='draft', cached_heat_score=0,
         )
-        with patch('content.views.proposal._compute_heat_score_for_proposal', return_value=9) as mock_compute:
+        with patch('content.services.proposal_analytics_service.compute_heat_score_for_proposal', return_value=9) as mock_compute:
             import content.tasks as tasks_module
             tasks_module.refresh_cached_heat_scores.call_local()
 

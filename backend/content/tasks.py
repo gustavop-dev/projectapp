@@ -1111,7 +1111,7 @@ def refresh_cached_heat_scores():
     active proposals in sent/viewed status.
     """
     from content.models import BusinessProposal
-    from content.views.proposal import _compute_heat_score_for_proposal
+    from content.services.proposal_analytics_service import compute_heat_score_for_proposal
 
     now = timezone.now()
     proposals = BusinessProposal.objects.filter(
@@ -1121,7 +1121,7 @@ def refresh_cached_heat_scores():
 
     updated = 0
     for pid, old_score in proposals:
-        new_score = _compute_heat_score_for_proposal(pid, now)
+        new_score = compute_heat_score_for_proposal(pid, now)
         if new_score != old_score:
             BusinessProposal.objects.filter(pk=pid).update(
                 cached_heat_score=new_score
