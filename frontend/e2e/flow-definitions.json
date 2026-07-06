@@ -2606,6 +2606,26 @@
       "description": "Superuser exports accounting data: every list view has an Exportar dropdown (CSV / Excel .xlsx) that calls GET /api/accounting/export/ with the active filters mapped to server query params, and the dashboard has an Exportar Excel button that downloads the full workbook (summary sheet + one sheet per section) from /api/accounting/export/workbook/?year=.",
       "expectedSpecs": 1
     },
+    "admin-accounting-list-error-retry": {
+      "name": "Admin Accounting Lists — Load Error & Retry",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "When a GET /api/accounting/<entity>/ (or dashboard/, change-logs/, settings/) fails, the page replaces the table/summary with AccountingErrorState (data-testid=accounting-error-retry): a Spanish danger alert plus a Reintentar button that re-fires the page's load function. CRUD errors keep using toasts and never hide the table. Mirrors admin-diagnostic-list-error-retry.",
+      "expectedSpecs": 1
+    },
+    "admin-accounting-empty-state-cta": {
+      "name": "Admin Accounting Lists — Empty State CTA",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P4",
+      "description": "With zero records, accounting lists render BaseEmptyState with a primary 'Nuevo <entidad>' action that opens the create modal; with active filters and zero matches the action becomes 'Limpiar filtros' and resets the filter panel.",
+      "expectedSpecs": 1
+    },
     "admin-proposal-discount-offer-send": {
       "name": "Admin Proposal Discount Offer Send",
       "module": "admin",

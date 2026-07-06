@@ -5294,6 +5294,26 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-ads-history-settings.spec.js`
 
+### FLOW: `admin-accounting-list-error-retry`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P3
+- **Routes:** `/panel/accounting/*` (all subviews)
+- **Description:** When a `GET /api/accounting/<entity>/` (or `dashboard/`, `change-logs/`, `settings/`) fails, the page replaces the table/summary with `AccountingErrorState` (`data-testid=accounting-error-retry`): a Spanish danger alert plus a "Reintentar" button that re-fires the page's load function. CRUD errors keep using toasts and never hide the table. Mirrors `admin-diagnostic-list-error-retry`.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
+### FLOW: `admin-accounting-empty-state-cta`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P4
+- **Routes:** `/panel/accounting/*` (list subviews)
+- **Description:** With zero records, lists render `BaseEmptyState` with a primary "Nuevo <entidad>" action that opens the create modal; with active filters and zero matches, the action becomes "Limpiar filtros" and resets the filter panel.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
 ### 23.1 Coverage Index
 
 | Flow ID | Module | Role | Priority | Status | Spec |
@@ -5310,6 +5330,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-export` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-export.spec.js` |
 | `admin-accounting-settings` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
 | `admin-accounting-ads` | admin | superuser | P3 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
+| `admin-accounting-list-error-retry` | admin | superuser | P3 | ❌ Missing | — |
+| `admin-accounting-empty-state-cta` | admin | superuser | P4 | ❌ Missing | — |
 
 ---
 

@@ -122,6 +122,8 @@ test.describe('Admin Accounting Dashboard', () => {
     await expect(
       page.getByRole('heading', { name: 'Resumen', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
+    await expect(page.getByTestId('accounting-hero-kpi')).toBeVisible();
+    await expect(page.getByTestId('accounting-hero-value')).toBeVisible();
     await expect(page.getByText('Ingresos esperados')).toBeVisible();
     await expect(page.getByText('$95.238.699 COP')).toBeVisible();
     await expect(page.getByText('$59.516.261 COP')).toBeVisible();
