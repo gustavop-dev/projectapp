@@ -10,7 +10,7 @@
     <div v-for="(step, idx) in form.steps" :key="idx" class="mb-4 bg-surface-raised rounded-xl p-4 border border-border-muted">
       <div class="flex items-center justify-between mb-2">
         <span class="text-xs text-text-subtle">Paso {{ idx + 1 }}</span>
-        <button type="button" class="text-xs text-red-500 hover:text-red-700" @click="form.steps.splice(idx, 1)">Eliminar</button>
+        <button type="button" class="text-xs text-danger-strong hover:text-danger-strong/80" @click="form.steps.splice(idx, 1)">Eliminar</button>
       </div>
       <FieldInput v-model="step.title" label="Título del paso" class="mb-2" />
       <FieldTextarea v-model="step.bullets" label="Bullets" help="Un bullet por línea" :rows="3" />

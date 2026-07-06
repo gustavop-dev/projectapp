@@ -14,7 +14,7 @@
               <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
               <span class="text-xs text-text-subtle">Paso {{ idx + 1 }}</span>
             </div>
-            <button type="button" class="text-xs text-red-500" @click="form.steps.splice(idx, 1)">Eliminar</button>
+            <button type="button" class="text-xs text-danger-strong" @click="form.steps.splice(idx, 1)">Eliminar</button>
           </div>
           <FieldInput v-model="step.title" label="Título" class="mb-1" />
           <FieldInput v-model="step.description" label="Descripción" />
@@ -46,7 +46,7 @@
               <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
               <span class="text-xs text-text-subtle">Método {{ idx + 1 }}</span>
             </div>
-            <button type="button" class="text-xs text-red-500" @click="form.contactMethods.splice(idx, 1)">Eliminar</button>
+            <button type="button" class="text-xs text-danger-strong" @click="form.contactMethods.splice(idx, 1)">Eliminar</button>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
             <EmojiIconField v-model="method.icon" label="Icono" placeholder="📧" />

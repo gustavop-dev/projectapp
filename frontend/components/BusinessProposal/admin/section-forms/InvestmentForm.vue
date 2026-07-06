@@ -4,9 +4,9 @@
     <FieldInput v-model="form.title" label="Título" />
   </div>
   <FieldTextarea v-model="form.introText" label="Texto introductorio" :rows="2" :isSingle="true" />
-  <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800">
+  <div class="bg-info-soft border border-info-strong/30 rounded-xl px-4 py-3 text-sm text-info-strong">
     💰 <strong>Inversión total:</strong> ${{ Number(proposalData?.total_investment || 0).toLocaleString() }} {{ proposalData?.currency || 'COP' }}
-    <span class="text-xs text-blue-600 ml-2">(se edita en la pestaña "General")</span>
+    <span class="text-xs text-info-strong ml-2">(se edita en la pestaña "General")</span>
   </div>
   <div>
     <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Qué incluye</label>
@@ -18,7 +18,7 @@
               <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
               <span class="text-xs text-text-subtle">Item {{ idx + 1 }}</span>
             </div>
-            <button type="button" class="text-xs text-red-500" @click="form.whatsIncluded.splice(idx, 1)">Eliminar</button>
+            <button type="button" class="text-xs text-danger-strong" @click="form.whatsIncluded.splice(idx, 1)">Eliminar</button>
           </div>
           <div class="grid grid-cols-[100px_1fr] gap-2 mb-1">
             <EmojiIconField v-model="item.icon" label="Icono" placeholder="🎨" />
@@ -40,7 +40,7 @@
               <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
               <span class="text-xs text-text-subtle">Opción {{ idx + 1 }}</span>
             </div>
-            <button type="button" class="text-xs text-red-500" @click="form.paymentOptions.splice(idx, 1)">Eliminar</button>
+            <button type="button" class="text-xs text-danger-strong" @click="form.paymentOptions.splice(idx, 1)">Eliminar</button>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <FieldInput v-model="opt.label" label="Etiqueta" placeholder="40% al firmar" />
@@ -78,7 +78,7 @@
                   <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
                   <span class="text-[10px] text-text-subtle">{{ idx + 1 }}</span>
                 </div>
-                <button type="button" class="text-[10px] text-red-500" @click="form.hostingPlan.specs.splice(idx, 1)">Eliminar</button>
+                <button type="button" class="text-[10px] text-danger-strong" @click="form.hostingPlan.specs.splice(idx, 1)">Eliminar</button>
               </div>
               <div class="grid grid-cols-[80px_1fr_1fr] gap-2">
                 <EmojiIconField v-model="spec.icon" label="Icono" placeholder="🧠" />
@@ -93,9 +93,9 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FieldInput v-model.number="form.hostingPlan.hostingPercent" label="% de inversión total" type="number" placeholder="70" />
       </div>
-      <div v-if="form.hostingPlan.hostingPercent > 0 && proposalData?.total_investment" class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800">
+      <div v-if="form.hostingPlan.hostingPercent > 0 && proposalData?.total_investment" class="bg-info-soft border border-info-strong/30 rounded-xl px-4 py-3 text-sm text-info-strong">
         💡 <strong>Hosting anual estimado:</strong> ${{ Math.round(Number(proposalData.total_investment) * form.hostingPlan.hostingPercent / 100).toLocaleString() }} {{ proposalData?.currency || 'COP' }}
-        <span class="text-xs text-blue-600 ml-2">({{ form.hostingPlan.hostingPercent }}% de ${{ Number(proposalData.total_investment).toLocaleString() }})</span>
+        <span class="text-xs text-info-strong ml-2">({{ form.hostingPlan.hostingPercent }}% de ${{ Number(proposalData.total_investment).toLocaleString() }})</span>
       </div>
       <!-- Billing Tiers -->
       <div>

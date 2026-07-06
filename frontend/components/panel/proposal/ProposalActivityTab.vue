@@ -104,19 +104,22 @@ async function submitActivity() {
   }
 }
 
+// Status-semantic entries use design tokens (they auto-flip in dark mode).
+// purple/indigo/orange/sky are CATEGORICAL activity hues with no semantic
+// token equivalent — they keep manual dark: overrides on purpose.
 const AC = {
   gray:    { dot: 'bg-surface-raised',    text: 'text-text-muted' },
   grayMd:  { dot: 'bg-surface-raised',    text: 'text-text-muted' },
-  blue:    { dot: 'bg-blue-100 dark:bg-blue-900/30',    text: 'text-blue-600 dark:text-blue-400' },
-  green:   { dot: 'bg-green-100 dark:bg-green-900/30',   text: 'text-green-600 dark:text-green-400' },
+  blue:    { dot: 'bg-info-soft',    text: 'text-info-strong' },
+  green:   { dot: 'bg-success-soft',   text: 'text-success-strong' },
   emerald: { dot: 'bg-primary-soft', text: 'text-text-brand' },
-  red:     { dot: 'bg-red-100 dark:bg-red-900/30',     text: 'text-red-600 dark:text-red-400' },
-  yellow:  { dot: 'bg-yellow-100 dark:bg-yellow-900/30',  text: 'text-yellow-600 dark:text-yellow-400' },
+  red:     { dot: 'bg-danger-soft',     text: 'text-danger-strong' },
+  yellow:  { dot: 'bg-warning-soft',  text: 'text-warning-strong' },
   purple:  { dot: 'bg-purple-100 dark:bg-purple-900/30',  text: 'text-purple-600 dark:text-purple-400' },
   indigo:  { dot: 'bg-indigo-100 dark:bg-indigo-900/30',  text: 'text-indigo-600 dark:text-indigo-400' },
   orange:  { dot: 'bg-orange-100 dark:bg-orange-900/30',  text: 'text-orange-600 dark:text-orange-400' },
   sky:     { dot: 'bg-sky-100 dark:bg-sky-900/30',     text: 'text-sky-600 dark:text-sky-400' },
-  amber:   { dot: 'bg-amber-100 dark:bg-amber-900/30',   text: 'text-amber-600 dark:text-amber-400' },
+  amber:   { dot: 'bg-warning-soft',   text: 'text-warning-strong' },
 };
 const activityMeta = {
   created:       { icon: '✨', label: 'Creada',                   ...AC.gray },

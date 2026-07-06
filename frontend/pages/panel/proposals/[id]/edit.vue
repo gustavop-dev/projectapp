@@ -1116,7 +1116,7 @@
               v-if="proposal.status === 'draft'"
               variant="primary"
               size="md"
-              class="!bg-blue-600 hover:!bg-blue-700"
+              class="!bg-info-strong hover:!bg-info-strong/90"
               @click="handleSend"
             >
               📤 Enviar al Cliente
@@ -1125,7 +1125,7 @@
               v-else-if="['sent', 'viewed'].includes(proposal.status)"
               variant="primary"
               size="md"
-              class="!bg-blue-600 hover:!bg-blue-700"
+              class="!bg-info-strong hover:!bg-info-strong/90"
               @click="handleResend"
             >
               🔄 Re-enviar al Cliente
@@ -1169,7 +1169,7 @@
         <BaseButton
           variant="primary"
           size="lg"
-          class="!bg-blue-600 hover:!bg-blue-700"
+          class="!bg-info-strong hover:!bg-info-strong/90"
           :disabled="!allChecksPassing || scorecardLoading"
           @click="confirmSend"
         >
@@ -1236,7 +1236,7 @@
       <div class="flex flex-col h-[85vh]">
         <div class="flex items-center justify-between gap-4 p-4 border-b border-input-border">
           <div class="flex items-center gap-4">
-            <div class="flex flex-col items-center justify-center rounded-2xl bg-rose-500 px-4 py-2 text-white leading-none">
+            <div class="flex flex-col items-center justify-center rounded-2xl bg-danger-strong px-4 py-2 text-white leading-none">
               <span class="text-3xl font-black tracking-tight">-{{ proposal?.discount_percent }}%</span>
               <span class="text-[10px] font-semibold uppercase tracking-widest opacity-90">descuento</span>
             </div>
@@ -1259,7 +1259,7 @@
             <BaseButton
               variant="primary"
               size="md"
-              class="!bg-rose-500 hover:!bg-rose-600"
+              class="!bg-danger-strong hover:!bg-danger-strong/90"
               :disabled="discountSending || discountPreviewLoading"
               @click="confirmSendDiscountOffer"
             >

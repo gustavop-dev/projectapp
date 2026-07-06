@@ -21,7 +21,7 @@
               <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
               <span class="text-xs text-text-subtle">Badge {{ idx + 1 }}</span>
             </div>
-            <button type="button" class="text-xs text-red-500" @click="form.commitmentBadges.splice(idx, 1)">Eliminar</button>
+            <button type="button" class="text-xs text-danger-strong" @click="form.commitmentBadges.splice(idx, 1)">Eliminar</button>
           </div>
           <div class="grid grid-cols-[100px_1fr] gap-2 mb-1">
             <EmojiIconField v-model="badge.icon" label="Icono" placeholder="🤝" />

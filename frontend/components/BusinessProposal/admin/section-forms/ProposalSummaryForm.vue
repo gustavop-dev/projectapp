@@ -10,7 +10,7 @@
     <div v-for="(kpi, idx) in (form.kpis || [])" :key="'kpi-' + idx" class="mb-2 bg-primary-soft rounded-xl p-3 border border-emerald-100">
       <div class="flex items-center justify-between mb-1">
         <span class="text-xs text-text-brand font-medium">KPI {{ idx + 1 }}</span>
-        <button type="button" class="text-xs text-red-500" @click="form.kpis.splice(idx, 1)">Eliminar</button>
+        <button type="button" class="text-xs text-danger-strong" @click="form.kpis.splice(idx, 1)">Eliminar</button>
       </div>
       <div class="grid grid-cols-[120px_1fr] gap-2 mb-1">
         <FieldInput v-model="kpi.value" label="Valor" placeholder="+40%" />
@@ -30,7 +30,7 @@
               <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
               <span class="text-xs text-text-subtle">Tarjeta {{ idx + 1 }}</span>
             </div>
-            <button type="button" class="text-xs text-red-500" @click="form.cards.splice(idx, 1)">Eliminar</button>
+            <button type="button" class="text-xs text-danger-strong" @click="form.cards.splice(idx, 1)">Eliminar</button>
           </div>
           <div class="grid grid-cols-[100px_1fr] gap-2 mb-1">
             <EmojiIconField v-model="card.icon" label="Icono" placeholder="💰" />

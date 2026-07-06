@@ -40,19 +40,19 @@
           <span class="text-[10px] text-text-muted font-medium">Seleccionado</span>
         </label>
         <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-          :class="group.is_calculator_module ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-surface-raised text-text-subtle border-border-default dark:border-white/[0.08]'"
+          :class="group.is_calculator_module ? 'bg-info-soft text-info-strong border-info-strong/30' : 'bg-surface-raised text-text-subtle border-border-default dark:border-white/[0.08]'"
           :title="group.is_calculator_module ? 'Este módulo aparece en la calculadora de inversión del cliente' : 'Este módulo NO aparece en la calculadora de inversión'"
           @click="group.is_calculator_module = !group.is_calculator_module">
           {{ group.is_calculator_module ? '🧮 En calc.' : '🧮 No calc.' }}
         </button>
         <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-          :class="group.is_visible !== false ? 'bg-primary-soft text-text-brand border-emerald-300' : 'bg-red-50 text-red-500 border-red-200'"
+          :class="group.is_visible !== false ? 'bg-primary-soft text-text-brand border-emerald-300' : 'bg-danger-soft text-danger-strong border-danger-strong/30'"
           :title="group.is_visible !== false ? 'Este módulo se muestra en la propuesta del cliente' : 'Este módulo está oculto en la propuesta del cliente'"
           @click="group.is_visible = group.is_visible === false ? true : false">
           {{ group.is_visible !== false ? '👁 Visible' : '🚫 Oculto' }}
         </button>
         <button v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features'"
-          type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" title="Eliminar este grupo de la propuesta" @click="form.groups.splice(gIdx, 1)">Eliminar</button>
+          type="button" class="text-xs text-danger-strong hover:text-danger-strong/80 ml-2" title="Eliminar este grupo de la propuesta" @click="form.groups.splice(gIdx, 1)">Eliminar</button>
       </div>
     </div>
 
@@ -87,7 +87,7 @@
                     <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
                     <span class="text-[10px] text-text-subtle">{{ iIdx + 1 }}</span>
                   </div>
-                  <button type="button" class="text-[10px] text-red-500" @click="group.items.splice(iIdx, 1)">Eliminar</button>
+                  <button type="button" class="text-[10px] text-danger-strong" @click="group.items.splice(iIdx, 1)">Eliminar</button>
                 </div>
                 <div class="grid grid-cols-[90px_1fr] gap-2 mb-1">
                   <EmojiIconField v-model="item.icon" label="Icono" placeholder="🏠" />
@@ -137,18 +137,18 @@
             <span class="text-[10px] text-text-muted font-medium">Seleccionado</span>
           </label>
           <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-            :class="mod.is_calculator_module ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-surface-raised text-text-subtle border-border-default dark:border-white/[0.08]'"
+            :class="mod.is_calculator_module ? 'bg-info-soft text-info-strong border-info-strong/30' : 'bg-surface-raised text-text-subtle border-border-default dark:border-white/[0.08]'"
             :title="mod.is_calculator_module ? 'Este módulo aparece en la calculadora de inversión del cliente' : 'Este módulo NO aparece en la calculadora de inversión'"
             @click="mod.is_calculator_module = !mod.is_calculator_module">
             {{ mod.is_calculator_module ? '🧮 En calc.' : '🧮 No calc.' }}
           </button>
           <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-            :class="mod.is_visible !== false ? 'bg-primary-soft text-text-brand border-emerald-300' : 'bg-red-50 text-red-500 border-red-200'"
+            :class="mod.is_visible !== false ? 'bg-primary-soft text-text-brand border-emerald-300' : 'bg-danger-soft text-danger-strong border-danger-strong/30'"
             :title="mod.is_visible !== false ? 'Este módulo se muestra en la propuesta del cliente' : 'Este módulo está oculto en la propuesta del cliente'"
             @click="mod.is_visible = mod.is_visible === false ? true : false">
             {{ mod.is_visible !== false ? '👁 Visible' : '🚫 Oculto' }}
           </button>
-          <button type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" title="Eliminar este módulo de la propuesta" @click="form.additionalModules.splice(mIdx, 1)">Eliminar</button>
+          <button type="button" class="text-xs text-danger-strong hover:text-danger-strong/80 ml-2" title="Eliminar este módulo de la propuesta" @click="form.additionalModules.splice(mIdx, 1)">Eliminar</button>
         </div>
       </div>
       <div v-show="!mod._collapsed" class="p-4">
@@ -178,7 +178,7 @@
                       <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
                       <span class="text-[10px] text-text-subtle">{{ iIdx + 1 }}</span>
                     </div>
-                    <button type="button" class="text-[10px] text-red-500" @click="mod.items.splice(iIdx, 1)">Eliminar</button>
+                    <button type="button" class="text-[10px] text-danger-strong" @click="mod.items.splice(iIdx, 1)">Eliminar</button>
                   </div>
                   <div class="grid grid-cols-[90px_1fr] gap-2 mb-1">
                     <EmojiIconField v-model="item.icon" label="Icono" />

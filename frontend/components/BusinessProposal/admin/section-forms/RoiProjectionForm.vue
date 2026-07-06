@@ -24,7 +24,7 @@
               <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
               <span class="text-xs text-text-subtle">KPI {{ idx + 1 }}</span>
             </div>
-            <button type="button" class="text-xs text-red-500" @click="form.kpis.splice(idx, 1)">Eliminar</button>
+            <button type="button" class="text-xs text-danger-strong" @click="form.kpis.splice(idx, 1)">Eliminar</button>
           </div>
           <div class="grid grid-cols-[100px_120px_1fr] gap-2 mb-1">
             <EmojiIconField v-model="kpi.icon" label="Icono" placeholder="📈" />
@@ -51,7 +51,7 @@
               <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
               <span class="text-xs text-text-subtle">Escenario {{ sIdx + 1 }}</span>
             </div>
-            <button type="button" class="text-xs text-red-500" @click="form.scenarios.splice(sIdx, 1)">Eliminar</button>
+            <button type="button" class="text-xs text-danger-strong" @click="form.scenarios.splice(sIdx, 1)">Eliminar</button>
           </div>
           <div class="grid grid-cols-[80px_120px_1fr] gap-2 mb-2">
             <EmojiIconField v-model="scenario.icon" label="Icono" placeholder="🌱" />
@@ -61,7 +61,7 @@
           <label class="block text-[10px] text-text-subtle mb-1">Supuestos (palancas que distinguen este escenario)</label>
           <div v-for="(assumption, aIdx) in (scenario.assumptions || [])" :key="'a-' + aIdx" class="grid grid-cols-[1fr_28px] gap-2 mb-1 items-center">
             <FieldInput v-model="scenario.assumptions[aIdx]" label="" placeholder="3 de cada 100 visitas agendan" />
-            <button type="button" class="text-xs text-red-500" @click="scenario.assumptions.splice(aIdx, 1)">×</button>
+            <button type="button" class="text-xs text-danger-strong" @click="scenario.assumptions.splice(aIdx, 1)">×</button>
           </div>
           <button type="button" class="text-[11px] text-text-brand font-medium mt-1 mb-2" @click="if (!scenario.assumptions) scenario.assumptions = []; scenario.assumptions.push('')">+ Supuesto</button>
           <label class="block text-[10px] text-text-subtle mb-1">Métricas</label>
@@ -73,7 +73,7 @@
                 <input type="checkbox" v-model="metric.emphasis" class="rounded" />
                 Énfasis
               </label>
-              <button type="button" class="text-xs text-red-500" @click="scenario.metrics.splice(mIdx, 1)">×</button>
+              <button type="button" class="text-xs text-danger-strong" @click="scenario.metrics.splice(mIdx, 1)">×</button>
             </div>
             <FieldInput v-model="metric.basis" label="" placeholder="Cómo se calculó — ej. ≈ 6.500 clientes × $43.000 ticket promedio" class="mt-1" />
           </div>
