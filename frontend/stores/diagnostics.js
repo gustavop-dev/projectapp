@@ -6,6 +6,7 @@ import {
   patch_request,
   delete_request,
 } from './services/request_http';
+import { normalizeApiError } from './services/normalize_api_error';
 import { isUuid } from '~/utils/slugify';
 
 export const useDiagnosticsStore = defineStore('diagnostics', {
@@ -38,6 +39,22 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
   },
 
   actions: {
+    /**
+     * Build the standard failure result: `{ success, errors (raw payload),
+     * message, code, hint, fieldErrors, status, error (alias of message) }`.
+     * Callers that surface global state also assign `this.error`.
+     */
+    _fail(error, fallback, extra = {}) {
+      const norm = normalizeApiError(error, fallback);
+      return {
+        success: false,
+        ...extra,
+        errors: error?.response?.data ?? null,
+        ...norm,
+        error: norm.message,
+      };
+    },
+
     // ── Admin CRUD ──────────────────────────────────────────────────
     async fetchAll(params = {}) {
       this.isLoading = true;
@@ -51,8 +68,9 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         this.diagnostics = response.data || [];
         return { success: true, data: this.diagnostics };
       } catch (error) {
-        this.error = error?.response?.data?.error || 'fetch_failed';
-        return { success: false, error: this.error };
+        const failure = this._fail(error, 'No se pudieron cargar los diagnósticos.');
+        this.error = failure.message;
+        return failure;
       } finally {
         this.isLoading = false;
       }
@@ -66,8 +84,9 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         this.current = response.data;
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = error?.response?.data?.error || 'fetch_failed';
-        return { success: false, error: this.error };
+        const failure = this._fail(error, 'No se pudo cargar el diagnóstico.');
+        this.error = failure.message;
+        return failure;
       } finally {
         this.isLoading = false;
       }
@@ -81,8 +100,9 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         this.current = response.data;
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = error?.response?.data?.error || 'create_failed';
-        return { success: false, error: this.error };
+        const failure = this._fail(error, 'No se pudo crear el diagnóstico.');
+        this.error = failure.message;
+        return failure;
       } finally {
         this.isUpdating = false;
       }
@@ -99,8 +119,9 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         this.current = response.data;
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = error?.response?.data?.error || 'update_failed';
-        return { success: false, error: this.error };
+        const failure = this._fail(error, 'No se pudo guardar el diagnóstico.');
+        this.error = failure.message;
+        return failure;
       } finally {
         this.isUpdating = false;
       }
@@ -114,8 +135,9 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         if (this.current?.id === id) this.current = null;
         return { success: true };
       } catch (error) {
-        this.error = error?.response?.data?.error || 'delete_failed';
-        return { success: false, error: this.error };
+        const failure = this._fail(error, 'No se pudo eliminar el diagnóstico.');
+        this.error = failure.message;
+        return failure;
       } finally {
         this.isUpdating = false;
       }
@@ -136,8 +158,9 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         }
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = error?.response?.data?.error || 'update_section_failed';
-        return { success: false, error: this.error };
+        const failure = this._fail(error, 'No se pudo guardar la sección.');
+        this.error = failure.message;
+        return failure;
       } finally {
         this.isUpdating = false;
       }
@@ -153,8 +176,9 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         this.current = response.data;
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = error?.response?.data?.error || 'bulk_update_failed';
-        return { success: false, error: this.error };
+        const failure = this._fail(error, 'No se pudieron guardar las secciones.');
+        this.error = failure.message;
+        return failure;
       } finally {
         this.isUpdating = false;
       }
@@ -173,10 +197,7 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         }
         return { success: true, data: response.data };
       } catch (error) {
-        return {
-          success: false,
-          error: error?.response?.data?.error || 'reset_failed',
-        };
+        return this._fail(error, 'No se pudo restaurar la sección.');
       }
     },
 
@@ -189,10 +210,7 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         }
         return { success: true, data: response.data };
       } catch (error) {
-        return {
-          success: false,
-          error: error?.response?.data?.error || 'fetch_failed',
-        };
+        return this._fail(error, 'No se pudo cargar la actividad.');
       }
     },
 
@@ -208,10 +226,7 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         }
         return { success: true, data: response.data };
       } catch (error) {
-        return {
-          success: false,
-          error: error?.response?.data?.error || 'log_failed',
-        };
+        return this._fail(error, 'No se pudo registrar la actividad.');
       }
     },
 
@@ -221,36 +236,29 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         const response = await get_request(`diagnostics/${id}/analytics/`);
         return { success: true, data: response.data };
       } catch (error) {
-        return {
-          success: false,
-          data: null,
-          error: error?.response?.data?.error || 'fetch_failed',
-        };
+        return this._fail(error, 'No se pudo cargar la analítica.', { data: null });
       }
     },
 
     // ── Status transitions ──────────────────────────────────────────
-    async _postTransition(id, slug, defaultError) {
+    async _postTransition(id, slug, fallbackMessage) {
       this.isUpdating = true;
       try {
         const response = await create_request(`diagnostics/${id}/${slug}/`, {});
         this.current = response.data;
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = error?.response?.data?.error || defaultError;
-        return {
-          success: false,
-          error: this.error,
-          message: error?.response?.data?.message,
-        };
+        const failure = this._fail(error, fallbackMessage);
+        this.error = failure.message;
+        return failure;
       } finally {
         this.isUpdating = false;
       }
     },
 
-    markInAnalysis(id) { return this._postTransition(id, 'mark-in-analysis', 'transition_failed'); },
-    sendInitial(id)    { return this._postTransition(id, 'send-initial',     'send_failed'); },
-    sendFinal(id)      { return this._postTransition(id, 'send-final',       'send_failed'); },
+    markInAnalysis(id) { return this._postTransition(id, 'mark-in-analysis', 'No se pudo cambiar el estado.'); },
+    sendInitial(id)    { return this._postTransition(id, 'send-initial',     'No se pudo enviar el diagnóstico.'); },
+    sendFinal(id)      { return this._postTransition(id, 'send-final',       'No se pudo enviar el diagnóstico.'); },
 
     // ── Attachments (file uploads) ──────────────────────────────────
     async fetchAttachments(id) {
@@ -261,10 +269,7 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         }
         return { success: true, data: response.data };
       } catch (error) {
-        return {
-          success: false,
-          error: error?.response?.data?.error || 'fetch_failed',
-        };
+        return this._fail(error, 'No se pudieron cargar los documentos.');
       }
     },
 
@@ -280,10 +285,7 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         }
         return { success: true, data: response.data };
       } catch (error) {
-        return {
-          success: false,
-          error: error?.response?.data?.error || 'upload_failed',
-        };
+        return this._fail(error, 'No se pudo subir el documento.');
       }
     },
 
@@ -300,10 +302,7 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         }
         return { success: true };
       } catch (error) {
-        return {
-          success: false,
-          error: error?.response?.data?.error || 'delete_failed',
-        };
+        return this._fail(error, 'No se pudo eliminar el documento.');
       }
     },
 
@@ -315,10 +314,7 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         );
         return { success: true, data: response.data };
       } catch (error) {
-        return {
-          success: false,
-          error: error?.response?.data?.error || 'send_failed',
-        };
+        return this._fail(error, 'No se pudieron enviar los documentos.');
       }
     },
 
@@ -352,10 +348,7 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         }
         return { success: true, data: response.data };
       } catch (error) {
-        return {
-          success: false,
-          error: error?.response?.data?.error || 'save_failed',
-        };
+        return this._fail(error, 'No se pudieron guardar los parámetros.');
       }
     },
 
@@ -376,10 +369,7 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         }
         return { success: true, data: response.data };
       } catch (error) {
-        return {
-          success: false,
-          error: error?.response?.data?.error || 'generate_failed',
-        };
+        return this._fail(error, 'No se pudo generar el acuerdo.');
       }
     },
 
@@ -392,11 +382,7 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         );
         return { success: true, data: response.data };
       } catch (error) {
-        return {
-          success: false,
-          error: error?.response?.data?.error || 'send_failed',
-          status: error?.response?.status,
-        };
+        return this._fail(error, 'No se pudo enviar el correo.');
       }
     },
 
@@ -405,11 +391,7 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         const response = await get_request(`diagnostics/${id}/email/defaults/`);
         return { success: true, data: response.data };
       } catch (error) {
-        return {
-          success: false,
-          data: {},
-          error: error?.response?.data?.error || 'fetch_failed',
-        };
+        return this._fail(error, 'No se pudieron cargar los valores del correo.', { data: {} });
       }
     },
 
@@ -420,11 +402,9 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         );
         return { success: true, data: response.data };
       } catch (error) {
-        return {
-          success: false,
+        return this._fail(error, 'No se pudo cargar el historial de correos.', {
           data: { results: [], total: 0, page: 1, has_next: false },
-          error: error?.response?.data?.error || 'fetch_failed',
-        };
+        });
       }
     },
 
@@ -432,6 +412,7 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
     /**
      * fetchPublic: Retrieve a diagnostic by UUID or slug for client viewing.
      * Detects the identifier format and routes to the correct endpoint.
+     * Keeps the 'not_found' sentinel consumed by the public page.
      */
     async fetchPublic(identifier) {
       this.isLoading = true;
@@ -486,8 +467,9 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         this.current = response.data;
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = error?.response?.data?.error || 'respond_failed';
-        return { success: false, error: this.error };
+        const failure = this._fail(error, 'No se pudo registrar tu respuesta.');
+        this.error = failure.message;
+        return failure;
       } finally {
         this.isUpdating = false;
       }
@@ -503,8 +485,9 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         );
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = 'fetch_defaults_failed';
-        return { success: false, errors: error?.response?.data };
+        const failure = this._fail(error, 'No se pudieron cargar los valores por defecto.');
+        this.error = failure.message;
+        return failure;
       } finally {
         this.isLoading = false;
       }
@@ -539,8 +522,9 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         const response = await put_request('diagnostics/defaults/', payload);
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = 'save_defaults_failed';
-        return { success: false, errors: error?.response?.data };
+        const failure = this._fail(error, 'No se pudieron guardar los valores por defecto.');
+        this.error = failure.message;
+        return failure;
       } finally {
         this.isUpdating = false;
       }
@@ -556,8 +540,9 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
         );
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = 'reset_defaults_failed';
-        return { success: false, errors: error?.response?.data };
+        const failure = this._fail(error, 'No se pudieron restablecer los valores por defecto.');
+        this.error = failure.message;
+        return failure;
       } finally {
         this.isUpdating = false;
       }
