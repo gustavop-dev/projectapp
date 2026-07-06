@@ -1,20 +1,20 @@
 /**
  * Tests for the panel navigation config.
  *
- * Covers: the "ProjectApp content" section (renamed from "Website content")
- * and its LinkedIn module entry.
+ * Covers: the "Contenido ProjectApp" section (renamed from "Website content")
+ * and its LinkedIn module entry. Sidebar labels are Spanish by convention.
  */
 import { getPanelNavSections } from '../../config/panelNav';
 
 const identityLocalePath = (path) => path;
 
 describe('getPanelNavSections', () => {
-  it('names the site section ProjectApp content', () => {
+  it('names the site section Contenido ProjectApp', () => {
     const sections = getPanelNavSections(identityLocalePath);
     const site = sections.find((s) => s.id === 'site');
 
     expect(site).toBeDefined();
-    expect(site.label).toBe('ProjectApp content');
+    expect(site.label).toBe('Contenido ProjectApp');
   });
 
   it('includes the LinkedIn module in the site section', () => {

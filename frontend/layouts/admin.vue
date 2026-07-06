@@ -174,11 +174,11 @@ const _panelDynamic = [
 ]
 
 const _panelDynamicSections = [
-  { re: /\/panel\/proposals\/[^/]+\/edit/, label: 'Sales' },
-  { re: /\/panel\/diagnostics\/[^/]+\/edit/, label: 'Sales' },
-  { re: /\/panel\/blog\/[^/]+\/edit/, label: 'Website content' },
-  { re: /\/panel\/portfolio\/[^/]+\/edit/, label: 'Website content' },
-  { re: /\/panel\/documents\/[^/]+\/edit/, label: 'Documents' },
+  { re: /\/panel\/proposals\/[^/]+\/edit/, label: 'Comercial' },
+  { re: /\/panel\/diagnostics\/[^/]+\/edit/, label: 'Comercial' },
+  { re: /\/panel\/blog\/[^/]+\/edit/, label: 'Contenido ProjectApp' },
+  { re: /\/panel\/portfolio\/[^/]+\/edit/, label: 'Contenido ProjectApp' },
+  { re: /\/panel\/documents\/[^/]+\/edit/, label: 'Documentos' },
 ]
 
 const _panelViewLabel = computed(() => {

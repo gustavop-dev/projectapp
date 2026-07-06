@@ -199,7 +199,9 @@ test.describe('Admin Accounting Dashboard', () => {
       page.getByRole('heading', { name: 'Contabilidad — Resumen' }),
     ).toBeVisible({ timeout: 25_000 });
     await expect(
-      page.getByRole('link', { name: 'Incomes' }),
+      page
+        .getByRole('navigation', { name: 'Navegación del panel' })
+        .getByRole('link', { name: 'Ingresos' }),
     ).toBeVisible();
   });
 
@@ -210,6 +212,10 @@ test.describe('Admin Accounting Dashboard', () => {
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
 
     await expect(page).toHaveURL(/\/panel\/?$/, { timeout: 25_000 });
-    await expect(page.getByRole('link', { name: 'Incomes' })).toHaveCount(0);
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Navegación del panel' })
+        .getByRole('link', { name: 'Ingresos' }),
+    ).toHaveCount(0);
   });
 });

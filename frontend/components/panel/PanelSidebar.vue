@@ -26,7 +26,7 @@
       </NuxtLink>
     </div>
 
-    <nav class="flex-1 overflow-y-auto px-3 py-4">
+    <nav class="flex-1 overflow-y-auto px-3 py-4" aria-label="Navegación del panel">
       <div
         v-for="section in sections"
         :key="section.id"
