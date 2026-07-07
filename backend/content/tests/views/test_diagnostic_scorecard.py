@@ -16,7 +16,8 @@ def test_send_ready_diagnostic_can_send(admin_client, diagnostic):
     data = resp.json()
     assert data['can_send'] is True
     assert data['blockers'] == []
-    assert 1 <= data['score'] <= 10
+    assert data['score'] >= 1
+    assert data['score'] <= 10
 
 
 def test_missing_client_email_is_blocker(admin_client, diagnostic):

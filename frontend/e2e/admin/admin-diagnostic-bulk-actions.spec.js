@@ -96,7 +96,7 @@ test.describe('Admin Diagnostic Bulk Actions', () => {
     expect(bulkPayload.ids.sort()).toEqual([1, 2]);
   });
 
-  test('"Cancelar" clears the selection and hides the batch bar', {
+  test('"Cancelar" clears the selection and hides the bulk-actions bar', {
     tag: [...ADMIN_DIAGNOSTIC_BULK_ACTIONS, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {

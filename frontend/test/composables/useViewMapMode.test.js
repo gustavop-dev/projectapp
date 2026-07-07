@@ -30,7 +30,7 @@ describe('useViewMapMode', () => {
     expect(selectedModuleId.value).toBeNull();
   });
 
-  it('initializes from ?viewMode=map and ?module for deep-linking', () => {
+  it('initializes from ?viewMode=map and ?module query params', () => {
     mockRoute.query = { viewMode: 'map', module: 'admin-panel' };
 
     const { viewMode, selectedModuleId } = useViewMapMode();

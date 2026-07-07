@@ -88,7 +88,7 @@ test.describe('Admin View Map', () => {
     await expect(page).not.toHaveURL(/module=/);
   });
 
-  test('deep link opens map mode with a module preselected', {
+  test('direct link opens map mode with a module preselected', {
     tag: [...ADMIN_VIEW_MAP, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
