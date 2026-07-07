@@ -61,7 +61,7 @@
         'relative z-10 transition-all duration-300 ease-in-out',
         'px-4 py-6 sm:px-6 lg:px-8',
         isCollapsed ? 'md:ml-[64px]' : 'md:ml-[240px]',
-        isDark ? 'text-gray-200' : 'text-text-default',
+        'text-text-default',
       ]"
     >
       <div
