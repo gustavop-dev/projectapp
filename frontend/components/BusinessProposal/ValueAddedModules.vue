@@ -58,12 +58,46 @@
                 <p v-if="card.description" class="text-xs text-text-default/60 italic leading-relaxed mb-3">
                   {{ card.description }}
                 </p>
-                <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-light group-hover:text-text-brand transition-colors">
-                  {{ viewDetailLabel }}
-                  <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </span>
+
+                <!-- Condition badges (duration + minimum gate "condicionado") -->
+                <div v-if="card.durationLabel || card.minimumNote" class="flex flex-wrap gap-2 mb-2">
+                  <span v-if="card.durationLabel" class="inline-flex items-center gap-1 text-[11px] font-semibold text-text-brand bg-primary-soft px-2 py-0.5 rounded-full">
+                    ⏳ {{ card.durationLabel }}
+                  </span>
+                  <span
+                    v-if="card.minimumNote"
+                    class="inline-flex items-center gap-1 text-[11px] font-semibold text-text-muted bg-surface-raised border border-border-default px-2 py-0.5 rounded-full"
+                    :data-testid="`value-added-minimum-${card.id}`"
+                  >
+                    🔒 {{ card.minimumNote }}
+                  </span>
+                </div>
+                <p v-if="card.discretionaryNote" class="text-[11px] text-text-default/55 italic leading-relaxed mb-3">
+                  {{ card.discretionaryNote }}
+                </p>
+
+                <!-- Bottom row: "Ver detalle" (left) · "Términos y condiciones" (right) -->
+                <div class="flex items-center justify-between gap-3 mt-1">
+                  <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-light group-hover:text-text-brand transition-colors">
+                    {{ viewDetailLabel }}
+                    <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                  <button
+                    v-if="card.terms || card.minimumNote || card.durationLabel"
+                    type="button"
+                    class="inline-flex items-center gap-1 text-xs font-medium text-text-subtle hover:text-text-brand transition-colors"
+                    :data-testid="`value-added-terms-${card.id}`"
+                    @click.stop="openTerms(card)"
+                    @keydown.enter.stop.prevent="openTerms(card)"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z" />
+                    </svg>
+                    {{ termsLabel }}
+                  </button>
+                </div>
               </div>
             </div>
           </article>
@@ -85,6 +119,16 @@
       :language="language"
       @close="modalVisible = false"
     />
+
+    <ModuleTermsModal
+      :visible="termsModalVisible"
+      :title="termsCard.title"
+      :icon="termsCard.icon"
+      :terms="termsCard.terms"
+      :notes="termsCard.notes"
+      :language="language"
+      @close="termsModalVisible = false"
+    />
   </section>
 </template>
 
@@ -93,6 +137,7 @@ import { computed, ref } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
 import { trackRequirementClick } from '~/utils/trackRequirementClick';
 import FunctionalRequirementsModal from './FunctionalRequirementsModal.vue';
+import ModuleTermsModal from './ModuleTermsModal.vue';
 
 const props = defineProps({
   section: {
@@ -111,6 +156,12 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
+  // Client-facing effective total (base + selected modules) used to gate the
+  // per-module minimums ("condicionado"). Compared in the proposal currency.
+  effectiveTotal: {
+    type: [Number, String],
+    default: 0,
+  },
 });
 
 const sectionRef = ref(null);
@@ -126,12 +177,18 @@ const i18n = {
     noCost: 'Sin costo adicional',
     free: 'Gratis',
     viewDetail: 'Ver detalle',
+    terms: 'Términos y condiciones',
+    from: 'Disponible en proyectos desde',
+    months: (n) => `Disponible por ${n} ${n === 1 ? 'mes' : 'meses'}`,
   },
   en: {
     defaultTitle: 'Included at no extra cost',
     noCost: 'No extra cost',
     free: 'Free',
     viewDetail: 'View details',
+    terms: 'Terms & conditions',
+    from: 'Available for projects from',
+    months: (n) => `Available for ${n} ${n === 1 ? 'month' : 'months'}`,
   },
 };
 const t = computed(() => i18n[language.value] || i18n.es);
@@ -140,6 +197,15 @@ const defaultTitle = computed(() => t.value.defaultTitle);
 const noCostLabel = computed(() => t.value.noCost);
 const freeBadge = computed(() => t.value.free);
 const viewDetailLabel = computed(() => t.value.viewDetail);
+const termsLabel = computed(() => t.value.terms);
+
+const currency = computed(() => props.proposal?.currency || 'COP');
+const effectiveTotalNum = computed(() => Number(props.effectiveTotal) || 0);
+
+function formatMoney(value) {
+  const num = Number(value) || 0;
+  return `$${num.toLocaleString('es-CO')} ${currency.value}`;
+}
 
 const moduleCatalog = computed(() => {
   const sections = props.proposal?.sections || [];
@@ -157,11 +223,28 @@ const moduleCatalog = computed(() => {
 const resolvedCards = computed(() => {
   const ids = Array.isArray(content.value.module_ids) ? content.value.module_ids : [];
   const justifications = content.value.justifications || {};
+  const conditions = content.value.conditions || {};
   const catalog = moduleCatalog.value;
   return ids
     .map((id) => {
       const group = catalog[id];
       if (!group) return null;
+      const cond = conditions[id] || {};
+      const minimum = currency.value === 'USD'
+        ? cond.min_price_usd
+        : cond.min_price_cop;
+      const meetsMinimum = !minimum || effectiveTotalNum.value >= Number(minimum);
+      // "Condicionado": show the minimum note only when the effective total
+      // does not reach it. The module is never hidden.
+      const minimumNote = (minimum && !meetsMinimum)
+        ? `${t.value.from} ${formatMoney(minimum)}`
+        : '';
+      const durationLabel = cond.duration_months
+        ? t.value.months(Number(cond.duration_months))
+        : '';
+      const discretionaryNote = cond.discretionary_note || '';
+      const terms = cond.terms || '';
+      const notes = [durationLabel, minimumNote].filter(Boolean);
       return {
         id,
         icon: group.icon,
@@ -169,6 +252,11 @@ const resolvedCards = computed(() => {
         description: group.description,
         items: Array.isArray(group.items) ? group.items : [],
         justification: justifications[id] || '',
+        minimumNote,
+        durationLabel,
+        discretionaryNote,
+        terms,
+        notes,
       };
     })
     .filter(Boolean);
@@ -181,6 +269,19 @@ function openModal(card) {
   selectedGroup.value = card;
   modalVisible.value = true;
   trackRequirementClick(props.proposalUuid, card);
+}
+
+const termsModalVisible = ref(false);
+const termsCard = ref({ title: '', icon: '', terms: '', notes: [] });
+
+function openTerms(card) {
+  termsCard.value = {
+    title: card.title,
+    icon: card.icon,
+    terms: card.terms,
+    notes: card.notes,
+  };
+  termsModalVisible.value = true;
 }
 </script>
 

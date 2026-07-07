@@ -539,6 +539,8 @@ const displayPanels = computed(() => {
     // Skip next_steps — its content is merged into final_note
     if (section.section_type === 'next_steps') continue;
     if (section.section_type === 'technical_document') continue;
+    // commercial_conditions is a PDF-only section (no web component)
+    if (section.section_type === 'commercial_conditions') continue;
     // In executive mode, skip sections not in the executive set
     if (isExecutive && !EXECUTIVE_SECTION_TYPES.has(section.section_type)) continue;
     // Hide value_added_modules when no ids resolve against FR groups
@@ -904,6 +906,7 @@ function getSectionProps(section, displayIndex) {
       proposal: proposal.value || { sections: enabledSections.value },
       proposalUuid: proposal.value?.uuid || '',
       itemRequirementsMap: itemRequirementsMap.value,
+      effectiveTotal: resolvedInvestmentTotal.value,
     };
   }
 
