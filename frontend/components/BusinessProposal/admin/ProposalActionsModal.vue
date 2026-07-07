@@ -1,69 +1,62 @@
 <template>
-  <Teleport to="body">
-    <Transition name="modal-fade">
-      <div v-if="visible" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/50" @click="$emit('close')" />
-
-        <div class="relative bg-surface rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-          <div class="sticky top-0 bg-surface border-b border-border-muted px-6 py-4 rounded-t-2xl z-10 flex items-start justify-between">
-            <div>
-              <h2 class="text-lg font-semibold text-text-default">Acciones de la propuesta</h2>
-              <p class="text-xs text-text-muted mt-1">
-                Selecciona una acción para esta propuesta.
-              </p>
-            </div>
-            <button
-              type="button"
-              class="text-text-subtle hover:text-text-default text-sm px-2"
-              aria-label="Cerrar"
-              @click="$emit('close')"
-            >
-              ✕
-            </button>
-          </div>
-
-          <div class="px-4 sm:px-6 py-4 space-y-2">
-            <component
-              v-for="action in actions"
-              :key="action.key"
-              :is="action.href ? 'a' : 'button'"
-              :href="action.href || null"
-              :target="action.href ? '_blank' : null"
-              :rel="action.href ? 'noopener' : null"
-              :type="action.href ? null : 'button'"
-              :data-testid="'proposal-action-' + action.key"
-              class="w-full flex items-start gap-3 p-3 rounded-xl border border-border-muted hover:bg-surface-raised transition-colors text-left"
-              @click="handleActionClick(action)"
-            >
-              <span :class="['inline-block w-2 h-2 mt-2 rounded-full flex-shrink-0', action.dotClass]"></span>
-              <span class="flex-1 min-w-0">
-                <span class="flex items-center gap-2 flex-wrap">
-                  <span class="text-sm font-medium text-text-default">{{ action.label }}</span>
-                  <span
-                    v-if="action.key === suggestedKey"
-                    class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-primary-soft text-text-brand"
-                  >
-                    Sugerido
-                  </span>
-                </span>
-                <span class="block text-xs text-text-muted mt-0.5">
-                  {{ action.description }}
-                </span>
-              </span>
-            </component>
-
-            <p v-if="actions.length === 0" class="text-sm text-text-muted text-center py-6">
-              No hay acciones disponibles para esta propuesta.
-            </p>
-          </div>
-        </div>
+  <BaseModal :model-value="visible" size="lg" @update:model-value="(open) => { if (!open) $emit('close') }">
+    <div class="sticky top-0 bg-surface border-b border-border-muted px-6 py-4 rounded-t-2xl z-10 flex items-start justify-between">
+      <div>
+        <h2 class="text-lg font-semibold text-text-default">Acciones de la propuesta</h2>
+        <p class="text-xs text-text-muted mt-1">
+          Selecciona una acción para esta propuesta.
+        </p>
       </div>
-    </Transition>
-  </Teleport>
+      <button
+        type="button"
+        class="w-11 h-11 -m-2 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-default hover:bg-surface-raised motion-safe:transition-colors motion-safe:duration-fast focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
+        aria-label="Cerrar"
+        @click="$emit('close')"
+      >
+        ✕
+      </button>
+    </div>
+
+    <div class="px-4 sm:px-6 py-4 space-y-2">
+      <component
+        v-for="action in actions"
+        :key="action.key"
+        :is="action.href ? 'a' : 'button'"
+        :href="action.href || null"
+        :target="action.href ? '_blank' : null"
+        :rel="action.href ? 'noopener' : null"
+        :type="action.href ? null : 'button'"
+        :data-testid="'proposal-action-' + action.key"
+        class="w-full flex items-start gap-3 p-3 rounded-xl border border-border-muted hover:bg-surface-raised motion-safe:transition-colors motion-safe:duration-fast text-left focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
+        @click="handleActionClick(action)"
+      >
+        <span :class="['inline-block w-2 h-2 mt-2 rounded-full flex-shrink-0', action.dotClass]"></span>
+        <span class="flex-1 min-w-0">
+          <span class="flex items-center gap-2 flex-wrap">
+            <span class="text-sm font-medium text-text-default">{{ action.label }}</span>
+            <span
+              v-if="action.key === suggestedKey"
+              class="text-2xs uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-primary-soft text-text-brand"
+            >
+              Sugerido
+            </span>
+          </span>
+          <span class="block text-xs text-text-muted mt-0.5">
+            {{ action.description }}
+          </span>
+        </span>
+      </component>
+
+      <p v-if="actions.length === 0" class="text-sm text-text-muted text-center py-6">
+        No hay acciones disponibles para esta propuesta.
+      </p>
+    </div>
+  </BaseModal>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import BaseModal from '~/components/base/BaseModal.vue';
 import { getProposalNextAction } from '~/utils/proposalNextAction';
 
 const props = defineProps({
@@ -90,7 +83,7 @@ const actions = computed(() => {
       key: 'send',
       label: 'Enviar al Cliente',
       description: 'Envía por email la propuesta al cliente.',
-      dotClass: 'bg-blue-500',
+      dotClass: 'bg-info-strong',
     });
   }
   if (['sent', 'viewed'].includes(status) && hasEmail) {
@@ -98,7 +91,7 @@ const actions = computed(() => {
       key: 'resend',
       label: 'Re-enviar al Cliente',
       description: 'Vuelve a enviar el email manteniendo la misma fecha de expiración.',
-      dotClass: 'bg-blue-500',
+      dotClass: 'bg-info-strong',
     });
   }
   if (hasEmail) {
@@ -106,7 +99,7 @@ const actions = computed(() => {
       key: 'send-multi',
       label: 'Enviar varias propuestas como un solo correo',
       description: 'Selecciona otras propuestas del mismo cliente y envíalas en un único email con sus PDFs.',
-      dotClass: 'bg-cyan-500',
+      dotClass: 'bg-info-strong',
     });
   }
   if (transitions.includes('negotiating')) {
@@ -114,7 +107,7 @@ const actions = computed(() => {
       key: 'negotiate',
       label: 'Pasar a Negociación',
       description: 'Genera el contrato y mueve la propuesta al estado Negociación.',
-      dotClass: 'bg-amber-500',
+      dotClass: 'bg-warning-strong',
     });
   }
   if (transitions.includes('accepted')) {
@@ -122,7 +115,7 @@ const actions = computed(() => {
       key: 'approve',
       label: 'Aprobar',
       description: 'Marca la propuesta como aceptada por el cliente.',
-      dotClass: 'bg-emerald-500',
+      dotClass: 'bg-success-strong',
     });
   }
   if (['accepted', 'negotiating'].includes(status)) {
@@ -130,7 +123,7 @@ const actions = computed(() => {
       key: 'launch',
       label: p.platform_onboarding_completed_at ? 'Re-lanzar a Plataforma' : 'Lanzar a Plataforma',
       description: 'Ejecuta el onboarding: crea proyecto, entregables y requerimientos.',
-      dotClass: 'bg-indigo-500',
+      dotClass: 'bg-primary',
     });
   }
   if (Number(p.discount_percent) > 0 && hasEmail) {
@@ -138,7 +131,7 @@ const actions = computed(() => {
       key: 'discount-offer',
       label: 'Enviar oferta de descuento',
       description: `Ofrece el descuento del ${p.discount_percent}% al cliente, con previsualización antes de enviar.`,
-      dotClass: 'bg-rose-500',
+      dotClass: 'bg-danger-strong',
     });
   }
   if (transitions.includes('finished')) {
@@ -146,7 +139,7 @@ const actions = computed(() => {
       key: 'finish',
       label: 'Marcar como finalizada',
       description: 'Cierra la propuesta como finalizada y notifica al cliente.',
-      dotClass: 'bg-violet-500',
+      dotClass: 'bg-primary',
     });
   }
   if (transitions.includes('rejected')) {
@@ -154,7 +147,7 @@ const actions = computed(() => {
       key: 'reject',
       label: 'Rechazar',
       description: 'Registra que la propuesta fue rechazada.',
-      dotClass: 'bg-red-500',
+      dotClass: 'bg-danger-strong',
     });
   }
   if (p.uuid) {
@@ -162,7 +155,7 @@ const actions = computed(() => {
       key: 'preview',
       label: 'Vista previa pública',
       description: 'Abre la propuesta en una nueva pestaña tal como la ve el cliente.',
-      dotClass: 'bg-text-subtle',
+      dotClass: 'bg-surface-raised border border-border-default',
       href: '/proposal/' + p.uuid + '?preview=1',
     });
   }
@@ -175,14 +168,3 @@ function handleActionClick(action) {
   emit('close');
 }
 </script>
-
-<style scoped>
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-}
-</style>

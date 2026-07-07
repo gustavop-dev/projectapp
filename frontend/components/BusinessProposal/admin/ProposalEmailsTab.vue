@@ -203,65 +203,12 @@
         </div>
 
         <!-- Email preview card -->
-        <div style="background-color:#f3f4f6;border-radius:12px;padding:24px 16px;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
-          <div style="background-color:#ffffff;border-radius:16px;overflow:hidden;max-width:560px;margin:0 auto;">
-
-            <!-- Header -->
-            <div style="background-color:#059669;padding:28px 32px;text-align:center;">
-              <div style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.02em;">
-                Project App.
-              </div>
-              <div style="margin:6px 0 0;color:#d1fae5;font-size:13px;font-weight:400;">
-                Transformación Digital
-              </div>
-            </div>
-
-            <!-- Greeting -->
-            <div style="padding:32px 32px 20px;">
-              <div style="margin:0;color:#1f2937;font-size:20px;font-weight:600;white-space:pre-wrap;">{{ greeting || '(sin saludo)' }}</div>
-            </div>
-
-            <!-- Body sections -->
-            <div v-for="(section, idx) in sections" :key="section.id" style="padding:0 32px 14px;">
-              <div style="margin:0;color:#4b5563;font-size:15px;line-height:1.6;white-space:pre-wrap;">{{ section.text || '(sección vacía)' }}</div>
-            </div>
-
-            <!-- Attachment names -->
-            <div v-if="attachments.length" style="padding:8px 32px 20px;">
-              <div style="background-color:#f0fdf4;border-radius:12px;border:1px solid #bbf7d0;padding:16px 20px;">
-                <div style="margin:0 0 10px;color:#059669;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">
-                  Archivos adjuntos
-                </div>
-                <div v-for="(file, idx) in attachments" :key="idx"
-                  :style="{ margin: idx === 0 ? '0' : '6px 0 0', color: '#1f2937', fontSize: '13px' }">
-                  &#128206; {{ file.name }}
-                </div>
-              </div>
-            </div>
-
-            <!-- Footer text -->
-            <div v-if="footer" style="padding:0 32px 20px;">
-              <div style="margin:0;color:#4b5563;font-size:14px;line-height:1.6;white-space:pre-wrap;">{{ footer }}</div>
-            </div>
-
-            <!-- Divider -->
-            <div style="padding:0 32px;">
-              <hr style="border:none;border-top:1px solid #e5e7eb;margin:0;" />
-            </div>
-
-            <!-- Company footer -->
-            <div style="padding:20px 32px 28px;text-align:center;">
-              <div style="margin:0 0 6px;color:#6b7280;font-size:13px;line-height:1.5;">
-                ¿Dudas? Respondé este correo o escríbenos por
-                <span style="color:#059669;font-weight:600;">WhatsApp</span>
-              </div>
-              <div style="margin:12px 0 0;color:#9ca3af;font-size:11px;">
-                © 2026 ProjectApp.co | Bogotá, Colombia
-              </div>
-            </div>
-
-          </div>
-        </div>
+        <EmailPreviewCard
+          :greeting="greeting"
+          :sections="sections"
+          :footer="footer"
+          :attachments="attachments"
+        />
       </div>
     </section>
 
@@ -277,77 +224,13 @@
         <h3 class="text-sm font-semibold text-text-default">Historial de correos enviados</h3>
       </div>
 
-      <div v-if="loadingHistory" class="text-xs text-text-subtle dark:text-green-light/40 py-4 text-center">Cargando historial...</div>
-
-      <div v-else-if="!history.length" class="text-xs text-text-subtle dark:text-green-light/40 py-4 text-center">
-        No se han enviado correos desde esta propuesta.
-      </div>
-
-      <div v-else class="space-y-2">
-        <div v-for="entry in history" :key="entry.id"
-          class="border border-border-muted rounded-lg overflow-hidden">
-          <!-- Summary row (always visible) -->
-          <button type="button" @click="toggleExpand(entry.id)"
-            class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-raised transition-colors">
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-medium text-text-default truncate">{{ entry.subject }}</span>
-                <span class="px-1.5 py-0.5 rounded text-[10px] font-medium"
-                  :class="{
-                    'bg-primary-soft text-text-brand ': entry.status === 'sent' || entry.status === 'delivered',
-                    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400': entry.status === 'failed' || entry.status === 'bounced',
-                  }">
-                  {{ statusLabel(entry.status) }}
-                </span>
-              </div>
-              <div class="flex items-center gap-2 mt-0.5">
-                <span class="text-[11px] text-text-muted">{{ entry.recipient }}</span>
-                <span class="text-[10px] text-text-subtle dark:text-green-light/40">{{ formatDate(entry.sent_at) }}</span>
-              </div>
-            </div>
-            <svg class="w-4 h-4 text-text-subtle transition-transform" :class="{ 'rotate-180': expandedIds[entry.id] }"
-              fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          <!-- Expanded detail -->
-          <div v-if="expandedIds[entry.id]" class="border-t border-border-muted px-4 py-3 bg-surface-raised space-y-3">
-            <div v-if="entry.metadata?.greeting">
-              <p class="text-[10px] text-text-subtle dark:text-green-light/40 uppercase tracking-wide mb-0.5">Saludo</p>
-              <p class="text-xs text-text-default">{{ entry.metadata.greeting }}</p>
-            </div>
-            <div v-if="entry.metadata?.sections?.length">
-              <p class="text-[10px] text-text-subtle dark:text-green-light/40 uppercase tracking-wide mb-1">Secciones</p>
-              <div v-for="(section, idx) in entry.metadata.sections" :key="idx"
-                class="bg-surface rounded-lg px-3 py-2 mb-1.5 border border-border-muted">
-                <p class="text-xs text-text-default whitespace-pre-wrap">{{ section }}</p>
-              </div>
-            </div>
-            <div v-if="entry.metadata?.footer">
-              <p class="text-[10px] text-text-subtle dark:text-green-light/40 uppercase tracking-wide mb-0.5">Pie de correo</p>
-              <p class="text-xs text-text-default">{{ entry.metadata.footer }}</p>
-            </div>
-            <div v-if="entry.metadata?.attachment_names?.length">
-              <p class="text-[10px] text-text-subtle dark:text-green-light/40 uppercase tracking-wide mb-0.5">Adjuntos</p>
-              <div class="flex flex-wrap gap-1">
-                <span v-for="(name, idx) in entry.metadata.attachment_names" :key="idx"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border-default dark:border-white/[0.08] rounded text-[11px] text-text-muted/60">
-                  &#128206; {{ name }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Load more -->
-        <div v-if="hasNextPage" class="pt-3 text-center">
-          <button type="button" :disabled="loadingHistory" @click="loadMore"
-            class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-text-muted bg-surface-raised rounded-lg hover:bg-surface-raised transition-colors disabled:opacity-50">
-            {{ loadingHistory ? 'Cargando...' : 'Cargar más' }}
-          </button>
-        </div>
-      </div>
+      <EmailHistoryList
+        :history="history"
+        :loading="loadingHistory"
+        :has-next-page="hasNextPage"
+        empty-label="No se han enviado correos desde esta propuesta."
+        @load-more="loadMore"
+      />
     </section>
       </template>
     </TabSplitLayout>
@@ -378,6 +261,8 @@ import { useMarkdownAttachmentHandler } from '~/composables/useMarkdownAttachmen
 import { validateEmailAttachments } from '~/utils/emailAttachments';
 import MarkdownAttachmentModal from '~/components/MarkdownAttachmentModal.vue';
 import AttachFromDocumentsModal from '~/components/AttachFromDocumentsModal.vue';
+import EmailPreviewCard from '~/components/EmailPreviewCard.vue';
+import EmailHistoryList from '~/components/EmailHistoryList.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import { useDocRefsAttachment } from '~/composables/useDocRefsAttachment';
 
@@ -420,7 +305,6 @@ const sendError = ref('');
 // ── History state ──
 const history = ref([]);
 const loadingHistory = ref(false);
-const expandedIds = ref({});
 const currentPage = ref(1);
 const hasNextPage = ref(false);
 
@@ -518,25 +402,7 @@ async function loadMore() {
   await loadHistory(currentPage.value + 1);
 }
 
-function toggleExpand(id) {
-  if (expandedIds.value[id]) {
-    delete expandedIds.value[id];
-  } else {
-    expandedIds.value[id] = true;
-  }
-}
-
-const STATUS_LABELS = { sent: 'Enviado', delivered: 'Entregado', bounced: 'Rebotado', failed: 'Fallido' };
-function statusLabel(s) {
-  return STATUS_LABELS[s] || s;
-}
-
-function formatDate(isoString) {
-  if (!isoString) return '';
-  return new Date(isoString).toLocaleDateString('es-CO', {
-    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  });
-}
+// Status/date/expand rendering now lives in the shared EmailHistoryList.
 
 async function loadDefaults() {
   const result = await proposalStore.fetchEmailDefaults(props.proposal.id, basePath.value);
