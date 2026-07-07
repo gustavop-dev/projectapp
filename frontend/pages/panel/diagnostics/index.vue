@@ -276,6 +276,11 @@
                   :class="ATTENTION_TONE_CLASSES[attentionById[d.id].tone]"
                   :data-testid="`diagnostic-attention-${d.id}`"
                 >{{ attentionById[d.id].label }}</span>
+                <DiagnosticExpirationChip
+                  :expires-at="d.expires_at"
+                  :is-expired="d.is_expired"
+                  :days-remaining="d.days_remaining"
+                />
               </div>
             </td>
             <td class="px-6 py-4 text-sm text-text-muted tabular-nums">
@@ -417,6 +422,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 import DiagnosticStatusBadge from '~/components/WebAppDiagnostic/DiagnosticStatusBadge.vue';
+import DiagnosticExpirationChip from '~/components/WebAppDiagnostic/DiagnosticExpirationChip.vue';
 import DiagnosticDashboard from '~/components/WebAppDiagnostic/admin/DiagnosticDashboard.vue';
 import DiagnosticFilterPanel from '~/components/WebAppDiagnostic/DiagnosticFilterPanel.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';

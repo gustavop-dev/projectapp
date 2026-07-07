@@ -40,6 +40,20 @@ def get_default_config(language: str = 'es'):
     return DiagnosticDefaultConfig.objects.filter(language=language).first()
 
 
+def get_default_expiration_days(language: str = 'es') -> int:
+    """Expiration window (days) from the language config, or the fallback."""
+    config = get_default_config(language)
+    if config and config.expiration_days:
+        return config.expiration_days
+    return DEFAULT_EXPIRATION_DAYS
+
+
+def compute_default_expires_at(language: str = 'es'):
+    """Absolute expiry datetime = now + configured expiration window."""
+    from datetime import timedelta
+    return timezone.now() + timedelta(days=get_default_expiration_days(language))
+
+
 def get_default_section_specs(language: str = 'es') -> list[dict]:
     """Return the section specs to seed: DB config if present, otherwise the hardcoded seed."""
     config = get_default_config(language)
@@ -266,6 +280,13 @@ def transition_status(
         if diagnostic.initial_sent_at is None:
             diagnostic.initial_sent_at = now
             update_fields.append('initial_sent_at')
+            # Stamp the expiry window on the first send (consumes the
+            # language config's expiration_days).
+            if diagnostic.expires_at is None:
+                diagnostic.expires_at = compute_default_expires_at(
+                    diagnostic.language,
+                )
+                update_fields.append('expires_at')
         else:
             diagnostic.final_sent_at = now
             update_fields.append('final_sent_at')
@@ -322,12 +343,21 @@ def log_change(
     )
 
 
+# Statuses whose sections are shown to the client on the public page.
 PUBLIC_VISIBLE_STATUSES = frozenset({
     WebAppDiagnostic.Status.SENT,
     WebAppDiagnostic.Status.VIEWED,
     WebAppDiagnostic.Status.NEGOTIATING,
     WebAppDiagnostic.Status.ACCEPTED,
     WebAppDiagnostic.Status.REJECTED,
+})
+
+# Statuses the public endpoint serves at all. EXPIRED/FINISHED are served
+# (200, no sections) so the client sees the terminal empty-state instead of a
+# 404; DRAFT stays hidden.
+PUBLIC_SERVABLE_STATUSES = PUBLIC_VISIBLE_STATUSES | frozenset({
+    WebAppDiagnostic.Status.EXPIRED,
+    WebAppDiagnostic.Status.FINISHED,
 })
 
 

@@ -117,6 +117,11 @@
             ({{ formatInvestment(store.current.investment_amount, store.current.currency) }})
           </span>
           <DiagnosticStatusBadge :status="store.current.status" />
+          <DiagnosticExpirationChip
+            :expires-at="store.current.expires_at"
+            :is-expired="store.current.is_expired"
+            :days-remaining="store.current.days_remaining"
+          />
         </div>
       </div>
 
@@ -322,6 +327,14 @@
 
             <BaseFormField label="Duración (texto)">
               <BaseInput v-model="form.duration_label" type="text" placeholder="Ej: 1 semana" />
+            </BaseFormField>
+
+            <BaseFormField label="Vigencia de la propuesta" hint="Se fija automáticamente al primer envío; puedes ajustarla.">
+              <input
+                v-model="form.expires_at"
+                type="datetime-local"
+                class="w-full px-3 py-2 rounded-lg border border-input-border bg-input-bg text-text-default text-sm focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
+              />
             </BaseFormField>
           </div>
 
@@ -610,6 +623,7 @@ import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, onUnmounted
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 import { DIAGNOSTIC_STATUS, DIAGNOSTIC_ANALYTICS_THRESHOLDS } from '~/stores/diagnostics_constants';
 import DiagnosticStatusBadge from '~/components/WebAppDiagnostic/DiagnosticStatusBadge.vue';
+import DiagnosticExpirationChip from '~/components/WebAppDiagnostic/DiagnosticExpirationChip.vue';
 import DiagnosticSectionEditor from '~/components/WebAppDiagnostic/admin/DiagnosticSectionEditor.vue';
 import DiagnosticPromptPanel from '~/components/WebAppDiagnostic/admin/DiagnosticPromptPanel.vue';
 import DiagnosticActivityTab from '~/components/WebAppDiagnostic/admin/DiagnosticActivityTab.vue';
@@ -788,6 +802,7 @@ const form = reactive({
   payment_initial_pct: null,
   payment_final_pct: null,
   duration_label: '',
+  expires_at: '',
 });
 
 const showActionsModal = ref(false);
@@ -836,6 +851,8 @@ function syncFormGeneral() {
   form.payment_initial_pct = pt.initial_pct ?? null;
   form.payment_final_pct = pt.final_pct ?? null;
   form.duration_label = c.duration_label || '';
+  // datetime-local wants "YYYY-MM-DDTHH:mm" (no seconds/zone)
+  form.expires_at = c.expires_at ? c.expires_at.slice(0, 16) : '';
 }
 
 const isSavingGeneral = ref(false);
@@ -851,6 +868,7 @@ async function handleUpdate() {
       final_pct: pctOrNull(form.payment_final_pct),
     },
     duration_label: form.duration_label,
+    expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
     client_name: form.client_name,
     client_email: form.client_email,
     client_phone: form.client_phone,

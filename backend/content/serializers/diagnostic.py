@@ -138,6 +138,7 @@ class DiagnosticListSerializer(serializers.ModelSerializer):
             'size_category',
             'view_count', 'last_viewed_at',
             'initial_sent_at', 'final_sent_at', 'responded_at',
+            'expires_at', 'is_expired', 'days_remaining',
             'created_at', 'updated_at',
         ]
 
@@ -210,6 +211,7 @@ class DiagnosticUpdateSerializer(serializers.ModelSerializer):
             'title', 'language', 'slug',
             'investment_amount', 'currency', 'payment_terms',
             'duration_label', 'size_category', 'radiography',
+            'expires_at',
             'client_id',
             'client_name', 'client_email', 'client_phone', 'client_company',
             'propagate_client_updates',
@@ -217,6 +219,7 @@ class DiagnosticUpdateSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'title': {'required': False},
             'language': {'required': False},
+            'expires_at': {'required': False, 'allow_null': True},
             'slug': {'required': False, 'allow_blank': True},
             'client_name': {'required': False, 'allow_blank': True},
             'client_email': {'required': False, 'allow_blank': True},
@@ -246,6 +249,7 @@ class PublicDiagnosticSerializer(serializers.ModelSerializer):
             'client_name', 'investment_amount', 'currency',
             'duration_label', 'size_category',
             'initial_sent_at', 'final_sent_at', 'responded_at',
+            'expires_at', 'is_expired', 'days_remaining',
             'sections', 'render_context',
         ]
 

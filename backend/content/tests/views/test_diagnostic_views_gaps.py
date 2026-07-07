@@ -545,3 +545,41 @@ class TestBulkDiagnosticAction:
             self.URL, {'ids': [diagnostic.id], 'action': 'delete'}, format='json',
         )
         assert response.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# Expiration
+# ---------------------------------------------------------------------------
+
+class TestDiagnosticExpiration:
+    def test_initial_send_stamps_expires_at(self, admin_client, diagnostic):
+        assert diagnostic.expires_at is None
+        resp = admin_client.post(f'/api/diagnostics/{diagnostic.id}/send-initial/')
+        assert resp.status_code == 200
+        diagnostic.refresh_from_db()
+        assert diagnostic.expires_at is not None
+        assert diagnostic.expires_at > timezone.now()
+
+    def test_list_serializer_exposes_expiry_fields(self, admin_client, diagnostic):
+        resp = admin_client.get('/api/diagnostics/')
+        assert resp.status_code == 200
+        row = next(d for d in resp.json() if d['id'] == diagnostic.id)
+        assert 'expires_at' in row
+        assert 'is_expired' in row
+        assert 'days_remaining' in row
+
+    def test_public_view_serves_expired_without_sections(self, api_client, diagnostic):
+        from django.utils import timezone as _tz
+        from datetime import timedelta
+        diagnostic.status = WebAppDiagnostic.Status.SENT
+        diagnostic.expires_at = _tz.now() - timedelta(days=1)
+        diagnostic.save(update_fields=['status', 'expires_at'])
+
+        resp = api_client.get(f'/api/diagnostics/public/{diagnostic.uuid}/')
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body['status'] == 'expired'
+        assert body['sections'] == []
+        # on-read persistence flipped the stored status
+        diagnostic.refresh_from_db()
+        assert diagnostic.status == WebAppDiagnostic.Status.EXPIRED

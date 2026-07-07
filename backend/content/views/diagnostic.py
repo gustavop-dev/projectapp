@@ -550,11 +550,19 @@ def send_final(request, diagnostic_id):
 def _serve_public_diagnostic(diagnostic):
     """Shared handler for the public retrieve endpoints.
 
-    Hides diagnostics whose status is not publicly visible (e.g. DRAFT) so
-    client metadata never leaks before the initial send — same gate the
-    public PDF endpoint applies.
+    DRAFT stays hidden (404) so client metadata never leaks before the initial
+    send. Past-expiry diagnostics are flipped to EXPIRED on read (like the
+    proposals public view) and served without sections so the client sees the
+    terminal empty-state rather than a 404.
     """
-    if diagnostic.status not in diagnostic_service.PUBLIC_VISIBLE_STATUSES:
+    if (
+        diagnostic.is_expired
+        and diagnostic.status != WebAppDiagnostic.Status.EXPIRED
+    ):
+        diagnostic.status = WebAppDiagnostic.Status.EXPIRED
+        diagnostic.save(update_fields=['status', 'updated_at'])
+
+    if diagnostic.status not in diagnostic_service.PUBLIC_SERVABLE_STATUSES:
         return error_response(
             'El diagnóstico no está disponible.',
             code='not_available',
