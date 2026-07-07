@@ -143,8 +143,10 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
     await page.getByRole('tab', { name: 'Correos' }).click();
     await page.getByRole('button', { name: /Crear documento desde markdown/i }).click();
 
+    // The Correos tab's "Vista previa" is a role=tab; the only matching button is
+    // the modal's preview action, teleported to <body> (so it's last in the DOM).
     await expect(
-      page.getByRole('button', { name: /Vista previa/i }).nth(1),
+      page.getByRole('button', { name: /Vista previa/i }).last(),
     ).toBeDisabled({ timeout: 10000 });
   });
 

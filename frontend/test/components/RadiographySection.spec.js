@@ -73,19 +73,19 @@ describe('RadiographySection', () => {
 
   it('renders stack section when renderContext has stack_backend_name', () => {
     const wrapper = mountSection({}, { stack_backend_name: 'Django 5' })
-    expect(wrapper.text()).toContain('Stack detectado')
+    expect(wrapper.text()).toContain('Tecnología del servidor')
     expect(wrapper.text()).toContain('Django 5')
   })
 
   it('renders stack section when renderContext has stack_frontend_name', () => {
     const wrapper = mountSection({}, { stack_frontend_name: 'Vue 3' })
-    expect(wrapper.text()).toContain('Stack detectado')
+    expect(wrapper.text()).toContain('Tecnología de la interfaz')
     expect(wrapper.text()).toContain('Vue 3')
   })
 
   it('hides stack section when renderContext has neither stack name', () => {
     const wrapper = mountSection({}, {})
-    expect(wrapper.text()).not.toContain('Stack detectado')
+    expect(wrapper.text()).not.toContain('Tecnología del servidor')
   })
 
   it('hides stack section when renderContext is the default empty object', () => {

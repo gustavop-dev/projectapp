@@ -154,6 +154,8 @@ test.describe('Admin Diagnostic Analytics', () => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
     await page.getByRole('tab', { name: 'Analytics' }).click();
+    // Device breakdown lives under the 'Sesiones' analytics sub-tab (default is 'Recorrido').
+    await page.getByRole('tab', { name: 'Sesiones' }).click();
 
     await expect(page.getByText('Dispositivos')).toBeVisible({ timeout: 15000 });
   });
