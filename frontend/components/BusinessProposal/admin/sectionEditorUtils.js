@@ -123,6 +123,7 @@ export function buildFormFromJson(json, type, proposalData) {
         ? j.module_ids
         : [...VALUE_ADDED_DEFAULT_MODULE_IDS];
       const justifications = j.justifications || {};
+      const conditions = j.conditions || {};
       return {
         index: j.index || '',
         title: j.title || '',
@@ -132,7 +133,31 @@ export function buildFormFromJson(json, type, proposalData) {
           acc[id] = justifications[id] || '';
           return acc;
         }, {}),
+        conditions: ids.reduce((acc, id) => {
+          if (conditions[id]) acc[id] = { ...conditions[id] };
+          return acc;
+        }, {}),
         footer_note: j.footer_note || '',
+      };
+    }
+    case 'commercial_conditions': {
+      const packages = Array.isArray(j.packages) ? j.packages : [];
+      return {
+        index: j.index || '',
+        title: j.title || '',
+        packagesTitle: j.packagesTitle || '',
+        packagesIntro: j.packagesIntro || '',
+        hourlyRate: j.hourlyRate ?? '',
+        currency: j.currency || proposalData?.currency || 'COP',
+        packages: packages.map((p) => ({
+          name: p.name || '',
+          hours: p.hours ?? '',
+          discountPercent: p.discountPercent ?? 0,
+          note: p.note || '',
+        })),
+        effortBadge: j.effortBadge || '',
+        scopeTitle: j.scopeTitle || '',
+        scopeParagraphs: arrToText(j.scopeParagraphs || []),
       };
     }
     case 'roi_projection':
@@ -252,8 +277,13 @@ export function formToJson(formData, type) {
     case 'value_added_modules': {
       const ids = Array.isArray(f.module_ids) ? f.module_ids : [];
       const justifications = {};
+      const conditions = {};
       for (const id of ids) {
         justifications[id] = (f.justifications && f.justifications[id]) || '';
+        const cond = f.conditions && f.conditions[id];
+        if (cond && Object.values(cond).some((v) => v !== '' && v != null)) {
+          conditions[id] = { ...cond };
+        }
       }
       return {
         index: f.index,
@@ -261,7 +291,30 @@ export function formToJson(formData, type) {
         intro: f.intro,
         module_ids: ids,
         justifications,
+        conditions,
         footer_note: f.footer_note || '',
+      };
+    }
+    case 'commercial_conditions': {
+      const packages = Array.isArray(f.packages) ? f.packages : [];
+      return {
+        index: f.index,
+        title: f.title,
+        packagesTitle: f.packagesTitle || '',
+        packagesIntro: f.packagesIntro || '',
+        hourlyRate: f.hourlyRate === '' || f.hourlyRate == null
+          ? 0 : Number(f.hourlyRate),
+        currency: f.currency || 'COP',
+        packages: packages.map((p) => ({
+          name: p.name || '',
+          hours: p.hours === '' || p.hours == null ? 0 : Number(p.hours),
+          discountPercent: p.discountPercent === '' || p.discountPercent == null
+            ? 0 : Number(p.discountPercent),
+          note: p.note || '',
+        })),
+        effortBadge: f.effortBadge || '',
+        scopeTitle: f.scopeTitle || '',
+        scopeParagraphs: textToArr(f.scopeParagraphs || ''),
       };
     }
     case 'roi_projection':
