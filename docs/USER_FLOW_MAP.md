@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.30.0
-> **Last updated:** 2026-07-06
+> **Version:** 2.31.0
+> **Last updated:** 2026-07-07
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -5552,3 +5552,24 @@ Also registered/updated in this audit and documented in their home sections:
 2. `GET /api/diagnostics/` rejects; the error block renders instead of the empty state, plus an error toast.
 3. Admin clicks "Reintentar" → the fetch re-fires.
 4. On success the table renders; on repeat failure the error block persists.
+
+
+#### FLOW: `admin-diagnostic-bulk-actions`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-bulk-actions` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ❌ Missing — no E2E spec yet |
+
+**Routes:** `/panel/diagnostics/`
+
+**Description:** Admin selects diagnostics with the row/header checkboxes; a batch bar appears with "Finalizar aceptados" and "Eliminar" (confirm modal) calling `POST /api/diagnostics/bulk-action/` with `{ids, action}`. Delete prunes the rows locally; finish reloads the list. Results are notified via usePanelNotify. Backend covered by `content/tests/views/test_diagnostic_views_gaps.py::TestBulkDiagnosticAction`.
+
+**Steps:**
+1. Admin checks one or more rows (or the header checkbox for the page).
+2. The batch bar shows the selection count and actions.
+3. Admin clicks "Eliminar" (or "Finalizar aceptados") and confirms in the modal.
+4. `POST /api/diagnostics/bulk-action/` fires; the list updates and a notification reports the affected count.
