@@ -253,6 +253,39 @@ class TestGenerateSmoke:
         assert result is not None
         assert len(result) > 1000
 
+    @pytest.mark.parametrize('lang', ['es', 'en'])
+    def test_generate_from_real_defaults(self, lang):
+        # Faithful end-to-end: seed the proposal from the REAL default sections
+        # (which now include ai_automation_module + commercial_conditions) and
+        # generate the commercial PDF for both languages.
+        from content.services.proposal_service import ProposalService
+
+        proposal = BusinessProposal.objects.create(
+            title='Defaults', client_name='Cliente', client_email='d@example.com',
+            language=lang, total_investment=Decimal('12000000'), currency='COP',
+            status='sent',
+            expires_at=timezone.now() + timezone.timedelta(days=14),
+        )
+        for cfg in ProposalService.get_default_sections(lang):
+            ProposalSection.objects.create(
+                proposal=proposal,
+                section_type=cfg['section_type'],
+                title=cfg['title'],
+                order=cfg['order'],
+                is_enabled=True,
+                content_json=cfg['content_json'],
+                is_wide_panel=cfg.get('is_wide_panel', False),
+            )
+        # Sanity: the new default sections are present.
+        assert proposal.sections.filter(
+            section_type='commercial_conditions').exists()
+        va = proposal.sections.get(section_type='value_added_modules')
+        assert 'ai_automation_module' in va.content_json['module_ids']
+
+        result = ProposalPdfService.generate(proposal)
+        assert result is not None
+        assert len(result) > 2000
+
 
 # ---------------------------------------------------------------------------
 # Migration backfill — exercises the prod-facing data migration on real rows
