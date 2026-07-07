@@ -126,7 +126,7 @@ from content.views.diagnostic_template import (
 )
 from content.views.diagnostic import (
     list_diagnostics, create_diagnostic, retrieve_diagnostic,
-    update_diagnostic, delete_diagnostic,
+    update_diagnostic, delete_diagnostic, bulk_diagnostic_action,
     list_diagnostic_sections, update_diagnostic_section,
     bulk_update_diagnostic_sections, reset_diagnostic_section,
     list_diagnostic_activity, create_diagnostic_activity,
@@ -350,6 +350,7 @@ urlpatterns = [
     # Admin CRUD
     path('diagnostics/', list_diagnostics, name='list-diagnostics'),
     path('diagnostics/create/', create_diagnostic, name='create-diagnostic'),
+    path('diagnostics/bulk-action/', bulk_diagnostic_action, name='bulk-diagnostic-action'),
     path('diagnostics/<int:diagnostic_id>/detail/', retrieve_diagnostic, name='retrieve-diagnostic'),
     path('diagnostics/<int:diagnostic_id>/update/', update_diagnostic, name='update-diagnostic'),
     path('diagnostics/<int:diagnostic_id>/delete/', delete_diagnostic, name='delete-diagnostic'),

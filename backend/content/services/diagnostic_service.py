@@ -342,3 +342,32 @@ def visible_sections(diagnostic: WebAppDiagnostic):
     phase = 'final' if diagnostic.final_sent_at else 'initial'
     allowed = {phase, 'both'}
     return [s for s in sections if s.visibility in allowed]
+
+
+BULK_ACTIONS = frozenset({'delete', 'finish'})
+
+
+def bulk_action(ids, action: str) -> int:
+    """Apply *action* to the diagnostics in *ids*; return how many changed.
+
+    ``delete`` removes the rows. ``finish`` moves ACCEPTED diagnostics to
+    FINISHED via :func:`transition_status` and silently skips the ones whose
+    status does not allow it (the caller reports the affected count).
+    """
+    qs = WebAppDiagnostic.objects.filter(pk__in=ids)
+    affected = 0
+
+    if action == 'delete':
+        affected = qs.count()
+        qs.delete()
+    elif action == 'finish':
+        for diagnostic in qs:
+            if not diagnostic.can_transition_to(WebAppDiagnostic.Status.FINISHED):
+                continue
+            transition_status(
+                diagnostic, WebAppDiagnostic.Status.FINISHED,
+                actor_type=DiagnosticChangeLog.ActorType.SELLER,
+            )
+            affected += 1
+
+    return affected

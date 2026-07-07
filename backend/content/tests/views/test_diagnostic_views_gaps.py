@@ -489,3 +489,59 @@ class TestPublicThrottling:
         from content.views.diagnostic import download_public_diagnostic_pdf
 
         assert TrackingAnonThrottle in download_public_diagnostic_pdf.cls.throttle_classes
+
+
+# ---------------------------------------------------------------------------
+# bulk_diagnostic_action
+# ---------------------------------------------------------------------------
+
+class TestBulkDiagnosticAction:
+    URL = '/api/diagnostics/bulk-action/'
+
+    def test_delete_removes_selected(self, admin_client, diagnostic):
+        response = admin_client.post(
+            self.URL, {'ids': [diagnostic.id], 'action': 'delete'}, format='json',
+        )
+        assert response.status_code == 200
+        assert response.json() == {'affected': 1, 'action': 'delete'}
+        assert not WebAppDiagnostic.objects.filter(pk=diagnostic.id).exists()
+
+    def test_finish_transitions_accepted_only(self, admin_client, diagnostic):
+        diagnostic.status = WebAppDiagnostic.Status.ACCEPTED
+        diagnostic.save(update_fields=['status'])
+        response = admin_client.post(
+            self.URL, {'ids': [diagnostic.id], 'action': 'finish'}, format='json',
+        )
+        assert response.status_code == 200
+        assert response.json()['affected'] == 1
+        diagnostic.refresh_from_db()
+        assert diagnostic.status == WebAppDiagnostic.Status.FINISHED
+
+    def test_finish_skips_draft(self, admin_client, diagnostic):
+        response = admin_client.post(
+            self.URL, {'ids': [diagnostic.id], 'action': 'finish'}, format='json',
+        )
+        assert response.status_code == 200
+        assert response.json()['affected'] == 0
+        diagnostic.refresh_from_db()
+        assert diagnostic.status == WebAppDiagnostic.Status.DRAFT
+
+    def test_requires_non_empty_ids_list(self, admin_client):
+        response = admin_client.post(
+            self.URL, {'ids': [], 'action': 'delete'}, format='json',
+        )
+        assert response.status_code == 400
+        assert response.json()['code'] == 'ids_required'
+
+    def test_rejects_unknown_action(self, admin_client, diagnostic):
+        response = admin_client.post(
+            self.URL, {'ids': [diagnostic.id], 'action': 'resend'}, format='json',
+        )
+        assert response.status_code == 400
+        assert response.json()['code'] == 'invalid_bulk_action'
+
+    def test_requires_admin(self, api_client, diagnostic):
+        response = api_client.post(
+            self.URL, {'ids': [diagnostic.id], 'action': 'delete'}, format='json',
+        )
+        assert response.status_code in (401, 403)

@@ -167,6 +167,31 @@ def delete_diagnostic(request, diagnostic_id):
     return Response(status=http_status.HTTP_204_NO_CONTENT)
 
 
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def bulk_diagnostic_action(request):
+    """Apply a batch action to multiple diagnostics.
+
+    Payload: ``{"ids": [1, 2], "action": "delete"|"finish"}``.
+    """
+    ids = request.data.get('ids') or []
+    action = (request.data.get('action') or '').strip()
+    if not ids or not isinstance(ids, list):
+        return error_response(
+            'Selecciona al menos un diagnóstico.',
+            code='ids_required',
+        )
+    if action not in diagnostic_service.BULK_ACTIONS:
+        allowed = ', '.join(sorted(diagnostic_service.BULK_ACTIONS))
+        return error_response(
+            'Acción no válida.',
+            code='invalid_bulk_action',
+            hint=f'Acciones permitidas: {allowed}.',
+        )
+    affected = diagnostic_service.bulk_action(ids, action)
+    return Response({'affected': affected, 'action': action})
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # Admin — sections CRUD
 # ──────────────────────────────────────────────────────────────────────────
