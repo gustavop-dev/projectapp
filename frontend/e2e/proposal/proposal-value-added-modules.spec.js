@@ -170,4 +170,71 @@ test.describe('Proposal Value Added Modules', () => {
 
     await expect(page.getByRole('heading', { name: 'Incluido sin costo adicional' })).toBeVisible({ timeout: 10000 });
   });
+
+  // ── Module conditions ("condicionado") + terms & conditions modal ──────────
+
+  function makeConditionsProposal() {
+    const proposal = makeMockProposal();
+    // Free AI module resolved from functional_requirements.
+    proposal.sections[2].content_json.groups = [
+      {
+        id: 'ai_automation_module',
+        title: 'Automatización con Asistente de IA',
+        icon: '🤖',
+        description: 'Automatiza un proceso manual con IA.',
+        price_percent: 0,
+        selected: true,
+      },
+    ];
+    proposal.sections[1].content_json = {
+      title: 'Beneficios incluidos sin costo',
+      intro: 'Incluimos estos módulos de regalo.',
+      module_ids: ['ai_automation_module'],
+      justifications: { ai_automation_module: 'Para automatizar tu proceso.' },
+      conditions: {
+        ai_automation_module: {
+          // total_investment is 10.000.000 COP → below this minimum → note shown.
+          min_price_cop: 20000000,
+          min_price_usd: 2900,
+          duration_months: 6,
+          discretionary_note: 'Se implementa si tiene sentido automatizar.',
+          terms: 'Depende de que el asistente de IA siga ofreciendo la integración.',
+        },
+      },
+    };
+    return proposal;
+  }
+
+  async function gotoValueAdded(page, proposal) {
+    await setupMock(page, proposal);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
+    await page.waitForLoadState('domcontentloaded');
+    const nextBtn = page.getByTestId('nav-next');
+    await expect(nextBtn).toBeVisible({ timeout: 15000 });
+    await nextBtn.click();
+    await page.waitForLoadState('domcontentloaded');
+  }
+
+  test('shows the minimum ("condicionado") and duration badges', {
+    tag: [...PROPOSAL_VALUE_ADDED_MODULES, '@role:client'],
+  }, async ({ page }) => {
+    await gotoValueAdded(page, makeConditionsProposal());
+
+    const minNote = page.getByTestId('value-added-minimum-ai_automation_module');
+    await expect(minNote).toBeVisible({ timeout: 10000 });
+    await expect(minNote).toContainText('Disponible en proyectos desde');
+    await expect(page.getByText('Disponible por 6 meses').first()).toBeVisible();
+  });
+
+  test('opens the terms & conditions modal from the card', {
+    tag: [...PROPOSAL_VALUE_ADDED_MODULES, '@role:client'],
+  }, async ({ page }) => {
+    await gotoValueAdded(page, makeConditionsProposal());
+
+    await page.getByTestId('value-added-terms-ai_automation_module').click();
+
+    const body = page.getByTestId('module-terms-body');
+    await expect(body).toBeVisible({ timeout: 10000 });
+    await expect(body).toContainText('asistente de IA');
+  });
 });

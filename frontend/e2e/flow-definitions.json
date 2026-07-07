@@ -2307,7 +2307,7 @@
         "guest"
       ],
       "priority": "P2",
-      "description": "Public proposal section (section_type value_added_modules) renders a card grid of included-free modules resolved from the proposal's functional_requirements groups. Each card shows title, icon, justification text, and a 'Gratis' badge. An optional footer_note is displayed below the grid. Falls back to 'Incluido sin costo adicional' when no title is provided in content_json. Clicking a card opens the shared requirements modal, including the nested linked-requirements link when technical requirements reference the module item ids.",
+      "description": "Public proposal section (section_type value_added_modules) renders a card grid of included-free modules resolved from the proposal's functional_requirements groups. Each card shows title, icon, justification text, and a 'Gratis' badge. An optional footer_note is displayed below the grid. Falls back to 'Incluido sin costo adicional' when no title is provided in content_json. Clicking a card opens the shared requirements modal, including the nested linked-requirements link when technical requirements reference the module item ids. Per-module conditions gate benefits: when the effective total is below the module minimum a 'Disponible en proyectos desde $X' badge is shown (condicionado; never hidden), plus optional duration and discretionary-note badges. A 'Términos y condiciones' button opens a per-module ModuleTermsModal without triggering the card detail modal.",
       "expectedSpecs": 1
     },
     "admin-diagnostic-list": {
