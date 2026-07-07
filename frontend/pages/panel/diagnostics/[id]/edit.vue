@@ -596,6 +596,7 @@
       <div v-if="activeTab === 'analytics'" class="tab-panel max-w-screen-2xl mx-auto">
         <DiagnosticAnalytics
           :diagnostic-id="id"
+          :diagnostic="store.current"
           :loader="() => store.fetchAnalytics(id)"
         />
       </div>
@@ -607,7 +608,7 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, onUnmounted } from 'vue';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
-import { DIAGNOSTIC_STATUS } from '~/stores/diagnostics_constants';
+import { DIAGNOSTIC_STATUS, DIAGNOSTIC_ANALYTICS_THRESHOLDS } from '~/stores/diagnostics_constants';
 import DiagnosticStatusBadge from '~/components/WebAppDiagnostic/DiagnosticStatusBadge.vue';
 import DiagnosticSectionEditor from '~/components/WebAppDiagnostic/admin/DiagnosticSectionEditor.vue';
 import DiagnosticPromptPanel from '~/components/WebAppDiagnostic/admin/DiagnosticPromptPanel.vue';
@@ -926,8 +927,9 @@ const sectionCompleteness = computed(() =>
 );
 const sectionCompletenessColor = computed(() => {
   const pct = sectionCompleteness.value;
-  if (pct >= 80) return { text: 'text-text-brand', bar: 'bg-primary' };
-  if (pct >= 50) return { text: 'text-warning-strong', bar: 'bg-warning-strong' };
+  const { GOOD, WARN } = DIAGNOSTIC_ANALYTICS_THRESHOLDS.COVERAGE;
+  if (pct >= GOOD) return { text: 'text-text-brand', bar: 'bg-primary' };
+  if (pct >= WARN) return { text: 'text-warning-strong', bar: 'bg-warning-strong' };
   return { text: 'text-danger-strong', bar: 'bg-danger-strong' };
 });
 

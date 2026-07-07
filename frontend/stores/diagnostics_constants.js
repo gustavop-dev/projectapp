@@ -52,6 +52,19 @@ export function severityLevelClass(level) {
   return SEVERITY_LEVEL_CLASSES[level] || 'bg-surface-raised text-text-muted';
 }
 
+/**
+ * Single source for the analytics magic numbers (colors, emojis and the
+ * section-completeness bar in the editor all read from here).
+ */
+export const DIAGNOSTIC_ANALYTICS_THRESHOLDS = Object.freeze({
+  ENGAGEMENT: Object.freeze({ HIGH: 70, MEDIUM: 40 }),
+  COVERAGE: Object.freeze({ GOOD: 80, WARN: 50 }),
+  SECTION_AVG_SECONDS: Object.freeze({ HIGH: 60, MID: 20, LOW: 5 }),
+  SECTION_BAR_MAX_SECONDS: 180,
+  FUNNEL_DROPOFF: Object.freeze({ LOW: 10, MID: 30, HIGH: 50 }),
+  HEAT_RATIOS: Object.freeze([0.15, 0.35, 0.55, 0.75]),
+});
+
 export const ACTIVITY_CHANGE_TYPES = Object.freeze([
   { value: 'note',     label: 'Nota' },
   { value: 'call',     label: 'Llamada' },

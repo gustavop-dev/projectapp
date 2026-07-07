@@ -85,19 +85,30 @@ function mountComponent(props = {}) {
 }
 
 describe('DiagnosticAnalytics', () => {
-  it('shows loading state on mount', () => {
+  it('shows a loading skeleton on mount', () => {
     const wrapper = mountComponent();
 
-    expect(wrapper.text()).toContain('Cargando analytics');
+    expect(wrapper.find('[data-testid="analytics-loading"]').exists()).toBe(true);
   });
 
-  it('shows no-data state when loader returns no data', async () => {
+  it('shows the error state with retry when the loader fails', async () => {
     const wrapper = mountComponent();
 
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.text()).toContain('No hay datos de analytics');
+    expect(wrapper.find('[data-testid="analytics-error-state"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Reintentar');
+  });
+
+  it('shows the never-viewed empty state when the loader succeeds without data', async () => {
+    const mockLoader = jest.fn().mockResolvedValue({ success: true, data: null });
+    const wrapper = mountComponent({ loader: mockLoader });
+
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain('aún no ha sido visto');
   });
 
   it('calls the loader with no arguments on mount', () => {
@@ -143,11 +154,12 @@ describe('DiagnosticAnalytics with data', () => {
     expect(wrapper.text()).toContain('100%');
   });
 
-  it('renders funnel sections', async () => {
+  it('renders funnel drop-off summary', async () => {
     const wrapper = withRichData();
     await flushPromises();
 
-    expect(wrapper.text()).toContain('2 sesiones');
+    expect(wrapper.text()).toContain('Funnel de navegación');
+    expect(wrapper.text()).toContain('-50% de abandono');
   });
 
   it('renders timeline event actor labels', async () => {
