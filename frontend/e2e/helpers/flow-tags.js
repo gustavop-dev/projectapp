@@ -228,6 +228,8 @@ export const PROPOSAL_OG_META_PERSONALIZED = ['@flow:proposal-og-meta-personaliz
 
 // ── Web App Diagnostics ──
 export const ADMIN_DIAGNOSTIC_LIST         = ['@flow:admin-diagnostic-list', '@module:admin', '@priority:P1'];
+export const ADMIN_DIAGNOSTIC_BULK_ACTIONS = ['@flow:admin-diagnostic-bulk-actions', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_LIST_ERROR_RETRY = ['@flow:admin-diagnostic-list-error-retry', '@module:admin', '@priority:P3'];
 export const ADMIN_DIAGNOSTIC_FILTERS      = ['@flow:admin-diagnostic-filters', '@module:admin', '@priority:P2'];
 export const ADMIN_DIAGNOSTIC_CREATE       = ['@flow:admin-diagnostic-create', '@module:admin', '@priority:P1'];
 export const ADMIN_DIAGNOSTIC_SEND_INITIAL = ['@flow:admin-diagnostic-send-initial', '@module:admin', '@priority:P1'];

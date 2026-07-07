@@ -1,5 +1,5 @@
 {
-  "version": "2.41.0",
+  "version": "2.42.0",
   "lastUpdated": "2026-07-07",
   "flows": {
     "layout-navbar-navigation": {
@@ -2699,7 +2699,7 @@
         "admin"
       ],
       "priority": "P3",
-      "description": "When GET /api/diagnostics/ fails, the list page shows a dedicated error state (data-testid=diagnostics-error-state) with the normalized Spanish error message and a 'Reintentar' button that re-fires the fetch; an error notification is also raised via usePanelNotify. Distinct from the empty state.",
+      "description": "When GET /api/diagnostics/ fails, the list page shows a dedicated error state (data-testid=diagnostics-error-state) with the normalized Spanish error message and a 'Reintentar' button that re-fires the fetch; an error notification is also raised via usePanelNotify. Distinct from the empty state. Covered by e2e/admin/admin-diagnostic-list-error-retry.spec.js.",
       "expectedSpecs": 1
     },
     "admin-diagnostic-bulk-actions": {
@@ -2709,7 +2709,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Admin selects diagnostics via row/header checkboxes in /panel/diagnostics; a batch bar appears with 'Finalizar aceptados' and 'Eliminar' (confirm modal), calling POST /api/diagnostics/bulk-action/ with {ids, action} and refreshing the list with a result notification.",
+      "description": "Admin selects diagnostics via row/header checkboxes in /panel/diagnostics; a batch bar appears with 'Finalizar aceptados' and 'Eliminar' (confirm modal), calling POST /api/diagnostics/bulk-action/ with {ids, action} and refreshing the list with a result notification. Covered by e2e/admin/admin-diagnostic-bulk-actions.spec.js.",
       "expectedSpecs": 1
     }
   }

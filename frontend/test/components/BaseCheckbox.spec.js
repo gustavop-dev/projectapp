@@ -35,4 +35,25 @@ describe('BaseCheckbox', () => {
     const wrapper = mount(BaseCheckbox, { props: { modelValue: false, disabled: true } })
     expect(wrapper.find('input').attributes('disabled')).toBeDefined()
   })
+
+  // ── Array model (checkbox group) ──────────────────────────────────────────
+  it('reflects membership when modelValue is an array', () => {
+    const inArray = mount(BaseCheckbox, { props: { modelValue: [1, 2], value: 2 } })
+    expect(inArray.find('input').element.checked).toBe(true)
+
+    const notInArray = mount(BaseCheckbox, { props: { modelValue: [1, 2], value: 3 } })
+    expect(notInArray.find('input').element.checked).toBe(false)
+  })
+
+  it('adds its value to the array when checked', async () => {
+    const wrapper = mount(BaseCheckbox, { props: { modelValue: [1], value: 2 } })
+    await wrapper.find('input').setValue(true)
+    expect(wrapper.emitted('update:modelValue')[0]).toEqual([[1, 2]])
+  })
+
+  it('removes its value from the array when unchecked', async () => {
+    const wrapper = mount(BaseCheckbox, { props: { modelValue: [1, 2], value: 2 } })
+    await wrapper.find('input').setValue(false)
+    expect(wrapper.emitted('update:modelValue')[0]).toEqual([[1]])
+  })
 })
