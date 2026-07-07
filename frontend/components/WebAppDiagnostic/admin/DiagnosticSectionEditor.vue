@@ -1,12 +1,16 @@
 <template>
-  <div class="bg-surface rounded-2xl shadow-sm border border-border-muted">
-    <!-- Header -->
-    <div
-      class="flex flex-wrap items-center justify-between gap-2 px-5 py-3 border-b border-border-muted cursor-pointer select-none"
+  <div class="bg-surface rounded-2xl shadow-card border border-border-muted">
+    <!-- Header (keyboard-accessible accordion trigger) -->
+    <button
+      type="button"
+      class="w-full flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-left select-none rounded-2xl focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
+      :class="expanded ? 'border-b border-border-muted rounded-b-none' : ''"
+      :aria-expanded="expanded"
+      :aria-controls="bodyId"
       @click="expanded = !expanded"
     >
       <div class="flex items-center gap-2 min-w-0">
-        <span class="text-base">{{ meta.icon }}</span>
+        <span class="text-base" aria-hidden="true">{{ meta.icon }}</span>
         <div class="min-w-0">
           <div class="text-sm font-semibold text-text-default truncate">
             {{ section.title || meta.label }}
@@ -18,88 +22,98 @@
       </div>
       <div class="flex items-center gap-2">
         <span
-          class="px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide"
+          class="px-2 py-0.5 rounded-full text-2xs font-medium uppercase tracking-wide"
           :class="section.is_enabled
-            ? 'bg-primary-soft text-text-brand dark:bg-emerald-500/20'
+            ? 'bg-primary-soft text-text-brand'
             : 'bg-surface-raised text-text-muted'"
         >
           {{ section.is_enabled ? 'Activa' : 'Oculta' }}
         </span>
         <span
-          class="px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide bg-surface-raised text-text-muted"
+          class="px-2 py-0.5 rounded-full text-2xs font-medium uppercase tracking-wide bg-surface-raised text-text-muted"
         >
           {{ visibilityLabel }}
         </span>
         <svg
-          class="w-4 h-4 text-gray-400 transition-transform"
+          class="w-4 h-4 text-text-subtle motion-safe:transition-transform motion-safe:duration-fast"
           :class="{ 'rotate-180': expanded }"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
+          aria-hidden="true"
         >
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
         </svg>
       </div>
-    </div>
+    </button>
 
     <!-- Body -->
-    <div v-if="expanded" class="p-5 space-y-4">
-      <!-- Meta bar -->
-      <div class="grid sm:grid-cols-3 gap-3 text-sm">
-        <div>
-          <label class="block text-xs font-medium text-text-muted mb-1">Título</label>
-          <input
-            type="text"
-            v-model="localSection.title"
-            class="w-full px-3 py-2 border border-border-default bg-surface text-text-default rounded-lg text-sm"
-            @change="onMetaChange"
-          />
+    <BaseCollapse :id="bodyId" :open="expanded">
+      <div class="p-5 space-y-4">
+        <!-- Meta bar -->
+        <div class="grid sm:grid-cols-3 gap-3 text-sm">
+          <BaseFormField label="Título">
+            <BaseInput
+              v-model="localSection.title"
+              @change="onMetaChange"
+            />
+          </BaseFormField>
+          <BaseFormField label="Visibilidad">
+            <BaseSelect
+              v-model="localSection.visibility"
+              :options="visibilityOptions"
+              @update:model-value="onMetaChange"
+            />
+          </BaseFormField>
+          <div class="flex items-center gap-3 sm:self-center">
+            <label class="inline-flex items-center gap-2 text-sm text-text-muted">
+              <BaseCheckbox v-model="localSection.is_enabled" @update:model-value="onMetaChange" />
+              Activa en la vista pública
+            </label>
+          </div>
         </div>
-        <div>
-          <label class="block text-xs font-medium text-text-muted mb-1">Visibilidad</label>
-          <select
-            v-model="localSection.visibility"
-            class="w-full px-3 py-2 border border-border-default bg-surface text-text-default rounded-lg text-sm"
-            @change="onMetaChange"
+
+        <!-- Per-type form -->
+        <component
+          :is="FormComponent"
+          v-model="form"
+          @update:modelValue="onFormChange"
+        />
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between pt-3 border-t border-border-muted">
+          <button
+            type="button"
+            class="text-xs text-danger-strong hover:underline rounded focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
+            @click="$emit('reset')"
           >
-            <option v-for="opt in visibilityOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-          </select>
-        </div>
-        <div class="flex items-center gap-3 sm:self-center">
-          <label class="inline-flex items-center gap-2 text-sm text-text-muted">
-            <input type="checkbox" v-model="localSection.is_enabled" class="rounded" @change="onMetaChange" />
-            Activa en la vista pública
-          </label>
-        </div>
-      </div>
-
-      <!-- Per-type form -->
-      <component
-        :is="FormComponent"
-        v-model="form"
-        @update:modelValue="onFormChange"
-      />
-
-      <!-- Footer -->
-      <div class="flex items-center justify-between pt-3 border-t border-border-muted">
-        <button
-          type="button"
-          class="text-xs text-rose-600 dark:text-rose-400 hover:underline"
-          @click="$emit('reset')"
-        >
-          Restaurar contenido por defecto
-        </button>
-        <div class="text-xs text-text-subtle">
-          <span v-if="isSaving">Guardando…</span>
-          <span v-else-if="lastSavedAt">Guardado {{ lastSavedAt }}</span>
+            Restaurar contenido por defecto
+          </button>
+          <div class="text-xs" :class="saveError ? 'text-danger-strong' : 'text-text-subtle'">
+            <span v-if="isSaving">Guardando…</span>
+            <template v-else-if="saveError">
+              <span role="alert">⚠ No se guardó: {{ saveError }}</span>
+              <button
+                type="button"
+                class="ml-2 underline font-medium rounded focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
+                @click="$emit('retry')"
+              >Reintentar</button>
+            </template>
+            <span v-else-if="lastSavedAt">Guardado {{ lastSavedAt }}</span>
+          </div>
         </div>
       </div>
-    </div>
+    </BaseCollapse>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, shallowRef } from 'vue';
+import BaseCollapse from '~/components/base/BaseCollapse.vue';
+import BaseFormField from '~/components/base/BaseFormField.vue';
+import BaseInput from '~/components/base/BaseInput.vue';
+import BaseSelect from '~/components/base/BaseSelect.vue';
+import BaseCheckbox from '~/components/base/BaseCheckbox.vue';
 import {
   SECTION_META,
   VISIBILITY_OPTIONS,
@@ -119,12 +133,15 @@ const props = defineProps({
   section: { type: Object, required: true },
   isSaving: { type: Boolean, default: false },
   lastSavedAt: { type: String, default: '' },
+  /** Persistent autosave failure for this section ('' = healthy). */
+  saveError: { type: String, default: '' },
 });
 
-const emit = defineEmits(['update:section', 'update:content', 'reset']);
+const emit = defineEmits(['update:section', 'update:content', 'reset', 'retry']);
 
 const expanded = ref(false);
 const visibilityOptions = VISIBILITY_OPTIONS;
+const bodyId = computed(() => `diagnostic-section-body-${props.section.id}`);
 
 const meta = computed(() => SECTION_META[props.section.section_type] || { label: props.section.section_type, icon: '📄' });
 const visibilityLabel = computed(() =>

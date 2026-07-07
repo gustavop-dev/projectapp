@@ -1,10 +1,6 @@
 <template>
-  <Teleport to="body">
-    <Transition name="modal-fade">
-      <div v-if="visible" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/50" @click="$emit('cancel')" />
-
-        <div class="relative bg-surface rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+  <BaseModal :model-value="visible" size="2xl" @update:model-value="(open) => { if (!open) $emit('cancel') }">
+    <div class="flex flex-col max-h-[90vh]">
           <div class="sticky top-0 bg-surface border-b border-border-muted px-6 py-4 rounded-t-2xl z-10">
             <h2 class="text-lg font-semibold text-text-default dark:text-white">Acuerdo de Confidencialidad</h2>
             <p class="text-xs text-text-muted mt-0.5">
@@ -101,18 +97,17 @@
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                {{ saving ? 'Generando...' : 'Guardar y generar PDF' }}
+                {{ saving ? 'Generando…' : 'Guardar y generar PDF' }}
               </button>
             </div>
           </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+    </div>
+  </BaseModal>
 </template>
 
 <script setup>
 import { ref, watch } from 'vue';
+import BaseModal from '~/components/base/BaseModal.vue';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 
 const props = defineProps({
@@ -190,14 +185,5 @@ async function handleSave() {
 <style scoped>
 .nda-input {
   @apply mt-1 w-full px-3 py-2 border border-border-default dark:text-white dark:placeholder:text-text-muted rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500;
-}
-
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
 }
 </style>

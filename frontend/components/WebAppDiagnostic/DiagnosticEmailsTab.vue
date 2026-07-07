@@ -12,19 +12,11 @@
       </div>
 
       <!-- Sub-tab switcher -->
-      <div class="flex gap-4 border-b border-border-muted mb-5">
-        <button type="button"
-          class="pb-2 text-sm transition-colors border-b-2"
-          :class="activeSubTab === 'edit'
-            ? 'border-emerald-600 text-text-brand font-semibold'
-            : 'border-transparent text-text-muted dark:text-gray-400 hover:text-text-default dark:hover:text-white/70'"
-          @click="activeSubTab = 'edit'">Editar</button>
-        <button type="button"
-          class="pb-2 text-sm transition-colors border-b-2"
-          :class="activeSubTab === 'preview'
-            ? 'border-emerald-600 text-text-brand font-semibold'
-            : 'border-transparent text-text-muted dark:text-gray-400 hover:text-text-default dark:hover:text-white/70'"
-          @click="activeSubTab = 'preview'">Vista previa</button>
+      <div class="mb-5">
+        <BaseTabs
+          v-model="activeSubTab"
+          :tabs="[{ id: 'edit', label: 'Editar' }, { id: 'preview', label: 'Vista previa' }]"
+        />
       </div>
 
       <!-- ── Edit sub-tab ── -->
@@ -53,12 +45,12 @@
           <draggable v-model="sections" item-key="id" handle=".drag-handle" ghost-class="opacity-30"
             class="space-y-3">
             <template #item="{ element: section, index: idx }">
-              <div class="bg-gray-50 dark:bg-surface/[0.03] rounded-lg p-3 border border-border-muted">
+              <div class="bg-surface-muted rounded-lg p-3 border border-border-muted">
                 <div class="flex items-center gap-2 mb-2">
-                  <span class="drag-handle cursor-grab text-gray-400 dark:text-text-muted hover:text-text-muted select-none text-sm">⠿</span>
-                  <span class="text-[10px] text-gray-400 dark:text-text-muted uppercase tracking-wide">Sección {{ idx + 1 }}</span>
+                  <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted select-none text-sm">⠿</span>
+                  <span class="text-2xs text-text-subtle uppercase tracking-wide">Sección {{ idx + 1 }}</span>
                   <button v-if="sections.length > 1" type="button"
-                    class="ml-auto text-gray-400 hover:text-red-500 transition-colors p-0.5"
+                    class="ml-auto text-text-subtle hover:text-red-500 transition-colors p-0.5"
                     @click="removeSection(idx)">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -115,21 +107,21 @@
             <div v-for="(ref, idx) in docRefs" :key="`ref-${ref.key}`"
               class="flex items-center justify-between py-1.5 px-3 bg-primary-soft border border-emerald-100 dark:border-emerald-900/30 rounded-lg">
               <span class="flex items-center gap-2 min-w-0">
-                <span class="px-1.5 py-0.5 bg-primary-soft text-text-brand rounded text-[10px] font-medium">Documento</span>
+                <span class="px-1.5 py-0.5 bg-primary-soft text-text-brand rounded text-2xs font-medium">Documento</span>
                 <span class="text-xs text-text-default dark:text-white/70 truncate">{{ ref.label }}</span>
               </span>
               <button type="button" @click="removeDocRef(idx)"
-                class="text-gray-400 hover:text-red-500 transition-colors p-0.5">
+                class="text-text-subtle hover:text-red-500 transition-colors p-0.5">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
             <div v-for="(file, idx) in attachments" :key="`file-${idx}`"
-              class="flex items-center justify-between py-1.5 px-3 bg-gray-50 dark:bg-surface/[0.03] rounded-lg">
+              class="flex items-center justify-between py-1.5 px-3 bg-surface-muted rounded-lg">
               <span class="text-xs text-text-default dark:text-white/70 truncate">{{ file.name }}</span>
               <button type="button" @click="removeAttachment(idx)"
-                class="text-gray-400 hover:text-red-500 transition-colors p-0.5">
+                class="text-text-subtle hover:text-red-500 transition-colors p-0.5">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -151,14 +143,14 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            {{ sending ? 'Enviando...' : 'Enviar correo' }}
+            {{ sending ? 'Enviando…' : 'Enviar correo' }}
           </button>
         </div>
       </div>
 
       <!-- ── Preview sub-tab ── -->
       <div v-else>
-        <div class="flex items-center gap-2 bg-gray-50 dark:bg-surface/[0.03] rounded-lg px-3 py-2 mb-4 text-xs text-text-muted dark:text-gray-400">
+        <div class="flex items-center gap-2 bg-surface-muted rounded-lg px-3 py-2 mb-4 text-xs text-text-muted">
           <span class="font-medium text-text-default dark:text-white/70">Asunto:</span>
           <span>{{ subject || '(sin asunto)' }}</span>
         </div>
@@ -222,69 +214,71 @@
         <h3 class="text-sm font-semibold text-text-default dark:text-white">Historial de correos enviados</h3>
       </div>
 
-      <div v-if="loadingHistory && !history.length" class="text-xs text-gray-400 dark:text-text-muted py-4 text-center">
+      <div v-if="loadingHistory && !history.length" class="text-xs text-text-subtle py-4 text-center">
         Cargando historial...
       </div>
-      <div v-else-if="!history.length" class="text-xs text-gray-400 dark:text-text-muted py-4 text-center">
+      <div v-else-if="!history.length" class="text-xs text-text-subtle py-4 text-center">
         No se han enviado correos desde este diagnóstico.
       </div>
       <div v-else class="space-y-2">
         <div v-for="entry in history" :key="entry.id"
           class="border border-border-muted rounded-lg overflow-hidden">
           <button type="button" @click="toggleExpand(entry.id)"
-            class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-surface/[0.03] transition-colors">
+            class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-muted transition-colors">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
                 <span class="text-xs font-medium text-text-default dark:text-white truncate">{{ entry.subject }}</span>
-                <span class="px-1.5 py-0.5 rounded text-[10px] font-medium"
+                <span class="px-1.5 py-0.5 rounded text-2xs font-medium"
                   :class="{
                     'bg-primary-soft text-text-brand': entry.status === 'sent' || entry.status === 'delivered',
                     'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400': entry.status === 'failed' || entry.status === 'bounced',
                   }">{{ statusLabel(entry.status) }}</span>
               </div>
               <div class="flex items-center gap-2 mt-0.5">
-                <span class="text-[11px] text-text-muted dark:text-gray-400">{{ entry.recipient }}</span>
-                <span class="text-[10px] text-gray-400 dark:text-text-muted">{{ formatDate(entry.sent_at) }}</span>
-                <span class="text-[10px] text-gray-400 dark:text-text-muted">· {{ templateLabel(entry.template_key) }}</span>
+                <span class="text-2xs text-text-muted">{{ entry.recipient }}</span>
+                <span class="text-2xs text-text-subtle">{{ formatDate(entry.sent_at) }}</span>
+                <span class="text-2xs text-text-subtle">· {{ templateLabel(entry.template_key) }}</span>
               </div>
             </div>
-            <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': expandedIds[entry.id] }"
-              fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-text-subtle motion-safe:transition-transform motion-safe:duration-fast" :class="{ 'rotate-180': expandedIds[entry.id] }"
+              fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
-          <div v-if="expandedIds[entry.id]" class="border-t border-border-muted px-4 py-3 bg-gray-50 dark:bg-surface/[0.03] space-y-3">
+          <BaseCollapse :open="Boolean(expandedIds[entry.id])">
+          <div class="border-t border-border-muted px-4 py-3 bg-surface-muted space-y-3">
             <div v-if="entry.metadata?.greeting">
-              <p class="text-[10px] text-gray-400 dark:text-text-muted uppercase tracking-wide mb-0.5">Saludo</p>
+              <p class="text-2xs text-text-subtle uppercase tracking-wide mb-0.5">Saludo</p>
               <p class="text-xs text-text-default dark:text-white/70">{{ entry.metadata.greeting }}</p>
             </div>
             <div v-if="entry.metadata?.sections?.length">
-              <p class="text-[10px] text-gray-400 dark:text-text-muted uppercase tracking-wide mb-1">Secciones</p>
+              <p class="text-2xs text-text-subtle uppercase tracking-wide mb-1">Secciones</p>
               <div v-for="(section, idx) in entry.metadata.sections" :key="idx"
                 class="bg-surface rounded-lg px-3 py-2 mb-1.5 border border-border-muted">
                 <p class="text-xs text-text-default dark:text-white/70 whitespace-pre-wrap">{{ section }}</p>
               </div>
             </div>
             <div v-if="entry.metadata?.footer">
-              <p class="text-[10px] text-gray-400 dark:text-text-muted uppercase tracking-wide mb-0.5">Pie de correo</p>
+              <p class="text-2xs text-text-subtle uppercase tracking-wide mb-0.5">Pie de correo</p>
               <p class="text-xs text-text-default dark:text-white/70">{{ entry.metadata.footer }}</p>
             </div>
             <div v-if="entry.metadata?.attachment_names?.length">
-              <p class="text-[10px] text-gray-400 dark:text-text-muted uppercase tracking-wide mb-0.5">Adjuntos</p>
+              <p class="text-2xs text-text-subtle uppercase tracking-wide mb-0.5">Adjuntos</p>
               <div class="flex flex-wrap gap-1">
                 <span v-for="(name, idx) in entry.metadata.attachment_names" :key="idx"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border-default rounded text-[11px] text-text-muted dark:text-gray-400">
+                  class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border-default rounded text-2xs text-text-muted">
                   &#128206; {{ name }}
                 </span>
               </div>
             </div>
           </div>
+          </BaseCollapse>
         </div>
 
         <div v-if="hasNextPage" class="pt-3 text-center">
           <button type="button" :disabled="loadingHistory" @click="loadMore"
-            class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-text-muted dark:text-white bg-gray-50 dark:bg-surface/[0.03] rounded-lg hover:bg-gray-100 dark:hover:bg-surface/[0.06] transition-colors disabled:opacity-50">
-            {{ loadingHistory ? 'Cargando...' : 'Cargar más' }}
+            class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-text-muted dark:text-white bg-surface-muted rounded-lg hover:bg-border-muted transition-colors disabled:opacity-50">
+            {{ loadingHistory ? 'Cargando…' : 'Cargar más' }}
           </button>
         </div>
       </div>
@@ -314,6 +308,8 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import BaseTabs from '~/components/base/BaseTabs.vue';
+import BaseCollapse from '~/components/base/BaseCollapse.vue';
 import draggable from 'vuedraggable';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 import { DIAGNOSTIC_STATUS } from '~/stores/diagnostics_constants';

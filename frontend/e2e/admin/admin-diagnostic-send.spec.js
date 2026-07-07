@@ -81,7 +81,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await page.goto('/panel/diagnostics/7/edit');
     await expect(page.getByRole('tab', { name: 'General', exact: true })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('tab', { name: 'Secciones' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Prompt Diagnostic' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Prompt diagnóstico' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'JSON' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Actividad' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Analytics' })).toBeVisible();
@@ -110,6 +110,23 @@ test.describe('Admin Diagnostic — Send Flows', () => {
       if (apiPath === 'diagnostics/7/detail/') {
         return { status: 200, contentType: 'application/json', body: JSON.stringify(diagnostic) };
       }
+      if (apiPath === 'diagnostics/7/scorecard/') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            score: 9,
+            checks: [
+              { key: 'client_email', label: 'Email del cliente', passed: true, blocker: true },
+              { key: 'client_phone', label: 'Teléfono del cliente (para WhatsApp)', passed: false, blocker: false },
+            ],
+            blockers: [],
+            can_send: true,
+            total_checks: 2,
+            passed_checks: 1,
+          }),
+        };
+      }
       if (apiPath === 'diagnostics/7/send-initial/' && method === 'POST') {
         sendCalled = true;
         return {
@@ -124,7 +141,8 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await page.goto('/panel/diagnostics/7/edit');
     await expect(page.getByRole('button', { name: /enviar envío inicial/i })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: /enviar envío inicial/i }).click();
-    await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+    await expect(page.getByTestId('diagnostic-scorecard-modal')).toBeVisible();
+    await page.getByTestId('scorecard-send-btn').click();
 
     await expect(() => expect(sendCalled).toBe(true)).toPass({ timeout: 5000 });
   });
@@ -175,6 +193,23 @@ test.describe('Admin Diagnostic — Send Flows', () => {
       if (apiPath === 'diagnostics/7/detail/') {
         return { status: 200, contentType: 'application/json', body: JSON.stringify(diagnostic) };
       }
+      if (apiPath === 'diagnostics/7/scorecard/') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            score: 9,
+            checks: [
+              { key: 'client_email', label: 'Email del cliente', passed: true, blocker: true },
+              { key: 'client_phone', label: 'Teléfono del cliente (para WhatsApp)', passed: false, blocker: false },
+            ],
+            blockers: [],
+            can_send: true,
+            total_checks: 2,
+            passed_checks: 1,
+          }),
+        };
+      }
       if (apiPath === 'diagnostics/7/send-final/' && method === 'POST') {
         called = true;
         return {
@@ -191,7 +226,8 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await page.goto('/panel/diagnostics/7/edit');
     await expect(page.getByRole('button', { name: /enviar diagnóstico final/i })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: /enviar diagnóstico final/i }).click();
-    await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+    await expect(page.getByTestId('diagnostic-scorecard-modal')).toBeVisible();
+    await page.getByTestId('scorecard-send-btn').click();
 
     await expect(() => expect(called).toBe(true)).toPass({ timeout: 5000 });
   });

@@ -91,26 +91,30 @@ describe('DiagnosticSectionEditor', () => {
       expect(wrapper.text()).toContain('Propósito del diagnóstico');
     });
 
-    it('does not render body by default (collapsed)', () => {
+    it('keeps the body collapsed (inert + hidden) by default', () => {
       const wrapper = mountEditor();
+      const body = wrapper.find('[id^="diagnostic-section-body"]');
 
-      expect(wrapper.find('input[type="text"]').exists()).toBe(false);
+      expect(body.attributes('aria-hidden')).toBe('true');
+      expect(wrapper.find('button[aria-expanded]').attributes('aria-expanded')).toBe('false');
     });
 
     it('expands the body when the header is clicked', async () => {
       const wrapper = mountEditor();
-      await wrapper.find('[class*="cursor-pointer"]').trigger('click');
+      await wrapper.find('button[aria-expanded]').trigger('click');
 
+      expect(wrapper.find('[id^="diagnostic-section-body"]').attributes('aria-hidden')).toBe('false');
       expect(wrapper.find('input[type="text"]').exists()).toBe(true);
     });
 
     it('collapses the body when the header is clicked a second time', async () => {
       const wrapper = mountEditor();
-      const header = wrapper.find('[class*="cursor-pointer"]');
+      const header = wrapper.find('button[aria-expanded]');
       await header.trigger('click');
       await header.trigger('click');
 
-      expect(wrapper.find('input[type="text"]').exists()).toBe(false);
+      expect(wrapper.find('[id^="diagnostic-section-body"]').attributes('aria-hidden')).toBe('true');
+      expect(header.attributes('aria-expanded')).toBe('false');
     });
   });
 
@@ -119,7 +123,7 @@ describe('DiagnosticSectionEditor', () => {
   describe('meta field changes', () => {
     it('emits update:section when the title input changes', async () => {
       const wrapper = mountEditor();
-      await wrapper.find('[class*="cursor-pointer"]').trigger('click');
+      await wrapper.find('button[aria-expanded]').trigger('click');
 
       const titleInput = wrapper.find('input[type="text"]');
       await titleInput.setValue('Nuevo título');
@@ -131,7 +135,7 @@ describe('DiagnosticSectionEditor', () => {
 
     it('emits update:section when the visibility select changes', async () => {
       const wrapper = mountEditor();
-      await wrapper.find('[class*="cursor-pointer"]').trigger('click');
+      await wrapper.find('button[aria-expanded]').trigger('click');
 
       const select = wrapper.find('select');
       await select.setValue('initial');
@@ -142,7 +146,7 @@ describe('DiagnosticSectionEditor', () => {
 
     it('emits update:section when the is_enabled checkbox changes', async () => {
       const wrapper = mountEditor();
-      await wrapper.find('[class*="cursor-pointer"]').trigger('click');
+      await wrapper.find('button[aria-expanded]').trigger('click');
 
       const checkbox = wrapper.find('input[type="checkbox"]');
       await checkbox.setChecked(false);
@@ -160,7 +164,7 @@ describe('DiagnosticSectionEditor', () => {
       formToJson.mockReturnValue({ purpose: 'updated' });
 
       const wrapper = mountEditor();
-      await wrapper.find('[class*="cursor-pointer"]').trigger('click');
+      await wrapper.find('button[aria-expanded]').trigger('click');
 
       // Trigger the sub-component's v-model update
       const formComponent = wrapper.findComponent({ name: 'PurposeForm' });
@@ -175,7 +179,7 @@ describe('DiagnosticSectionEditor', () => {
   describe('reset', () => {
     it('emits reset when the restore default button is clicked', async () => {
       const wrapper = mountEditor();
-      await wrapper.find('[class*="cursor-pointer"]').trigger('click');
+      await wrapper.find('button[aria-expanded]').trigger('click');
 
       const resetBtn = wrapper.findAll('button').find(b => b.text().includes('Restaurar contenido'));
       await resetBtn.trigger('click');
@@ -189,14 +193,14 @@ describe('DiagnosticSectionEditor', () => {
   describe('status display', () => {
     it('shows Guardando when isSaving is true', async () => {
       const wrapper = mountEditor({ isSaving: true });
-      await wrapper.find('[class*="cursor-pointer"]').trigger('click');
+      await wrapper.find('button[aria-expanded]').trigger('click');
 
       expect(wrapper.text()).toContain('Guardando');
     });
 
     it('shows lastSavedAt text when the prop is non-empty', async () => {
       const wrapper = mountEditor({ lastSavedAt: 'hace 2 min' });
-      await wrapper.find('[class*="cursor-pointer"]').trigger('click');
+      await wrapper.find('button[aria-expanded]').trigger('click');
 
       expect(wrapper.text()).toContain('hace 2 min');
     });
@@ -207,14 +211,14 @@ describe('DiagnosticSectionEditor', () => {
   describe('dynamic form component', () => {
     it('renders PurposeForm for section_type purpose', async () => {
       const wrapper = mountEditor({ section: purposeSection });
-      await wrapper.find('[class*="cursor-pointer"]').trigger('click');
+      await wrapper.find('button[aria-expanded]').trigger('click');
 
       expect(wrapper.findComponent({ name: 'PurposeForm' }).exists()).toBe(true);
     });
 
     it('renders CostForm for section_type cost', async () => {
       const wrapper = mountEditor({ section: costSection });
-      await wrapper.find('[class*="cursor-pointer"]').trigger('click');
+      await wrapper.find('button[aria-expanded]').trigger('click');
 
       expect(wrapper.findComponent({ name: 'CostForm' }).exists()).toBe(true);
     });

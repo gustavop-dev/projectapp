@@ -249,6 +249,16 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
       }
     },
 
+    // ── Scorecard ───────────────────────────────────────────────────
+    async fetchScorecard(id) {
+      try {
+        const response = await get_request(`diagnostics/${id}/scorecard/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        return this._fail(error, 'No se pudo cargar el scorecard.', { data: null });
+      }
+    },
+
     // ── Analytics ───────────────────────────────────────────────────
     async fetchAnalytics(id) {
       try {

@@ -161,7 +161,7 @@
           </div>
           <button type="button" :disabled="isUploading" @click="handleUpload"
             class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong transition-colors disabled:opacity-50">
-            {{ isUploading ? 'Subiendo...' : 'Subir' }}
+            {{ isUploading ? 'Subiendo…' : 'Subir' }}
           </button>
         </div>
         <p v-if="uploadError" class="text-xs text-red-500 mt-2">{{ uploadError }}</p>

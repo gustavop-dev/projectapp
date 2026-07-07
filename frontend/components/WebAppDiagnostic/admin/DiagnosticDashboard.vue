@@ -2,6 +2,7 @@
 import { computed, ref, onMounted } from 'vue';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import { getDiagnosticAttention } from '~/utils/diagnosticAttention';
+import BaseCollapse from '~/components/base/BaseCollapse.vue';
 
 /**
  * KPI strip above the diagnostics list. Everything is derived client-side
