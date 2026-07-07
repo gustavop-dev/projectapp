@@ -349,12 +349,79 @@ DEFAULT_SECTIONS = [
                 'entregable debería venir con las herramientas mínimas para operarlo, '
                 'medirlo y entenderlo desde el día uno.'
             ),
-            'module_ids': ['admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module'],
+            'module_ids': ['admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module', 'ai_automation_module'],
             'justifications': {
                 'admin_module': 'Para que no dependas de un desarrollador cada vez que necesites cambiar contenido.',
                 'analytics_dashboard': 'Para que sepas cómo se comporta tu audiencia sin contratar herramientas externas.',
                 'kpi_dashboard_module': 'Para tomar decisiones con datos en tiempo real, no con intuición.',
                 'manual_module': 'Para que cualquier persona del equipo entienda el sistema sin sesiones de capacitación.',
+                'ai_automation_module': 'Para que un proceso que hoy haces a mano lo controles desde el chat de un asistente de IA y se ejecute solo con tareas programadas.',
+            },
+            # Per-module gating/terms (Req 3). Keys are module ids. Each benefit
+            # applies solo si la lógica de negocio lo permite y tiene sentido
+            # medir/automatizar. Los mínimos se comparan contra el total efectivo
+            # en la moneda de la propuesta ("condicionado", nunca se oculta).
+            'conditions': {
+                'kpi_dashboard_module': {
+                    'min_price_usd': 1500,
+                    'min_price_cop': 6000000,
+                    'duration_months': None,
+                    'discretionary_note': 'Se implementa si la lógica de negocio permite y tiene sentido definir y medir KPIs.',
+                    'terms': (
+                        'El Dashboard de KPIs y Métricas se incluye sin costo adicional para proyectos cuya '
+                        'inversión total supere los 1.500 USD (o su equivalente en COP). Su implementación queda '
+                        'sujeta a que el negocio tenga indicadores clave que tenga sentido medir; de no existir '
+                        'métricas relevantes, este beneficio no aplica.'
+                    ),
+                },
+                'analytics_dashboard': {
+                    'min_price_usd': 1800,
+                    'min_price_cop': 7200000,
+                    'duration_months': None,
+                    'discretionary_note': 'Se implementa si la lógica de negocio permite y tiene sentido recolectar y analizar datos de uso.',
+                    'terms': (
+                        'El Módulo de Analítica se incluye sin costo adicional para proyectos cuya inversión total '
+                        'supere los 1.800 USD (o su equivalente en COP). Su implementación queda sujeta a que exista '
+                        'tráfico o comportamiento de usuarios que tenga sentido analizar.'
+                    ),
+                },
+                'admin_module': {
+                    'min_price_usd': None,
+                    'min_price_cop': None,
+                    'duration_months': None,
+                    'discretionary_note': 'Se implementa si la lógica de negocio permite gestionar contenido u operación de forma autónoma.',
+                    'terms': (
+                        'El Módulo Administrativo se incluye sin costo adicional y sin monto mínimo de proyecto. '
+                        'Su alcance se ajusta a las entidades y flujos definidos dentro del alcance de la propuesta.'
+                    ),
+                },
+                'manual_module': {
+                    'min_price_usd': None,
+                    'min_price_cop': None,
+                    'duration_months': None,
+                    'discretionary_note': 'Se implementa sobre los procesos y roles definidos dentro del alcance de la propuesta.',
+                    'terms': (
+                        'El Manual de Usuario Interactivo se incluye sin costo adicional y sin monto mínimo de '
+                        'proyecto. Documenta los procesos, flujos y roles que hacen parte del alcance aprobado.'
+                    ),
+                },
+                'ai_automation_module': {
+                    'min_price_usd': 2900,
+                    'min_price_cop': 10400000,
+                    'duration_months': 6,
+                    'discretionary_note': 'Se implementa si la lógica de negocio permite y tiene sentido automatizar el proceso conectándolo a un asistente de IA.',
+                    'terms': (
+                        'La Automatización con Asistente de IA se incluye sin costo adicional para proyectos cuya '
+                        'inversión total supere los 2.900 USD (o su equivalente en COP), y está disponible por un '
+                        'periodo de 6 meses. Consiste en integrar un proceso que hoy se realiza de forma manual con '
+                        'un asistente de IA (Claude o ChatGPT), de modo que pueda controlarse desde el chat y '
+                        'automatizarse mediante tareas programadas dentro del propio asistente. '
+                        'IMPORTANTE: esta integración depende de que el asistente de IA (Claude o ChatGPT) ofrezca '
+                        'y mantenga disponible dicha capacidad de integración. Si el proveedor del asistente deja de '
+                        'ofrecer o soportar esta funcionalidad, la automatización podría dejar de estar disponible, '
+                        'situación que escapa a nuestro control y de la cual no somos responsables.'
+                    ),
+                },
             },
             'footer_note': 'Total adicional: $0. Ya está cotizado dentro del precio del proyecto.',
         },
@@ -557,6 +624,25 @@ DEFAULT_SECTIONS = [
                         {'icon': '🧭', 'name': 'Procesos y flujos paso a paso', 'description': 'Cada flujo del sistema documentado en lenguaje claro, sin tecnicismos.'},
                         {'icon': '👥', 'name': 'Roles y responsabilidades', 'description': 'Quién hace qué dentro de la aplicación y qué permisos tiene cada rol.'},
                         {'icon': '🔗', 'name': 'Dependencias y reglas de negocio', 'description': 'Cómo se relacionan los módulos entre sí y qué reglas aplican.'},
+                    ],
+                },
+                {
+                    'id': 'ai_automation_module',
+                    'icon': '🤖',
+                    'title': 'Automatización con Asistente de IA',
+                    'is_visible': True,
+                    'selected': True,
+                    'price_percent': 0,
+                    'description': (
+                        'Tomamos un proceso que hoy realizas de forma manual y lo automatizamos '
+                        'conectándolo a un asistente de IA (Claude o ChatGPT). Desde el chat podrás '
+                        'controlar el proceso y, mediante tareas programadas dentro del propio '
+                        'asistente, dejar que se ejecute solo.'
+                    ),
+                    'items': [
+                        {'icon': '💬', 'name': 'Control desde el chat', 'description': 'Ejecuta y supervisa el proceso conversando con el asistente de IA, sin entrar al sistema.'},
+                        {'icon': '⏰', 'name': 'Tareas programadas', 'description': 'El propio asistente ejecuta el proceso de forma automática según la programación que definas.'},
+                        {'icon': '🔗', 'name': 'Integración con tu proceso actual', 'description': 'Conectamos la automatización directamente sobre el flujo manual que ya usas hoy.'},
                     ],
                 },
             ],
@@ -1224,6 +1310,54 @@ DEFAULT_SECTIONS = [
         'is_wide_panel': True,
         'content_json': deepcopy(EMPTY_TECHNICAL_DOCUMENT_JSON),
     },
+    {
+        # PDF-only appendix: hour packages + scope-exclusion clause.
+        # No web component; excluded from the public carousel.
+        'section_type': 'commercial_conditions',
+        'title': '📑 Condiciones comerciales',
+        'order': 17,
+        'is_wide_panel': False,
+        'content_json': {
+            'index': '17',
+            'title': 'Condiciones comerciales',
+            'packagesTitle': 'Paquetes de horas para requerimientos posteriores',
+            'packagesIntro': (
+                'Para requerimientos de esfuerzo bajo o medio-bajo posteriores a la entrega, '
+                'ofrecemos tres bolsas de horas con tarifa preferencial. A mayor paquete, menor '
+                'es el costo por hora.'
+            ),
+            'hourlyRate': 90000,
+            'currency': 'COP',
+            'packages': [
+                {'name': 'Paquete Ágil', 'hours': 20, 'discountPercent': 0, 'note': 'Ideal para ajustes puntuales.'},
+                {'name': 'Paquete Pro', 'hours': 60, 'discountPercent': 10, 'note': 'Para mejoras continuas.'},
+                {'name': 'Paquete Premium', 'hours': 180, 'discountPercent': 30, 'note': 'Para la evolución sostenida del producto.'},
+            ],
+            'effortBadge': (
+                'Todo requerimiento de esfuerzo medio o superior se cotiza como un requerimiento '
+                'independiente, fuera de estos paquetes.'
+            ),
+            'scopeTitle': 'Alcance del trabajo aprobado',
+            'scopeParagraphs': [
+                'El trabajo aprobado y cotizado corresponde únicamente a lo descrito dentro del '
+                'alcance de esta propuesta comercial y de su detalle técnico. Cualquier conversación, '
+                'mensaje, reunión, idea, recurso, archivo, referencia o solicitud que surja durante '
+                'el proyecto y que no esté explícitamente descrita dentro de dicho alcance no '
+                'constituye, por sí sola, un compromiso de implementación ni hace parte del trabajo '
+                'contratado.',
+                'Lo anterior no limita la comunicación: podemos conversar y explorar ideas libremente. '
+                'Sin embargo, para que una funcionalidad, cambio o entregable pase a formar parte del '
+                'trabajo aprobado, debe quedar documentado y cotizado como parte del alcance o como un '
+                'requerimiento independiente. Esto protege a ambas partes: evita malentendidos sobre lo '
+                'que está incluido, mantiene el proyecto enfocado y asegura que cada esfuerzo adicional '
+                'se planifique y se remunere de forma justa.',
+                'En consecuencia, los tiempos, costos y garantías de esta propuesta aplican solamente '
+                'sobre el alcance descrito. Todo lo que lo exceda se gestionará mediante los paquetes '
+                'de horas anteriores (para esfuerzos bajos o medio-bajos) o como una cotización '
+                'independiente (para esfuerzos medios o superiores).',
+            ],
+        },
+    },
 ]
 
 DEFAULT_SECTIONS_EN = [
@@ -1550,12 +1684,73 @@ DEFAULT_SECTIONS_EN = [
                 'every deliverable should ship with the minimum tools to operate, measure and '
                 'understand it from day one.'
             ),
-            'module_ids': ['admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module'],
+            'module_ids': ['admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module', 'ai_automation_module'],
             'justifications': {
                 'admin_module': 'So you don\'t depend on a developer every time you need to change content.',
                 'analytics_dashboard': 'So you know how your audience behaves without paying for external tools.',
                 'kpi_dashboard_module': 'To make decisions with real-time data, not intuition.',
                 'manual_module': 'So anyone on your team can understand the system without training sessions.',
+                'ai_automation_module': 'So a task you do by hand today can be driven from an AI assistant chat and run on its own via scheduled tasks.',
+            },
+            'conditions': {
+                'kpi_dashboard_module': {
+                    'min_price_usd': 1500,
+                    'min_price_cop': 6000000,
+                    'duration_months': None,
+                    'discretionary_note': 'Implemented if the business logic allows and it makes sense to define and measure KPIs.',
+                    'terms': (
+                        'The KPIs & Metrics Dashboard is included at no extra cost for projects whose total '
+                        'investment exceeds 1,500 USD (or the COP equivalent). Its implementation is subject to '
+                        'the business having key indicators worth measuring.'
+                    ),
+                },
+                'analytics_dashboard': {
+                    'min_price_usd': 1800,
+                    'min_price_cop': 7200000,
+                    'duration_months': None,
+                    'discretionary_note': 'Implemented if the business logic allows and it makes sense to collect and analyze usage data.',
+                    'terms': (
+                        'The Analytics Module is included at no extra cost for projects whose total investment '
+                        'exceeds 1,800 USD (or the COP equivalent). Its implementation is subject to there being '
+                        'traffic or user behavior worth analyzing.'
+                    ),
+                },
+                'admin_module': {
+                    'min_price_usd': None,
+                    'min_price_cop': None,
+                    'duration_months': None,
+                    'discretionary_note': 'Implemented if the business logic allows managing content or operations autonomously.',
+                    'terms': (
+                        'The Admin Module is included at no extra cost and with no minimum project amount. '
+                        'Its scope is limited to the entities and flows defined within the proposal scope.'
+                    ),
+                },
+                'manual_module': {
+                    'min_price_usd': None,
+                    'min_price_cop': None,
+                    'duration_months': None,
+                    'discretionary_note': 'Implemented over the processes and roles defined within the proposal scope.',
+                    'terms': (
+                        'The Interactive User Manual is included at no extra cost and with no minimum project '
+                        'amount. It documents the processes, flows and roles within the approved scope.'
+                    ),
+                },
+                'ai_automation_module': {
+                    'min_price_usd': 2900,
+                    'min_price_cop': 10400000,
+                    'duration_months': 6,
+                    'discretionary_note': 'Implemented if the business logic allows and it makes sense to automate the process by connecting it to an AI assistant.',
+                    'terms': (
+                        'AI Assistant Automation is included at no extra cost for projects whose total investment '
+                        'exceeds 2,900 USD (or the COP equivalent), and is available for a period of 6 months. It '
+                        'connects a currently manual process to an AI assistant (Claude or ChatGPT), so it can be '
+                        'controlled from the chat and automated via scheduled tasks inside the assistant itself. '
+                        'IMPORTANT: this integration depends on the AI assistant (Claude or ChatGPT) offering and '
+                        'keeping that integration capability available. If the assistant provider stops offering or '
+                        'supporting this feature, the automation may become unavailable — a situation beyond our '
+                        'control and for which we are not responsible.'
+                    ),
+                },
             },
             'footer_note': 'Additional total: $0. Already priced inside the project budget.',
         },
@@ -1759,6 +1954,24 @@ DEFAULT_SECTIONS_EN = [
                         {'icon': '🧭', 'name': 'Step-by-step processes and flows', 'description': 'Every system flow documented in plain language, no jargon.'},
                         {'icon': '👥', 'name': 'Roles and responsibilities', 'description': 'Who does what inside the application and what permissions each role has.'},
                         {'icon': '🔗', 'name': 'Dependencies and business rules', 'description': 'How modules relate to each other and which rules apply.'},
+                    ],
+                },
+                {
+                    'id': 'ai_automation_module',
+                    'icon': '🤖',
+                    'title': 'AI Assistant Automation',
+                    'is_visible': True,
+                    'selected': True,
+                    'price_percent': 0,
+                    'description': (
+                        'We take a process you do manually today and automate it by connecting it to '
+                        'an AI assistant (Claude or ChatGPT). From the chat you can control the process '
+                        'and, via scheduled tasks inside the assistant itself, let it run on its own.'
+                    ),
+                    'items': [
+                        {'icon': '💬', 'name': 'Control from the chat', 'description': 'Run and monitor the process by talking to the AI assistant, without opening the system.'},
+                        {'icon': '⏰', 'name': 'Scheduled tasks', 'description': 'The assistant itself runs the process automatically on the schedule you define.'},
+                        {'icon': '🔗', 'name': 'Integration with your current process', 'description': 'We connect the automation directly onto the manual flow you use today.'},
                     ],
                 },
             ],
@@ -2418,6 +2631,49 @@ DEFAULT_SECTIONS_EN = [
         'order': 16,
         'is_wide_panel': True,
         'content_json': deepcopy(EMPTY_TECHNICAL_DOCUMENT_JSON),
+    },
+    {
+        # PDF-only appendix: hour packages + scope-exclusion clause.
+        'section_type': 'commercial_conditions',
+        'title': '📑 Commercial conditions',
+        'order': 17,
+        'is_wide_panel': False,
+        'content_json': {
+            'index': '17',
+            'title': 'Commercial conditions',
+            'packagesTitle': 'Hour packages for follow-up requirements',
+            'packagesIntro': (
+                'For low or medium-low effort requirements after delivery, we offer three hour '
+                'banks at a preferential rate. The larger the package, the lower the cost per hour.'
+            ),
+            'hourlyRate': 90000,
+            'currency': 'COP',
+            'packages': [
+                {'name': 'Agile Pack', 'hours': 20, 'discountPercent': 0, 'note': 'Ideal for one-off adjustments.'},
+                {'name': 'Pro Pack', 'hours': 60, 'discountPercent': 10, 'note': 'For continuous improvements.'},
+                {'name': 'Premium Pack', 'hours': 180, 'discountPercent': 30, 'note': 'For sustained product evolution.'},
+            ],
+            'effortBadge': (
+                'Any requirement of medium or higher effort is quoted as an independent requirement, '
+                'outside these packages.'
+            ),
+            'scopeTitle': 'Scope of the approved work',
+            'scopeParagraphs': [
+                'The approved and quoted work corresponds solely to what is described within the scope '
+                'of this commercial proposal and its technical detail. Any conversation, message, '
+                'meeting, idea, resource, file, reference or request that arises during the project and '
+                'is not explicitly described within that scope does not, by itself, constitute a '
+                'commitment to implement it, nor is it part of the contracted work.',
+                'This does not limit communication: we can talk and explore ideas freely. However, for '
+                'a feature, change or deliverable to become part of the approved work, it must be '
+                'documented and quoted as part of the scope or as an independent requirement. This '
+                'protects both parties: it avoids misunderstandings about what is included, keeps the '
+                'project focused, and ensures every additional effort is planned and fairly paid.',
+                'Consequently, the timelines, costs and warranties of this proposal apply only to the '
+                'described scope. Anything beyond it will be handled via the hour packages above (for '
+                'low or medium-low efforts) or as an independent quote (for medium or higher efforts).',
+            ],
+        },
     },
 ]
 

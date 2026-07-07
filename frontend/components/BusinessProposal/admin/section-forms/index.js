@@ -19,6 +19,7 @@ import NextStepsForm from './NextStepsForm.vue';
 import ProcessMethodologyForm from './ProcessMethodologyForm.vue';
 import ValueAddedModulesForm from './ValueAddedModulesForm.vue';
 import RoiProjectionForm from './RoiProjectionForm.vue';
+import CommercialConditionsForm from './CommercialConditionsForm.vue';
 
 export const sectionFormRegistry = {
   greeting: { label: 'Saludo', component: GreetingForm },
@@ -37,6 +38,7 @@ export const sectionFormRegistry = {
   process_methodology: { label: 'Proceso y metodología', component: ProcessMethodologyForm },
   value_added_modules: { label: 'Valor agregado', component: ValueAddedModulesForm },
   roi_projection: { label: 'Proyección ROI', component: RoiProjectionForm },
+  commercial_conditions: { label: 'Condiciones comerciales', component: CommercialConditionsForm },
 };
 
 export const SECTION_TYPE_OPTIONS = Object.entries(sectionFormRegistry).map(

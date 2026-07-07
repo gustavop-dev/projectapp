@@ -34,6 +34,7 @@ CALCULATOR_MODULE_IDS = (
 EXPECTED_GROUP_ORDER = [
     'views', 'components', 'features',
     'admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module',
+    'ai_automation_module',
 ]
 
 EXPECTED_ADDITIONAL_MODULE_ORDER = [
@@ -89,6 +90,7 @@ class TestGetDefaultSections:
             'functional_requirements',
             'timeline', 'investment', 'proposal_summary',
             'final_note', 'next_steps', 'technical_document',
+            'commercial_conditions',
         }
         sections = ProposalService.get_default_sections('es')
         actual_types = {s['section_type'] for s in sections}
@@ -106,17 +108,18 @@ class TestGetDefaultSections:
         assert 'Resumen' in es_section['content_json']['title']
 
     def test_functional_requirements_has_default_groups(self):
-        """Verify ES functional_requirements has 7 groups and 16 additionalModules."""
+        """Verify ES functional_requirements has 8 groups and 16 additionalModules."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
         additional = fr['content_json']['additionalModules']
-        assert len(groups) == 7
+        assert len(groups) == 8
         assert len(additional) == 16
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
             'admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module',
+            'ai_automation_module',
         }
         additional_ids = {m['id'] for m in additional}
         assert additional_ids == {
@@ -324,18 +327,19 @@ class TestGetDefaultSections:
             assert es_g['is_calculator_module'] == en_g['is_calculator_module']
             assert es_g.get('price_percent') == en_g.get('price_percent')
 
-    def test_en_functional_requirements_has_7_groups_and_16_modules(self):
-        """Verify EN functional_requirements has 7 groups and 16 additionalModules."""
+    def test_en_functional_requirements_has_8_groups_and_16_modules(self):
+        """Verify EN functional_requirements has 8 groups and 16 additionalModules."""
         sections = ProposalService.get_default_sections('en')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
         additional = fr['content_json']['additionalModules']
-        assert len(groups) == 7
+        assert len(groups) == 8
         assert len(additional) == 16
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
             'admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module',
+            'ai_automation_module',
         }
         additional_ids = {m['id'] for m in additional}
         assert additional_ids == {
@@ -361,11 +365,11 @@ class TestGetDefaultSections:
         assert any('CSV' in i['description'] for i in kpi['items'] if i['name'] == 'Exportación de reportes')
 
     def test_all_regular_groups_have_selected_true(self):
-        """Verify all 7 regular groups have selected=True and price_percent=0."""
+        """Verify all 8 regular groups have selected=True and price_percent=0."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         regular_groups = fr['content_json']['groups']
-        assert len(regular_groups) == 7
+        assert len(regular_groups) == 8
         for g in regular_groups:
             assert g['selected'] is True, f"Group {g['id']} should have selected=True"
             assert g['price_percent'] == 0, f"Group {g['id']} should have price_percent=0"
