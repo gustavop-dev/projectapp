@@ -32,11 +32,11 @@ async function runAction(n) {
   <Teleport to="body">
     <div class="fixed bottom-6 right-6 z-[9999] flex w-full max-w-sm flex-col gap-3 pointer-events-none">
       <TransitionGroup
-        enter-active-class="transition-all duration-300 ease-out"
-        leave-active-class="transition-all duration-200 ease-in"
-        enter-from-class="opacity-0 translate-y-4"
-        leave-to-class="opacity-0 translate-y-4"
-        move-class="transition-transform duration-200"
+        enter-active-class="transition-all duration-300 ease-out motion-reduce:transition-none"
+        leave-active-class="transition-all duration-200 ease-in motion-reduce:transition-none"
+        enter-from-class="opacity-0 translate-y-4 motion-reduce:translate-y-0"
+        leave-to-class="opacity-0 translate-y-4 motion-reduce:translate-y-0"
+        move-class="transition-transform duration-200 motion-reduce:transition-none"
       >
         <div
           v-for="n in notifications"

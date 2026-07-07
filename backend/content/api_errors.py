@@ -38,7 +38,8 @@ def error_response_from_exc(exc, *, status=http_status.HTTP_400_BAD_REQUEST):
     )
 
 
-def error_response(message, *, code=None, hint=None, status=http_status.HTTP_400_BAD_REQUEST):
+def error_response(message, *, code=None, hint=None, status=http_status.HTTP_400_BAD_REQUEST,
+                   errors=None):
     """Build a DRF Response with the standard error payload.
 
     Args:
@@ -46,10 +47,16 @@ def error_response(message, *, code=None, hint=None, status=http_status.HTTP_400
         code: Optional stable machine code (e.g. 'missing_client_email').
         hint: Optional actionable suggestion (shown as the detail line).
         status: HTTP status code (defaults to 400).
+        errors: Optional serializer-style field error dict; merged at the top
+            level (like DRF's own 400 payload) so clients can keep reading
+            per-field messages next to the standard keys.
     """
     payload = {'error': message}
     if code:
         payload['code'] = code
     if hint:
         payload['hint'] = hint
+    if errors:
+        for field, messages in errors.items():
+            payload.setdefault(field, messages)
     return Response(payload, status=status)

@@ -67,35 +67,35 @@ describe('CategoriesSection', () => {
     expect(text).toContain('Segunda categoría');
   });
 
-  it('levelClass applies bg-rose-100 class for Crítico severity finding', () => {
+  it('levelClass applies bg-danger-soft class for Crítico severity finding', () => {
     const wrapper = mountSection({
       categories: [
         makeCategory({ findings: [{ level: 'Crítico', title: 'Hallazgo crítico' }] }),
       ],
     });
 
-    const badge = wrapper.find('span.bg-rose-100');
+    const badge = wrapper.find('span.bg-danger-soft');
     expect(badge.exists()).toBe(true);
   });
 
-  it('levelClass applies bg-amber-100 class for Alto severity finding', () => {
+  it('levelClass applies bg-warning-soft class for Alto severity finding', () => {
     const wrapper = mountSection({
       categories: [
         makeCategory({ findings: [{ level: 'Alto', title: 'Hallazgo alto' }] }),
       ],
     });
 
-    expect(wrapper.find('span.bg-amber-100').exists()).toBe(true);
+    expect(wrapper.find('span.bg-warning-soft').exists()).toBe(true);
   });
 
-  it('levelClass applies bg-emerald-100 class for Bajo severity finding', () => {
+  it('levelClass applies bg-success-soft class for Bajo severity finding', () => {
     const wrapper = mountSection({
       categories: [
         makeCategory({ findings: [{ level: 'Bajo', title: 'Hallazgo bajo' }] }),
       ],
     });
 
-    expect(wrapper.find('span.bg-emerald-100').exists()).toBe(true);
+    expect(wrapper.find('span.bg-success-soft').exists()).toBe(true);
   });
 
   it('renders strengths list when category has strengths', () => {

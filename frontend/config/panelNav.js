@@ -22,7 +22,7 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
   const sections = [
     {
       id: 'overview',
-      label: 'Overview',
+      label: 'General',
       items: [
         {
           label: 'Dashboard',
@@ -34,32 +34,32 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
     },
     {
       id: 'tasks',
-      label: 'Tasks',
+      label: 'Tareas',
       items: [
         { label: 'Kanban', href: lp('/panel/tasks'), icon: 'board' },
       ],
     },
     {
       id: 'commercial',
-      label: 'Sales',
+      label: 'Comercial',
       items: [
         { label: 'Defaults', href: lp('/panel/defaults'), icon: 'settings' },
-        { label: 'Clients', href: lp('/panel/clients'), icon: 'users' },
-        { label: 'Email deliverability', href: lp('/panel/proposals/email-deliverability'), icon: 'mail' },
-        { label: 'Proposals', href: lp('/panel/proposals'), icon: 'folder' },
-        { label: 'New proposal', href: lp('/panel/proposals/create'), icon: 'plus' },
+        { label: 'Clientes', href: lp('/panel/clients'), icon: 'users' },
+        { label: 'Entregabilidad email', href: lp('/panel/proposals/email-deliverability'), icon: 'mail' },
+        { label: 'Propuestas', href: lp('/panel/proposals'), icon: 'folder' },
+        { label: 'Nueva propuesta', href: lp('/panel/proposals/create'), icon: 'plus' },
         { divider: true },
-        { label: 'Diagnostics', href: lp('/panel/diagnostics'), icon: 'file' },
-        { label: 'New diagnostic', href: lp('/panel/diagnostics/create'), icon: 'plus' },
+        { label: 'Diagnósticos', href: lp('/panel/diagnostics'), icon: 'file' },
+        { label: 'Nuevo diagnóstico', href: lp('/panel/diagnostics/create'), icon: 'plus' },
       ],
     },
     {
       id: 'site',
-      label: 'ProjectApp content',
+      label: 'Contenido ProjectApp',
       items: [
         { label: 'Blog', href: lp('/panel/blog'), icon: 'blog' },
-        { label: 'Blog calendar', href: lp('/panel/blog/calendar'), icon: 'calendar' },
-        { label: 'Portfolio', href: lp('/panel/portfolio'), icon: 'portfolio' },
+        { label: 'Calendario del blog', href: lp('/panel/blog/calendar'), icon: 'calendar' },
+        { label: 'Portafolio', href: lp('/panel/portfolio'), icon: 'portfolio' },
         { label: 'LinkedIn', href: lp('/panel/linkedin'), icon: 'linkedin' },
       ],
     },
@@ -72,32 +72,32 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
     },
     {
       id: 'documents',
-      label: 'Documents',
+      label: 'Documentos',
       items: [
-        { label: 'PDF documents', href: lp('/panel/documents'), icon: 'file' },
+        { label: 'Documentos PDF', href: lp('/panel/documents'), icon: 'file' },
       ],
     },
     {
       id: 'accounting',
-      label: 'Accounting',
+      label: 'Contabilidad',
       superuserOnly: true,
       items: [
-        { label: 'Overview', href: lp('/panel/accounting'), icon: 'credit-card', matchExact: true },
-        { label: 'Incomes', href: lp('/panel/accounting/incomes'), icon: 'plus' },
-        { label: 'Expenses', href: lp('/panel/accounting/expenses'), icon: 'file' },
+        { label: 'Resumen', href: lp('/panel/accounting'), icon: 'credit-card', matchExact: true },
+        { label: 'Ingresos', href: lp('/panel/accounting/incomes'), icon: 'plus' },
+        { label: 'Gastos', href: lp('/panel/accounting/expenses'), icon: 'file' },
         { label: 'Hostings', href: lp('/panel/accounting/hostings'), icon: 'database' },
-        { label: 'Pocket', href: lp('/panel/accounting/pocket'), icon: 'folder' },
-        { label: 'Recurring', href: lp('/panel/accounting/recurring'), icon: 'refresh' },
+        { label: 'Bolsillo', href: lp('/panel/accounting/pocket'), icon: 'folder' },
+        { label: 'Recurrentes', href: lp('/panel/accounting/recurring'), icon: 'refresh' },
         { label: 'Ads', href: lp('/panel/accounting/ads'), icon: 'portfolio' },
-        { label: 'Cards', href: lp('/panel/accounting/cards'), icon: 'credit-card' },
+        { label: 'Tarjetas', href: lp('/panel/accounting/cards'), icon: 'credit-card' },
         { divider: true },
-        { label: 'History', href: lp('/panel/accounting/history'), icon: 'calendar' },
-        { label: 'Settings', href: lp('/panel/accounting/settings'), icon: 'settings' },
+        { label: 'Historial', href: lp('/panel/accounting/history'), icon: 'calendar' },
+        { label: 'Configuración', href: lp('/panel/accounting/settings'), icon: 'settings' },
       ],
     },
     {
       id: 'integrations',
-      label: 'Integrations',
+      label: 'Integraciones',
       superuserOnly: true,
       items: [
         { label: 'MCPs', href: lp('/panel/mcps'), icon: 'settings' },
@@ -105,17 +105,17 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
     },
     {
       id: 'reference',
-      label: 'Reference',
+      label: 'Referencia',
       items: [
-        { label: 'View map', href: lp('/panel/views'), icon: 'sitemap' },
+        { label: 'Mapa de vistas', href: lp('/panel/views'), icon: 'sitemap' },
       ],
     },
     {
       id: 'system',
-      label: 'System',
+      label: 'Sistema',
       muted: true,
       items: [
-        { label: 'Panel admins', href: lp('/panel/admins'), icon: 'shield' },
+        { label: 'Admins del panel', href: lp('/panel/admins'), icon: 'shield' },
         {
           label: 'Django Admin',
           href: '/admin/',

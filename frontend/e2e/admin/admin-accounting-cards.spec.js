@@ -76,7 +76,7 @@ function buildHandler({ rows, calls }) {
 async function gotoCards(page) {
   await page.goto('/panel/accounting/cards', { waitUntil: 'domcontentloaded' });
   await expect(
-    page.getByRole('heading', { name: 'Tarjetas' }),
+    page.getByRole('heading', { name: 'Tarjetas', exact: true }),
   ).toBeVisible({ timeout: 25_000 });
 }
 

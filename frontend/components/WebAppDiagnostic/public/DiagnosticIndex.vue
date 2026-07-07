@@ -2,10 +2,14 @@
   <div class="diagnostic-index fixed left-0 top-0 z-50 pointer-events-none">
     <button
       data-testid="diagnostic-index-toggle"
+      :aria-label="isOpen ? 'Cerrar índice de secciones' : 'Abrir índice de secciones'"
+      :aria-expanded="isOpen"
+      aria-controls="diagnostic-index-panel"
       class="index-toggle absolute left-4 top-4 z-50 pointer-events-auto
-             w-10 h-10 rounded-full
+             w-11 h-11 rounded-full
+             focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring
              bg-surface dark:bg-primary-strong shadow-lg
-             border border-input-border/10 dark:border-input-border/25
+             border border-input-border dark:border-input-border
              flex items-center justify-center
              text-text-brand dark:text-text-brand
              hover:bg-primary/5 dark:hover:bg-primary/80
@@ -29,12 +33,13 @@
     </Transition>
 
     <nav
+      id="diagnostic-index-panel"
       data-testid="diagnostic-index-panel"
       class="index-panel z-[9999]
              bg-surface/95 dark:bg-primary/95 backdrop-blur-md overflow-y-auto transition-all duration-300
              fixed inset-0 py-4 px-4
              sm:relative sm:inset-auto sm:ml-3 sm:py-4 sm:px-3 sm:mt-[50vh] sm:-translate-y-1/2
-             sm:rounded-2xl sm:shadow-xl sm:border sm:border-border-muted dark:sm:border-input-border/15
+             sm:rounded-2xl sm:shadow-xl sm:border sm:border-border-muted dark:sm:border-input-border
              sm:max-h-[80vh]"
       :class="isOpen ? 'pointer-events-auto' : 'pointer-events-none translate-x-[-120%]'"
     >
@@ -42,7 +47,7 @@
         class="sm:hidden absolute left-4 top-4 z-10
                w-10 h-10 rounded-full
                bg-surface dark:bg-primary-strong shadow-lg
-               border border-input-border/10 dark:border-input-border/25
+               border border-input-border dark:border-input-border
                flex items-center justify-center
                text-text-brand dark:text-text-brand
                hover:bg-primary/5 dark:hover:bg-primary/80
@@ -66,8 +71,8 @@
           <button
             class="w-full text-left px-2.5 py-2 sm:py-1.5 rounded-xl text-sm transition-all duration-200 flex items-center gap-2"
             :class="idx === currentIndex
-              ? 'bg-primary/5 dark:bg-primary-soft/10 text-text-brand dark:text-text-brand font-medium'
-              : 'text-text-muted dark:text-text-brand/60 hover:text-text-default dark:hover:text-text-brand hover:bg-gray-50 dark:hover:bg-primary-soft/5'"
+              ? 'bg-primary/5 dark:bg-primary-soft text-text-brand dark:text-text-brand font-medium'
+              : 'text-text-muted dark:text-text-brand/60 hover:text-text-default dark:hover:text-text-brand hover:bg-surface-muted dark:hover:bg-primary-soft'"
             @click="$emit('navigate', idx); isOpen = false"
           >
             <span
@@ -75,8 +80,8 @@
               :class="idx === currentIndex
                 ? 'bg-primary text-accent dark:bg-accent-soft dark:text-text-brand'
                 : visitedIds.has(section.id)
-                  ? 'bg-primary/10 dark:bg-primary-soft/15 text-text-brand dark:text-text-brand'
-                  : 'bg-gray-200 dark:bg-primary-soft/10 text-text-muted dark:text-text-brand/60 group-hover:bg-gray-300 dark:group-hover:bg-primary-soft/20'"
+                  ? 'bg-primary/10 dark:bg-primary-soft text-text-brand dark:text-text-brand'
+                  : 'bg-gray-200 dark:bg-primary-soft text-text-muted dark:text-text-brand/60 group-hover:bg-surface-raised dark:group-hover:bg-primary-soft'"
             >
               <svg
                 v-if="visitedIds.has(section.id) && idx !== currentIndex"

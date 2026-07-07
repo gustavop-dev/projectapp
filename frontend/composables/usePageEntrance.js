@@ -1,5 +1,6 @@
 import { onMounted, nextTick } from 'vue';
 import { gsap } from 'gsap';
+import { useReducedMotion } from '~/composables/useReducedMotion';
 
 /**
  * Composable for staggered page entrance animations.
@@ -13,7 +14,12 @@ import { gsap } from 'gsap';
  *   // then in template: <h1 data-enter>Title</h1> <p data-enter>Subtitle</p>
  */
 export function usePageEntrance(containerSelector = null) {
+  const { reducedMotion } = useReducedMotion();
+
   onMounted(() => {
+    // Skip entirely under prefers-reduced-motion: returning before any
+    // gsap.set() keeps the content visible instead of stuck at opacity 0.
+    if (reducedMotion.value) return;
     nextTick(() => {
       // Small delay to let the page transition finish first
       setTimeout(() => {

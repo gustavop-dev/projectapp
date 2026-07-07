@@ -58,7 +58,9 @@ test.describe('Admin Proposal List', () => {
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByRole('heading', { name: 'Propuestas' })).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByRole('link', { name: /nueva propuesta/i })).toBeVisible();
+    // Scope to the page's create button; the Spanish sidebar also has a
+    // 'Nueva propuesta' link (lowercase p), so match the exact button name.
+    await expect(page.getByRole('link', { name: 'Nueva Propuesta', exact: true })).toBeVisible();
   });
 
   test('shows client name and phone in table row', {

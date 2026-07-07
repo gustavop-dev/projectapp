@@ -1,6 +1,6 @@
 {
-  "version": "2.39.0",
-  "lastUpdated": "2026-07-04",
+  "version": "2.42.0",
+  "lastUpdated": "2026-07-07",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1612,7 +1612,7 @@
         "admin"
       ],
       "priority": "P4",
-      "description": "Open the panel route inventory, filter grouped views, and copy route references for support and QA communication.",
+      "description": "Open the panel route inventory, filter grouped views, and copy route references for support and QA communication. Includes the interactive map mode: Lista/Mapa toggle, module cards with stats, drill-down into curated sub-modules, and deep-linking via ?viewMode=map&module=<id>.",
       "expectedSpecs": 1
     },
     "public-landing-software": {
@@ -2015,7 +2015,7 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Admin sends the initial-phase diagnostic from the edit page via 'Enviar envío inicial' — POST /api/diagnostics/:id/send-initial/, stamps `initial_sent_at`, status moves DRAFT → SENT. Public view then exposes only sections with visibility ∈ {initial, both}. The follow-up SENT → NEGOTIATING transition is its own flow (`admin-diagnostic-mark-in-analysis`).",
+      "description": "Admin sends the initial-phase diagnostic from the edit page via 'Enviar envío inicial' — POST /api/diagnostics/:id/send-initial/, stamps `initial_sent_at`, status moves DRAFT → SENT. Public view then exposes only sections with visibility ∈ {initial, both}. The follow-up SENT → NEGOTIATING transition is its own flow (`admin-diagnostic-mark-in-analysis`). Since the Jul 2026 UX redesign the send opens a pre-send scorecard modal (GET /api/diagnostics/:id/scorecard/): blockers disable the send button and the backend refuses to transition while blockers remain (400 scorecard_blockers).",
       "expectedSpecs": 1
     },
     "admin-diagnostic-mark-in-analysis": {
@@ -2035,7 +2035,7 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Admin sends the final-phase diagnostic from NEGOTIATING via 'Enviar diagnóstico final' (SENT again, final_sent_at stamped). Public view now also exposes sections with visibility ∈ {final}.",
+      "description": "Admin sends the final-phase diagnostic from NEGOTIATING via 'Enviar diagnóstico final' (SENT again, final_sent_at stamped). Public view now also exposes sections with visibility ∈ {final}. Gated by the same pre-send scorecard modal as send-initial.",
       "expectedSpecs": 2
     },
     "diagnostic-public-view": {
@@ -2045,7 +2045,7 @@
         "guest"
       ],
       "priority": "P1",
-      "description": "Client accesses the public diagnostic page via UUID link and navigates the JSON-driven section components (Purpose/Radiography/Categories/DeliveryStructure/ExecutiveSummary/Cost/Timeline/Scope). Initial-phase view hides `final`-only sections. Per-section dwell time is tracked via /api/diagnostics/public/<uuid>/track-section/. Accept/Reject is a separate flow (`diagnostic-public-respond`).",
+      "description": "Client accesses the public diagnostic page via UUID link and navigates the JSON-driven section components (Purpose/Radiography/Categories/DeliveryStructure/ExecutiveSummary/Cost/Timeline/Scope). Initial-phase view hides `final`-only sections. Per-section dwell time is tracked via /api/diagnostics/public/<uuid>/track-section/. Accept/Reject is a separate flow (`diagnostic-public-respond`). Since the Jul 2026 redesign the page opens with a personalized cover ('Comenzar recorrido' starts the tour) and sections swap with a directional slide.",
       "expectedSpecs": 2
     },
     "diagnostic-public-respond": {
@@ -2055,7 +2055,7 @@
         "guest"
       ],
       "priority": "P1",
-      "description": "On a final-phase SENT public diagnostic, the client clicks 'Aceptar propuesta' or 'Rechazar' in the footer — POST /api/diagnostics/public/<uuid>/respond/ with `decision` ('accept'|'reject'), the page swaps to the acceptance/rejection confirmation footer, and the backend transitions the diagnostic to ACCEPTED or REJECTED.",
+      "description": "On a final-phase SENT public diagnostic, the client clicks 'Aceptar propuesta' or 'Rechazar' in the footer — POST /api/diagnostics/public/<uuid>/respond/ with `decision` ('accept'|'reject'), the page swaps to the acceptance/rejection confirmation footer, and the backend transitions the diagnostic to ACCEPTED or REJECTED. The CTA only appears on the last section (or once the cost section was visited) and asks for confirmation before POSTing, with an explicit sending state.",
       "expectedSpecs": 1
     },
     "diagnostic-public-pdf-download": {
@@ -2606,6 +2606,26 @@
       "description": "Superuser exports accounting data: every list view has an Exportar dropdown (CSV / Excel .xlsx) that calls GET /api/accounting/export/ with the active filters mapped to server query params, and the dashboard has an Exportar Excel button that downloads the full workbook (summary sheet + one sheet per section) from /api/accounting/export/workbook/?year=.",
       "expectedSpecs": 1
     },
+    "admin-accounting-list-error-retry": {
+      "name": "Admin Accounting Lists — Load Error & Retry",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "When a GET /api/accounting/<entity>/ (or dashboard/, change-logs/, settings/) fails, the page replaces the table/summary with AccountingErrorState (data-testid=accounting-error-retry): a Spanish danger alert plus a Reintentar button that re-fires the page's load function. CRUD errors keep using toasts and never hide the table. Mirrors admin-diagnostic-list-error-retry.",
+      "expectedSpecs": 1
+    },
+    "admin-accounting-empty-state-cta": {
+      "name": "Admin Accounting Lists — Empty State CTA",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P4",
+      "description": "With zero records, accounting lists render BaseEmptyState with a primary 'Nuevo <entidad>' action that opens the create modal; with active filters and zero matches the action becomes 'Limpiar filtros' and resets the filter panel.",
+      "expectedSpecs": 1
+    },
     "admin-proposal-discount-offer-send": {
       "name": "Admin Proposal Discount Offer Send",
       "module": "admin",
@@ -2671,6 +2691,26 @@
       "knownGaps": [
         "Scheduled auto-publish is a server-side Huey task — covered by backend tests, not browser E2E"
       ]
+    },
+    "admin-diagnostic-list-error-retry": {
+      "name": "Admin Diagnostic List — Load Error & Retry",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "When GET /api/diagnostics/ fails, the list page shows a dedicated error state (data-testid=diagnostics-error-state) with the normalized Spanish error message and a 'Reintentar' button that re-fires the fetch; an error notification is also raised via usePanelNotify. Distinct from the empty state. Covered by e2e/admin/admin-diagnostic-list-error-retry.spec.js.",
+      "expectedSpecs": 1
+    },
+    "admin-diagnostic-bulk-actions": {
+      "name": "Admin Diagnostic Bulk Actions",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin selects diagnostics via row/header checkboxes in /panel/diagnostics; a batch bar appears with 'Finalizar aceptados' and 'Eliminar' (confirm modal), calling POST /api/diagnostics/bulk-action/ with {ids, action} and refreshing the list with a result notification. Covered by e2e/admin/admin-diagnostic-bulk-actions.spec.js.",
+      "expectedSpecs": 1
     },
     "admin-proposal-section-dirty-guard": {
       "name": "Admin Proposal Section Dirty Guard",

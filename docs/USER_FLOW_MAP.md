@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.29.0
-> **Last updated:** 2026-04-20
+> **Version:** 2.31.0
+> **Last updated:** 2026-07-07
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -4089,12 +4089,14 @@ No active browser flow is registered for client profile editing at this time.
 - **Role:** admin
 - **Priority:** P4
 - **Routes:** `/panel/views`
-- **Description:** Admin opens the panel route inventory page, searches grouped browser views by name/URL/file, and copies route references for QA or support communication.
+- **Description:** Admin opens the panel route inventory page, searches grouped browser views by name/URL/file, and copies route references for QA or support communication. A second interactive "Mapa" mode shows module cards with stats and drills down into curated sub-modules, with deep-linking via `?viewMode=map&module=<id>`.
 - **Steps:**
   1. Admin opens `/panel/views` from the Reference section in the panel sidebar.
   2. Grouped route catalog renders with section totals and a proposal reference guide.
   3. Admin searches for a route, view name, or file path to narrow the catalog.
   4. Admin clicks the copy button on a view row and sees copied feedback.
+  5. Admin toggles to "Mapa" mode: module cards render with view counts, sub-module counts and a viewType distribution bar.
+  6. Admin clicks a module card, drills into its sub-modules (badges, open-view links, copy reference), and returns via the breadcrumb; the URL reflects the state for deep-linking.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-view-map.spec.js`
 
@@ -5325,6 +5327,26 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-ads-history-settings.spec.js`
 
+### FLOW: `admin-accounting-list-error-retry`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P3
+- **Routes:** `/panel/accounting/*` (all subviews)
+- **Description:** When a `GET /api/accounting/<entity>/` (or `dashboard/`, `change-logs/`, `settings/`) fails, the page replaces the table/summary with `AccountingErrorState` (`data-testid=accounting-error-retry`): a Spanish danger alert plus a "Reintentar" button that re-fires the page's load function. CRUD errors keep using toasts and never hide the table. Mirrors `admin-diagnostic-list-error-retry`.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
+### FLOW: `admin-accounting-empty-state-cta`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P4
+- **Routes:** `/panel/accounting/*` (list subviews)
+- **Description:** With zero records, lists render `BaseEmptyState` with a primary "Nuevo <entidad>" action that opens the create modal; with active filters and zero matches, the action becomes "Limpiar filtros" and resets the filter panel.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
 ### 23.1 Coverage Index
 
 | Flow ID | Module | Role | Priority | Status | Spec |
@@ -5341,6 +5363,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-export` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-export.spec.js` |
 | `admin-accounting-settings` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
 | `admin-accounting-ads` | admin | superuser | P3 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
+| `admin-accounting-list-error-retry` | admin | superuser | P3 | ❌ Missing | — |
+| `admin-accounting-empty-state-cta` | admin | superuser | P4 | ❌ Missing | — |
 
 ---
 
@@ -5532,3 +5556,53 @@ Also registered/updated in this audit and documented in their home sections:
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-linkedin-module.spec.js`
 - **Backend tests:** `content/tests/models/test_linkedin_post.py`, `content/tests/services/test_linkedin_post_service.py`, `content/tests/services/test_linkedin_expiry_service.py`, `content/tests/views/test_linkedin_post_views.py`, `content/tests/views/test_linkedin_post_publish.py`, `content/tests/tasks/test_linkedin_post_publish_guards.py`
+
+
+---
+
+## 19. Diagnostics Phase-1 Hardening Flows (Jul 2026)
+
+> Flow identified during the Jul 6 diagnostics module audit (Phase 1: error
+> handling + feedback). A failed list load used to be indistinguishable from
+> the empty state; the page now renders a dedicated error state with retry.
+
+#### FLOW: `admin-diagnostic-list-error-retry`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-list-error-retry` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P3 |
+| **Status** | ❌ Missing — no E2E spec yet |
+
+**Routes:** `/panel/diagnostics/`
+
+**Description:** When `GET /api/diagnostics/` fails, the list page shows a dedicated error block (`data-testid="diagnostics-error-state"`) with the normalized Spanish error message and a "Reintentar" button that re-fires the fetch. An error notification is also raised via `usePanelNotify`. Distinct from the empty state, which only renders on a successful-but-empty response.
+
+**Steps:**
+1. Admin navigates to `/panel/diagnostics/` while the API is failing (5xx/network).
+2. `GET /api/diagnostics/` rejects; the error block renders instead of the empty state, plus an error toast.
+3. Admin clicks "Reintentar" → the fetch re-fires.
+4. On success the table renders; on repeat failure the error block persists.
+
+
+#### FLOW: `admin-diagnostic-bulk-actions`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-bulk-actions` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ❌ Missing — no E2E spec yet |
+
+**Routes:** `/panel/diagnostics/`
+
+**Description:** Admin selects diagnostics with the row/header checkboxes; a batch bar appears with "Finalizar aceptados" and "Eliminar" (confirm modal) calling `POST /api/diagnostics/bulk-action/` with `{ids, action}`. Delete prunes the rows locally; finish reloads the list. Results are notified via usePanelNotify. Backend covered by `content/tests/views/test_diagnostic_views_gaps.py::TestBulkDiagnosticAction`.
+
+**Steps:**
+1. Admin checks one or more rows (or the header checkbox for the page).
+2. The batch bar shows the selection count and actions.
+3. Admin clicks "Eliminar" (or "Finalizar aceptados") and confirms in the modal.
+4. `POST /api/diagnostics/bulk-action/` fires; the list updates and a notification reports the affected count.

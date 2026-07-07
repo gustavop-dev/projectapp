@@ -313,11 +313,15 @@ describe('ProposalEmailsTab', () => {
     const historyButton = wrapper.findAll('button').find((button) => button.text().includes('carlos@example.com'));
     await historyButton.trigger('click');
     await flushPromises();
-    expect(wrapper.text()).toContain('Primer bloque');
+    // BaseCollapse keeps the body in the DOM; it toggles aria-hidden instead.
+    const collapse = () => wrapper
+      .findAll('[aria-hidden]')
+      .find((node) => node.text().includes('Primer bloque'));
+    expect(collapse().attributes('aria-hidden')).toBe('false');
 
     await historyButton.trigger('click');
     await flushPromises();
-    expect(wrapper.text()).not.toContain('Primer bloque');
+    expect(collapse().attributes('aria-hidden')).toBe('true');
   });
 
   it('renders unknown history status values and blank dates without formatting them', async () => {

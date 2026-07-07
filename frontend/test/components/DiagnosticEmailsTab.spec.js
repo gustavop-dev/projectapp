@@ -343,7 +343,10 @@ describe('DiagnosticEmailsTab', () => {
 
       await expandBtn.trigger('click');
       await flushPromises();
-      expect(wrapper.text()).not.toContain('Esta es la primera sección del correo.');
+      const detailCollapse = wrapper
+        .findAll('[aria-hidden]')
+        .find((node) => node.text().includes('Esta es la primera sección del correo.'));
+      expect(detailCollapse.attributes('aria-hidden')).toBe('true');
     });
   });
 

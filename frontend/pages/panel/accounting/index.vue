@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
-        <h1 class="text-2xl font-light text-text-default">Contabilidad — Resumen</h1>
+        <h1 class="text-2xl font-light text-text-default">Resumen</h1>
         <p class="text-sm text-text-subtle mt-1">
           Panorama financiero anual: ingresos, gastos, utilidades y saldos.
         </p>
@@ -41,46 +41,62 @@
     <AccountingSubnav active="index" />
 
     <!-- Loading -->
-    <div v-if="store.isLoading && !summary" class="text-center py-16 text-text-muted text-sm">
-      Cargando resumen contable...
+    <div v-if="store.isLoading && !summary" class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
+      <AccountingHeroKpi class="lg:col-span-2" label="Utilidad líquida" loading />
+      <div class="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:content-start">
+        <div
+          v-for="n in 4"
+          :key="`kpi-skeleton-${n}`"
+          class="h-24 rounded-xl border border-border-muted bg-surface-raised motion-safe:animate-pulse"
+        />
+      </div>
     </div>
 
     <template v-else-if="summary">
-      <!-- Row 1: totals -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-        <AccountingStatCard
-          label="Ingresos esperados"
-          :value="money(summary.expected_total)"
-        />
-        <AccountingStatCard
-          label="Ingresos líquidos"
-          :value="money(summary.liquid_total)"
-          :sub="receivedPct"
-        />
-        <AccountingStatCard label="Gastos" :value="money(summary.expenses_total)" />
-        <AccountingStatCard
-          label="Bolsillo ProjectApp"
-          :value="money(summary.pocket_balance)"
-          tone="brand"
-        />
-      </div>
-
-      <!-- Row 2: utilities -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-        <AccountingStatCard
-          label="Utilidad esperada"
-          :value="money(summary.expected_utility)"
-          :tone="toneBySign(summary.expected_utility)"
-        />
-        <AccountingStatCard
-          label="Utilidad líquida"
-          :value="money(summary.liquid_utility)"
+      <!-- Row 1: hero utility + side totals -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
+        <AccountingHeroKpi
+          class="lg:col-span-2"
+          data-enter
+          :label="`Utilidad líquida ${summary.year}`"
+          :value="Number(summary.liquid_utility ?? 0)"
           :tone="toneBySign(summary.liquid_utility)"
+          :sub="`Utilidad esperada: ${money(summary.expected_utility)}`"
+          :progress="receivedProgress"
+          :progress-label="receivedProgressLabel"
+          :spark="utilitySpark"
+          :spark-label="`Utilidad mensual de ${summary.year}`"
+          spark-caption="Utilidad por mes"
         />
+        <div
+          class="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:content-start"
+          data-enter
+          style="--enter-delay: 80ms"
+        >
+          <AccountingStatCard
+            label="Ingresos esperados"
+            :value="money(summary.expected_total)"
+          />
+          <AccountingStatCard
+            label="Ingresos líquidos"
+            :value="money(summary.liquid_total)"
+            :sub="receivedPct"
+          />
+          <AccountingStatCard label="Gastos" :value="money(summary.expenses_total)" />
+          <AccountingStatCard
+            label="Bolsillo ProjectApp"
+            :value="money(summary.pocket_balance)"
+            tone="brand"
+          />
+        </div>
       </div>
 
       <!-- Row 3: partners -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+      <div
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6"
+        data-enter
+        style="--enter-delay: 140ms"
+      >
         <div
           v-for="partner in partnerCards"
           :key="partner.key"
@@ -123,7 +139,7 @@
       </div>
 
       <!-- Row 4: monthly table -->
-      <div class="mb-6">
+      <div class="mb-6" data-enter style="--enter-delay: 200ms">
         <h2 class="text-sm font-semibold text-text-subtle uppercase tracking-wider mb-2">
           Detalle mensual {{ summary.year }}
         </h2>
@@ -131,7 +147,7 @@
       </div>
 
       <!-- Row 4.5: evolution charts -->
-      <div class="mb-6">
+      <div class="mb-6" data-enter style="--enter-delay: 260ms">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
           <h2 class="text-sm font-semibold text-text-subtle uppercase tracking-wider">
             Evolución {{ summary.year }}
@@ -170,7 +186,11 @@
       </div>
 
       <!-- Row 5: operative cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+      <div
+        class="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6"
+        data-enter
+        style="--enter-delay: 320ms"
+      >
         <AccountingStatCard
           label="Costo operativo mensual"
           :value="money(summary.recurring_monthly_cost)"
@@ -189,7 +209,12 @@
       </div>
 
       <!-- Card snapshots -->
-      <div v-if="(summary.latest_card_snapshots || []).length > 0" class="mb-6">
+      <div
+        v-if="(summary.latest_card_snapshots || []).length > 0"
+        class="mb-6"
+        data-enter
+        style="--enter-delay: 380ms"
+      >
         <div class="flex items-center justify-between gap-3 mb-2">
           <h2 class="text-sm font-semibold text-text-subtle uppercase tracking-wider">
             Tarjetas
@@ -233,7 +258,15 @@
       </div>
     </template>
 
-    <!-- Empty / error -->
+    <!-- Error -->
+    <AccountingErrorState
+      v-else-if="store.error === 'summary_failed'"
+      title="No se pudo cargar el resumen contable"
+      :retrying="store.isLoading"
+      @retry="loadSummary()"
+    />
+
+    <!-- Empty -->
     <div v-else class="text-center py-16 text-text-subtle text-sm">
       No hay datos del resumen contable para mostrar.
     </div>
@@ -252,6 +285,8 @@
 import { computed, onMounted, ref } from 'vue';
 import { ArrowDownTrayIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
+import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import AccountingHeroKpi from '~/components/accounting/AccountingHeroKpi.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingMonthlyTable from '~/components/accounting/AccountingMonthlyTable.vue';
 import AccountingMonthlyChart from '~/components/accounting/charts/AccountingMonthlyChart.vue';
@@ -299,6 +334,22 @@ const receivedPct = computed(() => {
   if (!expected || expected <= 0) return '';
   return `${Math.round((liquid / expected) * 100)}% recibido`;
 });
+
+const receivedProgress = computed(() => {
+  const expected = Number(summary.value?.expected_total);
+  const liquid = Number(summary.value?.liquid_total);
+  if (!expected || expected <= 0) return null;
+  return (liquid / expected) * 100;
+});
+
+const receivedProgressLabel = computed(() => {
+  if (receivedProgress.value === null) return '';
+  return `${Math.round(receivedProgress.value)}% de lo esperado ya está recibido`;
+});
+
+const utilitySpark = computed(() =>
+  (summary.value?.monthly || []).map((month) => Number(month.utility)),
+);
 
 const partnerCards = computed(() => {
   const partners = summary.value?.partners || {};
@@ -429,3 +480,24 @@ usePanelRefresh(() => {
   loadCardSnapshots();
 });
 </script>
+
+<style scoped>
+/* Staggered fade-up entrance for the dashboard sections. CSS-driven (not
+ * GSAP) because the summary renders async: the animation runs whenever the
+ * section first mounts, with no JS timing involved. */
+@keyframes dashboard-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+[data-enter] {
+  animation: dashboard-enter 0.45s ease-out both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-enter] {
+    animation: none;
+  }
+}
+</style>

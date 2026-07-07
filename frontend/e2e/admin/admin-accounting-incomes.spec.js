@@ -96,7 +96,7 @@ function buildHandler({ rows, calls, createStatus = 201 }) {
 async function gotoIncomes(page) {
   await page.goto('/panel/accounting/incomes', { waitUntil: 'domcontentloaded' });
   await expect(
-    page.getByRole('heading', { name: 'Ingresos' }),
+    page.getByRole('heading', { name: 'Ingresos', exact: true }),
   ).toBeVisible({ timeout: 25_000 });
 }
 

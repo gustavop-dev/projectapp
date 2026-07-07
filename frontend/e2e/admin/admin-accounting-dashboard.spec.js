@@ -120,8 +120,10 @@ test.describe('Admin Accounting Dashboard', () => {
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByRole('heading', { name: 'Contabilidad — Resumen' }),
+      page.getByRole('heading', { name: 'Resumen', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
+    await expect(page.getByTestId('accounting-hero-kpi')).toBeVisible();
+    await expect(page.getByTestId('accounting-hero-value')).toBeVisible();
     await expect(page.getByText('Ingresos esperados')).toBeVisible();
     await expect(page.getByText('$95.238.699 COP')).toBeVisible();
     await expect(page.getByText('$59.516.261 COP')).toBeVisible();
@@ -181,12 +183,12 @@ test.describe('Admin Accounting Dashboard', () => {
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByRole('heading', { name: 'Contabilidad — Resumen' }),
+      page.getByRole('heading', { name: 'Resumen', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
     await page.getByTestId('accounting-subnav-incomes').click();
 
     await expect(page).toHaveURL(/\/panel\/accounting\/incomes/);
-    await expect(page.getByRole('heading', { name: 'Ingresos' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Ingresos', exact: true })).toBeVisible();
   });
 
   test('sidebar shows the Accounting section for superusers', {
@@ -196,10 +198,12 @@ test.describe('Admin Accounting Dashboard', () => {
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByRole('heading', { name: 'Contabilidad — Resumen' }),
+      page.getByRole('heading', { name: 'Resumen', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
     await expect(
-      page.getByRole('link', { name: 'Incomes' }),
+      page
+        .getByRole('navigation', { name: 'Navegación del panel' })
+        .getByRole('link', { name: 'Ingresos' }),
     ).toBeVisible();
   });
 
@@ -210,6 +214,10 @@ test.describe('Admin Accounting Dashboard', () => {
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
 
     await expect(page).toHaveURL(/\/panel\/?$/, { timeout: 25_000 });
-    await expect(page.getByRole('link', { name: 'Incomes' })).toHaveCount(0);
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Navegación del panel' })
+        .getByRole('link', { name: 'Ingresos' }),
+    ).toHaveCount(0);
   });
 });

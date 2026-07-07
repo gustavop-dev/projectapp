@@ -1,5 +1,6 @@
 import { computed } from 'vue';
 import { useDarkMode } from '~/composables/useDarkMode';
+import { useReducedMotion } from '~/composables/useReducedMotion';
 
 /**
  * Chart theming for the accounting ApexCharts.
@@ -27,6 +28,7 @@ const DARK = {
 
 export function useChartTheme() {
   const { isDark } = useDarkMode();
+  const { reducedMotion } = useReducedMotion();
 
   const palette = computed(() => (isDark.value ? DARK : LIGHT));
 
@@ -36,6 +38,10 @@ export function useChartTheme() {
       background: 'transparent',
       toolbar: { show: false },
       zoom: { enabled: false },
+      animations: {
+        enabled: !reducedMotion.value,
+        dynamicAnimation: { enabled: !reducedMotion.value },
+      },
     },
     foreColor: palette.value.text,
     grid: { borderColor: palette.value.grid, strokeDashArray: 3 },

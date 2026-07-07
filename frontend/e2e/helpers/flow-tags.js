@@ -230,6 +230,8 @@ export const PROPOSAL_OG_META_PERSONALIZED = ['@flow:proposal-og-meta-personaliz
 
 // ── Web App Diagnostics ──
 export const ADMIN_DIAGNOSTIC_LIST         = ['@flow:admin-diagnostic-list', '@module:admin', '@priority:P1'];
+export const ADMIN_DIAGNOSTIC_BULK_ACTIONS = ['@flow:admin-diagnostic-bulk-actions', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_LIST_ERROR_RETRY = ['@flow:admin-diagnostic-list-error-retry', '@module:admin', '@priority:P3'];
 export const ADMIN_DIAGNOSTIC_FILTERS      = ['@flow:admin-diagnostic-filters', '@module:admin', '@priority:P2'];
 export const ADMIN_DIAGNOSTIC_CREATE       = ['@flow:admin-diagnostic-create', '@module:admin', '@priority:P1'];
 export const ADMIN_DIAGNOSTIC_SEND_INITIAL = ['@flow:admin-diagnostic-send-initial', '@module:admin', '@priority:P1'];
@@ -332,6 +334,8 @@ export const ADMIN_ACCOUNTING_SETTINGS      = ['@flow:admin-accounting-settings'
 export const ADMIN_ACCOUNTING_ADS           = ['@flow:admin-accounting-ads',           '@module:admin', '@priority:P3'];
 export const ADMIN_ACCOUNTING_CARDS         = ['@flow:admin-accounting-cards',         '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_EXPORT        = ['@flow:admin-accounting-export',        '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_EMPTY_STATE_CTA = ['@flow:admin-accounting-empty-state-cta', '@module:admin', '@priority:P4'];
+export const ADMIN_ACCOUNTING_LIST_ERROR_RETRY = ['@flow:admin-accounting-list-error-retry', '@module:admin', '@priority:P3'];
 
 // ── MCP connectors panel (superuser-only) (Jul 2, 2026) ──
 export const ADMIN_MCPS = ['@flow:admin-mcps', '@module:admin', '@priority:P2'];

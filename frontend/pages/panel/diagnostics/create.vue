@@ -12,63 +12,50 @@
     </header>
 
     <form
-      class="bg-surface rounded-2xl shadow-sm border border-border-muted p-6 space-y-6
-            "
+      class="bg-surface rounded-2xl shadow-sm border border-border-muted p-6 space-y-6"
       @submit.prevent="submit"
     >
-      <div>
-        <label class="block text-sm font-medium text-text-default mb-1">Cliente</label>
+      <BaseFormField
+        label="Cliente"
+        hint="Busca por nombre, email o empresa. Solo clientes existentes pueden recibir un diagnóstico."
+      >
         <ClientAutocomplete
           v-model="selectedClientId"
           placeholder="Buscar cliente por nombre, email o empresa..."
           test-id="diagnostic-client-autocomplete"
           @select="onClientSelected"
         />
-        <p class="text-xs text-text-muted mt-1">
-          Busca por nombre, email o empresa. Solo clientes existentes pueden recibir un diagnóstico.
-        </p>
-      </div>
+      </BaseFormField>
 
-      <div>
-        <label class="block text-sm font-medium text-text-default mb-1">Idioma</label>
-        <select
+      <BaseFormField label="Idioma">
+        <BaseSelect
           v-model="language"
-          class="w-full px-3 py-2 border border-border-default rounded-xl text-sm bg-surface outline-none
-                 focus:ring-1 focus:ring-focus-ring/30 focus:border-focus-ring
-                "
-        >
-          <option value="es">Español</option>
-          <option value="en">English</option>
-        </select>
-      </div>
+          :options="[
+            { value: 'es', label: 'Español' },
+            { value: 'en', label: 'English' },
+          ]"
+        />
+      </BaseFormField>
 
-      <div>
-        <label class="block text-sm font-medium text-text-default mb-1">Título (opcional)</label>
-        <input
+      <BaseFormField label="Título (opcional)">
+        <BaseInput
           v-model="title"
-          type="text"
-          class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-xl text-sm outline-none
-                 focus:ring-1 focus:ring-focus-ring/30 focus:border-focus-ring
-                 placeholder:text-input-placeholder"
           placeholder="Se generará automáticamente si lo dejas vacío"
         />
-      </div>
+      </BaseFormField>
 
-      <div
-        v-if="errorMsg"
-        class="rounded-xl bg-danger-soft border border-danger-strong/30 text-danger-strong px-4 py-3 text-sm"
-      >{{ errorMsg }}</div>
+      <BaseAlert v-if="errorMsg" variant="danger">{{ errorMsg }}</BaseAlert>
 
       <div class="text-right">
-        <button
+        <BaseButton
           type="submit"
-          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl
-                 font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50"
+          variant="primary"
+          :loading="store.isUpdating"
           :disabled="!selectedClientId || store.isUpdating"
           data-testid="diagnostic-submit-btn"
         >
-          {{ store.isUpdating ? 'Creando…' : 'Crear diagnóstico' }}
-        </button>
+          Crear diagnóstico
+        </BaseButton>
       </div>
     </form>
   </div>
@@ -90,11 +77,7 @@ const language = ref('es');
 const title = ref('');
 const errorMsg = ref('');
 
-const BACKEND_ERROR_MESSAGES = {
-  client_id_required: 'Selecciona un cliente antes de continuar.',
-  client_not_found: 'El cliente seleccionado no existe o no tiene rol de cliente.',
-  create_failed: 'No se pudo crear el diagnóstico. Verifica tu sesión e inténtalo de nuevo.',
-};
+const FALLBACK_ERROR = 'No se pudo crear el diagnóstico. Verifica tu sesión e inténtalo de nuevo.';
 
 function onClientSelected(client) {
   errorMsg.value = '';
@@ -107,7 +90,7 @@ function onClientSelected(client) {
 async function submit() {
   errorMsg.value = '';
   if (!selectedClientId.value) {
-    errorMsg.value = BACKEND_ERROR_MESSAGES.client_id_required;
+    errorMsg.value = 'Selecciona un cliente antes de continuar.';
     return;
   }
   const result = await store.create({
@@ -116,7 +99,7 @@ async function submit() {
     title: title.value.trim(),
   });
   if (!result.success) {
-    errorMsg.value = BACKEND_ERROR_MESSAGES[result.error] || result.error || BACKEND_ERROR_MESSAGES.create_failed;
+    errorMsg.value = result.message || FALLBACK_ERROR;
     return;
   }
   router.push(localePath(`/panel/diagnostics/${result.data.id}/edit`));

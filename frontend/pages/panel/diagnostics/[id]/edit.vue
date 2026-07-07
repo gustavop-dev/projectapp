@@ -21,6 +21,67 @@
       @delete="onDelete"
     />
 
+    <!-- Pre-send scorecard -->
+    <BaseModal v-model="scorecardOpen" size="md">
+      <div class="p-6" data-testid="diagnostic-scorecard-modal">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-lg font-semibold text-text-default">
+            {{ scorecardKind === 'final' ? 'Enviar diagnóstico final' : 'Enviar envío inicial' }}
+          </h3>
+          <BaseBadge v-if="scorecard" :variant="scorecard.can_send ? 'success' : 'warning'">
+            {{ scorecard.score }}/10
+          </BaseBadge>
+        </div>
+
+        <div v-if="scorecardLoading" class="py-6 space-y-3">
+          <BaseSkeleton variant="line" class="w-2/3" />
+          <BaseSkeleton variant="line" class="w-1/2" />
+          <BaseSkeleton variant="line" class="w-3/5" />
+        </div>
+
+        <ul v-else-if="scorecard" class="mt-4 space-y-2">
+          <li
+            v-for="check in scorecard.checks"
+            :key="check.key"
+            class="flex items-start gap-2 text-sm"
+          >
+            <span
+              class="mt-0.5 font-semibold"
+              :class="check.passed
+                ? 'text-success-strong'
+                : (check.blocker ? 'text-danger-strong' : 'text-warning-strong')"
+              aria-hidden="true"
+            >{{ check.passed ? '✓' : '✗' }}</span>
+            <span :class="check.passed ? 'text-text-muted' : 'text-text-default'">
+              {{ check.label }}
+              <span
+                v-if="!check.passed && check.blocker"
+                class="ml-1 text-2xs uppercase tracking-wide font-medium text-danger-strong"
+              >bloqueante</span>
+            </span>
+          </li>
+        </ul>
+
+        <BaseAlert v-if="scorecard && !scorecard.can_send" variant="danger" class="mt-4">
+          Completa los ítems bloqueantes antes de enviar al cliente.
+        </BaseAlert>
+
+        <div class="mt-6 flex justify-end gap-2">
+          <BaseButton variant="ghost" size="md" @click="scorecardKind = null">Cancelar</BaseButton>
+          <BaseButton
+            variant="primary"
+            size="md"
+            :loading="scorecardSending"
+            :disabled="!scorecard || !scorecard.can_send"
+            data-testid="scorecard-send-btn"
+            @click="confirmScorecardSend"
+          >
+            {{ scorecardKind === 'final' ? 'Enviar diagnóstico final' : 'Enviar envío inicial' }}
+          </BaseButton>
+        </div>
+      </div>
+    </BaseModal>
+
     <div v-if="store.isLoading && !store.current" class="py-16 text-center text-text-subtle text-sm">
       Cargando…
     </div>
@@ -56,6 +117,11 @@
             ({{ formatInvestment(store.current.investment_amount, store.current.currency) }})
           </span>
           <DiagnosticStatusBadge :status="store.current.status" />
+          <DiagnosticExpirationChip
+            :expires-at="store.current.expires_at"
+            :is-expired="store.current.is_expired"
+            :days-remaining="store.current.days_remaining"
+          />
         </div>
       </div>
 
@@ -63,7 +129,7 @@
       <BaseTabs :tabs="tabs" v-model="activeTab" />
 
       <!-- General -->
-      <section v-if="activeTab === 'general'">
+      <section v-if="activeTab === 'general'" class="tab-panel">
         <TabSplitLayout ratio="3:2">
           <template #aside>
         <!-- Editable slug (URL personalizada) -->
@@ -262,6 +328,14 @@
             <BaseFormField label="Duración (texto)">
               <BaseInput v-model="form.duration_label" type="text" placeholder="Ej: 1 semana" />
             </BaseFormField>
+
+            <BaseFormField label="Vigencia de la propuesta" hint="Se fija automáticamente al primer envío; puedes ajustarla.">
+              <input
+                v-model="form.expires_at"
+                type="datetime-local"
+                class="w-full px-3 py-2 rounded-lg border border-input-border bg-input-bg text-text-default text-sm focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
+              />
+            </BaseFormField>
           </div>
 
           <!-- Sticky action bar -->
@@ -271,11 +345,11 @@
                 type="submit"
                 variant="primary"
                 size="md"
-                :loading="store.isUpdating"
-                :disabled="store.isUpdating"
+                :loading="isSavingGeneral"
+                :disabled="isSavingGeneral"
                 data-testid="diagnostic-edit-submit"
               >
-                {{ store.isUpdating ? 'Guardando...' : 'Guardar Cambios' }}
+                {{ isSavingGeneral ? 'Guardando…' : 'Guardar cambios' }}
               </BaseButton>
 
               <BaseButton
@@ -295,9 +369,15 @@
               <button
                 v-if="nextAction"
                 type="button"
-                :disabled="store.isUpdating"
+                :disabled="isSavingGeneral || scorecardLoading"
                 :data-testid="'diagnostic-next-action-' + nextAction.key"
-                :class="['px-4 sm:px-5 py-2 rounded-xl font-medium text-sm transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 ml-auto', nextAction.colorClass]"
+                :class="[
+                  'inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2 rounded-xl font-medium text-sm shadow-sm ml-auto',
+                  'motion-safe:transition-colors motion-safe:duration-fast',
+                  'focus:outline-none focus:ring-2 focus:ring-focus-ring/40',
+                  'disabled:opacity-60 disabled:cursor-not-allowed',
+                  nextAction.colorClass,
+                ]"
                 @click="handleNextAction"
               >
                 {{ nextAction.label }}
@@ -310,17 +390,17 @@
       </section>
 
       <!-- Correos -->
-      <div v-if="activeTab === 'emails'">
+      <div v-if="activeTab === 'emails'" class="tab-panel">
         <DiagnosticEmailsTab :diagnostic="store.current" />
       </div>
 
       <!-- Documentos (adjuntos) -->
-      <div v-if="activeTab === 'documents'" class="max-w-7xl mx-auto">
+      <div v-if="activeTab === 'documents'" class="tab-panel max-w-screen-2xl mx-auto">
         <DiagnosticDocumentsTab :diagnostic="store.current" />
       </div>
 
       <!-- Secciones (JSON-driven content) -->
-      <section v-if="activeTab === 'sections'" class="max-w-7xl mx-auto">
+      <section v-if="activeTab === 'sections'" class="tab-panel max-w-screen-2xl mx-auto">
         <div v-if="orderedSections.length" class="mb-4 bg-surface rounded-xl shadow-sm border border-border-muted px-5 py-4">
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-semibold text-text-muted uppercase tracking-wider">Completitud de secciones</span>
@@ -330,12 +410,12 @@
           </div>
           <div class="w-full h-2 bg-surface-raised rounded-full overflow-hidden">
             <div
-              class="h-full rounded-full transition-all duration-500"
+              class="h-full rounded-full motion-safe:transition-all motion-safe:duration-slow motion-safe:ease-out-soft"
               :class="sectionCompletenessColor.bar"
               :style="{ width: sectionCompleteness + '%' }"
             />
           </div>
-          <p class="text-[11px] text-text-subtle mt-1.5">
+          <p class="text-2xs text-text-subtle mt-1.5">
             {{ sectionsWithContent }}/{{ enabledSectionsCount }} secciones habilitadas tienen contenido.
           </p>
         </div>
@@ -350,20 +430,22 @@
             :section="section"
             :is-saving="sectionSavingId === section.id"
             :last-saved-at="sectionLastSaved[section.id]"
+            :save-error="sectionSaveErrors[section.id] || ''"
             @update:content="(json) => onSectionContentChange(section, json)"
             @update:section="(meta) => onSectionMetaChange(section, meta)"
             @reset="() => onSectionReset(section)"
+            @retry="() => retrySectionSave(section)"
           />
         </div>
       </section>
 
       <!-- Prompt -->
-      <section v-if="activeTab === 'prompt'" class="max-w-7xl mx-auto">
+      <section v-if="activeTab === 'prompt'" class="tab-panel max-w-screen-2xl mx-auto">
         <DiagnosticPromptPanel />
       </section>
 
       <!-- JSON (export + import) -->
-      <section v-if="activeTab === 'json'" class="max-w-screen-2xl mx-auto">
+      <section v-if="activeTab === 'json'" class="tab-panel max-w-screen-2xl mx-auto">
         <!-- Summary metrics -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-4">
@@ -495,19 +577,15 @@
           </div>
 
           <div v-if="jsonImportParsed && !jsonImportError" class="mt-4 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              :disabled="store.isUpdating"
-              class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl font-medium text-sm
-                     hover:bg-primary-strong transition-all shadow-sm shadow-emerald-100 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-wait"
+            <BaseButton
+              variant="primary"
+              size="md"
+              :loading="isApplyingJson"
+              :disabled="isApplyingJson"
               @click="handleApplyImportJson"
             >
-              <svg v-if="store.isUpdating" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              {{ store.isUpdating ? 'Aplicando...' : 'Aplicar JSON' }}
-            </button>
+              {{ isApplyingJson ? 'Aplicando…' : 'Aplicar JSON' }}
+            </BaseButton>
             <p class="text-xs text-text-subtle">Esto reemplazará la metadata y todas las secciones del diagnóstico.</p>
           </div>
 
@@ -520,7 +598,7 @@
       </section>
 
       <!-- Actividad -->
-      <div v-if="activeTab === 'activity'" class="max-w-5xl mx-auto">
+      <div v-if="activeTab === 'activity'" class="tab-panel max-w-screen-2xl mx-auto">
         <DiagnosticActivityTab
           :diagnostic="store.current"
           @log="onLogActivity"
@@ -528,9 +606,10 @@
       </div>
 
       <!-- Analytics -->
-      <div v-if="activeTab === 'analytics'" class="max-w-screen-2xl mx-auto">
+      <div v-if="activeTab === 'analytics'" class="tab-panel max-w-screen-2xl mx-auto">
         <DiagnosticAnalytics
           :diagnostic-id="id"
+          :diagnostic="store.current"
           :loader="() => store.fetchAnalytics(id)"
         />
       </div>
@@ -541,8 +620,9 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, onUnmounted } from 'vue';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
-import { DIAGNOSTIC_STATUS } from '~/stores/diagnostics_constants';
+import { DIAGNOSTIC_STATUS, DIAGNOSTIC_ANALYTICS_THRESHOLDS } from '~/stores/diagnostics_constants';
 import DiagnosticStatusBadge from '~/components/WebAppDiagnostic/DiagnosticStatusBadge.vue';
+import DiagnosticExpirationChip from '~/components/WebAppDiagnostic/DiagnosticExpirationChip.vue';
 import DiagnosticSectionEditor from '~/components/WebAppDiagnostic/admin/DiagnosticSectionEditor.vue';
 import DiagnosticPromptPanel from '~/components/WebAppDiagnostic/admin/DiagnosticPromptPanel.vue';
 import DiagnosticActivityTab from '~/components/WebAppDiagnostic/admin/DiagnosticActivityTab.vue';
@@ -607,7 +687,7 @@ const tabs = computed(() => {
   if (hasDocumentsTab.value) base.push({ id: 'documents', label: 'Documentos' });
   base.push(
     { id: 'sections',  label: 'Secciones' },
-    { id: 'prompt',    label: 'Prompt Diagnostic' },
+    { id: 'prompt',    label: 'Prompt diagnóstico' },
     { id: 'json',      label: 'JSON' },
     { id: 'activity',  label: 'Actividad' },
     { id: 'analytics', label: 'Analytics' },
@@ -721,6 +801,7 @@ const form = reactive({
   payment_initial_pct: null,
   payment_final_pct: null,
   duration_label: '',
+  expires_at: '',
 });
 
 const showActionsModal = ref(false);
@@ -769,7 +850,11 @@ function syncFormGeneral() {
   form.payment_initial_pct = pt.initial_pct ?? null;
   form.payment_final_pct = pt.final_pct ?? null;
   form.duration_label = c.duration_label || '';
+  // datetime-local wants "YYYY-MM-DDTHH:mm" (no seconds/zone)
+  form.expires_at = c.expires_at ? c.expires_at.slice(0, 16) : '';
 }
+
+const isSavingGeneral = ref(false);
 
 async function handleUpdate() {
   const payload = {
@@ -782,6 +867,7 @@ async function handleUpdate() {
       final_pct: pctOrNull(form.payment_final_pct),
     },
     duration_label: form.duration_label,
+    expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
     client_name: form.client_name,
     client_email: form.client_email,
     client_phone: form.client_phone,
@@ -791,15 +877,21 @@ async function handleUpdate() {
   if (form.client_id && form.client_id !== store.current?.client?.id) {
     payload.client_id = form.client_id;
   }
-  const result = await store.update(id.value, payload);
-  showToast(
-    result.success ? 'Diagnóstico actualizado.' : (result.error || 'Error al actualizar.'),
-    result.success ? 'success' : 'error',
-  );
+  isSavingGeneral.value = true;
+  try {
+    const result = await store.update(id.value, payload);
+    notifyResult(result, 'Diagnóstico actualizado.', 'Error al actualizar.');
+  } finally {
+    isSavingGeneral.value = false;
+  }
 }
 
-function showToast(message, type) {
-  notify.push({ type, title: message });
+function notifyResult(result, successTitle, failTitle) {
+  if (result?.success) {
+    notify.success(successTitle);
+  } else {
+    notify.error({ title: result?.message || failTitle, detail: result?.hint || '' });
+  }
 }
 
 watch(() => store.current?.id, syncFormGeneral, { immediate: true });
@@ -852,8 +944,9 @@ const sectionCompleteness = computed(() =>
 );
 const sectionCompletenessColor = computed(() => {
   const pct = sectionCompleteness.value;
-  if (pct >= 80) return { text: 'text-text-brand', bar: 'bg-primary' };
-  if (pct >= 50) return { text: 'text-warning-strong', bar: 'bg-warning-strong' };
+  const { GOOD, WARN } = DIAGNOSTIC_ANALYTICS_THRESHOLDS.COVERAGE;
+  if (pct >= GOOD) return { text: 'text-text-brand', bar: 'bg-primary' };
+  if (pct >= WARN) return { text: 'text-warning-strong', bar: 'bg-warning-strong' };
   return { text: 'text-danger-strong', bar: 'bg-danger-strong' };
 });
 
@@ -861,23 +954,41 @@ const sectionSavingId = ref(null);
 const sectionLastSaved = reactive({});
 const sectionTimers = new Map();
 
+const sectionSaveErrors = reactive({});
+const sectionPendingPayload = new Map();
+
 function scheduleSectionUpdate(sectionId, payload, delay = 600) {
+  // Merge with any in-flight payload so a quick meta change does not drop
+  // a pending content change (both share the same debounce slot).
+  sectionPendingPayload.set(sectionId, {
+    ...(sectionPendingPayload.get(sectionId) || {}),
+    ...payload,
+  });
   const existing = sectionTimers.get(sectionId);
   if (existing) clearTimeout(existing);
   sectionTimers.set(sectionId, setTimeout(async () => {
     sectionTimers.delete(sectionId);
     sectionSavingId.value = sectionId;
+    const merged = sectionPendingPayload.get(sectionId);
     try {
-      const res = await store.updateSection(id.value, sectionId, payload);
+      const res = await store.updateSection(id.value, sectionId, merged);
       if (res.success) {
         sectionLastSaved[sectionId] = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        delete sectionSaveErrors[sectionId];
+        sectionPendingPayload.delete(sectionId);
       } else {
-        showToast(res.error || 'Error al guardar la sección.', 'error');
+        sectionSaveErrors[sectionId] = res.message || 'Error al guardar la sección.';
       }
     } finally {
       sectionSavingId.value = null;
     }
   }, delay));
+}
+
+function retrySectionSave(section) {
+  if (sectionPendingPayload.has(section.id)) {
+    scheduleSectionUpdate(section.id, {}, 0);
+  }
 }
 
 function onSectionContentChange(section, contentJson) {
@@ -894,7 +1005,7 @@ async function onSectionReset(section) {
     confirmText: 'Restaurar',
     onConfirm: async () => {
       const r = await store.resetSection(id.value, section.id);
-      showToast(r?.success ? 'Sección restaurada.' : (r?.error || 'Error.'), r?.success ? 'success' : 'error');
+      notifyResult(r, 'Sección restaurada.', 'No se pudo restaurar la sección.');
     },
   });
 }
@@ -1058,9 +1169,20 @@ function handleJsonFileUpload(event) {
   event.target.value = '';
 }
 
+const isApplyingJson = ref(false);
+
 async function handleApplyImportJson() {
-  if (!jsonImportParsed.value) return;
+  if (!jsonImportParsed.value || isApplyingJson.value) return;
   jsonImportMsg.value = null;
+  isApplyingJson.value = true;
+  try {
+    await _applyImportJson();
+  } finally {
+    isApplyingJson.value = false;
+  }
+}
+
+async function _applyImportJson() {
   const { metadata = {}, sections = [] } = jsonImportParsed.value;
 
   const metaPayload = {};
@@ -1106,21 +1228,54 @@ async function handleApplyImportJson() {
 // ── Activity ──────────────────────────────────────────────────────────
 async function onLogActivity(payload) {
   const r = await store.logActivity(id.value, payload.change_type, payload.description);
-  showToast(r.success ? 'Actividad registrada.' : (r.error || 'Error al registrar.'), r.success ? 'success' : 'error');
+  notifyResult(r, 'Actividad registrada.', 'Error al registrar.');
 }
 
 // ── Transitions ───────────────────────────────────────────────────────
+const scorecard = ref(null);
+const scorecardKind = ref(null); // 'initial' | 'final'
+const scorecardLoading = ref(false);
+const scorecardSending = ref(false);
+const scorecardOpen = computed({
+  get: () => scorecardKind.value !== null,
+  set: (open) => { if (!open) scorecardKind.value = null; },
+});
+
+async function openSendFlow(kind) {
+  scorecardKind.value = kind;
+  scorecardLoading.value = true;
+  scorecard.value = null;
+  const r = await store.fetchScorecard(id.value);
+  scorecardLoading.value = false;
+  if (r?.success) {
+    scorecard.value = r.data;
+  } else {
+    scorecardKind.value = null;
+    notify.error({ title: r?.message || 'No se pudo cargar el scorecard.', detail: r?.hint || '' });
+  }
+}
+
+async function confirmScorecardSend() {
+  const kind = scorecardKind.value;
+  if (!kind) return;
+  scorecardSending.value = true;
+  try {
+    const r = kind === 'final'
+      ? await store.sendFinal(id.value)
+      : await store.sendInitial(id.value);
+    notifyResult(
+      r,
+      kind === 'final' ? 'Diagnóstico final enviado.' : 'Envío inicial entregado.',
+      'Error al enviar.',
+    );
+    if (r?.success) scorecardKind.value = null;
+  } finally {
+    scorecardSending.value = false;
+  }
+}
+
 function onSendInitial() {
-  requestConfirm({
-    title: 'Enviar envío inicial',
-    message: '¿Enviar el envío inicial al cliente por email y marcar el diagnóstico como «Enviado»?',
-    variant: 'info',
-    confirmText: 'Enviar',
-    onConfirm: async () => {
-      const r = await store.sendInitial(id.value);
-      showToast(r.success ? 'Envío inicial entregado.' : (r.message || r.error || 'Error al enviar.'), r.success ? 'success' : 'error');
-    },
-  });
+  openSendFlow('initial');
 }
 
 function onMarkAnalysis() {
@@ -1131,22 +1286,13 @@ function onMarkAnalysis() {
     confirmText: 'Confirmar',
     onConfirm: async () => {
       const r = await store.markInAnalysis(id.value);
-      showToast(r.success ? 'Diagnóstico en negociación.' : (r.message || r.error || 'Error.'), r.success ? 'success' : 'error');
+      notifyResult(r, 'Diagnóstico en negociación.', 'No se pudo cambiar el estado.');
     },
   });
 }
 
 function onSendFinal() {
-  requestConfirm({
-    title: 'Enviar diagnóstico final',
-    message: '¿Enviar el diagnóstico final al cliente?',
-    variant: 'info',
-    confirmText: 'Enviar',
-    onConfirm: async () => {
-      const r = await store.sendFinal(id.value);
-      showToast(r.success ? 'Diagnóstico final enviado.' : (r.message || r.error || 'Error al enviar.'), r.success ? 'success' : 'error');
-    },
-  });
+  openSendFlow('final');
 }
 
 function onDelete() {
@@ -1160,7 +1306,7 @@ function onDelete() {
       if (r?.success) {
         router.push(localePath('/panel/diagnostics'));
       } else {
-        showToast(r?.error || 'Error al eliminar.', 'error');
+        notify.error({ title: r?.message || 'Error al eliminar.', detail: r?.hint || '' });
       }
     },
   });
@@ -1173,3 +1319,16 @@ onUnmounted(() => {
   if (jsonCopiedTimer) clearTimeout(jsonCopiedTimer);
 });
 </script>
+
+<style scoped>
+@keyframes tab-panel-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tab-panel {
+  animation: tab-panel-in 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-panel { animation: none; }
+}
+</style>

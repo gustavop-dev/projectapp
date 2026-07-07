@@ -157,7 +157,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     await page.goto('/panel/accounting/ads', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByRole('heading', { name: 'Contabilidad — Ads' }),
+      page.getByRole('heading', { name: 'Ads', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
     await expect(
@@ -172,7 +172,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     await mockApi(page, buildHandler({ calls }));
     await page.goto('/panel/accounting/ads', { waitUntil: 'domcontentloaded' });
     await expect(
-      page.getByRole('heading', { name: 'Contabilidad — Ads' }),
+      page.getByRole('heading', { name: 'Ads', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
 
     await page.getByTestId('ads-new-button').click();
@@ -195,7 +195,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     await page.goto('/panel/accounting/history', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByRole('heading', { name: 'Contabilidad — Historial' }),
+      page.getByRole('heading', { name: 'Historial', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
     await expect(page.getByTestId('changelog-row-1')).toBeVisible();
 
@@ -240,7 +240,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByRole('heading', { name: 'Contabilidad — Configuración' }),
+      page.getByRole('heading', { name: 'Configuración', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
     await expect(page.getByTestId('settings-recipient-input-0')).toHaveValue(
       'gustavo@projectapp.co',

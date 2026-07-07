@@ -582,12 +582,21 @@ def diag_client_profile(db):
 
 @pytest.fixture
 def diagnostic(db, diag_client_profile):
-    """A WebAppDiagnostic with a populated client_name."""
+    """A send-ready WebAppDiagnostic (passes the pre-send scorecard gate)."""
     from content.services import diagnostic_service
 
     diag = diagnostic_service.create_diagnostic(
         client=diag_client_profile, language='es',
     )
     diag.client_name = 'Ana Cliente'
-    diag.save(update_fields=['client_name'])
+    diag.client_email = 'ana@example.com'
+    diag.investment_amount = 1_000_000
+    diag.radiography = {
+        'stack': {'backend': {'framework': 'Django'}, 'frontend': {'framework': 'Vue'}},
+        'modules': ['Auth', 'Reports'],
+        'entities_count': 12,
+    }
+    diag.save(update_fields=[
+        'client_name', 'client_email', 'investment_amount', 'radiography',
+    ])
     return diag

@@ -13,23 +13,68 @@
     />
 
     <div class="max-w-4xl mx-auto">
-      <div v-if="store.isLoading" class="text-center text-text-brand/60 dark:text-text-brand/60">Cargando…</div>
+      <div v-if="store.isLoading" class="diagnostic-card bg-surface rounded-3xl border border-input-border p-8 space-y-4" aria-busy="true">
+        <div class="h-6 w-2/3 rounded bg-surface-raised motion-safe:animate-pulse" />
+        <div class="h-3 w-full rounded bg-surface-raised motion-safe:animate-pulse" />
+        <div class="h-3 w-5/6 rounded bg-surface-raised motion-safe:animate-pulse" />
+        <div class="h-3 w-4/6 rounded bg-surface-raised motion-safe:animate-pulse" />
+      </div>
 
       <div v-else-if="store.error === 'not_found'" class="text-center py-16">
-        <p class="text-rose-600 dark:text-rose-300">Diagnóstico no encontrado.</p>
+        <p class="text-danger-strong">{{ chrome.notFound }}</p>
+      </div>
+
+      <div
+        v-else-if="store.error"
+        class="diagnostic-card bg-surface rounded-3xl border border-input-border p-8 text-center"
+        data-testid="diagnostic-public-error"
+      >
+        <p class="text-text-default font-medium">{{ chrome.loadErrorTitle }}</p>
+        <p class="text-sm text-text-muted mt-2">{{ chrome.loadErrorHint }}</p>
+        <button
+          type="button"
+          class="mt-6 px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary-strong font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2"
+          @click="reloadPublic"
+        >{{ chrome.retry }}</button>
       </div>
 
       <template v-else-if="store.current">
+        <!-- Cover: the "made for you" moment -->
         <article
-          v-if="sections.length"
-          class="diagnostic-card bg-surface rounded-3xl shadow-[0_6px_30px_-12px_rgba(0,41,33,0.25)] dark:shadow-[0_6px_30px_-12px_rgba(0,0,0,0.5)] border border-input-border dark:border-input-border p-6 md:p-12 mb-6 text-text-default"
+          v-if="showCover"
+          class="diagnostic-card bg-surface rounded-3xl shadow-[0_6px_30px_-12px_rgba(0,41,33,0.25)] dark:shadow-[0_6px_30px_-12px_rgba(0,0,0,0.5)] border border-input-border p-8 md:p-16 mb-6 text-center"
+          data-testid="diagnostic-cover"
         >
-          <component
-            :is="componentFor(activeSection.section_type)"
-            :content="activeContent"
-            :diagnostic="store.current"
-            :render-context="store.current.render_context || {}"
-          />
+          <p class="text-xs uppercase tracking-[0.25em] text-text-brand/70">{{ chrome.coverKicker }}</p>
+          <h1 class="text-3xl md:text-4xl font-semibold text-text-default mt-4">
+            {{ store.current.title || chrome.coverFallbackTitle }}
+          </h1>
+          <p v-if="store.current.client_name" class="mt-4 text-text-muted">
+            {{ chrome.preparedFor }} <strong class="text-text-default">{{ store.current.client_name }}</strong>
+          </p>
+          <p v-if="coverDate" class="text-sm text-text-brand/60 mt-1">{{ coverDate }}</p>
+          <button
+            type="button"
+            data-testid="diagnostic-start-journey"
+            class="mt-10 px-8 py-3 bg-primary dark:bg-accent text-accent dark:text-primary rounded-xl hover:bg-primary-strong dark:hover:bg-accent/90 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 motion-safe:transition-colors"
+            @click="startJourney"
+          >{{ chrome.start }} →</button>
+          <p class="text-2xs text-text-brand/50 mt-8 uppercase tracking-widest">ProjectApp</p>
+        </article>
+
+        <article
+          v-else-if="sections.length"
+          class="diagnostic-card bg-surface rounded-3xl shadow-[0_6px_30px_-12px_rgba(0,41,33,0.25)] dark:shadow-[0_6px_30px_-12px_rgba(0,0,0,0.5)] border border-input-border dark:border-input-border p-6 md:p-12 mb-6 text-text-default overflow-hidden"
+        >
+          <Transition :name="navDirection === 'back' ? 'section-slide-back' : 'section-slide'" mode="out-in">
+            <component
+              :is="componentFor(activeSection.section_type)"
+              :key="activeIndex"
+              :content="activeContent"
+              :diagnostic="store.current"
+              :render-context="store.current.render_context || {}"
+            />
+          </Transition>
         </article>
 
         <div
@@ -41,42 +86,74 @@
         </div>
 
         <!-- Prev / next -->
-        <div v-if="sections.length > 1" class="section-nav flex justify-between items-center mb-8">
+        <div v-if="!showCover && sections.length > 1" class="section-nav flex justify-between items-center mb-8">
           <button
-            class="px-4 py-2 text-sm rounded-lg border border-input-border dark:border-input-border text-text-brand/80 dark:text-text-brand/80 hover:bg-primary/5 dark:hover:bg-primary-soft disabled:opacity-30"
+            class="px-4 py-2 text-sm rounded-lg border border-input-border dark:border-input-border text-text-brand/80 dark:text-text-brand/80 hover:bg-primary/5 dark:hover:bg-primary-soft disabled:opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             :disabled="activeIndex === 0"
             @click="selectSection(activeIndex - 1)"
-          >← Anterior</button>
-          <span class="section-counter text-xs text-text-brand/60 dark:text-text-brand/60">Sección {{ activeIndex + 1 }} de {{ sections.length }}</span>
+          >{{ chrome.prev }}</button>
+          <span class="section-counter text-xs text-text-brand/60 dark:text-text-brand/60">{{ chrome.section }} {{ activeIndex + 1 }} {{ chrome.of }} {{ sections.length }}</span>
           <button
-            class="px-4 py-2 text-sm rounded-lg border border-input-border dark:border-input-border text-text-brand/80 dark:text-text-brand/80 hover:bg-primary/5 dark:hover:bg-primary-soft disabled:opacity-30"
+            class="px-4 py-2 text-sm rounded-lg border border-input-border dark:border-input-border text-text-brand/80 dark:text-text-brand/80 hover:bg-primary/5 dark:hover:bg-primary-soft disabled:opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
             :disabled="activeIndex === sections.length - 1"
             @click="selectSection(activeIndex + 1)"
-          >Siguiente →</button>
+          >{{ chrome.next }}</button>
         </div>
 
         <footer
-          v-if="canRespond"
+          v-if="ctaVisible"
           class="diagnostic-card diagnostic-cta mt-8 bg-surface rounded-3xl border border-input-border dark:border-input-border p-6 text-center shadow-sm"
         >
-          <p class="text-text-default mb-4">¿Quieres avanzar con el diagnóstico?</p>
+          <p class="text-text-default mb-4">{{ chrome.ctaQuestion }}</p>
           <div class="flex justify-center gap-3 flex-wrap">
             <button
-              class="px-6 py-3 bg-primary dark:bg-accent text-accent dark:text-primary rounded-xl hover:bg-primary-strong dark:hover:bg-accent/90 disabled:opacity-50 font-medium"
+              class="px-6 py-3 bg-primary dark:bg-accent text-accent dark:text-primary rounded-xl hover:bg-primary-strong dark:hover:bg-accent/90 disabled:opacity-50 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               :disabled="store.isUpdating"
-              @click="respond('accept')"
-            >Aceptar propuesta</button>
+              @click="askConfirm('accept')"
+            >{{ store.isUpdating && pendingDecision === 'accept' ? chrome.sending : chrome.accept }}</button>
             <button
-              class="px-6 py-3 border border-rose-200 dark:border-rose-400/30 text-rose-600 dark:text-rose-300 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/20 disabled:opacity-50"
+              class="px-6 py-3 border border-danger-strong/30 text-danger-strong rounded-xl hover:bg-danger-soft disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               :disabled="store.isUpdating"
-              @click="respond('reject')"
-            >No por ahora</button>
+              @click="askConfirm('reject')"
+            >{{ store.isUpdating && pendingDecision === 'reject' ? chrome.sending : chrome.reject }}</button>
           </div>
-          <p v-if="responseMsg" class="mt-4 text-sm text-text-brand/70 dark:text-text-brand/70">{{ responseMsg }}</p>
+          <p v-if="responseMsg" class="mt-4 text-sm text-danger-strong">{{ responseMsg }}</p>
         </footer>
 
+        <!-- Respond confirmation -->
+        <Teleport to="body">
+          <div
+            v-if="pendingDecision && !store.isUpdating"
+            class="fixed inset-0 z-[9995] flex items-center justify-center p-4"
+            :class="{ dark: isDark }"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="respond-confirm-title"
+          >
+            <div class="absolute inset-0 bg-black/50" @click="pendingDecision = null" />
+            <div class="relative bg-surface rounded-2xl border border-input-border shadow-xl max-w-sm w-full p-6 text-center">
+              <p id="respond-confirm-title" class="text-text-default font-medium">
+                {{ pendingDecision === 'accept' ? chrome.confirmAccept : chrome.confirmReject }}
+              </p>
+              <div class="mt-5 flex justify-center gap-3">
+                <button
+                  type="button"
+                  class="px-5 py-2.5 rounded-xl border border-input-border text-text-muted hover:bg-primary/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  @click="pendingDecision = null"
+                >{{ chrome.cancel }}</button>
+                <button
+                  type="button"
+                  data-testid="diagnostic-respond-confirm"
+                  class="px-5 py-2.5 rounded-xl bg-primary dark:bg-accent text-accent dark:text-primary font-medium hover:bg-primary-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  @click="confirmRespond"
+                >{{ chrome.confirm }}</button>
+              </div>
+            </div>
+          </div>
+        </Teleport>
+
         <footer
-          v-else-if="store.current.status === DIAGNOSTIC_STATUS.ACCEPTED"
+          v-if="store.current.status === DIAGNOSTIC_STATUS.ACCEPTED"
           class="diagnostic-card mt-8 bg-primary/5 dark:bg-primary-soft border border-input-border dark:border-input-border rounded-3xl p-6 text-center text-text-brand dark:text-text-brand"
         >
           ¡Gracias! Confirmamos tu aceptación. Te contactaremos para coordinar el inicio.
@@ -106,8 +183,8 @@
                  text-text-default
                  flex items-center justify-center
                  hover:bg-primary/5 dark:hover:bg-primary/80
-                 focus:outline-none focus-visible:ring-2 focus-visible:ring-lemon focus-visible:ring-offset-2
-                 transition-all hover:scale-110"
+                 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2
+                 motion-safe:transition-all motion-safe:hover:scale-110"
           :aria-label="restartTutorialLabel"
           :title="restartTutorialLabel"
           @click="onboardingRef?.forceStart()"
@@ -131,7 +208,7 @@
                  text-text-default
                  flex items-center justify-center
                  hover:bg-primary/5 dark:hover:bg-primary-soft
-                 focus:outline-none focus-visible:ring-2 focus-visible:ring-lemon focus-visible:ring-offset-2
+                 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2
                  transition-colors"
           :aria-label="isDark ? 'Activar modo claro' : 'Activar modo oscuro'"
           :aria-pressed="isDark"
@@ -215,10 +292,74 @@ const COMPONENTS = {
   scope: ScopeSection,
 };
 
+const CHROME_TEXTS = {
+  es: {
+    prev: '← Anterior', next: 'Siguiente →', section: 'Sección', of: 'de',
+    notFound: 'Diagnóstico no encontrado.',
+    loadErrorTitle: 'No pudimos cargar tu diagnóstico.',
+    loadErrorHint: 'Puede ser un problema temporal de conexión. Intenta de nuevo en unos segundos.',
+    retry: 'Reintentar',
+    coverKicker: 'Diagnóstico de aplicación web',
+    coverFallbackTitle: 'Tu diagnóstico',
+    preparedFor: 'Preparado para',
+    start: 'Comenzar recorrido',
+    ctaQuestion: '¿Quieres avanzar con el diagnóstico?',
+    accept: 'Aceptar propuesta', reject: 'No por ahora', sending: 'Enviando…',
+    confirmAccept: '¿Confirmas que quieres avanzar con la propuesta?',
+    confirmReject: '¿Confirmas que prefieres no avanzar por ahora?',
+    confirm: 'Confirmar', cancel: 'Cancelar',
+    respondError: 'No pudimos registrar tu respuesta. Por favor inténtalo nuevamente.',
+  },
+  en: {
+    prev: '← Previous', next: 'Next →', section: 'Section', of: 'of',
+    notFound: 'Diagnostic not found.',
+    loadErrorTitle: 'We could not load your diagnostic.',
+    loadErrorHint: 'It may be a temporary connection issue. Please try again in a few seconds.',
+    retry: 'Retry',
+    coverKicker: 'Web application diagnostic',
+    coverFallbackTitle: 'Your diagnostic',
+    preparedFor: 'Prepared for',
+    start: 'Start the tour',
+    ctaQuestion: 'Would you like to move forward with the diagnostic?',
+    accept: 'Accept proposal', reject: 'Not for now', sending: 'Sending…',
+    confirmAccept: 'Do you confirm you want to move forward with the proposal?',
+    confirmReject: 'Do you confirm you prefer not to move forward for now?',
+    confirm: 'Confirm', cancel: 'Cancel',
+    respondError: 'We could not register your response. Please try again.',
+  },
+};
+
 const route = useRoute();
 const store = useDiagnosticsStore();
 const activeIndex = ref(0);
 const responseMsg = ref('');
+const coverDismissed = ref(false);
+const pendingDecision = ref(null);
+const navDirection = ref('forward');
+
+const chrome = computed(() => CHROME_TEXTS[store.current?.language === 'en' ? 'en' : 'es']);
+
+const showCover = computed(() =>
+  !coverDismissed.value && sections.value.length > 0,
+);
+
+const coverDate = computed(() => {
+  const iso = store.current?.final_sent_at || store.current?.initial_sent_at || store.current?.created_at;
+  if (!iso) return '';
+  const locale = store.current?.language === 'en' ? 'en-US' : 'es-CO';
+  return new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+});
+
+function startJourney() {
+  coverDismissed.value = true;
+  sectionEnteredAt.value = Date.now();
+  markSectionVisited(sections.value[activeIndex.value]?.id);
+  if (!isPreview.value) nextTick(() => onboardingRef.value?.start());
+}
+
+async function reloadPublic() {
+  await store.fetchPublic(route.params.uuid);
+}
 const sessionId = ref('');
 const sectionEnteredAt = ref(0);
 const visitedIds = ref(new Set());
@@ -244,6 +385,15 @@ const canRespond = computed(() => (
   store.current?.status === DIAGNOSTIC_STATUS.SENT
   && !!store.current?.final_sent_at
 ));
+
+// The accept/reject moment belongs to the end of the story: show it once the
+// reader is on the last section or has already visited the cost section.
+const ctaVisible = computed(() => {
+  if (!canRespond.value || showCover.value) return false;
+  if (activeIndex.value === sections.value.length - 1) return true;
+  const costSection = sections.value.find((s) => s.section_type === 'cost');
+  return costSection ? visitedIds.value.has(costSection.id) : false;
+});
 
 const EMPTY_STATE_COPY = {
   [DIAGNOSTIC_STATUS.DRAFT]: {
@@ -281,13 +431,14 @@ function markSectionVisited(id) {
 
 function selectSection(idx) {
   flushSectionTracking();
+  navDirection.value = idx < activeIndex.value ? 'back' : 'forward';
   activeIndex.value = Math.max(0, Math.min(idx, sections.value.length - 1));
   sectionEnteredAt.value = Date.now();
   markSectionVisited(sections.value[activeIndex.value]?.id);
 }
 
 function flushSectionTracking({ beacon = false } = {}) {
-  if (isPreview.value) return;
+  if (isPreview.value || showCover.value) return;
   if (!sessionId.value || !activeSection.value) return;
   const elapsed = (Date.now() - sectionEnteredAt.value) / 1000;
   if (elapsed < 1) return;
@@ -311,12 +462,20 @@ function flushSectionTracking({ beacon = false } = {}) {
   store.trackSectionView(route.params.uuid, payload);
 }
 
-async function respond(decision) {
+function askConfirm(decision) {
+  responseMsg.value = '';
+  pendingDecision.value = decision;
+}
+
+async function confirmRespond() {
+  const decision = pendingDecision.value;
+  if (!decision) return;
   responseMsg.value = '';
   const r = await store.respondPublic(route.params.uuid, decision);
-  responseMsg.value = r.success
-    ? (decision === 'accept' ? 'Tu aceptación quedó registrada.' : 'Tu respuesta quedó registrada.')
-    : 'No pudimos registrar tu respuesta. Por favor inténtalo nuevamente.';
+  pendingDecision.value = null;
+  if (!r.success) {
+    responseMsg.value = chrome.value.respondError;
+  }
 }
 
 function generateSessionId() {
@@ -335,9 +494,6 @@ onMounted(async () => {
   ]);
   sectionEnteredAt.value = Date.now();
   markSectionVisited(sections.value[activeIndex.value]?.id);
-  if (!isPreview.value && store.current && sections.value.length > 0) {
-    nextTick(() => onboardingRef.value?.start());
-  }
 });
 
 onBeforeUnmount(() => flushSectionTracking({ beacon: true }));
@@ -358,6 +514,25 @@ onBeforeUnmount(() => flushSectionTracking({ beacon: true }));
   background-image:
     radial-gradient(ellipse 80% 60% at 50% 0%, rgba(240, 255, 61, 0.06) 0%, transparent 60%),
     radial-gradient(ellipse 60% 50% at 80% 100%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+}
+
+.section-slide-enter-active,
+.section-slide-leave-active,
+.section-slide-back-enter-active,
+.section-slide-back-leave-active {
+  transition: opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1), transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.section-slide-enter-from { opacity: 0; transform: translateX(24px); }
+.section-slide-leave-to { opacity: 0; transform: translateX(-24px); }
+.section-slide-back-enter-from { opacity: 0; transform: translateX(-24px); }
+.section-slide-back-leave-to { opacity: 0; transform: translateX(24px); }
+@media (prefers-reduced-motion: reduce) {
+  .section-slide-enter-active,
+  .section-slide-leave-active,
+  .section-slide-back-enter-active,
+  .section-slide-back-leave-active {
+    transition: none;
+  }
 }
 
 .theme-toggle {

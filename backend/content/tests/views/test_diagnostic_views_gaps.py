@@ -63,13 +63,13 @@ def test_list_diagnostics_with_nonmatching_client_returns_empty(admin_client, di
 def test_create_diagnostic_returns_400_when_no_client_id(admin_client):
     response = admin_client.post('/api/diagnostics/create/', data={}, format='json')
     assert response.status_code == 400
-    assert response.json()['error'] == 'client_id_required'
+    assert response.json()['code'] == 'client_id_required'
 
 
 def test_create_diagnostic_returns_404_when_client_not_found(admin_client):
     response = admin_client.post('/api/diagnostics/create/', data={'client_id': 99999}, format='json')
     assert response.status_code == 404
-    assert response.json()['error'] == 'client_not_found'
+    assert response.json()['code'] == 'client_not_found'
 
 
 def test_create_diagnostic_returns_404_when_user_is_not_client_role(admin_client, admin_user):
@@ -82,7 +82,7 @@ def test_create_diagnostic_returns_404_when_user_is_not_client_role(admin_client
         format='json',
     )
     assert response.status_code == 404
-    assert response.json()['error'] == 'client_not_found'
+    assert response.json()['code'] == 'client_not_found'
 
 
 # ---------------------------------------------------------------------------
@@ -96,7 +96,7 @@ def test_bulk_update_returns_400_when_sections_is_not_list(admin_client, diagnos
         format='json',
     )
     assert response.status_code == 400
-    assert response.json()['error'] == 'sections_must_be_list'
+    assert response.json()['code'] == 'sections_must_be_list'
 
 
 def test_bulk_update_with_empty_list_returns_200(admin_client, diagnostic):
@@ -139,7 +139,7 @@ def test_create_diagnostic_activity_returns_400_for_invalid_change_type(
         format='json',
     )
     assert response.status_code == 400
-    assert response.json()['error'] == 'invalid_change_type'
+    assert response.json()['code'] == 'invalid_change_type'
 
 
 def test_create_diagnostic_activity_returns_400_for_empty_description(
@@ -151,7 +151,7 @@ def test_create_diagnostic_activity_returns_400_for_empty_description(
         format='json',
     )
     assert response.status_code == 400
-    assert response.json()['error'] == 'description_required'
+    assert response.json()['code'] == 'description_required'
 
 
 def test_create_diagnostic_activity_returns_400_for_whitespace_description(
@@ -163,7 +163,7 @@ def test_create_diagnostic_activity_returns_400_for_whitespace_description(
         format='json',
     )
     assert response.status_code == 400
-    assert response.json()['error'] == 'description_required'
+    assert response.json()['code'] == 'description_required'
 
 
 # ---------------------------------------------------------------------------
@@ -179,7 +179,7 @@ def test_respond_public_diagnostic_returns_400_for_invalid_decision(diagnostic):
         format='json',
     )
     assert response.status_code == 400
-    assert response.json()['error'] == 'invalid_decision'
+    assert response.json()['code'] == 'invalid_decision'
 
 
 def test_respond_public_diagnostic_returns_409_for_invalid_transition(diagnostic):
@@ -446,3 +446,140 @@ class TestParseDiagnosticEmail:
 
         assert response.status_code == 400
         assert 'secciones' in response.json()['error']
+
+
+# ---------------------------------------------------------------------------
+# Public endpoints — visibility gate + throttling
+# ---------------------------------------------------------------------------
+
+class TestPublicVisibilityGate:
+    def test_public_retrieve_hides_draft(self, api_client, diagnostic):
+        response = api_client.get(f'/api/diagnostics/public/{diagnostic.uuid}/')
+        assert response.status_code == 404
+        assert response.json()['code'] == 'not_available'
+
+    def test_public_retrieve_by_slug_hides_draft(self, api_client, diagnostic):
+        diagnostic.slug = 'draft-hidden-slug'
+        diagnostic.save(update_fields=['slug'])
+        response = api_client.get(
+            '/api/diagnostics/public/by-slug/draft-hidden-slug/',
+        )
+        assert response.status_code == 404
+        assert response.json()['code'] == 'not_available'
+
+    def test_public_retrieve_serves_sent(self, api_client, diagnostic):
+        diagnostic.status = WebAppDiagnostic.Status.SENT
+        diagnostic.save(update_fields=['status'])
+        response = api_client.get(f'/api/diagnostics/public/{diagnostic.uuid}/')
+        assert response.status_code == 200
+        assert response.json()['client_name']
+
+
+class TestPublicThrottling:
+    """The mutating/expensive public endpoints must carry the anon throttle."""
+
+    def test_respond_public_has_tracking_throttle(self):
+        from content.throttles import TrackingAnonThrottle
+        from content.views.diagnostic import respond_public_diagnostic
+
+        assert TrackingAnonThrottle in respond_public_diagnostic.cls.throttle_classes
+
+    def test_public_pdf_has_tracking_throttle(self):
+        from content.throttles import TrackingAnonThrottle
+        from content.views.diagnostic import download_public_diagnostic_pdf
+
+        assert TrackingAnonThrottle in download_public_diagnostic_pdf.cls.throttle_classes
+
+
+# ---------------------------------------------------------------------------
+# bulk_diagnostic_action
+# ---------------------------------------------------------------------------
+
+class TestBulkDiagnosticAction:
+    URL = '/api/diagnostics/bulk-action/'
+
+    def test_delete_removes_selected(self, admin_client, diagnostic):
+        response = admin_client.post(
+            self.URL, {'ids': [diagnostic.id], 'action': 'delete'}, format='json',
+        )
+        assert response.status_code == 200
+        assert response.json() == {'affected': 1, 'action': 'delete'}
+        assert not WebAppDiagnostic.objects.filter(pk=diagnostic.id).exists()
+
+    def test_finish_transitions_accepted_only(self, admin_client, diagnostic):
+        diagnostic.status = WebAppDiagnostic.Status.ACCEPTED
+        diagnostic.save(update_fields=['status'])
+        response = admin_client.post(
+            self.URL, {'ids': [diagnostic.id], 'action': 'finish'}, format='json',
+        )
+        assert response.status_code == 200
+        assert response.json()['affected'] == 1
+        diagnostic.refresh_from_db()
+        assert diagnostic.status == WebAppDiagnostic.Status.FINISHED
+
+    def test_finish_skips_draft(self, admin_client, diagnostic):
+        response = admin_client.post(
+            self.URL, {'ids': [diagnostic.id], 'action': 'finish'}, format='json',
+        )
+        assert response.status_code == 200
+        assert response.json()['affected'] == 0
+        diagnostic.refresh_from_db()
+        assert diagnostic.status == WebAppDiagnostic.Status.DRAFT
+
+    def test_requires_non_empty_ids_list(self, admin_client):
+        response = admin_client.post(
+            self.URL, {'ids': [], 'action': 'delete'}, format='json',
+        )
+        assert response.status_code == 400
+        assert response.json()['code'] == 'ids_required'
+
+    def test_rejects_unknown_action(self, admin_client, diagnostic):
+        response = admin_client.post(
+            self.URL, {'ids': [diagnostic.id], 'action': 'resend'}, format='json',
+        )
+        assert response.status_code == 400
+        assert response.json()['code'] == 'invalid_bulk_action'
+
+    def test_requires_admin(self, api_client, diagnostic):
+        response = api_client.post(
+            self.URL, {'ids': [diagnostic.id], 'action': 'delete'}, format='json',
+        )
+        assert response.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# Expiration
+# ---------------------------------------------------------------------------
+
+class TestDiagnosticExpiration:
+    def test_initial_send_stamps_expires_at(self, admin_client, diagnostic):
+        assert diagnostic.expires_at is None
+        resp = admin_client.post(f'/api/diagnostics/{diagnostic.id}/send-initial/')
+        assert resp.status_code == 200
+        diagnostic.refresh_from_db()
+        assert diagnostic.expires_at is not None
+        assert diagnostic.expires_at > timezone.now()
+
+    def test_list_serializer_exposes_expiry_fields(self, admin_client, diagnostic):
+        resp = admin_client.get('/api/diagnostics/')
+        assert resp.status_code == 200
+        row = next(d for d in resp.json() if d['id'] == diagnostic.id)
+        assert 'expires_at' in row
+        assert 'is_expired' in row
+        assert 'days_remaining' in row
+
+    def test_public_view_serves_expired_without_sections(self, api_client, diagnostic):
+        from django.utils import timezone as _tz
+        from datetime import timedelta
+        diagnostic.status = WebAppDiagnostic.Status.SENT
+        diagnostic.expires_at = _tz.now() - timedelta(days=1)
+        diagnostic.save(update_fields=['status', 'expires_at'])
+
+        resp = api_client.get(f'/api/diagnostics/public/{diagnostic.uuid}/')
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body['status'] == 'expired'
+        assert body['sections'] == []
+        # on-read persistence flipped the stored status
+        diagnostic.refresh_from_db()
+        assert diagnostic.status == WebAppDiagnostic.Status.EXPIRED

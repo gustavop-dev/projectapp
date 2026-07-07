@@ -123,6 +123,10 @@ class WebAppDiagnostic(models.Model):
     initial_sent_at = models.DateTimeField(null=True, blank=True)
     final_sent_at = models.DateTimeField(null=True, blank=True)
     responded_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text='Set on the initial send from the language config; drives the UI expiration badge.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(
@@ -145,6 +149,25 @@ class WebAppDiagnostic(models.Model):
         base = getattr(settings, 'FRONTEND_BASE_URL', '').rstrip('/')
         identifier = self.slug or self.uuid
         return f'{base}/diagnostic/{identifier}/'
+
+    @property
+    def is_expired(self):
+        """True once the status is EXPIRED or the expiry date has passed."""
+        if self.status == self.Status.EXPIRED:
+            return True
+        if self.expires_at is None:
+            return False
+        from django.utils import timezone
+        return self.expires_at < timezone.now()
+
+    @property
+    def days_remaining(self):
+        """Whole days until expiry (0 if past), or None when no expiry set."""
+        if self.expires_at is None:
+            return None
+        from django.utils import timezone
+        delta = self.expires_at - timezone.now()
+        return max(delta.days, 0)
 
     def can_transition_to(self, new_status):
         return new_status in self.ALLOWED_TRANSITIONS.get(self.status, frozenset())

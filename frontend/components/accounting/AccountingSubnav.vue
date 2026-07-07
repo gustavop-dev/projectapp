@@ -7,7 +7,7 @@
       :data-testid="`accounting-subnav-${item.key}`"
       :aria-current="active === item.key ? 'page' : undefined"
       :class="[
-        'px-4 py-2 rounded-xl text-sm font-medium transition-colors',
+        'px-4 py-2 rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50',
         active === item.key
           ? 'bg-primary text-white'
           : 'bg-surface-raised text-text-muted hover:bg-border-muted',

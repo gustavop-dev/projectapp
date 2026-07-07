@@ -9,10 +9,29 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import {
+
   DIAGNOSTIC_PUBLIC_PDF_DOWNLOAD,
   DIAGNOSTIC_PUBLIC_SHARE,
   DIAGNOSTIC_PUBLIC_DARK_MODE,
 } from '../helpers/flow-tags.js';
+
+/** Dismiss the cover screen introduced by the public redesign. */
+async function enterDiagnostic(page) {
+  const start = page.getByTestId('diagnostic-start-journey');
+  try {
+    await start.waitFor({ state: 'visible', timeout: 8000 });
+    await start.click();
+  } catch (_) { /* cover absent (no sections / states without cover) */ }
+  // The onboarding tour starts after the cover; dismiss it so its backdrop
+  // does not intercept clicks on the page under test.
+  const skip = page.getByRole('button', { name: /omitir|skip/i });
+  try {
+    await skip.waitFor({ state: 'visible', timeout: 4000 });
+    await skip.click();
+    await page.getByTestId('diagnostic-onboarding-backdrop').waitFor({ state: 'hidden', timeout: 4000 });
+  } catch (_) { /* tour did not start */ }
+}
+
 
 const TEST_UUID = 'de111111-1111-1111-1111-111111111111';
 
@@ -62,6 +81,7 @@ async function setupMock(page, { pdfStatus = 200, pdfBody = '%PDF-1.4 test' } = 
 
 async function loadDiagnosticPage(page) {
   await page.goto(`/diagnostic/${TEST_UUID}/`, { waitUntil: 'domcontentloaded' });
+    await enterDiagnostic(page);
   await expect(page.getByTestId('diagnostic-theme-toggle')).toBeVisible({ timeout: 15000 });
 }
 

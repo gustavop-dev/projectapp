@@ -6,7 +6,6 @@ Admin endpoints use Django session auth + IsAdminUser. The 3 public endpoints
 
 import logging
 
-from django.db.models import Avg, Count, Min, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -16,6 +15,7 @@ from rest_framework.decorators import api_view, permission_classes, throttle_cla
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
+from content.api_errors import error_response
 from content.throttles import TrackingAnonThrottle
 
 from accounts.models import UserProfile
@@ -44,6 +44,7 @@ from content.serializers.diagnostic import (
     serialize_diagnostic_attachment,
 )
 from content.services import diagnostic_service
+from content.services import diagnostic_analytics_service
 from content.views._email_attachment import (
     inline_pdf_response,
     render_markdown_pdf_response,
@@ -86,16 +87,17 @@ def list_diagnostics(request):
 def create_diagnostic(request):
     client_id = request.data.get('client_id')
     if not client_id:
-        return Response(
-            {'error': 'client_id_required'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Selecciona un cliente antes de continuar.',
+            code='client_id_required',
         )
     client = UserProfile.objects.filter(
         pk=client_id, role=UserProfile.ROLE_CLIENT,
     ).first()
     if client is None:
-        return Response(
-            {'error': 'client_not_found'},
+        return error_response(
+            'El cliente no existe o no tiene rol de cliente.',
+            code='client_not_found',
             status=http_status.HTTP_404_NOT_FOUND,
         )
 
@@ -132,8 +134,11 @@ def update_diagnostic(request, diagnostic_id):
         diagnostic, data=request.data, partial=True,
     )
     if not serializer.is_valid():
-        return Response(serializer.errors,
-                        status=http_status.HTTP_400_BAD_REQUEST)
+        return error_response(
+            'Datos inválidos.',
+            code='validation_error',
+            errors=serializer.errors,
+        )
     propagate = serializer.validated_data.get('propagate_client_updates', False)
     serializer.save()
     if propagate:
@@ -162,6 +167,31 @@ def delete_diagnostic(request, diagnostic_id):
     return Response(status=http_status.HTTP_204_NO_CONTENT)
 
 
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def bulk_diagnostic_action(request):
+    """Apply a batch action to multiple diagnostics.
+
+    Payload: ``{"ids": [1, 2], "action": "delete"|"finish"}``.
+    """
+    ids = request.data.get('ids') or []
+    action = (request.data.get('action') or '').strip()
+    if not ids or not isinstance(ids, list):
+        return error_response(
+            'Selecciona al menos un diagnóstico.',
+            code='ids_required',
+        )
+    if action not in diagnostic_service.BULK_ACTIONS:
+        allowed = ', '.join(sorted(diagnostic_service.BULK_ACTIONS))
+        return error_response(
+            'Acción no válida.',
+            code='invalid_bulk_action',
+            hint=f'Acciones permitidas: {allowed}.',
+        )
+    affected = diagnostic_service.bulk_action(ids, action)
+    return Response({'affected': affected, 'action': action})
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # Admin — sections CRUD
 # ──────────────────────────────────────────────────────────────────────────
@@ -186,8 +216,11 @@ def update_diagnostic_section(request, diagnostic_id, section_id):
         section, data=request.data, partial=True,
     )
     if not serializer.is_valid():
-        return Response(serializer.errors,
-                        status=http_status.HTTP_400_BAD_REQUEST)
+        return error_response(
+            'Datos inválidos.',
+            code='validation_error',
+            errors=serializer.errors,
+        )
     serializer.save()
     diagnostic_service.log_change(
         section.diagnostic,
@@ -206,9 +239,9 @@ def bulk_update_diagnostic_sections(request, diagnostic_id):
     diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
     payload = request.data.get('sections') or []
     if not isinstance(payload, list):
-        return Response(
-            {'error': 'sections_must_be_list'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Las secciones deben ser una lista.',
+            code='sections_must_be_list',
         )
 
     updated_ids = []
@@ -276,15 +309,15 @@ def create_diagnostic_activity(request, diagnostic_id):
     change_type = (request.data.get('change_type') or 'note').strip()
     valid = {c[0] for c in DiagnosticChangeLog.ChangeType.choices}
     if change_type not in valid:
-        return Response(
-            {'error': 'invalid_change_type'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Tipo de actividad no válido.',
+            code='invalid_change_type',
         )
     description = (request.data.get('description') or '').strip()
     if not description:
-        return Response(
-            {'error': 'description_required'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'La descripción es obligatoria.',
+            code='description_required',
         )
     log = diagnostic_service.log_change(
         diagnostic,
@@ -302,288 +335,19 @@ def create_diagnostic_activity(request, diagnostic_id):
 # Admin — analytics
 # ──────────────────────────────────────────────────────────────────────────
 
-_ACTIVE_ENGAGEMENT_STATUSES = frozenset({
-    WebAppDiagnostic.Status.ACCEPTED,
-    WebAppDiagnostic.Status.FINISHED,
-    WebAppDiagnostic.Status.NEGOTIATING,
-})
-
-
-def _compute_diagnostic_engagement_score(
-    diagnostic, view_events, sections_data, unique_sessions,
-    first_viewed_at, coverage_ratio,
-):
-    """Engagement score (0-100) for a diagnostic.
-
-    Distribution:
-    - Recent sessions (last 7 days): 0-25 pts
-    - Section coverage ratio (visited / total enabled): 0-20 pts
-    - Time on cost section + total reading time: 0-15 pts
-    - Unique stakeholders (IPs): 0-15 pts
-    - Inverse days-without-response: 0-15 pts
-    - Re-visits (sessions > 1): 0-10 pts
-    """
-    from datetime import timedelta
-
-    score = 0
-
-    seven_days_ago = timezone.now() - timedelta(days=7)
-    recent = view_events.filter(viewed_at__gte=seven_days_ago).count()
-    score += min(25, recent * 8)
-
-    score += round(min(20, (coverage_ratio or 0) * 20))
-
-    total_time = sum(s.get('total_time_seconds', 0) for s in sections_data)
-    cost_time = sum(
-        s.get('total_time_seconds', 0)
-        for s in sections_data if s.get('section_type') == 'cost'
-    )
-    if total_time > 0:
-        if cost_time >= 30:
-            score += 10
-        elif cost_time >= 10:
-            score += 5
-        if total_time >= 120:
-            score += 5
-        elif total_time >= 40:
-            score += 3
-
-    unique_ips = (
-        view_events.exclude(ip_address__isnull=True)
-        .exclude(ip_address='')
-        .values('ip_address').distinct().count()
-    )
-    score += min(15, unique_ips * 8)
-
-    if diagnostic.status == WebAppDiagnostic.Status.SENT and first_viewed_at:
-        days_since = (timezone.now() - first_viewed_at).days
-        if days_since <= 1:
-            score += 15
-        elif days_since <= 3:
-            score += 10
-        elif days_since <= 7:
-            score += 5
-    elif diagnostic.status in _ACTIVE_ENGAGEMENT_STATUSES:
-        score += 15
-
-    if unique_sessions > 1:
-        score += min(10, (unique_sessions - 1) * 4)
-
-    return min(100, score)
-
-
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def diagnostic_analytics(request, diagnostic_id):
     """Aggregated engagement analytics for a diagnostic.
 
-    Shape mirrors ``retrieve_proposal_analytics`` with the exceptions of
-    view modes, technical subsections and share links (no equivalent data
-    model for diagnostics).
+    All computation lives in ``diagnostic_analytics_service`` (shape mirrors
+    ``build_proposal_analytics`` minus view modes / technical subsections /
+    share links).
     """
     diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
-
-    view_events = diagnostic.view_events.all()
-    unique_sessions = view_events.values('session_id').distinct().count()
-
-    first_viewed_at = (
-        view_events.order_by('viewed_at')
-        .values_list('viewed_at', flat=True)
-        .first()
+    return Response(
+        diagnostic_analytics_service.build_diagnostic_analytics(diagnostic)
     )
-    last_viewed_at = (
-        view_events.order_by('-viewed_at')
-        .values_list('viewed_at', flat=True)
-        .first()
-    )
-
-    time_to_first_view = None
-    if diagnostic.initial_sent_at and first_viewed_at:
-        delta = (first_viewed_at - diagnostic.initial_sent_at).total_seconds()
-        time_to_first_view = round(delta / 3600, 1)
-
-    time_to_response = None
-    if first_viewed_at and diagnostic.responded_at:
-        delta = (diagnostic.responded_at - first_viewed_at).total_seconds()
-        time_to_response = round(delta / 3600, 1)
-
-    section_stats = (
-        DiagnosticSectionView.objects
-        .filter(view_event__diagnostic=diagnostic)
-        .values('section_type')
-        .annotate(
-            visit_count=Count('id'),
-            total_time_seconds=Sum('time_spent_seconds'),
-            avg_time_seconds=Avg('time_spent_seconds'),
-            reached_sessions=Count('view_event__session_id', distinct=True),
-        )
-        .order_by('section_type')
-    )
-
-    visited_types = set()
-    sections_data = []
-    section_reach = {}
-    for stat in section_stats:
-        visited_types.add(stat['section_type'])
-        section_reach[stat['section_type']] = stat['reached_sessions']
-        latest = (
-            DiagnosticSectionView.objects
-            .filter(
-                view_event__diagnostic=diagnostic,
-                section_type=stat['section_type'],
-            )
-            .order_by('-entered_at')
-            .values_list('section_title', flat=True)
-            .first()
-        )
-        sections_data.append({
-            'section_type': stat['section_type'],
-            'section_title': latest or stat['section_type'],
-            'visit_count': stat['visit_count'],
-            'total_time_seconds': round(stat['total_time_seconds'] or 0, 1),
-            'avg_time_seconds': round(stat['avg_time_seconds'] or 0, 1),
-        })
-
-    enabled_sections = list(
-        diagnostic.sections
-        .filter(is_enabled=True)
-        .order_by('order')
-        .values_list('section_type', 'title')
-    )
-    skipped_sections = [
-        {'section_type': st, 'section_title': title}
-        for st, title in enabled_sections
-        if st not in visited_types
-    ]
-
-    # Tablet check must precede mobile because iPad UAs contain "Mobile".
-    device_counts = {'desktop': 0, 'mobile': 0, 'tablet': 0}
-    for ua in view_events.values_list('user_agent', flat=True):
-        ua_lower = (ua or '').lower()
-        if 'tablet' in ua_lower or 'ipad' in ua_lower:
-            device_counts['tablet'] += 1
-        elif 'mobile' in ua_lower or 'android' in ua_lower:
-            device_counts['mobile'] += 1
-        else:
-            device_counts['desktop'] += 1
-
-    sessions_data = []
-    recent_events = (
-        view_events.order_by('-viewed_at')
-        .prefetch_related('section_views')[:50]
-    )
-    for event in recent_events:
-        sv = list(event.section_views.all())
-        sessions_data.append({
-            'session_id': event.session_id,
-            'ip_address': event.ip_address or '',
-            'viewed_at': event.viewed_at.isoformat(),
-            'sections_viewed': len(sv),
-            'total_time_seconds': round(
-                sum(s.time_spent_seconds for s in sv), 1,
-            ),
-        })
-
-    timeline = [
-        {
-            'change_type': log.change_type,
-            'field_name': log.field_name,
-            'old_value': log.old_value,
-            'new_value': log.new_value,
-            'description': log.description,
-            'actor_type': log.actor_type,
-            'created_at': log.created_at.isoformat(),
-        }
-        for log in diagnostic.change_logs.order_by('-created_at')[:50]
-    ]
-
-    funnel_data = []
-    for section_type, section_title in enabled_sections:
-        reached = section_reach.get(section_type, 0)
-        drop_off = round(
-            (1 - reached / unique_sessions) * 100, 1,
-        ) if unique_sessions > 0 else 0
-        funnel_data.append({
-            'section_type': section_type,
-            'section_title': section_title,
-            'reached_count': reached,
-            'drop_off_percent': drop_off,
-        })
-
-    total_enabled = len(enabled_sections)
-    coverage_ratio = (
-        len(visited_types) / total_enabled if total_enabled > 0 else 0
-    )
-
-    # Global comparison — single aggregated query over all other diagnostics
-    # (per-diagnostic queries here would be N+1 on every admin page load).
-    other_qs = WebAppDiagnostic.objects.exclude(pk=diagnostic.pk)
-    first_views_map = dict(
-        DiagnosticViewEvent.objects
-        .filter(diagnostic__in=other_qs)
-        .values_list('diagnostic_id')
-        .annotate(first_viewed=Min('viewed_at'))
-        .values_list('diagnostic_id', 'first_viewed')
-    )
-
-    ttfv_values = []
-    ttr_values = []
-    for diag_id, initial_sent, responded in other_qs.values_list(
-        'id', 'initial_sent_at', 'responded_at',
-    ):
-        first = first_views_map.get(diag_id)
-        if first and initial_sent:
-            ttfv_values.append((first - initial_sent).total_seconds())
-        if first and responded:
-            ttr_values.append((responded - first).total_seconds())
-
-    avg_ttfv_global = (
-        round(sum(ttfv_values) / len(ttfv_values) / 3600, 1)
-        if ttfv_values else None
-    )
-    avg_ttr_global = (
-        round(sum(ttr_values) / len(ttr_values) / 3600, 1)
-        if ttr_values else None
-    )
-
-    avg_views_agg = (
-        other_qs.filter(view_count__gt=0).aggregate(avg=Avg('view_count'))['avg']
-    )
-    avg_views_global = round(avg_views_agg, 1) if avg_views_agg is not None else None
-
-    engagement_score = _compute_diagnostic_engagement_score(
-        diagnostic, view_events, sections_data, unique_sessions,
-        first_viewed_at, coverage_ratio,
-    )
-
-    return Response({
-        'total_views': diagnostic.view_count,
-        'unique_sessions': unique_sessions,
-        'first_viewed_at': (
-            first_viewed_at.isoformat() if first_viewed_at else None
-        ),
-        'last_viewed_at': (
-            last_viewed_at.isoformat() if last_viewed_at else None
-        ),
-        'time_to_first_view_hours': time_to_first_view,
-        'time_to_response_hours': time_to_response,
-        'responded_at': (
-            diagnostic.responded_at.isoformat()
-            if diagnostic.responded_at else None
-        ),
-        'sections': sections_data,
-        'skipped_sections': skipped_sections,
-        'device_breakdown': device_counts,
-        'sessions': sessions_data,
-        'timeline': timeline,
-        'funnel': funnel_data,
-        'comparison': {
-            'avg_time_to_first_view_hours': avg_ttfv_global,
-            'avg_time_to_response_hours': avg_ttr_global,
-            'avg_views': avg_views_global,
-        },
-        'engagement_score': engagement_score,
-    })
 
 
 @api_view(['GET'])
@@ -616,40 +380,19 @@ def export_diagnostic_analytics_csv(request, diagnostic_id):
     writer.writerow([f'Total Views: {diagnostic.view_count}'])
     writer.writerow([])
 
-    # Section engagement
+    # Section engagement (shared aggregation — no per-section N+1)
     writer.writerow(['--- SECTION ENGAGEMENT ---'])
     writer.writerow([
         'Section Type', 'Section Title', 'Visit Count',
         'Total Time (s)', 'Avg Time (s)',
     ])
-    section_stats = (
-        DiagnosticSectionView.objects
-        .filter(view_event__diagnostic=diagnostic)
-        .values('section_type')
-        .annotate(
-            visit_count=Count('id'),
-            total_time=Sum('time_spent_seconds'),
-            avg_time=Avg('time_spent_seconds'),
-        )
-        .order_by('section_type')
-    )
-    for stat in section_stats:
-        latest_title = (
-            DiagnosticSectionView.objects
-            .filter(
-                view_event__diagnostic=diagnostic,
-                section_type=stat['section_type'],
-            )
-            .order_by('-entered_at')
-            .values_list('section_title', flat=True)
-            .first()
-        ) or stat['section_type']
+    for row in diagnostic_analytics_service.section_engagement(diagnostic):
         writer.writerow([
-            stat['section_type'],
-            latest_title,
-            stat['visit_count'],
-            round(stat['total_time'] or 0, 1),
-            round(stat['avg_time'] or 0, 1),
+            row['section_type'],
+            row['section_title'],
+            row['visit_count'],
+            row['total_time_seconds'],
+            row['avg_time_seconds'],
         ])
 
     writer.writerow([])
@@ -658,18 +401,15 @@ def export_diagnostic_analytics_csv(request, diagnostic_id):
         'Session ID', 'IP Address', 'Viewed At',
         'Sections Viewed', 'Total Time (s)',
     ])
-    recent_events = (
-        diagnostic.view_events.order_by('-viewed_at')
-        .prefetch_related('section_views')[:100]
-    )
-    for event in recent_events:
-        sv = list(event.section_views.all())
+    for session in diagnostic_analytics_service.session_history(
+        diagnostic, limit=100,
+    ):
         writer.writerow([
-            event.session_id,
-            event.ip_address or '',
-            event.viewed_at.isoformat(),
-            len(sv),
-            round(sum(s.time_spent_seconds for s in sv), 1),
+            session['session_id'],
+            session['ip_address'],
+            session['viewed_at'],
+            session['sections_viewed'],
+            session['total_time_seconds'],
         ])
 
     writer.writerow([])
@@ -706,8 +446,19 @@ def _send_and_transition(diagnostic, kind: str):
         target = WebAppDiagnostic.Status.SENT
         email_fn = DiagnosticEmailService.send_final_to_client
     else:
-        return False, Response({'error': 'unknown_kind'},
-                               status=http_status.HTTP_400_BAD_REQUEST)
+        return False, error_response(
+            'Tipo de envío desconocido.',
+            code='unknown_kind',
+        )
+
+    scorecard = diagnostic_service.build_scorecard(diagnostic)
+    if scorecard['blockers']:
+        return False, error_response(
+            'El diagnóstico no está listo para enviarse.',
+            code='scorecard_blockers',
+            hint='Completa los ítems bloqueantes del scorecard.',
+            errors={'blockers': [c['key'] for c in scorecard['blockers']]},
+        )
 
     try:
         diagnostic_service.transition_status(
@@ -715,9 +466,10 @@ def _send_and_transition(diagnostic, kind: str):
             actor_type=DiagnosticChangeLog.ActorType.SELLER,
         )
     except ValueError as exc:
-        return False, Response(
-            {'error': str(exc).split(':')[0], 'message': str(exc)},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return False, error_response(
+            'No se puede cambiar el estado del diagnóstico desde su estado actual.',
+            code=str(exc).split(':')[0],
+            hint='Recarga la página para ver el estado vigente.',
         )
 
     try:
@@ -735,6 +487,14 @@ def _send_and_transition(diagnostic, kind: str):
             actor_type=DiagnosticChangeLog.ActorType.SYSTEM,
         )
     return True, email_ok
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def diagnostic_scorecard(request, diagnostic_id):
+    """Pre-send readiness scorecard; logic lives in the service layer."""
+    diagnostic = get_object_or_404(_admin_qs(), pk=diagnostic_id)
+    return Response(diagnostic_service.build_scorecard(diagnostic))
 
 
 @api_view(['POST'])
@@ -761,9 +521,10 @@ def mark_in_analysis(request, diagnostic_id):
             actor_type=DiagnosticChangeLog.ActorType.SELLER,
         )
     except ValueError as exc:
-        return Response(
-            {'error': str(exc).split(':')[0], 'message': str(exc)},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'No se puede cambiar el estado del diagnóstico desde su estado actual.',
+            code=str(exc).split(':')[0],
+            hint='Recarga la página para ver el estado vigente.',
         )
     diagnostic = _admin_qs(include_attachments=True).get(pk=diagnostic.pk)
     return Response(DiagnosticDetailSerializer(diagnostic).data)
@@ -786,6 +547,30 @@ def send_final(request, diagnostic_id):
 # Public — view / track / respond
 # ──────────────────────────────────────────────────────────────────────────
 
+def _serve_public_diagnostic(diagnostic):
+    """Shared handler for the public retrieve endpoints.
+
+    DRAFT stays hidden (404) so client metadata never leaks before the initial
+    send. Past-expiry diagnostics are flipped to EXPIRED on read (like the
+    proposals public view) and served without sections so the client sees the
+    terminal empty-state rather than a 404.
+    """
+    if (
+        diagnostic.is_expired
+        and diagnostic.status != WebAppDiagnostic.Status.EXPIRED
+    ):
+        diagnostic.status = WebAppDiagnostic.Status.EXPIRED
+        diagnostic.save(update_fields=['status', 'updated_at'])
+
+    if diagnostic.status not in diagnostic_service.PUBLIC_SERVABLE_STATUSES:
+        return error_response(
+            'El diagnóstico no está disponible.',
+            code='not_available',
+            status=http_status.HTTP_404_NOT_FOUND,
+        )
+    return Response(PublicDiagnosticSerializer(diagnostic).data)
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def retrieve_public_diagnostic(request, diagnostic_uuid):
@@ -795,7 +580,7 @@ def retrieve_public_diagnostic(request, diagnostic_uuid):
         uuid=diagnostic_uuid,
     )
     # view_count is bumped only by POST /track/ to avoid double-counting.
-    return Response(PublicDiagnosticSerializer(diagnostic).data)
+    return _serve_public_diagnostic(diagnostic)
 
 
 @api_view(['GET'])
@@ -807,7 +592,7 @@ def retrieve_public_diagnostic_by_slug(request, diagnostic_slug):
         .prefetch_related('sections'),
         slug=diagnostic_slug,
     )
-    return Response(PublicDiagnosticSerializer(diagnostic).data)
+    return _serve_public_diagnostic(diagnostic)
 
 
 def _ensure_view_event(diagnostic, request, session_id):
@@ -852,15 +637,15 @@ def track_diagnostic_section_view(request, diagnostic_uuid):
     try:
         time_spent = float(request.data.get('time_spent_seconds') or 0)
     except (TypeError, ValueError):
-        return Response(
-            {'error': 'invalid_time_spent_seconds'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Tiempo de lectura no válido.',
+            code='invalid_time_spent_seconds',
         )
 
     if not session_id or not section_type:
-        return Response(
-            {'error': 'session_id_and_section_type_required'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Faltan datos de sesión.',
+            code='session_id_and_section_type_required',
         )
 
     entered_at = None
@@ -883,6 +668,7 @@ def track_diagnostic_section_view(request, diagnostic_uuid):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@throttle_classes([TrackingAnonThrottle])
 def download_public_diagnostic_pdf(request, diagnostic_uuid):
     """Stream a PDF of the diagnostic's enabled sections."""
     diagnostic = get_object_or_404(
@@ -890,15 +676,17 @@ def download_public_diagnostic_pdf(request, diagnostic_uuid):
         uuid=diagnostic_uuid,
     )
     if diagnostic.status not in diagnostic_service.PUBLIC_VISIBLE_STATUSES:
-        return Response(
-            {'error': 'not_available'},
+        return error_response(
+            'El diagnóstico no está disponible.',
+            code='not_available',
             status=http_status.HTTP_404_NOT_FOUND,
         )
 
     pdf_bytes = DiagnosticPdfService.generate(diagnostic)
     if not pdf_bytes:
-        return Response(
-            {'error': 'pdf_generation_failed'},
+        return error_response(
+            'No se pudo generar el PDF.',
+            code='pdf_generation_failed',
             status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -916,13 +704,14 @@ def download_public_diagnostic_pdf(request, diagnostic_uuid):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([TrackingAnonThrottle])
 def respond_public_diagnostic(request, diagnostic_uuid):
     diagnostic = get_object_or_404(WebAppDiagnostic, uuid=diagnostic_uuid)
     decision = (request.data.get('decision') or '').strip().lower()
     if decision not in ('accept', 'reject'):
-        return Response(
-            {'error': 'invalid_decision'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'La decisión debe ser aceptar o rechazar.',
+            code='invalid_decision',
         )
     target = (
         WebAppDiagnostic.Status.ACCEPTED
@@ -935,8 +724,10 @@ def respond_public_diagnostic(request, diagnostic_uuid):
             actor_type=DiagnosticChangeLog.ActorType.CLIENT,
         )
     except ValueError as exc:
-        return Response(
-            {'error': str(exc).split(':')[0], 'message': str(exc)},
+        return error_response(
+            'El diagnóstico ya no admite esta acción.',
+            code=str(exc).split(':')[0],
+            hint='Recarga la página para ver el estado vigente.',
             status=http_status.HTTP_409_CONFLICT,
         )
     return Response(PublicDiagnosticSerializer(diagnostic).data)
@@ -970,20 +761,22 @@ def upload_diagnostic_attachment(request, diagnostic_id):
     diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
     file = request.FILES.get('file')
     if not file:
-        return Response({'error': 'No se adjuntó ningún archivo.'},
-                        status=http_status.HTTP_400_BAD_REQUEST)
+        return error_response(
+            'No se adjuntó ningún archivo.',
+            code='attachment_file_required',
+        )
 
     ext = Path(file.name).suffix.lower()
     if ext not in _ATTACHMENT_ALLOWED_EXTENSIONS:
         allowed = ', '.join(sorted(_ATTACHMENT_ALLOWED_EXTENSIONS))
-        return Response(
-            {'error': f'Tipo de archivo {ext} no permitido. Permitidos: {allowed}'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            f'Tipo de archivo {ext} no permitido. Permitidos: {allowed}',
+            code='attachment_type_not_allowed',
         )
     if file.size > _ATTACHMENT_MAX_SIZE:
-        return Response(
-            {'error': 'El archivo es demasiado grande. El tamaño máximo es 15 MB.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'El archivo es demasiado grande. El tamaño máximo es 15 MB.',
+            code='attachment_too_large',
         )
 
     document_type = request.data.get(
@@ -991,9 +784,9 @@ def upload_diagnostic_attachment(request, diagnostic_id):
     )
     valid_types = {c[0] for c in DiagnosticAttachment.DOC_TYPE_CHOICES}
     if document_type not in valid_types:
-        return Response(
-            {'error': f'Tipo de documento no válido: {document_type}'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            f'Tipo de documento no válido: {document_type}',
+            code='invalid_document_type',
         )
 
     title = (request.data.get('title') or file.name).strip()[:300] or file.name
@@ -1025,9 +818,9 @@ def delete_diagnostic_attachment(request, diagnostic_id, attachment_id):
         pk=attachment_id, diagnostic_id=diagnostic_id,
     )
     if attachment.is_generated:
-        return Response(
-            {'error': 'No se puede eliminar un documento generado por el sistema; regénerelo desde Editar parámetros.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'No se puede eliminar un documento generado por el sistema; regénerelo desde Editar parámetros.',
+            code='generated_attachment_locked',
         )
     if attachment.file:
         attachment.file.delete(save=False)
@@ -1068,14 +861,14 @@ def send_diagnostic_attachments(request, diagnostic_id):
 
     invalid = set(documents) - _SEND_ALLOWED_DOC_KEYS
     if invalid:
-        return Response(
-            {'error': f'Claves de documento no reconocidas: {sorted(invalid)}'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            f'Claves de documento no reconocidas: {sorted(invalid)}',
+            code='unknown_document_keys',
         )
     if not attachment_ids and not documents:
-        return Response(
-            {'error': 'Debes seleccionar al menos un documento.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Debes seleccionar al menos un documento.',
+            code='documents_selection_required',
         )
 
     extra_files = []
@@ -1086,14 +879,15 @@ def send_diagnostic_attachments(request, diagnostic_id):
             is_generated=True,
         ).exists()
         if not has_params and not has_generated:
-            return Response(
-                {'error': 'Debes generar el Acuerdo de Confidencialidad antes de enviarlo (Documentos → Generar acuerdo).'},
-                status=http_status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                'Debes generar el Acuerdo de Confidencialidad antes de enviarlo (Documentos → Generar acuerdo).',
+                code='nda_not_generated',
             )
         nda_bytes = generate_confidentiality_pdf(diagnostic, draft=True)
         if not nda_bytes:
-            return Response(
-                {'error': 'No se pudo generar el Acuerdo de Confidencialidad.'},
+            return error_response(
+                'No se pudo generar el Acuerdo de Confidencialidad.',
+                code='nda_generation_failed',
                 status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
         watermarked = add_watermark_to_pdf(nda_bytes)
@@ -1115,9 +909,9 @@ def send_diagnostic_attachments(request, diagnostic_id):
         extra_files=extra_files,
     )
     if not ok:
-        return Response(
-            {'error': error or 'Error al enviar.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            error or 'Error al enviar.',
+            code='attachments_send_failed',
         )
     diagnostic_service.log_change(
         diagnostic,
@@ -1179,15 +973,21 @@ def update_confidentiality_params(request, diagnostic_id):
     serializer = ConfidentialityParamsSerializer(
         data=request.data.get('confidentiality_params', request.data),
     )
-    serializer.is_valid(raise_exception=True)
+    if not serializer.is_valid():
+        return error_response(
+            'Datos inválidos.',
+            code='validation_error',
+            errors=serializer.errors,
+        )
 
     diagnostic.confidentiality_params = serializer.validated_data
     diagnostic.save(update_fields=['confidentiality_params', 'updated_at'])
 
     attachment = _generate_and_save_confidentiality_pdf(diagnostic)
     if not attachment:
-        return Response(
-            {'error': 'Parámetros guardados pero no se pudo generar el PDF.'},
+        return error_response(
+            'Parámetros guardados pero no se pudo generar el PDF.',
+            code='nda_generation_failed',
             status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     diagnostic_service.log_change(
@@ -1210,8 +1010,9 @@ def generate_confidentiality_pdf_view(request, diagnostic_id):
     diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
     attachment = _generate_and_save_confidentiality_pdf(diagnostic)
     if not attachment:
-        return Response(
-            {'error': 'No se pudo generar el PDF.'},
+        return error_response(
+            'No se pudo generar el PDF.',
+            code='nda_generation_failed',
             status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     return Response({'attachment': serialize_diagnostic_attachment(attachment)})
@@ -1235,8 +1036,9 @@ def download_confidentiality_pdf(request, diagnostic_id):
         is_generated=True,
     ).first()
     if not attachment or not attachment.file:
-        return Response(
-            {'error': 'El acuerdo aún no ha sido generado.'},
+        return error_response(
+            'El acuerdo aún no ha sido generado.',
+            code='nda_not_generated',
             status=http_status.HTTP_404_NOT_FOUND,
         )
     return FileResponse(
@@ -1255,8 +1057,9 @@ def download_draft_confidentiality_pdf(request, diagnostic_id):
     diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
     pdf_bytes = generate_confidentiality_pdf(diagnostic, draft=True)
     if not pdf_bytes:
-        return Response(
-            {'error': 'No se pudo generar el borrador.'},
+        return error_response(
+            'No se pudo generar el borrador.',
+            code='nda_generation_failed',
             status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     filename = _confidentiality_filename(diagnostic, 'Borrador_Acuerdo_Confidencialidad')
@@ -1376,30 +1179,31 @@ def _parse_diagnostic_email(request, diagnostic):
         sent_at__gte=one_min_ago,
     ).exists()
     if recent:
-        return None, Response(
-            {'error': 'Espera al menos 1 minuto entre envíos.'},
+        return None, error_response(
+            'Espera al menos 1 minuto entre envíos.',
+            code='email_rate_limited',
             status=http_status.HTTP_429_TOO_MANY_REQUESTS,
         )
 
     recipient_email = (request.data.get('recipient_email') or '').strip()
     if not recipient_email:
-        return None, Response(
-            {'error': 'El campo destinatario es obligatorio.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return None, error_response(
+            'El campo destinatario es obligatorio.',
+            code='recipient_required',
         )
     try:
         validate_email(recipient_email)
     except DjangoValidationError:
-        return None, Response(
-            {'error': 'El correo del destinatario no es válido.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return None, error_response(
+            'El correo del destinatario no es válido.',
+            code='invalid_recipient_email',
         )
 
     subject = (request.data.get('subject') or '').strip()
     if not subject:
-        return None, Response(
-            {'error': 'El asunto es obligatorio.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return None, error_response(
+            'El asunto es obligatorio.',
+            code='subject_required',
         )
 
     greeting = (request.data.get('greeting') or '').strip()
@@ -1412,17 +1216,17 @@ def _parse_diagnostic_email(request, diagnostic):
             else raw_sections
         )
     except (json.JSONDecodeError, TypeError):
-        return None, Response(
-            {'error': 'Las secciones deben ser un JSON válido.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return None, error_response(
+            'Las secciones deben ser un JSON válido.',
+            code='invalid_sections_json',
         )
 
     if not isinstance(sections, list) or not any(
         s.strip() for s in sections if isinstance(s, str)
     ):
-        return None, Response(
-            {'error': 'Debe incluir al menos una sección con contenido.'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return None, error_response(
+            'Debe incluir al menos una sección con contenido.',
+            code='sections_content_required',
         )
     sections = [s for s in sections if isinstance(s, str) and s.strip()]
 
@@ -1430,14 +1234,14 @@ def _parse_diagnostic_email(request, diagnostic):
     for f in request.FILES.getlist('attachments'):
         ext = Path(f.name).suffix.lower()
         if ext not in _COMPOSED_EMAIL_ALLOWED_EXT:
-            return None, Response(
-                {'error': f'Tipo de archivo {ext} no permitido.'},
-                status=http_status.HTTP_400_BAD_REQUEST,
+            return None, error_response(
+                f'Tipo de archivo {ext} no permitido.',
+                code='attachment_type_not_allowed',
             )
         if f.size > _COMPOSED_EMAIL_MAX_FILE:
-            return None, Response(
-                {'error': f'El archivo "{f.name}" excede el límite de 15 MB.'},
-                status=http_status.HTTP_400_BAD_REQUEST,
+            return None, error_response(
+                f'El archivo "{f.name}" excede el límite de 15 MB.',
+                code='attachment_too_large',
             )
         mime_type = mimetypes.guess_type(f.name)[0] or 'application/octet-stream'
         attachments.append((f.name, f.read(), mime_type))
@@ -1450,10 +1254,10 @@ def _parse_diagnostic_email(request, diagnostic):
 
         pdf_bytes = generate_confidentiality_pdf(diagnostic)
         if not pdf_bytes:
-            return None, Response(
-                {'error': 'No se pudo generar el acuerdo de confidencialidad. '
-                          'Completa los parámetros en la pestaña Documentos.'},
-                status=http_status.HTTP_400_BAD_REQUEST,
+            return None, error_response(
+                'No se pudo generar el acuerdo de confidencialidad. '
+                'Completa los parámetros en la pestaña Documentos.',
+                code='nda_generation_failed',
             )
         nda_filename = _confidentiality_filename(diagnostic, 'Acuerdo_Confidencialidad')
         attachments.append((nda_filename, pdf_bytes, 'application/pdf'))
@@ -1461,15 +1265,15 @@ def _parse_diagnostic_email(request, diagnostic):
     # ── References to existing documents (NDA, MD templates, uploads) ──
     from content.views._doc_refs import DocRefError, parse_doc_refs_field
 
-    doc_refs, error_response = parse_doc_refs_field(request)
-    if error_response:
-        return None, error_response
+    doc_refs, doc_refs_error = parse_doc_refs_field(request)
+    if doc_refs_error:
+        return None, doc_refs_error
     try:
         attachments.extend(_resolve_diagnostic_doc_refs(diagnostic, doc_refs))
     except DocRefError as err:
-        return None, Response(
-            {'error': str(err)},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return None, error_response(
+            str(err),
+            code='invalid_doc_ref',
         )
 
     return {
@@ -1509,8 +1313,9 @@ def send_diagnostic_email(request, diagnostic_id):
             actor_type=DiagnosticChangeLog.ActorType.SELLER,
         )
         return Response({'message': f'Correo enviado a {parsed["recipient_email"]}.'})
-    return Response(
-        {'error': 'Error al enviar el correo. Intenta de nuevo.'},
+    return error_response(
+        'Error al enviar el correo. Intenta de nuevo.',
+        code='email_send_failed',
         status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
 
@@ -1555,9 +1360,9 @@ def diagnostic_defaults(request):
     """GET — DB config for *lang* or hardcoded fallback. PUT — upsert."""
     lang = request.query_params.get('lang', request.data.get('language', 'es'))
     if lang not in ('es', 'en'):
-        return Response(
-            {'detail': 'El idioma debe ser "es" o "en".'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'El idioma debe ser "es" o "en".',
+            code='invalid_language',
         )
 
     if request.method == 'GET':
@@ -1595,7 +1400,11 @@ def diagnostic_defaults(request):
         else DiagnosticDefaultConfigSerializer(data=payload)
     )
     if not serializer.is_valid():
-        return Response(serializer.errors, status=http_status.HTTP_400_BAD_REQUEST)
+        return error_response(
+            'Datos inválidos.',
+            code='validation_error',
+            errors=serializer.errors,
+        )
     serializer.save()
     return Response(serializer.data, status=http_status.HTTP_200_OK)
 
@@ -1606,9 +1415,9 @@ def reset_diagnostic_defaults(request):
     """Delete the DB-backed defaults for a language; reverts to hardcoded seed."""
     lang = request.data.get('language', 'es')
     if lang not in ('es', 'en'):
-        return Response(
-            {'detail': 'El idioma debe ser "es" o "en".'},
-            status=http_status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'El idioma debe ser "es" o "en".',
+            code='invalid_language',
         )
     deleted_count, _ = DiagnosticDefaultConfig.objects.filter(language=lang).delete()
     return Response(

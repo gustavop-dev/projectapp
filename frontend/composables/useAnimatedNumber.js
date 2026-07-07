@@ -1,12 +1,15 @@
 import { ref, watch } from 'vue';
+import { useReducedMotion } from '~/composables/useReducedMotion';
 
 /**
  * Composable that smoothly animates a number from its previous value to a new target.
+ * Under prefers-reduced-motion the value jumps straight to the target.
  * @param {import('vue').Ref<number>} target - Reactive ref with the target number
  * @param {number} duration - Animation duration in milliseconds (default 600)
  * @returns {{ animated: import('vue').Ref<number> }}
  */
 export function useAnimatedNumber(target, duration = 600) {
+  const { reducedMotion } = useReducedMotion();
   const animated = ref(target.value || 0);
   let rafId = null;
 
@@ -16,7 +19,7 @@ export function useAnimatedNumber(target, duration = 600) {
     /* c8 ignore next */
     const from = oldVal ?? animated.value ?? 0;
     const to = newVal ?? 0;
-    if (from === to) {
+    if (from === to || reducedMotion.value) {
       animated.value = to;
       return;
     }

@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
-        <h1 class="text-2xl font-light text-text-default">Contabilidad — Ads</h1>
+        <h1 class="text-2xl font-light text-text-default">Ads</h1>
         <p class="text-sm text-text-subtle mt-1">
           Gastos en publicidad por plataforma y tarjeta de origen.
         </p>
@@ -52,13 +52,42 @@
       @clear-search="searchInput = ''"
     />
 
-    <!-- Loading -->
-    <div v-if="store.isLoading" class="text-center py-16 text-text-subtle text-sm">
-      Cargando gastos en Ads...
-    </div>
+    <!-- Error -->
+    <AccountingErrorState
+      v-if="store.error === 'fetch_failed'"
+      title="No se pudieron cargar los gastos en Ads"
+      :retrying="store.isLoading"
+      @retry="loadRecords"
+    />
+
+    <!-- Empty -->
+    <BaseEmptyState
+      v-else-if="!store.isLoading && filteredRows.length === 0"
+      :title="hasActiveFilters ? 'Sin resultados con esos filtros' : 'No hay gastos en Ads aún'"
+      :description="hasActiveFilters
+        ? 'Ajusta o limpia los filtros para ver más registros.'
+        : 'Registra el primer gasto publicitario por plataforma.'"
+    >
+      <template #actions>
+        <BaseButton
+          v-if="hasActiveFilters"
+          variant="secondary"
+          size="sm"
+          @click="resetFilters"
+        >
+          Limpiar filtros
+        </BaseButton>
+        <BaseButton v-else variant="primary" size="sm" @click="openCreateModal">
+          <PlusIcon class="w-4 h-4" />
+          <span>Nuevo gasto en Ads</span>
+        </BaseButton>
+      </template>
+    </BaseEmptyState>
 
     <template v-else>
       <AccountingTable
+        :loading="store.isLoading"
+        :highlight-id="lastMutatedId"
         :columns="columns"
         :rows="pagedRows"
         :highlight-query="currentFilters.search"
@@ -85,7 +114,7 @@
       </p>
 
       <BasePagination
-        v-if="filteredRows.length > 0"
+        v-if="!store.isLoading && filteredRows.length > 0"
         :current-page="currentPage"
         :total-pages="totalPages"
         :total-items="totalItems"
@@ -129,6 +158,8 @@ import { PlusIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
+import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import AdSpendFormModal from '~/components/accounting/AdSpendFormModal.vue';
@@ -163,6 +194,7 @@ const {
   searchInput,
   isFilterPanelOpen,
   activeFilterCount,
+  hasActiveFilters,
   applyFilters,
   resetFilters,
 } = useAccountingFilters({
@@ -247,6 +279,7 @@ const {
   isModalOpen: showFormModal,
   editingRecord,
   openCreateModal,
+  lastMutatedId,
   openEditModal,
   closeModal: closeFormModal,
   handleSubmit: submitForm,

@@ -136,4 +136,46 @@ describe('AccountingTable', () => {
     });
     expect(wrapper.find('th[aria-sort]').attributes('aria-sort')).toBe('none');
   });
+
+  it('renders skeleton rows and aria-busy while loading', () => {
+    const wrapper = mountTable({ loading: true, skeletonRows: 4 });
+
+    expect(wrapper.attributes('aria-busy')).toBe('true');
+    expect(wrapper.findAll('[data-testid="accounting-skeleton-row"]')).toHaveLength(4);
+    expect(wrapper.findAll('[data-testid^="accounting-row-"]')).toHaveLength(0);
+  });
+
+  it('announces the row count via an aria-live region when loaded', () => {
+    const wrapper = mountTable();
+    const liveRegion = wrapper.find('[aria-live="polite"]');
+
+    expect(wrapper.attributes('aria-busy')).toBeUndefined();
+    expect(liveRegion.exists()).toBe(true);
+    expect(liveRegion.text()).toContain('2 registros');
+  });
+
+  it('announces the loading state via the aria-live region', () => {
+    const wrapper = mountTable({ loading: true });
+
+    expect(wrapper.find('[aria-live="polite"]').text()).toContain('Cargando');
+  });
+
+  it('renders the #empty slot instead of the fallback text', () => {
+    const wrapper = mount(AccountingTable, {
+      props: { columns, rows: [] },
+      slots: { empty: '<p>No hay nada por aquí</p>' },
+    });
+
+    expect(wrapper.text()).toContain('No hay nada por aquí');
+    expect(wrapper.text()).not.toContain('Sin registros.');
+  });
+
+  it('flashes only the row matching highlightId', () => {
+    const wrapper = mountTable({ highlightId: 2 });
+
+    expect(wrapper.find('[data-testid="accounting-row-2"]').classes())
+      .toContain('accounting-row-flash');
+    expect(wrapper.find('[data-testid="accounting-row-1"]').classes())
+      .not.toContain('accounting-row-flash');
+  });
 });

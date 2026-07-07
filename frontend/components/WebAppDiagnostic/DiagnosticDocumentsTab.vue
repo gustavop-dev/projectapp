@@ -9,13 +9,13 @@
         <h3 class="text-sm font-semibold text-text-default dark:text-white">Documentos</h3>
       </div>
 
-      <ul class="divide-y divide-gray-100 dark:divide-white/[0.06]">
+      <ul class="divide-y divide-border-muted dark:divide-white/[0.06]">
         <!-- Acuerdo de confidencialidad -->
         <li class="py-3">
           <div class="flex items-start justify-between gap-3 flex-wrap">
             <div class="min-w-0">
               <div class="text-sm font-medium text-text-default dark:text-white">Acuerdo de confidencialidad</div>
-              <div class="text-xs text-gray-400 dark:text-text-muted mt-0.5">
+              <div class="text-xs text-text-muted dark:text-text-muted mt-0.5">
                 <template v-if="ndaDoc">PDF · Generado el {{ formatDate(ndaDoc.created_at) }}</template>
                 <template v-else>PDF · No generado</template>
               </div>
@@ -24,7 +24,7 @@
               <template v-if="ndaDoc">
                 <button type="button" aria-label="Vista previa" title="Vista previa"
                   @click="openPdfPreview('Acuerdo de confidencialidad', ndaPdfUrl)"
-                  class="inline-flex items-center justify-center w-8 h-8 bg-gray-50 dark:bg-surface/[0.03] text-text-muted dark:text-white/70 rounded-lg hover:bg-gray-100 dark:hover:bg-surface/[0.06] transition-colors">
+                  class="inline-flex items-center justify-center w-8 h-8 bg-surface-muted dark:bg-surface/[0.03] text-text-muted dark:text-white/70 rounded-lg hover:bg-surface-raised dark:hover:bg-surface/[0.06] transition-colors">
                   <EyeIcon class="w-4 h-4" />
                 </button>
                 <a :href="ndaPdfUrl" target="_blank"
@@ -39,7 +39,7 @@
                   Borrador
                 </a>
                 <button type="button" @click="showParamsModal = true"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-surface/[0.03] text-text-muted dark:text-white/70 rounded-lg text-xs font-medium hover:bg-gray-100 dark:hover:bg-surface/[0.06] transition-colors">
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-muted dark:bg-surface/[0.03] text-text-muted dark:text-white/70 rounded-lg text-xs font-medium hover:bg-surface-raised dark:hover:bg-surface/[0.06] transition-colors">
                   Editar parámetros
                 </button>
               </template>
@@ -52,14 +52,14 @@
         </li>
 
         <!-- Plantillas MD del diagnóstico -->
-        <li v-if="templatesLoading" class="py-3 text-xs text-gray-400 dark:text-text-muted">Cargando plantillas…</li>
+        <li v-if="templatesLoading" class="py-3 text-xs text-text-muted dark:text-text-muted">Cargando plantillas…</li>
         <li v-else-if="templatesError" class="py-3 text-xs text-red-500">{{ templatesError }}</li>
         <template v-else>
           <li v-for="t in templates" :key="t.slug" class="py-3">
             <div class="flex items-start justify-between gap-3 flex-wrap">
               <div class="min-w-0">
                 <div class="text-sm font-medium text-text-default dark:text-white">{{ t.title }}</div>
-                <div class="text-xs text-gray-400 dark:text-text-muted mt-0.5">
+                <div class="text-xs text-text-muted dark:text-text-muted mt-0.5">
                   {{ t.filename }} · {{ formatBytes(t.size_bytes) }}
                 </div>
               </div>
@@ -69,7 +69,7 @@
                   {{ templateCopied[t.slug] ? '¡Copiado!' : 'Copiar contenido' }}
                 </button>
                 <button type="button" :disabled="templateBusy[t.slug]" @click="downloadTemplate(t.slug, t.filename)"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-surface/[0.03] text-text-muted dark:text-green-light rounded-lg text-xs font-medium hover:bg-gray-100 dark:hover:bg-surface/[0.06] transition-colors disabled:opacity-50">
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-muted dark:bg-surface/[0.03] text-text-muted dark:text-green-light rounded-lg text-xs font-medium hover:bg-surface-raised dark:hover:bg-surface/[0.06] transition-colors disabled:opacity-50">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
@@ -77,7 +77,7 @@
                 </button>
                 <button type="button" :disabled="templateBusy[t.slug]" aria-label="Vista previa"
                   title="Vista previa" @click="openMarkdownPreview(t)"
-                  class="inline-flex items-center justify-center w-8 h-8 bg-gray-50 dark:bg-surface/[0.03] text-text-muted dark:text-green-light rounded-lg hover:bg-gray-100 dark:hover:bg-surface/[0.06] transition-colors disabled:opacity-50">
+                  class="inline-flex items-center justify-center w-8 h-8 bg-surface-muted dark:bg-surface/[0.03] text-text-muted dark:text-green-light rounded-lg hover:bg-surface-raised dark:hover:bg-surface/[0.06] transition-colors disabled:opacity-50">
                   <EyeIcon class="w-4 h-4" />
                 </button>
               </div>
@@ -98,9 +98,9 @@
 
       <div v-if="userAttachments.length" class="space-y-2 mb-4">
         <div v-for="att in userAttachments" :key="att.id"
-          class="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-surface/[0.03] rounded-lg">
+          class="flex items-center justify-between py-2 px-3 bg-surface-muted dark:bg-surface/[0.03] rounded-lg">
           <div class="flex items-center gap-2 min-w-0">
-            <span class="px-2 py-0.5 bg-gray-200 dark:bg-surface/[0.08] text-text-muted dark:text-gray-400 rounded text-[10px] font-medium">
+            <span class="px-2 py-0.5 bg-gray-200 dark:bg-surface/[0.08] text-text-muted dark:text-text-muted rounded text-[10px] font-medium">
               {{ att.document_type_display }}
             </span>
             <a :href="att.file" target="_blank" rel="noopener noreferrer"
@@ -111,10 +111,10 @@
           <div class="flex items-center gap-1">
             <button v-if="canPreviewFile(att.file)" type="button" aria-label="Vista previa"
               title="Vista previa" @click="openAttachmentPreview(att)"
-              class="text-gray-400 hover:text-text-brand transition-colors p-1">
+              class="text-text-muted hover:text-text-brand transition-colors p-1">
               <EyeIcon class="w-4 h-4" />
             </button>
-            <button type="button" class="text-gray-400 hover:text-red-500 transition-colors p-1"
+            <button type="button" class="text-text-muted hover:text-red-500 transition-colors p-1"
               @click="handleDelete(att.id)">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -123,23 +123,23 @@
           </div>
         </div>
       </div>
-      <p v-else class="text-xs text-gray-400 dark:text-text-muted mb-4">
+      <p v-else class="text-xs text-text-muted dark:text-text-muted mb-4">
         No hay documentos adjuntos.
       </p>
 
       <!-- Upload form -->
       <div class="border-t border-border-muted pt-4">
-        <p class="text-xs text-text-muted dark:text-gray-400 mb-3">
+        <p class="text-xs text-text-muted dark:text-text-muted mb-3">
           Subir documento (otrosí, anexo, documento del cliente, etc.)
         </p>
         <div class="flex flex-wrap items-end gap-3">
           <div class="flex-1 min-w-[150px]">
-            <label class="block text-xs text-gray-400 dark:text-text-muted mb-1">Título</label>
+            <label class="block text-xs text-text-muted dark:text-text-muted mb-1">Título</label>
             <input v-model="uploadTitle" type="text" placeholder="Ej: Anexo técnico"
               class="w-full px-3 py-2 border border-border-default dark:text-white rounded-lg text-xs focus:ring-2 focus:ring-focus-ring/30" />
           </div>
           <div class="w-36">
-            <label class="block text-xs text-gray-400 dark:text-text-muted mb-1">Tipo</label>
+            <label class="block text-xs text-text-muted dark:text-text-muted mb-1">Tipo</label>
             <select v-model="uploadType"
               class="w-full px-3 py-2 border border-border-default dark:text-white rounded-lg text-xs focus:ring-2 focus:ring-focus-ring/30">
               <option value="amendment">Otrosí</option>
@@ -149,19 +149,19 @@
             </select>
           </div>
           <div v-if="uploadType === 'other'" class="min-w-[120px]">
-            <label class="block text-xs text-gray-400 dark:text-text-muted mb-1">Nombre categoría</label>
+            <label class="block text-xs text-text-muted dark:text-text-muted mb-1">Nombre categoría</label>
             <input v-model="uploadCustomLabel" type="text" placeholder="Ej: Diseños"
               class="w-full px-3 py-2 border border-border-default dark:text-white rounded-lg text-xs focus:ring-2 focus:ring-focus-ring/30" />
           </div>
           <div>
-            <label class="block text-xs text-gray-400 dark:text-text-muted mb-1">Archivo</label>
+            <label class="block text-xs text-text-muted dark:text-text-muted mb-1">Archivo</label>
             <input ref="fileInput" type="file"
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
               class="text-xs dark:text-white/70 file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-primary-soft file:text-text-brand file:rounded-lg hover:file:bg-primary-soft" />
           </div>
           <button type="button" :disabled="isUploading" @click="handleUpload"
             class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong transition-colors disabled:opacity-50">
-            {{ isUploading ? 'Subiendo...' : 'Subir' }}
+            {{ isUploading ? 'Subiendo…' : 'Subir' }}
           </button>
         </div>
         <p v-if="uploadError" class="text-xs text-red-500 mt-2">{{ uploadError }}</p>

@@ -21,7 +21,7 @@ export function getDiagnosticNextAction(diagnostic) {
     return {
       key: 'send',
       label: 'Enviar envío inicial',
-      colorClass: 'bg-blue-600 text-white hover:bg-blue-700',
+      colorClass: 'bg-info-strong text-white hover:bg-info-strong/90',
     };
   }
 
@@ -30,7 +30,7 @@ export function getDiagnosticNextAction(diagnostic) {
       return {
         key: 'analyze',
         label: 'Marcar en análisis',
-        colorClass: 'bg-amber-500 text-white hover:bg-amber-600',
+        colorClass: 'bg-warning-strong text-white hover:bg-warning-strong/90',
       };
     }
     return null;
@@ -40,7 +40,7 @@ export function getDiagnosticNextAction(diagnostic) {
     return {
       key: 'send-final',
       label: 'Enviar diagnóstico final',
-      colorClass: 'bg-purple-600 text-white hover:bg-purple-700',
+      colorClass: 'bg-primary text-white hover:bg-primary-strong',
     };
   }
 

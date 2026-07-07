@@ -71,7 +71,9 @@ test.describe('Admin Blog List', () => {
     });
     await page.goto('/panel/blog');
 
-    const calendarLink = page.getByRole('link', { name: 'Calendario' });
+    // Exact match: the Spanish sidebar has a 'Calendario del blog' link, so
+    // scope to the page's own 'Calendario' button.
+    const calendarLink = page.getByRole('link', { name: 'Calendario', exact: true });
     await expect(calendarLink).toBeVisible();
     await expect(calendarLink).toHaveAttribute('href', /\/panel\/blog\/calendar/);
   });

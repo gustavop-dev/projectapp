@@ -48,3 +48,23 @@ def test_email_template_not_found_is_spanish(admin_client):
     resp = admin_client.get(url)
     assert resp.status_code == 404
     assert 'no existe en el registro.' in resp.json()['detail']
+
+
+def test_diagnostic_create_without_client_is_spanish(admin_client):
+    resp = admin_client.post(reverse('create-diagnostic'), {}, format='json')
+    assert resp.status_code == 400
+    data = resp.json()
+    assert data['error'] == 'Selecciona un cliente antes de continuar.'
+    assert data['code'] == 'client_id_required'
+
+
+def test_diagnostic_respond_invalid_decision_is_spanish(client, diagnostic):
+    url = reverse(
+        'respond-public-diagnostic',
+        kwargs={'diagnostic_uuid': diagnostic.uuid},
+    )
+    resp = client.post(url, {'decision': 'maybe'}, format='json')
+    assert resp.status_code == 400
+    data = resp.json()
+    assert data['error'] == 'La decisión debe ser aceptar o rechazar.'
+    assert data['code'] == 'invalid_decision'

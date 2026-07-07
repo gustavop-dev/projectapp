@@ -142,7 +142,7 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     await page.goto('/panel/accounting/expenses', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByRole('heading', { name: 'Gastos' }),
+      page.getByRole('heading', { name: 'Gastos', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
     await expect(page.getByText('Claude Code 20x')).toBeVisible();
@@ -156,7 +156,7 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     await mockApi(page, buildHandler({ calls }));
     await page.goto('/panel/accounting/expenses', { waitUntil: 'domcontentloaded' });
     await expect(
-      page.getByRole('heading', { name: 'Gastos' }),
+      page.getByRole('heading', { name: 'Gastos', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
 
     await page.getByTestId('expenses-new-button').click();
@@ -180,7 +180,7 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     await page.goto('/panel/accounting/hostings', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByRole('heading', { name: 'Hostings' }),
+      page.getByRole('heading', { name: 'Hostings', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
     await expect(page.getByText('Hostings activos', { exact: true })).toBeVisible();
     await expect(page.getByText('Ingreso mensual', { exact: true })).toBeVisible();
@@ -206,7 +206,7 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     await mockApi(page, buildHandler({ calls }));
     await page.goto('/panel/accounting/hostings', { waitUntil: 'domcontentloaded' });
     await expect(
-      page.getByRole('heading', { name: 'Hostings' }),
+      page.getByRole('heading', { name: 'Hostings', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
 
     await page.getByTestId('hostings-new-button').click();

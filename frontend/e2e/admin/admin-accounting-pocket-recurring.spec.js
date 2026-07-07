@@ -127,7 +127,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByRole('heading', { name: 'Bolsillo ProjectApp' }),
+      page.getByRole('heading', { name: 'Bolsillo ProjectApp', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
     await expect(page.getByTestId('pocket-balance')).toBeVisible();
     await expect(page.getByText('Saldo del bolsillo')).toBeVisible();
@@ -166,7 +166,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByRole('heading', { name: 'Contabilidad — Pagos recurrentes' }),
+      page.getByRole('heading', { name: 'Pagos recurrentes', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
     await expect(page.getByText('Costo mensual (COP)')).toBeVisible();
     await expect(page.getByText('Por frecuencia')).toBeVisible();
@@ -180,7 +180,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
     await expect(
-      page.getByRole('heading', { name: 'Contabilidad — Pagos recurrentes' }),
+      page.getByRole('heading', { name: 'Pagos recurrentes', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
 
     await page.getByTestId('recurring-new-button').click();
@@ -202,7 +202,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     await mockApi(page, buildHandler({ calls }));
     await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
     await expect(
-      page.getByRole('heading', { name: 'Contabilidad — Pagos recurrentes' }),
+      page.getByRole('heading', { name: 'Pagos recurrentes', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
 
     await page.getByTestId('recurring-new-button').click();

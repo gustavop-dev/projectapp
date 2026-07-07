@@ -72,7 +72,7 @@ test.describe('Admin Diagnostic — Edit page', () => {
 
     await expect(page.getByRole('tab', { name: 'General', exact: true })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('tab', { name: 'Secciones' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Prompt Diagnostic' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Prompt diagnóstico' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'JSON' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Actividad' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Analytics' })).toBeVisible();

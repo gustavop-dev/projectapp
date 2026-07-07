@@ -68,7 +68,7 @@ const options = computed(() => ({
         :series="series"
       />
       <template #fallback>
-        <div class="h-72 rounded-xl bg-surface-raised animate-pulse" />
+        <div class="h-72 rounded-xl bg-surface-raised motion-safe:animate-pulse" />
       </template>
     </ClientOnly>
   </div>

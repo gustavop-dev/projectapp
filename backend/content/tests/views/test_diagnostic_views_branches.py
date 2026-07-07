@@ -99,7 +99,8 @@ def test_list_diagnostic_emails_invalid_page_defaults_to_page_one(mock_list, adm
 @pytest.mark.django_db
 def test_retrieve_public_diagnostic_by_slug_returns_200(api_client, diagnostic):
     diagnostic.slug = 'test-diag-slug'
-    diagnostic.save(update_fields=['slug'])
+    diagnostic.status = WebAppDiagnostic.Status.SENT
+    diagnostic.save(update_fields=['slug', 'status'])
     response = api_client.get('/api/diagnostics/public/by-slug/test-diag-slug/')
     assert response.status_code == 200
 

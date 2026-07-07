@@ -154,6 +154,25 @@ describe('useDiagnosticsStore', () => {
     expect(result.success).toBe(true)
   })
 
+  it('bulkAction posts ids/action and prunes deleted rows from state', async () => {
+    store.diagnostics = [{ id: 1 }, { id: 2 }, { id: 3 }]
+    create_request.mockResolvedValueOnce({ data: { affected: 2, action: 'delete' } })
+    const result = await store.bulkAction([1, 3], 'delete')
+    expect(create_request).toHaveBeenCalledWith('diagnostics/bulk-action/', { ids: [1, 3], action: 'delete' })
+    expect(result.success).toBe(true)
+    expect(result.data.affected).toBe(2)
+    expect(store.diagnostics.map((d) => d.id)).toEqual([2])
+  })
+
+  it('bulkAction returns the normalized failure shape on error', async () => {
+    create_request.mockRejectedValueOnce({
+      response: { status: 400, data: { error: 'Acción no válida.', code: 'invalid_bulk_action' } },
+    })
+    const result = await store.bulkAction([1], 'resend')
+    expect(result.success).toBe(false)
+    expect(result.code).toBe('invalid_bulk_action')
+  })
+
   it('remove DELETEs and filters from diagnostics array', async () => {
     store.current = mockDiagnostic({ id: 3 })
     store.diagnostics = [mockDiagnostic({ id: 3 }), mockDiagnostic({ id: 6 })]
@@ -245,11 +264,11 @@ describe('useDiagnosticsStore', () => {
     expect(result.success).toBe(true)
   })
 
-  it('markInAnalysis uses transition_failed as default error key', async () => {
+  it('markInAnalysis falls back to a Spanish message on failure', async () => {
     create_request.mockRejectedValueOnce({ response: { data: {} } })
     const result = await store.markInAnalysis(1)
     expect(result.success).toBe(false)
-    expect(store.error).toBe('transition_failed')
+    expect(store.error).toBe('No se pudo cambiar el estado.')
   })
 
   it('sendFinal POSTs to send-final/ and updates current', async () => {
@@ -375,7 +394,7 @@ describe('useDiagnosticsStore', () => {
     patch_request.mockRejectedValueOnce({ response: { data: {} } })
     const result = await store.updateSection(1, 10, {})
     expect(result.success).toBe(false)
-    expect(store.error).toBe('update_section_failed')
+    expect(store.error).toBe('No se pudo guardar la sección.')
   })
 
   it('bulkUpdateSections returns error shape on failure', async () => {
@@ -389,14 +408,46 @@ describe('useDiagnosticsStore', () => {
     create_request.mockRejectedValueOnce({ response: { data: {} } })
     const result = await store.resetSection(1, 10)
     expect(result.success).toBe(false)
-    expect(result.error).toBe('reset_failed')
+    expect(result.error).toBe('No se pudo restaurar la sección.')
   })
 
   it('fetchActivity returns error shape on failure', async () => {
     get_request.mockRejectedValueOnce({ response: { data: {} } })
     const result = await store.fetchActivity(1)
     expect(result.success).toBe(false)
-    expect(result.error).toBe('fetch_failed')
+    expect(result.error).toBe('No se pudo cargar la actividad.')
+  })
+
+  it('update propagates per-field serializer errors', async () => {
+    patch_request.mockRejectedValueOnce({
+      response: {
+        status: 400,
+        data: { error: 'Datos inválidos.', code: 'validation_error', slug: ['Ya existe.'] },
+      },
+    })
+    const result = await store.update(1, { slug: 'dup' })
+    expect(result.success).toBe(false)
+    expect(result.code).toBe('validation_error')
+    expect(result.errors.slug).toEqual(['Ya existe.'])
+    expect(result.fieldErrors.slug).toBe('Ya existe.')
+  })
+
+  it('transitions propagate code and hint from the standard error shape', async () => {
+    create_request.mockRejectedValueOnce({
+      response: {
+        status: 400,
+        data: {
+          error: 'No se puede cambiar el estado del diagnóstico desde su estado actual.',
+          code: 'invalid_transition',
+          hint: 'Recarga la página para ver el estado vigente.',
+        },
+      },
+    })
+    const result = await store.sendInitial(1)
+    expect(result.success).toBe(false)
+    expect(result.code).toBe('invalid_transition')
+    expect(result.hint).toBe('Recarga la página para ver el estado vigente.')
+    expect(result.message).toBe('No se puede cambiar el estado del diagnóstico desde su estado actual.')
   })
 
   it('logActivity returns error shape on failure', async () => {
@@ -445,11 +496,12 @@ describe('useDiagnosticsStore', () => {
     expect(result.data.payment_initial_pct).toBe(60)
   })
 
-  it('fetchDiagnosticDefaults returns errors on failure', async () => {
+  it('fetchDiagnosticDefaults surfaces the server message on failure', async () => {
     get_request.mockRejectedValueOnce({ response: { data: { detail: 'oops' } } })
     const result = await store.fetchDiagnosticDefaults('en')
     expect(result.success).toBe(false)
-    expect(store.error).toBe('fetch_defaults_failed')
+    expect(store.error).toBe('oops')
+    expect(result.errors).toEqual({ detail: 'oops' })
   })
 
   it('saveDiagnosticDefaults PUTs only the whitelisted general fields', async () => {

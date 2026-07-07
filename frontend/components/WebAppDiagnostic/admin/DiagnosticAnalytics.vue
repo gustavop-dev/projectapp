@@ -1,479 +1,382 @@
 <template>
   <div class="space-y-6">
     <!-- Loading -->
-    <div v-if="loading" class="text-center py-8 text-gray-400 text-sm">
-      Cargando analytics...
+    <div v-if="loading" class="space-y-4" data-testid="analytics-loading" aria-busy="true">
+      <BaseSkeleton variant="card" class="w-full" />
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <BaseSkeleton v-for="n in 6" :key="n" variant="card" />
+      </div>
     </div>
 
-    <!-- No data -->
-    <div v-else-if="!analytics" class="text-center py-8 text-gray-400 text-sm">
-      No hay datos de analytics disponibles.
-    </div>
+    <!-- Load error (distinct from "never viewed") -->
+    <BaseEmptyState
+      v-else-if="loadError"
+      data-testid="analytics-error-state"
+      title="No se pudo cargar la analítica"
+      :description="loadError"
+    >
+      <template #actions>
+        <BaseButton variant="secondary" size="md" @click="refresh">Reintentar</BaseButton>
+      </template>
+    </BaseEmptyState>
+
+    <!-- No data yet -->
+    <BaseEmptyState
+      v-else-if="!analytics"
+      title="Este diagnóstico aún no ha sido visto"
+      description="Cuando el cliente abra el enlace público, aquí verás sus sesiones, recorrido y señales de interés."
+    />
 
     <template v-else>
-      <!-- CSV Export button -->
-      <div class="flex justify-end">
+      <!-- ── Summary band: score + suggestions first ── -->
+      <div class="grid lg:grid-cols-[minmax(0,20rem)_1fr] gap-4 items-stretch">
+        <!-- Engagement score -->
+        <div
+          v-if="analytics.engagement_score != null"
+          class="bg-surface rounded-xl border shadow-card p-5 flex items-center gap-5"
+          :class="scoreTone.border"
+        >
+          <div
+            class="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white shrink-0"
+            :class="scoreTone.tile"
+          >
+            {{ animatedScore }}
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h3 class="text-sm font-medium text-text-default">Engagement score</h3>
+              <BaseTooltip position="right" width="max-w-2xl">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-4 h-4 text-text-subtle hover:text-text-muted motion-safe:transition-colors motion-safe:duration-fast" />
+                </template>
+                {{ tt.engagementScore }}
+              </BaseTooltip>
+            </div>
+            <p class="text-xs text-text-muted mt-1">{{ scoreTone.text }}</p>
+          </div>
+        </div>
+
+        <!-- Suggested actions — the reason this page exists -->
+        <div
+          v-if="suggestions.length"
+          class="bg-warning-soft border border-warning-strong/30 rounded-xl shadow-card p-4"
+          data-testid="analytics-suggestions"
+        >
+          <div class="flex items-center gap-1.5 mb-2">
+            <h3 class="text-sm font-medium text-warning-strong">💡 Acciones sugeridas</h3>
+            <BaseTooltip position="right" width="max-w-2xl">
+              <template #trigger>
+                <QuestionMarkCircleIcon class="w-4 h-4 text-warning-strong/60 hover:text-warning-strong motion-safe:transition-colors motion-safe:duration-fast" />
+              </template>
+              {{ tt.suggestedActions }}
+            </BaseTooltip>
+          </div>
+          <ul class="space-y-2">
+            <li
+              v-for="(s, i) in suggestions"
+              :key="i"
+              class="flex items-start gap-2 text-sm text-warning-strong"
+            >
+              <span class="mt-0.5 flex-shrink-0" aria-hidden="true">{{ s.icon }}</span>
+              <span>{{ s.text }}</span>
+            </li>
+          </ul>
+        </div>
+        <div
+          v-else
+          class="bg-surface rounded-xl border border-border-muted shadow-card p-4 flex items-center"
+        >
+          <p class="text-sm text-text-muted">Sin acciones pendientes — el recorrido del cliente no muestra señales que requieran follow-up inmediato.</p>
+        </div>
+      </div>
+
+      <!-- Skipped sections -->
+      <div
+        v-if="analytics.skipped_sections?.length"
+        class="bg-danger-soft border border-danger-strong/30 rounded-xl shadow-card p-4"
+      >
+        <div class="flex items-center gap-1.5 mb-2">
+          <h3 class="text-sm font-medium text-danger-strong">⚠️ Secciones no visitadas</h3>
+          <BaseTooltip position="right" width="max-w-2xl">
+            <template #trigger>
+              <QuestionMarkCircleIcon class="w-4 h-4 text-danger-strong/60 hover:text-danger-strong motion-safe:transition-colors motion-safe:duration-fast" />
+            </template>
+            {{ tt.skippedSections }}
+          </BaseTooltip>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <span
+            v-for="s in analytics.skipped_sections"
+            :key="s.section_type"
+            class="inline-flex items-center px-3 py-1.5 bg-surface border border-danger-strong/40 rounded-lg text-xs text-danger-strong font-medium"
+          >
+            {{ s.section_title }}
+          </span>
+        </div>
+      </div>
+
+      <!-- KPI cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div v-for="kpi in kpiCards" :key="kpi.label" class="bg-surface rounded-xl border border-border-muted shadow-card p-4">
+          <div class="flex items-center gap-1">
+            <p class="text-2xs text-text-muted uppercase tracking-wider">{{ kpi.label }}</p>
+            <BaseTooltip position="bottom" width="max-w-2xl">
+              <template #trigger>
+                <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-text-subtle hover:text-text-muted motion-safe:transition-colors motion-safe:duration-fast" />
+              </template>
+              {{ kpi.tooltip }}
+            </BaseTooltip>
+          </div>
+          <p class="mt-1 font-light" :class="[kpi.small ? 'text-sm' : 'text-2xl', kpi.valueClass || 'text-text-default']">
+            {{ kpi.value }}
+          </p>
+        </div>
+      </div>
+
+      <!-- ── Detail tabs ── -->
+      <div class="flex items-center justify-between gap-3">
+        <BaseTabs
+          v-model="activeSection"
+          :tabs="[
+            { id: 'journey', label: 'Recorrido' },
+            { id: 'sessions', label: 'Sesiones' },
+            { id: 'activity', label: 'Actividad' },
+            { id: 'comparison', label: 'Comparativa' },
+          ]"
+        />
         <button
-          class="inline-flex items-center gap-2 px-4 py-2 bg-surface border border-border-default dark:border-white/[0.08] rounded-xl text-sm text-text-muted hover:bg-surface-raised transition-colors shadow-sm"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-surface border border-border-default rounded-xl text-sm text-text-muted hover:bg-surface-raised motion-safe:transition-colors motion-safe:duration-fast shadow-card shrink-0 focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
           @click="downloadCSV"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           Exportar CSV
         </button>
       </div>
 
-      <!-- Engagement score -->
-      <details
-        v-if="analytics.engagement_score != null"
-        open
-        class="group bg-surface rounded-xl border shadow-sm"
-        :class="analytics.engagement_score >= 70 ? 'border-emerald-200' : analytics.engagement_score >= 40 ? 'border-yellow-200' : 'border-red-200'"
-      >
-        <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-default">
-          <div class="flex items-center gap-1.5">
-            <h3 class="text-sm font-medium text-text-default">Engagement Score</h3>
-            <BaseTooltip position="right" width="max-w-2xl">
-              <template #trigger>
-                <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
-              </template>
-              {{ tt.engagementScore }}
-            </BaseTooltip>
-          </div>
-          <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </summary>
-        <div class="p-5 flex items-center gap-5">
-          <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white"
-            :class="analytics.engagement_score >= 70 ? 'bg-emerald-500' : analytics.engagement_score >= 40 ? 'bg-yellow-500' : 'bg-red-400'">
-            {{ analytics.engagement_score }}
-          </div>
-          <p class="text-xs text-text-muted">
-            {{ analytics.engagement_score >= 70 ? 'Alto engagement — prioridad de follow-up' : analytics.engagement_score >= 40 ? 'Engagement moderado' : 'Bajo engagement — necesita atención' }}
-          </p>
-        </div>
-      </details>
-
-      <!-- Summary cards -->
-      <details open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
-        <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
-          <div class="flex items-center gap-1.5">
-            <h3 class="text-sm font-medium text-text-default">Resumen general</h3>
-            <BaseTooltip position="right" width="max-w-2xl">
-              <template #trigger>
-                <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
-              </template>
-              {{ tt.summary }}
-            </BaseTooltip>
-          </div>
-          <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </summary>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4 p-4">
-          <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
-            <div class="flex items-center gap-1">
-              <p class="text-xs text-gray-400 uppercase tracking-wider">Vistas</p>
-              <BaseTooltip position="bottom" width="max-w-2xl">
-                <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-text-muted transition-colors" />
-                </template>
-                {{ tt.views }}
-              </BaseTooltip>
-            </div>
-            <p class="text-2xl font-light text-text-default mt-1">{{ analytics.total_views }}</p>
-          </div>
-          <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
-            <div class="flex items-center gap-1">
-              <p class="text-xs text-gray-400 uppercase tracking-wider">Sesiones</p>
-              <BaseTooltip position="bottom" width="max-w-2xl">
-                <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-text-muted transition-colors" />
-                </template>
-                {{ tt.sessions }}
-              </BaseTooltip>
-            </div>
-            <p class="text-2xl font-light text-text-default mt-1">{{ analytics.unique_sessions }}</p>
-          </div>
-          <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
-            <div class="flex items-center gap-1">
-              <p class="text-xs text-gray-400 uppercase tracking-wider">Primera vista</p>
-              <BaseTooltip position="bottom" width="max-w-2xl">
-                <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-text-muted transition-colors" />
-                </template>
-                {{ tt.firstView }}
-              </BaseTooltip>
-            </div>
-            <p class="text-sm font-light text-text-default mt-1">
-              {{ analytics.first_viewed_at ? formatDate(analytics.first_viewed_at) : '—' }}
-            </p>
-          </div>
-          <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
-            <div class="flex items-center gap-1">
-              <p class="text-xs text-gray-400 uppercase tracking-wider">Tiempo de lectura</p>
-              <BaseTooltip position="bottom" width="max-w-2xl">
-                <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-text-muted transition-colors" />
-                </template>
-                {{ tt.readingTime }}
-              </BaseTooltip>
-            </div>
-            <p class="text-2xl font-light text-text-default mt-1">{{ formatTime(totalReadingTime) }}</p>
-          </div>
-          <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
-            <div class="flex items-center gap-1">
-              <p class="text-xs text-gray-400 uppercase tracking-wider">Cobertura</p>
-              <BaseTooltip position="bottom" width="max-w-2xl">
-                <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-text-muted transition-colors" />
-                </template>
-                {{ tt.coverage }}
-              </BaseTooltip>
-            </div>
-            <p class="text-2xl font-light mt-1"
-              :class="sectionCoverage == null ? 'text-text-default' : sectionCoverage >= 80 ? 'text-text-brand' : sectionCoverage >= 50 ? 'text-amber-500 dark:text-amber-400' : 'text-red-500 dark:text-red-400'">
-              {{ sectionCoverage != null ? sectionCoverage + '%' : '—' }}
-            </p>
-          </div>
-          <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
-            <div class="flex items-center gap-1">
-              <p class="text-xs text-gray-400 uppercase tracking-wider">Última visita</p>
-              <BaseTooltip position="bottom" width="max-w-2xl">
-                <template #trigger>
-                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-text-muted transition-colors" />
-                </template>
-                {{ tt.lastVisit }}
-              </BaseTooltip>
-            </div>
-            <p class="text-sm font-light text-text-default mt-1">
-              {{ lastVisitedAt ? formatDate(lastVisitedAt) : '—' }}
-            </p>
-          </div>
-        </div>
-      </details>
-
-      <!-- Comparison with global average -->
-      <details v-if="analytics.comparison" open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
-        <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
-          <div class="flex items-center gap-1.5">
-            <h3 class="text-sm font-medium text-text-default">Comparación con promedio global</h3>
-            <BaseTooltip position="right" width="max-w-2xl">
-              <template #trigger>
-                <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
-              </template>
-              {{ tt.globalComparison }}
-            </BaseTooltip>
-          </div>
-          <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </summary>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4">
-          <div class="flex items-center gap-3 p-3 rounded-lg" :class="comparisonClass('ttfv')">
-            <div class="text-2xl">{{ comparisonEmoji('ttfv') }}</div>
-            <div>
-              <p class="text-xs text-text-muted">Tiempo a 1ra vista</p>
-              <p class="text-sm font-medium">
-                {{ analytics.time_to_first_view_hours != null ? analytics.time_to_first_view_hours + 'h' : '—' }}
-                <span v-if="analytics.comparison.avg_time_to_first_view_hours != null" class="text-xs text-gray-400">
-                  vs {{ analytics.comparison.avg_time_to_first_view_hours }}h avg
-                </span>
-              </p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3 p-3 rounded-lg" :class="comparisonClass('ttr')">
-            <div class="text-2xl">{{ comparisonEmoji('ttr') }}</div>
-            <div>
-              <p class="text-xs text-text-muted">Tiempo a respuesta</p>
-              <p class="text-sm font-medium">
-                {{ analytics.time_to_response_hours != null ? analytics.time_to_response_hours + 'h' : '—' }}
-                <span v-if="analytics.comparison.avg_time_to_response_hours != null" class="text-xs text-gray-400">
-                  vs {{ analytics.comparison.avg_time_to_response_hours }}h avg
-                </span>
-              </p>
-            </div>
-          </div>
-          <div class="flex items-center gap-3 p-3 rounded-lg" :class="comparisonClass('views')">
-            <div class="text-2xl">{{ comparisonEmoji('views') }}</div>
-            <div>
-              <p class="text-xs text-text-muted">Total vistas</p>
-              <p class="text-sm font-medium">
-                {{ analytics.total_views }}
-                <span v-if="analytics.comparison.avg_views != null" class="text-xs text-gray-400">
-                  vs {{ analytics.comparison.avg_views }} avg
-                </span>
-              </p>
-            </div>
-          </div>
-        </div>
-      </details>
-
-      <!-- Funnel visualization -->
-      <details v-if="analytics.funnel?.length" open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
-        <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
-          <div>
+      <!-- Recorrido -->
+      <div v-show="activeSection === 'journey'" class="space-y-6">
+        <div v-if="analytics.funnel?.length" class="bg-surface rounded-xl border border-border-muted shadow-card">
+          <div class="px-4 sm:px-6 py-4 border-b border-border-muted">
             <div class="flex items-center gap-1.5">
               <h3 class="text-sm font-medium text-text-default">Funnel de navegación</h3>
               <BaseTooltip position="right" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-4 h-4 text-text-subtle hover:text-text-muted motion-safe:transition-colors motion-safe:duration-fast" />
                 </template>
                 {{ tt.funnel }}
               </BaseTooltip>
             </div>
             <p class="text-xs text-text-subtle mt-0.5">Porcentaje de sesiones que alcanzaron cada sección</p>
           </div>
-          <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </summary>
-        <div class="px-4 sm:px-6 py-4 space-y-3">
-          <div v-for="(step, idx) in analytics.funnel" :key="step.section_type" class="flex items-center gap-3">
-            <span class="text-xs text-text-subtle w-5 text-right">{{ idx + 1 }}</span>
-            <div class="flex-1">
-              <div class="flex items-center justify-between mb-1">
-                <span class="text-sm text-text-default font-medium truncate">{{ step.section_title }}</span>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs text-text-muted">{{ step.reached_count }} sesiones</span>
-                  <span v-if="step.drop_off_percent > 0" class="text-xs text-red-500 font-medium">
-                    -{{ step.drop_off_percent }}%
-                  </span>
-                </div>
-              </div>
-              <div class="w-full bg-surface-raised rounded-full h-2">
-                <div
-                  class="h-2 rounded-full transition-all"
-                  :class="funnelBarColor(step.drop_off_percent)"
-                  :style="{ width: funnelBarWidth(step) + '%' }"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </details>
-
-      <!-- Device breakdown -->
-      <details v-if="hasDeviceData" open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
-        <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
-          <div class="flex items-center gap-1.5">
-            <h3 class="text-sm font-medium text-text-default">Dispositivos</h3>
-            <BaseTooltip position="right" width="max-w-2xl">
-              <template #trigger>
-                <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
+          <div class="px-2 sm:px-4 py-2">
+            <ClientOnly>
+              <apexchart
+                type="bar"
+                :height="funnelChartHeight"
+                :options="funnelChartOptions"
+                :series="funnelChartSeries"
+              />
+              <template #fallback>
+                <div class="h-48 m-4 rounded-xl bg-surface-raised motion-safe:animate-pulse" />
               </template>
-              {{ tt.devices }}
-            </BaseTooltip>
+            </ClientOnly>
           </div>
-          <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </summary>
-        <div class="flex gap-6 text-sm p-4">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">🖥️</span>
-            <span class="text-text-muted">Desktop: <strong>{{ analytics.device_breakdown.desktop }}</strong></span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-lg">📱</span>
-            <span class="text-text-muted">Mobile: <strong>{{ analytics.device_breakdown.mobile }}</strong></span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-lg">📋</span>
-            <span class="text-text-muted">Tablet: <strong>{{ analytics.device_breakdown.tablet }}</strong></span>
-          </div>
-        </div>
-      </details>
-
-      <!-- Suggested actions -->
-      <details v-if="suggestions.length" class="group bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-900/40 shadow-sm">
-        <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-amber-100 dark:border-amber-900/40">
-          <div class="flex items-center gap-1.5">
-            <h3 class="text-sm font-medium text-amber-900 dark:text-amber-200">💡 Acciones sugeridas</h3>
-            <BaseTooltip position="right" width="max-w-2xl">
-              <template #trigger>
-                <QuestionMarkCircleIcon class="w-4 h-4 text-amber-400 hover:text-amber-600 transition-colors" />
-              </template>
-              {{ tt.suggestedActions }}
-            </BaseTooltip>
-          </div>
-          <svg class="w-4 h-4 text-amber-600 dark:text-amber-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </summary>
-        <ul class="space-y-2 p-4">
-          <li
-            v-for="(s, i) in suggestions"
-            :key="i"
-            class="flex items-start gap-2 text-sm text-amber-800 dark:text-amber-200"
-          >
-            <span class="mt-0.5 flex-shrink-0 text-amber-500">{{ s.icon }}</span>
-            <span>{{ s.text }}</span>
-          </li>
-        </ul>
-      </details>
-
-      <!-- Skipped sections -->
-      <details v-if="analytics.skipped_sections?.length" class="group bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/40 shadow-sm">
-        <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-red-100 dark:border-red-900/40">
-          <div class="flex items-center gap-1.5">
-            <h3 class="text-sm font-medium text-red-800 dark:text-red-300">⚠️ Secciones no visitadas</h3>
-            <BaseTooltip position="right" width="max-w-2xl">
-              <template #trigger>
-                <QuestionMarkCircleIcon class="w-4 h-4 text-red-400 hover:text-red-600 transition-colors" />
-              </template>
-              {{ tt.skippedSections }}
-            </BaseTooltip>
-          </div>
-          <svg class="w-4 h-4 text-red-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </summary>
-        <div class="p-4">
-          <p class="text-xs text-red-600 dark:text-red-300 mb-3">El cliente nunca visitó estas secciones — información accionable para follow-up.</p>
-          <div class="flex flex-wrap gap-2">
-            <span
-              v-for="s in analytics.skipped_sections"
-              :key="s.section_type"
-              class="inline-flex items-center px-3 py-1.5 bg-surface border border-red-200 dark:border-red-900/50 rounded-lg text-xs text-red-700 dark:text-red-300 font-medium"
+          <div class="px-4 sm:px-6 pb-4 space-y-1">
+            <p
+              v-for="step in analytics.funnel.filter((s) => s.drop_off_percent > 0)"
+              :key="step.section_type"
+              class="text-xs text-danger-strong"
             >
-              {{ s.section_title }}
-            </span>
+              {{ step.section_title }}: -{{ step.drop_off_percent }}% de abandono
+            </p>
           </div>
         </div>
-      </details>
 
-      <!-- Section time heatmap -->
-      <details v-if="sortedSections.length" open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
-        <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
-          <div>
+        <div v-if="sortedSections.length" class="bg-surface rounded-xl border border-border-muted shadow-card">
+          <div class="px-4 sm:px-6 py-4 border-b border-border-muted">
             <div class="flex items-center gap-1.5">
-              <h3 class="text-sm font-medium text-text-default">🔥 Heatmap de Interés</h3>
+              <h3 class="text-sm font-medium text-text-default">🔥 Heatmap de interés</h3>
               <BaseTooltip position="right" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-4 h-4 text-text-subtle hover:text-text-muted motion-safe:transition-colors motion-safe:duration-fast" />
                 </template>
                 {{ tt.heatmap }}
               </BaseTooltip>
             </div>
-            <p class="text-xs text-gray-400 mt-0.5">Secciones ordenadas por tiempo total — las más calientes son las que más le importan al cliente</p>
+            <p class="text-xs text-text-subtle mt-0.5">Secciones ordenadas por tiempo total — las más calientes son las que más le importan al cliente</p>
           </div>
-          <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </summary>
-        <div class="px-4 sm:px-6 py-4 space-y-3">
-          <div v-for="(section, idx) in sortedSections" :key="section.section_type" class="flex items-center gap-3">
-            <span class="text-base w-5 flex-shrink-0">{{ heatEmoji(idx, sortedSections.length) }}</span>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between mb-1 gap-2">
-                <span class="text-sm font-medium text-text-default truncate">{{ section.section_title }}</span>
-                <span class="text-xs text-text-muted flex-shrink-0 tabular-nums">{{ formatTime(section.total_time_seconds) }}</span>
+          <div class="px-4 sm:px-6 py-4 space-y-3">
+            <div v-for="(section, idx) in sortedSections" :key="section.section_type" class="flex items-center gap-3">
+              <span class="text-base w-5 flex-shrink-0" aria-hidden="true">{{ heatEmoji(idx, sortedSections.length) }}</span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-1 gap-2">
+                  <span class="text-sm font-medium text-text-default truncate">{{ section.section_title }}</span>
+                  <span class="text-xs text-text-muted flex-shrink-0 tabular-nums">{{ formatTime(section.total_time_seconds) }}</span>
+                </div>
+                <div class="w-full bg-surface-raised rounded-full h-2.5">
+                  <div
+                    class="h-2.5 rounded-full motion-safe:transition-all motion-safe:duration-slow motion-safe:ease-out-soft"
+                    :class="heatBarColor(idx, sortedSections.length)"
+                    :style="{ width: heatBarWidth(section.total_time_seconds) + '%' }"
+                  />
+                </div>
               </div>
-              <div class="w-full bg-surface-raised rounded-full h-2.5">
-                <div
-                  class="h-2.5 rounded-full transition-all"
-                  :class="heatBarColor(idx, sortedSections.length)"
-                  :style="{ width: heatBarWidth(section.total_time_seconds) + '%' }"
-                />
+            </div>
+          </div>
+          <div v-if="sectionInsights.length" class="px-4 sm:px-6 pb-4 space-y-2">
+            <div
+              v-for="insight in sectionInsights"
+              :key="insight.type"
+              class="flex items-start gap-2 bg-primary-soft border border-border-muted rounded-xl px-4 py-3"
+            >
+              <span class="text-base flex-shrink-0" aria-hidden="true">{{ insight.icon }}</span>
+              <div>
+                <p class="text-xs font-semibold text-text-brand">{{ insight.label }}</p>
+                <p class="text-xs text-text-brand mt-0.5">{{ insight.text }}</p>
               </div>
             </div>
           </div>
         </div>
-        <div v-if="sectionInsights.length" class="px-4 sm:px-6 pb-4 space-y-2">
-          <div
-            v-for="insight in sectionInsights"
-            :key="insight.type"
-            class="flex items-start gap-2 bg-primary-soft border border-emerald-100 dark:border-emerald-900/40 rounded-xl px-4 py-3"
-          >
-            <span class="text-base flex-shrink-0">{{ insight.icon }}</span>
-            <div>
-              <p class="text-xs font-semibold text-emerald-800 dark:text-emerald-300">{{ insight.label }}</p>
-              <p class="text-xs text-text-brand mt-0.5">{{ insight.text }}</p>
-            </div>
-          </div>
-        </div>
-      </details>
 
-      <!-- Section engagement table -->
-      <details open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
-        <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
-          <div>
+        <div class="bg-surface rounded-xl border border-border-muted shadow-card">
+          <div class="px-4 sm:px-6 py-4 border-b border-border-muted">
             <div class="flex items-center gap-1.5">
               <h3 class="text-sm font-medium text-text-default">Engagement por sección</h3>
               <BaseTooltip position="right" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-4 h-4 text-text-subtle hover:text-text-muted motion-safe:transition-colors motion-safe:duration-fast" />
                 </template>
                 {{ tt.sectionEngagement }}
               </BaseTooltip>
             </div>
-            <p class="text-xs text-gray-400 mt-0.5">Tiempo que el cliente pasó en cada sección</p>
+            <p class="text-xs text-text-subtle mt-0.5">Tiempo que el cliente pasó en cada sección</p>
           </div>
-          <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </summary>
-        <div v-if="analytics.sections.length" class="overflow-x-auto rounded-b-xl overflow-hidden">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
-                <th class="px-4 sm:px-6 py-3">Sección</th>
-                <th class="px-4 py-3 text-center">Visitas</th>
-                <th class="px-4 py-3 text-right">Tiempo total</th>
-                <th class="px-4 py-3 text-right">Promedio</th>
-                <th class="px-4 sm:px-6 py-3">Engagement</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
-              <tr v-for="section in analytics.sections" :key="section.section_type" class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50">
-                <td class="px-4 sm:px-6 py-3">
-                  <span class="font-medium text-text-default">{{ section.section_title }}</span>
-                </td>
-                <td class="px-4 py-3 text-center text-text-muted">{{ section.visit_count }}</td>
-                <td class="px-4 py-3 text-right text-text-muted">{{ formatTime(section.total_time_seconds) }}</td>
-                <td class="px-4 py-3 text-right text-text-muted">{{ formatTime(section.avg_time_seconds) }}</td>
-                <td class="px-4 sm:px-6 py-3">
-                  <div class="flex items-center gap-2">
-                    <div class="flex-1 bg-surface-raised rounded-full h-2 max-w-[120px]">
-                      <div
-                        class="h-2 rounded-full transition-all"
-                        :class="barColor(section.avg_time_seconds)"
-                        :style="{ width: barWidth(section.avg_time_seconds) + '%' }"
-                      />
+          <div v-if="analytics.sections.length" class="overflow-x-auto rounded-b-xl overflow-hidden">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
+                  <th class="px-4 sm:px-6 py-3">Sección</th>
+                  <th class="px-4 py-3 text-center">Visitas</th>
+                  <th class="px-4 py-3 text-right">Tiempo total</th>
+                  <th class="px-4 py-3 text-right">Promedio</th>
+                  <th class="px-4 sm:px-6 py-3">Engagement</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border-muted">
+                <tr v-for="section in analytics.sections" :key="section.section_type" class="hover:bg-surface-muted">
+                  <td class="px-4 sm:px-6 py-3">
+                    <span class="font-medium text-text-default">{{ section.section_title }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-center text-text-muted">{{ section.visit_count }}</td>
+                  <td class="px-4 py-3 text-right text-text-muted">{{ formatTime(section.total_time_seconds) }}</td>
+                  <td class="px-4 py-3 text-right text-text-muted">{{ formatTime(section.avg_time_seconds) }}</td>
+                  <td class="px-4 sm:px-6 py-3">
+                    <div class="flex items-center gap-2">
+                      <div class="flex-1 bg-surface-raised rounded-full h-2 max-w-[120px]">
+                        <div
+                          class="h-2 rounded-full motion-safe:transition-all motion-safe:duration-slow motion-safe:ease-out-soft"
+                          :class="barColor(section.avg_time_seconds)"
+                          :style="{ width: barWidth(section.avg_time_seconds) + '%' }"
+                        />
+                      </div>
                     </div>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else class="px-6 py-8 text-center text-text-subtle text-sm">
+            Aún no hay datos de engagement por sección.
+          </div>
         </div>
-        <div v-else class="px-6 py-8 text-center text-gray-400 text-sm">
-          Aún no hay datos de engagement por sección.
-        </div>
-      </details>
+      </div>
 
-      <!-- Activity Timeline -->
-      <details open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
-        <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
-          <div>
+      <!-- Sesiones -->
+      <div v-show="activeSection === 'sessions'" class="space-y-6">
+        <div v-if="hasDeviceData" class="bg-surface rounded-xl border border-border-muted shadow-card p-4">
+          <div class="flex items-center gap-1.5 mb-3">
+            <h3 class="text-sm font-medium text-text-default">Dispositivos</h3>
+            <BaseTooltip position="right" width="max-w-2xl">
+              <template #trigger>
+                <QuestionMarkCircleIcon class="w-4 h-4 text-text-subtle hover:text-text-muted motion-safe:transition-colors motion-safe:duration-fast" />
+              </template>
+              {{ tt.devices }}
+            </BaseTooltip>
+          </div>
+          <div class="flex gap-6 text-sm">
+            <div class="flex items-center gap-2">
+              <span class="text-lg" aria-hidden="true">🖥️</span>
+              <span class="text-text-muted">Desktop: <strong>{{ analytics.device_breakdown.desktop }}</strong></span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-lg" aria-hidden="true">📱</span>
+              <span class="text-text-muted">Mobile: <strong>{{ analytics.device_breakdown.mobile }}</strong></span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-lg" aria-hidden="true">📋</span>
+              <span class="text-text-muted">Tablet: <strong>{{ analytics.device_breakdown.tablet }}</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-surface rounded-xl border border-border-muted shadow-card">
+          <div class="px-4 sm:px-6 py-4 border-b border-border-muted">
             <div class="flex items-center gap-1.5">
-              <h3 class="text-sm font-medium text-text-default">Historial de actividad</h3>
+              <h3 class="text-sm font-medium text-text-default">Historial de sesiones</h3>
               <BaseTooltip position="right" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-4 h-4 text-text-subtle hover:text-text-muted motion-safe:transition-colors motion-safe:duration-fast" />
                 </template>
-                {{ tt.activityTimeline }}
+                {{ tt.sessionHistory }}
               </BaseTooltip>
             </div>
-            <p class="text-xs text-gray-400 mt-0.5">Timeline cronológico de eventos del diagnóstico</p>
+            <p class="text-xs text-text-subtle mt-0.5">Últimas 50 sesiones de navegación</p>
           </div>
-          <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </summary>
+          <div v-if="analytics.sessions.length" class="overflow-x-auto rounded-b-xl overflow-hidden">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
+                  <th class="px-4 sm:px-6 py-3">Sesión</th>
+                  <th class="px-4 py-3">Fecha</th>
+                  <th class="px-4 py-3 text-center">Secciones vistas</th>
+                  <th class="px-4 sm:px-6 py-3 text-right">Tiempo total</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border-muted">
+                <tr v-for="session in analytics.sessions" :key="session.session_id" class="hover:bg-surface-muted">
+                  <td class="px-4 sm:px-6 py-3">
+                    <span class="font-mono text-xs text-text-muted">{{ (session.session_id || '').slice(0, 12) }}...</span>
+                    <span v-if="session.ip_address" class="text-xs text-text-subtle ml-2">{{ session.ip_address }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-text-muted">{{ formatDate(session.viewed_at) }}</td>
+                  <td class="px-4 py-3 text-center text-text-muted">{{ session.sections_viewed }}</td>
+                  <td class="px-4 sm:px-6 py-3 text-right text-text-muted">{{ formatTime(session.total_time_seconds) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else class="px-6 py-8 text-center text-text-subtle text-sm">
+            Aún no hay sesiones registradas.
+          </div>
+        </div>
+      </div>
+
+      <!-- Actividad -->
+      <div v-show="activeSection === 'activity'" class="bg-surface rounded-xl border border-border-muted shadow-card">
+        <div class="px-4 sm:px-6 py-4 border-b border-border-muted">
+          <div class="flex items-center gap-1.5">
+            <h3 class="text-sm font-medium text-text-default">Historial de actividad</h3>
+            <BaseTooltip position="right" width="max-w-2xl">
+              <template #trigger>
+                <QuestionMarkCircleIcon class="w-4 h-4 text-text-subtle hover:text-text-muted motion-safe:transition-colors motion-safe:duration-fast" />
+              </template>
+              {{ tt.activityTimeline }}
+            </BaseTooltip>
+          </div>
+          <p class="text-xs text-text-subtle mt-0.5">Timeline cronológico de eventos del diagnóstico</p>
+        </div>
         <div v-if="analytics.timeline?.length" class="px-4 sm:px-6 py-4">
           <div class="relative">
             <div class="absolute left-4 top-0 bottom-0 w-px bg-border-default"></div>
@@ -483,67 +386,78 @@
                 <span class="text-xs font-medium px-2 py-0.5 rounded-full" :class="timelineBadge(event.change_type)">
                   {{ timelineIcon(event.change_type) }} {{ timelineLabel(event.change_type) }}
                 </span>
-                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full" :class="actorBadgeClass(event.actor_type)">
+                <span class="text-2xs font-medium px-1.5 py-0.5 rounded-full" :class="actorBadgeClass(event.actor_type)">
                   {{ actorLabel(event.actor_type) }}
                 </span>
-                <span class="text-xs text-gray-400">{{ formatDate(event.created_at) }}</span>
+                <span class="text-xs text-text-subtle">{{ formatDate(event.created_at) }}</span>
               </div>
               <!-- eslint-disable-next-line vue/no-v-html -->
               <div class="text-sm text-text-muted mt-1" v-html="formatTimelineDescription(event)"></div>
             </div>
           </div>
         </div>
-        <div v-else class="px-6 py-8 text-center text-gray-400 text-sm">
+        <div v-else class="px-6 py-8 text-center text-text-subtle text-sm">
           Aún no hay eventos registrados.
         </div>
-      </details>
+      </div>
 
-      <!-- Sessions history -->
-      <details open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
-        <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
-          <div>
+      <!-- Comparativa -->
+      <div v-show="activeSection === 'comparison'">
+        <div v-if="analytics.comparison" class="bg-surface rounded-xl border border-border-muted shadow-card">
+          <div class="px-4 py-3 border-b border-border-muted">
             <div class="flex items-center gap-1.5">
-              <h3 class="text-sm font-medium text-text-default">Historial de sesiones</h3>
+              <h3 class="text-sm font-medium text-text-default">Comparación con promedio global</h3>
               <BaseTooltip position="right" width="max-w-2xl">
                 <template #trigger>
-                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-text-muted dark:text-text-muted dark:hover:text-gray-300 transition-colors" />
+                  <QuestionMarkCircleIcon class="w-4 h-4 text-text-subtle hover:text-text-muted motion-safe:transition-colors motion-safe:duration-fast" />
                 </template>
-                {{ tt.sessionHistory }}
+                {{ tt.globalComparison }}
               </BaseTooltip>
             </div>
-            <p class="text-xs text-gray-400 mt-0.5">Últimas 50 sesiones de navegación</p>
           </div>
-          <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </summary>
-        <div v-if="analytics.sessions.length" class="overflow-x-auto rounded-b-xl overflow-hidden">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
-                <th class="px-4 sm:px-6 py-3">Sesión</th>
-                <th class="px-4 py-3">Fecha</th>
-                <th class="px-4 py-3 text-center">Secciones vistas</th>
-                <th class="px-4 sm:px-6 py-3 text-right">Tiempo total</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
-              <tr v-for="session in analytics.sessions" :key="session.session_id" class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50">
-                <td class="px-4 sm:px-6 py-3">
-                  <span class="font-mono text-xs text-text-muted">{{ (session.session_id || '').slice(0, 12) }}...</span>
-                  <span v-if="session.ip_address" class="text-xs text-gray-400 ml-2">{{ session.ip_address }}</span>
-                </td>
-                <td class="px-4 py-3 text-text-muted">{{ formatDate(session.viewed_at) }}</td>
-                <td class="px-4 py-3 text-center text-text-muted">{{ session.sections_viewed }}</td>
-                <td class="px-4 sm:px-6 py-3 text-right text-text-muted">{{ formatTime(session.total_time_seconds) }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4">
+            <div class="flex items-center gap-3 p-3 rounded-lg" :class="comparisonClass('ttfv')">
+              <div class="text-2xl" aria-hidden="true">{{ comparisonEmoji('ttfv') }}</div>
+              <div>
+                <p class="text-xs text-text-muted">Tiempo a 1ra vista</p>
+                <p class="text-sm font-medium">
+                  {{ analytics.time_to_first_view_hours != null ? analytics.time_to_first_view_hours + 'h' : '—' }}
+                  <span v-if="analytics.comparison.avg_time_to_first_view_hours != null" class="text-xs text-text-subtle">
+                    vs {{ analytics.comparison.avg_time_to_first_view_hours }}h avg
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 p-3 rounded-lg" :class="comparisonClass('ttr')">
+              <div class="text-2xl" aria-hidden="true">{{ comparisonEmoji('ttr') }}</div>
+              <div>
+                <p class="text-xs text-text-muted">Tiempo a respuesta</p>
+                <p class="text-sm font-medium">
+                  {{ analytics.time_to_response_hours != null ? analytics.time_to_response_hours + 'h' : '—' }}
+                  <span v-if="analytics.comparison.avg_time_to_response_hours != null" class="text-xs text-text-subtle">
+                    vs {{ analytics.comparison.avg_time_to_response_hours }}h avg
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 p-3 rounded-lg" :class="comparisonClass('views')">
+              <div class="text-2xl" aria-hidden="true">{{ comparisonEmoji('views') }}</div>
+              <div>
+                <p class="text-xs text-text-muted">Total vistas</p>
+                <p class="text-sm font-medium">
+                  {{ analytics.total_views }}
+                  <span v-if="analytics.comparison.avg_views != null" class="text-xs text-text-subtle">
+                    vs {{ analytics.comparison.avg_views }} avg
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-        <div v-else class="px-6 py-8 text-center text-gray-400 text-sm">
-          Aún no hay sesiones registradas.
+        <div v-else class="px-6 py-8 text-center text-text-subtle text-sm bg-surface rounded-xl border border-border-muted shadow-card">
+          Aún no hay datos de otros diagnósticos para comparar.
         </div>
-      </details>
+      </div>
     </template>
   </div>
 </template>
@@ -551,6 +465,14 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline';
+import BaseTabs from '~/components/base/BaseTabs.vue';
+import BaseTooltip from '~/components/base/BaseTooltip.vue';
+import BaseButton from '~/components/base/BaseButton.vue';
+import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
+import BaseSkeleton from '~/components/base/BaseSkeleton.vue';
+import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
+import { useChartTheme } from '~/composables/useChartTheme';
+import { DIAGNOSTIC_ANALYTICS_THRESHOLDS as T } from '~/stores/diagnostics_constants';
 
 const { analytics: tt } = useTooltipTexts();
 
@@ -561,7 +483,9 @@ const props = defineProps({
 });
 
 const loading = ref(true);
+const loadError = ref('');
 const analytics = ref(null);
+const activeSection = ref('journey');
 
 const hasDeviceData = computed(() => {
   const d = analytics.value?.device_breakdown;
@@ -594,6 +518,96 @@ const sortedSections = computed(() => {
     (a, b) => (b.total_time_seconds || 0) - (a.total_time_seconds || 0),
   );
 });
+
+// ── Score presentation ──────────────────────────────────────────────────
+const engagementScore = computed(() => analytics.value?.engagement_score ?? 0);
+const { animated: animatedScore } = useAnimatedNumber(engagementScore);
+
+const scoreTone = computed(() => {
+  const score = engagementScore.value;
+  if (score >= T.ENGAGEMENT.HIGH) {
+    return {
+      tile: 'bg-success-strong',
+      border: 'border-success-strong/30',
+      text: 'Alto engagement — prioridad de follow-up',
+    };
+  }
+  if (score >= T.ENGAGEMENT.MEDIUM) {
+    return {
+      tile: 'bg-warning-strong',
+      border: 'border-warning-strong/30',
+      text: 'Engagement moderado',
+    };
+  }
+  return {
+    tile: 'bg-danger-strong',
+    border: 'border-danger-strong/30',
+    text: 'Bajo engagement — necesita atención',
+  };
+});
+
+const kpiCards = computed(() => {
+  const a = analytics.value;
+  if (!a) return [];
+  const coverage = sectionCoverage.value;
+  return [
+    { label: 'Vistas', tooltip: tt.views, value: a.total_views },
+    { label: 'Sesiones', tooltip: tt.sessions, value: a.unique_sessions },
+    { label: 'Primera vista', tooltip: tt.firstView, value: a.first_viewed_at ? formatDate(a.first_viewed_at) : '—', small: true },
+    { label: 'Tiempo de lectura', tooltip: tt.readingTime, value: formatTime(totalReadingTime.value) },
+    {
+      label: 'Cobertura',
+      tooltip: tt.coverage,
+      value: coverage != null ? coverage + '%' : '—',
+      valueClass: coverage == null
+        ? 'text-text-default'
+        : coverage >= T.COVERAGE.GOOD
+          ? 'text-success-strong'
+          : coverage >= T.COVERAGE.WARN
+            ? 'text-warning-strong'
+            : 'text-danger-strong',
+    },
+    { label: 'Última visita', tooltip: tt.lastVisit, value: lastVisitedAt.value ? formatDate(lastVisitedAt.value) : '—', small: true },
+  ];
+});
+
+// ── Funnel chart (ApexCharts via the shared panel theme) ────────────────
+const { palette, baseOptions } = useChartTheme();
+
+const funnelChartSeries = computed(() => [{
+  name: 'Sesiones que llegaron',
+  data: (analytics.value?.funnel || []).map((step) => funnelBarWidth(step)),
+}]);
+
+const funnelChartHeight = computed(() =>
+  Math.max(160, (analytics.value?.funnel?.length || 0) * 44 + 60),
+);
+
+const funnelChartOptions = computed(() => ({
+  ...baseOptions.value,
+  colors: [palette.value.measures?.[0] || palette.value.categorical?.[0]],
+  plotOptions: {
+    bar: { horizontal: true, borderRadius: 4, barHeight: '55%' },
+  },
+  dataLabels: {
+    enabled: true,
+    formatter: (val) => `${val}%`,
+  },
+  xaxis: {
+    categories: (analytics.value?.funnel || []).map((s) => s.section_title),
+    max: 100,
+    labels: { formatter: (val) => `${val}%` },
+    axisBorder: { show: false },
+    axisTicks: { show: false },
+  },
+  tooltip: {
+    ...baseOptions.value.tooltip,
+    y: { formatter: (val, opts) => {
+      const step = analytics.value?.funnel?.[opts.dataPointIndex];
+      return step ? `${val}% (${step.reached_count} sesiones)` : `${val}%`;
+    } },
+  },
+}));
 
 const SECTION_INSIGHTS = {
   cost: {
@@ -718,9 +732,20 @@ const suggestions = computed(() => {
 
 async function refresh() {
   loading.value = true;
+  loadError.value = '';
   try {
     const result = await props.loader();
-    analytics.value = result?.success ? result.data : (result?.data || null);
+    if (result?.success) {
+      analytics.value = result.data;
+    } else if (result && result.success === false) {
+      analytics.value = null;
+      loadError.value = result.message || result.error || 'Ocurrió un error al cargar la analítica.';
+    } else {
+      analytics.value = result?.data || null;
+    }
+  } catch (error) {
+    analytics.value = null;
+    loadError.value = 'Ocurrió un error al cargar la analítica.';
   } finally {
     loading.value = false;
   }
@@ -753,14 +778,14 @@ function formatDate(isoStr) {
 }
 
 function barWidth(avgSeconds) {
-  return Math.min(100, (avgSeconds / 180) * 100);
+  return Math.min(100, (avgSeconds / T.SECTION_BAR_MAX_SECONDS) * 100);
 }
 
 function barColor(avgSeconds) {
-  if (avgSeconds >= 60) return 'bg-emerald-500';
-  if (avgSeconds >= 20) return 'bg-blue-500';
-  if (avgSeconds >= 5) return 'bg-amber-400';
-  return 'bg-gray-300';
+  if (avgSeconds >= T.SECTION_AVG_SECONDS.HIGH) return 'bg-success-strong';
+  if (avgSeconds >= T.SECTION_AVG_SECONDS.MID) return 'bg-info-strong';
+  if (avgSeconds >= T.SECTION_AVG_SECONDS.LOW) return 'bg-warning-strong';
+  return 'bg-border-default';
 }
 
 function heatBarWidth(totalSeconds) {
@@ -771,18 +796,20 @@ function heatBarWidth(totalSeconds) {
 
 function heatBarColor(idx, total) {
   const ratio = total <= 1 ? 1 : idx / (total - 1);
-  if (ratio <= 0.15) return 'bg-red-500';
-  if (ratio <= 0.35) return 'bg-orange-400';
-  if (ratio <= 0.55) return 'bg-amber-400';
-  if (ratio <= 0.75) return 'bg-yellow-300';
-  return 'bg-gray-300';
+  const [hottest, hot, warm, mild] = T.HEAT_RATIOS;
+  if (ratio <= hottest) return 'bg-danger-strong';
+  if (ratio <= hot) return 'bg-warning-strong';
+  if (ratio <= warm) return 'bg-warning-strong/70';
+  if (ratio <= mild) return 'bg-warning-strong/40';
+  return 'bg-border-default';
 }
 
 function heatEmoji(idx, total) {
   const ratio = total <= 1 ? 1 : idx / (total - 1);
-  if (ratio <= 0.15) return '🔴';
-  if (ratio <= 0.35) return '🟠';
-  if (ratio <= 0.55) return '🟡';
+  const [hottest, hot, warm] = T.HEAT_RATIOS;
+  if (ratio <= hottest) return '🔴';
+  if (ratio <= hot) return '🟠';
+  if (ratio <= warm) return '🟡';
   return '⚪';
 }
 
@@ -806,8 +833,8 @@ const TIMELINE_LABELS = {
 
 const ACTOR_LABELS = { client: 'Cliente', seller: 'Ventas', system: 'Sistema', '': 'Sistema' };
 const ACTOR_BADGE_CLASSES = {
-  client: 'bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700',
-  seller: 'bg-purple-50 text-purple-600 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-700',
+  client: 'bg-info-soft text-info-strong border border-info-strong/30',
+  seller: 'bg-primary-soft text-text-brand border border-border-muted',
   system: 'bg-surface-raised text-text-muted border border-border-default',
   '': 'bg-surface-raised text-text-muted border border-border-default',
 };
@@ -871,46 +898,39 @@ function timelineIcon(type) {
 
 function timelineColor(type) {
   const colors = {
-    created: 'bg-blue-400', updated: 'bg-amber-400', section_updated: 'bg-amber-400',
-    sent: 'bg-indigo-400', viewed: 'bg-green-400', negotiating: 'bg-indigo-400',
-    accepted: 'bg-emerald-500', rejected: 'bg-red-500', finished: 'bg-emerald-500',
-    email_sent: 'bg-indigo-400', note: 'bg-gray-400', call: 'bg-sky-400',
-    meeting: 'bg-indigo-500', followup: 'bg-amber-400', status_change: 'bg-blue-400',
+    created: 'bg-info-strong', updated: 'bg-warning-strong', section_updated: 'bg-warning-strong',
+    sent: 'bg-info-strong', viewed: 'bg-success-strong', negotiating: 'bg-info-strong',
+    accepted: 'bg-success-strong', rejected: 'bg-danger-strong', finished: 'bg-success-strong',
+    email_sent: 'bg-info-strong', note: 'bg-border-default', call: 'bg-info-strong/70',
+    meeting: 'bg-info-strong', followup: 'bg-warning-strong', status_change: 'bg-info-strong',
   };
-  return colors[type] || 'bg-gray-400';
+  return colors[type] || 'bg-border-default';
 }
 
 function timelineBadge(type) {
   const badges = {
-    created: 'bg-blue-50 text-blue-700',
-    updated: 'bg-amber-50 text-amber-700',
-    section_updated: 'bg-amber-50 text-amber-700',
-    sent: 'bg-indigo-50 text-indigo-700',
-    viewed: 'bg-green-50 text-green-700',
-    negotiating: 'bg-indigo-50 text-indigo-700',
-    accepted: 'bg-primary-soft text-text-brand',
-    rejected: 'bg-red-50 text-red-700',
-    finished: 'bg-primary-soft text-text-brand',
-    email_sent: 'bg-indigo-50 text-indigo-700',
-    note: 'bg-gray-50 text-text-muted',
-    call: 'bg-sky-50 text-sky-700',
-    meeting: 'bg-indigo-50 text-indigo-700',
-    followup: 'bg-amber-50 text-amber-700',
-    status_change: 'bg-blue-50 text-blue-700',
+    created: 'bg-info-soft text-info-strong',
+    updated: 'bg-warning-soft text-warning-strong',
+    section_updated: 'bg-warning-soft text-warning-strong',
+    sent: 'bg-info-soft text-info-strong',
+    viewed: 'bg-success-soft text-success-strong',
+    negotiating: 'bg-info-soft text-info-strong',
+    accepted: 'bg-success-soft text-success-strong',
+    rejected: 'bg-danger-soft text-danger-strong',
+    finished: 'bg-success-soft text-success-strong',
+    email_sent: 'bg-info-soft text-info-strong',
+    note: 'bg-surface-raised text-text-muted',
+    call: 'bg-info-soft text-info-strong',
+    meeting: 'bg-info-soft text-info-strong',
+    followup: 'bg-warning-soft text-warning-strong',
+    status_change: 'bg-info-soft text-info-strong',
   };
-  return badges[type] || 'bg-gray-50 text-text-default';
+  return badges[type] || 'bg-surface-raised text-text-default';
 }
 
 function funnelBarWidth(step) {
   if (!analytics.value?.unique_sessions) return 0;
   return Math.round((step.reached_count / analytics.value.unique_sessions) * 100);
-}
-
-function funnelBarColor(dropOff) {
-  if (dropOff <= 10) return 'bg-emerald-500';
-  if (dropOff <= 30) return 'bg-blue-500';
-  if (dropOff <= 50) return 'bg-amber-400';
-  return 'bg-red-400';
 }
 
 function comparisonClass(metric) {
@@ -920,19 +940,19 @@ function comparisonClass(metric) {
     const val = analytics.value?.time_to_first_view_hours;
     const avg = c.avg_time_to_first_view_hours;
     if (val == null || avg == null) return 'bg-surface-raised';
-    return val < avg ? 'bg-primary-soft' : 'bg-amber-50 dark:bg-amber-900/20';
+    return val < avg ? 'bg-success-soft' : 'bg-warning-soft';
   }
   if (metric === 'ttr') {
     const val = analytics.value?.time_to_response_hours;
     const avg = c.avg_time_to_response_hours;
     if (val == null || avg == null) return 'bg-surface-raised';
-    return val < avg ? 'bg-primary-soft' : 'bg-amber-50 dark:bg-amber-900/20';
+    return val < avg ? 'bg-success-soft' : 'bg-warning-soft';
   }
   if (metric === 'views') {
     const val = analytics.value?.total_views;
     const avg = c.avg_views;
     if (val == null || avg == null) return 'bg-surface-raised';
-    return val > avg ? 'bg-primary-soft' : 'bg-amber-50 dark:bg-amber-900/20';
+    return val > avg ? 'bg-success-soft' : 'bg-warning-soft';
   }
   return 'bg-surface-raised';
 }

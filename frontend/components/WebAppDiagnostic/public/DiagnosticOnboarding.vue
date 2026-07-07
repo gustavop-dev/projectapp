@@ -4,12 +4,13 @@
       <div
         v-if="visible"
         data-testid="diagnostic-onboarding-backdrop"
-        class="onb-backdrop fixed inset-0 z-[9998] bg-surface/60 backdrop-blur-[2px]"
+        :class="['onb-backdrop fixed inset-0 z-[9998] bg-surface/60 backdrop-blur-[2px]', { dark: isDark }]"
       />
     </Transition>
 
     <div
       v-if="visible"
+      :class="{ dark: isDark }"
       ref="cloneContainerRef"
       class="fixed z-[9999] pointer-events-none"
       :style="cloneStyle"
@@ -50,7 +51,7 @@
                   ? 'w-1.5 bg-primary/40'
                   : 'w-1.5 bg-gray-200'"
             />
-            <span data-testid="diagnostic-onboarding-step-progress" class="ml-auto text-[10px] text-gray-400 font-medium tabular-nums">
+            <span data-testid="diagnostic-onboarding-step-progress" class="ml-auto text-2xs text-text-subtle font-medium tabular-nums">
               {{ currentStep + 1 }}/{{ totalSteps }}
             </span>
           </div>
@@ -60,7 +61,7 @@
 
           <div class="flex items-center justify-between">
             <button
-              class="text-xs text-gray-400 hover:text-text-muted transition-colors pointer-events-auto"
+              class="text-xs text-text-subtle hover:text-text-muted transition-colors pointer-events-auto"
               @click="dismiss"
             >
               {{ btnLabels.skip }}
@@ -91,6 +92,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { useDiagnosticDarkMode } from '~/composables/useDiagnosticDarkMode';
 
 const STORAGE_KEY = 'diagnostic_onboarding_seen';
 const TOOLTIP_W = 296;
@@ -99,6 +101,8 @@ const GAP = 14;
 const ARROW_SIZE = 6;
 const VIEWPORT_PAD = 12;
 const SCROLL_SETTLE_MS = 380;
+
+const { isDark } = useDiagnosticDarkMode();
 
 const props = defineProps({
   language: { type: String, default: 'es' },

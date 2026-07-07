@@ -1,7 +1,5 @@
 <template>
   <div>
-    <AccountingSubnav active="cards" />
-
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -20,6 +18,8 @@
         <span>Nuevo registro</span>
       </BaseButton>
     </div>
+
+    <AccountingSubnav active="cards" />
 
     <!-- Saved filter tabs -->
     <ProposalFilterTabs
@@ -71,22 +71,43 @@
       </span>
     </div>
 
-    <!-- Loading -->
-    <div v-if="store.isLoading" class="text-center py-16 text-text-subtle text-sm">
-      Cargando registros...
-    </div>
+    <!-- Error -->
+    <AccountingErrorState
+      v-if="store.error === 'fetch_failed'"
+      title="No se pudieron cargar los registros de tarjetas"
+      :retrying="store.isLoading"
+      @retry="loadRecords"
+    />
 
     <!-- Empty -->
-    <div
-      v-else-if="filteredRecords.length === 0"
-      class="text-center py-16 text-text-subtle text-sm"
+    <BaseEmptyState
+      v-else-if="!store.isLoading && filteredRecords.length === 0"
+      :title="hasActiveFilters ? 'Sin resultados con esos filtros' : 'No hay registros de tarjetas aún'"
+      :description="hasActiveFilters
+        ? 'Ajusta o limpia los filtros para ver más registros.'
+        : 'Registra el primer snapshot de disponible y deuda.'"
     >
-      {{ hasActiveFilters ? 'No se encontraron registros con ese criterio.' : 'No hay registros de tarjetas aún.' }}
-    </div>
+      <template #actions>
+        <BaseButton
+          v-if="hasActiveFilters"
+          variant="secondary"
+          size="sm"
+          @click="handleResetFilters"
+        >
+          Limpiar filtros
+        </BaseButton>
+        <BaseButton v-else variant="primary" size="sm" @click="openCreateModal">
+          <PlusIcon class="w-4 h-4" />
+          <span>Nuevo registro</span>
+        </BaseButton>
+      </template>
+    </BaseEmptyState>
 
     <!-- Table -->
     <template v-else>
       <AccountingTable
+        :loading="store.isLoading"
+        :highlight-id="lastMutatedId"
         :columns="columns"
         :rows="pagedRecords"
         :highlight-query="currentFilters.search"
@@ -104,6 +125,7 @@
       </AccountingTable>
 
       <BasePagination
+        v-if="!store.isLoading"
         :current-page="currentPage"
         :total-pages="totalPages"
         :total-items="totalItems"
@@ -148,6 +170,8 @@ import { PlusIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
+import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import CardSnapshotFormModal from '~/components/accounting/CardSnapshotFormModal.vue';
@@ -243,6 +267,7 @@ const {
   isModalOpen,
   editingRecord,
   openCreateModal,
+  lastMutatedId,
   openEditModal,
   closeModal,
   handleSubmit,
