@@ -20,8 +20,8 @@
       <h3 class="text-lg font-semibold text-text-brand dark:text-text-brand mb-2">{{ content.classificationTitle || 'Clasificación por tamaño' }}</h3>
       <p v-if="content.classificationIntro" class="text-text-brand/75 dark:text-text-brand/75 mb-3">{{ content.classificationIntro }}</p>
       <div class="overflow-x-auto">
-        <table class="min-w-full text-sm border border-input-border/10 dark:border-input-border/15 rounded-xl overflow-hidden">
-          <thead class="bg-primary/5 dark:bg-primary-soft/10">
+        <table class="min-w-full text-sm border border-input-border dark:border-input-border rounded-xl overflow-hidden">
+          <thead class="bg-primary/5 dark:bg-primary-soft">
             <tr>
               <th class="px-3 py-2 text-left font-semibold text-text-brand dark:text-text-brand">Dimensión</th>
               <th class="px-3 py-2 text-left font-semibold text-text-brand dark:text-text-brand">Pequeña</th>
@@ -30,7 +30,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(row, idx) in content.classificationRows" :key="idx" class="border-t border-input-border/10 dark:border-input-border/15">
+            <tr v-for="(row, idx) in content.classificationRows" :key="idx" class="border-t border-input-border dark:border-input-border">
               <td class="px-3 py-2 text-text-brand dark:text-text-brand">{{ row.dimension }}</td>
               <td class="px-3 py-2 text-text-brand/75 dark:text-text-brand/75">{{ row.small }}</td>
               <td class="px-3 py-2 text-text-brand/75 dark:text-text-brand/75">{{ row.medium }}</td>
@@ -42,11 +42,11 @@
       <p v-if="content.classificationNote" class="text-xs text-text-brand/55 dark:text-text-brand/55 mt-2 italic">{{ content.classificationNote }}</p>
     </div>
 
-    <div v-if="renderContext && hasStack" class="mt-8 bg-primary/5 dark:bg-primary-soft/5 border border-input-border/10 dark:border-input-border/15 rounded-xl p-4 text-sm">
+    <div v-if="renderContext && hasStack" class="mt-8 bg-primary/5 dark:bg-primary-soft border border-input-border dark:border-input-border rounded-xl p-4 text-sm">
       <h3 class="text-sm font-semibold text-text-brand dark:text-text-brand mb-1">Lo que encontramos en tu aplicación</h3>
       <p class="text-xs text-text-brand/60 mb-3">Cada número explica una parte del tamaño y la complejidad de tu sistema.</p>
       <dl class="grid sm:grid-cols-2 gap-3">
-        <div v-for="metric in stackMetrics" :key="metric.label" class="bg-surface/60 rounded-lg px-3 py-2 border border-input-border/10">
+        <div v-for="metric in stackMetrics" :key="metric.label" class="bg-surface/60 rounded-lg px-3 py-2 border border-input-border">
           <dt class="text-xs font-semibold text-text-brand">{{ metric.label }}</dt>
           <dd class="text-sm text-text-default mt-0.5">{{ metric.value }}</dd>
           <dd class="text-xs text-text-brand/60 mt-0.5">{{ metric.explain }}</dd>
