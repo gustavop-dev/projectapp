@@ -744,6 +744,15 @@ def _send_and_transition(diagnostic, kind: str):
             code='unknown_kind',
         )
 
+    scorecard = diagnostic_service.build_scorecard(diagnostic)
+    if scorecard['blockers']:
+        return False, error_response(
+            'El diagnóstico no está listo para enviarse.',
+            code='scorecard_blockers',
+            hint='Completa los ítems bloqueantes del scorecard.',
+            errors={'blockers': [c['key'] for c in scorecard['blockers']]},
+        )
+
     try:
         diagnostic_service.transition_status(
             diagnostic, target,
@@ -771,6 +780,14 @@ def _send_and_transition(diagnostic, kind: str):
             actor_type=DiagnosticChangeLog.ActorType.SYSTEM,
         )
     return True, email_ok
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def diagnostic_scorecard(request, diagnostic_id):
+    """Pre-send readiness scorecard; logic lives in the service layer."""
+    diagnostic = get_object_or_404(_admin_qs(), pk=diagnostic_id)
+    return Response(diagnostic_service.build_scorecard(diagnostic))
 
 
 @api_view(['POST'])

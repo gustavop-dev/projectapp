@@ -371,3 +371,99 @@ def bulk_action(ids, action: str) -> int:
             affected += 1
 
     return affected
+
+
+def build_scorecard(diagnostic: WebAppDiagnostic) -> dict:
+    """Pre-send readiness scorecard (parity with the proposals scorecard).
+
+    Blockers gate the admin send actions; the rest are quality nudges.
+    Shape: {score 1-10, checks[{key,label,passed,blocker}], blockers,
+    can_send, total_checks, passed_checks}.
+    """
+    sections = list(diagnostic.sections.filter(is_enabled=True))
+    enabled_count = len(sections)
+
+    def _has_content(section) -> bool:
+        content = section.content_json
+        return bool(content) and content != {}
+
+    with_content = sum(1 for s in sections if _has_content(s))
+    content_ratio = with_content / enabled_count if enabled_count else 0
+    radiography_enabled = any(s.section_type == 'radiography' for s in sections)
+
+    checks = [
+        {
+            'key': 'client_email',
+            'label': 'Email del cliente',
+            'passed': bool(diagnostic.client_email and diagnostic.client_email.strip()),
+            'blocker': True,
+        },
+        {
+            'key': 'client_name',
+            'label': 'Nombre del cliente',
+            'passed': bool(diagnostic.client_name and diagnostic.client_name.strip()),
+            'blocker': True,
+        },
+        {
+            'key': 'investment_amount',
+            'label': 'Inversión > $0',
+            'passed': bool(diagnostic.investment_amount and diagnostic.investment_amount > 0),
+            'blocker': True,
+        },
+        {
+            'key': 'enabled_sections',
+            'label': 'Al menos 1 sección habilitada',
+            'passed': enabled_count >= 1,
+            'blocker': True,
+        },
+    ]
+    if radiography_enabled:
+        checks.append({
+            'key': 'radiography',
+            'label': 'Radiografía completada',
+            'passed': bool(diagnostic.radiography),
+            'blocker': True,
+        })
+    checks.extend([
+        {
+            'key': 'title',
+            'label': 'Título del diagnóstico',
+            'passed': bool(diagnostic.title and diagnostic.title.strip()),
+            'blocker': False,
+        },
+        {
+            'key': 'sections_content',
+            'label': f'Secciones con contenido ({with_content}/{enabled_count})',
+            'passed': content_ratio >= 0.5,
+            'blocker': False,
+        },
+        {
+            'key': 'client_phone',
+            'label': 'Teléfono del cliente (para WhatsApp)',
+            'passed': bool(diagnostic.client_phone and diagnostic.client_phone.strip()),
+            'blocker': False,
+        },
+        {
+            'key': 'language',
+            'label': 'Idioma configurado',
+            'passed': bool(diagnostic.language),
+            'blocker': False,
+        },
+        {
+            'key': 'payment_terms',
+            'label': 'Formas de pago definidas',
+            'passed': bool(diagnostic.payment_terms),
+            'blocker': False,
+        },
+    ])
+
+    passed_count = sum(1 for c in checks if c['passed'])
+    blockers = [c for c in checks if c['blocker'] and not c['passed']]
+    return {
+        'score': max(1, round(passed_count / len(checks) * 10)),
+        'checks': checks,
+        'blockers': blockers,
+        'can_send': not blockers,
+        'total_checks': len(checks),
+        'passed_checks': passed_count,
+    }
