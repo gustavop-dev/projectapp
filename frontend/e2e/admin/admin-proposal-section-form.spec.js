@@ -242,6 +242,33 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await expect(editor).toHaveCount(0);
   });
 
+  test('save failure keeps the editor open and shows an error notification', {
+    tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
+  }, async ({ page }) => {
+    const baseHandler = buildMockHandler(null);
+    await mockApi(page, (ctx) => {
+      if (/^proposals\/sections\/\d+\/update\/$/.test(ctx.apiPath)) {
+        return {
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'La sección no pudo guardarse.' }),
+        };
+      }
+      return baseHandler(ctx);
+    });
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.getByRole('tab', { name: 'Secciones' }).click();
+    await page.getByTestId('section-header-greeting').click();
+    const editor = page.getByTestId('section-editor');
+    await editor.waitFor({ state: 'visible' });
+
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+
+    // The failure surfaces as a panel notification and the editor stays open.
+    await expect(page.getByText('La sección no pudo guardarse.')).toBeVisible();
+    await expect(editor).toBeVisible();
+  });
+
   test('section title change is included in save payload', {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
   }, async ({ page }) => {

@@ -43,6 +43,7 @@ from content.views.proposal import (
     send_multi_proposal, preview_proposal_email,
     resend_proposal, toggle_proposal_active, bulk_action,
     update_proposal_section, bulk_reorder_sections,
+    create_proposal_section, delete_proposal_section,
     respond_to_proposal, comment_on_proposal, check_admin_auth,
     track_proposal_engagement, track_calculator_interaction, track_requirement_click,
     retrieve_proposal_analytics,
@@ -206,7 +207,9 @@ urlpatterns = [
     path('proposals/bulk-action/', bulk_action, name='bulk-action'),
 
     # Proposals — section editing
+    path('proposals/<int:proposal_id>/sections/create/', create_proposal_section, name='create-proposal-section'),
     path('proposals/sections/<int:section_id>/update/', update_proposal_section, name='update-proposal-section'),
+    path('proposals/sections/<int:section_id>/delete/', delete_proposal_section, name='delete-proposal-section'),
     path('proposals/sections/<int:section_id>/sync-preview/', preview_sync_section, name='section-sync-preview'),
     path('proposals/sections/<int:section_id>/apply-sync/', apply_sync_section, name='section-apply-sync'),
 

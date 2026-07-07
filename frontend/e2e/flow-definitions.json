@@ -355,7 +355,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Reorder sections within a proposal via drag or API.",
+      "description": "Reorder commercial sections via drag & drop in the Secciones tab (vuedraggable handle per row); the permuted order slots POST to /api/proposals/:id/reorder-sections/ with snap-back on failure.",
       "expectedSpecs": 1
     },
     "admin-proposal-functional-requirements-form": {
@@ -2710,6 +2710,26 @@
       ],
       "priority": "P2",
       "description": "Admin selects diagnostics via row/header checkboxes in /panel/diagnostics; a batch bar appears with 'Finalizar aceptados' and 'Eliminar' (confirm modal), calling POST /api/diagnostics/bulk-action/ with {ids, action} and refreshing the list with a result notification. Covered by e2e/admin/admin-diagnostic-bulk-actions.spec.js.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-section-dirty-guard": {
+      "name": "Admin Proposal Section Dirty Guard",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Unsaved-changes protection in the proposal section editor: editing a section shows a \"Sin guardar\" badge; collapsing a dirty section, navigating away, reloading or hitting the panel refresh button asks for confirmation before discarding edits.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-section-add-delete": {
+      "name": "Admin Proposal Section Add/Delete",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin adds a missing section type from the \"Agregar sección\" modal (seeded server-side from language defaults via POST /api/proposals/:id/sections/create/) and deletes sections via the per-row trash action (DELETE /api/proposals/sections/:id/delete/), including the backend guard for functional requirements with a confirmed calculator selection.",
       "expectedSpecs": 1
     }
   }

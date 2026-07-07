@@ -4,6 +4,7 @@ import re
 from decimal import Decimal
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -18,7 +19,12 @@ from rest_framework.decorators import (
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
-from content.api_errors import error_response, error_response_from_exc
+from content.api_errors import (
+    ProposalActionError,
+    error_response,
+    error_response_from_exc,
+)
+from content.services.proposal_audit import log_proposal_change
 from content.services.proposal_analytics_service import (
     COMPUTED_ALERT_DISMISS_PREFIX as _COMPUTED_ALERT_DISMISS_PREFIX,
     COMPUTED_ALERT_TYPES as _COMPUTED_ALERT_TYPES,
@@ -47,7 +53,12 @@ from content.services.proposal_totals_service import (
     safe_decimal as _safe_decimal,
     selected_group_ids_from_modules as _selected_group_ids_from_modules,
 )
-from content.throttles import TrackingAnonThrottle
+from content.throttles import (
+    MagicLinkRequestThrottle,
+    ProposalPdfThrottle,
+    PublicProposalActionThrottle,
+    TrackingAnonThrottle,
+)
 from content.utils import get_client_ip
 
 from content.models import (
@@ -258,7 +269,9 @@ def _serve_public_proposal(request, proposal):
 def retrieve_public_proposal(request, proposal_uuid):
     """Retrieve a proposal by UUID for client viewing."""
     proposal = get_object_or_404(
-        BusinessProposal.objects.select_related('client__user'),
+        BusinessProposal.objects
+        .select_related('client__user')
+        .prefetch_related('sections', 'requirement_groups__items'),
         uuid=proposal_uuid,
     )
     return _serve_public_proposal(request, proposal)
@@ -269,7 +282,9 @@ def retrieve_public_proposal(request, proposal_uuid):
 def retrieve_public_proposal_by_slug(request, proposal_slug):
     """Retrieve a proposal by its editable slug for client viewing."""
     proposal = get_object_or_404(
-        BusinessProposal.objects.select_related('client__user'),
+        BusinessProposal.objects
+        .select_related('client__user')
+        .prefetch_related('sections', 'requirement_groups__items'),
         slug=proposal_slug,
     )
     return _serve_public_proposal(request, proposal)
@@ -277,6 +292,7 @@ def retrieve_public_proposal_by_slug(request, proposal_slug):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@throttle_classes([ProposalPdfThrottle])
 def download_proposal_pdf(request, proposal_uuid):
     """
     Generate and download a PDF of the proposal using ReportLab.
@@ -487,7 +503,13 @@ def retrieve_proposal(request, proposal_id):
     proposal = get_object_or_404(
         BusinessProposal.objects
         .select_related('client__user')
-        .prefetch_related('project_stages'),
+        .prefetch_related(
+            'project_stages',
+            'sections',
+            'requirement_groups__items',
+            'change_logs',
+            'proposal_documents',
+        ),
         pk=proposal_id,
     )
     serializer = ProposalDetailSerializer(
@@ -508,51 +530,32 @@ def create_proposal(request):
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    proposal = serializer.save()
     from content.services.proposal_service import ProposalService
 
-    if not proposal.expires_at:
-        proposal.expires_at = ProposalService.compute_default_expires_at(proposal.language)
-        proposal.save(update_fields=['expires_at'])
+    with transaction.atomic():
+        proposal = serializer.save()
 
-    # Log creation
-    ProposalChangeLog.objects.create(
-        proposal=proposal,
-        change_type='created',
-        actor_type='seller',
-        description=(
-            f'Proposal created: "{proposal.title}" for {proposal.client_name}. '
-            f'Investment: ${proposal.total_investment} {proposal.currency}.'
-        ),
-    )
+        if not proposal.expires_at:
+            proposal.expires_at = ProposalService.compute_default_expires_at(proposal.language)
+            proposal.save(update_fields=['expires_at'])
 
-    # Auto-create default sections
-    default_sections = ProposalService.get_default_sections(proposal.language)
-    for section_cfg in default_sections:
-        if section_cfg['section_type'] == 'greeting':
-            section_cfg['content_json']['proposalTitle'] = proposal.title
-            section_cfg['content_json']['clientName'] = proposal.client_name
-        if section_cfg['section_type'] == 'investment' and proposal.total_investment:
-            total = float(proposal.total_investment)
-            cur = proposal.currency or 'COP'
-            fmt = '${:,.0f}'.format
-            section_cfg['content_json']['totalInvestment'] = fmt(total)
-            section_cfg['content_json']['currency'] = cur
-            section_cfg['content_json']['paymentOptions'] = [
-                {
-                    'label': '40% al firmar el contrato ✍️',
-                    'description': f'{fmt(total * 0.4)} {cur}',
-                },
-                {
-                    'label': '30% al aprobar el diseño final ✅',
-                    'description': f'{fmt(total * 0.3)} {cur}',
-                },
-                {
-                    'label': '30% al desplegar el sitio web 🚀',
-                    'description': f'{fmt(total * 0.3)} {cur}',
-                },
-            ]
-        ProposalSection.objects.create(proposal=proposal, **section_cfg)
+        # Log creation
+        log_proposal_change(
+            proposal,
+            'created',
+            actor_type='seller',
+            description=(
+                f'Proposal created: "{proposal.title}" for {proposal.client_name}. '
+                f'Investment: ${proposal.total_investment} {proposal.currency}.'
+            ),
+        )
+
+        # Auto-create default sections, personalized like single-section adds
+        from content.services.proposal_service import _personalize_seeded_section
+        default_sections = ProposalService.get_default_sections(proposal.language)
+        for section_cfg in default_sections:
+            _personalize_seeded_section(proposal, section_cfg)
+            ProposalSection.objects.create(proposal=proposal, **section_cfg)
 
     # Return the full detail
     detail = ProposalDetailSerializer(
@@ -990,51 +993,52 @@ def update_proposal(request, proposal_id):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        serializer.save()
+        with transaction.atomic():
+            serializer.save()
+
+            from content.services.proposal_service import ProposalService
+            reopened_status = ProposalService.reopen_if_unexpired(
+                proposal, old_status=old_values['status'],
+            )
+            if reopened_status:
+                proposal.save(update_fields=['status'])
+
+            # Log field-level changes
+            for field in tracked_fields:
+                new_val = str(getattr(proposal, field, ''))
+                if old_values[field] != new_val:
+                    description = f'{field}: {old_values[field]} → {new_val}'
+                    if field == 'status' and reopened_status:
+                        description = (
+                            f'Auto-reopened from expired after expires_at moved to the future '
+                            f'({old_values[field]} → {new_val}).'
+                        )
+                    log_proposal_change(
+                        proposal,
+                        'updated',
+                        field_name=field,
+                        old_value=old_values[field],
+                        new_value=new_val,
+                        actor_type='seller',
+                        description=description,
+                    )
+
+            # Sync total_investment / currency into the investment section's content_json
+            investment_changed = (
+                old_values.get('total_investment') != str(proposal.total_investment)
+                or old_values.get('currency') != str(proposal.currency)
+            )
+            if investment_changed:
+                fr_section = proposal.sections.filter(
+                    section_type=ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS
+                ).first()
+                _resync_investment_from_modules(
+                    proposal, fr_section.content_json if fr_section else None
+                )
     except ValueError as exc:
         return Response(
             {'client_email': [str(exc)]},
             status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    from content.services.proposal_service import ProposalService
-    reopened_status = ProposalService.reopen_if_unexpired(
-        proposal, old_status=old_values['status'],
-    )
-    if reopened_status:
-        proposal.save(update_fields=['status'])
-
-    # Log field-level changes
-    for field in tracked_fields:
-        new_val = str(getattr(proposal, field, ''))
-        if old_values[field] != new_val:
-            description = f'{field}: {old_values[field]} → {new_val}'
-            if field == 'status' and reopened_status:
-                description = (
-                    f'Auto-reopened from expired after expires_at moved to the future '
-                    f'({old_values[field]} → {new_val}).'
-                )
-            ProposalChangeLog.objects.create(
-                proposal=proposal,
-                change_type='updated',
-                field_name=field,
-                old_value=old_values[field],
-                new_value=new_val,
-                actor_type='seller',
-                description=description,
-            )
-
-    # Sync total_investment / currency into the investment section's content_json
-    investment_changed = (
-        old_values.get('total_investment') != str(proposal.total_investment)
-        or old_values.get('currency') != str(proposal.currency)
-    )
-    if investment_changed:
-        fr_section = proposal.sections.filter(
-            section_type=ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS
-        ).first()
-        _resync_investment_from_modules(
-            proposal, fr_section.content_json if fr_section else None
         )
 
     detail = ProposalDetailSerializer(
@@ -1940,9 +1944,9 @@ def bulk_reorder_sections(request, proposal_id):
     sections_data = request.data.get('sections', [])
 
     if not isinstance(sections_data, list):
-        return Response(
-            {'error': '"sections" must be a list of {id, order} objects.'},
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'El campo "sections" debe ser una lista de objetos {id, order}.',
+            code='invalid_sections_payload',
         )
 
     section_ids = {s['id'] for s in sections_data if 'id' in s}
@@ -1962,12 +1966,95 @@ def bulk_reorder_sections(request, proposal_id):
     return Response({'reordered': len(updated)}, status=status.HTTP_200_OK)
 
 
+def _proposal_totals_payload(proposal):
+    """Totals block returned by every section-mutation endpoint."""
+    return {
+        'total_investment': str(proposal.total_investment),
+        'effective_total_investment': str(_effective_total_for_proposal(proposal)),
+    }
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def create_proposal_section(request, proposal_id):
+    """Add a section of a given type to a proposal, seeded from defaults.
+
+    Body: {"section_type": str, "title"?: str}
+    → 201 {"section": <ProposalSectionDetailSerializer>, "proposal_totals": {...}}
+    """
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+    section_type = request.data.get('section_type')
+    if not section_type or not isinstance(section_type, str):
+        return error_response('Debes indicar el tipo de sección.', code='missing_section_type')
+    title = request.data.get('title') or None
+
+    from content.services.proposal_service import create_section_for_proposal
+    try:
+        with transaction.atomic():
+            section = create_section_for_proposal(proposal, section_type, title=title)
+            log_proposal_change(
+                proposal,
+                'updated',
+                actor_type='seller',
+                field_name='sections',
+                description=f'Sección «{section.title}» agregada desde el editor.',
+            )
+    except ProposalActionError as exc:
+        return error_response_from_exc(exc)
+
+    from content.serializers.proposal import ProposalSectionDetailSerializer
+    return Response(
+        {
+            'section': ProposalSectionDetailSerializer(section).data,
+            'proposal_totals': _proposal_totals_payload(proposal),
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def delete_proposal_section(request, section_id):
+    """Delete a proposal section from the editor.
+
+    → 200 {"deleted": true, "section_type": str, "proposal_totals": {...}}
+    """
+    section = get_object_or_404(
+        ProposalSection.objects.select_related('proposal'), pk=section_id,
+    )
+    proposal = section.proposal
+
+    from content.services.proposal_service import delete_section_from_proposal
+    try:
+        with transaction.atomic():
+            info = delete_section_from_proposal(section)
+            log_proposal_change(
+                proposal,
+                'updated',
+                actor_type='seller',
+                field_name='sections',
+                description=f'Sección «{info["title"]}» eliminada desde el editor.',
+            )
+    except ProposalActionError as exc:
+        return error_response_from_exc(exc)
+
+    return Response(
+        {
+            'deleted': True,
+            'section_type': info['section_type'],
+            'proposal_totals': _proposal_totals_payload(proposal),
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Auth check endpoint (for Nuxt admin middleware)
 # ---------------------------------------------------------------------------
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([PublicProposalActionThrottle])
 def respond_to_proposal(request, proposal_uuid):
     """
     Client accepts, rejects, or negotiates a proposal.
@@ -1981,68 +2068,72 @@ def respond_to_proposal(request, proposal_uuid):
     proposal = get_object_or_404(BusinessProposal, uuid=proposal_uuid)
 
     if proposal.status not in ('sent', 'viewed'):
-        return Response(
-            {'error': 'This proposal cannot be responded to in its current state.'},
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Esta propuesta no puede recibir respuestas en su estado actual.',
+            code='invalid_status',
         )
 
     action = request.data.get('action')
     if action not in ('accepted', 'rejected', 'negotiating'):
-        return Response(
-            {'error': 'Invalid action. Must be "accepted", "rejected", or "negotiating".'},
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Acción inválida. Debe ser "accepted", "rejected" o "negotiating".',
+            code='invalid_action',
         )
 
-    proposal.status = action
-    proposal.responded_at = timezone.now()
-    update_fields = ['status', 'responded_at']
-
-    if action == 'rejected':
-        proposal.rejection_reason = request.data.get('reason', '')
-        proposal.rejection_comment = request.data.get('comment', '')
-        update_fields.extend(['rejection_reason', 'rejection_comment'])
-
-    # 3.6 — Auto-pause follow-ups on client response
-    if not proposal.automations_paused:
-        proposal.automations_paused = True
-        update_fields.append('automations_paused')
-
-    proposal.save(update_fields=update_fields)
-
-    # Log the response event
-    change_type = action
     comment = request.data.get('comment', '')
     condition = request.data.get('condition', '').strip()
-    description = f'Client {action} the proposal.'
-    if action == 'rejected' and proposal.rejection_reason:
-        description += f' Reason: {proposal.rejection_reason}'
-    if action == 'negotiating' and comment:
-        description += f' Comment: {comment[:500]}'
-    if action == 'accepted' and condition:
-        description += f' Condition: {condition[:500]}'
-    ProposalChangeLog.objects.create(
-        proposal=proposal,
-        change_type=change_type,
-        actor_type='client',
-        description=description,
-    )
 
-    # Log conditional acceptance separately for easy querying
-    if action == 'accepted' and condition:
-        ProposalChangeLog.objects.create(
-            proposal=proposal,
-            change_type='cond_accepted',
+    # Status mutation + audit trail commit or roll back together. Email
+    # sends and onboarding enqueue stay outside so the transaction is
+    # never held open through SMTP.
+    with transaction.atomic():
+        proposal.status = action
+        proposal.responded_at = timezone.now()
+        update_fields = ['status', 'responded_at']
+
+        if action == 'rejected':
+            proposal.rejection_reason = request.data.get('reason', '')
+            proposal.rejection_comment = request.data.get('comment', '')
+            update_fields.extend(['rejection_reason', 'rejection_comment'])
+
+        # 3.6 — Auto-pause follow-ups on client response
+        if not proposal.automations_paused:
+            proposal.automations_paused = True
+            update_fields.append('automations_paused')
+
+        proposal.save(update_fields=update_fields)
+
+        # Log the response event
+        description = f'Client {action} the proposal.'
+        if action == 'rejected' and proposal.rejection_reason:
+            description += f' Reason: {proposal.rejection_reason}'
+        if action == 'negotiating' and comment:
+            description += f' Comment: {comment[:500]}'
+        if action == 'accepted' and condition:
+            description += f' Condition: {condition[:500]}'
+        log_proposal_change(
+            proposal,
+            action,
             actor_type='client',
-            description=f'Conditional acceptance: {condition[:500]}',
+            description=description,
         )
 
-    # Log automation pause
-    ProposalChangeLog.objects.create(
-        proposal=proposal,
-        change_type='note',
-        actor_type='system',
-        description=f'Automations paused: client responded with "{action}".',
-    )
+        # Log conditional acceptance separately for easy querying
+        if action == 'accepted' and condition:
+            log_proposal_change(
+                proposal,
+                'cond_accepted',
+                actor_type='client',
+                description=f'Conditional acceptance: {condition[:500]}',
+            )
+
+        # Log automation pause
+        log_proposal_change(
+            proposal,
+            'note',
+            actor_type='system',
+            description=f'Automations paused: client responded with "{action}".',
+        )
 
     from content.services.proposal_email_service import ProposalEmailService
     ProposalEmailService.send_response_notification(proposal, action)
@@ -2131,6 +2222,7 @@ def _enqueue_onboarding_on_accept(proposal, *, acting_user_id):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([PublicProposalActionThrottle])
 def comment_on_proposal(request, proposal_uuid):
     """
     Client submits a negotiation comment before deciding.
@@ -2142,21 +2234,21 @@ def comment_on_proposal(request, proposal_uuid):
     proposal = get_object_or_404(BusinessProposal, uuid=proposal_uuid)
 
     if proposal.status not in ('sent', 'viewed', 'rejected'):
-        return Response(
-            {'error': 'Comments cannot be submitted for this proposal.'},
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Esta propuesta no puede recibir comentarios en su estado actual.',
+            code='invalid_status',
         )
 
     comment = (request.data.get('comment') or '').strip()
     if not comment:
-        return Response(
-            {'error': 'Comment cannot be empty.'},
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'El comentario no puede estar vacío.',
+            code='empty_comment',
         )
 
-    ProposalChangeLog.objects.create(
-        proposal=proposal,
-        change_type='commented',
+    log_proposal_change(
+        proposal,
+        'commented',
         actor_type='client',
         description=f'Client left a comment: {comment[:500]}',
     )
@@ -2612,6 +2704,7 @@ def track_requirement_click(request, proposal_uuid):
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([AllowAny])
+@throttle_classes([MagicLinkRequestThrottle])
 def request_magic_link(request):
     """
     Magic link re-access: client provides their email and receives
@@ -2671,6 +2764,7 @@ def request_magic_link(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([PublicProposalActionThrottle])
 def create_share_link(request, proposal_uuid):
     """
     Create a tracked share link for a proposal.
@@ -2721,18 +2815,25 @@ def retrieve_shared_proposal(request, share_uuid):
     Increments the share link's view_count and sets first_viewed_at.
     Returns the full proposal detail (same as public view).
     """
-    share_link = get_object_or_404(ProposalShareLink, uuid=share_uuid)
+    share_link = get_object_or_404(
+        ProposalShareLink.objects
+        .select_related('proposal__client__user')
+        .prefetch_related('proposal__sections', 'proposal__requirement_groups__items'),
+        uuid=share_uuid,
+    )
     proposal = share_link.proposal
 
     if not proposal.is_active:
-        return Response(
-            {'error': 'This proposal is not available.'},
+        return error_response(
+            'Esta propuesta no está disponible.',
+            code='proposal_unavailable',
             status=status.HTTP_404_NOT_FOUND,
         )
 
     if proposal.is_expired:
-        return Response(
-            {'error': 'This proposal has expired.'},
+        return error_response(
+            'Esta propuesta ha expirado.',
+            code='proposal_expired',
             status=status.HTTP_410_GONE,
         )
 
@@ -2766,6 +2867,7 @@ def retrieve_shared_proposal(request, share_uuid):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([PublicProposalActionThrottle])
 def schedule_followup(request, proposal_uuid):
     """
     Schedule a follow-up reminder for a rejected proposal.

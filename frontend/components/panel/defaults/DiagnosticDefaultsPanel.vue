@@ -16,7 +16,6 @@
     </p>
 
     <BaseTabs v-model="activeTab" :tabs="tabs" />
-    <PanelToast />
 
     <!-- ═══ TAB: Vista General ═══ -->
     <section v-show="activeTab === 'general'" class="max-w-5xl mx-auto">
@@ -276,9 +275,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
-import PanelToast from '~/components/panel/PanelToast.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
-import { usePanelToast } from '~/composables/usePanelToast';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 import { toSlug } from '~/utils/slugify';
@@ -287,7 +285,7 @@ const localePath = useLocalePath();
 const route = useRoute();
 const store = useDiagnosticsStore();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
-const { showToast } = usePanelToast();
+const notify = usePanelNotify();
 
 const tabs = [
   { id: 'general', label: 'Vista General' },
@@ -386,7 +384,7 @@ function syncPaymentInitial() {
 async function loadDefaults(lang) {
   const result = await store.fetchDiagnosticDefaults(lang);
   if (!result.success) {
-    showToast({ type: 'error', text: 'No se pudieron cargar los valores por defecto.' });
+    notify.error('No se pudieron cargar los valores por defecto.');
     return;
   }
   applyConfig(result.data || {});
@@ -398,7 +396,7 @@ async function onLanguageChange() {
 
 async function handleSaveGeneral() {
   if (!isPaymentValid.value) {
-    showToast({ type: 'error', text: 'La distribución de pagos debe sumar 100%.' });
+    notify.error('La distribución de pagos debe sumar 100%.');
     return;
   }
   isSaving.value = true;
@@ -410,12 +408,12 @@ async function handleSaveGeneral() {
     );
     if (result.success) {
       applyConfig(result.data || {});
-      showToast({ type: 'success', text: 'Valores guardados correctamente.' });
+      notify.success('Valores guardados correctamente.');
     } else {
       const detail = result.errors?.detail
         || Object.values(result.errors || {}).flat().join(' ')
         || 'Error al guardar.';
-      showToast({ type: 'error', text: detail });
+      notify.error(detail);
     }
   } finally {
     isSaving.value = false;
@@ -433,9 +431,9 @@ function confirmReset() {
       const result = await store.resetDiagnosticDefaults(generalForm.value.language);
       if (result.success) {
         await loadDefaults(generalForm.value.language);
-        showToast({ type: 'success', text: 'Valores restablecidos.' });
+        notify.success('Valores restablecidos.');
       } else {
-        showToast({ type: 'error', text: 'No se pudo restablecer.' });
+        notify.error('No se pudo restablecer.');
       }
     },
   });

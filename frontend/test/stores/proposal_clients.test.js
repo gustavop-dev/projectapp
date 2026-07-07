@@ -1,5 +1,5 @@
 /**
- * Tests for the proposalClients store.
+ * Tests for the proposal_clients store.
  *
  * Covers: fetchClients (with search/orphans/limit params), searchClients
  * (with cancellation), fetchClient, createClient, updateClient,
@@ -7,7 +7,7 @@
  * getClientById, error handling.
  */
 import { setActivePinia, createPinia } from 'pinia';
-import { useProposalClientsStore } from '../../stores/proposalClients';
+import { useProposalClientsStore } from '../../stores/proposal_clients';
 
 jest.mock('../../stores/services/request_http', () => ({
   get_request: jest.fn(),
