@@ -70,7 +70,7 @@ test.describe('Admin Diagnostic List', () => {
     await setupMock(page);
     await page.goto('/panel/diagnostics/');
 
-    await expect(page.getByRole('link', { name: /Nuevo diagnóstico/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('main').getByRole('link', { name: /Nuevo diagnóstico/i })).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('Acme Corp')).toBeVisible();
     await expect(page.getByText('Beta Inc')).toBeVisible();
   });

@@ -154,6 +154,25 @@ describe('useDiagnosticsStore', () => {
     expect(result.success).toBe(true)
   })
 
+  it('bulkAction posts ids/action and prunes deleted rows from state', async () => {
+    store.diagnostics = [{ id: 1 }, { id: 2 }, { id: 3 }]
+    create_request.mockResolvedValueOnce({ data: { affected: 2, action: 'delete' } })
+    const result = await store.bulkAction([1, 3], 'delete')
+    expect(create_request).toHaveBeenCalledWith('diagnostics/bulk-action/', { ids: [1, 3], action: 'delete' })
+    expect(result.success).toBe(true)
+    expect(result.data.affected).toBe(2)
+    expect(store.diagnostics.map((d) => d.id)).toEqual([2])
+  })
+
+  it('bulkAction returns the normalized failure shape on error', async () => {
+    create_request.mockRejectedValueOnce({
+      response: { status: 400, data: { error: 'Acción no válida.', code: 'invalid_bulk_action' } },
+    })
+    const result = await store.bulkAction([1], 'resend')
+    expect(result.success).toBe(false)
+    expect(result.code).toBe('invalid_bulk_action')
+  })
+
   it('remove DELETEs and filters from diagnostics array', async () => {
     store.current = mockDiagnostic({ id: 3 })
     store.diagnostics = [mockDiagnostic({ id: 3 }), mockDiagnostic({ id: 6 })]

@@ -143,6 +143,25 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
       }
     },
 
+    async bulkAction(ids, action) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request('diagnostics/bulk-action/', { ids, action });
+        if (action === 'delete') {
+          const removed = new Set(ids);
+          this.diagnostics = this.diagnostics.filter((d) => !removed.has(d.id));
+          if (this.current && removed.has(this.current.id)) this.current = null;
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        const failure = this._fail(error, 'No se pudo aplicar la acción en lote.');
+        this.error = failure.message;
+        return failure;
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
     // ── Sections ────────────────────────────────────────────────────
     async updateSection(diagnosticId, sectionId, payload) {
       this.isUpdating = true;

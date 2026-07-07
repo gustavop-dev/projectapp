@@ -47,6 +47,9 @@
       </div>
     </header>
 
+    <!-- KPI strip -->
+    <DiagnosticDashboard v-if="store.diagnostics.length" :diagnostics="store.diagnostics" />
+
     <!-- Saved filter tabs -->
     <ProposalFilterTabs
       :tabs="savedTabs"
@@ -93,9 +96,35 @@
       @reset="handleResetFilters"
     />
 
-    <!-- Loading -->
-    <div v-if="store.isLoading" class="text-center py-12 text-text-subtle text-sm">
-      Cargando…
+    <!-- Batch actions bar -->
+    <div
+      v-if="selectedIds.length"
+      class="flex flex-wrap items-center gap-3 mb-3 px-4 py-2.5 bg-primary-soft border border-primary/20 rounded-xl"
+      data-testid="diagnostics-batch-bar"
+    >
+      <span class="text-sm font-medium text-text-brand">
+        {{ selectedIds.length }} seleccionado{{ selectedIds.length !== 1 ? 's' : '' }}
+      </span>
+      <div class="ml-auto flex items-center gap-2">
+        <BaseButton variant="secondary" size="sm" :loading="store.isUpdating" @click="handleBulk('finish')">
+          Finalizar aceptados
+        </BaseButton>
+        <BaseButton variant="danger" size="sm" :loading="store.isUpdating" @click="handleBulk('delete')">
+          Eliminar
+        </BaseButton>
+        <BaseButton variant="ghost" size="sm" @click="clearSelection">Cancelar</BaseButton>
+      </div>
+    </div>
+
+    <!-- Loading skeleton -->
+    <div
+      v-if="store.isLoading"
+      class="bg-surface rounded-xl shadow-card border border-border-muted p-6 space-y-4"
+      data-testid="diagnostics-loading"
+      aria-busy="true"
+    >
+      <BaseSkeleton variant="line" class="w-1/3" />
+      <BaseSkeleton v-for="n in 5" :key="n" variant="line" class="w-full" />
     </div>
 
     <!-- Load error (distinct from the empty state) -->
@@ -138,55 +167,82 @@
     <!-- Table -->
     <div
       v-else
-      class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-x-auto"
+      class="bg-surface rounded-xl shadow-card border border-border-muted overflow-x-auto"
     >
       <table class="w-full min-w-[900px]">
         <thead class="sticky top-0 z-10 bg-surface">
           <tr class="border-b border-border-muted text-left">
-            <th class="px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider w-12">ID</th>
+            <th scope="col" class="pl-4 pr-1 py-3 w-10">
+              <BaseCheckbox
+                :model-value="pageAllSelected"
+                aria-label="Seleccionar los diagnósticos de esta página"
+                @update:model-value="toggleSelectPage"
+              />
+            </th>
             <th
-              class="px-6 py-3 text-xs font-medium uppercase tracking-wider cursor-pointer select-none transition-colors"
-              :class="sortKey === 'client_name' ? 'text-text-brand' : 'text-text-muted hover:text-text-brand'"
-              @click="toggleSort('client_name')"
+              scope="col"
+              class="px-6 py-3 text-xs font-medium uppercase tracking-wider"
+              :class="sortKey === 'client_name' ? 'text-text-brand' : 'text-text-muted'"
+              :aria-sort="ariaSortFor('client_name')"
             >
-              <span class="inline-flex items-center gap-1">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 uppercase tracking-wider hover:text-text-brand rounded focus:outline-none focus:ring-2 focus:ring-focus-ring/40 motion-safe:transition-colors motion-safe:duration-fast"
+                @click="toggleSort('client_name')"
+              >
                 Cliente
                 <SortIcon :active="sortKey === 'client_name'" :asc="sortDir === 'asc'" />
-              </span>
+              </button>
             </th>
-            <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Título</th>
-            <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
+            <th scope="col" class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Título</th>
+            <th scope="col" class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
             <th
-              class="px-6 py-3 text-xs font-medium uppercase tracking-wider cursor-pointer select-none transition-colors"
-              :class="sortKey === 'investment_amount' ? 'text-text-brand' : 'text-text-muted hover:text-text-brand'"
-              @click="toggleSort('investment_amount')"
+              scope="col"
+              class="px-6 py-3 text-xs font-medium uppercase tracking-wider"
+              :class="sortKey === 'investment_amount' ? 'text-text-brand' : 'text-text-muted'"
+              :aria-sort="ariaSortFor('investment_amount')"
             >
-              <span class="inline-flex items-center gap-1">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 uppercase tracking-wider hover:text-text-brand rounded focus:outline-none focus:ring-2 focus:ring-focus-ring/40 motion-safe:transition-colors motion-safe:duration-fast"
+                @click="toggleSort('investment_amount')"
+              >
                 Inversión
                 <SortIcon :active="sortKey === 'investment_amount'" :asc="sortDir === 'asc'" />
-              </span>
+              </button>
             </th>
             <th
-              class="px-6 py-3 text-xs font-medium uppercase tracking-wider cursor-pointer select-none transition-colors hidden sm:table-cell"
-              :class="sortKey === 'created_at' ? 'text-text-brand' : 'text-text-muted hover:text-text-brand'"
-              @click="toggleSort('created_at')"
+              scope="col"
+              class="px-6 py-3 text-xs font-medium uppercase tracking-wider hidden sm:table-cell"
+              :class="sortKey === 'created_at' ? 'text-text-brand' : 'text-text-muted'"
+              :aria-sort="ariaSortFor('created_at')"
             >
-              <span class="inline-flex items-center gap-1">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 uppercase tracking-wider hover:text-text-brand rounded focus:outline-none focus:ring-2 focus:ring-focus-ring/40 motion-safe:transition-colors motion-safe:duration-fast"
+                @click="toggleSort('created_at')"
+              >
                 Creado
                 <SortIcon :active="sortKey === 'created_at'" :asc="sortDir === 'asc'" />
-              </span>
+              </button>
             </th>
             <th
-              class="px-6 py-3 text-xs font-medium uppercase tracking-wider cursor-pointer select-none transition-colors"
-              :class="sortKey === 'last_viewed_at' ? 'text-text-brand' : 'text-text-muted hover:text-text-brand'"
-              @click="toggleSort('last_viewed_at')"
+              scope="col"
+              class="px-6 py-3 text-xs font-medium uppercase tracking-wider"
+              :class="sortKey === 'last_viewed_at' ? 'text-text-brand' : 'text-text-muted'"
+              :aria-sort="ariaSortFor('last_viewed_at')"
             >
-              <span class="inline-flex items-center gap-1">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 uppercase tracking-wider hover:text-text-brand rounded focus:outline-none focus:ring-2 focus:ring-focus-ring/40 motion-safe:transition-colors motion-safe:duration-fast"
+                @click="toggleSort('last_viewed_at')"
+              >
                 Última vista
                 <SortIcon :active="sortKey === 'last_viewed_at'" :asc="sortDir === 'asc'" />
-              </span>
+              </button>
             </th>
-            <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
+            <th scope="col" class="px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider w-14 hidden lg:table-cell">ID</th>
+            <th scope="col" class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border-muted">
@@ -197,14 +253,30 @@
             :data-testid="`diagnostic-row-${d.id}`"
             @click="navigateToDiagnostic(d.id, $event)"
           >
-            <td class="px-4 py-4 text-xs text-text-subtle tabular-nums">#{{ d.id }}</td>
+            <td class="pl-4 pr-1 py-4" @click.stop>
+              <BaseCheckbox
+                v-model="selectedIds"
+                :value="d.id"
+                :aria-label="`Seleccionar ${d.title}`"
+              />
+            </td>
             <td class="px-6 py-4">
               <div class="text-sm font-medium text-text-default">{{ d.client?.name || '—' }}</div>
               <div v-if="d.client?.email" class="text-xs text-text-muted mt-0.5">{{ d.client.email }}</div>
             </td>
-            <td class="px-6 py-4 text-sm text-text-default">{{ d.title }}</td>
+            <td class="px-6 py-4 text-sm text-text-default">
+              <div class="truncate max-w-[22rem]" :title="d.title">{{ d.title }}</div>
+            </td>
             <td class="px-6 py-4">
-              <DiagnosticStatusBadge :status="d.status" />
+              <div class="flex flex-col items-start gap-1">
+                <DiagnosticStatusBadge :status="d.status" />
+                <span
+                  v-if="attentionById[d.id]"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-medium"
+                  :class="ATTENTION_TONE_CLASSES[attentionById[d.id].tone]"
+                  :data-testid="`diagnostic-attention-${d.id}`"
+                >{{ attentionById[d.id].label }}</span>
+              </div>
             </td>
             <td class="px-6 py-4 text-sm text-text-muted tabular-nums">
               <span v-if="d.investment_amount">{{ formatMoney(d.investment_amount) }} {{ d.currency }}</span>
@@ -217,16 +289,19 @@
             <td class="px-6 py-4 text-xs text-text-muted">
               <span v-if="d.last_viewed_at">
                 {{ formatDate(d.last_viewed_at) }}
-                <span class="text-[10px] text-text-subtle ml-1">({{ d.view_count }} vistas)</span>
+                <span class="text-2xs text-text-subtle ml-1">({{ d.view_count }} vistas)</span>
               </span>
               <span v-else class="text-text-subtle">—</span>
             </td>
+            <td class="px-4 py-4 text-xs text-text-subtle tabular-nums hidden lg:table-cell">#{{ d.id }}</td>
             <td class="px-6 py-4" @click.stop>
               <button
-                class="p-1.5 rounded-lg hover:bg-surface-raised transition-colors text-text-subtle hover:text-text-default"
+                type="button"
+                class="p-3 -m-1.5 rounded-lg hover:bg-surface-raised motion-safe:transition-colors motion-safe:duration-fast text-text-subtle hover:text-text-default focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
+                :aria-label="`Acciones de ${d.title}`"
                 @click.stop="actionsModalDiagnostic = d"
               >
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                   <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                 </svg>
               </button>
@@ -240,53 +315,52 @@
         <span class="text-xs text-text-subtle">
           Mostrando {{ paginationStart }}–{{ paginationEnd }} de {{ sortedDiagnostics.length }} diagnóstico{{ sortedDiagnostics.length !== 1 ? 's' : '' }}
         </span>
-        <div v-if="totalPages > 1" class="flex gap-1">
+        <nav v-if="totalPages > 1" class="flex gap-1" aria-label="Paginación de diagnósticos">
           <button
             v-for="page in totalPages"
             :key="page"
-            class="w-8 h-8 rounded-lg text-xs font-medium transition-colors"
+            type="button"
+            class="min-w-[2.75rem] min-h-[2.75rem] rounded-lg text-xs font-medium motion-safe:transition-colors motion-safe:duration-fast focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
             :class="currentPage === page
               ? 'bg-primary text-white'
               : 'text-text-muted hover:bg-surface-raised'"
+            :aria-label="`Página ${page}`"
+            :aria-current="currentPage === page ? 'page' : undefined"
             @click="currentPage = page"
           >
             {{ page }}
           </button>
-        </div>
+        </nav>
       </div>
     </div>
 
     <!-- Actions modal -->
-    <Teleport to="body">
-      <Transition name="fade-modal">
-        <div
-          v-if="actionsModalDiagnostic"
-          class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-          @click.self="actionsModalDiagnostic = null"
-        >
-          <div class="bg-surface rounded-2xl shadow-2xl max-w-md w-full border border-border-muted">
-            <div class="px-6 py-4 border-b border-border-muted flex items-center justify-between">
-              <div class="min-w-0">
-                <h3 class="text-base font-bold text-text-default truncate">
-                  {{ actionsModalDiagnostic.title }}
-                </h3>
-                <p class="text-xs text-text-muted mt-0.5">
-                  {{ actionsModalDiagnostic.client?.name || '—' }}
-                  <span v-if="actionsModalDiagnostic.created_at" class="ml-1 text-text-subtle">
-                    · {{ formatDate(actionsModalDiagnostic.created_at) }}
-                  </span>
-                </p>
-              </div>
-              <button
-                class="w-8 h-8 rounded-lg flex items-center justify-center text-text-subtle hover:bg-surface-raised transition-colors"
-                @click="actionsModalDiagnostic = null"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div class="p-3 space-y-1 max-h-[60vh] overflow-y-auto">
+    <BaseModal v-model="actionsModalOpen" size="md">
+      <template v-if="actionsModalDiagnostic">
+        <div class="px-6 py-4 border-b border-border-muted flex items-center justify-between">
+          <div class="min-w-0">
+            <h3 class="text-base font-bold text-text-default truncate">
+              {{ actionsModalDiagnostic.title }}
+            </h3>
+            <p class="text-xs text-text-muted mt-0.5">
+              {{ actionsModalDiagnostic.client?.name || '—' }}
+              <span v-if="actionsModalDiagnostic.created_at" class="ml-1 text-text-subtle">
+                · {{ formatDate(actionsModalDiagnostic.created_at) }}
+              </span>
+            </p>
+          </div>
+          <button
+            type="button"
+            class="w-11 h-11 rounded-lg flex items-center justify-center text-text-subtle hover:bg-surface-raised motion-safe:transition-colors motion-safe:duration-fast focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
+            aria-label="Cerrar"
+            @click="actionsModalDiagnostic = null"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="p-3 space-y-1 max-h-[60vh] overflow-y-auto">
               <NuxtLink
                 :to="localePath(`/panel/diagnostics/${actionsModalDiagnostic.id}/edit`)"
                 class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-surface-raised"
@@ -333,11 +407,9 @@
                 <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-danger-soft text-danger-strong">🗑️</span>
                 <span class="text-sm font-medium text-danger-strong">Eliminar</span>
               </button>
-            </div>
-          </div>
         </div>
-      </Transition>
-    </Teleport>
+      </template>
+    </BaseModal>
   </div>
 </template>
 
@@ -345,9 +417,11 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 import DiagnosticStatusBadge from '~/components/WebAppDiagnostic/DiagnosticStatusBadge.vue';
+import DiagnosticDashboard from '~/components/WebAppDiagnostic/admin/DiagnosticDashboard.vue';
 import DiagnosticFilterPanel from '~/components/WebAppDiagnostic/DiagnosticFilterPanel.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
+import { getDiagnosticAttention, ATTENTION_TONE_CLASSES } from '~/utils/diagnosticAttention';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useDiagnosticFilters } from '~/composables/useDiagnosticFilters';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -383,6 +457,17 @@ const sortKey = ref('created_at');
 const sortDir = ref('desc');
 const currentPage = ref(1);
 const pageSize = 15;
+const selectedIds = ref([]);
+
+const actionsModalOpen = computed({
+  get: () => actionsModalDiagnostic.value !== null,
+  set: (open) => { if (!open) actionsModalDiagnostic.value = null; },
+});
+
+function ariaSortFor(key) {
+  if (sortKey.value !== key) return undefined;
+  return sortDir.value === 'asc' ? 'ascending' : 'descending';
+}
 
 const {
   currentFilters,
@@ -464,6 +549,76 @@ const paginationEnd = computed(() =>
   Math.min(currentPage.value * pageSize, sortedDiagnostics.value.length),
 );
 
+const attentionById = computed(() => {
+  const map = {};
+  for (const d of paginatedDiagnostics.value) {
+    const signal = getDiagnosticAttention(d);
+    if (signal) map[d.id] = signal;
+  }
+  return map;
+});
+
+// ── Bulk selection ────────────────────────────────────────────────────
+const pageAllSelected = computed(() =>
+  paginatedDiagnostics.value.length > 0 &&
+  paginatedDiagnostics.value.every((d) => selectedIds.value.includes(d.id)),
+);
+
+function toggleSelectPage(checked) {
+  const pageIds = paginatedDiagnostics.value.map((d) => d.id);
+  if (checked) {
+    selectedIds.value = [...new Set([...selectedIds.value, ...pageIds])];
+  } else {
+    const pageSet = new Set(pageIds);
+    selectedIds.value = selectedIds.value.filter((id) => !pageSet.has(id));
+  }
+}
+
+function clearSelection() {
+  selectedIds.value = [];
+}
+
+const BULK_CONFIRM = {
+  delete: {
+    title: 'Eliminar diagnósticos',
+    message: (n) => `¿Eliminar ${n} diagnóstico${n !== 1 ? 's' : ''}? Esta acción no se puede deshacer.`,
+    variant: 'danger',
+    confirmText: 'Eliminar',
+    success: (affected) => `${affected} diagnóstico${affected !== 1 ? 's' : ''} eliminado${affected !== 1 ? 's' : ''}.`,
+  },
+  finish: {
+    title: 'Finalizar diagnósticos',
+    message: (n) => `¿Marcar como finalizados los aceptados entre los ${n} seleccionados?`,
+    variant: 'info',
+    confirmText: 'Finalizar',
+    success: (affected) => affected > 0
+      ? `${affected} diagnóstico${affected !== 1 ? 's' : ''} finalizado${affected !== 1 ? 's' : ''}.`
+      : 'Ninguno de los seleccionados estaba aceptado.',
+  },
+};
+
+function handleBulk(action) {
+  const ids = [...selectedIds.value];
+  const copy = BULK_CONFIRM[action];
+  if (!ids.length || !copy) return;
+  requestConfirm({
+    title: copy.title,
+    message: copy.message(ids.length),
+    variant: copy.variant,
+    confirmText: copy.confirmText,
+    onConfirm: async () => {
+      const r = await store.bulkAction(ids, action);
+      if (r?.success) {
+        clearSelection();
+        notify.success(copy.success(r.data?.affected ?? 0));
+        if (action === 'finish') await loadDiagnostics();
+      } else {
+        notify.error({ title: r?.message || 'No se pudo aplicar la acción.', detail: r?.hint || '' });
+      }
+    },
+  });
+}
+
 function toggleSort(key) {
   if (sortKey.value === key) {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
@@ -533,14 +688,3 @@ async function loadDiagnostics() {
 onMounted(loadDiagnostics);
 usePanelRefresh(loadDiagnostics);
 </script>
-
-<style scoped>
-.fade-modal-enter-active,
-.fade-modal-leave-active {
-  transition: opacity 0.2s ease;
-}
-.fade-modal-enter-from,
-.fade-modal-leave-to {
-  opacity: 0;
-}
-</style>
