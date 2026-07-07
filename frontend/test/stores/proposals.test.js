@@ -849,6 +849,92 @@ describe('useProposalStore', () => {
     });
   });
 
+  describe('createSection', () => {
+    it('creates a section and appends it with updated totals', async () => {
+      store.currentProposal = {
+        id: 99,
+        sections: [{ id: 1, section_type: 'greeting', order: 0 }],
+        total_investment: '100',
+        effective_total_investment: '100',
+      };
+      create_request.mockResolvedValue({
+        data: {
+          section: { id: 7, section_type: 'timeline', order: 1 },
+          proposal_totals: { total_investment: '100', effective_total_investment: '150' },
+        },
+      });
+
+      const result = await store.createSection(99, 'timeline');
+
+      expect(create_request).toHaveBeenCalledWith(
+        'proposals/99/sections/create/',
+        { section_type: 'timeline' },
+      );
+      expect(result.success).toBe(true);
+      expect(result.data.id).toBe(7);
+      expect(store.currentProposal.sections.map((s) => s.id)).toEqual([1, 7]);
+      expect(store.currentProposal.effective_total_investment).toBe('150');
+    });
+
+    it('propagates the normalized error on failure', async () => {
+      create_request.mockRejectedValue({
+        response: {
+          status: 400,
+          data: { error: 'La propuesta ya tiene una sección de este tipo.', code: 'section_already_exists' },
+        },
+      });
+
+      const result = await store.createSection(99, 'greeting');
+
+      expect(result.success).toBe(false);
+      expect(result.code).toBe('section_already_exists');
+      expect(result.message).toBe('La propuesta ya tiene una sección de este tipo.');
+    });
+  });
+
+  describe('deleteSection', () => {
+    it('deletes a section and removes it locally with updated totals', async () => {
+      store.currentProposal = {
+        id: 99,
+        sections: [
+          { id: 1, section_type: 'greeting', order: 0 },
+          { id: 7, section_type: 'timeline', order: 1 },
+        ],
+        total_investment: '100',
+        effective_total_investment: '150',
+      };
+      delete_request.mockResolvedValue({
+        data: {
+          deleted: true,
+          section_type: 'timeline',
+          proposal_totals: { total_investment: '100', effective_total_investment: '100' },
+        },
+      });
+
+      const result = await store.deleteSection(7);
+
+      expect(delete_request).toHaveBeenCalledWith('proposals/sections/7/delete/');
+      expect(result.success).toBe(true);
+      expect(store.currentProposal.sections.map((s) => s.id)).toEqual([1]);
+      expect(store.currentProposal.effective_total_investment).toBe('100');
+    });
+
+    it('propagates the guard error for confirmed functional requirements', async () => {
+      delete_request.mockRejectedValue({
+        response: {
+          status: 400,
+          data: { error: 'No se puede eliminar.', code: 'fr_has_confirmed_selection', hint: 'Desactiva la sección.' },
+        },
+      });
+
+      const result = await store.deleteSection(3);
+
+      expect(result.success).toBe(false);
+      expect(result.code).toBe('fr_has_confirmed_selection');
+      expect(result.hint).toBe('Desactiva la sección.');
+    });
+  });
+
   describe('respondToProposal', () => {
     it('accepts proposal and updates currentProposal status', async () => {
       store.currentProposal = { uuid: 'abc', status: 'sent' };

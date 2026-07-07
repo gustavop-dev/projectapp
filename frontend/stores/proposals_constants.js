@@ -39,3 +39,13 @@ export const RESOLVED_PROPOSAL_STATUSES = Object.freeze([
   PROPOSAL_STATUS.REJECTED,
   PROPOSAL_STATUS.FINISHED,
 ]);
+
+/**
+ * Default "method phases" block for the proposal initial email. Shared by
+ * the edit page's form hydration and ProposalGeneralTab's ensureMethodPhases.
+ */
+export const DEFAULT_METHOD_PHASES = Object.freeze([
+  { number: '01', title: 'Diagnóstico', duration: '', description: 'Mapeo de procesos y alcance final.' },
+  { number: '02', title: 'Construcción', duration: '', description: 'Sprints con demo cada viernes.' },
+  { number: '03', title: 'Lanzamiento', duration: '', description: 'Deploy, capacitación y soporte.' },
+]);

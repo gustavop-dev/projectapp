@@ -2,6 +2,7 @@ import logging
 from copy import deepcopy
 from datetime import timedelta
 
+from django.db import transaction
 from django.utils import timezone
 
 from content.technical_document_defaults import EMPTY_TECHNICAL_DOCUMENT_JSON
@@ -3098,8 +3099,13 @@ class ProposalService:
 # result themselves.
 # ---------------------------------------------------------------------------
 
+@transaction.atomic
 def build_proposal_from_json(validated_data):
     """Create a BusinessProposal + its sections from validated from-JSON data.
+
+    Runs atomically: the proposal, its client profile snapshot and all
+    sections are committed together or not at all (no email/side effects
+    happen inside this function).
 
     ``validated_data`` is the output of ProposalFromJSONSerializer (it still
     contains ``sections`` and, optionally, a resolved ``client``). Returns
@@ -3259,8 +3265,12 @@ def build_proposal_from_json(validated_data):
     return proposal, unmapped_keys
 
 
+@transaction.atomic
 def apply_proposal_json_update(proposal, validated_data):
     """Update an existing proposal + its sections from validated from-JSON data.
+
+    Runs atomically: metadata, change logs and section updates are committed
+    together or not at all (no email/side effects happen inside this function).
 
     Returns ``(proposal, updated_sections, unmapped_keys)``.
     """
@@ -3400,3 +3410,119 @@ def apply_proposal_json_update(proposal, validated_data):
     provided_keys = set(sections_data.keys())
     unmapped_keys = sorted(provided_keys - known_keys)
     return proposal, updated_sections, unmapped_keys
+
+
+# ---------------------------------------------------------------------------
+# Panel section management (add/delete a single section from the editor)
+# ---------------------------------------------------------------------------
+
+def _personalize_seeded_section(proposal, section_cfg):
+    """Stamp proposal-specific values into a seeded default section config.
+
+    Shared by proposal creation (all default sections) and
+    :func:`create_section_for_proposal` so both paths personalize the
+    greeting and investment content the same way.
+    """
+    if section_cfg['section_type'] == 'greeting':
+        section_cfg['content_json']['proposalTitle'] = proposal.title
+        section_cfg['content_json']['clientName'] = proposal.client_name
+    if section_cfg['section_type'] == 'investment' and proposal.total_investment:
+        total = float(proposal.total_investment)
+        cur = proposal.currency or 'COP'
+        fmt = '${:,.0f}'.format
+        section_cfg['content_json']['totalInvestment'] = fmt(total)
+        section_cfg['content_json']['currency'] = cur
+        section_cfg['content_json']['paymentOptions'] = [
+            {
+                'label': '40% al firmar el contrato ✍️',
+                'description': f'{fmt(total * 0.4)} {cur}',
+            },
+            {
+                'label': '30% al aprobar el diseño final ✅',
+                'description': f'{fmt(total * 0.3)} {cur}',
+            },
+            {
+                'label': '30% al desplegar el sitio web 🚀',
+                'description': f'{fmt(total * 0.3)} {cur}',
+            },
+        ]
+    return section_cfg
+
+
+def create_section_for_proposal(proposal, section_type, *, title=None):
+    """Create one section on ``proposal`` seeded from the language defaults.
+
+    Raises ProposalActionError with code ``invalid_section_type`` or
+    ``section_already_exists`` (proposal+section_type is unique).
+    """
+    from django.db import IntegrityError
+    from django.db.models import Max
+
+    from content.api_errors import ProposalActionError
+    from content.models import ProposalSection
+
+    if section_type not in ProposalSection.SectionType.values:
+        raise ProposalActionError('Tipo de sección inválido.', code='invalid_section_type')
+
+    duplicate_error = ProposalActionError(
+        'La propuesta ya tiene una sección de este tipo.',
+        code='section_already_exists',
+        hint='Edita la sección existente o elimínala primero.',
+    )
+    if proposal.sections.filter(section_type=section_type).exists():
+        raise duplicate_error
+
+    section_cfg = ProposalService.get_default_section(proposal.language, section_type)
+    if section_cfg is None:
+        section_cfg = {
+            'section_type': section_type,
+            'title': ProposalSection.SectionType(section_type).label,
+            'content_json': {},
+            'is_wide_panel': False,
+        }
+    section_cfg = _personalize_seeded_section(proposal, section_cfg)
+    if title:
+        section_cfg['title'] = title
+
+    max_order = proposal.sections.aggregate(m=Max('order'))['m']
+    section_cfg['order'] = (max_order if max_order is not None else 0) + 1
+
+    try:
+        return ProposalSection.objects.create(proposal=proposal, **section_cfg)
+    except IntegrityError:
+        # Lost a race with a concurrent create of the same type.
+        raise duplicate_error from None
+
+
+def delete_section_from_proposal(section):
+    """Delete a section, guarding calculator-confirmed functional requirements.
+
+    Returns ``{'section_type', 'title'}`` for the audit log. Raises
+    ProposalActionError with code ``fr_has_confirmed_selection`` when the
+    client already confirmed calculator modules (deleting the section would
+    silently drop their pricing from effective totals and the PDF).
+    """
+    from content.api_errors import ProposalActionError
+    from content.models import ProposalSection
+
+    proposal = section.proposal
+    is_fr = section.section_type == ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS
+    if is_fr and (proposal.selected_modules or proposal.has_confirmed_module_selection):
+        raise ProposalActionError(
+            'No se puede eliminar: el cliente ya confirmó módulos en la calculadora.',
+            code='fr_has_confirmed_selection',
+            hint='Desactiva la sección en lugar de eliminarla.',
+        )
+
+    info = {'section_type': section.section_type, 'title': section.title}
+    section.delete()
+
+    if is_fr:
+        # Payment options were scaled on calculator modules that no longer
+        # exist; rebuild them on the base total.
+        from content.services.proposal_totals_service import (
+            resync_investment_from_modules,
+        )
+        resync_investment_from_modules(proposal, None)
+
+    return info

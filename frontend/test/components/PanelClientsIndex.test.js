@@ -19,7 +19,7 @@ const mockStore = {
   deleteClient: jest.fn(),
 };
 
-jest.mock('../../stores/proposalClients', () => ({
+jest.mock('../../stores/proposal_clients', () => ({
   useProposalClientsStore: () => mockStore,
 }));
 

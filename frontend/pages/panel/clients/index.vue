@@ -533,9 +533,6 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
-
-    <!-- Global panel toast (success/error feedback) -->
-    <PanelToast />
   </div>
 </template>
 
@@ -544,17 +541,16 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { PlusIcon, TrashIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
 import SidebarIcon from '~/components/platform/SidebarIcon.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
-import PanelToast from '~/components/panel/PanelToast.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useClientFilters } from '~/composables/useClientFilters';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
-import { usePanelToast } from '~/composables/usePanelToast';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge';
 import { usePagination } from '~/composables/usePagination';
-import { useProposalClientsStore } from '~/stores/proposalClients';
+import { useProposalClientsStore } from '~/stores/proposal_clients';
 import { useProposalStore } from '~/stores/proposals';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 
@@ -567,7 +563,7 @@ const proposalStore = useProposalStore();
 const diagnosticsStore = useDiagnosticsStore();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =
   useConfirmModal();
-const { showToast } = usePanelToast();
+const notify = usePanelNotify();
 
 const {
   currentFilters,
@@ -852,12 +848,9 @@ function confirmDeleteProposal(client, proposal) {
       const result = await proposalStore.deleteProposal(proposal.id);
       if (result.success) {
         await refreshClientDetail(client.id);
-        showToast({ type: 'success', text: 'Propuesta eliminada.' });
+        notify.success('Propuesta eliminada.');
       } else {
-        showToast({
-          type: 'error',
-          text: result.error || 'No se pudo eliminar la propuesta.',
-        });
+        notify.error(result.error || 'No se pudo eliminar la propuesta.');
       }
     },
   });

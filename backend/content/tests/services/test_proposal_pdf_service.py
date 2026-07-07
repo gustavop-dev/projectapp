@@ -2162,7 +2162,7 @@ class TestInvestmentRendersAgainstEffectiveTotal:
         from decimal import Decimal as _D
 
         from content.services import proposal_pdf_service as svc
-        from content.views import proposal as views_proposal
+        from content.services import proposal_totals_service as totals_service
 
         recorded_pills = []
         original_pill = svc._payment_pill_desc
@@ -2174,7 +2174,7 @@ class TestInvestmentRendersAgainstEffectiveTotal:
 
         monkeypatch.setattr(svc, '_payment_pill_desc', recording_pill)
         monkeypatch.setattr(
-            views_proposal, '_effective_total_for_proposal',
+            totals_service, 'effective_total_for_proposal',
             lambda _p: _D('4320000'),
         )
 

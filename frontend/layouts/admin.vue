@@ -61,7 +61,7 @@
         'relative z-10 transition-all duration-300 ease-in-out',
         'px-4 py-6 sm:px-6 lg:px-8',
         isCollapsed ? 'md:ml-[64px]' : 'md:ml-[240px]',
-        isDark ? 'text-gray-200' : 'text-text-default',
+        'text-text-default',
       ]"
     >
       <div
@@ -91,7 +91,7 @@ import { provide, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useDarkMode, themeToggleLabel } from '~/composables/useDarkMode'
 import { usePanelSidebar } from '~/composables/usePanelSidebar'
 import { getPanelNavSections } from '~/config/panelNav'
-import { isPanelNavItemActive } from '~/utils/panelNavActive'
+import { resolvePanelBreadcrumb } from '~/utils/panelBreadcrumbs'
 import { usePanelRefreshStore } from '~/stores/panel_refresh'
 import PanelSidebar from '~/components/panel/PanelSidebar.vue'
 import PanelMobileDrawer from '~/components/panel/PanelMobileDrawer.vue'
@@ -130,82 +130,11 @@ watch(() => route.fullPath, () => {
   closeMobile()
 })
 
-const _panelRouteMap = [
-  { path: localePath('/panel/accounting/incomes'), label: 'Ingresos' },
-  { path: localePath('/panel/accounting/expenses'), label: 'Gastos' },
-  { path: localePath('/panel/accounting/hostings'), label: 'Hostings' },
-  { path: localePath('/panel/accounting/pocket'), label: 'Bolsillo' },
-  { path: localePath('/panel/accounting/recurring'), label: 'Recurrentes' },
-  { path: localePath('/panel/accounting/ads'), label: 'Ads' },
-  { path: localePath('/panel/accounting/history'), label: 'Historial' },
-  { path: localePath('/panel/accounting/settings'), label: 'Config. contable' },
-  { path: localePath('/panel/accounting'), label: 'Resumen' },
-  { path: localePath('/panel/proposals/email-deliverability'), label: 'Entregabilidad' },
-  { path: localePath('/panel/proposals/email-templates'), label: 'Plantillas' },
-  { path: localePath('/panel/proposals/create'), label: 'Nueva prop.' },
-  { path: localePath('/panel/proposals/defaults'), label: 'Prop. defaults' },
-  { path: localePath('/panel/diagnostics/create'), label: 'Nuevo diag.' },
-  { path: localePath('/panel/diagnostics/defaults'), label: 'Diag. defaults' },
-  { path: localePath('/panel/blog/calendar'), label: 'Calendario' },
-  { path: localePath('/panel/blog/create'), label: 'Nuevo post' },
-  { path: localePath('/panel/portfolio/create'), label: 'Nuevo item' },
-  { path: localePath('/panel/documents/create'), label: 'Nuevo doc.' },
-  { path: localePath('/panel/proposals'), label: 'Propuestas' },
-  { path: localePath('/panel/diagnostics'), label: 'Diagnósticos' },
-  { path: localePath('/panel/blog'), label: 'Blog' },
-  { path: localePath('/panel/portfolio'), label: 'Portfolio' },
-  { path: localePath('/panel/documents'), label: 'Documentos' },
-  { path: localePath('/panel/clients'), label: 'Clientes' },
-  { path: localePath('/panel/defaults'), label: 'Defaults' },
-  { path: localePath('/panel/emails'), label: 'Emails' },
-  { path: localePath('/panel/views'), label: 'Mapa' },
-  { path: localePath('/panel/admins'), label: 'Admins' },
-  { path: localePath('/panel/tasks'), label: 'Kanban' },
-  { path: localePath('/panel'), label: 'Dashboard', exact: true },
-]
-
-const _panelDynamic = [
-  { re: /\/panel\/proposals\/[^/]+\/edit/, label: 'Edit. propuesta' },
-  { re: /\/panel\/diagnostics\/[^/]+\/edit/, label: 'Edit. diagnóstico' },
-  { re: /\/panel\/blog\/[^/]+\/edit/, label: 'Edit. post' },
-  { re: /\/panel\/portfolio\/[^/]+\/edit/, label: 'Edit. portfolio' },
-  { re: /\/panel\/documents\/[^/]+\/edit/, label: 'Edit. documento' },
-]
-
-const _panelDynamicSections = [
-  { re: /\/panel\/proposals\/[^/]+\/edit/, label: 'Sales' },
-  { re: /\/panel\/diagnostics\/[^/]+\/edit/, label: 'Sales' },
-  { re: /\/panel\/blog\/[^/]+\/edit/, label: 'Website content' },
-  { re: /\/panel\/portfolio\/[^/]+\/edit/, label: 'Website content' },
-  { re: /\/panel\/documents\/[^/]+\/edit/, label: 'Documents' },
-]
-
-const _panelViewLabel = computed(() => {
-  const p = route.path
-  for (const { re, label } of _panelDynamic) {
-    if (re.test(p)) return label
-  }
-  for (const { path, label, exact } of _panelRouteMap) {
-    if (exact ? p === path : p === path || p.startsWith(path + '/')) return label
-  }
-  return null
-})
-
-const _panelSectionLabel = computed(() => {
-  const p = route.path
-  for (const { re, label } of _panelDynamicSections) {
-    if (re.test(p)) return label
-  }
-  const sections = getPanelNavSections(localePath)
-  for (const section of sections) {
-    for (const item of section.items) {
-      if (!item.divider && isPanelNavItemActive(p, item)) {
-        return section.label
-      }
-    }
-  }
-  return null
-})
+const _panelBreadcrumb = computed(() =>
+  resolvePanelBreadcrumb(route.path, getPanelNavSections(localePath)),
+)
+const _panelViewLabel = computed(() => _panelBreadcrumb.value?.label ?? null)
+const _panelSectionLabel = computed(() => _panelBreadcrumb.value?.section ?? null)
 
 useHead(() => ({
   title: _panelViewLabel.value ? `Project App (${_panelViewLabel.value})` : 'Project App',

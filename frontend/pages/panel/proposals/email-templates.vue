@@ -1,16 +1,15 @@
 <script setup>
-definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
-
-const localePath = useLocalePath();
-const router = useRouter();
-
-onMounted(() => {
-  router.replace(localePath('/panel/defaults') + '?mode=proposal&tab=emails');
+definePageMeta({
+  middleware: [
+    'admin-auth',
+    (to) => {
+      const query = { ...to.query, mode: 'proposal', tab: 'emails' };
+      return navigateTo({ path: '/panel/defaults', query }, { replace: true });
+    },
+  ],
 });
 </script>
 
 <template>
-  <div class="text-center py-16 text-text-subtle text-sm">
-    Redirigiendo...
-  </div>
+  <div />
 </template>

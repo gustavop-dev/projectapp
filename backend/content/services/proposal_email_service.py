@@ -1127,8 +1127,10 @@ class ProposalEmailService:
 
         # Mirror the effective total used by PDF, admin and client views.
         from decimal import Decimal
-        from content.views.proposal import _effective_total_for_proposal
-        effective_amount = _effective_total_for_proposal(proposal)
+        from content.services.proposal_totals_service import (
+            effective_total_for_proposal,
+        )
+        effective_amount = effective_total_for_proposal(proposal)
         base_amount = Decimal(proposal.total_investment or 0).quantize(Decimal('1'))
         has_additional_modules = effective_amount.quantize(Decimal('1')) != base_amount
 

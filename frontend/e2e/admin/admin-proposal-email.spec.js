@@ -97,7 +97,9 @@ test.describe('Admin Proposal Email — Branded', () => {
 
     await expect(page.locator('input[placeholder*="Asunto"]')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText('Secciones del correo')).toBeVisible();
-    await expect(page.getByText('Agregar sección')).toBeVisible();
+    // Scope to the composer's add-section button: the proposal Sections tab also
+    // renders an "＋ Agregar sección" control, so match the composer's exact name.
+    await expect(page.getByRole('button', { name: 'Agregar sección', exact: true })).toBeVisible();
   });
 });
 

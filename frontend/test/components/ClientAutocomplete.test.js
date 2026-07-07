@@ -8,7 +8,7 @@ const mockStore = {
 
 let clickOutsideHandler = null;
 
-jest.mock('../../stores/proposalClients', () => ({
+jest.mock('../../stores/proposal_clients', () => ({
   useProposalClientsStore: () => mockStore,
 }));
 

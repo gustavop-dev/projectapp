@@ -770,8 +770,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 
 const { analytics: tt } = useTooltipTexts();
+const notify = usePanelNotify();
 
 const props = defineProps({
   proposalId: { type: [Number, String], required: true },
@@ -940,6 +942,8 @@ onMounted(async () => {
   const result = await proposalStore.fetchProposalAnalytics(props.proposalId);
   if (result.success) {
     analytics.value = result.data;
+  } else {
+    notify.error({ title: 'No se pudieron cargar las analíticas.' });
   }
   loading.value = false;
 });

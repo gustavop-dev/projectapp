@@ -373,7 +373,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import draggable from 'vuedraggable';
-import { usePanelToast } from '~/composables/usePanelToast';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useMarkdownAttachmentHandler } from '~/composables/useMarkdownAttachmentHandler';
 import { validateEmailAttachments } from '~/utils/emailAttachments';
 import MarkdownAttachmentModal from '~/components/MarkdownAttachmentModal.vue';
@@ -381,7 +381,7 @@ import AttachFromDocumentsModal from '~/components/AttachFromDocumentsModal.vue'
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import { useDocRefsAttachment } from '~/composables/useDocRefsAttachment';
 
-const { showToast } = usePanelToast();
+const notify = usePanelNotify();
 
 const props = defineProps({
   proposal: { type: Object, required: true },
@@ -480,11 +480,11 @@ async function handleSend() {
   sending.value = false;
 
   if (result.success) {
-    showToast({ type: 'success', text: 'Correo enviado correctamente.' });
+    notify.success('Correo enviado correctamente.');
     resetForm();
     await loadHistory(1);
   } else {
-    showToast({ type: 'error', text: 'Error al enviar el correo. Intenta de nuevo.' });
+    notify.error('Error al enviar el correo. Intenta de nuevo.');
   }
 }
 

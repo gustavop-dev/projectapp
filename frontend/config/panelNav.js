@@ -89,6 +89,7 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
         { label: 'Pocket', href: lp('/panel/accounting/pocket'), icon: 'folder' },
         { label: 'Recurring', href: lp('/panel/accounting/recurring'), icon: 'refresh' },
         { label: 'Ads', href: lp('/panel/accounting/ads'), icon: 'portfolio' },
+        { label: 'Cards', href: lp('/panel/accounting/cards'), icon: 'credit-card' },
         { divider: true },
         { label: 'History', href: lp('/panel/accounting/history'), icon: 'calendar' },
         { label: 'Settings', href: lp('/panel/accounting/settings'), icon: 'settings' },

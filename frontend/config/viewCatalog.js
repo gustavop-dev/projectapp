@@ -7,6 +7,7 @@ export const viewCatalogSections = [
       {
         label: 'Inicio',
         url: '/',
+        group: 'Landing y marketing',
         file: 'frontend/pages/index.vue',
         reference: 'vista publica de inicio',
         audience: 'public',
@@ -15,6 +16,7 @@ export const viewCatalogSections = [
       {
         label: 'Landing de apps',
         url: '/landing-apps',
+        group: 'Landing y marketing',
         file: 'frontend/pages/landing-apps.vue',
         reference: 'vista publica de landing de apps',
         audience: 'public',
@@ -23,6 +25,7 @@ export const viewCatalogSections = [
       {
         label: 'Landing de software',
         url: '/landing-software',
+        group: 'Landing y marketing',
         file: 'frontend/pages/landing-software.vue',
         reference: 'vista publica de landing de software',
         audience: 'public',
@@ -31,6 +34,7 @@ export const viewCatalogSections = [
       {
         label: 'Landing de diseno web',
         url: '/landing-web-design',
+        group: 'Landing y marketing',
         file: 'frontend/pages/landing-web-design.vue',
         reference: 'vista publica de landing de diseno web',
         audience: 'public',
@@ -39,6 +43,7 @@ export const viewCatalogSections = [
       {
         label: 'Sobre nosotros',
         url: '/about-us',
+        group: 'Landing y marketing',
         file: 'frontend/pages/about-us.vue',
         reference: 'vista publica de sobre nosotros',
         audience: 'public',
@@ -47,6 +52,7 @@ export const viewCatalogSections = [
       {
         label: 'Contacto',
         url: '/contact',
+        group: 'Contacto',
         file: 'frontend/pages/contact.vue',
         reference: 'vista publica de contacto',
         audience: 'public',
@@ -55,6 +61,7 @@ export const viewCatalogSections = [
       {
         label: 'Contacto exitoso',
         url: '/contact-success',
+        group: 'Contacto',
         file: 'frontend/pages/contact-success.vue',
         reference: 'vista publica de confirmacion de contacto',
         audience: 'public',
@@ -63,6 +70,7 @@ export const viewCatalogSections = [
       {
         label: 'Portafolio',
         url: '/portfolio-works',
+        group: 'Portafolio',
         file: 'frontend/pages/portfolio-works/index.vue',
         reference: 'vista publica de portafolio',
         audience: 'public',
@@ -71,6 +79,7 @@ export const viewCatalogSections = [
       {
         label: 'Detalle de portafolio',
         url: '/portfolio-works/:slug',
+        group: 'Portafolio',
         file: 'frontend/pages/portfolio-works/[slug].vue',
         reference: 'vista publica de detalle de portafolio',
         audience: 'public',
@@ -79,6 +88,7 @@ export const viewCatalogSections = [
       {
         label: 'Blog',
         url: '/blog',
+        group: 'Blog',
         file: 'frontend/pages/blog/index.vue',
         reference: 'vista publica de blog',
         audience: 'public',
@@ -87,6 +97,7 @@ export const viewCatalogSections = [
       {
         label: 'Detalle de blog',
         url: '/blog/:slug',
+        group: 'Blog',
         file: 'frontend/pages/blog/[slug].vue',
         reference: 'vista publica de articulo del blog',
         audience: 'public',
@@ -95,6 +106,7 @@ export const viewCatalogSections = [
       {
         label: 'Politica de privacidad',
         url: '/privacy-policy',
+        group: 'Legal',
         file: 'frontend/pages/privacy-policy.vue',
         reference: 'vista publica de politica de privacidad',
         audience: 'public',
@@ -103,6 +115,7 @@ export const viewCatalogSections = [
       {
         label: 'Terminos y condiciones',
         url: '/terms-and-conditions',
+        group: 'Legal',
         file: 'frontend/pages/terms-and-conditions.vue',
         reference: 'vista publica de terminos y condiciones',
         audience: 'public',
@@ -111,6 +124,7 @@ export const viewCatalogSections = [
       {
         label: 'Callback de LinkedIn',
         url: '/auth/linkedin/callback',
+        group: 'Sistema',
         file: 'frontend/pages/auth/linkedin/callback.vue',
         reference: 'vista de callback de autenticacion de LinkedIn',
         audience: 'public',
@@ -119,6 +133,7 @@ export const viewCatalogSections = [
       {
         label: 'Fallback / ruta no encontrada',
         url: '/:slug*',
+        group: 'Sistema',
         file: 'frontend/pages/[...slug].vue',
         reference: 'vista fallback para rutas no encontradas',
         audience: 'public',
@@ -134,6 +149,7 @@ export const viewCatalogSections = [
       {
         label: 'Propuesta publica',
         url: '/proposal/:uuid',
+        group: 'Propuestas',
         file: 'frontend/pages/proposal/[uuid]/index.vue',
         reference: 'vista publica de propuesta',
         notes: 'Admite ?mode=detailed, ?mode=executive y ?mode=technical para abrir modos especificos.',
@@ -150,6 +166,7 @@ export const viewCatalogSections = [
       {
         label: 'Diagnóstico público',
         url: '/diagnostic/:uuid',
+        group: 'Diagnósticos',
         file: 'frontend/pages/diagnostic/[uuid]/index.vue',
         reference: 'vista publica de diagnostico',
         audience: 'public',
@@ -165,6 +182,7 @@ export const viewCatalogSections = [
       {
         label: 'Login del panel',
         url: '/panel/login',
+        group: 'Acceso y dashboard',
         file: 'frontend/pages/panel/login.vue',
         reference: 'vista de login del panel',
         audience: 'admin',
@@ -173,6 +191,7 @@ export const viewCatalogSections = [
       {
         label: 'Dashboard del panel',
         url: '/panel',
+        group: 'Acceso y dashboard',
         file: 'frontend/pages/panel/index.vue',
         reference: 'vista dashboard del panel',
         audience: 'admin',
@@ -181,6 +200,7 @@ export const viewCatalogSections = [
       {
         label: 'Mapa de vistas',
         url: '/panel/views',
+        group: 'Referencia',
         file: 'frontend/pages/panel/views.vue',
         reference: 'vista de mapa de vistas del panel',
         audience: 'admin',
@@ -189,6 +209,7 @@ export const viewCatalogSections = [
       {
         label: 'Listado de propuestas',
         url: '/panel/proposals',
+        group: 'Propuestas',
         file: 'frontend/pages/panel/proposals/index.vue',
         reference: 'vista listado de propuestas del panel',
         audience: 'admin',
@@ -197,6 +218,7 @@ export const viewCatalogSections = [
       {
         label: 'Crear propuesta',
         url: '/panel/proposals/create',
+        group: 'Propuestas',
         file: 'frontend/pages/panel/proposals/create.vue',
         reference: 'vista de creacion de propuesta del panel',
         audience: 'admin',
@@ -205,6 +227,7 @@ export const viewCatalogSections = [
       {
         label: 'Editar / detalle de propuesta',
         url: '/panel/proposals/:id/edit',
+        group: 'Propuestas',
         file: 'frontend/pages/panel/proposals/[id]/edit.vue',
         reference: 'vista de edicion/detalle de propuesta del panel',
         notes: 'Usa el id interno de la propuesta, no el uuid publico.',
@@ -214,6 +237,7 @@ export const viewCatalogSections = [
       {
         label: 'Valores por defecto (propuestas y diagnósticos)',
         url: '/panel/defaults',
+        group: 'Configuración',
         file: 'frontend/pages/panel/defaults.vue',
         reference: 'vista unificada de valores por defecto con switch propuesta/diagnóstico',
         audience: 'admin',
@@ -222,6 +246,7 @@ export const viewCatalogSections = [
       {
         label: 'Design System Styleguide',
         url: '/panel/styleguide',
+        group: 'Referencia',
         file: 'frontend/pages/panel/styleguide.vue',
         reference: 'catálogo visual de tokens semánticos y componentes base (BaseInput, BaseButton, BaseModal, etc.) en light y dark',
         audience: 'admin',
@@ -230,14 +255,17 @@ export const viewCatalogSections = [
       {
         label: 'Plantillas de email de propuestas',
         url: '/panel/proposals/email-templates',
+        group: 'Propuestas',
         file: 'frontend/pages/panel/proposals/email-templates.vue',
-        reference: 'vista de plantillas de email de propuestas',
+        reference: 'stub de redirección hacia los defaults unificados',
         audience: 'admin',
-        viewType: 'config',
+        viewType: 'redirect',
+        notes: 'Redirige a /panel/defaults?mode=proposal&tab=emails.',
       },
       {
         label: 'Entregabilidad de email',
         url: '/panel/proposals/email-deliverability',
+        group: 'Propuestas',
         file: 'frontend/pages/panel/proposals/email-deliverability.vue',
         reference: 'vista de entregabilidad de email de propuestas',
         audience: 'admin',
@@ -246,14 +274,17 @@ export const viewCatalogSections = [
       {
         label: 'Defaults de propuestas',
         url: '/panel/proposals/defaults',
+        group: 'Propuestas',
         file: 'frontend/pages/panel/proposals/defaults.vue',
-        reference: 'vista de defaults de propuestas en el panel',
+        reference: 'stub de redirección hacia los defaults unificados',
         audience: 'admin',
-        viewType: 'config',
+        viewType: 'redirect',
+        notes: 'Redirige a /panel/defaults?mode=proposal.',
       },
       {
         label: 'Clientes',
         url: '/panel/clients',
+        group: 'Clientes',
         file: 'frontend/pages/panel/clients/index.vue',
         reference: 'vista de clientes del panel',
         audience: 'admin',
@@ -262,6 +293,7 @@ export const viewCatalogSections = [
       {
         label: 'Blog del panel',
         url: '/panel/blog',
+        group: 'Blog',
         file: 'frontend/pages/panel/blog/index.vue',
         reference: 'vista listado de blog del panel',
         audience: 'admin',
@@ -270,6 +302,7 @@ export const viewCatalogSections = [
       {
         label: 'Crear post de blog',
         url: '/panel/blog/create',
+        group: 'Blog',
         file: 'frontend/pages/panel/blog/create.vue',
         reference: 'vista de creacion de post de blog',
         audience: 'admin',
@@ -278,6 +311,7 @@ export const viewCatalogSections = [
       {
         label: 'Editar post de blog',
         url: '/panel/blog/:id/edit',
+        group: 'Blog',
         file: 'frontend/pages/panel/blog/[id]/edit.vue',
         reference: 'vista de edicion de post de blog',
         audience: 'admin',
@@ -286,6 +320,7 @@ export const viewCatalogSections = [
       {
         label: 'Calendario de blog',
         url: '/panel/blog/calendar',
+        group: 'Blog',
         file: 'frontend/pages/panel/blog/calendar.vue',
         reference: 'vista de calendario de blog',
         audience: 'admin',
@@ -294,6 +329,7 @@ export const viewCatalogSections = [
       {
         label: 'LinkedIn del panel',
         url: '/panel/linkedin',
+        group: 'LinkedIn',
         file: 'frontend/pages/panel/linkedin/index.vue',
         reference: 'modulo de posts de LinkedIn (crear, programar, publicar)',
         audience: 'admin',
@@ -302,6 +338,7 @@ export const viewCatalogSections = [
       {
         label: 'Portafolio del panel',
         url: '/panel/portfolio',
+        group: 'Portafolio',
         file: 'frontend/pages/panel/portfolio/index.vue',
         reference: 'vista listado de portafolio del panel',
         audience: 'admin',
@@ -310,6 +347,7 @@ export const viewCatalogSections = [
       {
         label: 'Crear item de portafolio',
         url: '/panel/portfolio/create',
+        group: 'Portafolio',
         file: 'frontend/pages/panel/portfolio/create.vue',
         reference: 'vista de creacion de item de portafolio',
         audience: 'admin',
@@ -318,6 +356,7 @@ export const viewCatalogSections = [
       {
         label: 'Editar item de portafolio',
         url: '/panel/portfolio/:id/edit',
+        group: 'Portafolio',
         file: 'frontend/pages/panel/portfolio/[id]/edit.vue',
         reference: 'vista de edicion de item de portafolio',
         audience: 'admin',
@@ -326,6 +365,7 @@ export const viewCatalogSections = [
       {
         label: 'Documentos PDF',
         url: '/panel/documents',
+        group: 'Documentos',
         file: 'frontend/pages/panel/documents/index.vue',
         reference: 'vista listado de documentos PDF',
         audience: 'admin',
@@ -334,6 +374,7 @@ export const viewCatalogSections = [
       {
         label: 'Crear documento PDF',
         url: '/panel/documents/create',
+        group: 'Documentos',
         file: 'frontend/pages/panel/documents/create.vue',
         reference: 'vista de creacion de documento PDF',
         audience: 'admin',
@@ -342,6 +383,7 @@ export const viewCatalogSections = [
       {
         label: 'Editar documento PDF',
         url: '/panel/documents/:id/edit',
+        group: 'Documentos',
         file: 'frontend/pages/panel/documents/[id]/edit.vue',
         reference: 'vista de edicion de documento PDF',
         audience: 'admin',
@@ -350,6 +392,7 @@ export const viewCatalogSections = [
       {
         label: 'Admins del panel',
         url: '/panel/admins',
+        group: 'Configuración',
         file: 'frontend/pages/panel/admins/index.vue',
         reference: 'vista de administradores del panel',
         audience: 'admin',
@@ -358,6 +401,7 @@ export const viewCatalogSections = [
       {
         label: 'Emails',
         url: '/panel/emails',
+        group: 'Emails',
         file: 'frontend/pages/panel/emails/index.vue',
         reference: 'vista de envío de emails con branding del panel',
         audience: 'admin',
@@ -366,6 +410,7 @@ export const viewCatalogSections = [
       {
         label: 'Diagnosticos de aplicaciones',
         url: '/panel/diagnostics',
+        group: 'Diagnósticos',
         file: 'frontend/pages/panel/diagnostics/index.vue',
         reference: 'vista listado de diagnosticos de aplicaciones del panel',
         audience: 'admin',
@@ -374,6 +419,7 @@ export const viewCatalogSections = [
       {
         label: 'Crear diagnostico',
         url: '/panel/diagnostics/create',
+        group: 'Diagnósticos',
         file: 'frontend/pages/panel/diagnostics/create.vue',
         reference: 'vista de creacion de diagnostico de aplicacion',
         audience: 'admin',
@@ -382,6 +428,7 @@ export const viewCatalogSections = [
       {
         label: 'Editar / detalle de diagnostico',
         url: '/panel/diagnostics/:id/edit',
+        group: 'Diagnósticos',
         file: 'frontend/pages/panel/diagnostics/[id]/edit.vue',
         reference: 'vista de edicion/detalle de diagnostico del panel',
         audience: 'admin',
@@ -390,14 +437,17 @@ export const viewCatalogSections = [
       {
         label: 'Defaults de diagnostico',
         url: '/panel/diagnostics/defaults',
+        group: 'Diagnósticos',
         file: 'frontend/pages/panel/diagnostics/defaults.vue',
-        reference: 'vista de defaults del diagnostico en el panel',
+        reference: 'stub de redirección hacia los defaults unificados',
         audience: 'admin',
-        viewType: 'config',
+        viewType: 'redirect',
+        notes: 'Redirige a /panel/defaults?mode=diagnostic.',
       },
       {
         label: 'Tasks',
         url: '/panel/tasks',
+        group: 'Tareas',
         file: 'frontend/pages/panel/tasks/index.vue',
         reference: 'vista de tablero kanban de tareas internas del panel',
         audience: 'admin',
@@ -413,6 +463,7 @@ export const viewCatalogSections = [
       {
         label: 'Contabilidad — Resumen',
         url: '/panel/accounting',
+        group: 'Panorama',
         file: 'frontend/pages/panel/accounting/index.vue',
         reference: 'vista dashboard del modulo contable del panel',
         audience: 'admin',
@@ -421,6 +472,7 @@ export const viewCatalogSections = [
       {
         label: 'Contabilidad — Ingresos',
         url: '/panel/accounting/incomes',
+        group: 'Movimientos',
         file: 'frontend/pages/panel/accounting/incomes.vue',
         reference: 'vista de ingresos esperados y liquidos del modulo contable',
         audience: 'admin',
@@ -429,6 +481,7 @@ export const viewCatalogSections = [
       {
         label: 'Contabilidad — Gastos',
         url: '/panel/accounting/expenses',
+        group: 'Movimientos',
         file: 'frontend/pages/panel/accounting/expenses.vue',
         reference: 'vista de gastos del modulo contable',
         audience: 'admin',
@@ -437,6 +490,7 @@ export const viewCatalogSections = [
       {
         label: 'Contabilidad — Hostings',
         url: '/panel/accounting/hostings',
+        group: 'Recurrentes y hostings',
         file: 'frontend/pages/panel/accounting/hostings.vue',
         reference: 'vista de hostings activos por cliente del modulo contable',
         audience: 'admin',
@@ -445,6 +499,7 @@ export const viewCatalogSections = [
       {
         label: 'Contabilidad — Bolsillo',
         url: '/panel/accounting/pocket',
+        group: 'Movimientos',
         file: 'frontend/pages/panel/accounting/pocket.vue',
         reference: 'vista del bolsillo ProjectApp con movimientos y saldo',
         audience: 'admin',
@@ -453,6 +508,7 @@ export const viewCatalogSections = [
       {
         label: 'Contabilidad — Recurrentes',
         url: '/panel/accounting/recurring',
+        group: 'Recurrentes y hostings',
         file: 'frontend/pages/panel/accounting/recurring.vue',
         reference: 'vista de pagos frecuentes mensuales del modulo contable',
         audience: 'admin',
@@ -461,14 +517,25 @@ export const viewCatalogSections = [
       {
         label: 'Contabilidad — Ads',
         url: '/panel/accounting/ads',
+        group: 'Movimientos',
         file: 'frontend/pages/panel/accounting/ads.vue',
         reference: 'vista del registro de gastos en ads del modulo contable',
         audience: 'admin',
         viewType: 'list',
       },
       {
+        label: 'Contabilidad — Tarjetas',
+        url: '/panel/accounting/cards',
+        group: 'Movimientos',
+        file: 'frontend/pages/panel/accounting/cards.vue',
+        reference: 'vista de cortes semanales de tarjetas de credito del modulo contable',
+        audience: 'admin',
+        viewType: 'list',
+      },
+      {
         label: 'Contabilidad — Historial',
         url: '/panel/accounting/history',
+        group: 'Panorama',
         file: 'frontend/pages/panel/accounting/history.vue',
         reference: 'vista del log historico de cambios del modulo contable',
         audience: 'admin',
@@ -477,6 +544,7 @@ export const viewCatalogSections = [
       {
         label: 'Contabilidad — Configuración',
         url: '/panel/accounting/settings',
+        group: 'Panorama',
         file: 'frontend/pages/panel/accounting/settings.vue',
         reference: 'vista de configuracion de notificaciones del modulo contable',
         audience: 'admin',
@@ -492,6 +560,7 @@ export const viewCatalogSections = [
       {
         label: 'MCPs — Conectores',
         url: '/panel/mcps',
+        group: 'Conectores',
         file: 'frontend/pages/panel/mcps/index.vue',
         reference: 'vista de gestion de conectores MCP del panel',
         audience: 'admin',
@@ -507,6 +576,7 @@ export const viewCatalogSections = [
       {
         label: 'Entrada de plataforma',
         url: '/platform',
+        group: 'Acceso',
         file: 'frontend/pages/platform/index.vue',
         reference: 'vista de entrada de plataforma',
         audience: 'client',
@@ -515,6 +585,7 @@ export const viewCatalogSections = [
       {
         label: 'Login de plataforma',
         url: '/platform/login',
+        group: 'Acceso',
         file: 'frontend/pages/platform/login.vue',
         reference: 'vista de login de plataforma',
         audience: 'client',
@@ -523,6 +594,7 @@ export const viewCatalogSections = [
       {
         label: 'Verificacion de plataforma',
         url: '/platform/verify',
+        group: 'Acceso',
         file: 'frontend/pages/platform/verify.vue',
         reference: 'vista de verificacion de plataforma',
         audience: 'client',
@@ -531,6 +603,7 @@ export const viewCatalogSections = [
       {
         label: 'Completar perfil',
         url: '/platform/complete-profile',
+        group: 'Acceso',
         file: 'frontend/pages/platform/complete-profile.vue',
         reference: 'vista de completar perfil de plataforma',
         audience: 'client',
@@ -539,6 +612,7 @@ export const viewCatalogSections = [
       {
         label: 'Notificaciones',
         url: '/platform/notifications',
+        group: 'Cuenta',
         file: 'frontend/pages/platform/notifications.vue',
         reference: 'vista de notificaciones de plataforma',
         audience: 'client',
@@ -547,6 +621,7 @@ export const viewCatalogSections = [
       {
         label: 'Perfil',
         url: '/platform/profile',
+        group: 'Cuenta',
         file: 'frontend/pages/platform/profile.vue',
         reference: 'vista de perfil de plataforma',
         audience: 'client',
@@ -555,6 +630,7 @@ export const viewCatalogSections = [
       {
         label: 'Proyectos',
         url: '/platform/projects',
+        group: 'Proyectos',
         file: 'frontend/pages/platform/projects/index.vue',
         reference: 'vista listado de proyectos de plataforma',
         audience: 'client',
@@ -563,6 +639,7 @@ export const viewCatalogSections = [
       {
         label: 'Detalle de proyecto',
         url: '/platform/projects/:id',
+        group: 'Proyectos',
         file: 'frontend/pages/platform/projects/[id]/index.vue',
         reference: 'vista de detalle de proyecto de plataforma',
         audience: 'client',
@@ -571,6 +648,7 @@ export const viewCatalogSections = [
       {
         label: 'Tablero de proyecto',
         url: '/platform/projects/:id/board',
+        group: 'Proyectos',
         file: 'frontend/pages/platform/projects/[id]/board.vue',
         reference: 'vista de tablero de proyecto',
         audience: 'client',
@@ -579,6 +657,7 @@ export const viewCatalogSections = [
       {
         label: 'Bugs de proyecto',
         url: '/platform/projects/:id/bugs',
+        group: 'Proyectos',
         file: 'frontend/pages/platform/projects/[id]/bugs.vue',
         reference: 'vista de bugs de proyecto',
         audience: 'client',
@@ -587,6 +666,7 @@ export const viewCatalogSections = [
       {
         label: 'Cambios de proyecto',
         url: '/platform/projects/:id/changes',
+        group: 'Proyectos',
         file: 'frontend/pages/platform/projects/[id]/changes.vue',
         reference: 'vista de cambios de proyecto',
         audience: 'client',
@@ -595,6 +675,7 @@ export const viewCatalogSections = [
       {
         label: 'Cuentas de cobro de proyecto',
         url: '/platform/projects/:id/collection-accounts',
+        group: 'Proyectos',
         file: 'frontend/pages/platform/projects/[id]/collection-accounts.vue',
         reference: 'vista de cuentas de cobro de proyecto',
         audience: 'client',
@@ -603,6 +684,7 @@ export const viewCatalogSections = [
       {
         label: 'Modelo de datos de proyecto',
         url: '/platform/projects/:id/data-model',
+        group: 'Proyectos',
         file: 'frontend/pages/platform/projects/[id]/data-model.vue',
         reference: 'vista de modelo de datos de proyecto',
         audience: 'client',
@@ -611,6 +693,7 @@ export const viewCatalogSections = [
       {
         label: 'Entregables de proyecto',
         url: '/platform/projects/:id/deliverables',
+        group: 'Proyectos',
         file: 'frontend/pages/platform/projects/[id]/deliverables/index.vue',
         reference: 'vista de entregables de proyecto',
         audience: 'client',
@@ -619,6 +702,7 @@ export const viewCatalogSections = [
       {
         label: 'Detalle de entregable',
         url: '/platform/projects/:id/deliverables/:deliverableId',
+        group: 'Proyectos',
         file: 'frontend/pages/platform/projects/[id]/deliverables/[deliverableId]/index.vue',
         reference: 'vista de detalle de entregable',
         audience: 'client',
@@ -627,6 +711,7 @@ export const viewCatalogSections = [
       {
         label: 'Pagos de proyecto',
         url: '/platform/projects/:id/payments',
+        group: 'Proyectos',
         file: 'frontend/pages/platform/projects/[id]/payments.vue',
         reference: 'vista de pagos de proyecto',
         audience: 'client',
@@ -635,6 +720,7 @@ export const viewCatalogSections = [
       {
         label: 'Clientes de plataforma',
         url: '/platform/clients',
+        group: 'Clientes',
         file: 'frontend/pages/platform/clients/index.vue',
         reference: 'vista listado de clientes de plataforma',
         audience: 'admin',
@@ -643,6 +729,7 @@ export const viewCatalogSections = [
       {
         label: 'Detalle de cliente de plataforma',
         url: '/platform/clients/:id',
+        group: 'Clientes',
         file: 'frontend/pages/platform/clients/[id].vue',
         reference: 'vista de detalle de cliente de plataforma',
         audience: 'admin',
@@ -651,6 +738,7 @@ export const viewCatalogSections = [
       {
         label: 'Accesos del proyecto',
         url: '/platform/projects/:id/access',
+        group: 'Proyectos',
         file: 'frontend/pages/platform/projects/[id]/access.vue',
         reference: 'credenciales por proyecto',
         audience: 'admin',
@@ -659,6 +747,7 @@ export const viewCatalogSections = [
       {
         label: 'Login de administrador (impersonación)',
         url: '/platform/admin-login',
+        group: 'Acceso',
         file: 'frontend/pages/platform/admin-login.vue',
         reference: 'vista de login de administrador via impersonacion',
         audience: 'client',
@@ -667,6 +756,7 @@ export const viewCatalogSections = [
       {
         label: 'Olvide mi contraseña',
         url: '/platform/forgot-password',
+        group: 'Acceso',
         file: 'frontend/pages/platform/forgot-password.vue',
         reference: 'vista de recuperacion de contrasena de plataforma',
         audience: 'client',
@@ -675,6 +765,7 @@ export const viewCatalogSections = [
       {
         label: 'Restablecer contraseña',
         url: '/platform/reset-password',
+        group: 'Acceso',
         file: 'frontend/pages/platform/reset-password.vue',
         reference: 'vista para definir nueva contrasena de plataforma',
         audience: 'client',
@@ -683,6 +774,7 @@ export const viewCatalogSections = [
       {
         label: 'Verificar código',
         url: '/platform/verify-code',
+        group: 'Acceso',
         file: 'frontend/pages/platform/verify-code.vue',
         reference: 'vista de verificacion de codigo de plataforma',
         audience: 'client',
@@ -722,4 +814,24 @@ export function countCatalogViews(sections = viewCatalogSections) {
 
 export function getViewCopyReference(sectionLabel, view) {
   return `[${sectionLabel}] ${view.label} \u2014 ${view.url}`
+}
+
+export function groupSectionViews(section) {
+  const groups = []
+  const byName = new Map()
+  for (const view of section.views) {
+    const name = view.group || 'General'
+    let entry = byName.get(name)
+    if (!entry) {
+      entry = { group: name, views: [] }
+      byName.set(name, entry)
+      groups.push(entry)
+    }
+    entry.views.push(view)
+  }
+  return groups
+}
+
+export function isOpenableViewUrl(url) {
+  return !url.includes(':')
 }

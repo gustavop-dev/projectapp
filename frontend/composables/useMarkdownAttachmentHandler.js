@@ -1,13 +1,13 @@
-import { usePanelToast } from '~/composables/usePanelToast';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 
 export function useMarkdownAttachmentHandler(attachments) {
-  const { showToast } = usePanelToast();
+  const notify = usePanelNotify();
 
   function handleMarkdownAttach(file) {
     attachments.value.push(file);
-    showToast({
+    notify.push({
       type: 'success',
-      text: `Adjunto "${file.name}" agregado al correo.`,
+      title: `Adjunto "${file.name}" agregado al correo.`,
     });
   }
 

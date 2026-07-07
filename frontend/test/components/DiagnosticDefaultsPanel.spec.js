@@ -84,7 +84,6 @@ function mountPanel() {
       stubs: {
         ResponsiveTabs: { template: '<div />' },
         ConfirmModal: { template: '<div />' },
-        PanelToast: { template: '<div />' },
         UiTooltip: { template: '<div><slot /></div>' },
         NuxtLink: { template: '<a><slot /></a>' },
         BaseInput: BaseInputStub,

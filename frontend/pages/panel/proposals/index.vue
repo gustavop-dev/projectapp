@@ -1066,12 +1066,24 @@ async function handleContractConfirmFromList(params) {
 
 const alerts = ref([]);
 
+// Notify a load failure once, not on every refresh/poll cycle.
+let alertsErrorNotified = false;
+async function loadAlerts() {
+  const alertResult = await proposalStore.fetchAlerts();
+  if (alertResult.success) {
+    alerts.value = alertResult.data || [];
+    alertsErrorNotified = false;
+  } else if (!alertsErrorNotified) {
+    alertsErrorNotified = true;
+    notify.error({ title: 'No se pudieron cargar las alertas.' });
+  }
+}
+
 async function refreshData() {
   isRefreshing.value = true;
   try {
     await proposalStore.fetchProposals();
-    const alertResult = await proposalStore.fetchAlerts();
-    if (alertResult.success) alerts.value = alertResult.data || [];
+    await loadAlerts();
   } finally {
     isRefreshing.value = false;
   }
@@ -1081,8 +1093,7 @@ usePanelRefresh(refreshData);
 
 onMounted(async () => {
   proposalStore.fetchProposals();
-  const alertResult = await proposalStore.fetchAlerts();
-  if (alertResult.success) alerts.value = alertResult.data || [];
+  await loadAlerts();
 });
 
 const ALERT_ICON_MAP = {
@@ -1125,8 +1136,7 @@ async function handleCreateAlert() {
     newAlert.alert_type = 'reminder';
     newAlert.message = '';
     newAlert.alert_date = '';
-    const alertResult = await proposalStore.fetchAlerts();
-    if (alertResult.success) alerts.value = alertResult.data || [];
+    await loadAlerts();
   } else {
     alertError.value = 'Error al crear el recordatorio.';
   }
