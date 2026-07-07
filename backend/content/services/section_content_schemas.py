@@ -343,6 +343,27 @@ SECTION_CONTENT_SCHEMAS = {
         'module_ids': [str],
         'justifications': dict,
         'footer_note': str,
+        # Per-module gating/terms keyed by module id. Free shape (dict) because
+        # keys are dynamic module ids; each value carries {min_price_usd,
+        # min_price_cop, duration_months, discretionary_note, terms}.
+        'conditions': dict,
+    },
+    # PDF-only section (no web component): hour packages + scope-exclusion text.
+    'commercial_conditions': {
+        'title': str,
+        'packagesTitle': str,
+        'packagesIntro': str,
+        'hourlyRate': NUMERIC,
+        'currency': str,
+        'packages': [{
+            'name': str,
+            'hours': NUMERIC,
+            'discountPercent': NUMERIC,
+            'note': str,
+        }],
+        'effortBadge': str,
+        'scopeTitle': str,
+        'scopeParagraphs': [str],
     },
     'roi_projection': {
         'title': str,

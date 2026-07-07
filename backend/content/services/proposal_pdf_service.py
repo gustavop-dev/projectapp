@@ -1691,6 +1691,55 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
     catalog = ps.get('_value_added_catalog', {}) if ps else {}
     module_ids = _safe(data, 'module_ids', []) or []
     justifications = _safe(data, 'justifications', {}) or {}
+    conditions = _safe(data, 'conditions', {}) or {}
+    lang = ps.get('_pdf_lang', 'es') if ps else 'es'
+    currency = (ps.get('_currency') if ps else '') or 'COP'
+    effective_total = ps.get('_effective_total') if ps else None
+
+    def _cc_money(n):
+        try:
+            num = int(round(float(n)))
+        except (TypeError, ValueError):
+            return str(n)
+        return f"${f'{num:,}'.replace(',', '.')} {currency}".strip()
+
+    def _module_condition_lines(mid):
+        """Build the condition lines shown under a value-added card.
+
+        Mirrors the web gating: a "disponible desde $X" note only when the
+        effective total does NOT reach the module minimum (condicionado),
+        plus the duration and discretionary notes.
+        """
+        cond = conditions.get(mid) if isinstance(conditions, dict) else None
+        if not isinstance(cond, dict):
+            return []
+        lines = []
+        minimum = (cond.get('min_price_cop') if currency == 'COP'
+                   else cond.get('min_price_usd'))
+        if minimum:
+            try:
+                unmet = (effective_total is not None
+                         and float(effective_total) < float(minimum))
+            except (TypeError, ValueError):
+                unmet = False
+            if unmet:
+                lines.append((
+                    (f'Disponible en proyectos desde {_cc_money(minimum)}'
+                     if lang != 'en'
+                     else f'Available for projects from {_cc_money(minimum)}'),
+                    False,
+                ))
+        months = cond.get('duration_months')
+        if months:
+            lines.append((
+                (f'Disponible por {int(months)} meses' if lang != 'en'
+                 else f'Available for {int(months)} months'),
+                False,
+            ))
+        note = cond.get('discretionary_note')
+        if note:
+            lines.append((str(note), True))
+        return lines
 
     card_pad_x = 14
     card_pad_y = 12
@@ -1728,11 +1777,19 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
                       [description], max_width=content_area_w,
                       font_size=desc_font_size, leading=desc_leading)
                   if description else 0)
+        cond_lines = _module_condition_lines(mid)
+        cond_h = sum(
+            _estimate_text_height(
+                [ct], max_width=content_area_w,
+                font_size=desc_font_size, leading=desc_leading)
+            for ct, _ in cond_lines
+        )
         card_h = (
             card_pad_y
             + len(title_lines) * 14
             + (6 + just_h if justification else 0)
             + (4 + desc_h if description else 0)
+            + (4 + cond_h if cond_lines else 0)
             + card_pad_y
         )
 
@@ -1794,7 +1851,44 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
                 font_name=_font('italic'),
             )
 
+        if cond_lines:
+            next_y -= 2
+            for ct, is_italic in cond_lines:
+                next_y = _draw_paragraphs(
+                    c, next_y, [ct],
+                    max_width=content_area_w,
+                    font_size=desc_font_size, leading=desc_leading,
+                    color=ESMERALD_80, x=text_x,
+                    font_name=_font('italic') if is_italic
+                    else _font('medium'),
+                )
+
         y = card_bottom - 12
+
+    # Consolidated terms & conditions for the included modules (Req 3).
+    # The web shows these in a per-module modal; the PDF has no modal, so the
+    # terms are printed here as a closing block.
+    tc_paras = []
+    for mid in module_ids:
+        cond = conditions.get(mid) if isinstance(conditions, dict) else None
+        terms = cond.get('terms') if isinstance(cond, dict) else None
+        if not terms:
+            continue
+        module = catalog.get(mid) or {}
+        mtitle = _strip_emoji(_safe(module, 'title')) or str(mid)
+        tc_paras.append(f'{mtitle} — {terms}')
+    if tc_paras:
+        y -= 6
+        tc_title = ('Términos y condiciones de los módulos incluidos'
+                    if lang != 'en'
+                    else 'Terms & conditions of the included modules')
+        if ps:
+            y = _check_y(c, y, ps, need=40)
+        y = _draw_subtitle(c, y, tc_title, ps=ps)
+        y = _draw_paragraphs(
+            c, y, tc_paras, ps=ps, font_size=8, leading=11,
+        )
+        y -= 4
 
     footer_note = _safe(data, 'footer_note')
     if footer_note:
@@ -2082,6 +2176,125 @@ def _render_raw_text(c, data, _proposal, ps=None, y=None):
     return y
 
 
+def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
+    """PDF-only section: hour packages + scope-exclusion clause (Req 1 + 2).
+
+    Draws three hour-bank packages (fixed hours + discount over an admin base
+    rate → cost/hour and total), a badge clarifying that medium-or-higher
+    effort requirements are quoted independently, and the scope-exclusion
+    clause. Has no web component — it is skipped by the public carousel.
+    """
+    if y is None:
+        y = PAGE_H - MARGIN_T
+    y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
+    y -= 8
+
+    currency = (_safe(data, 'currency')
+                or (ps.get('_currency') if ps else '') or 'COP')
+
+    def _money(n):
+        try:
+            num = int(round(float(n)))
+        except (TypeError, ValueError):
+            return str(n)
+        return f"${f'{num:,}'.replace(',', '.')} {currency}".strip()
+
+    # ── Hour packages ──────────────────────────────────────────
+    packages_title = _safe(data, 'packagesTitle')
+    if packages_title:
+        y = _draw_subtitle(c, y, packages_title, ps=ps)
+    intro = _safe(data, 'packagesIntro')
+    if intro:
+        y = _draw_paragraphs(c, y, [intro], ps=ps)
+        y -= 4
+
+    try:
+        hourly_rate = float(_safe(data, 'hourlyRate', 0) or 0)
+    except (TypeError, ValueError):
+        hourly_rate = 0
+
+    pad_x = 14
+    for pkg in _safe(data, 'packages', []) or []:
+        name = _safe(pkg, 'name') or 'Paquete'
+        try:
+            hours = float(_safe(pkg, 'hours', 0) or 0)
+        except (TypeError, ValueError):
+            hours = 0
+        try:
+            discount = float(_safe(pkg, 'discountPercent', 0) or 0)
+        except (TypeError, ValueError):
+            discount = 0
+        rate_eff = hourly_rate * (1 - discount / 100)
+        total_price = hours * rate_eff
+        note = _safe(pkg, 'note')
+
+        note_h = (_estimate_text_height(
+                      [note], max_width=CONTENT_W - pad_x * 2,
+                      font_size=8, leading=11)
+                  if note else 0)
+        card_h = 12 + 16 + 14 + (4 + note_h if note else 0) + 10
+
+        if ps:
+            y = _check_y(c, y, ps, need=card_h + 12)
+
+        card_top = y
+        card_bottom = y - card_h
+        c.setFillColor(ESMERALD_LIGHT)
+        c.roundRect(MARGIN_L, card_bottom, CONTENT_W, card_h, 8,
+                    fill=1, stroke=0)
+
+        text_x = MARGIN_L + pad_x
+        line_y = card_top - 12 - 10
+
+        c.setFont(_font('bold'), 12)
+        c.setFillColor(ESMERALD)
+        c.drawString(text_x, line_y, _strip_emoji(name))
+        if discount > 0:
+            disc_text = f'-{int(discount)}%'
+            pill_w = c.stringWidth(disc_text, _font('medium'), 8) + 16
+            _draw_pill(c, MARGIN_L + CONTENT_W - pad_x - pill_w, line_y,
+                       disc_text, bg_color=LEMON, text_color=ESMERALD,
+                       font_size=8)
+        line_y -= 16
+
+        c.setFont(_font('regular'), 9)
+        c.setFillColor(ESMERALD_80)
+        detail = (f'{int(hours)} h   ·   {_money(rate_eff)}/h   ·   '
+                  f'Total: {_money(total_price)}')
+        c.drawString(text_x, line_y, detail)
+        line_y -= 14
+
+        if note:
+            _draw_paragraphs(
+                c, line_y, [str(note)], max_width=CONTENT_W - pad_x * 2,
+                font_size=8, leading=11, color=ESMERALD_80, x=text_x,
+                font_name=_font('italic'),
+            )
+        y = card_bottom - 10
+
+    effort_badge = _safe(data, 'effortBadge')
+    if effort_badge:
+        y -= 2
+        y = _draw_banner_box(
+            c, MARGIN_L, y, CONTENT_W, str(effort_badge),
+            bg_color=BONE, text_color=ESMERALD, font_size=9,
+            icon_text='!', ps=ps,
+        )
+
+    # ── Scope-exclusion clause ─────────────────────────────────
+    scope_title = _safe(data, 'scopeTitle')
+    scope_paras = _safe(data, 'scopeParagraphs', []) or []
+    if scope_title or scope_paras:
+        y -= 12
+        if scope_title:
+            y = _draw_subtitle(c, y, scope_title, ps=ps)
+        if scope_paras:
+            y = _draw_paragraphs(
+                c, y, [str(p) for p in scope_paras], ps=ps, justify=True,
+            )
+    return y
+
+
 # Map section_type → renderer
 SECTION_RENDERERS = {
     'greeting': _render_greeting,
@@ -2095,6 +2308,7 @@ SECTION_RENDERERS = {
     'timeline': _render_timeline,
     'investment': _render_investment,
     'value_added_modules': _render_value_added_modules,
+    'commercial_conditions': _render_commercial_conditions,
     'final_note': _render_final_note,
     'next_steps': _render_next_steps,
     # Note: 'roi_projection' is intentionally web-only — no PDF renderer.
@@ -2254,6 +2468,18 @@ class ProposalPdfService:
                 item_req_map = build_item_requirements_map(tech_data)
             ps['_item_requirements_map'] = item_req_map
             ps['_pdf_lang'] = 'en' if proposal.language == 'en' else 'es'
+
+            # Effective total (base + selected calculator modules) + currency,
+            # used by the value-added renderer to gate module minimums
+            # ("condicionado"). Canonical source shared with panel/serializer.
+            from content.services.proposal_totals_service import (
+                effective_total_for_proposal,
+            )
+            try:
+                ps['_effective_total'] = effective_total_for_proposal(proposal)
+            except Exception:
+                ps['_effective_total'] = _base_num
+            ps['_currency'] = getattr(proposal, 'currency', 'COP') or 'COP'
 
             # ── Pass A: Content canvas (pages 3+) ────────────────────
             # Pages 1 = greeting, 2 = TOC; content starts at page 3.
