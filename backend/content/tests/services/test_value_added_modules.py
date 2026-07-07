@@ -34,6 +34,7 @@ class TestValueAddedModulesSection:
         cj = section['content_json']
         assert cj['module_ids'] == [
             'admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module',
+            'ai_automation_module',
         ]
         assert set(cj['justifications'].keys()) == set(cj['module_ids'])
         for value in cj['justifications'].values():
