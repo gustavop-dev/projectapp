@@ -12,6 +12,24 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { DIAGNOSTIC_PUBLIC_VIEW, DIAGNOSTIC_PUBLIC_RESPOND } from '../helpers/flow-tags.js';
 
+/** Dismiss the cover screen introduced by the public redesign. */
+async function enterDiagnostic(page) {
+  const start = page.getByTestId('diagnostic-start-journey');
+  try {
+    await start.waitFor({ state: 'visible', timeout: 8000 });
+    await start.click();
+  } catch (_) { /* cover absent (no sections / states without cover) */ }
+  // The onboarding tour starts after the cover; dismiss it so its backdrop
+  // does not intercept clicks on the page under test.
+  const skip = page.getByRole('button', { name: /omitir|skip/i });
+  try {
+    await skip.waitFor({ state: 'visible', timeout: 4000 });
+    await skip.click();
+    await page.getByTestId('diagnostic-onboarding-backdrop').waitFor({ state: 'hidden', timeout: 4000 });
+  } catch (_) { /* tour did not start */ }
+}
+
+
 const TEST_UUID = 'dd111111-1111-1111-1111-111111111111';
 
 function buildSection({ id, section_type, title, order, visibility = 'both', content = {} }) {
@@ -100,6 +118,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
     await mockPublicApi(page, diagnostic);
 
     await page.goto(`/diagnostic/${TEST_UUID}/`, { waitUntil: 'domcontentloaded' });
+    await enterDiagnostic(page);
     await expect(page.getByTestId('diagnostic-index-toggle')).toBeVisible({ timeout: 15000 });
 
     // Open sidebar to inspect the section list.
@@ -120,6 +139,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
     await mockPublicApi(page, diagnostic);
 
     await page.goto(`/diagnostic/${TEST_UUID}/`, { waitUntil: 'domcontentloaded' });
+    await enterDiagnostic(page);
     await expect(page.getByTestId('diagnostic-index-toggle')).toBeVisible({ timeout: 15000 });
 
     // Open sidebar to inspect the section list.
@@ -136,6 +156,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
     await mockPublicApi(page, diagnostic);
 
     await page.goto(`/diagnostic/${TEST_UUID}/`, { waitUntil: 'domcontentloaded' });
+    await enterDiagnostic(page);
     const toggle = page.getByTestId('diagnostic-index-toggle');
     await expect(toggle).toBeVisible({ timeout: 15000 });
 
@@ -159,6 +180,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
     await mockPublicApi(page, diagnostic);
 
     await page.goto(`/diagnostic/${TEST_UUID}/`, { waitUntil: 'domcontentloaded' });
+    await enterDiagnostic(page);
     await expect(page.getByText('Sección 1 de', { exact: false })).toBeVisible({ timeout: 15000 });
 
     // Open sidebar and click the third section.
@@ -178,8 +200,17 @@ test.describe('Diagnostic Public View — JSON sections', () => {
     await mockPublicApi(page, diagnostic, { onRespond: () => { respondCalled = true; } });
 
     await page.goto(`/diagnostic/${TEST_UUID}/`, { waitUntil: 'domcontentloaded' });
+    await enterDiagnostic(page);
+
+    // The CTA appears at the end of the story: walk to the last section.
+    const nextBtn = page.locator('.section-nav').getByRole('button', { name: /siguiente/i });
+    while (await nextBtn.isEnabled().catch(() => false)) {
+      await nextBtn.click();
+    }
+
     await expect(page.getByRole('button', { name: /aceptar propuesta/i })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: /aceptar propuesta/i }).click();
+    await page.getByTestId('diagnostic-respond-confirm').click();
 
     await expect(() => expect(respondCalled).toBe(true)).toPass({ timeout: 5000 });
     await expect(page.getByText(/Confirmamos tu aceptación/i)).toBeVisible({ timeout: 5000 });
@@ -192,6 +223,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
     await mockPublicApi(page, diagnostic);
 
     await page.goto(`/diagnostic/${TEST_UUID}/`, { waitUntil: 'domcontentloaded' });
+    await enterDiagnostic(page);
     await expect(page.getByText('Sección 1 de', { exact: false })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: /siguiente/i }).click();
     await expect(page.getByText('Sección 2 de', { exact: false })).toBeVisible();

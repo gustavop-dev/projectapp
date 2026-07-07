@@ -2,8 +2,12 @@
   <div class="diagnostic-index fixed left-0 top-0 z-50 pointer-events-none">
     <button
       data-testid="diagnostic-index-toggle"
+      :aria-label="isOpen ? 'Cerrar índice de secciones' : 'Abrir índice de secciones'"
+      :aria-expanded="isOpen"
+      aria-controls="diagnostic-index-panel"
       class="index-toggle absolute left-4 top-4 z-50 pointer-events-auto
-             w-10 h-10 rounded-full
+             w-11 h-11 rounded-full
+             focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring
              bg-surface dark:bg-primary-strong shadow-lg
              border border-input-border/10 dark:border-input-border/25
              flex items-center justify-center
@@ -29,6 +33,7 @@
     </Transition>
 
     <nav
+      id="diagnostic-index-panel"
       data-testid="diagnostic-index-panel"
       class="index-panel z-[9999]
              bg-surface/95 dark:bg-primary/95 backdrop-blur-md overflow-y-auto transition-all duration-300

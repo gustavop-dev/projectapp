@@ -48,8 +48,21 @@ export const SEVERITY_LEVEL_CLASSES = Object.freeze({
   'Bajo':    'bg-success-soft text-success-strong',
 });
 
+const SEVERITY_ALIASES = Object.freeze({
+  critico: 'Crítico', alto: 'Alto', medio: 'Medio', bajo: 'Bajo',
+});
+
+/** Map raw severity data (any casing/accents) to the canonical label. */
+export function normalizeSeverity(level) {
+  if (!level) return '';
+  if (SEVERITY_LEVEL_CLASSES[level]) return level;
+  const key = String(level).toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return SEVERITY_ALIASES[key] || level;
+}
+
 export function severityLevelClass(level) {
-  return SEVERITY_LEVEL_CLASSES[level] || 'bg-surface-raised text-text-muted';
+  return SEVERITY_LEVEL_CLASSES[normalizeSeverity(level)] || 'bg-surface-raised text-text-muted';
 }
 
 /**
