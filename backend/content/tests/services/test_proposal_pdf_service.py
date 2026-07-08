@@ -2168,8 +2168,8 @@ class TestInvestmentRendersAgainstEffectiveTotal:
         recorded_pills = []
         original_pill = svc._payment_pill_desc
 
-        def recording_pill(label, desc, display_num):
-            result = original_pill(label, desc, display_num)
+        def recording_pill(label, desc, display_num, tax_suffix=''):
+            result = original_pill(label, desc, display_num, tax_suffix=tax_suffix)
             recorded_pills.append((label, display_num, result))
             return result
 
