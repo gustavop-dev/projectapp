@@ -1106,13 +1106,26 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
     return y
 
 
-def _payment_pill_desc(label, desc, display_num):
+def _tax_suffix(currency):
+    """Tax label appended after amounts, by market/currency.
+
+    COP (Colombian market) -> ' + IVA'; USD (American market) -> ' + Tax'.
+    Defaults to IVA when currency is missing/unknown.
+    """
+    return ' + Tax' if str(currency or '').upper() == 'USD' else ' + IVA'
+
+
+def _payment_pill_desc(label, desc, display_num, tax_suffix=''):
     """Build the amount pill for a single payment option.
 
     Mirrors Investment.vue ``computedPaymentOptions``: derive the amount from
     the percentage embedded in the label times the live display total, instead
     of scaling whatever amount the backend last persisted in ``description``
     (which already equals ``effective × pct`` and would double-scale).
+
+    ``tax_suffix`` (e.g. ' + IVA' / ' + Tax') is appended only when an amount
+    pill is produced; options without a percentage/amount return their raw
+    description unchanged.
     """
     if not display_num or display_num <= 0:
         return desc
@@ -1127,7 +1140,8 @@ def _payment_pill_desc(label, desc, display_num):
         pill = re.sub(r'[\$]?[\d.,]+', formatted, desc_str, count=1)
     else:
         pill = formatted
-    return pill if pill.startswith('$') else '$' + pill
+    pill = pill if pill.startswith('$') else '$' + pill
+    return f'{pill}{tax_suffix}'
 
 
 def _render_investment(c, data, _proposal, ps=None, y=None):
@@ -1151,6 +1165,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
              if _model_total else _safe(data, 'totalInvestment'))
     currency = (getattr(_proposal, 'currency', None)
                 or _safe(data, 'currency'))
+    tax_suffix = _tax_suffix(currency)
     options = _safe(data, 'paymentOptions', [])
 
     # ── Resolve the total the client actually sees / pays ──
@@ -1240,9 +1255,12 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 c.setFont(_font('regular'), 8)
                 c.setFillColor(ESMERALD_80)
                 c.drawString(MARGIN_L + 8, left_y - 2, label)
-                pill_desc = _payment_pill_desc(label, desc, display_num)
+                pill_desc = _payment_pill_desc(label, desc, display_num,
+                                               tax_suffix=tax_suffix)
                 if pill_desc:
-                    _draw_pill(c, MARGIN_L + left_w - 80, left_y - 2, pill_desc,
+                    # Right-anchor the pill so the tax suffix cannot overflow.
+                    pill_w = c.stringWidth(pill_desc, _font('medium'), 7) + 16
+                    _draw_pill(c, MARGIN_L + left_w - pill_w, left_y - 2, pill_desc,
                                bg_color=ESMERALD, text_color=WHITE, font_size=7)
                 left_y -= 22
 
@@ -1275,9 +1293,12 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 c.setFont(_font('regular'), 8)
                 c.setFillColor(ESMERALD_80)
                 c.drawString(MARGIN_L + 8, y - 2, label)
-                pill_desc = _payment_pill_desc(label, desc, display_num)
+                pill_desc = _payment_pill_desc(label, desc, display_num,
+                                               tax_suffix=tax_suffix)
                 if pill_desc:
-                    _draw_pill(c, MARGIN_L + CONTENT_W - 80, y - 2, pill_desc,
+                    # Right-anchor the pill so the tax suffix cannot overflow.
+                    pill_w = c.stringWidth(pill_desc, _font('medium'), 7) + 16
+                    _draw_pill(c, MARGIN_L + CONTENT_W - pill_w, y - 2, pill_desc,
                                bg_color=ESMERALD, text_color=WHITE, font_size=7)
                 y -= 22
 
@@ -1303,6 +1324,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         label = f'Inversi\u00f3n Total: {display_total}'
         if currency:
             label = f'{label}  {currency}'
+        label = f'{label}{tax_suffix}'
         c.drawCentredString(MARGIN_L + box_w / 2, box_y + 7, label)
         y = box_y - 8
 

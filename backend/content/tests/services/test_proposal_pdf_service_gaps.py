@@ -309,3 +309,47 @@ class TestNextStepsCompleteBranches:
         y = _render_next_steps(pdf_canvas, data, proposal)
 
         assert isinstance(y, (int, float))
+
+
+# ===========================================================================
+# Tax suffix ("+ IVA" / "+ Tax") on total + payment pills
+# ===========================================================================
+
+class TestTaxSuffix:
+    def test_cop_returns_iva(self):
+        from content.services.proposal_pdf_service import _tax_suffix
+        assert _tax_suffix('COP') == ' + IVA'
+
+    def test_usd_returns_tax(self):
+        from content.services.proposal_pdf_service import _tax_suffix
+        assert _tax_suffix('USD') == ' + Tax'
+
+    def test_usd_case_insensitive(self):
+        from content.services.proposal_pdf_service import _tax_suffix
+        assert _tax_suffix('usd') == ' + Tax'
+
+    def test_none_defaults_to_iva(self):
+        from content.services.proposal_pdf_service import _tax_suffix
+        assert _tax_suffix(None) == ' + IVA'
+
+
+class TestPaymentPillTaxSuffix:
+    def test_amount_pill_appends_suffix(self):
+        from content.services.proposal_pdf_service import _payment_pill_desc
+        pill = _payment_pill_desc('50%', '$745.000', 1490000, tax_suffix=' + Tax')
+        assert pill.endswith(' + Tax')
+        assert '745.000' in pill
+        assert pill.startswith('$')
+
+    def test_no_percentage_option_has_no_suffix(self):
+        from content.services.proposal_pdf_service import _payment_pill_desc
+        # No percentage in label -> raw description, no amount, no suffix.
+        pill = _payment_pill_desc('Contado', 'Pago único', 1490000,
+                                  tax_suffix=' + Tax')
+        assert pill == 'Pago único'
+
+    def test_default_suffix_empty(self):
+        from content.services.proposal_pdf_service import _payment_pill_desc
+        pill = _payment_pill_desc('50%', '$745.000', 1490000)
+        assert not pill.endswith(' + Tax')
+        assert not pill.endswith(' + IVA')
