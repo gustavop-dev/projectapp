@@ -68,6 +68,9 @@ class Command(BaseCommand):
         if not options['skip_contacts']:
             self._run('contacts', 'create_contacts', n)
         if not options['skip_proposals']:
+            # Hour packages must exist before proposals so the
+            # commercial_conditions sections seed from the catalog.
+            self._run('hour-packages', 'create_fake_hour_packages')
             self._run('proposals', 'create_fake_proposals', '--count', n)
         if not options['skip_blog']:
             self._run('blog', 'create_fake_blog_posts', '--count', n)

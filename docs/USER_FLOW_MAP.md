@@ -2038,6 +2038,71 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-portfolio-delete.spec.js`
 
+### FLOW: `admin-hour-packages-list`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/hour-packages`
+- **Description:** View the hour-package catalog filtered by nationality tabs (COL/MEX/USA); prices show in the currency derived from the nationality (COL→COP, MEX/USA→USD) with computed effective rate and total.
+- **Steps:**
+  1. Admin navigates to `/panel/hour-packages`.
+  2. Packages load from API (`GET /api/hour-packages/admin/?nationality=COL`) — Colombia tab is active by default.
+  3. Table renders name, hours, rate/h, discount, effective rate, total and active badge.
+  4. Admin switches nationality tab → list refetches with that nationality and prices change currency.
+  5. Empty tabs show a hint that proposal creation falls back to default packages.
+  6. "Nuevo paquete" button links to the create page carrying the active nationality.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-hour-packages-list.spec.js`
+
+### FLOW: `admin-hour-packages-create`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/hour-packages/create`
+- **Description:** Create an hour package with nationality, bilingual name/note, hours, hourly rate, discount, order and active flag; the currency is derived from the nationality and a live preview shows effective rate and total.
+- **Steps:**
+  1. Admin navigates to `/panel/hour-packages/create` (nationality preselected from query param).
+  2. Admin fills the form; the preview recalculates effective rate/total.
+  3. Admin submits.
+  4. API call to `POST /api/hour-packages/admin/create/`.
+  5. On success, admin is redirected to the list; validation errors render per field.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-hour-packages-create.spec.js`
+
+### FLOW: `admin-hour-packages-edit`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/hour-packages/:id/edit`
+- **Description:** Edit an existing hour package; form prefilled from the detail endpoint, preview recalculates and a partial PATCH persists the changes.
+- **Steps:**
+  1. Admin navigates to `/panel/hour-packages/:id/edit`.
+  2. Package data loads from API (`GET /api/hour-packages/admin/:id/detail/`).
+  3. Admin edits rate/discount/fields; preview recalculates.
+  4. Admin saves → `PATCH /api/hour-packages/admin/:id/update/`.
+  5. On success, admin returns to the list.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-hour-packages-edit.spec.js`
+
+### FLOW: `admin-hour-packages-delete`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/hour-packages`
+- **Description:** Delete an hour package from the list with a confirmation modal; already-created proposals are not affected.
+- **Steps:**
+  1. Admin views the hour-packages list.
+  2. Admin clicks delete on a package.
+  3. ConfirmModal appears.
+  4. Admin confirms → `DELETE /api/hour-packages/admin/:id/delete/`.
+  5. The row disappears from the list.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-hour-packages-delete.spec.js`
+
 ### FLOW: `proposal-view-paste-rendering`
 
 - **Module:** proposal

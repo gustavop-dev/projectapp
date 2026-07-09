@@ -4,6 +4,7 @@ This package initializes the models for the ProjectApp application.
 The following models are imported:
     - Contact: Model handling contact-related information.
     - PortfolioWork: Model for portfolio work entries.
+    - HourPackage: Catalog of development hour packages per nationality.
     - BusinessProposal: Model for client business proposals.
     - ProposalSection: Individual sections within a proposal.
     - ProposalRequirementGroup: Groups of functional requirements.
@@ -12,6 +13,7 @@ The following models are imported:
 
 from .contact import Contact
 from .portfolio_works import PortfolioWork
+from .hour_packages import HourPackage, Nationality, CURRENCY_BY_NATIONALITY
 from .business_proposal import BusinessProposal, ProposalAlert
 from .proposal_section import ProposalSection
 from .proposal_project_stage import ProposalProjectStage

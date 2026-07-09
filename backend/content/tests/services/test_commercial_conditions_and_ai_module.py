@@ -69,6 +69,20 @@ class TestSchemas:
         assert any('hourlyRate' in e for e in errors)
         assert any('hours' in e for e in errors)
 
+    def test_commercial_conditions_accepts_per_package_rate(self):
+        content = {
+            'hourlyRate': 90000,
+            'packages': [{'name': 'Ágil', 'hours': 20, 'discountPercent': 0,
+                          'note': 'x', 'hourlyRate': 100000}],
+        }
+        assert validate_section_content('commercial_conditions', content) == []
+
+    def test_commercial_conditions_rejects_bad_package_rate(self):
+        errors = validate_section_content(
+            'commercial_conditions',
+            {'packages': [{'hourlyRate': 'not-a-number'}]})
+        assert any('hourlyRate' in e for e in errors)
+
     def test_value_added_conditions_dict_ok(self):
         content = {'module_ids': ['ai_automation_module'],
                    'conditions': {'ai_automation_module': {
@@ -152,6 +166,30 @@ class TestRenderCommercialConditions:
             y=PAGE_H - MARGIN_T)
         assert isinstance(result, (int, float))
         assert any('alcance' in r.lower() for r in recorded)
+
+    def test_per_package_rate_overrides_section_rate(self, pdf_canvas, monkeypatch):
+        recorded = []
+        orig = pdf_canvas.drawString
+
+        def rec(x, y, text, *a, **k):
+            recorded.append(str(text))
+            return orig(x, y, text, *a, **k)
+
+        monkeypatch.setattr(pdf_canvas, 'drawString', rec)
+        data = {
+            'index': '17', 'title': 'Condiciones comerciales',
+            'hourlyRate': 90000, 'currency': 'COP',
+            'packages': [
+                {'name': 'Con rate propio', 'hours': 20, 'discountPercent': 0,
+                 'hourlyRate': 100000},
+                {'name': 'Sin rate propio', 'hours': 10, 'discountPercent': 0},
+            ],
+        }
+        _render_commercial_conditions(
+            pdf_canvas, data, None, ps={'num': 1, 'client': 'X'},
+            y=PAGE_H - MARGIN_T)
+        assert any('$100.000 COP/h' in r for r in recorded)
+        assert any('$90.000 COP/h' in r for r in recorded)
 
 
 # ---------------------------------------------------------------------------

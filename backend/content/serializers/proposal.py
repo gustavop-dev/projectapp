@@ -10,6 +10,7 @@ from content.services.section_content_schemas import validate_section_content
 from content.models import (
     BusinessProposal,
     EmailTemplateConfig,
+    Nationality,
     ProposalAlert,
     ProposalProjectStage,
     ProposalSection,
@@ -138,7 +139,7 @@ class ProposalListSerializer(serializers.ModelSerializer):
         model = BusinessProposal
         fields = (
             'id', 'uuid', 'title', 'client_name', 'client_email', 'status',
-            'total_investment', 'currency', 'expires_at',
+            'total_investment', 'currency', 'nationality', 'expires_at',
             'view_count', 'created_at', 'days_remaining', 'is_expired',
             'is_active', 'automations_paused', 'responded_at', 'last_activity_at',
             'project_type', 'market_type', 'client_phone',
@@ -186,7 +187,8 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         model = BusinessProposal
         fields = (
             'id', 'uuid', 'title', 'client_name', 'client_email', 'slug',
-            'language', 'total_investment', 'currency', 'hosting_percent',
+            'language', 'total_investment', 'currency', 'nationality',
+            'hosting_percent',
             'hosting_discount_annual',
             'hosting_discount_semiannual', 'hosting_discount_quarterly',
             'status', 'expires_at',
@@ -390,7 +392,8 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
         model = BusinessProposal
         fields = (
             'title', 'client_name', 'client_email', 'slug',
-            'language', 'total_investment', 'currency', 'hosting_percent',
+            'language', 'total_investment', 'currency', 'nationality',
+            'hosting_percent',
             'hosting_discount_annual',
             'hosting_discount_semiannual', 'hosting_discount_quarterly',
             'status', 'expires_at', 'reminder_days', 'urgency_reminder_days',
@@ -583,6 +586,7 @@ SECTION_KEY_MAP = {
     'technicalDocument': 'technical_document',
     'valueAddedModules': 'value_added_modules',
     'roiProjection': 'roi_projection',
+    'commercialConditions': 'commercial_conditions',
 }
 
 SECTION_TYPE_TO_KEY = {v: k for k, v in SECTION_KEY_MAP.items()}
@@ -623,6 +627,9 @@ class ProposalFromJSONSerializer(serializers.Serializer):
     )
     currency = serializers.ChoiceField(
         choices=BusinessProposal.Currency.choices, default='COP',
+    )
+    nationality = serializers.ChoiceField(
+        choices=Nationality.choices, default='COL',
     )
     expires_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
     reminder_days = serializers.IntegerField(required=False, default=10)

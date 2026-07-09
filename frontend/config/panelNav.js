@@ -44,6 +44,7 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
       label: 'Comercial',
       items: [
         { label: 'Defaults', href: lp('/panel/defaults'), icon: 'settings' },
+        { label: 'Paquetes de horas', href: lp('/panel/hour-packages'), icon: 'clock' },
         { label: 'Clientes', href: lp('/panel/clients'), icon: 'users' },
         { label: 'Entregabilidad email', href: lp('/panel/proposals/email-deliverability'), icon: 'mail' },
         { label: 'Propuestas', href: lp('/panel/proposals'), icon: 'folder' },

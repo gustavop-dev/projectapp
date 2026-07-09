@@ -24,6 +24,9 @@ from content.models import (
     ProposalShareLink,
     ProposalViewEvent,
 )
+from content.services.hour_package_service import (
+    seed_commercial_conditions_from_catalog,
+)
 from content.services.proposal_service import ProposalService
 from content.services.proposal_stage_tracker import ProposalStageTracker
 
@@ -154,6 +157,10 @@ class Command(BaseCommand):
                 'client_phone': random.choice(CLIENT_PHONES),
                 'total_investment': investment,
                 'currency': currency,
+                'nationality': (
+                    'COL' if currency == 'COP'
+                    else random.choice(['MEX', 'USA'])
+                ),
                 'status': status,
                 'discount_percent': discount,
                 'expires_at': now + timedelta(days=random.randint(7, 45)),
@@ -292,6 +299,12 @@ class Command(BaseCommand):
                     ]
                 if cfg['section_type'] == 'technical_document':
                     cfg['content_json'] = deepcopy(DEMO_TECHNICAL_DOCUMENT_JSON)
+                if cfg['section_type'] == 'commercial_conditions':
+                    cfg['content_json'] = seed_commercial_conditions_from_catalog(
+                        cfg['content_json'],
+                        nationality=proposal.nationality,
+                        language=proposal.language,
+                    )
                 ProposalSection.objects.create(proposal=proposal, **cfg)
 
             # --- Seed a ProposalDocument for negotiating proposals ---

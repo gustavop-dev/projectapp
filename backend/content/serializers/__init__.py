@@ -5,6 +5,10 @@ from .portfolio_works import (
     PortfolioWorkCreateUpdateSerializer, PortfolioWorkFromJSONSerializer,
     PORTFOLIO_JSON_TEMPLATE,
 )
+from .hour_packages import (
+    HourPackageAdminListSerializer, HourPackageAdminDetailSerializer,
+    HourPackageCreateUpdateSerializer,
+)
 from .proposal import (
     ProposalListSerializer, ProposalDetailSerializer,
     ProposalCreateUpdateSerializer, ProposalSectionDetailSerializer,

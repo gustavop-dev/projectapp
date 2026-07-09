@@ -47,7 +47,7 @@
           </button>
         </div>
         <FieldInput v-model="pkg.name" label="Nombre" placeholder="Paquete Ágil" />
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <FieldInput
             :modelValue="pkg.hours"
             label="Horas"
@@ -59,6 +59,12 @@
             label="Descuento %"
             placeholder="0"
             @update:modelValue="pkg.discountPercent = $event"
+          />
+          <FieldInput
+            :modelValue="pkg.hourlyRate"
+            label="Tarifa/h (opcional)"
+            placeholder="Usa la tarifa base"
+            @update:modelValue="pkg.hourlyRate = $event"
           />
         </div>
         <FieldInput v-model="pkg.note" label="Nota" placeholder="Ideal para ajustes puntuales." />
@@ -99,7 +105,7 @@ const props = defineProps({
 
 function addPackage() {
   if (!Array.isArray(props.form.packages)) props.form.packages = [];
-  props.form.packages.push({ name: '', hours: '', discountPercent: 0, note: '' });
+  props.form.packages.push({ name: '', hours: '', discountPercent: 0, note: '', hourlyRate: '' });
 }
 
 function removePackage(idx) {

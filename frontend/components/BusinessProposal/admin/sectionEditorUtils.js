@@ -154,6 +154,7 @@ export function buildFormFromJson(json, type, proposalData) {
           hours: p.hours ?? '',
           discountPercent: p.discountPercent ?? 0,
           note: p.note || '',
+          hourlyRate: p.hourlyRate ?? '',
         })),
         effortBadge: j.effortBadge || '',
         scopeTitle: j.scopeTitle || '',
@@ -311,6 +312,10 @@ export function formToJson(formData, type) {
           discountPercent: p.discountPercent === '' || p.discountPercent == null
             ? 0 : Number(p.discountPercent),
           note: p.note || '',
+          // Per-package rate is optional: omit the key when empty so old
+          // proposals keep using the section-level hourlyRate.
+          ...(p.hourlyRate === '' || p.hourlyRate == null
+            ? {} : { hourlyRate: Number(p.hourlyRate) }),
         })),
         effortBadge: f.effortBadge || '',
         scopeTitle: f.scopeTitle || '',

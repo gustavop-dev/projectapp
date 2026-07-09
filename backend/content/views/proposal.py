@@ -628,6 +628,7 @@ def get_proposal_json_template(request):
             'language': 'es | en',
             'total_investment': 0,
             'currency': 'COP | USD',
+            'nationality': 'COL | MEX | USA',
         },
     }
 
@@ -1154,6 +1155,7 @@ def duplicate_proposal(request, proposal_id):
             language=proposal.language,
             total_investment=proposal.total_investment,
             currency=proposal.currency,
+            nationality=proposal.nationality,
             hosting_percent=proposal.hosting_percent,
             hosting_discount_annual=proposal.hosting_discount_annual,
             hosting_discount_semiannual=proposal.hosting_discount_semiannual,

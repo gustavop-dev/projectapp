@@ -72,7 +72,7 @@ def get_proposal_template(arguments):
         'template': template,
         'meta': {
             'required_fields': ['general.clientName'],
-            'optional_metadata': ['title', 'client_email', 'client_phone', 'language', 'total_investment', 'currency'],
+            'optional_metadata': ['title', 'client_email', 'client_phone', 'language', 'total_investment', 'currency', 'nationality'],
         },
         'notes': (
             'Envía este shape (claves camelCase por sección) en `sections` a '
@@ -185,6 +185,7 @@ def duplicate_proposal(arguments):
             language=proposal.language,
             total_investment=proposal.total_investment,
             currency=proposal.currency,
+            nationality=proposal.nationality,
             hosting_percent=proposal.hosting_percent,
             hosting_discount_annual=proposal.hosting_discount_annual,
             hosting_discount_semiannual=proposal.hosting_discount_semiannual,

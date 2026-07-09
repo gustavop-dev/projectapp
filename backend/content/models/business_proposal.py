@@ -9,6 +9,8 @@ from content.utils import (
     safe_slug,
 )
 
+from .hour_packages import Nationality
+
 
 class BusinessProposal(models.Model):
     """
@@ -91,6 +93,12 @@ class BusinessProposal(models.Model):
     )
     currency = models.CharField(
         max_length=3, choices=Currency.choices, default=Currency.COP
+    )
+    nationality = models.CharField(
+        max_length=3,
+        choices=Nationality.choices,
+        default=Nationality.COL,
+        help_text='Drives hour-package catalog seeding and suggested currency.',
     )
     hosting_percent = models.PositiveIntegerField(
         default=80,

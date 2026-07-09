@@ -33,6 +33,11 @@ from content.views.portfolio_works import (
     delete_portfolio_work, duplicate_portfolio_work,
     upload_portfolio_cover_image,
 )
+from content.views.hour_packages import (
+    list_admin_hour_packages, create_hour_package,
+    retrieve_admin_hour_package, update_hour_package,
+    delete_hour_package,
+)
 from content.views.proposal import (
     retrieve_public_proposal, retrieve_public_proposal_by_slug,
     download_proposal_pdf,
@@ -412,6 +417,13 @@ urlpatterns = [
     path('portfolio/admin/<int:work_id>/update/', update_portfolio_work, name='update-portfolio-work'),
     path('portfolio/admin/<int:work_id>/delete/', delete_portfolio_work, name='delete-portfolio-work'),
     path('portfolio/admin/<int:work_id>/duplicate/', duplicate_portfolio_work, name='duplicate-portfolio-work'),
+
+    # Hour packages — admin catalog CRUD (per-nationality pricing)
+    path('hour-packages/admin/', list_admin_hour_packages, name='list-admin-hour-packages'),
+    path('hour-packages/admin/create/', create_hour_package, name='create-hour-package'),
+    path('hour-packages/admin/<int:package_id>/detail/', retrieve_admin_hour_package, name='retrieve-admin-hour-package'),
+    path('hour-packages/admin/<int:package_id>/update/', update_hour_package, name='update-hour-package'),
+    path('hour-packages/admin/<int:package_id>/delete/', delete_hour_package, name='delete-hour-package'),
     path('portfolio/admin/<int:work_id>/upload-cover/', upload_portfolio_cover_image, name='upload-portfolio-cover-image'),
 
     # Portfolio — public
