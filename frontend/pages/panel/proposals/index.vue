@@ -575,20 +575,19 @@
     </Teleport>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-border-muted">
-        <span class="text-xs text-text-subtle">{{ filteredProposals.length }} propuestas</span>
-        <div class="flex gap-1">
-          <button
-            v-for="page in totalPages"
-            :key="page"
-            class="w-8 h-8 rounded-lg text-xs font-medium transition-colors"
-            :class="currentPage === page ? 'bg-primary text-white' : 'text-text-muted hover:bg-surface-raised'"
-            @click="currentPage = page"
-          >
-            {{ page }}
-          </button>
-        </div>
-      </div>
+      <BasePagination
+        v-if="totalPages > 1"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-items="filteredProposals.length"
+        :range-from="rangeFrom"
+        :range-to="rangeTo"
+        aria-label="Paginación de propuestas"
+        class="px-6 border-t border-border-muted"
+        @prev="goToPage(currentPage - 1)"
+        @next="goToPage(currentPage + 1)"
+        @go="goToPage"
+      />
     </div>
     <!-- Status/send feedback now renders via the global <PanelNotificationHost /> -->
   </div>
@@ -601,6 +600,7 @@ import MetricsManual from '~/components/BusinessProposal/admin/MetricsManual.vue
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ProposalFilterPanel from '~/components/proposals/ProposalFilterPanel.vue';
+import BasePagination from '~/components/base/BasePagination.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
@@ -828,6 +828,12 @@ const paginatedProposals = computed(() => {
   const start = (currentPage.value - 1) * pageSize;
   return filteredProposals.value.slice(start, start + pageSize);
 });
+const rangeFrom = computed(() => (filteredProposals.value.length === 0 ? 0 : (currentPage.value - 1) * pageSize + 1));
+const rangeTo = computed(() => Math.min(currentPage.value * pageSize, filteredProposals.value.length));
+
+function goToPage(page) {
+  currentPage.value = Math.min(Math.max(1, page), totalPages.value);
+}
 
 function formatAlertDate(dateStr) {
   if (!dateStr) return '';
