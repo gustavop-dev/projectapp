@@ -1,4 +1,6 @@
 """Tests for the Proposals MCP connector HTTP endpoint."""
+from unittest import mock
+
 import pytest
 
 from content.models import BusinessProposal, McpConnector
@@ -88,14 +90,30 @@ class TestProposalsMcp:
         copy_obj = BusinessProposal.objects.get(title='Base (copia)')
         assert copy_obj.status == BusinessProposal.Status.DRAFT
 
-    def test_invalid_status_transition_errors(self, api_client, proposals_connector):
+    def test_forced_status_transition_succeeds_without_side_effects(
+        self, api_client, proposals_connector,
+    ):
         proposal = BusinessProposal.objects.create(
             title='T', client_name='C', status=BusinessProposal.Status.DRAFT,
         )
         _, token = proposals_connector
-        # draft → accepted is not allowed.
+        # draft → accepted is a forced admin jump: allowed, no onboarding.
+        with mock.patch('content.tasks.run_platform_onboarding') as mock_task:
+            response = _call(api_client, token, 'update_proposal_status', {
+                'proposal_id': proposal.id, 'status': 'accepted',
+            })
+        assert response.data['result']['isError'] is False
+        proposal.refresh_from_db()
+        assert proposal.status == BusinessProposal.Status.ACCEPTED
+        mock_task.assert_not_called()
+
+    def test_unknown_status_errors(self, api_client, proposals_connector):
+        proposal = BusinessProposal.objects.create(
+            title='T2', client_name='C', status=BusinessProposal.Status.DRAFT,
+        )
+        _, token = proposals_connector
         response = _call(api_client, token, 'update_proposal_status', {
-            'proposal_id': proposal.id, 'status': 'accepted',
+            'proposal_id': proposal.id, 'status': 'bogus',
         })
         assert response.data['result']['isError'] is True
 

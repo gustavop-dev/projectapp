@@ -50,6 +50,23 @@
       <p v-if="actions.length === 0" class="text-sm text-text-muted text-center py-6">
         No hay acciones disponibles para esta propuesta.
       </p>
+
+      <!-- Cambiar estado (modo admin) -->
+      <div class="mt-2 pt-3 border-t border-border-muted">
+        <div class="flex items-center justify-between gap-3 p-3">
+          <div class="min-w-0">
+            <span class="text-sm font-medium text-text-default block">Cambiar estado</span>
+            <span class="text-xs text-text-muted block mt-0.5">
+              Fuerza cualquier estado. Fuera del flujo normal no se envían correos ni automatizaciones.
+            </span>
+          </div>
+          <ProposalStatusSelect
+            :proposal="proposal"
+            data-testid="proposal-actions-status-select"
+            @change="(s) => { $emit('change-status', s); $emit('close'); }"
+          />
+        </div>
+      </div>
     </div>
   </BaseModal>
 </template>
@@ -57,6 +74,7 @@
 <script setup>
 import { computed } from 'vue';
 import BaseModal from '~/components/base/BaseModal.vue';
+import ProposalStatusSelect from '~/components/panel/proposal/ProposalStatusSelect.vue';
 import { getProposalNextAction } from '~/utils/proposalNextAction';
 
 const props = defineProps({
@@ -66,7 +84,7 @@ const props = defineProps({
 
 const emit = defineEmits([
   'send', 'send-multi', 'resend', 'negotiate', 'approve', 'launch', 'finish', 'reject',
-  'discount-offer', 'close',
+  'discount-offer', 'change-status', 'close',
 ]);
 
 const suggestedKey = computed(() => getProposalNextAction(props.proposal)?.key || null);

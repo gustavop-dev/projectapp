@@ -28,8 +28,11 @@ class BusinessProposal(models.Model):
         EXPIRED = 'expired', 'Expired'
         FINISHED = 'finished', 'Finished'
 
-    # Whitelist of allowed manual status transitions (seller-initiated).
-    # 'viewed' and 'expired' are system-only — not available as manual targets.
+    # Natural status transitions of the proposal lifecycle. Admins may force
+    # ANY status from the panel (see proposal_status_service.change_status);
+    # this map now gates side effects (emails, onboarding) and feeds
+    # available_transitions so the UI can group "Flujo normal" vs "Forzar".
+    # 'viewed' and 'expired' are system-set, never natural manual targets.
     ALLOWED_TRANSITIONS = {
         Status.DRAFT:       frozenset({Status.SENT}),
         Status.SENT:        frozenset({Status.NEGOTIATING, Status.REJECTED}),

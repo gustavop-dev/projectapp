@@ -37,7 +37,7 @@ from content.serializers.proposal import (
     ProposalListSerializer,
     ProposalShareLinkSerializer,
 )
-from content.services import proposal_service
+from content.services import proposal_service, proposal_status_service
 from content.services.proposal_service import ProposalService
 
 
@@ -127,37 +127,13 @@ def update_proposal(arguments):
 
 def update_proposal_status(arguments):
     proposal = _get_proposal_or_error(arguments.get('proposal_id'))
-    new_status = (arguments.get('status') or '').strip()
-    valid_statuses = {c[0] for c in BusinessProposal.Status.choices}
-    if new_status not in valid_statuses:
-        raise ToolError(f'Estado no válido: {new_status}.')
-
-    allowed = BusinessProposal.ALLOWED_TRANSITIONS.get(proposal.status, frozenset())
-    if new_status not in allowed:
-        current_label = BusinessProposal.status_label_es(proposal.status)
-        target_label = BusinessProposal.status_label_es(new_status)
-        raise ToolError(
-            f'No se puede cambiar el estado de «{current_label}» a «{target_label}».'
+    try:
+        proposal_status_service.change_status(
+            proposal, arguments.get('status'),
+            source='vía MCP', acting_user_id=None,
         )
-
-    old_status = proposal.status
-    if old_status == BusinessProposal.Status.DRAFT and new_status == BusinessProposal.Status.SENT:
-        try:
-            ProposalService.send_proposal(proposal)
-        except ValueError as exc:
-            raise ToolError(str(exc))
-        ProposalChangeLog.objects.create(
-            proposal=proposal, change_type='sent', actor_type='seller',
-            description=f'Proposal sent to {proposal.client_email} (vía MCP).',
-        )
-    else:
-        proposal.status = new_status
-        proposal.save(update_fields=['status'])
-        ProposalChangeLog.objects.create(
-            proposal=proposal, change_type='status_change', field_name='status',
-            old_value=old_status, new_value=new_status, actor_type='seller',
-            description=f'Status changed from {old_status} to {new_status} (vía MCP).',
-        )
+    except ValueError as exc:  # includes ProposalActionError
+        raise ToolError(str(exc))
     return _detail(proposal)
 
 
@@ -357,8 +333,10 @@ PROPOSAL_TOOLS = [
     {
         'name': 'update_proposal_status',
         'description': (
-            'Cambia el estado respetando las transiciones permitidas. '
-            'draft→sent envía la propuesta por email y agenda recordatorios.'
+            'Cambia el estado a cualquier valor (modo admin). Los efectos '
+            '(email en draft→sent, onboarding en negotiating→accepted, correo '
+            'en accepted→finished) solo se disparan en sus transiciones '
+            'naturales; los saltos forzados solo guardan y loggean.'
         ),
         'input_schema': {
             'type': 'object',

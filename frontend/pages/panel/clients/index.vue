@@ -260,12 +260,11 @@
                       </NuxtLink>
                     </td>
                     <td class="px-4 py-3">
-                      <span
-                        class="text-xs px-2.5 py-1 rounded-full font-medium"
-                        :class="statusClass(p.status)"
-                      >
-                        {{ p.status }}
-                      </span>
+                      <ProposalStatusSelect
+                        :proposal="p"
+                        :updating="updatingProposalStatusId === p.id"
+                        @change="(s) => onProposalStatusSelect(client, p, s)"
+                      />
                     </td>
                     <td class="px-4 py-3 text-text-muted/60 tabular-nums">
                       ${{ Number(p.total_investment).toLocaleString() }} {{ p.currency }}
@@ -563,7 +562,9 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
+import ProposalStatusSelect from '~/components/panel/proposal/ProposalStatusSelect.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { useProposalStatusChange } from '~/composables/useProposalStatusChange';
 import { useClientFilters } from '~/composables/useClientFilters';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -583,6 +584,18 @@ const diagnosticsStore = useDiagnosticsStore();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =
   useConfirmModal();
 const notify = usePanelNotify();
+
+// Inline status change for the nested proposal rows. No onNegotiate here:
+// natural negotiating PATCHes directly; the contract flow lives in the
+// proposal edit view.
+const { updatingId: updatingProposalStatusId, changeStatus: changeProposalStatus } =
+  useProposalStatusChange({ requestConfirm });
+
+async function onProposalStatusSelect(client, proposal, newStatus) {
+  const result = await changeProposalStatus(proposal, newStatus);
+  // Refresh on success AND failure: the nested row may be stale either way.
+  if (result) await refreshClientDetail(client.id);
+}
 
 const {
   currentFilters,

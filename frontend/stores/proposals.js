@@ -461,6 +461,8 @@ export const useProposalStore = defineStore('proposals', {
         const idx = this.proposals.findIndex((p) => p.id === id);
         if (idx !== -1) {
           this.proposals[idx].status = response.data.status;
+          this.proposals[idx].available_transitions = response.data.available_transitions || [];
+          this.proposals[idx].sent_at = response.data.sent_at ?? this.proposals[idx].sent_at;
         }
         return {
           success: true,

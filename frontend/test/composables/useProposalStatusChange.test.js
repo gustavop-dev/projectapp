@@ -1,0 +1,139 @@
+/**
+ * Tests for useProposalStatusChange (shared confirm + PATCH + notify flow).
+ *
+ * Covers: same-status no-op, natural transitions without confirm, forced
+ * transitions requiring confirm, cancellation, the negotiating interception,
+ * email-delivery warnings with resend action, and error notifications.
+ */
+
+const mockUpdateProposalStatus = jest.fn();
+jest.mock('../../stores/proposals', () => ({
+  useProposalStore: () => ({ updateProposalStatus: mockUpdateProposalStatus }),
+}));
+
+const mockNotify = {
+  success: jest.fn(),
+  warning: jest.fn(),
+  error: jest.fn(),
+};
+jest.mock('../../composables/usePanelNotify', () => ({
+  usePanelNotify: () => mockNotify,
+}));
+
+const { useProposalStatusChange } = require('../../composables/useProposalStatusChange');
+
+function buildProposal(overrides = {}) {
+  return {
+    id: 7,
+    status: 'sent',
+    available_transitions: ['negotiating', 'rejected'],
+    ...overrides,
+  };
+}
+
+describe('useProposalStatusChange', () => {
+  let requestConfirm;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    requestConfirm = jest.fn().mockResolvedValue(true);
+    mockUpdateProposalStatus.mockResolvedValue({ success: true, email_delivery: null });
+  });
+
+  it('returns null without PATCH when the status is unchanged', async () => {
+    const { changeStatus } = useProposalStatusChange({ requestConfirm });
+    const result = await changeStatus(buildProposal(), 'sent');
+
+    expect(result).toBeNull();
+    expect(mockUpdateProposalStatus).not.toHaveBeenCalled();
+  });
+
+  it('PATCHes a natural non-email transition without confirmation', async () => {
+    const { changeStatus } = useProposalStatusChange({ requestConfirm });
+    const result = await changeStatus(buildProposal(), 'rejected');
+
+    expect(requestConfirm).not.toHaveBeenCalled();
+    expect(mockUpdateProposalStatus).toHaveBeenCalledWith(7, 'rejected');
+    expect(result.success).toBe(true);
+    expect(mockNotify.success).toHaveBeenCalled();
+  });
+
+  it('asks for confirmation on forced transitions and aborts on cancel', async () => {
+    requestConfirm.mockResolvedValue(false);
+    const { changeStatus } = useProposalStatusChange({ requestConfirm });
+    const result = await changeStatus(buildProposal(), 'finished');
+
+    expect(requestConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Forzar cambio de estado', variant: 'warning' }),
+    );
+    expect(result).toBeNull();
+    expect(mockUpdateProposalStatus).not.toHaveBeenCalled();
+  });
+
+  it('PATCHes a forced transition after confirmation', async () => {
+    const { changeStatus } = useProposalStatusChange({ requestConfirm });
+    const result = await changeStatus(buildProposal(), 'draft');
+
+    expect(requestConfirm).toHaveBeenCalled();
+    expect(mockUpdateProposalStatus).toHaveBeenCalledWith(7, 'draft');
+    expect(result.success).toBe(true);
+  });
+
+  it('asks for confirmation on the natural draft→sent email transition', async () => {
+    const { changeStatus } = useProposalStatusChange({ requestConfirm });
+    await changeStatus(
+      buildProposal({ status: 'draft', available_transitions: ['sent'] }), 'sent',
+    );
+
+    expect(requestConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Enviar propuesta' }),
+    );
+    expect(mockUpdateProposalStatus).toHaveBeenCalledWith(7, 'sent');
+  });
+
+  it('intercepts natural negotiating with onNegotiate instead of PATCHing', async () => {
+    const onNegotiate = jest.fn();
+    const { changeStatus } = useProposalStatusChange({ requestConfirm, onNegotiate });
+    const proposal = buildProposal();
+    const result = await changeStatus(proposal, 'negotiating');
+
+    expect(onNegotiate).toHaveBeenCalledWith(proposal);
+    expect(result).toBeNull();
+    expect(mockUpdateProposalStatus).not.toHaveBeenCalled();
+  });
+
+  it('warns with a resend action when the client email failed', async () => {
+    mockUpdateProposalStatus.mockResolvedValue({
+      success: true,
+      email_delivery: { ok: false, detail: 'SMTP caido' },
+    });
+    const resend = jest.fn();
+    const { changeStatus } = useProposalStatusChange({ requestConfirm, resend });
+    await changeStatus(
+      buildProposal({ status: 'draft', available_transitions: ['sent'] }), 'sent',
+    );
+
+    expect(mockNotify.warning).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Estado actualizado',
+        detail: 'SMTP caido',
+        action: expect.objectContaining({ label: 'Reenviar' }),
+      }),
+    );
+    mockNotify.warning.mock.calls[0][0].action.handler();
+    expect(resend).toHaveBeenCalledWith(7);
+  });
+
+  it('notifies an error when the backend rejects the change', async () => {
+    mockUpdateProposalStatus.mockResolvedValue({
+      success: false, message: 'Ya está en ese estado', hint: 'Recarga',
+    });
+    const { changeStatus } = useProposalStatusChange({ requestConfirm });
+    const result = await changeStatus(buildProposal(), 'rejected');
+
+    expect(result.success).toBe(false);
+    expect(mockNotify.error).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Ya está en ese estado', detail: 'Recarga' }),
+    );
+  });
+});

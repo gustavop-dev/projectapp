@@ -19,19 +19,46 @@ class TestUpdateProposalStatusAccepted:
         assert resp.status_code == 400
         assert resp.json()['code'] == 'invalid_status'
 
-    def test_returns_400_for_disallowed_transition(self, admin_client, proposal):
-        # proposal fixture is 'draft' — cannot go to 'accepted' directly
-        resp = admin_client.patch(self._url(proposal), {'status': 'accepted'}, format='json')
+    def test_forced_transition_succeeds_and_logs_forced_marker(self, admin_client, proposal):
+        # proposal fixture is 'draft' — jumping straight to 'accepted' is a
+        # forced admin change: allowed, logged, and side-effect free.
+        with patch('content.tasks.run_platform_onboarding') as mock_task:
+            resp = admin_client.patch(self._url(proposal), {'status': 'accepted'}, format='json')
+
+        assert resp.status_code == 200
+        proposal.refresh_from_db()
+        assert proposal.status == 'accepted'
+        log = ProposalChangeLog.objects.get(
+            proposal=proposal, change_type='status_change', new_value='accepted',
+        )
+        assert 'admin forced' in log.description
+        mock_task.assert_not_called()
+
+    def test_same_status_returns_400_with_same_status_code(self, admin_client, proposal):
+        resp = admin_client.patch(self._url(proposal), {'status': 'draft'}, format='json')
 
         assert resp.status_code == 400
-        assert resp.json()['code'] == 'invalid_transition'
+        body = resp.json()
+        assert body['code'] == 'same_status'
+        # Human message uses the Spanish status label, not the raw key.
+        assert 'Borrador' in body['error']
 
-    def test_disallowed_transition_message_uses_spanish_labels(self, admin_client, proposal):
-        resp = admin_client.patch(self._url(proposal), {'status': 'accepted'}, format='json')
+    def test_forced_to_sent_does_not_send_email_or_set_sent_at(self, admin_client, viewed_proposal):
+        # Only the natural draft→sent path may dispatch the client email.
+        with patch('content.services.proposal_service.ProposalService.send_proposal') as mock_send:
+            resp = admin_client.patch(self._url(viewed_proposal), {'status': 'sent'}, format='json')
 
-        # Human message uses the Spanish status labels, not raw keys.
-        assert 'Borrador' in resp.json()['error']
-        assert 'Aceptada' in resp.json()['error']
+        assert resp.status_code == 200
+        viewed_proposal.refresh_from_db()
+        assert viewed_proposal.status == 'sent'
+        mock_send.assert_not_called()
+
+    def test_forced_accepted_does_not_enqueue_onboarding(self, admin_client, sent_proposal):
+        with patch('content.tasks.run_platform_onboarding') as mock_task:
+            resp = admin_client.patch(self._url(sent_proposal), {'status': 'accepted'}, format='json')
+
+        assert resp.status_code == 200
+        mock_task.assert_not_called()
 
     def test_draft_to_sent_without_email_returns_missing_email_code(self, admin_client, proposal):
         # Real path (no mock): sending dispatches the client email, which requires
@@ -193,21 +220,33 @@ class TestUpdateProposalStatusFinished:
         called_with = mock_send.call_args[0][0]
         assert called_with.id == accepted_proposal.id
 
-    def test_finished_transition_from_sent_returns_400(self, admin_client, sent_proposal):
+    def test_forced_finished_from_sent_does_not_send_finished_email(self, admin_client, sent_proposal):
+        with patch(
+            'content.services.proposal_email_service.ProposalEmailService.send_finished_confirmation'
+        ) as mock_send:
+            resp = admin_client.patch(
+                self._url(sent_proposal), {'status': 'finished'}, format='json'
+            )
+
+        assert resp.status_code == 200
+        sent_proposal.refresh_from_db()
+        assert sent_proposal.status == 'finished'
+        mock_send.assert_not_called()
+
+    def test_forced_backwards_to_draft_succeeds(self, admin_client, accepted_proposal):
         resp = admin_client.patch(
-            self._url(sent_proposal), {'status': 'finished'}, format='json'
+            self._url(accepted_proposal), {'status': 'draft'}, format='json'
         )
 
-        assert resp.status_code == 400
-        assert resp.json()['code'] == 'invalid_transition'
-
-    def test_finished_transition_from_negotiating_returns_400(self, admin_client, negotiating_proposal):
-        resp = admin_client.patch(
-            self._url(negotiating_proposal), {'status': 'finished'}, format='json'
-        )
-
-        assert resp.status_code == 400
-        assert resp.json()['code'] == 'invalid_transition'
+        assert resp.status_code == 200
+        accepted_proposal.refresh_from_db()
+        assert accepted_proposal.status == 'draft'
+        assert ProposalChangeLog.objects.filter(
+            proposal=accepted_proposal,
+            change_type='status_change',
+            old_value='accepted',
+            new_value='draft',
+        ).exists()
 
 
 class TestLaunchToPlatform:
