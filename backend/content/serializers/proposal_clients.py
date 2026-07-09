@@ -47,6 +47,8 @@ class ProposalClientSerializer(serializers.ModelSerializer):
     projects_count = serializers.SerializerMethodField()
     diagnostics_count = serializers.SerializerMethodField()
     is_orphan = serializers.SerializerMethodField()
+    is_inactive = serializers.SerializerMethodField()
+    deactivated_at = serializers.DateTimeField(read_only=True)
     accepted_count = serializers.SerializerMethodField()
     last_status = serializers.SerializerMethodField()
     last_sent_at = serializers.SerializerMethodField()
@@ -68,6 +70,8 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'projects_count',
             'diagnostics_count',
             'is_orphan',
+            'is_inactive',
+            'deactivated_at',
             'accepted_count',
             'last_status',
             'last_sent_at',
@@ -85,6 +89,8 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'projects_count',
             'diagnostics_count',
             'is_orphan',
+            'is_inactive',
+            'deactivated_at',
             'accepted_count',
             'last_status',
             'last_sent_at',
@@ -133,6 +139,9 @@ class ProposalClientSerializer(serializers.ModelSerializer):
         if diagnostics_annotated is not None:
             return diagnostics_annotated == 0
         return not obj.web_app_diagnostics.exists()
+
+    def get_is_inactive(self, obj):
+        return obj.deactivated_at is not None
 
     def get_accepted_count(self, obj):
         annotated = getattr(obj, 'accepted_count', None)

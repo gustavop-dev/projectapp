@@ -111,6 +111,14 @@ class UserProfile(models.Model):
         default=False,
         help_text='True after the client fills in their profile details.',
     )
+    deactivated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        default=None,
+        help_text='When set, this client is marked inactive and hidden from '
+                  'the default panel client lists. Independent from '
+                  'auth.User.is_active, which is False for client shells.',
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -142,6 +150,11 @@ class UserProfile(models.Model):
     def is_email_placeholder(self):
         """True when the linked user's email is a generated temp placeholder."""
         return (self.user.email or '').endswith(self.PLACEHOLDER_EMAIL_DOMAIN)
+
+    @property
+    def is_inactive_client(self):
+        """True when the client was manually marked inactive in the panel."""
+        return self.deactivated_at is not None
 
     @property
     def avatar_display_url(self):

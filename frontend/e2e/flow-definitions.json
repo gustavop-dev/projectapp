@@ -1922,6 +1922,16 @@
       "description": "Verify that active clients (with proposals or projects) do not expose the delete trash icon.",
       "expectedSpecs": 1
     },
+    "admin-client-inactive-tab": {
+      "name": "Admin Client Inactive Tab",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Inactivos tab lists only manually deactivated clients (inactive=true) and the pause/play toggle marks a client inactive or reactivates it.",
+      "expectedSpecs": 1
+    },
     "admin-proposal-client-autocomplete": {
       "name": "Admin Proposal Client Autocomplete",
       "module": "admin",

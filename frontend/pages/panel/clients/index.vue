@@ -125,6 +125,13 @@
                 >
                   Huérfano
                 </span>
+                <span
+                  v-if="client.is_inactive"
+                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong font-medium uppercase tracking-wide"
+                  title="Cliente marcado como inactivo — oculto de los demás tabs"
+                >
+                  Inactivo
+                </span>
               </div>
               <p class="text-xs text-text-subtle mt-0.5 truncate">
                 {{ client.is_email_placeholder ? 'Email pendiente' : client.email }}
@@ -162,6 +169,18 @@
               @click.stop="openEditModal(client)"
             >
               <PencilSquareIcon class="w-4 h-4" />
+            </button>
+
+            <!-- Inactive toggle button -->
+            <button
+              type="button"
+              :data-testid="`client-toggle-inactive-${client.id}`"
+              class="p-1.5 rounded-lg text-text-subtle hover:text-warning-strong hover:bg-warning-soft transition-colors"
+              :title="client.is_inactive ? 'Reactivar cliente' : 'Marcar como inactivo'"
+              @click.stop="toggleInactive(client)"
+            >
+              <PlayCircleIcon v-if="client.is_inactive" class="w-4 h-4" />
+              <PauseCircleIcon v-else class="w-4 h-4" />
             </button>
 
             <!-- Trash button -->
@@ -538,7 +557,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue';
-import { PlusIcon, TrashIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
+import { PlusIcon, TrashIcon, PencilSquareIcon, PauseCircleIcon, PlayCircleIcon } from '@heroicons/vue/24/outline';
 import SidebarIcon from '~/components/platform/SidebarIcon.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
@@ -602,6 +621,7 @@ const tabs = [
   { id: 'all', label: 'Todos' },
   { id: 'active', label: 'Activos' },
   { id: 'orphans', label: 'Huérfanos' },
+  { id: 'inactive', label: 'Inactivos' },
 ];
 const activeTab = ref('all');
 const search = ref('');
@@ -619,7 +639,11 @@ async function loadClients() {
   let orphans = null;
   if (activeTab.value === 'orphans') orphans = true;
   else if (activeTab.value === 'active') orphans = false;
-  await clientsStore.fetchClients({ search: search.value.trim(), orphans });
+  await clientsStore.fetchClients({
+    search: search.value.trim(),
+    orphans,
+    inactive: activeTab.value === 'inactive',
+  });
 }
 
 /**
@@ -646,6 +670,19 @@ async function refreshAll() {
 function setActiveTab(tabId) {
   activeTab.value = tabId;
   loadClients();
+}
+
+async function toggleInactive(client) {
+  const makeInactive = !client.is_inactive;
+  const result = await clientsStore.updateClient(client.id, { is_inactive: makeInactive });
+  if (result.success) {
+    notify.success(makeInactive
+      ? `"${client.name}" marcado como inactivo.`
+      : `"${client.name}" reactivado.`);
+    await loadClients();
+  } else {
+    notify.error('No se pudo actualizar el estado del cliente.');
+  }
 }
 
 function onSearchInput() {

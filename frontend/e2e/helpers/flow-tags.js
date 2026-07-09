@@ -217,6 +217,7 @@ export const ADMIN_PROPOSAL_PROJECT_SCHEDULE = ['@flow:admin-proposal-project-sc
 export const ADMIN_CLIENT_CREATE_STANDALONE = ['@flow:admin-client-create-standalone', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_DELETE_ORPHAN = ['@flow:admin-client-delete-orphan', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_DELETE_PROTECTED = ['@flow:admin-client-delete-protected', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENT_INACTIVE_TAB = ['@flow:admin-client-inactive-tab', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_CLIENT_AUTOCOMPLETE = ['@flow:admin-proposal-client-autocomplete', '@module:admin', '@priority:P1'];
 export const ADMIN_PROPOSAL_CLIENT_NO_EMAIL = ['@flow:admin-proposal-client-no-email', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_UPDATE_CLIENT = ['@flow:admin-proposal-update-client', '@module:admin', '@priority:P2'];
