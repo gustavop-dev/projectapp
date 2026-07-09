@@ -86,6 +86,57 @@ def test_create_diagnostic_returns_404_when_user_is_not_client_role(admin_client
 
 
 # ---------------------------------------------------------------------------
+# update_diagnostic — client reassignment (drag-and-drop between clients)
+# ---------------------------------------------------------------------------
+
+def test_update_diagnostic_with_client_id_reassigns_and_resyncs_snapshot(
+    admin_client, diagnostic,
+):
+    target_user = User.objects.create_user(
+        username='nuevo@cliente.com', email='nuevo@cliente.com', password='x',
+        first_name='Nueva', last_name='Clienta',
+    )
+    target = UserProfile.objects.create(
+        user=target_user, role=UserProfile.ROLE_CLIENT,
+        phone='+57 300 1111', company_name='NuevaCo',
+    )
+
+    response = admin_client.patch(
+        f'/api/diagnostics/{diagnostic.id}/update/',
+        data={'client_id': target.pk},
+        format='json',
+    )
+
+    assert response.status_code == 200
+    diagnostic.refresh_from_db()
+    assert diagnostic.client_id == target.pk
+    # Snapshot rebuilt from the new profile, not left stale.
+    assert diagnostic.client_name == 'Nueva Clienta'
+    assert diagnostic.client_company == 'NuevaCo'
+    assert diagnostic.client_phone == '+57 300 1111'
+    assert diagnostic.client_email == 'nuevo@cliente.com'
+
+
+def test_update_diagnostic_rejects_non_client_profile_as_client_id(
+    admin_client, diagnostic, admin_user,
+):
+    admin_profile = UserProfile.objects.filter(user=admin_user).first()
+    if admin_profile is None:
+        admin_profile = UserProfile.objects.create(user=admin_user, role=UserProfile.ROLE_ADMIN)
+    original_client_id = diagnostic.client_id
+
+    response = admin_client.patch(
+        f'/api/diagnostics/{diagnostic.id}/update/',
+        data={'client_id': admin_profile.pk},
+        format='json',
+    )
+
+    assert response.status_code == 400
+    diagnostic.refresh_from_db()
+    assert diagnostic.client_id == original_client_id
+
+
+# ---------------------------------------------------------------------------
 # bulk_update_diagnostic_sections — error and edge-case branches
 # ---------------------------------------------------------------------------
 

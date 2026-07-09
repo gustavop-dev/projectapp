@@ -361,6 +361,31 @@ def sync_snapshot(proposal):
     return proposal
 
 
+def sync_diagnostic_snapshot(diagnostic):
+    """
+    Mirror the canonical client identity onto the snapshot fields of a
+    single diagnostic. Called from serializers right after reassigning
+    ``diagnostic.client``. Saves the diagnostic in-place.
+
+    Same email rule as ``sync_snapshot``: the ``client_email`` snapshot is
+    only overwritten when the linked user has a real (non-placeholder)
+    email — otherwise the typed ``client_email`` is preserved.
+    """
+    profile = diagnostic.client
+    if profile is None:
+        return diagnostic
+    user = profile.user
+    diagnostic.client_name = build_client_display_name(profile)
+    diagnostic.client_phone = profile.phone or ''
+    diagnostic.client_company = profile.company_name or ''
+    update_fields = ['client_name', 'client_phone', 'client_company']
+    if user.email and not user.email.endswith(UserProfile.PLACEHOLDER_EMAIL_DOMAIN):
+        diagnostic.client_email = user.email
+        update_fields.append('client_email')
+    diagnostic.save(update_fields=update_fields)
+    return diagnostic
+
+
 @transaction.atomic
 def delete_orphan_client(profile):
     """

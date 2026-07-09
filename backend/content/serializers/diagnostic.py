@@ -3,7 +3,10 @@
 from rest_framework import serializers
 
 from accounts.models import UserProfile
-from accounts.services.proposal_client_service import build_client_display_name
+from accounts.services.proposal_client_service import (
+    build_client_display_name,
+    sync_diagnostic_snapshot,
+)
 from content.models import (
     DiagnosticAttachment,
     DiagnosticChangeLog,
@@ -234,7 +237,15 @@ class DiagnosticUpdateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         validated_data.pop('propagate_client_updates', None)
-        return super().update(instance, validated_data)
+        new_client = validated_data.get('client')
+        client_changed = new_client is not None and new_client.pk != instance.client_id
+        diagnostic = super().update(instance, validated_data)
+        if client_changed:
+            # Reassignment: rebuild the snapshot from the new profile so the
+            # list views show the new client, mirroring proposals'
+            # sync_snapshot behavior on client_id switches.
+            sync_diagnostic_snapshot(diagnostic)
+        return diagnostic
 
 
 class PublicDiagnosticSerializer(serializers.ModelSerializer):

@@ -1932,6 +1932,16 @@
       "description": "Inactivos tab lists only manually deactivated clients (inactive=true) and the pause/play toggle marks a client inactive or reactivates it.",
       "expectedSpecs": 1
     },
+    "admin-client-drag-reassign": {
+      "name": "Admin Client Drag Reassign",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Drag a proposal or diagnostic row from an expanded client and drop it on another client card header to reassign it (PATCH client_id) with an undo notification.",
+      "expectedSpecs": 1
+    },
     "admin-proposal-client-autocomplete": {
       "name": "Admin Proposal Client Autocomplete",
       "module": "admin",
