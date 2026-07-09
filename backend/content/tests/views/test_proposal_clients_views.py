@@ -65,6 +65,17 @@ def orphan_client(db):
 
 
 @pytest.fixture
+def diagnostic_only_client(db):
+    """Client whose only linked object is a WebAppDiagnostic — NOT an orphan."""
+    profile = proposal_client_service.get_or_create_client_for_proposal(
+        name='Diagnostico Cliente', email='diag@gmail.com',
+    )
+    from content.models.web_app_diagnostic import WebAppDiagnostic
+    WebAppDiagnostic.objects.create(client=profile, status='draft')
+    return profile
+
+
+@pytest.fixture
 def placeholder_client(db):
     """Client created with empty email — placeholder, no proposals."""
     return proposal_client_service.get_or_create_client_for_proposal(
@@ -115,6 +126,29 @@ class TestListProposalClients:
         ids = [c['id'] for c in response.data]
         assert real_client_with_proposal.pk in ids
         assert orphan_client.pk not in ids
+
+    def test_orphans_filter_true_excludes_client_with_only_diagnostic(
+        self, admin_client, orphan_client, diagnostic_only_client,
+    ):
+        response = admin_client.get(
+            reverse('list-proposal-clients'), {'orphans': 'true'},
+        )
+        assert response.status_code == 200
+        ids = [c['id'] for c in response.data]
+        assert orphan_client.pk in ids
+        assert diagnostic_only_client.pk not in ids
+
+    def test_orphans_filter_false_includes_client_with_only_diagnostic(
+        self, admin_client, orphan_client, diagnostic_only_client,
+    ):
+        response = admin_client.get(
+            reverse('list-proposal-clients'), {'orphans': 'false'},
+        )
+        assert response.status_code == 200
+        rows = {c['id']: c for c in response.data}
+        assert diagnostic_only_client.pk in rows
+        assert rows[diagnostic_only_client.pk]['is_orphan'] is False
+        assert orphan_client.pk not in rows
 
     def test_unauthenticated_user_is_rejected(self, api_client):
         response = api_client.get(reverse('list-proposal-clients'))
