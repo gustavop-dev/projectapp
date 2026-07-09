@@ -360,6 +360,9 @@ SECTION_CONTENT_SCHEMAS = {
             'hours': NUMERIC,
             'discountPercent': NUMERIC,
             'note': str,
+            # Optional per-package rate (catalog-seeded); falls back to the
+            # section-level hourlyRate when absent.
+            'hourlyRate': NUMERIC,
         }],
         'effortBadge': str,
         'scopeTitle': str,

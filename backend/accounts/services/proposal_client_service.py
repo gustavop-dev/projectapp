@@ -28,6 +28,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 
 from accounts.models import UserProfile
 
@@ -213,13 +214,15 @@ def _maybe_fill_user_names(user, first_name, last_name):
 
 
 @transaction.atomic
-def update_client_profile(profile, *, name=None, email=None, phone=None, company=None):
+def update_client_profile(profile, *, name=None, email=None, phone=None,
+                          company=None, is_inactive=None):
     """
     Update the canonical client identity (User + UserProfile) and cascade
     the new values to all linked proposals' snapshots.
 
     Any argument left as ``None`` is preserved. Pass an empty string to
-    explicitly clear a field.
+    explicitly clear a field. ``is_inactive`` toggles the manual inactive
+    mark (``deactivated_at``); it never triggers a snapshot cascade.
     """
     user = profile.user
     user_dirty = []
@@ -267,13 +270,25 @@ def update_client_profile(profile, *, name=None, email=None, phone=None, company
             profile.company_name = company
             profile_dirty.append('company_name')
 
+    if is_inactive is not None:
+        if is_inactive and profile.deactivated_at is None:
+            profile.deactivated_at = timezone.now()
+            profile_dirty.append('deactivated_at')
+        elif not is_inactive and profile.deactivated_at is not None:
+            profile.deactivated_at = None
+            profile_dirty.append('deactivated_at')
+
+    snapshot_dirty = bool(user_dirty) or any(
+        field in ('phone', 'company_name') for field in profile_dirty
+    )
+
     if user_dirty:
         user.save(update_fields=user_dirty)
     if profile_dirty:
         profile_dirty.append('updated_at')
         profile.save(update_fields=profile_dirty)
 
-    if user_dirty or profile_dirty:
+    if snapshot_dirty:
         sync_snapshot_for_profile(profile)
 
     return profile
@@ -344,6 +359,31 @@ def sync_snapshot(proposal):
         update_fields.append('client_email')
     proposal.save(update_fields=update_fields)
     return proposal
+
+
+def sync_diagnostic_snapshot(diagnostic):
+    """
+    Mirror the canonical client identity onto the snapshot fields of a
+    single diagnostic. Called from serializers right after reassigning
+    ``diagnostic.client``. Saves the diagnostic in-place.
+
+    Same email rule as ``sync_snapshot``: the ``client_email`` snapshot is
+    only overwritten when the linked user has a real (non-placeholder)
+    email — otherwise the typed ``client_email`` is preserved.
+    """
+    profile = diagnostic.client
+    if profile is None:
+        return diagnostic
+    user = profile.user
+    diagnostic.client_name = build_client_display_name(profile)
+    diagnostic.client_phone = profile.phone or ''
+    diagnostic.client_company = profile.company_name or ''
+    update_fields = ['client_name', 'client_phone', 'client_company']
+    if user.email and not user.email.endswith(UserProfile.PLACEHOLDER_EMAIL_DOMAIN):
+        diagnostic.client_email = user.email
+        update_fields.append('client_email')
+    diagnostic.save(update_fields=update_fields)
+    return diagnostic
 
 
 @transaction.atomic

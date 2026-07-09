@@ -87,7 +87,10 @@ def list_proposal_clients(request):
     Query params:
         - ``search``: case-insensitive match on email, first/last name, company.
         - ``orphans``: ``true`` returns only profiles with 0 proposals AND
-          0 projects. ``false`` returns the inverse. Omit to include all.
+          0 projects AND 0 diagnostics (matches ``is_orphan`` and the delete
+          guard). ``false`` returns the inverse. Omit to include all.
+        - ``inactive``: ``true`` returns only manually deactivated clients.
+          Omitted/``false`` excludes them (panel default).
         - ``limit``: max rows to return (default 100, hard cap 500).
     """
     qs = _base_queryset()
@@ -103,9 +106,17 @@ def list_proposal_clients(request):
 
     orphans = _parse_bool(request.query_params.get('orphans'))
     if orphans is True:
-        qs = qs.filter(proposals_count=0, projects_count=0)
+        qs = qs.filter(proposals_count=0, projects_count=0, diagnostics_count=0)
     elif orphans is False:
-        qs = qs.exclude(proposals_count=0, projects_count=0)
+        qs = qs.exclude(proposals_count=0, projects_count=0, diagnostics_count=0)
+
+    inactive = _parse_bool(request.query_params.get('inactive'))
+    if inactive is True:
+        qs = qs.filter(deactivated_at__isnull=False)
+    else:
+        # Panel default: manually deactivated clients are hidden from the
+        # Todos/Activos/Huérfanos tabs and only listed under Inactivos.
+        qs = qs.filter(deactivated_at__isnull=True)
 
     try:
         limit = min(int(request.query_params.get('limit', 100)), 500)
@@ -212,6 +223,8 @@ def update_proposal_client(request, client_id):
     for key in ('name', 'email', 'phone', 'company'):
         if key in request.data:
             payload[key] = request.data[key]
+    if 'is_inactive' in request.data:
+        payload['is_inactive'] = _parse_bool(request.data.get('is_inactive'))
 
     if not payload:
         return Response(

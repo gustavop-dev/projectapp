@@ -78,6 +78,12 @@ export const ADMIN_PORTFOLIO_CREATE = ['@flow:admin-portfolio-create', '@module:
 export const ADMIN_PORTFOLIO_EDIT = ['@flow:admin-portfolio-edit', '@module:admin', '@priority:P2'];
 export const ADMIN_PORTFOLIO_DELETE = ['@flow:admin-portfolio-delete', '@module:admin', '@priority:P2'];
 
+// ── Admin Hour Packages ──
+export const ADMIN_HOUR_PACKAGES_LIST = ['@flow:admin-hour-packages-list', '@module:admin', '@priority:P2'];
+export const ADMIN_HOUR_PACKAGES_CREATE = ['@flow:admin-hour-packages-create', '@module:admin', '@priority:P2'];
+export const ADMIN_HOUR_PACKAGES_EDIT = ['@flow:admin-hour-packages-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_HOUR_PACKAGES_DELETE = ['@flow:admin-hour-packages-delete', '@module:admin', '@priority:P2'];
+
 // ── v1.6.0 features ──
 export const ADMIN_PROPOSAL_WIN_RATE_DASHBOARD = ['@flow:admin-proposal-win-rate-dashboard', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_ENGAGEMENT_SCORE = ['@flow:admin-proposal-engagement-score', '@module:admin', '@priority:P2'];
@@ -217,6 +223,8 @@ export const ADMIN_PROPOSAL_PROJECT_SCHEDULE = ['@flow:admin-proposal-project-sc
 export const ADMIN_CLIENT_CREATE_STANDALONE = ['@flow:admin-client-create-standalone', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_DELETE_ORPHAN = ['@flow:admin-client-delete-orphan', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_DELETE_PROTECTED = ['@flow:admin-client-delete-protected', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENT_INACTIVE_TAB = ['@flow:admin-client-inactive-tab', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENT_DRAG_REASSIGN = ['@flow:admin-client-drag-reassign', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_CLIENT_AUTOCOMPLETE = ['@flow:admin-proposal-client-autocomplete', '@module:admin', '@priority:P1'];
 export const ADMIN_PROPOSAL_CLIENT_NO_EMAIL = ['@flow:admin-proposal-client-no-email', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_UPDATE_CLIENT = ['@flow:admin-proposal-update-client', '@module:admin', '@priority:P2'];

@@ -2246,7 +2246,11 @@ def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
             discount = float(_safe(pkg, 'discountPercent', 0) or 0)
         except (TypeError, ValueError):
             discount = 0
-        rate_eff = hourly_rate * (1 - discount / 100)
+        try:
+            pkg_rate = float(_safe(pkg, 'hourlyRate', 0) or 0)
+        except (TypeError, ValueError):
+            pkg_rate = 0
+        rate_eff = (pkg_rate or hourly_rate) * (1 - discount / 100)
         total_price = hours * rate_eff
         note = _safe(pkg, 'note')
 

@@ -147,6 +147,28 @@ class TestUpdateClientProfile:
         profile.user.refresh_from_db()
         assert profile.user.email == f'cliente_{profile.pk}@temp.example.com'
 
+    def test_toggling_is_inactive_does_not_cascade_snapshots(self):
+        profile = proposal_client_service.get_or_create_client_for_proposal(
+            name='Inactiva Test', email='inactiva@gmail.com',
+        )
+        # Stale snapshot on purpose: a cascade would overwrite it.
+        proposal = BusinessProposal.objects.create(
+            title='Stale', client_name='Nombre Viejo',
+            client_email='inactiva@gmail.com', client=profile,
+            total_investment=1000,
+        )
+
+        proposal_client_service.update_client_profile(profile, is_inactive=True)
+
+        profile.refresh_from_db()
+        assert profile.deactivated_at is not None
+        proposal.refresh_from_db()
+        assert proposal.client_name == 'Nombre Viejo'
+
+        proposal_client_service.update_client_profile(profile, is_inactive=False)
+        profile.refresh_from_db()
+        assert profile.deactivated_at is None
+
     def test_sync_snapshot_copies_canonical_fields_to_proposal(self):
         profile = proposal_client_service.get_or_create_client_for_proposal(
             name='Sync Test', email='sync@gmail.com', phone='+57 300', company='SyncCo',

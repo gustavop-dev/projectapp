@@ -3407,6 +3407,7 @@ def build_proposal_from_json(validated_data):
         language=data.get('language', 'es'),
         total_investment=data.get('total_investment', 0),
         currency=data.get('currency', 'COP'),
+        nationality=data.get('nationality', 'COL'),
         expires_at=expires_at,
         reminder_days=data.get('reminder_days', 10),
         urgency_reminder_days=data.get('urgency_reminder_days', 15),
@@ -3426,6 +3427,17 @@ def build_proposal_from_json(validated_data):
             content_json = copy.deepcopy(sections_data[json_key])
         else:
             content_json = copy.deepcopy(section_cfg['content_json'])
+            if section_type == 'commercial_conditions':
+                # No explicit payload for this section: seed it from the
+                # hour-package catalog (falls back to defaults when empty).
+                from content.services.hour_package_service import (
+                    seed_commercial_conditions_from_catalog,
+                )
+                content_json = seed_commercial_conditions_from_catalog(
+                    content_json,
+                    nationality=proposal.nationality,
+                    language=proposal.language,
+                )
 
         if section_type == 'greeting':
             general = sections_data.get('general', {})
@@ -3682,6 +3694,15 @@ def _personalize_seeded_section(proposal, section_cfg):
     if section_cfg['section_type'] == 'greeting':
         section_cfg['content_json']['proposalTitle'] = proposal.title
         section_cfg['content_json']['clientName'] = proposal.client_name
+    if section_cfg['section_type'] == 'commercial_conditions':
+        from content.services.hour_package_service import (
+            seed_commercial_conditions_from_catalog,
+        )
+        section_cfg['content_json'] = seed_commercial_conditions_from_catalog(
+            section_cfg['content_json'],
+            nationality=proposal.nationality,
+            language=proposal.language,
+        )
     if section_cfg['section_type'] == 'investment' and proposal.total_investment:
         total = float(proposal.total_investment)
         cur = proposal.currency or 'COP'

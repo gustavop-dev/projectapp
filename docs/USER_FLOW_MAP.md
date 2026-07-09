@@ -1082,12 +1082,12 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/clients/`
-- **Description:** View a Mini-CRM client list with tab filtering (Todos/Activos/Huérfanos), search, expand client to see linked proposals, and empty state.
+- **Description:** View a Mini-CRM client list with tab filtering (Todos/Activos/Huérfanos/Inactivos), search, expand client to see linked proposals, and empty state. The orphan filter counts proposals, projects AND diagnostics (a client with only a diagnostic is NOT orphan); inactive (manually deactivated) clients are hidden from Todos/Activos/Huérfanos.
 - **Steps:**
   1. Admin navigates to `/panel/clients/`.
   2. Client list loads from `GET /api/proposals/client-profiles/`.
-  3. Clients render with name, email, proposal count, and orphan/placeholder badges.
-  4. Admin uses tab buttons (Todos/Activos/Huérfanos) to filter — sends `?orphans=true/false`.
+  3. Clients render with name, email, proposal count, and orphan/placeholder/inactive badges.
+  4. Admin uses tab buttons (Todos/Activos/Huérfanos/Inactivos) to filter — sends `?orphans=true/false` / `?inactive=true`.
   5. Admin searches clients by name, email, or company.
   6. Admin expands a client row to view individual proposals (lazy-loaded via `GET /api/proposals/client-profiles/:id/`).
   7. Pressing the global panel refresh button invalidates the per-client detail cache and refetches expanded rows, so renamed/reassigned proposals show up.
@@ -1149,6 +1149,40 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-mini-crm-clients.spec.js`
 - **Backend Tests:** `content/tests/views/test_proposal_clients_views.py::TestDeleteProposalClient::test_delete_with_proposals_returns_400_with_error_code`
+
+### FLOW: `admin-client-inactive-tab`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/clients/`
+- **Description:** Manually mark a client as inactive (sets `UserProfile.deactivated_at`) via a pause/play toggle on the client row, and browse deactivated clients under the "Inactivos" tab. Inactive clients are hidden from Todos/Activos/Huérfanos (backend default excludes `deactivated_at IS NOT NULL`); the Inactivos tab sends `?inactive=true`. Marking is reversible ("Reactivar cliente") and independent from `auth.User.is_active`.
+- **Steps:**
+  1. Admin navigates to `/panel/clients/`.
+  2. Admin clicks the pause icon (data-testid: `client-toggle-inactive-<id>`) on an active client.
+  3. `PATCH /api/proposals/client-profiles/:id/update/` with `{is_inactive: true}` sets `deactivated_at`; success toast shows; row leaves the current tab on reload.
+  4. Admin switches to the "Inactivos" tab (data-testid: `clients-tab-inactive`) — list reloads with `?inactive=true` and rows show the "Inactivo" badge.
+  5. Clicking the play icon reactivates (`{is_inactive: false}` clears `deactivated_at`).
+- **Coverage:** 🟡 Partial — tab filtering and marking inactive are covered; **the reactivate branch (play icon from the Inactivos tab) is not asserted in E2E** (backend covered by `TestInactiveClients`).
+- **E2E Spec:** `e2e/admin/admin-clients-inactive-tab.spec.js`
+- **Backend Tests:** `content/tests/views/test_proposal_clients_views.py::TestInactiveClients`, `accounts/tests/test_proposal_client_service.py::TestUpdateClientProfile::test_toggling_is_inactive_does_not_cascade_snapshots`
+
+### FLOW: `admin-client-drag-reassign`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/clients/`
+- **Description:** Reassign a proposal or diagnostic to a different client by dragging its row (from an expanded client card) and dropping it on another client's card header (native HTML5 DnD; drop target highlights). The drop PATCHes `client_id` on the item's update endpoint, refreshes both affected clients + the list once, and shows a success toast with a "Deshacer" action (reverse PATCH). Diagnostics also rebuild their client snapshot (`sync_diagnostic_snapshot`). Touch devices are not supported — fallback is the client picker on the edit pages.
+- **Steps:**
+  1. Admin expands a client card to reveal its proposals/diagnostics tables.
+  2. Admin drags a row (data-testid: `client-proposal-row-<id>` / `client-diagnostic-row-<id>`).
+  3. Hovering another client header (data-testid: `client-header-<id>`) highlights it; dropping on the source client is a no-op.
+  4. Drop → `PATCH /api/proposals/:id/update/` or `PATCH /api/diagnostics/:id/update/` with `{client_id}`.
+  5. Both clients' detail caches invalidate, the list reloads respecting the active tab, and the toast offers "Deshacer".
+- **Coverage:** 🟡 Partial — proposal drop, diagnostic drop, and same-client no-op are covered; **the "Deshacer" (undo) action is not asserted in E2E**.
+- **E2E Spec:** `e2e/admin/admin-clients-drag-reassign.spec.js`
+- **Backend Tests:** `content/tests/views/test_diagnostic_views_gaps.py::test_update_diagnostic_with_client_id_reassigns_and_resyncs_snapshot`, `content/tests/views/test_proposal_clients_views.py::TestProposalCreateWithClientId::test_proposal_update_with_client_id_switches_profile_and_resyncs_snapshot`
 
 ### FLOW: `admin-proposal-send`
 
@@ -2004,6 +2038,71 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-portfolio-delete.spec.js`
 
+### FLOW: `admin-hour-packages-list`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/hour-packages`
+- **Description:** View the hour-package catalog filtered by nationality tabs (COL/MEX/USA); prices show in the currency derived from the nationality (COL→COP, MEX/USA→USD) with computed effective rate and total.
+- **Steps:**
+  1. Admin navigates to `/panel/hour-packages`.
+  2. Packages load from API (`GET /api/hour-packages/admin/?nationality=COL`) — Colombia tab is active by default.
+  3. Table renders name, hours, rate/h, discount, effective rate, total and active badge.
+  4. Admin switches nationality tab → list refetches with that nationality and prices change currency.
+  5. Empty tabs show a hint that proposal creation falls back to default packages.
+  6. "Nuevo paquete" button links to the create page carrying the active nationality.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-hour-packages-list.spec.js`
+
+### FLOW: `admin-hour-packages-create`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/hour-packages/create`
+- **Description:** Create an hour package with nationality, bilingual name/note, hours, hourly rate, discount, order and active flag; the currency is derived from the nationality and a live preview shows effective rate and total.
+- **Steps:**
+  1. Admin navigates to `/panel/hour-packages/create` (nationality preselected from query param).
+  2. Admin fills the form; the preview recalculates effective rate/total.
+  3. Admin submits.
+  4. API call to `POST /api/hour-packages/admin/create/`.
+  5. On success, admin is redirected to the list; validation errors render per field.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-hour-packages-create.spec.js`
+
+### FLOW: `admin-hour-packages-edit`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/hour-packages/:id/edit`
+- **Description:** Edit an existing hour package; form prefilled from the detail endpoint, preview recalculates and a partial PATCH persists the changes.
+- **Steps:**
+  1. Admin navigates to `/panel/hour-packages/:id/edit`.
+  2. Package data loads from API (`GET /api/hour-packages/admin/:id/detail/`).
+  3. Admin edits rate/discount/fields; preview recalculates.
+  4. Admin saves → `PATCH /api/hour-packages/admin/:id/update/`.
+  5. On success, admin returns to the list.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-hour-packages-edit.spec.js`
+
+### FLOW: `admin-hour-packages-delete`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/hour-packages`
+- **Description:** Delete an hour package from the list with a confirmation modal; already-created proposals are not affected.
+- **Steps:**
+  1. Admin views the hour-packages list.
+  2. Admin clicks delete on a package.
+  3. ConfirmModal appears.
+  4. Admin confirms → `DELETE /api/hour-packages/admin/:id/delete/`.
+  5. The row disappears from the list.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-hour-packages-delete.spec.js`
+
 ### FLOW: `proposal-view-paste-rendering`
 
 - **Module:** proposal
@@ -2359,6 +2458,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-client-create-standalone` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-client-delete-orphan` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-client-delete-protected` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
+| `admin-client-inactive-tab` | admin | admin | P2 | 🟡 Partial (reactivate branch not asserted) | `e2e/admin/admin-clients-inactive-tab.spec.js` |
+| `admin-client-drag-reassign` | admin | admin | P2 | 🟡 Partial (undo action not asserted) | `e2e/admin/admin-clients-drag-reassign.spec.js` |
 | `admin-proposal-send` | admin | admin | P1 | 🟡 Partial (email_intro editing, PDF attachment, failure-feedback toast not asserted) | `e2e/admin/admin-proposal-send.spec.js` |
 | `admin-proposal-multi-send` | admin | admin | P1 | ❌ Missing | `e2e/admin/admin-proposal-multi-send.spec.js` |
 | `admin-proposal-resend` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-proposal-resend.spec.js` |
@@ -2413,7 +2514,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-log-activity` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-log-activity.spec.js` |
 | `proposal-calculator-new-modules` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-new-modules.spec.js` |
 | `proposal-calculator-biometric-module` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-biometric-module.spec.js` |
-| `admin-proposal-inline-status-change` | admin | admin | P2 | 🟡 Partial (draft→sent dispatch + email_delivery toast not asserted) | `e2e/admin/admin-proposal-inline-status.spec.js` |
+| `admin-proposal-inline-status-change` | admin | admin | P2 | 🟡 Partial (email_delivery toast + clients/edit-view selects + actions-modal row not asserted) | `e2e/admin/admin-proposal-inline-status.spec.js` |
 | `admin-proposal-scorecard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-scorecard.spec.js` |
 | `admin-proposal-section-completeness` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-section-completeness.spec.js` |
 | `admin-daily-pipeline-digest` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests |
@@ -2476,14 +2577,14 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 
 ### Summary
 
-- **Total flows:** 142
+- **Total flows:** 144
 - **P1 (Critical):** 29
-- **P2 (High):** 91
+- **P2 (High):** 93
 - **P3 (Medium):** 19
 - **P4 (Nice-to-have):** 1
-- **Covered (full):** 130 (92%)
+- **Covered (full):** 130 (90%)
 - **Backend-only:** 10 (7%) — system-triggered alerts and automation covered by backend unit tests
-- **Partial:** 0 (0%)
+- **Partial:** 2 (1%) — `admin-client-inactive-tab` (reactivate branch), `admin-client-drag-reassign` (undo action); both happy paths covered
 - **Missing:** 0 (0%)
 - **Deferred:** 0
 - **Archived:** 2 — `public-about-us`, `proposal-sticky-bar-accept` (feature removed)
@@ -4029,16 +4130,15 @@ No active browser flow is registered for client profile editing at this time.
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/proposals/`
-- **Description:** Proposal status can be updated directly from the proposals table via an inline dropdown without opening the edit page. The `draft → sent` transition is delegated to `ProposalService.send_proposal`, so it dispatches the client email and schedules Huey reminders (matching the dedicated "Enviar al Cliente" button — defense-in-depth so the dropdown can never silently move a proposal to `sent` without notifying the client). Response includes `email_delivery`; the panel toast surfaces failures with the reason.
+- **Description:** Proposal status can be updated from every panel surface via the shared `ProposalStatusSelect` badge select (admin mode: ALL statuses selectable). Options are grouped as "Flujo normal" (`available_transitions`) vs "Forzar estado" (everything else). Natural transitions keep their side effects (`draft → sent` delegates to `ProposalService.send_proposal`; `→ finished` sends the confirmation email; `→ accepted` enqueues onboarding); forced jumps require a warning confirm and are side-effect free (save + `ProposalChangeLog` with an "admin forced" marker). Surfaces: proposals table cell, proposals actions modal ("Cambiar estado" row), nested proposals in `/panel/clients/`, and the edit view sticky header + actions modal.
 - **Steps:**
-  1. Admin opens the proposals list.
-  2. Row-level status dropdown is visible for editable proposals.
-  3. Admin selects a new status from the inline selector.
-  4. `PATCH /api/proposals/:id/update-status/` is called with `{status}`.
-  5. For `draft → sent`: backend delegates to `ProposalService.send_proposal` (sends email, schedules reminders) and returns `email_delivery`. For other transitions: legacy save + `ProposalChangeLog`; `email_delivery` omitted.
-  6. Row refreshes; toast shows "Estado actualizado correctamente" on success, or surfaces `email_delivery` failure when applicable.
-- **Coverage:** 🟡 Partial — generic dropdown PATCH is covered; **the `draft → sent` dispatch (delegating to `send_proposal`) and the email_delivery failure toast are not asserted in E2E**.
-- **E2E Spec:** `e2e/admin/admin-proposal-inline-status.spec.js` (extend with: assert `draft → sent` invokes `POST /send/` semantics — i.e. response carries `email_delivery` — and that a mocked `ok=false` triggers the error toast).
+  1. Admin opens any surface with the status select (proposals list, clients expanded row, or proposal edit header).
+  2. Admin picks a status: natural non-email transitions PATCH directly; `sent`/`finished` naturals and every forced jump show a ConfirmModal first; natural `negotiating` opens the contract modal where the page supports it.
+  3. `PATCH /api/proposals/:id/update-status/` is called with `{status}`.
+  4. Row/detail refreshes; toast shows "Estado actualizado correctamente" on success, or surfaces `email_delivery` failure with a "Reenviar" action when applicable.
+- **Coverage:** 🟡 Partial — forced confirm + PATCH, natural no-confirm PATCH, Spanish labels, and optgroup grouping are covered in the proposals table; **the `draft → sent` email_delivery failure toast, the clients-view select, the edit-header select, and the actions-modal "Cambiar estado" row are not asserted in E2E** (composable behavior is unit-tested in `test/composables/useProposalStatusChange.test.js`).
+- **E2E Spec:** `e2e/admin/admin-proposal-inline-status.spec.js` (extend with: email_delivery `ok=false` toast, clients-view/edit-header select smoke, actions-modal "Cambiar estado" row).
+- **Backend Tests:** `content/tests/views/test_proposal_status_and_pdf.py`, `content/tests/views/test_mcp_proposals.py`.
 
 #### FLOW: `admin-proposal-scorecard`
 
@@ -4148,7 +4248,7 @@ No active browser flow is registered for client profile editing at this time.
 | `admin-proposal-create-and-send` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-proposal-create-preview` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-discount-analysis-enhanced` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-discount-analysis.spec.js` |
-| `admin-proposal-inline-status-change` | admin | admin | P2 | 🟡 Partial (draft→sent dispatch + email_delivery toast not asserted) | `e2e/admin/admin-proposal-inline-status.spec.js` |
+| `admin-proposal-inline-status-change` | admin | admin | P2 | 🟡 Partial (email_delivery toast + clients/edit-view selects + actions-modal row not asserted) | `e2e/admin/admin-proposal-inline-status.spec.js` |
 | `admin-proposal-scorecard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-scorecard.spec.js` |
 | `admin-proposal-section-completeness` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-section-completeness.spec.js` |
 | `admin-proposal-zombie-segment` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-zombie-segment.spec.js` |

@@ -316,27 +316,20 @@
       </table>
 
       <!-- Pagination -->
-      <div v-if="sortedDiagnostics.length" class="flex items-center justify-between px-6 py-3 border-t border-border-muted">
-        <span class="text-xs text-text-subtle">
-          Mostrando {{ paginationStart }}–{{ paginationEnd }} de {{ sortedDiagnostics.length }} diagnóstico{{ sortedDiagnostics.length !== 1 ? 's' : '' }}
-        </span>
-        <nav v-if="totalPages > 1" class="flex gap-1" aria-label="Paginación de diagnósticos">
-          <button
-            v-for="page in totalPages"
-            :key="page"
-            type="button"
-            class="min-w-[2.75rem] min-h-[2.75rem] rounded-lg text-xs font-medium motion-safe:transition-colors motion-safe:duration-fast focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
-            :class="currentPage === page
-              ? 'bg-primary text-white'
-              : 'text-text-muted hover:bg-surface-raised'"
-            :aria-label="`Página ${page}`"
-            :aria-current="currentPage === page ? 'page' : undefined"
-            @click="currentPage = page"
-          >
-            {{ page }}
-          </button>
-        </nav>
-      </div>
+      <BasePagination
+        v-if="sortedDiagnostics.length"
+        :always-show="true"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-items="sortedDiagnostics.length"
+        :range-from="paginationStart"
+        :range-to="paginationEnd"
+        aria-label="Paginación de diagnósticos"
+        class="px-6 border-t border-border-muted"
+        @prev="goToPage(currentPage - 1)"
+        @next="goToPage(currentPage + 1)"
+        @go="goToPage"
+      />
     </div>
 
     <!-- Actions modal -->
@@ -426,6 +419,7 @@ import DiagnosticExpirationChip from '~/components/WebAppDiagnostic/DiagnosticEx
 import DiagnosticDashboard from '~/components/WebAppDiagnostic/admin/DiagnosticDashboard.vue';
 import DiagnosticFilterPanel from '~/components/WebAppDiagnostic/DiagnosticFilterPanel.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
+import BasePagination from '~/components/base/BasePagination.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { getDiagnosticAttention, ATTENTION_TONE_CLASSES } from '~/utils/diagnosticAttention';
 import { useConfirmModal } from '~/composables/useConfirmModal';
@@ -554,6 +548,10 @@ const paginationStart = computed(() => (currentPage.value - 1) * pageSize + 1);
 const paginationEnd = computed(() =>
   Math.min(currentPage.value * pageSize, sortedDiagnostics.value.length),
 );
+
+function goToPage(page) {
+  currentPage.value = Math.min(Math.max(1, page), totalPages.value);
+}
 
 const attentionById = computed(() => {
   const map = {};

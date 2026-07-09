@@ -4216,15 +4216,17 @@ class TestInlineStatusChange:
         assert response.status_code == 400
         assert 'error' in response.data
 
-    def test_blocked_transition_returns_400(self, admin_client, db):
-        """Blocked transition (e.g. draft → accepted) returns 400."""
+    def test_forced_transition_persists_as_data_correction(self, admin_client, db):
+        """Non-natural jump (draft → accepted) is accepted and persisted (admin data correction)."""
         p = BusinessProposal.objects.create(
             title='Block', client_name='C', status='draft',
             total_investment=1000,
         )
         url = reverse('update-proposal-status', kwargs={'proposal_id': p.id})
         response = admin_client.patch(url, {'status': 'accepted'}, format='json')
-        assert response.status_code == 400
+        assert response.status_code == 200
+        p.refresh_from_db()
+        assert p.status == 'accepted'
 
     def test_empty_status_returns_400(self, admin_client, sent_proposal):
         """PATCH with empty status returns 400."""

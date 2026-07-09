@@ -10,6 +10,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
 from accounts.models import SavedFilterTab, UserProfile
+from accounts.services import saved_filter_tab_service
 
 User = get_user_model()
 
@@ -19,6 +20,13 @@ pytestmark = pytest.mark.django_db
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+def _blank_default_filter_tabs(monkeypatch):
+    """Keep legacy CRUD behavior deterministic: GET auto-seeds from the
+    registry, so these tests run against an empty one."""
+    monkeypatch.setattr(saved_filter_tab_service, 'DEFAULT_FILTER_TABS', {})
+
 
 @pytest.fixture
 def api_client():

@@ -212,6 +212,21 @@
           <p class="text-xs text-text-subtle mt-1">Define los títulos e índices por defecto de las secciones.</p>
         </div>
 
+        <!-- Nationality -->
+        <div>
+          <label class="block text-sm font-medium text-text-default mb-1">Nacionalidad del cliente</label>
+          <select
+            v-model="form.nationality"
+            class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm
+                   focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface text-text-default"
+          >
+            <option value="COL">Colombia</option>
+            <option value="MEX">México</option>
+            <option value="USA">Estados Unidos</option>
+          </select>
+          <p class="text-xs text-text-subtle mt-1">Define qué paquetes de horas se siembran en Condiciones comerciales y sugiere la moneda.</p>
+        </div>
+
         <!-- Investment + Currency -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -715,6 +730,18 @@
               >
                 <option value="COP">COP</option>
                 <option value="USD">USD</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-text-muted mb-1">Nacionalidad</label>
+              <select
+                v-model="jsonForm.nationality"
+                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm
+                       focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface text-text-default"
+              >
+                <option value="COL">Colombia</option>
+                <option value="MEX">México</option>
+                <option value="USA">Estados Unidos</option>
               </select>
             </div>
           </div>
@@ -1249,6 +1276,7 @@ const form = reactive({
   language: 'es',
   total_investment: 0,
   currency: 'COP',
+  nationality: 'COL',
   hosting_percent: DEFAULT_HOSTING_PERCENT,
   hosting_discount_annual: 40,
   hosting_discount_semiannual: 20,
@@ -1388,6 +1416,7 @@ const jsonForm = reactive({
   language: 'es',
   total_investment: 0,
   currency: 'COP',
+  nationality: 'COL',
   hosting_percent: DEFAULT_HOSTING_PERCENT,
   hosting_discount_annual: 40,
   hosting_discount_semiannual: 20,
@@ -1435,6 +1464,15 @@ watch(
     if (changed) loadExpirationDefaults(changed);
   },
 );
+
+// Nationality suggests the currency (COL→COP, MEX/USA→USD); it stays editable.
+watch(() => form.nationality, (nationality) => {
+  form.currency = nationality === 'COL' ? 'COP' : 'USD';
+});
+
+watch(() => jsonForm.nationality, (nationality) => {
+  jsonForm.currency = nationality === 'COL' ? 'COP' : 'USD';
+});
 
 watch(() => form.expires_at, (val) => {
   expiryDaysInput.value = getExpiryDaysFromStr(val);
@@ -1583,6 +1621,7 @@ async function handleJsonSubmit() {
     language: jsonForm.language,
     total_investment: jsonForm.total_investment || 0,
     currency: jsonForm.currency,
+    nationality: jsonForm.nationality,
     expires_at: jsonForm.expires_at ? new Date(jsonForm.expires_at).toISOString() : null,
     reminder_days: jsonForm.reminder_days,
     urgency_reminder_days: jsonForm.urgency_reminder_days,

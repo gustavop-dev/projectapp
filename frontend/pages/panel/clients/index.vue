@@ -95,10 +95,15 @@
         :data-testid="`client-row-${client.id}`"
         class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden"
       >
-        <!-- Client row header -->
+        <!-- Client row header (drop target for proposal/diagnostic reassignment) -->
         <div
+          :data-testid="`client-header-${client.id}`"
           class="px-5 py-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 cursor-pointer hover:bg-surface-raised transition-colors"
+          :class="{ 'ring-2 ring-inset ring-focus-ring bg-primary-soft': dragOverClientId === client.id }"
           @click="toggleClient(client)"
+          @dragover="onClientDragOver($event, client)"
+          @dragleave="onClientDragLeave(client)"
+          @drop.prevent="onClientDrop(client)"
         >
           <div class="flex items-center gap-4 flex-1 min-w-0 w-full sm:w-auto">
             <!-- Avatar -->
@@ -124,6 +129,13 @@
                   title="Sin propuestas ni proyectos — puede eliminarse"
                 >
                   Huérfano
+                </span>
+                <span
+                  v-if="client.is_inactive"
+                  class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong font-medium uppercase tracking-wide"
+                  title="Cliente marcado como inactivo — oculto de los demás tabs"
+                >
+                  Inactivo
                 </span>
               </div>
               <p class="text-xs text-text-subtle mt-0.5 truncate">
@@ -162,6 +174,18 @@
               @click.stop="openEditModal(client)"
             >
               <PencilSquareIcon class="w-4 h-4" />
+            </button>
+
+            <!-- Inactive toggle button -->
+            <button
+              type="button"
+              :data-testid="`client-toggle-inactive-${client.id}`"
+              class="p-1.5 rounded-lg text-text-subtle hover:text-warning-strong hover:bg-warning-soft transition-colors"
+              :title="client.is_inactive ? 'Reactivar cliente' : 'Marcar como inactivo'"
+              @click.stop="toggleInactive(client)"
+            >
+              <PlayCircleIcon v-if="client.is_inactive" class="w-4 h-4" />
+              <PauseCircleIcon v-else class="w-4 h-4" />
             </button>
 
             <!-- Trash button -->
@@ -230,7 +254,12 @@
                   <tr
                     v-for="p in detailCache[client.id].proposals"
                     :key="p.id"
-                    class="hover:bg-surface-raised transition-colors bg-surface"
+                    draggable="true"
+                    :data-testid="`client-proposal-row-${p.id}`"
+                    class="hover:bg-surface-raised transition-colors bg-surface cursor-grab active:cursor-grabbing select-none"
+                    :class="{ 'opacity-50': draggingItem?.type === 'proposal' && draggingItem?.id === p.id }"
+                    @dragstart="onRowDragStart($event, client, 'proposal', p)"
+                    @dragend="onRowDragEnd"
                   >
                     <td class="px-5 py-3">
                       <NuxtLink
@@ -241,12 +270,11 @@
                       </NuxtLink>
                     </td>
                     <td class="px-4 py-3">
-                      <span
-                        class="text-xs px-2.5 py-1 rounded-full font-medium"
-                        :class="statusClass(p.status)"
-                      >
-                        {{ p.status }}
-                      </span>
+                      <ProposalStatusSelect
+                        :proposal="p"
+                        :updating="updatingProposalStatusId === p.id"
+                        @change="(s) => onProposalStatusSelect(client, p, s)"
+                      />
                     </td>
                     <td class="px-4 py-3 text-text-muted/60 tabular-nums">
                       ${{ Number(p.total_investment).toLocaleString() }} {{ p.currency }}
@@ -327,7 +355,12 @@
                     <tr
                       v-for="diag in detailCache[client.id].diagnostics"
                       :key="diag.id"
-                      class="hover:bg-surface-raised transition-colors bg-surface"
+                      draggable="true"
+                      :data-testid="`client-diagnostic-row-${diag.id}`"
+                      class="hover:bg-surface-raised transition-colors bg-surface cursor-grab active:cursor-grabbing select-none"
+                      :class="{ 'opacity-50': draggingItem?.type === 'diagnostic' && draggingItem?.id === diag.id }"
+                      @dragstart="onRowDragStart($event, client, 'diagnostic', diag)"
+                      @dragend="onRowDragEnd"
                     >
                       <td class="px-5 py-3 font-medium text-text-default">{{ diag.title }}</td>
                       <td class="px-4 py-3">
@@ -538,13 +571,15 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue';
-import { PlusIcon, TrashIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
+import { PlusIcon, TrashIcon, PencilSquareIcon, PauseCircleIcon, PlayCircleIcon } from '@heroicons/vue/24/outline';
 import SidebarIcon from '~/components/platform/SidebarIcon.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
+import ProposalStatusSelect from '~/components/panel/proposal/ProposalStatusSelect.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { useProposalStatusChange } from '~/composables/useProposalStatusChange';
 import { useClientFilters } from '~/composables/useClientFilters';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -564,6 +599,18 @@ const diagnosticsStore = useDiagnosticsStore();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =
   useConfirmModal();
 const notify = usePanelNotify();
+
+// Inline status change for the nested proposal rows. No onNegotiate here:
+// natural negotiating PATCHes directly; the contract flow lives in the
+// proposal edit view.
+const { updatingId: updatingProposalStatusId, changeStatus: changeProposalStatus } =
+  useProposalStatusChange({ requestConfirm });
+
+async function onProposalStatusSelect(client, proposal, newStatus) {
+  const result = await changeProposalStatus(proposal, newStatus);
+  // Refresh on success AND failure: the nested row may be stale either way.
+  if (result) await refreshClientDetail(client.id);
+}
 
 const {
   currentFilters,
@@ -602,6 +649,7 @@ const tabs = [
   { id: 'all', label: 'Todos' },
   { id: 'active', label: 'Activos' },
   { id: 'orphans', label: 'Huérfanos' },
+  { id: 'inactive', label: 'Inactivos' },
 ];
 const activeTab = ref('all');
 const search = ref('');
@@ -619,7 +667,11 @@ async function loadClients() {
   let orphans = null;
   if (activeTab.value === 'orphans') orphans = true;
   else if (activeTab.value === 'active') orphans = false;
-  await clientsStore.fetchClients({ search: search.value.trim(), orphans });
+  await clientsStore.fetchClients({
+    search: search.value.trim(),
+    orphans,
+    inactive: activeTab.value === 'inactive',
+  });
 }
 
 /**
@@ -646,6 +698,19 @@ async function refreshAll() {
 function setActiveTab(tabId) {
   activeTab.value = tabId;
   loadClients();
+}
+
+async function toggleInactive(client) {
+  const makeInactive = !client.is_inactive;
+  const result = await clientsStore.updateClient(client.id, { is_inactive: makeInactive });
+  if (result.success) {
+    notify.success(makeInactive
+      ? `"${client.name}" marcado como inactivo.`
+      : `"${client.name}" reactivado.`);
+    await loadClients();
+  } else {
+    notify.error('No se pudo actualizar el estado del cliente.');
+  }
 }
 
 function onSearchInput() {
@@ -833,6 +898,84 @@ async function refreshClientDetail(clientId) {
   const result = await clientsStore.fetchClient(clientId);
   if (result.success) detailCache[clientId] = result.data;
   // Counts and the orphan badge live on the list rows, not the detail payload.
+  await loadClients();
+}
+
+// -------------------------------------------------------------------
+// Drag & drop: reassign proposals/diagnostics between clients
+// -------------------------------------------------------------------
+
+const draggingItem = ref(null); // { type, id, title, sourceClientId, sourceClientName }
+const dragOverClientId = ref(null);
+
+function onRowDragStart(event, client, type, item) {
+  draggingItem.value = {
+    type,
+    id: item.id,
+    title: item.title,
+    sourceClientId: client.id,
+    sourceClientName: client.name,
+  };
+  event.dataTransfer.effectAllowed = 'move';
+}
+
+function onRowDragEnd() {
+  draggingItem.value = null;
+  dragOverClientId.value = null;
+}
+
+function onClientDragOver(event, client) {
+  if (!draggingItem.value || client.id === draggingItem.value.sourceClientId) return;
+  event.preventDefault(); // required so the browser allows the drop
+  event.dataTransfer.dropEffect = 'move';
+  dragOverClientId.value = client.id;
+}
+
+function onClientDragLeave(client) {
+  if (dragOverClientId.value === client.id) dragOverClientId.value = null;
+}
+
+async function onClientDrop(targetClient) {
+  dragOverClientId.value = null;
+  const dragged = draggingItem.value;
+  draggingItem.value = null;
+  if (!dragged || dragged.sourceClientId === targetClient.id) return;
+  await reassignItem(dragged, { targetClientId: targetClient.id, targetName: targetClient.name });
+}
+
+async function reassignItem(dragged, { targetClientId, targetName }) {
+  const result = dragged.type === 'proposal'
+    ? await proposalStore.updateProposal(dragged.id, { client_id: targetClientId })
+    : await diagnosticsStore.update(dragged.id, { client_id: targetClientId });
+  if (!result.success) {
+    notify.error(`No se pudo mover ${dragged.type === 'proposal' ? 'la propuesta' : 'el diagnóstico'} "${dragged.title}".`);
+    return;
+  }
+  await refreshAfterReassign(dragged.sourceClientId, targetClientId);
+  notify.success({
+    title: `"${dragged.title}" movido a ${targetName}.`,
+    action: {
+      label: 'Deshacer',
+      handler: () => reassignItem(
+        { ...dragged, sourceClientId: targetClientId, sourceClientName: targetName },
+        { targetClientId: dragged.sourceClientId, targetName: dragged.sourceClientName },
+      ),
+    },
+  });
+}
+
+// Unlike refreshClientDetail, this invalidates BOTH affected clients and
+// reloads the list once (the source/target orphan state may flip tabs).
+async function refreshAfterReassign(...clientIds) {
+  clientIds.forEach((id) => { delete detailCache[id]; });
+  await Promise.all(
+    clientIds
+      .filter((id) => expandedClients.value.has(id))
+      .map(async (id) => {
+        const result = await clientsStore.fetchClient(id);
+        if (result.success) detailCache[id] = result.data;
+      }),
+  );
   await loadClients();
 }
 

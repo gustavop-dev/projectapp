@@ -51,9 +51,11 @@ export const useProposalClientsStore = defineStore('proposalClients', {
      * @param {string} [params.search] - icontains match on email/name/company.
      * @param {boolean|null} [params.orphans] - true=only orphans,
      *     false=only active, null/undefined=all.
+     * @param {boolean} [params.inactive=false] - true=only manually
+     *     deactivated clients; false/omitted=exclude them (server default).
      * @param {number} [params.limit=100] - hard cap 500 (server-side).
      */
-    async fetchClients({ search = '', orphans = null, limit = 100 } = {}) {
+    async fetchClients({ search = '', orphans = null, inactive = false, limit = 100 } = {}) {
       this.isLoading = true;
       this.error = null;
       try {
@@ -61,6 +63,7 @@ export const useProposalClientsStore = defineStore('proposalClients', {
         if (search) query.set('search', search);
         if (orphans === true) query.set('orphans', 'true');
         if (orphans === false) query.set('orphans', 'false');
+        if (inactive === true) query.set('inactive', 'true');
         if (limit) query.set('limit', String(limit));
         const url = `proposals/client-profiles/${
           query.toString() ? `?${query.toString()}` : ''

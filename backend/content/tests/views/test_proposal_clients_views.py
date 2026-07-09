@@ -65,6 +65,17 @@ def orphan_client(db):
 
 
 @pytest.fixture
+def diagnostic_only_client(db):
+    """Client whose only linked object is a WebAppDiagnostic — NOT an orphan."""
+    profile = proposal_client_service.get_or_create_client_for_proposal(
+        name='Diagnostico Cliente', email='diag@gmail.com',
+    )
+    from content.models.web_app_diagnostic import WebAppDiagnostic
+    WebAppDiagnostic.objects.create(client=profile, status='draft')
+    return profile
+
+
+@pytest.fixture
 def placeholder_client(db):
     """Client created with empty email — placeholder, no proposals."""
     return proposal_client_service.get_or_create_client_for_proposal(
@@ -115,6 +126,29 @@ class TestListProposalClients:
         ids = [c['id'] for c in response.data]
         assert real_client_with_proposal.pk in ids
         assert orphan_client.pk not in ids
+
+    def test_orphans_filter_true_excludes_client_with_only_diagnostic(
+        self, admin_client, orphan_client, diagnostic_only_client,
+    ):
+        response = admin_client.get(
+            reverse('list-proposal-clients'), {'orphans': 'true'},
+        )
+        assert response.status_code == 200
+        ids = [c['id'] for c in response.data]
+        assert orphan_client.pk in ids
+        assert diagnostic_only_client.pk not in ids
+
+    def test_orphans_filter_false_includes_client_with_only_diagnostic(
+        self, admin_client, orphan_client, diagnostic_only_client,
+    ):
+        response = admin_client.get(
+            reverse('list-proposal-clients'), {'orphans': 'false'},
+        )
+        assert response.status_code == 200
+        rows = {c['id']: c for c in response.data}
+        assert diagnostic_only_client.pk in rows
+        assert rows[diagnostic_only_client.pk]['is_orphan'] is False
+        assert orphan_client.pk not in rows
 
     def test_unauthenticated_user_is_rejected(self, api_client):
         response = api_client.get(reverse('list-proposal-clients'))
@@ -356,6 +390,74 @@ class TestUpdateProposalClient:
 
         assert response.status_code == 404
         assert response.data['error'] == 'client_not_found'
+
+
+# ---------------------------------------------------------------------------
+# Inactive clients
+# ---------------------------------------------------------------------------
+
+class TestInactiveClients:
+    def test_default_list_excludes_deactivated_client(
+        self, admin_client, real_client_with_proposal, orphan_client,
+    ):
+        from django.utils import timezone
+        orphan_client.deactivated_at = timezone.now()
+        orphan_client.save(update_fields=['deactivated_at'])
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+
+        assert response.status_code == 200
+        ids = [c['id'] for c in response.data]
+        assert real_client_with_proposal.pk in ids
+        assert orphan_client.pk not in ids
+
+    def test_inactive_true_returns_only_deactivated_clients(
+        self, admin_client, real_client_with_proposal, orphan_client,
+    ):
+        from django.utils import timezone
+        orphan_client.deactivated_at = timezone.now()
+        orphan_client.save(update_fields=['deactivated_at'])
+
+        response = admin_client.get(
+            reverse('list-proposal-clients'), {'inactive': 'true'},
+        )
+
+        assert response.status_code == 200
+        ids = [c['id'] for c in response.data]
+        assert ids == [orphan_client.pk]
+        assert response.data[0]['is_inactive'] is True
+
+    def test_patch_is_inactive_true_sets_deactivated_at(
+        self, admin_client, orphan_client,
+    ):
+        response = admin_client.patch(
+            reverse('update-proposal-client', args=[orphan_client.pk]),
+            {'is_inactive': True},
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.data['is_inactive'] is True
+        orphan_client.refresh_from_db()
+        assert orphan_client.deactivated_at is not None
+
+    def test_patch_is_inactive_false_clears_deactivated_at(
+        self, admin_client, orphan_client,
+    ):
+        from django.utils import timezone
+        orphan_client.deactivated_at = timezone.now()
+        orphan_client.save(update_fields=['deactivated_at'])
+
+        response = admin_client.patch(
+            reverse('update-proposal-client', args=[orphan_client.pk]),
+            {'is_inactive': False},
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.data['is_inactive'] is False
+        orphan_client.refresh_from_db()
+        assert orphan_client.deactivated_at is None
 
 
 # ---------------------------------------------------------------------------

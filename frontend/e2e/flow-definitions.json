@@ -498,6 +498,46 @@
       "description": "Delete an existing portfolio work.",
       "expectedSpecs": 1
     },
+    "admin-hour-packages-list": {
+      "name": "Admin Hour Packages List",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "View the hour-package catalog filtered by nationality tabs (COL/MEX/USA) with derived currency and computed totals.",
+      "expectedSpecs": 1
+    },
+    "admin-hour-packages-create": {
+      "name": "Admin Hour Packages Create",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Create an hour package with nationality, bilingual names, hours, rate and discount; currency derives from nationality.",
+      "expectedSpecs": 1
+    },
+    "admin-hour-packages-edit": {
+      "name": "Admin Hour Packages Edit",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Edit an existing hour package and verify the computed effective rate/total preview.",
+      "expectedSpecs": 1
+    },
+    "admin-hour-packages-delete": {
+      "name": "Admin Hour Packages Delete",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Delete an hour package with confirmation modal.",
+      "expectedSpecs": 1
+    },
     "proposal-view-navigation": {
       "name": "Proposal View Navigation",
       "module": "proposal",
@@ -1920,6 +1960,26 @@
       ],
       "priority": "P2",
       "description": "Verify that active clients (with proposals or projects) do not expose the delete trash icon.",
+      "expectedSpecs": 1
+    },
+    "admin-client-inactive-tab": {
+      "name": "Admin Client Inactive Tab",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Inactivos tab lists only manually deactivated clients (inactive=true) and the pause/play toggle marks a client inactive or reactivates it.",
+      "expectedSpecs": 1
+    },
+    "admin-client-drag-reassign": {
+      "name": "Admin Client Drag Reassign",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Drag a proposal or diagnostic row from an expanded client and drop it on another client card header to reassign it (PATCH client_id) with an undo notification.",
       "expectedSpecs": 1
     },
     "admin-proposal-client-autocomplete": {

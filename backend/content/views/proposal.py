@@ -24,7 +24,11 @@ from content.api_errors import (
     error_response,
     error_response_from_exc,
 )
+from content.services import proposal_status_service
 from content.services.proposal_audit import log_proposal_change
+from content.services.proposal_status_service import (
+    enqueue_onboarding_on_accept as _enqueue_onboarding_on_accept,
+)
 from content.services.proposal_analytics_service import (
     COMPUTED_ALERT_DISMISS_PREFIX as _COMPUTED_ALERT_DISMISS_PREFIX,
     COMPUTED_ALERT_TYPES as _COMPUTED_ALERT_TYPES,
@@ -624,6 +628,7 @@ def get_proposal_json_template(request):
             'language': 'es | en',
             'total_investment': 0,
             'currency': 'COP | USD',
+            'nationality': 'COL | MEX | USA',
         },
     }
 
@@ -1150,6 +1155,7 @@ def duplicate_proposal(request, proposal_id):
             language=proposal.language,
             total_investment=proposal.total_investment,
             currency=proposal.currency,
+            nationality=proposal.nationality,
             hosting_percent=proposal.hosting_percent,
             hosting_discount_annual=proposal.hosting_discount_annual,
             hosting_discount_semiannual=proposal.hosting_discount_semiannual,
@@ -1437,87 +1443,24 @@ def toggle_proposal_active(request, proposal_id):
 @permission_classes([IsAdminUser])
 def update_proposal_status(request, proposal_id):
     """
-    Inline status change from the proposals table.
+    Inline status change from the panel (admin mode).
     Body: { "status": "expired" }
 
-    Validates allowed transitions and logs the change. The ``draft → sent``
-    transition is delegated to ``ProposalService.send_proposal`` so the
-    client email is dispatched and Huey reminders are scheduled.
+    Any known status is accepted; side effects (client email on
+    draft→sent, finished confirmation, onboarding on accept) fire only on
+    natural transitions per ``ALLOWED_TRANSITIONS`` — forced jumps just
+    save + log. Error codes: ``invalid_status`` / ``same_status``.
     """
     proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
-    new_status = (request.data.get('status') or '').strip()
-
-    valid_statuses = {c[0] for c in BusinessProposal.Status.choices}
-    if new_status not in valid_statuses:
-        return error_response(
-            f'Estado no válido: {new_status}.',
-            code='invalid_status',
+    try:
+        delivery, _forced = proposal_status_service.change_status(
+            proposal,
+            request.data.get('status'),
+            source='inline',
+            acting_user_id=request.user.id,
         )
-
-    # Enforce whitelist-based transitions
-    allowed = BusinessProposal.ALLOWED_TRANSITIONS.get(proposal.status, frozenset())
-    if new_status not in allowed:
-        current_label = BusinessProposal.status_label_es(proposal.status)
-        target_label = BusinessProposal.status_label_es(new_status)
-        return error_response(
-            f'No se puede cambiar el estado de «{current_label}» a «{target_label}».',
-            code='invalid_transition',
-            hint='Actualiza la página para ver el estado actual de la propuesta.',
-        )
-
-    old_status = proposal.status
-    delivery = None
-
-    if (
-        old_status == BusinessProposal.Status.DRAFT
-        and new_status == BusinessProposal.Status.SENT
-    ):
-        from content.services.proposal_service import ProposalService
-        try:
-            delivery = ProposalService.send_proposal(proposal)
-        except ValueError as e:
-            return error_response_from_exc(e)
-
-        ProposalChangeLog.objects.create(
-            proposal=proposal,
-            change_type='sent',
-            actor_type='seller',
-            description=(
-                f'Proposal sent to {proposal.client_email} (inline).'
-            ),
-        )
-    else:
-        proposal.status = new_status
-        proposal.save(update_fields=['status'])
-
-        ProposalChangeLog.objects.create(
-            proposal=proposal,
-            change_type='status_change',
-            field_name='status',
-            old_value=old_status,
-            new_value=new_status,
-            actor_type='seller',
-            description=f'Status changed from {old_status} to {new_status} (inline).',
-        )
-
-        if new_status == BusinessProposal.Status.FINISHED:
-            try:
-                from content.services.proposal_email_service import (
-                    ProposalEmailService,
-                )
-
-                ProposalEmailService.send_finished_confirmation(proposal)
-            except Exception:
-                logger.exception(
-                    'Failed to send finished confirmation for proposal %s',
-                    proposal.id,
-                )
-
-        if new_status == BusinessProposal.Status.ACCEPTED:
-            # Auto-provision the client's platform project (idempotent, async).
-            # Admin inline accept sends no client email today, so onboarding
-            # suppresses its own acceptance email as well.
-            _enqueue_onboarding_on_accept(proposal, acting_user_id=request.user.id)
+    except ValueError as e:  # includes ProposalActionError
+        return error_response_from_exc(e)
 
     return _proposal_admin_response(request, proposal, delivery)
 
@@ -2179,45 +2122,6 @@ def _schedule_reengagement_if_budget(proposal):
             'Failed to schedule re-engagement for proposal %s',
             proposal.uuid,
         )
-
-
-def _enqueue_onboarding_on_accept(proposal, *, acting_user_id):
-    """
-    Fire idempotent platform onboarding when a proposal becomes accepted.
-
-    The acceptance email is owned by the calling view (preserving existing
-    per-path email behavior), so the onboarding task is told to suppress its
-    own acceptance email (``send_email=False``). No-ops when the proposal was
-    already onboarded (e.g. launched early during negotiation).
-    """
-    if proposal.platform_onboarding_completed_at is not None:
-        return
-
-    proposal.platform_onboarding_status = BusinessProposal.ONBOARDING_PENDING
-    proposal.save(update_fields=['platform_onboarding_status'])
-    ProposalChangeLog.objects.create(
-        proposal=proposal,
-        change_type=ProposalChangeLog.ChangeType.PLATFORM_LAUNCH,
-        field_name='platform_onboarding_status',
-        new_value='pending',
-        actor_type='system',
-        description='Auto-launch to platform on acceptance.',
-    )
-    try:
-        from content.tasks import run_platform_onboarding
-
-        run_platform_onboarding(
-            proposal.id,
-            acting_user_id=acting_user_id,
-            is_relaunch=False,
-            send_email=False,
-        )
-    except Exception:
-        logger.exception(
-            'Failed to auto-queue platform onboarding for proposal %s.', proposal.id,
-        )
-        proposal.platform_onboarding_status = BusinessProposal.ONBOARDING_FAILED
-        proposal.save(update_fields=['platform_onboarding_status'])
 
 
 @api_view(['POST'])

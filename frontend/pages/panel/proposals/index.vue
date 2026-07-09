@@ -338,30 +338,11 @@
               <div v-if="p.client_phone" class="text-[10px] text-text-subtle">📱 {{ p.client_phone }}</div>
             </td>
             <td class="px-6 py-4">
-              <template v-if="(p.available_transitions || []).length">
-                <div class="relative inline-flex items-center">
-                  <select
-                    :value="p.status"
-                    :disabled="updatingStatusId === p.id"
-                    class="bg-input-bg text-xs px-2.5 py-1 rounded-full font-medium border border-input-border cursor-pointer outline-none focus:ring-2 focus:ring-focus-ring/30 pr-6 disabled:opacity-60 disabled:cursor-not-allowed"
-                    :class="statusClass(p.status)"
-                    @change="handleInlineStatusChange(p, $event.target.value, $event)"
-                    @click.stop
-                  >
-                    <option :value="p.status" disabled>{{ statusLabel(p.status) }}</option>
-                    <option v-for="s in p.available_transitions" :key="s" :value="s">{{ statusLabel(s) }}</option>
-                  </select>
-                  <span v-if="updatingStatusId === p.id" class="absolute right-1.5 flex items-center pointer-events-none">
-                    <svg class="animate-spin h-3 w-3 text-text-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  </span>
-                </div>
-              </template>
-              <span v-else class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(p.status)">
-                {{ statusLabel(p.status) }}
-              </span>
+              <ProposalStatusSelect
+                :proposal="p"
+                :updating="updatingStatusId === p.id"
+                @change="(s) => onStatusSelect(p, s)"
+              />
             </td>
             <td class="px-6 py-4 text-sm text-text-muted tabular-nums">
               ${{ effectiveInvestmentTotal(p).toLocaleString() }} {{ p.currency }}
@@ -485,6 +466,23 @@
                 </component>
               </template>
 
+              <!-- Cambiar estado -->
+              <div class="mt-2 pt-3 border-t border-border-muted px-4 pb-2">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0 bg-surface-raised">🔁</span>
+                    <div class="min-w-0">
+                      <span class="text-sm font-medium block text-text-default">Cambiar estado</span>
+                      <span class="text-[11px] text-text-subtle block leading-tight">Fuera del flujo normal no se envían correos ni automatizaciones.</span>
+                    </div>
+                  </div>
+                  <ProposalStatusSelect
+                    :proposal="actionsModalProposal"
+                    :updating="updatingStatusId === actionsModalProposal.id"
+                    @change="(s) => { const p = actionsModalProposal; actionsModalProposal = null; onStatusSelect(p, s); }"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -575,20 +573,19 @@
     </Teleport>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-border-muted">
-        <span class="text-xs text-text-subtle">{{ filteredProposals.length }} propuestas</span>
-        <div class="flex gap-1">
-          <button
-            v-for="page in totalPages"
-            :key="page"
-            class="w-8 h-8 rounded-lg text-xs font-medium transition-colors"
-            :class="currentPage === page ? 'bg-primary text-white' : 'text-text-muted hover:bg-surface-raised'"
-            @click="currentPage = page"
-          >
-            {{ page }}
-          </button>
-        </div>
-      </div>
+      <BasePagination
+        v-if="totalPages > 1"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-items="filteredProposals.length"
+        :range-from="rangeFrom"
+        :range-to="rangeTo"
+        aria-label="Paginación de propuestas"
+        class="px-6 border-t border-border-muted"
+        @prev="goToPage(currentPage - 1)"
+        @next="goToPage(currentPage + 1)"
+        @go="goToPage"
+      />
     </div>
     <!-- Status/send feedback now renders via the global <PanelNotificationHost /> -->
   </div>
@@ -601,7 +598,10 @@ import MetricsManual from '~/components/BusinessProposal/admin/MetricsManual.vue
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ProposalFilterPanel from '~/components/proposals/ProposalFilterPanel.vue';
+import BasePagination from '~/components/base/BasePagination.vue';
+import ProposalStatusSelect from '~/components/panel/proposal/ProposalStatusSelect.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { useProposalStatusChange } from '~/composables/useProposalStatusChange';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useProposalFilters } from '~/composables/useProposalFilters';
@@ -828,6 +828,12 @@ const paginatedProposals = computed(() => {
   const start = (currentPage.value - 1) * pageSize;
   return filteredProposals.value.slice(start, start + pageSize);
 });
+const rangeFrom = computed(() => (filteredProposals.value.length === 0 ? 0 : (currentPage.value - 1) * pageSize + 1));
+const rangeTo = computed(() => Math.min(currentPage.value * pageSize, filteredProposals.value.length));
+
+function goToPage(page) {
+  currentPage.value = Math.min(Math.max(1, page), totalPages.value);
+}
 
 function formatAlertDate(dateStr) {
   if (!dateStr) return '';
@@ -975,24 +981,20 @@ function navigateToProposal(id, event) {
   }
 }
 
-const statusLabelMap = {
-  draft: 'Borrador',
-  sent: 'Enviadas',
-  viewed: 'Vistas',
-  accepted: 'Aceptadas',
-  finished: 'Finalizadas',
-  rejected: 'Rechazadas',
-  negotiating: 'Negociando',
-  expired: 'Expiradas',
-};
-function statusLabel(s) { return statusLabelMap[s] || s; }
-
 // Contract modal for inline negotiation
 const showContractModal = ref(false);
 const contractModalProposal = ref(null);
 
-// Status change feedback
-const updatingStatusId = ref(null);
+// Shared confirm + PATCH + notify flow for the status selects (inline cell
+// and actions modal). Natural negotiating opens the contract modal instead.
+const { updatingId: updatingStatusId, changeStatus } = useProposalStatusChange({
+  requestConfirm,
+  onNegotiate: (p) => {
+    contractModalProposal.value = p;
+    showContractModal.value = true;
+  },
+  resend: (proposalId) => handleResend(proposalId),
+});
 
 // Backward-compatible one-line toast used by simpler call sites (delete, etc.).
 // Renders through the global <PanelNotificationHost />.
@@ -1027,31 +1029,10 @@ function notifyEmailFailure(proposalId, emailDelivery, successTitle) {
   });
 }
 
-async function handleInlineStatusChange(proposal, newStatus, event) {
-  if (newStatus === 'negotiating') {
-    contractModalProposal.value = proposal;
-    showContractModal.value = true;
-    // Revert the select visually
-    if (event?.target) event.target.value = proposal.status;
-    return;
-  }
-  updatingStatusId.value = proposal.id;
-  try {
-    const result = await proposalStore.updateProposalStatus(proposal.id, newStatus);
-    if (result.success) {
-      const ed = result.email_delivery;
-      if (ed && ed.ok === false) {
-        notifyEmailFailure(proposal.id, ed, 'Estado actualizado');
-      } else {
-        notify.success({ title: 'Estado actualizado correctamente' });
-      }
-    } else {
-      notifyFailure(result, { proposalId: proposal.id });
-      proposalStore.fetchProposals();
-    }
-  } finally {
-    updatingStatusId.value = null;
-  }
+async function onStatusSelect(proposal, newStatus) {
+  const result = await changeStatus(proposal, newStatus);
+  // Stale-state recovery: reload the list when the backend rejected the change.
+  if (result && !result.success) proposalStore.fetchProposals();
 }
 
 async function handleContractConfirmFromList(params) {
@@ -1314,20 +1295,6 @@ function handleDelete(id) {
       }
     },
   });
-}
-
-function statusClass(status) {
-  const map = {
-    draft: 'bg-surface-raised text-text-muted',
-    sent: 'bg-info-soft text-info-strong',
-    viewed: 'bg-success-soft text-success-strong',
-    accepted: 'bg-primary-soft text-text-brand ',
-    finished: 'bg-primary-soft text-text-brand',
-    rejected: 'bg-danger-soft text-danger-strong',
-    negotiating: 'bg-warning-soft text-warning-strong',
-    expired: 'bg-warning-soft text-warning-strong',
-  };
-  return map[status] || 'bg-surface-raised text-text-muted';
 }
 
 function isInactive(p) {

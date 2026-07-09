@@ -31,6 +31,7 @@
       @finish="handleMarkAsFinished"
       @reject="handleStatusChange('rejected')"
       @discount-offer="openDiscountOfferModal"
+      @change-status="onStatusSelect"
     />
     <ProposalMultiSendModal
       :visible="showMultiSendModal"
@@ -69,9 +70,11 @@
         >
           Cliente ve: {{ formatInvestment(effectiveTotalInvestment, proposal.currency) }}
         </span>
-        <span class="text-xs px-2.5 py-0.5 rounded-full font-medium" :class="statusClass(proposal.status)">
-          {{ proposal.status }}
-        </span>
+        <ProposalStatusSelect
+          :proposal="proposal"
+          :updating="statusUpdatingId === proposal.id"
+          @change="onStatusSelect"
+        />
       </div>
     </div>
 
@@ -405,7 +408,9 @@ import DevChecklistTab from '~/components/panel/proposal/DevChecklistTab.vue';
 import ProposalActivityTab from '~/components/panel/proposal/ProposalActivityTab.vue';
 import ProposalJsonTab from '~/components/panel/proposal/ProposalJsonTab.vue';
 import ProposalPromptTab from '~/components/panel/proposal/ProposalPromptTab.vue';
+import ProposalStatusSelect from '~/components/panel/proposal/ProposalStatusSelect.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { useProposalStatusChange } from '~/composables/useProposalStatusChange';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -585,6 +590,17 @@ async function handleStatusChange(newStatus) {
   } else {
     notifyProposalFailure(result, 'No se pudo actualizar el estado');
   }
+}
+
+// Header status select (admin mode): shared confirm + PATCH + notify flow.
+// The store updates currentProposal on success, so no local assignment needed.
+const { updatingId: statusUpdatingId, changeStatus } = useProposalStatusChange({
+  requestConfirm,
+  onNegotiate: () => openContractModal(false),
+});
+
+async function onStatusSelect(newStatus) {
+  await changeStatus(proposal.value, newStatus);
 }
 
 async function handleMarkAsFinished() {
@@ -1310,18 +1326,6 @@ function formatInvestment(value, currency = 'COP') {
   if (!value) return '';
   const num = Number(value);
   return '$' + num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' ' + currency;
-}
-
-function statusClass(status) {
-  const map = {
-    draft: 'bg-surface-raised text-text-muted',
-    sent: 'bg-info-soft text-info-strong',
-    viewed: 'bg-success-soft text-success-strong',
-    accepted: 'bg-primary-soft text-text-brand',
-    rejected: 'bg-danger-soft text-danger-strong',
-    expired: 'bg-warning-soft text-warning-strong',
-  };
-  return map[status] || 'bg-surface-raised text-text-muted';
 }
 
 // --- JSON tab (export/import live in ProposalJsonTab) ---
