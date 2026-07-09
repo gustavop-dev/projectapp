@@ -17,15 +17,23 @@ from rest_framework.response import Response
 
 from accounts.models import SavedFilterTab
 from accounts.serializers import SavedFilterTabSerializer
+from accounts.services import saved_filter_tab_service
 
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAdminUser])
 def saved_filter_tabs_collection(request):
-    """Listar (GET ?view=<view>) o crear (POST) pestañas del usuario actual."""
+    """Listar (GET ?view=<view>) o crear (POST) pestañas del usuario actual.
+
+    En GET con ``view``, si el usuario aún no tiene pestañas para esa vista
+    se siembran los defaults del registry (``accounts.default_filter_tabs``).
+    Borrar todas las pestañas de una vista equivale a "restaurar defaults".
+    """
     if request.method == 'GET':
-        qs = SavedFilterTab.objects.filter(user=request.user)
         view = request.query_params.get('view')
+        if view:
+            saved_filter_tab_service.seed_default_tabs(request.user, view)
+        qs = SavedFilterTab.objects.filter(user=request.user)
         if view:
             qs = qs.filter(view=view)
         serializer = SavedFilterTabSerializer(qs, many=True)
