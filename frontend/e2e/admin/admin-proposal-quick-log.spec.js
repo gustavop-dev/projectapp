@@ -62,7 +62,7 @@ async function openQuickLogModal(page) {
 
   // Quick-log modal should now be visible (different modal with form)
   // Scope to the quick-log modal to avoid matching the inline status <select> in the table
-  const quickLogModal = page.locator('div.fixed.inset-0').filter({ has: page.getByText('Registrar') });
+  const quickLogModal = page.locator('div.fixed.inset-0').filter({ has: page.getByRole('heading', { name: 'Registrar actividad' }) });
   await expect(quickLogModal.locator('select')).toBeVisible({ timeout: 5000 });
 }
 
@@ -78,7 +78,7 @@ test.describe('Quick Log Activity from Proposals List', () => {
     await openQuickLogModal(page);
 
     // Scope to the quick-log modal — the proposals list table also contains the same client name
-    const quickLogModal = page.locator('div.fixed.inset-0').filter({ has: page.getByText('Registrar') });
+    const quickLogModal = page.locator('div.fixed.inset-0').filter({ has: page.getByRole('heading', { name: 'Registrar actividad' }) });
     await expect(quickLogModal.getByText(/Log Client.*Quick Log Proposal/)).toBeVisible();
   });
 
@@ -89,7 +89,7 @@ test.describe('Quick Log Activity from Proposals List', () => {
     await openQuickLogModal(page);
 
     // Scope to the quick-log modal to avoid the inline status <select>
-    const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByText('Registrar') });
+    const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByRole('heading', { name: 'Registrar actividad' }) });
     const select = modal.locator('select');
     await expect(select).toBeVisible();
 
@@ -105,7 +105,7 @@ test.describe('Quick Log Activity from Proposals List', () => {
     await openQuickLogModal(page);
 
     // Scope to the quick-log modal form area
-    const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByText('Registrar') });
+    const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByRole('heading', { name: 'Registrar actividad' }) });
     const submitBtn = modal.getByRole('button', { name: 'Registrar', exact: true });
     await expect(submitBtn).toBeDisabled();
   });
@@ -120,7 +120,7 @@ test.describe('Quick Log Activity from Proposals List', () => {
     const input = page.locator('input[placeholder*="Llamada de seguimiento"]');
     await input.fill('Llamada de seguimiento con el cliente');
 
-    const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByText('Registrar') });
+    const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByRole('heading', { name: 'Registrar actividad' }) });
     const submitBtn = modal.getByRole('button', { name: 'Registrar', exact: true });
     await expect(submitBtn).toBeEnabled();
   });
@@ -134,7 +134,7 @@ test.describe('Quick Log Activity from Proposals List', () => {
     const input = page.locator('input[placeholder*="Llamada de seguimiento"]');
     await input.fill('Seguimiento telefónico exitoso');
 
-    const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByText('Registrar') });
+    const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByRole('heading', { name: 'Registrar actividad' }) });
     const submitBtn = modal.getByRole('button', { name: 'Registrar', exact: true });
 
     // Wait for API response before asserting modal closure

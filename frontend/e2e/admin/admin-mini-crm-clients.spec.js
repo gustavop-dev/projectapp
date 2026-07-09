@@ -248,7 +248,10 @@ test.describe('Admin Mini CRM Clients', () => {
 
     await expect(page.getByRole('link', { name: 'Propuesta Alpha' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Propuesta Beta' })).toBeVisible();
-    await expect(page.getByText('accepted')).toBeVisible();
+    await expect(
+      page.getByTestId('client-proposal-row-1')
+        .getByRole('combobox', { name: 'Cambiar estado de la propuesta' }),
+    ).toHaveValue('accepted');
   });
 
   test('the refresh button re-fetches an already-expanded client (cache invalidation)', {
