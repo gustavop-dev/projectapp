@@ -101,6 +101,7 @@
             </slot>
           </td>
           <td v-if="showActions" class="px-4 py-3 text-right whitespace-nowrap">
+            <slot name="row-actions" :row="row" />
             <button
               type="button"
               aria-label="Editar"

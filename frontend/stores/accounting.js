@@ -59,6 +59,8 @@ export const useAccountingStore = defineStore('accounting', {
     recurringPayments: [],
     adsRecords: [],
     cardSnapshots: [],
+    collectionAccounts: [],
+    collectionAccountsMeta: {},
     metas: {},
     summary: null,
     changelog: { results: [], count: 0, page: 1, numPages: 1 },
@@ -298,6 +300,81 @@ export const useAccountingStore = defineStore('accounting', {
       } finally {
         this.isUpdating = false;
       }
+    },
+
+    // ── Collection accounts (cuentas de cobro) ──
+
+    /**
+     * fetchCollectionAccounts: Cobros monitor list + status counters.
+     */
+    async fetchCollectionAccounts(params = {}) {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const response = await get_request(
+          `accounting/collection-accounts/${buildQuery(params)}`,
+        );
+        this.collectionAccounts = response.data.results ?? [];
+        this.collectionAccountsMeta = response.data.meta ?? {};
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'fetch_failed';
+        console.error('Error fetching collection accounts:', error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    /**
+     * sendHostingCollectionAccount: issue + email the cuenta de cobro of a
+     * hosting. Returns {success, data: {document, email_sent}}.
+     */
+    async sendHostingCollectionAccount(hostingId) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          `accounting/hostings/${hostingId}/send-collection-account/`, {},
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error(`Error sending collection account (hosting ${hostingId}):`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    async _collectionAccountAction(id, action) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          `accounting/collection-accounts/${id}/${action}/`, {},
+        );
+        if (response.data?.id) {
+          this.collectionAccounts = this.collectionAccounts.map((doc) =>
+            doc.id === id ? response.data : doc,
+          );
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error(`Error on collection account ${id} ${action}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    async resendCollectionAccount(id) {
+      return this._collectionAccountAction(id, 'resend');
+    },
+
+    async markCollectionAccountPaid(id) {
+      return this._collectionAccountAction(id, 'mark-paid');
+    },
+
+    async cancelCollectionAccount(id) {
+      return this._collectionAccountAction(id, 'cancel');
     },
   },
 });

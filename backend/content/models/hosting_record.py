@@ -28,6 +28,11 @@ class HostingRecord(AccountingRecordBase):
     }
 
     client_name = models.CharField(max_length=255)
+    # Billing contact for the cuenta de cobro email (hosting records are
+    # deliberately not linked to platform users).
+    client_email = models.EmailField(blank=True, default='')
+    client_contact_name = models.CharField(max_length=255, blank=True, default='')
+    client_identification = models.CharField(max_length=64, blank=True, default='')
     domain_url = models.CharField(max_length=255, blank=True, default='')
     monthly_value = models.DecimalField(max_digits=14, decimal_places=2)
     payment_modality = models.CharField(

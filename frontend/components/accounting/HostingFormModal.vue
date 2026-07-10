@@ -22,6 +22,9 @@ const modalityOptions = [
 function defaultForm() {
   return {
     client_name: '',
+    client_email: '',
+    client_contact_name: '',
+    client_identification: '',
     domain_url: '',
     monthly_value: '',
     payment_modality: 'monthly',
@@ -45,6 +48,9 @@ watch(
     if (props.record) {
       form.value = {
         client_name: props.record.client_name ?? '',
+        client_email: props.record.client_email ?? '',
+        client_contact_name: props.record.client_contact_name ?? '',
+        client_identification: props.record.client_identification ?? '',
         domain_url: props.record.domain_url ?? '',
         monthly_value: props.record.monthly_value ?? '',
         payment_modality: props.record.payment_modality ?? 'monthly',
@@ -75,6 +81,9 @@ function onSubmit() {
     payment_modality: form.value.payment_modality,
     is_active: form.value.is_active,
   }
+  payload.client_email = form.value.client_email
+  payload.client_contact_name = form.value.client_contact_name
+  payload.client_identification = form.value.client_identification
   payload.domain_url = form.value.domain_url
   payload.benefit = form.value.benefit
   payload.notes = form.value.notes
@@ -101,6 +110,22 @@ function onSubmit() {
           <BaseInput v-model="form.domain_url" placeholder="https://ejemplo.com" />
         </BaseFormField>
       </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <BaseFormField
+          label="Email del cliente"
+          hint="Destino de la cuenta de cobro"
+        >
+          <BaseInput v-model="form.client_email" type="email" placeholder="cliente@dominio.com" />
+        </BaseFormField>
+        <BaseFormField label="Contacto del cliente">
+          <BaseInput v-model="form.client_contact_name" placeholder="Nombre de quien recibe" />
+        </BaseFormField>
+      </div>
+
+      <BaseFormField label="Identificación del cliente (NIT/CC)">
+        <BaseInput v-model="form.client_identification" />
+      </BaseFormField>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <BaseFormField label="Valor por mes" required>

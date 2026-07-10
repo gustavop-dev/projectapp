@@ -43,6 +43,18 @@ def to_bogota_date(dt) -> date | None:
         dt = dj_timezone.make_aware(dt)
     return dt.astimezone(_BOGOTA_TZ).date()
 
+
+def add_months(base: date, months: int) -> date:
+    """Add calendar months, clamping the day (Jan 31 + 1 month = Feb 28)."""
+    month_index = base.month - 1 + months
+    year = base.year + month_index // 12
+    month = month_index % 12 + 1
+    last_day = [
+        31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28,
+        31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+    ][month - 1]
+    return date(year, month, min(base.day, last_day))
+
 _SPANISH_MONTHS = {
     1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
     5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',

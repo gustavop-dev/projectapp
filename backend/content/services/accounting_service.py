@@ -66,6 +66,9 @@ TRACKED_FIELDS = {
     ],
     EntityType.HOSTING: [
         ('client_name', 'Cliente'),
+        ('client_email', 'Email del cliente'),
+        ('client_contact_name', 'Contacto del cliente'),
+        ('client_identification', 'Identificación del cliente'),
         ('domain_url', 'Dominio'),
         ('monthly_value', 'Valor mensual'),
         ('payment_modality', 'Modalidad de pago'),

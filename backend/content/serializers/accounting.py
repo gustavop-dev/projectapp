@@ -255,7 +255,8 @@ class HostingRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = HostingRecord
         fields = (
-            'id', 'client_name', 'domain_url', 'monthly_value',
+            'id', 'client_name', 'client_email', 'client_contact_name',
+            'client_identification', 'domain_url', 'monthly_value',
             'payment_modality', 'payment_modality_label', 'benefit',
             'valid_from', 'valid_to', 'cycles_count',
             'payment_per_cycle', 'total_paid', 'is_active',
@@ -275,7 +276,8 @@ class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = HostingRecord
         fields = (
-            'client_name', 'domain_url', 'monthly_value',
+            'client_name', 'client_email', 'client_contact_name',
+            'client_identification', 'domain_url', 'monthly_value',
             'payment_modality', 'benefit', 'valid_from', 'valid_to',
             'cycles_count', 'payment_per_cycle', 'total_paid',
             'is_active', 'notes',

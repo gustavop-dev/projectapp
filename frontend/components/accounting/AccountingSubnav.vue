@@ -30,6 +30,7 @@ const items = [
   { key: 'incomes', label: 'Ingresos', to: '/panel/accounting/incomes' },
   { key: 'expenses', label: 'Gastos', to: '/panel/accounting/expenses' },
   { key: 'hostings', label: 'Hostings', to: '/panel/accounting/hostings' },
+  { key: 'collections', label: 'Cobros', to: '/panel/accounting/collections' },
   { key: 'pocket', label: 'Bolsillo', to: '/panel/accounting/pocket' },
   { key: 'recurring', label: 'Recurrentes', to: '/panel/accounting/recurring' },
   { key: 'ads', label: 'Ads', to: '/panel/accounting/ads' },

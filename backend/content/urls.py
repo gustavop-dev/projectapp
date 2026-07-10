@@ -23,6 +23,15 @@ from content.views.accounting import (
 from content.views.accounting_export import (
     export_accounting_records, export_accounting_workbook,
 )
+from content.views.collection_accounts_panel import (
+    cancel_collection_account_view,
+    collection_account_pdf,
+    list_collection_accounts,
+    mark_collection_account_paid_view,
+    resend_collection_account,
+    retrieve_collection_account,
+    send_hosting_collection_account,
+)
 from content.views.contact import contact_list, new_contact
 from content.views.portfolio_works import (
     list_portfolio_works, retrieve_portfolio_work,
@@ -451,6 +460,18 @@ urlpatterns = [
     path('accounting/hostings/<int:record_id>/', retrieve_hosting_record, name='retrieve-hosting-record'),
     path('accounting/hostings/<int:record_id>/update/', update_hosting_record, name='update-hosting-record'),
     path('accounting/hostings/<int:record_id>/delete/', delete_hosting_record, name='delete-hosting-record'),
+    path(
+        'accounting/hostings/<int:record_id>/send-collection-account/',
+        send_hosting_collection_account,
+        name='send-hosting-collection-account',
+    ),
+
+    path('accounting/collection-accounts/', list_collection_accounts, name='list-collection-accounts'),
+    path('accounting/collection-accounts/<int:doc_id>/', retrieve_collection_account, name='retrieve-collection-account'),
+    path('accounting/collection-accounts/<int:doc_id>/pdf/', collection_account_pdf, name='collection-account-pdf'),
+    path('accounting/collection-accounts/<int:doc_id>/resend/', resend_collection_account, name='resend-collection-account'),
+    path('accounting/collection-accounts/<int:doc_id>/mark-paid/', mark_collection_account_paid_view, name='mark-collection-account-paid'),
+    path('accounting/collection-accounts/<int:doc_id>/cancel/', cancel_collection_account_view, name='cancel-collection-account'),
 
     path('accounting/pocket/', list_pocket_movements, name='list-pocket-movements'),
     path('accounting/pocket/create/', create_pocket_movement, name='create-pocket-movement'),

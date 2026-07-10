@@ -174,12 +174,36 @@
           </span>
         </template>
         <template #cell-is_active="{ row }">
-          <AccountingStatusSelect
-            :value="row.is_active"
-            :updating="statusUpdatingId === row.id"
-            aria-label="Cambiar estado del hosting"
-            @change="changeStatus(row, $event)"
-          />
+          <div class="flex items-center gap-2">
+            <AccountingStatusSelect
+              :value="row.is_active"
+              :updating="statusUpdatingId === row.id"
+              aria-label="Cambiar estado del hosting"
+              @change="changeStatus(row, $event)"
+            />
+            <span
+              v-if="row.billing_requested_at"
+              class="text-[10px] px-2 py-0.5 rounded-full font-medium bg-info-soft text-info-strong whitespace-nowrap"
+              title="Cuenta de cobro enviada para el período actual"
+            >
+              Cobro enviado
+            </span>
+          </div>
+        </template>
+        <template #row-actions="{ row }">
+          <button
+            type="button"
+            aria-label="Enviar cuenta de cobro"
+            :title="row.client_email
+              ? 'Enviar cuenta de cobro al cliente'
+              : 'Configura el email del cliente para enviar la cuenta de cobro'"
+            :disabled="!row.client_email || billingId === row.id"
+            :data-testid="`hosting-send-billing-${row.id}`"
+            class="p-2 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+            @click.stop="askSendBilling(row)"
+          >
+            <PaperAirplaneIcon class="w-5 h-5" />
+          </button>
         </template>
       </AccountingTable>
 
@@ -219,12 +243,23 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
+
+    <ConfirmModal
+      v-model="billingConfirmOpen"
+      title="Enviar cuenta de cobro"
+      :message="billingConfirmMessage"
+      confirm-text="Enviar al cliente"
+      cancel-text="Cancelar"
+      variant="primary"
+      @confirm="sendBilling"
+      @cancel="billingRow = null"
+    />
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { PlusIcon } from '@heroicons/vue/24/outline';
+import { PaperAirplaneIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
@@ -434,6 +469,56 @@ async function saveInline(row, field, value) {
     loadRecords();
   } else {
     notify.error({ title: 'No se pudo actualizar', detail: result.message });
+  }
+}
+
+// -------------------------------------------------------------------
+// Cuenta de cobro (collection account) action
+// -------------------------------------------------------------------
+
+const billingConfirmOpen = ref(false);
+const billingRow = ref(null);
+const billingId = ref(null);
+
+const billingConfirmMessage = computed(() => {
+  const row = billingRow.value;
+  if (!row) return '';
+  return (
+    `Se emitirá la cuenta de cobro por ${formatMoney(row.payment_per_cycle, 'COP')} ` +
+    `y se enviará con el PDF adjunto a ${row.client_email}. ` +
+    'Los avisos de vencimiento de este hosting se pausan hasta la próxima renovación.'
+  );
+});
+
+function askSendBilling(row) {
+  billingRow.value = row;
+  billingConfirmOpen.value = true;
+}
+
+async function sendBilling() {
+  const row = billingRow.value;
+  billingRow.value = null;
+  if (!row) return;
+  billingId.value = row.id;
+  const result = await store.sendHostingCollectionAccount(row.id);
+  billingId.value = null;
+  if (result.success) {
+    const number = result.data?.document?.public_number || '';
+    if (result.data?.email_sent) {
+      notify.success({
+        title: 'Cuenta de cobro enviada',
+        detail: number ? `Documento ${number} enviado a ${row.client_email}.` : '',
+        action: { label: 'Ver en Cobros', to: '/panel/accounting/collections' },
+      });
+    } else {
+      notify.warning({
+        title: 'Cuenta de cobro emitida, pero el correo falló',
+        detail: 'Reenvíala desde el tab Cobros.',
+      });
+    }
+    loadRecords();
+  } else {
+    notify.error({ title: 'No se pudo enviar la cuenta de cobro', detail: result.message });
   }
 }
 
