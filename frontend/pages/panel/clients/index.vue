@@ -264,6 +264,7 @@
                     <td class="px-5 py-3">
                       <NuxtLink
                         :to="localePath(`/panel/proposals/${p.id}/edit`)"
+                        draggable="false"
                         class="font-medium text-text-default hover:text-text-brand transition-colors"
                       >
                         {{ p.title }}
@@ -916,6 +917,8 @@ function onRowDragStart(event, client, type, item) {
     sourceClientId: client.id,
     sourceClientName: client.name,
   };
+  // Sin setData, Firefox no inicia el drag nativo (no dispara dragover/drop).
+  event.dataTransfer.setData('text/plain', `${type}:${item.id}`);
   event.dataTransfer.effectAllowed = 'move';
 }
 

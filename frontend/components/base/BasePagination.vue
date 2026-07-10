@@ -1,15 +1,15 @@
 <template>
   <nav
     v-if="totalPages > 1 || alwaysShow"
-    class="relative flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3 py-3"
+    class="flex flex-col gap-3 py-3 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:items-center"
     :aria-label="ariaLabel"
   >
-    <p v-if="totalItems > 0" class="text-xs text-text-muted text-center sm:text-left sm:absolute sm:left-0">
+    <p v-if="totalItems > 0" class="text-xs text-text-muted text-center sm:text-left sm:col-start-1">
       Mostrando <span class="font-medium text-text-default">{{ rangeFrom }}</span>–<span class="font-medium text-text-default">{{ rangeTo }}</span>
       de <span class="font-medium text-text-default">{{ totalItems }}</span>
     </p>
 
-    <div class="flex items-center justify-center gap-2">
+    <div class="flex items-center justify-center gap-2 sm:col-start-2">
       <button
         type="button"
         class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-border-default bg-surface text-text-muted hover:bg-surface-raised hover:text-text-default disabled:opacity-40 disabled:cursor-not-allowed transition-colors"

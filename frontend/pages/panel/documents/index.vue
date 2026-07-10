@@ -528,6 +528,8 @@ function handleSendEmail(doc) {
 
 function handleDragStart(event, doc) {
   draggingDoc.value = doc;
+  // Sin setData, Firefox no inicia el drag nativo (no dispara dragover/drop).
+  event.dataTransfer.setData('text/plain', `doc:${doc.id}`);
   event.dataTransfer.effectAllowed = 'move';
 }
 
@@ -537,6 +539,7 @@ function handleDragEnd() {
 
 function handleFolderDragStart(event, folder) {
   draggingFolder.value = folder;
+  event.dataTransfer.setData('text/plain', `folder:${folder.id}`);
   event.dataTransfer.effectAllowed = 'move';
 }
 
