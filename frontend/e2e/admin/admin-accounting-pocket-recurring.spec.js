@@ -207,7 +207,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
 
     await page.getByTestId('recurring-new-button').click();
     await page.locator('form input[type="text"]').first().fill('Netflix');
-    await page.locator('form input[type="number"]').first().fill('39800');
+    await page.locator('form input[inputmode="numeric"]').first().fill('39800');
     await page.getByTestId('recurring-payment-form-submit').click();
 
     await expect(page.getByText('Pago recurrente creado')).toBeVisible();

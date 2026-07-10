@@ -270,21 +270,26 @@ async function save() {
     return;
   }
 
-  if (!usdExchangeRate.value || usdExchangeRate.value < 1) {
-    notify.error({
-      title: 'Tasa USD inválida',
-      detail: 'La tasa de cambio debe ser un número mayor o igual a 1.',
-    });
-    return;
-  }
-
-  const result = await store.updateSettings({
+  const payload = {
     notification_recipients: nonEmpty,
     notifications_enabled: notificationsEnabled.value,
     card_reminder_enabled: cardReminderEnabled.value,
     hosting_expiry_reminder_enabled: hostingExpiryReminderEnabled.value,
-    usd_exchange_rate: usdExchangeRate.value,
-  });
+  };
+  // Only send the rate when the user has one loaded/typed: the backend
+  // keeps its current value otherwise.
+  if (usdExchangeRate.value != null) {
+    if (usdExchangeRate.value < 1) {
+      notify.error({
+        title: 'Tasa USD inválida',
+        detail: 'La tasa de cambio debe ser un número mayor o igual a 1.',
+      });
+      return;
+    }
+    payload.usd_exchange_rate = usdExchangeRate.value;
+  }
+
+  const result = await store.updateSettings(payload);
   if (result.success) {
     syncFromSettings(result.data);
     notify.success('Configuración guardada');
