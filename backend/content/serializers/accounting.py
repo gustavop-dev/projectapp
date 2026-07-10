@@ -468,10 +468,14 @@ class AccountingSettingsSerializer(serializers.ModelSerializer):
         allow_empty=True,
         required=False,
     )
+    usd_exchange_rate = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=Decimal('1'),
+        required=False,
+    )
 
     class Meta:
         model = AccountingSettings
         fields = (
             'notification_recipients', 'notifications_enabled',
-            'card_reminder_enabled', 'updated_at',
+            'card_reminder_enabled', 'usd_exchange_rate', 'updated_at',
         )

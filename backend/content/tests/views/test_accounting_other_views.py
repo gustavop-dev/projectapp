@@ -42,6 +42,31 @@ class TestHostingEndpoints:
         assert response.data['meta']['active_count'] == 1
         assert response.data['meta']['monthly_income'] == '100.00'
 
+    def test_meta_reports_expiring_soon_and_total_paid(self, super_client):
+        from datetime import timedelta
+
+        from content.utils import today_bogota
+
+        today = today_bogota()
+        HostingRecord.objects.create(
+            client_name='Pronto', monthly_value=Decimal('10.00'),
+            is_active=True, valid_to=today + timedelta(days=15),
+            total_paid=Decimal('600.00'),
+        )
+        HostingRecord.objects.create(
+            client_name='Lejano', monthly_value=Decimal('10.00'),
+            is_active=True, valid_to=today + timedelta(days=90),
+            total_paid=Decimal('400.00'),
+        )
+        HostingRecord.objects.create(
+            client_name='Inactivo', monthly_value=Decimal('10.00'),
+            is_active=False, valid_to=today + timedelta(days=5),
+        )
+        response = super_client.get('/api/accounting/hostings/')
+        meta = response.data['meta']
+        assert meta['expiring_soon_count'] == 1
+        assert meta['total_paid'] == '1000.00'
+
     def test_filter_by_modality(self, super_client):
         HostingRecord.objects.create(
             client_name='Anual', monthly_value=Decimal('10.00'),
@@ -132,6 +157,27 @@ class TestRecurringEndpoints:
         )
         response = super_client.get('/api/accounting/recurring/')
         assert response.data['meta']['monthly_cop_total'] == '803660.00'
+
+    def test_meta_reports_usd_totals_from_settings_rate(self, super_client):
+        from content.models import AccountingSettings
+
+        config = AccountingSettings.load()
+        config.usd_exchange_rate = Decimal('4000.00')
+        config.save()
+        RecurringPayment.objects.create(
+            name='Claude Code 20x', price=Decimal('200.00'), currency='USD',
+            cop_equivalent=Decimal('800000.00'), frequency='monthly',
+        )
+        RecurringPayment.objects.create(
+            name='Hosting COP', price=Decimal('400000.00'), currency='COP',
+            cop_equivalent=Decimal('400000.00'), frequency='monthly',
+        )
+        response = super_client.get('/api/accounting/recurring/')
+        meta = response.data['meta']
+        # (800000 + 400000) / 4000 = 300 USD
+        assert meta['monthly_usd_total'] == '300.00'
+        assert meta['usd_native_total'] == '200.00'
+        assert meta['usd_exchange_rate'] == '4000.00'
 
     def test_filter_by_frequency_and_method(self, super_client):
         RecurringPayment.objects.create(

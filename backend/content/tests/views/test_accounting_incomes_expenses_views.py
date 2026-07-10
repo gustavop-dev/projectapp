@@ -205,3 +205,92 @@ class TestExpenseCrudAndFilters:
         )
         assert delete.status_code == 204
         assert not ExpenseRecord.objects.filter(pk=expense.pk).exists()
+
+
+@pytest.mark.django_db
+class TestIncomeExpenseMeta:
+    def test_income_meta_totals_and_top(self, super_client, make_income):
+        from content.utils import today_bogota
+
+        today = today_bogota()
+        month_start = today.replace(day=1)
+        make_income(
+            kind=IncomeRecord.Kind.EXPECTED, period_date=month_start,
+            total_amount=Decimal('2000.00'),
+            gustavo_amount=Decimal('1000.00'), carlos_amount=Decimal('1000.00'),
+        )
+        make_income(
+            concept='Entrega grande', kind=IncomeRecord.Kind.LIQUID,
+            period_date=month_start, total_amount=Decimal('1500.00'),
+            gustavo_amount=Decimal('750.00'), carlos_amount=Decimal('750.00'),
+        )
+        response = super_client.get('/api/accounting/incomes/')
+        meta = response.data['meta']
+        assert meta['expected_total'] == '2000.00'
+        assert meta['liquid_total'] == '1500.00'
+        assert meta['received_pct'] == 75
+        assert meta['current_month_liquid'] == '1500.00'
+        assert meta['top_income']['concept'] == 'Entrega grande'
+
+    def test_income_meta_empty_year(self, super_client):
+        response = super_client.get('/api/accounting/incomes/')
+        meta = response.data['meta']
+        assert meta['received_pct'] is None
+        assert meta['top_income'] is None
+
+    def test_expense_meta_totals_split_and_top(self, super_client):
+        from content.utils import today_bogota
+
+        today = today_bogota()
+        month_start = today.replace(day=1)
+        for concept, category, amount in (
+            ('Figma', 'business', '300.00'),
+            ('Almuerzo', 'personal', '700.00'),
+        ):
+            ExpenseRecord.objects.create(
+                concept=concept, category=category,
+                period_date=month_start, total_amount=Decimal(amount),
+            )
+        response = super_client.get('/api/accounting/expenses/')
+        meta = response.data['meta']
+        assert meta['year_total'] == '1000.00'
+        assert meta['current_month_total'] == '1000.00'
+        assert meta['business_total'] == '300.00'
+        assert meta['personal_total'] == '700.00'
+        assert meta['top_expense']['concept'] == 'Almuerzo'
+
+    def test_expense_meta_alert_triggers_at_150_pct(self, super_client):
+        from content.utils import today_bogota
+
+        today = today_bogota()
+        if today.month == 1:
+            pytest.skip('sin meses previos en enero')
+        prior = today.replace(month=today.month - 1, day=1)
+        ExpenseRecord.objects.create(
+            concept='Mes previo', period_date=prior,
+            total_amount=Decimal('100.00'),
+        )
+        ExpenseRecord.objects.create(
+            concept='Mes actual', period_date=today.replace(day=1),
+            total_amount=Decimal('150.00'),
+        )
+        response = super_client.get('/api/accounting/expenses/')
+        assert response.data['meta']['current_month_alert'] is True
+
+    def test_expense_meta_alert_off_below_threshold(self, super_client):
+        from content.utils import today_bogota
+
+        today = today_bogota()
+        if today.month == 1:
+            pytest.skip('sin meses previos en enero')
+        prior = today.replace(month=today.month - 1, day=1)
+        ExpenseRecord.objects.create(
+            concept='Mes previo', period_date=prior,
+            total_amount=Decimal('100.00'),
+        )
+        ExpenseRecord.objects.create(
+            concept='Mes actual', period_date=today.replace(day=1),
+            total_amount=Decimal('149.00'),
+        )
+        response = super_client.get('/api/accounting/expenses/')
+        assert response.data['meta']['current_month_alert'] is False

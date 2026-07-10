@@ -21,6 +21,33 @@
 
     <AccountingSubnav active="expenses" />
 
+    <!-- KPI cards (year scope, server-computed) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <AccountingStatCard
+        label="Total año"
+        :value="money(expensesMeta.year_total)"
+      />
+      <AccountingStatCard
+        label="Mes actual"
+        :value="money(expensesMeta.current_month_total)"
+        :tone="expensesMeta.current_month_alert ? 'warning' : 'default'"
+        :sub="expensesMeta.current_month_alert
+          ? 'Inusualmente alto vs promedio mensual'
+          : ''"
+      />
+      <AccountingStatCard
+        label="Mayor gasto del año"
+        :value="expensesMeta.top_expense ? money(expensesMeta.top_expense.amount) : '—'"
+        :sub="expensesMeta.top_expense?.concept || ''"
+      />
+      <AccountingStatCard
+        label="Negocio (año)"
+        :value="money(expensesMeta.business_total)"
+        :sub="`Personal: ${money(expensesMeta.personal_total)}`"
+        tone="brand"
+      />
+    </div>
+
     <!-- Saved filter tabs -->
     <ProposalFilterTabs
       :tabs="savedTabs"
@@ -185,6 +212,7 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
@@ -207,6 +235,12 @@ import { formatMoney } from '~/utils/formatMoney';
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
+
+const expensesMeta = computed(() => store.metaFor('expenses'));
+
+function money(value) {
+  return formatMoney(Number(value ?? 0), 'COP');
+}
 
 // -------------------------------------------------------------------
 // Filters

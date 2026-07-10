@@ -22,7 +22,7 @@
     <AccountingSubnav active="hostings" />
 
     <!-- Meta cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
       <AccountingStatCard
         label="Hostings activos"
         :value="String(hostingsMeta.active_count ?? 0)"
@@ -32,6 +32,16 @@
         label="Ingreso mensual"
         :value="formatMoney(hostingsMeta.monthly_income ?? 0)"
         tone="success"
+      />
+      <AccountingStatCard
+        label="Por vencer en 30 días"
+        :value="String(hostingsMeta.expiring_soon_count ?? 0)"
+        :tone="(hostingsMeta.expiring_soon_count ?? 0) > 0 ? 'warning' : 'default'"
+        sub="Activos con vigencia próxima"
+      />
+      <AccountingStatCard
+        label="Total pagado histórico"
+        :value="formatMoney(hostingsMeta.total_paid ?? 0)"
       />
     </div>
 

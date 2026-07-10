@@ -21,6 +21,30 @@
 
     <AccountingSubnav active="incomes" />
 
+    <!-- KPI cards (year scope, server-computed) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <AccountingStatCard
+        label="Total esperado (año)"
+        :value="money(incomesMeta.expected_total)"
+      />
+      <AccountingStatCard
+        label="Total líquido (año)"
+        :value="money(incomesMeta.liquid_total)"
+        :sub="incomesMeta.received_pct != null ? `${incomesMeta.received_pct}% recibido` : ''"
+        tone="success"
+      />
+      <AccountingStatCard
+        label="Mes actual (líquido)"
+        :value="money(incomesMeta.current_month_liquid)"
+      />
+      <AccountingStatCard
+        label="Mayor ingreso del año"
+        :value="incomesMeta.top_income ? money(incomesMeta.top_income.amount) : '—'"
+        :sub="incomesMeta.top_income?.concept || ''"
+        tone="brand"
+      />
+    </div>
+
     <!-- Saved filter tabs -->
     <ProposalFilterTabs
       :tabs="savedTabs"
@@ -191,6 +215,7 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
@@ -212,6 +237,12 @@ import { formatMoney } from '~/utils/formatMoney';
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
+
+const incomesMeta = computed(() => store.metaFor('incomes'));
+
+function money(value) {
+  return formatMoney(Number(value ?? 0), 'COP');
+}
 
 // -------------------------------------------------------------------
 // Filters

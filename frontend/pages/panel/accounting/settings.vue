@@ -119,6 +119,22 @@
       </div>
 
       <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
+        <h2 class="text-lg font-bold text-text-default mb-1">Tasa de cambio USD</h2>
+        <p class="text-sm text-text-muted mb-4">
+          Pesos por dólar de referencia, usada para el KPI de costo mensual en
+          USD de los pagos recurrentes. Se guarda con "Guardar cambios".
+        </p>
+        <div class="max-w-xs">
+          <BaseCurrencyInput
+            v-model="usdExchangeRate"
+            :decimals="2"
+            placeholder="4.000"
+            data-testid="settings-usd-rate-input"
+          />
+        </div>
+      </div>
+
+      <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
         <h2 class="text-lg font-bold text-text-default mb-1">Pestañas de filtros guardados</h2>
         <p class="text-sm text-text-muted mb-5">
           Restaura las pestañas predefinidas de cada vista del módulo contable.
@@ -183,11 +199,14 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const notificationsEnabled = ref(true);
 const cardReminderEnabled = ref(true);
 const recipients = ref([]);
+const usdExchangeRate = ref(null);
 let rowId = 0;
 
 function syncFromSettings(settings) {
   notificationsEnabled.value = Boolean(settings?.notifications_enabled);
   cardReminderEnabled.value = Boolean(settings?.card_reminder_enabled);
+  usdExchangeRate.value =
+    settings?.usd_exchange_rate != null ? Number(settings.usd_exchange_rate) : null;
   recipients.value = (settings?.notification_recipients || []).map((email) => ({
     id: ++rowId,
     value: email,
@@ -225,10 +244,19 @@ async function save() {
     return;
   }
 
+  if (!usdExchangeRate.value || usdExchangeRate.value < 1) {
+    notify.error({
+      title: 'Tasa USD inválida',
+      detail: 'La tasa de cambio debe ser un número mayor o igual a 1.',
+    });
+    return;
+  }
+
   const result = await store.updateSettings({
     notification_recipients: nonEmpty,
     notifications_enabled: notificationsEnabled.value,
     card_reminder_enabled: cardReminderEnabled.value,
+    usd_exchange_rate: usdExchangeRate.value,
   });
   if (result.success) {
     syncFromSettings(result.data);

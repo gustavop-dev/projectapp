@@ -102,3 +102,23 @@ class TestSettingsEndpoints:
         )
         assert response.status_code == 200
         assert response.data['notifications_enabled'] is False
+
+    def test_usd_exchange_rate_defaults_to_4000(self, super_client):
+        response = super_client.get('/api/accounting/settings/')
+        assert response.data['usd_exchange_rate'] == '4000.00'
+
+    def test_usd_exchange_rate_roundtrip_and_min(self, super_client):
+        response = super_client.patch(
+            '/api/accounting/settings/update/',
+            {'usd_exchange_rate': '4350.50'},
+            format='json',
+        )
+        assert response.status_code == 200, response.data
+        assert response.data['usd_exchange_rate'] == '4350.50'
+
+        rejected = super_client.patch(
+            '/api/accounting/settings/update/',
+            {'usd_exchange_rate': '0.50'},
+            format='json',
+        )
+        assert rejected.status_code == 400
