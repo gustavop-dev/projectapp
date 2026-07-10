@@ -237,6 +237,49 @@ const safeHtml = computed(() => {
 :global(.dark) .markdown-preview :deep(.callout-caution) { background-color: #200a0e; border-color: #fb7185; }
 :global(.dark) .markdown-preview :deep(.callout-caution .callout-label) { color: #fb7185; }
 
+/* Card thumbnail (gallery mini-preview) */
+.markdown-preview--mini { font-size: 0.65rem; }
+.markdown-preview--mini :deep(.md-h1) {
+  font-size: 0.9rem;
+  margin-bottom: 0.35rem;
+  padding-bottom: 0.25rem;
+}
+.markdown-preview--mini :deep(.md-h2) {
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.markdown-preview--mini :deep(.md-h3),
+.markdown-preview--mini :deep(.md-h4),
+.markdown-preview--mini :deep(.md-h5),
+.markdown-preview--mini :deep(.md-h6) {
+  font-size: 0.72rem;
+  margin-top: 0.4rem;
+  margin-bottom: 0.2rem;
+}
+.markdown-preview--mini :deep(.md-p),
+.markdown-preview--mini :deep(.md-ul),
+.markdown-preview--mini :deep(.md-ol),
+.markdown-preview--mini :deep(.md-blockquote) {
+  font-size: 0.65rem;
+  line-height: 1.5;
+  margin-bottom: 0.35rem;
+}
+.markdown-preview--mini :deep(.md-ul),
+.markdown-preview--mini :deep(.md-ol) { padding-left: 1rem; }
+.markdown-preview--mini :deep(.md-table) { font-size: 0.55rem; }
+.markdown-preview--mini :deep(.md-table th),
+.markdown-preview--mini :deep(.md-table td) { padding: 0.2rem 0.35rem; }
+.markdown-preview--mini :deep(.md-code-block) {
+  font-size: 0.55rem;
+  padding: 0.35rem 0.5rem;
+  margin-bottom: 0.35rem;
+}
+.markdown-preview--mini :deep(.callout) { padding: 5px 7px; margin: 6px 0; gap: 2px; }
+.markdown-preview--mini :deep(.callout-label) { font-size: 8px; }
+.markdown-preview--mini :deep(.callout-body) { font-size: 9px; line-height: 1.4; }
+.markdown-preview--mini :deep(.md-hr) { margin: 0.5rem 0; }
+
 /* Full-page preview (modal) */
 .markdown-preview--full :deep(.md-h1) { font-size: 2rem; }
 .markdown-preview--full :deep(.md-h2) { font-size: 1.5rem; }

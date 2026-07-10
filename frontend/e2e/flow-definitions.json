@@ -1585,6 +1585,16 @@
       "description": "View the list of admin documents with title, status, client association. Per-row actions are collapsed into a single 'Acciones' (kebab) icon that opens the DocumentActionsSheet modal listing each action with its own icon: edit content, rename, move to folder, send by email, download PDF, copy markdown, duplicate, delete. The same single-icon + modal pattern is used on every breakpoint (centered modal on desktop, bottom-sheet on mobile). Navigate to create or edit pages.",
       "expectedSpecs": 1
     },
+    "admin-document-gallery": {
+      "name": "Admin Document Gallery View",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Toggle between list and gallery views on /panel/documents via the 'Lista'/'Galería' segmented control (data-testid doc-view-list / doc-view-grid). Gallery renders one card per document with a sanitized markdown mini-preview (content_excerpt), status badge overlay, client + date, up to 2 tag chips with a +N tooltip, and the same kebab 'Acciones' opening DocumentActionsSheet. Subfolder cards render first with dashed borders and act as drag-and-drop targets. The chosen mode persists in localStorage (projectapp-documents-view-mode); default is 'list'. On mobile the gallery grid is always the view.",
+      "expectedSpecs": 1
+    },
     "admin-document-create": {
       "name": "Admin Document Create",
       "module": "admin",

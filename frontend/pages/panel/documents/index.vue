@@ -14,8 +14,12 @@
       </BaseButton>
     </div>
 
-    <!-- Search bar -->
-    <DocumentSearchInput v-model="searchQuery" class="mb-5" />
+    <!-- Toolbar: search + list/gallery toggle -->
+    <DocumentsToolbar
+      v-model:search="searchQuery"
+      v-model:view-mode="viewMode"
+      class="mb-5"
+    />
 
     <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 items-stretch flex-1">
       <FolderSidebar
@@ -51,7 +55,7 @@
         </div>
 
         <!-- Loading -->
-        <DocumentListSkeleton v-if="documentStore.isLoading" mode="list" />
+        <DocumentListSkeleton v-if="documentStore.isLoading" :mode="viewMode" />
 
         <!-- Load error (persistent: a toast would get lost) -->
         <BaseAlert
@@ -126,178 +130,48 @@
           </template>
         </BaseEmptyState>
 
-        <!-- Desktop table -->
-        <div v-if="!documentStore.isLoading && !loadError && hasContent" class="hidden sm:block bg-surface rounded-xl shadow-sm border border-border-muted overflow-x-auto  ">
-          <table class="w-full">
-            <thead>
-              <tr class="border-b border-border-muted text-left">
-                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Título</th>
-                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Etiquetas</th>
-                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
-                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Creado</th>
-                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border-muted">
-              <!-- Filas de subcarpeta — fijas arriba, fuera de la paginación -->
-              <tr
-                v-for="sub in currentSubfolders"
-                :key="`folder-${sub.id}`"
-                class="transition-colors cursor-pointer select-none hover:bg-surface-muted"
-                :class="{ 'ring-2 ring-inset ring-success-strong': dragOverFolderId === sub.id }"
-                draggable="true"
-                @click="handleSelectFolder(sub.id)"
-                @dragstart="handleFolderDragStart($event, sub)"
-                @dragend="handleFolderDragEnd"
-                @dragover="onFolderRowDragOver($event, sub.id)"
-                @dragleave="dragOverFolderId = null"
-                @drop.prevent="handleDropOnFolder(sub.id)"
-              >
-                <td class="px-6 py-4">
-                  <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-amber-500 dark:text-amber-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-                    </svg>
-                    <span class="text-sm font-medium text-text-default truncate">{{ sub.name }}</span>
-                  </div>
-                </td>
-                <td class="px-6 py-4 text-sm text-text-subtle" colspan="3">
-                  {{ folderRowSummary(sub) }}
-                </td>
-                <td class="px-6 py-4">
-                  <svg class="w-4 h-4 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </td>
-              </tr>
-              <tr
-                v-for="doc in pagedDocuments"
-                :key="doc.id"
-                class="hover:bg-surface-muted transition-colors cursor-grab active:cursor-grabbing select-none"
-                :class="[
-                  { 'opacity-50': draggingDoc?.id === doc.id },
-                  { 'bg-primary-soft transition-colors duration-1000': doc.id === newlyCreatedId }
-                ]"
-                draggable="true"
-                @click="navigateTo(localePath(`/panel/documents/${doc.id}/edit`))"
-                @dragstart="handleDragStart($event, doc)"
-                @dragend="handleDragEnd"
-              >
-                <td class="px-6 py-4">
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium text-text-default truncate">{{ doc.title }}</span>
-                    <span
-                      v-if="doc.folder_name"
-                      class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-surface-raised text-text-muted   flex-shrink-0"
-                      :title="`Carpeta: ${doc.folder_name}`"
-                    >
-                      📁 {{ doc.folder_name }}
-                    </span>
-                  </div>
-                  <div v-if="doc.client_name" class="text-xs text-text-subtle mt-0.5">{{ doc.client_name }}</div>
-                </td>
-                <td class="px-6 py-4">
-                  <div class="flex flex-wrap gap-1">
-                    <span
-                      v-for="tag in doc.tag_details"
-                      :key="tag.id"
-                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                      :class="tagBadgeClass(tag.color)"
-                    >
-                      <span class="w-1.5 h-1.5 rounded-full" :class="tagDotClass(tag.color)"></span>
-                      {{ tag.name }}
-                    </span>
-                    <span v-if="!doc.tag_details || doc.tag_details.length === 0" class="text-xs text-text-subtle">—</span>
-                  </div>
-                </td>
-                <td class="px-6 py-4">
-                  <span
-                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                    :class="statusBadgeClass(doc.status)"
-                  >
-                    {{ statusLabel(doc.status) }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 text-sm text-text-muted">
-                  {{ formatDate(doc.created_at) }}
-                </td>
-                <td class="px-6 py-4" @click.stop>
-                  <button
-                    type="button"
-                    class="p-1.5 rounded-lg hover:bg-surface-raised transition-colors text-text-subtle hover:text-text-default"
-                    title="Acciones"
-                    @click="actionDoc = doc"
-                  >
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <circle cx="12" cy="5" r="1.6" />
-                      <circle cx="12" cy="12" r="1.6" />
-                      <circle cx="12" cy="19" r="1.6" />
-                    </svg>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Mobile cards -->
-        <div v-if="!documentStore.isLoading && !loadError && hasContent" class="sm:hidden space-y-3">
-          <!-- Tarjetas de subcarpeta -->
-          <div
-            v-for="sub in currentSubfolders"
-            :key="`mobile-folder-${sub.id}`"
-            class="bg-surface rounded-xl shadow-sm border border-border-muted p-4 flex items-center gap-3"
-            @click="handleSelectFolder(sub.id)"
-          >
-            <svg class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-            </svg>
-            <div class="flex-1 min-w-0">
-              <h3 class="text-sm font-medium text-text-default truncate">{{ sub.name }}</h3>
-              <p class="text-xs text-text-subtle mt-0.5">{{ folderRowSummary(sub) }}</p>
-            </div>
-            <svg class="w-4 h-4 text-text-subtle flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
-          <div
-            v-for="doc in pagedDocuments"
-            :key="`mobile-${doc.id}`"
-            class="bg-surface rounded-xl shadow-sm border border-border-muted p-4  "
-            :class="{ 'bg-primary-soft transition-colors duration-1000': doc.id === newlyCreatedId }"
-            @click="navigateTo(localePath(`/panel/documents/${doc.id}/edit`))"
-          >
-            <div class="flex items-start justify-between mb-2">
-              <div class="flex-1 min-w-0">
-                <h3 class="text-sm font-medium text-text-default truncate">{{ doc.title }}</h3>
-                <p v-if="doc.client_name" class="text-xs text-text-subtle mt-0.5">{{ doc.client_name }}</p>
-              </div>
-              <span
-                class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ml-2 flex-shrink-0"
-                :class="statusBadgeClass(doc.status)"
-              >
-                {{ statusLabel(doc.status) }}
-              </span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-text-subtle">{{ formatDate(doc.created_at) }}</span>
-              <div class="flex items-center" @click.stop>
-                <button
-                  type="button"
-                  class="p-2 rounded-lg hover:bg-surface-raised transition-colors text-text-subtle hover:text-text-default"
-                  title="Más acciones"
-                  @click="actionDoc = doc"
-                >
-                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="5" r="1.6" />
-                    <circle cx="12" cy="12" r="1.6" />
-                    <circle cx="12" cy="19" r="1.6" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Collection: table (list mode, desktop) / card grid -->
+        <template v-else-if="hasContent">
+          <DocumentsTable
+            v-if="viewMode === 'list'"
+            class="hidden sm:block"
+            :documents="pagedDocuments"
+            :subfolders="currentSubfolders"
+            :dragging-doc-id="draggingDoc?.id ?? null"
+            :drag-over-folder-id="dragOverFolderId"
+            :newly-created-id="newlyCreatedId"
+            @open="openDocument"
+            @action="actionDoc = $event"
+            @select-folder="handleSelectFolder"
+            @doc-dragstart="handleDragStart"
+            @doc-dragend="handleDragEnd"
+            @folder-dragstart="handleFolderDragStart"
+            @folder-dragend="handleFolderDragEnd"
+            @folder-dragover="onFolderRowDragOver"
+            @folder-dragleave="dragOverFolderId = null"
+            @drop-on-folder="handleDropOnFolder"
+          />
+          <!-- The grid IS the mobile view; on >=sm it appears in gallery mode -->
+          <DocumentsGrid
+            :class="viewMode === 'list' ? 'sm:hidden' : ''"
+            :documents="pagedDocuments"
+            :subfolders="currentSubfolders"
+            :edit-to-for="editToFor"
+            :dragging-doc-id="draggingDoc?.id ?? null"
+            :drag-over-folder-id="dragOverFolderId"
+            :newly-created-id="newlyCreatedId"
+            @open="openDocument"
+            @action="actionDoc = $event"
+            @select-folder="handleSelectFolder"
+            @doc-dragstart="handleDragStart"
+            @doc-dragend="handleDragEnd"
+            @folder-dragstart="handleFolderDragStart"
+            @folder-dragend="handleFolderDragEnd"
+            @folder-dragover="onFolderRowDragOver"
+            @folder-dragleave="dragOverFolderId = null"
+            @drop-on-folder="handleDropOnFolder"
+          />
+        </template>
 
         <!-- Pagination -->
         <BasePagination
@@ -363,15 +237,17 @@ import MoveFolderModal from '~/components/panel/documents/MoveFolderModal.vue';
 import RenameDocumentModal from '~/components/panel/documents/RenameDocumentModal.vue';
 import SendDocumentEmailModal from '~/components/panel/documents/SendDocumentEmailModal.vue';
 import DocumentActionsSheet from '~/components/panel/documents/DocumentActionsSheet.vue';
-import DocumentSearchInput from '~/components/panel/documents/DocumentSearchInput.vue';
 import DocumentListSkeleton from '~/components/panel/documents/DocumentListSkeleton.vue';
+import DocumentsToolbar from '~/components/panel/documents/DocumentsToolbar.vue';
+import DocumentsTable from '~/components/panel/documents/DocumentsTable.vue';
+import DocumentsGrid from '~/components/panel/documents/DocumentsGrid.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
-import { tagBadgeClass, tagDotClass } from '~/utils/documentTagColors.js';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { usePagination } from '~/composables/usePagination';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { useDocumentViewMode } from '~/composables/useDocumentViewMode';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -382,6 +258,7 @@ const tagStore = useDocumentTagStore();
 
 const notify = usePanelNotify();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
+const { viewMode } = useDocumentViewMode();
 
 const searchQuery = ref('');
 const newlyCreatedId = ref(null);
@@ -409,6 +286,7 @@ const hasContent = computed(
 
 const {
   currentPage: docPage,
+  pageSize: docPageSize,
   totalPages: docTotalPages,
   totalItems: docTotalItems,
   rangeFrom: docRangeFrom,
@@ -418,7 +296,13 @@ const {
   next: docNext,
   prev: docPrev,
   reset: docResetPage,
-} = usePagination(filteredDocuments, { pageSize: 10 });
+} = usePagination(filteredDocuments, { pageSize: viewMode.value === 'grid' ? 12 : 10 });
+
+// 12 divides evenly into the 2/3/4-column grid; 10 matches the table rhythm.
+watch(viewMode, (mode) => {
+  docPageSize.value = mode === 'grid' ? 12 : 10;
+  docResetPage();
+});
 
 watch(searchQuery, () => docResetPage());
 watch(() => documentStore.activeFolderId, () => docResetPage());
@@ -522,6 +406,14 @@ function handleEditDoc(doc) {
   navigateTo(localePath(`/panel/documents/${doc.id}/edit`));
 }
 
+function openDocument(doc) {
+  handleEditDoc(doc);
+}
+
+function editToFor(doc) {
+  return localePath(`/panel/documents/${doc.id}/edit`);
+}
+
 function handleRenameDoc(doc) {
   renamingDoc.value = doc;
 }
@@ -612,35 +504,6 @@ async function handleDropOnFolder(folderId) {
     notify.error({ title: 'No se pudo mover el documento', detail: result.message });
   }
   await Promise.all([documentStore.fetchDocuments(), folderStore.fetchFolders()]);
-}
-
-function folderRowSummary(folder) {
-  const parts = [];
-  const docs = folder.document_count || 0;
-  const subs = folder.children_count || 0;
-  if (docs) parts.push(`${docs} documento${docs !== 1 ? 's' : ''}`);
-  if (subs) parts.push(`${subs} subcarpeta${subs !== 1 ? 's' : ''}`);
-  return parts.length ? parts.join(' · ') : 'Vacía';
-}
-
-function statusBadgeClass(status) {
-  const map = {
-    draft: 'bg-surface-raised text-text-default ',
-    published: 'bg-primary-soft text-text-brand ',
-    archived: 'bg-warning-soft text-warning-strong',
-  };
-  return map[status] || map.draft;
-}
-
-function statusLabel(status) {
-  const map = { draft: 'Borrador', published: 'Publicado', archived: 'Archivado' };
-  return map[status] || status;
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return '—';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 async function handleDownloadPdf(doc) {

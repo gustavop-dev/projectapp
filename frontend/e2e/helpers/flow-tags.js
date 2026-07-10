@@ -179,6 +179,7 @@ export const PLATFORM_ACCESS_VIEW = ['@flow:platform-access-view', '@module:plat
 
 // ── v2.7.0 new flows ──
 export const ADMIN_DOCUMENT_LIST = ['@flow:admin-document-list', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_GALLERY = ['@flow:admin-document-gallery', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_CREATE = ['@flow:admin-document-create', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_EDIT = ['@flow:admin-document-edit', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_FOLDERS = ['@flow:admin-document-folders', '@module:admin', '@priority:P2'];
