@@ -86,22 +86,10 @@ function onSubmit() {
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <BaseFormField label="Disponible" required>
-          <BaseInput
-            v-model="form.available_amount"
-            type="number"
-            min="0"
-            step="0.01"
-            required
-          />
+          <BaseCurrencyInput v-model="form.available_amount" required />
         </BaseFormField>
         <BaseFormField label="Deuda" required>
-          <BaseInput
-            v-model="form.debt_amount"
-            type="number"
-            min="0"
-            step="0.01"
-            required
-          />
+          <BaseCurrencyInput v-model="form.debt_amount" required />
         </BaseFormField>
       </div>
 

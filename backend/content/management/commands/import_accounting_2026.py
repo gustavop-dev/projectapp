@@ -181,7 +181,6 @@ class Command(BaseCommand):
                     'concept': row['concept'],
                     'period_date': _period_to_date(row['period']),
                     'category': row.get('category', 'business'),
-                    'paid_from': row.get('paid_from', 'partners'),
                     'ledger': row.get('ledger', 'company'),
                     'total_amount': Decimal(row['total_amount']),
                     'gustavo_amount': Decimal(row['gustavo_amount']),

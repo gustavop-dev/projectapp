@@ -117,21 +117,98 @@
           se enviará mientras sigan así.
         </p>
       </div>
+
+      <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
+        <h2 class="text-lg font-bold text-text-default mb-1">Avisos de vencimiento de hostings</h2>
+        <p class="text-sm text-text-muted mb-5">
+          Se envía un correo a los destinatarios de arriba 15 días antes del
+          vencimiento de cada hosting activo, otro a los 7 días, y luego cada
+          5 días hasta que se envíe la cuenta de cobro al cliente desde
+          <NuxtLink :to="localePath('/panel/accounting/hostings')" class="text-text-brand hover:underline">Hostings</NuxtLink>.
+        </p>
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-sm font-medium text-text-default">Avisos activos</span>
+          <BaseToggle
+            v-model="hostingExpiryReminderEnabled"
+            aria-label="Avisos de vencimiento de hostings activos"
+            data-testid="settings-hosting-expiry-toggle"
+          />
+        </div>
+        <p v-if="!notificationsEnabled" class="text-xs text-warning-strong mt-3">
+          Las notificaciones generales están apagadas: estos avisos tampoco se
+          enviarán mientras sigan así.
+        </p>
+      </div>
+
+      <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
+        <h2 class="text-lg font-bold text-text-default mb-1">Tasa de cambio USD</h2>
+        <p class="text-sm text-text-muted mb-4">
+          Pesos por dólar de referencia, usada para el KPI de costo mensual en
+          USD de los pagos recurrentes. Se guarda con "Guardar cambios".
+        </p>
+        <div class="max-w-xs">
+          <BaseCurrencyInput
+            v-model="usdExchangeRate"
+            :decimals="2"
+            placeholder="4.000"
+            data-testid="settings-usd-rate-input"
+          />
+        </div>
+      </div>
+
+      <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
+        <h2 class="text-lg font-bold text-text-default mb-1">Pestañas de filtros guardados</h2>
+        <p class="text-sm text-text-muted mb-5">
+          Restaura las pestañas predefinidas de cada vista del módulo contable.
+          Al restablecer una vista se eliminan sus pestañas personalizadas.
+        </p>
+        <div class="space-y-2">
+          <div
+            v-for="view in FILTER_VIEWS"
+            :key="view.value"
+            class="flex items-center justify-between gap-3"
+          >
+            <span class="text-sm text-text-default">{{ view.label }}</span>
+            <BaseButton
+              variant="secondary"
+              size="sm"
+              :disabled="resettingView !== null"
+              :data-testid="`settings-reset-tabs-${view.value}`"
+              @click="askResetTabs(view)"
+            >
+              {{ resettingView === view.value ? 'Restableciendo...' : 'Restablecer' }}
+            </BaseButton>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <ConfirmModal
+      v-model="resetConfirmOpen"
+      title="Restablecer pestañas"
+      :message="resetConfirmMessage"
+      confirm-text="Restablecer"
+      cancel-text="Cancelar"
+      variant="danger"
+      @confirm="doResetTabs"
+      @cancel="pendingResetView = null"
+    />
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
+import ConfirmModal from '~/components/ConfirmModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useAccountingStore } from '~/stores/accounting';
+import { create_request } from '~/stores/services/request_http';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
@@ -143,12 +220,19 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const notificationsEnabled = ref(true);
 const cardReminderEnabled = ref(true);
+const hostingExpiryReminderEnabled = ref(true);
 const recipients = ref([]);
+const usdExchangeRate = ref(null);
 let rowId = 0;
 
 function syncFromSettings(settings) {
   notificationsEnabled.value = Boolean(settings?.notifications_enabled);
   cardReminderEnabled.value = Boolean(settings?.card_reminder_enabled);
+  hostingExpiryReminderEnabled.value = Boolean(
+    settings?.hosting_expiry_reminder_enabled,
+  );
+  usdExchangeRate.value =
+    settings?.usd_exchange_rate != null ? Number(settings.usd_exchange_rate) : null;
   recipients.value = (settings?.notification_recipients || []).map((email) => ({
     id: ++rowId,
     value: email,
@@ -186,16 +270,81 @@ async function save() {
     return;
   }
 
-  const result = await store.updateSettings({
+  const payload = {
     notification_recipients: nonEmpty,
     notifications_enabled: notificationsEnabled.value,
     card_reminder_enabled: cardReminderEnabled.value,
-  });
+    hosting_expiry_reminder_enabled: hostingExpiryReminderEnabled.value,
+  };
+  // Only send the rate when the user has one loaded/typed: the backend
+  // keeps its current value otherwise.
+  if (usdExchangeRate.value != null) {
+    if (usdExchangeRate.value < 1) {
+      notify.error({
+        title: 'Tasa USD inválida',
+        detail: 'La tasa de cambio debe ser un número mayor o igual a 1.',
+      });
+      return;
+    }
+    payload.usd_exchange_rate = usdExchangeRate.value;
+  }
+
+  const result = await store.updateSettings(payload);
   if (result.success) {
     syncFromSettings(result.data);
     notify.success('Configuración guardada');
   } else {
     notify.error({ title: 'No se pudo guardar la configuración', detail: result.message });
+  }
+}
+
+// -------------------------------------------------------------------
+// Saved filter tabs reset (per accounting view)
+// -------------------------------------------------------------------
+
+const FILTER_VIEWS = [
+  { value: 'accounting_income', label: 'Ingresos' },
+  { value: 'accounting_expense', label: 'Gastos' },
+  { value: 'accounting_hosting', label: 'Hostings' },
+  { value: 'accounting_pocket', label: 'Bolsillo' },
+  { value: 'accounting_recurring', label: 'Recurrentes' },
+  { value: 'accounting_ads', label: 'Ads' },
+];
+
+const resetConfirmOpen = ref(false);
+const pendingResetView = ref(null);
+const resettingView = ref(null);
+
+const resetConfirmMessage = computed(() =>
+  pendingResetView.value
+    ? `Se eliminarán tus pestañas personalizadas de "${pendingResetView.value.label}" ` +
+      'y se restaurarán las predefinidas. Esta acción no se puede deshacer.'
+    : '',
+);
+
+function askResetTabs(view) {
+  pendingResetView.value = view;
+  resetConfirmOpen.value = true;
+}
+
+async function doResetTabs() {
+  const view = pendingResetView.value;
+  if (!view) return;
+  resettingView.value = view.value;
+  try {
+    await create_request('accounts/saved-filter-tabs/reset/', { view: view.value });
+    notify.success({
+      title: 'Pestañas restablecidas',
+      detail: `La vista ${view.label} volvió a sus filtros predefinidos.`,
+    });
+  } catch (error) {
+    notify.error({
+      title: 'No se pudieron restablecer las pestañas',
+      detail: error?.response?.data?.view || error?.message,
+    });
+  } finally {
+    resettingView.value = null;
+    pendingResetView.value = null;
   }
 }
 

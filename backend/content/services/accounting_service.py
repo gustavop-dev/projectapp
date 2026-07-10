@@ -17,10 +17,13 @@ from content.models import (
     AccountingChangeLog,
     AdsSpendRecord,
     CardBalanceSnapshot,
+    CreditCardStatement,
+    CreditCardTransaction,
     ExpenseRecord,
     HostingRecord,
     IncomeRecord,
     Ledger,
+    MerchantAlias,
     PocketMovement,
     RecurringPayment,
 )
@@ -39,6 +42,9 @@ ENTITY_MODELS = {
     EntityType.RECURRING: RecurringPayment,
     EntityType.ADS: AdsSpendRecord,
     EntityType.CARD_SNAPSHOT: CardBalanceSnapshot,
+    EntityType.STATEMENT: CreditCardStatement,
+    EntityType.STATEMENT_TX: CreditCardTransaction,
+    EntityType.MERCHANT_ALIAS: MerchantAlias,
 }
 
 TRACKED_FIELDS = {
@@ -59,7 +65,6 @@ TRACKED_FIELDS = {
         ('ledger', 'Contabilidad'),
         ('period_date', 'Período'),
         ('category', 'Categoría'),
-        ('paid_from', 'Pagado desde'),
         ('total_amount', 'Monto total'),
         ('gustavo_amount', 'Monto Gustavo'),
         ('carlos_amount', 'Monto Carlos'),
@@ -67,6 +72,9 @@ TRACKED_FIELDS = {
     ],
     EntityType.HOSTING: [
         ('client_name', 'Cliente'),
+        ('client_email', 'Email del cliente'),
+        ('client_contact_name', 'Contacto del cliente'),
+        ('client_identification', 'Identificación del cliente'),
         ('domain_url', 'Dominio'),
         ('monthly_value', 'Valor mensual'),
         ('payment_modality', 'Modalidad de pago'),
@@ -112,10 +120,44 @@ TRACKED_FIELDS = {
         ('debt_amount', 'Deuda'),
         ('notes', 'Notas'),
     ],
+    EntityType.STATEMENT: [
+        ('card_name', 'Tarjeta'),
+        ('period_date', 'Período'),
+        ('status', 'Estado'),
+        ('purchases_total', 'Total compras'),
+        ('previous_balance', 'Saldo anterior'),
+        ('payments_total', 'Pagos y abonos'),
+        ('interest_and_fees', 'Intereses y comisiones'),
+        ('closing_balance', 'Saldo de cierre'),
+        ('minimum_payment', 'Pago mínimo'),
+        ('due_date', 'Fecha límite de pago'),
+        ('notes', 'Notas'),
+    ],
+    EntityType.STATEMENT_TX: [
+        ('transaction_date', 'Fecha'),
+        ('raw_description', 'Descripción'),
+        ('merchant_name', 'Comercio'),
+        ('category', 'Categoría'),
+        ('amount', 'Valor'),
+        ('original_amount', 'Valor original'),
+        ('original_currency', 'Moneda original'),
+        ('installment_number', 'Cuota'),
+        ('installments_total', 'Total cuotas'),
+        ('is_identified', 'Identificado'),
+        ('notes', 'Notas'),
+    ],
+    EntityType.MERCHANT_ALIAS: [
+        ('match_text', 'Texto de coincidencia'),
+        ('merchant_name', 'Comercio'),
+        ('default_category', 'Categoría por defecto'),
+        ('notes', 'Notas'),
+    ],
     EntityType.SETTINGS: [
         ('notification_recipients', 'Destinatarios de notificación'),
         ('notifications_enabled', 'Notificaciones activas'),
         ('card_reminder_enabled', 'Recordatorio de deuda de tarjetas'),
+        ('hosting_expiry_reminder_enabled', 'Avisos de vencimiento de hostings'),
+        ('usd_exchange_rate', 'Tasa de cambio USD'),
     ],
 }
 
@@ -174,6 +216,12 @@ def object_repr(entity_type, instance):
         return f'{instance.get_platform_display()} — {instance.spend_date}'
     if entity_type == EntityType.CARD_SNAPSHOT:
         return f'{instance.card_name} — {instance.snapshot_date}'
+    if entity_type == EntityType.STATEMENT:
+        return f'{instance.card_name} — {month_label(instance.period_date)}'
+    if entity_type == EntityType.STATEMENT_TX:
+        return instance.merchant_name or instance.raw_description
+    if entity_type == EntityType.MERCHANT_ALIAS:
+        return instance.match_text
     return 'Configuración contable'
 
 
@@ -282,7 +330,7 @@ def delete_record(entity_type, instance, user):
     changes = _deletion_changes(entity_type, old_values)
 
     linked_movement = None
-    if entity_type in (EntityType.INCOME, EntityType.EXPENSE):
+    if entity_type == EntityType.INCOME:
         linked_movement = instance.pocket_movement
 
     instance.delete()
@@ -316,18 +364,6 @@ def _sync_pocket(entity_type, instance, user):
             concept=f'Ingreso: {instance.concept}',
             movement_date=instance.period_date,
             source_ref=f'income:{instance.pk}',
-            user=user,
-        )
-    elif entity_type == EntityType.EXPENSE:
-        _sync_movement(
-            instance,
-            wants_movement=(
-                instance.paid_from == ExpenseRecord.PaidFrom.POCKET
-            ),
-            direction=PocketMovement.Direction.OUT,
-            concept=f'Gasto: {instance.concept}',
-            movement_date=instance.period_date,
-            source_ref=f'expense:{instance.pk}',
             user=user,
         )
 

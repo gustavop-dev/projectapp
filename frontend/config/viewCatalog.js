@@ -560,6 +560,15 @@ export const viewCatalogSections = [
         viewType: 'list',
       },
       {
+        label: 'Contabilidad — Extractos',
+        url: '/panel/accounting/statements',
+        group: 'Movimientos',
+        file: 'frontend/pages/panel/accounting/statements.vue',
+        reference: 'vista de extractos mensuales de tarjeta de credito del modulo contable',
+        audience: 'admin',
+        viewType: 'list',
+      },
+      {
         label: 'Contabilidad — Historial',
         url: '/panel/accounting/history',
         group: 'Panorama',

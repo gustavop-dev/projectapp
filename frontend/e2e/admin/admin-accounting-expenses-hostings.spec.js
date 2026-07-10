@@ -23,13 +23,10 @@ const EXPENSE_ROW = {
   period_date: '2026-03-01',
   category: 'business',
   category_label: 'Negocio',
-  paid_from: 'partners',
-  paid_from_label: 'Socios',
   total_amount: '400000.00',
   gustavo_amount: '200000.00',
   carlos_amount: '200000.00',
   company_amount: '0.00',
-  pocket_movement: null,
   notes: '',
   created_at: '2026-03-01T10:00:00Z',
   updated_at: '2026-03-01T10:00:00Z',
@@ -195,8 +192,10 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
 
     await expect(page.getByTestId('accounting-row-1')).toBeVisible({ timeout: 25_000 });
     await expect(page.getByText('German - Kore')).toBeVisible();
-    await expect(page.getByText('Activo', { exact: true })).toBeVisible();
-    await expect(page.getByText('Inactivo', { exact: true })).toBeVisible();
+    // Estado is now an inline status select reflecting each row's state.
+    const statusSelects = page.getByTestId('accounting-status-select');
+    await expect(statusSelects.nth(0)).toHaveValue('true');
+    await expect(statusSelects.nth(1)).toHaveValue('false');
   });
 
   test('creates a hosting through the modal', {
@@ -213,7 +212,7 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     await expect(page.getByRole('heading', { name: 'Nuevo hosting' })).toBeVisible();
 
     await page.locator('form input[type="text"]').first().fill('Katerin Ruiz - Senses Candles');
-    await page.locator('form input[type="number"]').first().fill('38333');
+    await page.locator('form input[inputmode="numeric"]').first().fill('38333');
     await page.getByTestId('hosting-form-submit').click();
 
     await expect(page.getByText('Hosting creado')).toBeVisible();

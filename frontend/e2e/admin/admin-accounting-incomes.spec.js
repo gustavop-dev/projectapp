@@ -161,7 +161,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
 
     // Personal ledger swaps the partner split for a single value input.
     await expect(page.getByTestId('partner-split-total')).toHaveCount(0);
-    await page.locator('form input[type="number"]').fill('1400000');
+    await page.locator('form input[inputmode="numeric"]').fill('1400000');
     await page.getByTestId('income-form-submit').click();
 
     await expect(page.getByText('Ingreso creado')).toBeVisible();

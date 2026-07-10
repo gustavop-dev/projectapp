@@ -19,6 +19,10 @@ class IssuerProfile(models.Model):
         default='PA',
         help_text='Prefix for public document numbers, e.g. PA-2026-004.',
     )
+    # Default payment methods copied onto new collection accounts: list of
+    # dicts with DocumentPaymentMethod field names (payment_method_type,
+    # bank_name, account_number, ...). Configured once via Django admin.
+    default_payment_methods = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

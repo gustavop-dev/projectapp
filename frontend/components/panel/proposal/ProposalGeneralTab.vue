@@ -189,7 +189,7 @@
     <div data-testid="general-finance-investment-card" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
         <label class="block text-sm font-medium text-text-default mb-1">Inversión total</label>
-        <BaseInput v-model.number="form.total_investment" type="number" min="0" step="0.01" data-testid="general-finance-total-investment" />
+        <BaseCurrencyInput v-model="form.total_investment" :decimals="2" data-testid="general-finance-total-investment" />
         <p
           v-if="hasCustomizedEffectiveTotal"
           data-testid="general-finance-effective-total-note"

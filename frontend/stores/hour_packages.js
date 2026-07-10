@@ -15,6 +15,7 @@ export const useHourPackagesStore = defineStore('hour_packages', {
   state: () => ({
     packages: [],
     currentPackage: null,
+    settings: null,
     isLoading: false,
     isUpdating: false,
     error: null,
@@ -110,6 +111,60 @@ export const useHourPackagesStore = defineStore('hour_packages', {
       } catch (error) {
         this.error = 'update_failed';
         console.error('Error updating hour package:', error);
+        return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * fetchSettings: Load the hour-packages panel settings singleton.
+     */
+    async fetchSettings() {
+      try {
+        const response = await get_request('hour-packages/admin/settings/');
+        this.settings = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching hour package settings:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * updateSettings: Patch the settings singleton (e.g. default_view_mode).
+     * @param {object} payload - Fields to update.
+     */
+    async updateSettings(payload) {
+      this.isUpdating = true;
+      try {
+        const response = await patch_request('hour-packages/admin/settings/update/', payload);
+        this.settings = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error updating hour package settings:', error);
+        return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * restoreDefaults: Replace one nationality's catalog with the canonical
+     * defaults. The backend returns the fresh list for that nationality.
+     * @param {string} nationality - 'COL' | 'MEX' | 'USA'.
+     */
+    async restoreDefaults(nationality) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          'hour-packages/admin/restore-defaults/', { nationality },
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error restoring default hour packages:', error);
         return { success: false, errors: error.response?.data };
       /* c8 ignore next 3 */
       } finally {

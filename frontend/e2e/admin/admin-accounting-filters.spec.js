@@ -174,7 +174,7 @@ test.describe('Admin Accounting Filters', () => {
     await openFilterPanel(page);
 
     await filterPanel(page).getByRole('button', { name: /^Total/ }).click();
-    const numberInputs = page.locator('input[type="number"]');
+    const numberInputs = page.locator('input[inputmode="numeric"]');
     await numberInputs.first().fill('2000000');
     await numberInputs.nth(1).fill('4000000');
 
@@ -281,7 +281,7 @@ test.describe('Admin Accounting Filters', () => {
     await openFilterPanel(page);
 
     await filterPanel(page).getByRole('button', { name: /^Total/ }).click();
-    const minInput = page.locator('input[type="number"]').first();
+    const minInput = page.locator('input[inputmode="numeric"]').first();
     await minInput.pressSequentially('2000000');
 
     // Live (debounced) emission: rows shrink without leaving the input.

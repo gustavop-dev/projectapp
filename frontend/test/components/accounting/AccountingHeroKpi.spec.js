@@ -56,4 +56,27 @@ describe('AccountingHeroKpi', () => {
     expect(wrapper.find('[data-testid="accounting-hero-value"]').exists()).toBe(false);
     expect(wrapper.find('.motion-safe\\:animate-pulse').exists()).toBe(true);
   });
+
+  it('renders the bottom stats footer with per-stat tones', () => {
+    const wrapper = mountHero({
+      stats: [
+        { label: 'Utilidad esperada', value: '$1.000.000', tone: 'success' },
+        { label: 'Diferencia líq − esp', value: '-$200.000', tone: 'danger' },
+        { label: 'Margen líquido', value: '12%' },
+      ],
+    });
+    const footer = wrapper.find('[data-testid="accounting-hero-stats"]');
+
+    expect(footer.exists()).toBe(true);
+    expect(footer.text()).toContain('Utilidad esperada');
+    expect(footer.text()).toContain('$1.000.000');
+    expect(footer.text()).toContain('Margen líquido');
+    expect(footer.html()).toContain('text-danger-strong');
+  });
+
+  it('hides the stats footer when stats is empty', () => {
+    const wrapper = mountHero();
+
+    expect(wrapper.find('[data-testid="accounting-hero-stats"]').exists()).toBe(false);
+  });
 });

@@ -21,6 +21,17 @@
 
     <AccountingSubnav active="ads" />
 
+    <!-- Saved filter tabs -->
+    <ProposalFilterTabs
+      :tabs="savedTabs"
+      :active-tab-id="filterTabId"
+      :is-tab-limit-reached="isTabLimitReached"
+      @select="selectFilterTab"
+      @create="handleCreateFilterTab"
+      @rename="renameFilterTab"
+      @delete="deleteFilterTab"
+    />
+
     <!-- Stat card -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
       <AccountingStatCard
@@ -48,7 +59,7 @@
       :results-count="filteredRows.length"
       :search-value="currentFilters.search"
       @update:model-value="Object.assign(currentFilters, $event)"
-      @reset="resetFilters"
+      @reset="handleResetFilters"
       @clear-search="searchInput = ''"
     />
 
@@ -163,6 +174,7 @@ import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import AdSpendFormModal from '~/components/accounting/AdSpendFormModal.vue';
+import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
@@ -186,7 +198,7 @@ const store = useAccountingStore();
 const notify = usePanelNotify();
 
 // -------------------------------------------------------------------
-// Filters (no saved tabs UI: the backend has no 'accounting_ads' view choice)
+// Filters
 // -------------------------------------------------------------------
 
 const {
@@ -197,6 +209,13 @@ const {
   hasActiveFilters,
   applyFilters,
   resetFilters,
+  savedTabs,
+  activeTabId: filterTabId,
+  isTabLimitReached,
+  selectTab: selectFilterTab,
+  saveTab,
+  deleteTab: deleteFilterTab,
+  renameTab: renameFilterTab,
 } = useAccountingFilters({
   viewName: 'accounting_ads',
   defaults: {
@@ -236,7 +255,7 @@ const filterFields = computed(() => [
       { value: 'other', label: 'Otro' },
     ],
   },
-  { kind: 'range', minKey: 'amount_min', maxKey: 'amount_max', label: 'Valor' },
+  { kind: 'range', minKey: 'amount_min', maxKey: 'amount_max', label: 'Valor', type: 'money' },
 ]);
 
 const EXPORT_MAPPING = {
@@ -296,6 +315,8 @@ const {
   prevPage: prev,
   nextPage: next,
   goToPage: goTo,
+  handleCreateFilterTab,
+  handleResetFilters,
   sortKey,
   sortDir,
   toggleSort,
@@ -303,6 +324,9 @@ const {
   entity: 'ads',
   store,
   filteredRecords: filteredRows,
+  saveTab,
+  resetFilters,
+  isFilterPanelOpen,
   labels: {
     created: 'Gasto en Ads creado',
     updated: 'Gasto en Ads actualizado',

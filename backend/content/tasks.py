@@ -1565,3 +1565,20 @@ def send_card_debt_reminder():
     )
 
     return run_card_reminder()
+
+
+# 13:30 UTC = 08:30 Bogotá (UTC-5, no DST).
+@periodic_task(crontab(hour='13', minute='30'))
+@lock_task('hosting-expiry-notices')
+def send_hosting_expiry_notices():
+    """
+    Huey task (daily 8:30 Bogotá): hosting expiry notices.
+
+    Cadence logic (15/7 days before valid_to, then every 5 days until the
+    cuenta de cobro is sent) lives in content.services.hosting_expiry_service.
+    """
+    from content.services.hosting_expiry_service import (
+        run_hosting_expiry_notices,
+    )
+
+    return run_hosting_expiry_notices()

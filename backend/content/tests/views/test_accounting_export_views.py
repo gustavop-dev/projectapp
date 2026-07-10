@@ -128,7 +128,8 @@ class TestExportWorkbook:
         workbook = load_workbook(BytesIO(response.content))
         assert workbook.sheetnames == [
             'Resumen', 'Ingresos', 'Gastos', 'Hostings', 'Bolsillo',
-            'Recurrentes', 'Ads', 'Tarjetas',
+            'Recurrentes', 'Ads', 'Tarjetas', 'Extractos TC',
+            'Transacciones TC',
         ]
         assert workbook['Resumen'].cell(row=1, column=1).value == 'Resumen 2026'
         assert workbook['Tarjetas'].cell(row=2, column=1).value == 'T.C 0064'
@@ -143,3 +144,41 @@ class TestExportWorkbook:
         )
         workbook = load_workbook(BytesIO(response.content))
         assert workbook['Ingresos'].max_row == 1
+
+
+@pytest.mark.django_db
+class TestStatementExportSections:
+    def test_csv_export_of_statements(self, super_client):
+        from content.models import CreditCardStatement
+
+        CreditCardStatement.objects.create(
+            card_name='Visa Bancolombia', period_date=date(2026, 6, 1),
+            purchases_total=Decimal('100000.00'),
+        )
+        response = super_client.get(
+            '/api/accounting/export/?section=statement&file_format=csv',
+        )
+        assert response.status_code == 200
+        body = response.content.decode('utf-8-sig')
+        assert 'Visa Bancolombia' in body
+        assert 'Total compras' in body
+
+    def test_workbook_includes_statement_transactions_sheet(self, super_client):
+        from content.models import CreditCardStatement, CreditCardTransaction
+
+        statement = CreditCardStatement.objects.create(
+            card_name='Visa Bancolombia', period_date=date(2026, 6, 1),
+            purchases_total=Decimal('100000.00'),
+        )
+        CreditCardTransaction.objects.create(
+            statement=statement, transaction_date=date(2026, 6, 5),
+            raw_description='PAYU*NETFLIX', merchant_name='Netflix',
+            amount=Decimal('44900.00'),
+        )
+        response = super_client.get(
+            '/api/accounting/export/workbook/?year=2026',
+        )
+        workbook = load_workbook(BytesIO(response.content))
+        sheet = workbook['Transacciones TC']
+        assert sheet.cell(row=2, column=1).value == 'Visa Bancolombia'
+        assert sheet.cell(row=2, column=5).value == 'Netflix'

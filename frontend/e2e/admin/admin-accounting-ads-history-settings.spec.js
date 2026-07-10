@@ -118,6 +118,8 @@ function buildHandler({ calls }) {
           notification_recipients: ['gustavo@projectapp.co'],
           notifications_enabled: true,
           card_reminder_enabled: true,
+          hosting_expiry_reminder_enabled: true,
+          usd_exchange_rate: '4000.00',
           updated_at: '2026-07-01T00:00:00Z',
         }),
       };
@@ -180,7 +182,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
       page.getByRole('heading', { name: 'Nuevo gasto en Ads' }),
     ).toBeVisible();
     await page.locator('form input[type="date"]').fill('2026-07-01');
-    await page.locator('form input[type="number"]').first().fill('120000');
+    await page.locator('form input[inputmode="numeric"]').first().fill('120000');
     await page.getByTestId('ad-spend-form-submit').click();
 
     await expect(page.getByText('Gasto en Ads creado')).toBeVisible();

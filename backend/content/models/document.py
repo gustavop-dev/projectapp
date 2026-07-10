@@ -82,6 +82,15 @@ class Document(models.Model):
         blank=True,
         related_name='documents',
     )
+    # Origin link for hosting-driven cuentas de cobro (accounting module).
+    # Other origins keep using project/deliverable/client_user.
+    hosting_record = models.ForeignKey(
+        'content.HostingRecord',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='collection_documents',
+    )
 
     public_number = models.CharField(
         max_length=64,

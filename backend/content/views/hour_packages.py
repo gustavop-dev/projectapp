@@ -4,12 +4,14 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
-from content.models import HourPackage, Nationality
+from content.models import HourPackage, HourPackageSettings, Nationality
 from content.serializers.hour_packages import (
     HourPackageAdminListSerializer,
     HourPackageAdminDetailSerializer,
     HourPackageCreateUpdateSerializer,
+    HourPackageSettingsSerializer,
 )
+from content.services.hour_package_service import restore_default_packages
 
 
 # ---------------------------------------------------------------------------
@@ -76,3 +78,40 @@ def delete_hour_package(request, package_id):
     package = get_object_or_404(HourPackage, pk=package_id)
     package.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_hour_package_settings(request):
+    """Return the hour-packages panel settings singleton."""
+    serializer = HourPackageSettingsSerializer(HourPackageSettings.load())
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def update_hour_package_settings(request):
+    """Update the hour-packages panel settings singleton."""
+    serializer = HourPackageSettingsSerializer(
+        HourPackageSettings.load(), data=request.data, partial=True
+    )
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def restore_default_hour_packages(request):
+    """Replace one nationality's catalog with the canonical defaults."""
+    nationality = request.data.get('nationality')
+    if nationality not in Nationality.values:
+        return Response(
+            {'nationality': ['Nacionalidad inválida. Usa COL, MEX o USA.']},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    restore_default_packages(nationality)
+    qs = HourPackage.objects.filter(nationality=nationality)
+    serializer = HourPackageAdminListSerializer(qs, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)

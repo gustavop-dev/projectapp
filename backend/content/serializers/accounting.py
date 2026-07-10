@@ -16,6 +16,7 @@ from content.models import (
     AdsSpendRecord,
     CardBalanceSnapshot,
     ExpenseRecord,
+    HostingCycle,
     HostingRecord,
     IncomeRecord,
     Ledger,
@@ -213,9 +214,6 @@ class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     category_label = serializers.CharField(
         source='get_category_display', read_only=True,
     )
-    paid_from_label = serializers.CharField(
-        source='get_paid_from_display', read_only=True,
-    )
     ledger_label = serializers.CharField(
         source='get_ledger_display', read_only=True,
     )
@@ -228,10 +226,9 @@ class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
         fields = (
             'id', 'concept',
             'period', 'period_label', 'period_date',
-            'category', 'category_label', 'paid_from', 'paid_from_label',
+            'category', 'category_label',
             'ledger', 'ledger_label',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'company_amount',
-            'pocket_movement',
             'notes', 'created_at', 'updated_at',
         )
 
@@ -244,30 +241,9 @@ class ExpenseRecordCreateUpdateSerializer(
     class Meta:
         model = ExpenseRecord
         fields = (
-            'concept', 'period_date', 'category', 'paid_from', 'ledger',
+            'concept', 'period_date', 'category', 'ledger',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'notes',
         )
-
-    def validate(self, data):
-        data = super().validate(data)
-
-        def effective(field, default=None):
-            if field in data:
-                return data[field]
-            if self.instance is not None:
-                return getattr(self.instance, field)
-            return default
-
-        ledger = effective('ledger', Ledger.COMPANY)
-        paid_from = effective('paid_from')
-        if (
-            ledger != Ledger.COMPANY
-            and paid_from == ExpenseRecord.PaidFrom.POCKET
-        ):
-            raise serializers.ValidationError(
-                'Los gastos personales no pueden pagarse desde el Bolsillo ProjectApp.'
-            )
-        return data
 
 
 # ── Hosting ──
@@ -280,11 +256,16 @@ class HostingRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = HostingRecord
         fields = (
-            'id', 'client_name', 'domain_url', 'monthly_value',
+            'id', 'client_name', 'client_email', 'client_contact_name',
+            'client_identification', 'domain_url', 'monthly_value',
             'payment_modality', 'payment_modality_label', 'benefit',
             'valid_from', 'valid_to', 'cycles_count',
             'payment_per_cycle', 'total_paid', 'is_active',
+            'expiry_notice_last_sent_at', 'billing_requested_at',
             'notes', 'created_at', 'updated_at',
+        )
+        read_only_fields = (
+            'expiry_notice_last_sent_at', 'billing_requested_at',
         )
 
 
@@ -295,11 +276,14 @@ class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = HostingRecord
+        # cycles_count/total_paid are deliberately NOT writable: cycle
+        # history (HostingCycle) is the source of truth and the service
+        # recalculates the denormalized columns.
         fields = (
-            'client_name', 'domain_url', 'monthly_value',
+            'client_name', 'client_email', 'client_contact_name',
+            'client_identification', 'domain_url', 'monthly_value',
             'payment_modality', 'benefit', 'valid_from', 'valid_to',
-            'cycles_count', 'payment_per_cycle', 'total_paid',
-            'is_active', 'notes',
+            'payment_per_cycle', 'is_active', 'notes',
         )
 
     def validate(self, data):
@@ -328,6 +312,53 @@ class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
                 data['payment_per_cycle'] = (monthly * months).quantize(
                     TWO_PLACES,
                 )
+        return data
+
+
+class HostingCycleSerializer(serializers.ModelSerializer):
+    modality_label = serializers.SerializerMethodField()
+    is_backfill = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HostingCycle
+        fields = (
+            'id', 'modality', 'modality_label', 'amount', 'paid_at',
+            'period_from', 'period_to', 'cycles_represented',
+            'is_backfill', 'notes', 'created_at',
+        )
+
+    def get_modality_label(self, obj):
+        return dict(HostingRecord.Modality.choices).get(
+            obj.modality, obj.modality,
+        )
+
+    def get_is_backfill(self, obj):
+        return obj.source_ref.startswith('backfill:')
+
+
+class HostingCycleCreateSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(
+        max_digits=14, decimal_places=2, min_value=Decimal('0.01'),
+        required=False,
+    )
+    modality = serializers.ChoiceField(
+        choices=HostingRecord.Modality.choices, required=False,
+    )
+    paid_at = serializers.DateField(required=False)
+    period_from = serializers.DateField(required=False)
+    period_to = serializers.DateField(required=False)
+    notes = serializers.CharField(
+        required=False, allow_blank=True, default='',
+    )
+    advance_validity = serializers.BooleanField(required=False, default=True)
+
+    def validate(self, data):
+        period_from = data.get('period_from')
+        period_to = data.get('period_to')
+        if period_from and period_to and period_to <= period_from:
+            raise serializers.ValidationError(
+                'El fin del período debe ser posterior al inicio.'
+            )
         return data
 
 
@@ -493,10 +524,15 @@ class AccountingSettingsSerializer(serializers.ModelSerializer):
         allow_empty=True,
         required=False,
     )
+    usd_exchange_rate = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=Decimal('1'),
+        required=False,
+    )
 
     class Meta:
         model = AccountingSettings
         fields = (
             'notification_recipients', 'notifications_enabled',
-            'card_reminder_enabled', 'updated_at',
+            'card_reminder_enabled', 'hosting_expiry_reminder_enabled',
+            'usd_exchange_rate', 'updated_at',
         )

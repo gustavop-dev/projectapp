@@ -2055,6 +2055,82 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-hour-packages-list.spec.js`
 
+### FLOW: `admin-hour-packages-view-modes`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/hour-packages`
+- **Description:** Switch the catalog between Tabla, Tarjetas and Comparativa (pricing tiers with a "Mejor tarifa" highlight); the initial mode comes from the settings singleton.
+- **Steps:**
+  1. Admin opens `/panel/hour-packages` — `GET /api/hour-packages/admin/settings/` decides the initial view mode.
+  2. Admin switches the view-mode segmented control (Tabla / Tarjetas / Comparativa).
+  3. Tarjetas renders a card grid with effective rate, discount badge and totals; Comparativa renders side-by-side tiers highlighting the best effective rate.
+  4. Edit/Eliminar remain available from every mode.
+- **Coverage:** ⚠️ Missing
+- **E2E Spec:** _pending_
+
+### FLOW: `admin-hour-packages-config`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/hour-packages`
+- **Description:** Configuración section: default view mode + restore a nationality's catalog to the canonical defaults ladder.
+- **Steps:**
+  1. Admin switches the page section segmented to "Configuración".
+  2. Saving a default view mode PATCHes `/api/hour-packages/admin/settings/update/` and toasts.
+  3. "Restablecer" per nationality opens a ConfirmModal and POSTs `/api/hour-packages/admin/restore-defaults/`; the catalog of that country is replaced with the default ladder (1h/10h/20h/60h/180h).
+- **Coverage:** ⚠️ Missing
+- **E2E Spec:** _pending_
+
+### FLOW: `admin-accounting-statements`
+
+- **Module:** admin
+- **Role:** admin (superuser)
+- **Priority:** P2
+- **Routes:** `/panel/accounting/statements`
+- **Description:** Monthly credit-card statement ledger (extractos): 12-month processed/draft/pending grid per card, inline detail with totals, category bars and transactions, finalize/reopen lifecycle, learned merchant aliases, MCP chat kick-off prompt.
+- **Steps:**
+  1. Superuser opens `/panel/accounting/statements` — `GET /api/accounting/statements/status/?year=` renders the 12-month grid; card chips show Procesado/Borrador.
+  2. Clicking a chip loads `GET /api/accounting/statements/:id/` — detail shows stat cards (Compras/Pagos/Intereses/Saldo), category bars and the transactions table (unidentified lines flagged).
+  3. On a draft: per-line Editar (modal PATCH `.../transactions/:txId/update/`) and Eliminar; Finalizar validates Σ vs purchases_total (±1 COP) and offers a forced close on mismatch; Eliminar removes the statement after confirm.
+  4. On a processed statement: Reabrir returns it to draft.
+  5. "Comercios aprendidos" lists merchant aliases with delete.
+  6. "Copiar prompt" copies the Spanish kick-off prompt for the claude.ai accounting connector (statements are created from chat via `create_statement`).
+- **Coverage:** ⚠️ Missing
+- **E2E Spec:** _pending_
+
+### FLOW: `admin-clients-config-tab`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/clients`
+- **Description:** Trailing "Configuraciones" pill swaps the client list for the shared ViewSettingsPanel (saved-filter-tabs reset + defaults link).
+- **Steps:**
+  1. Admin clicks the right-aligned "Configuraciones" pill in the status-tab row.
+  2. The list area is replaced by the settings panel: "Restablecer" for the Clientes view opens a ConfirmModal and POSTs `accounts/saved-filter-tabs/reset/` (view=client); saved tabs reload on success.
+  3. "Abrir defaults" links to `/panel/defaults`.
+  4. Clicking any status pill returns to the list.
+- **Coverage:** ⚠️ Missing
+- **E2E Spec:** _pending_
+
+### FLOW: `admin-proposals-config-tab`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/proposals`
+- **Description:** Fixed trailing "Configuraciones" tab in the proposals filter-tab bar swaps the list for the shared ViewSettingsPanel (saved-filter-tabs reset + proposals defaults link).
+- **Steps:**
+  1. Admin clicks the right-aligned "Configuraciones" tab (mobile: the "⚙ Configuraciones" option of the tabs select).
+  2. The list area is replaced by the settings panel: "Restablecer" for the Propuestas view POSTs `accounts/saved-filter-tabs/reset/` (view=proposal) behind a ConfirmModal; tabs reload on success.
+  3. "Abrir defaults de propuestas" links to `/panel/proposals/defaults`.
+  4. Selecting any filter tab (or "Todas") closes the panel and restores the list.
+- **Coverage:** ⚠️ Missing
+- **E2E Spec:** _pending_
+
 ### FLOW: `admin-hour-packages-create`
 
 - **Module:** admin
@@ -5340,7 +5416,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/expenses`
-- **Description:** Expense records with category (Negocio/Personal), paid-from, ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos — personal expenses hide the split and paid-from, use a single "Valor" field and are excluded from company totals) and partner split; same modal CRUD + filters pattern as incomes.
+- **Description:** Expense records with category (Negocio/Personal) and ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos — personal expenses hide the split, use a single "Valor" field and are excluded from company totals) and partner split; same modal CRUD + filters pattern as incomes. Money inputs live-format es-CO thousands (BaseCurrencyInput). The paid-from field/column was removed (2026-07): every expense draws from money already in the pocket; pocket OUT movements are manual.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-expenses-hostings.spec.js`
 
@@ -5350,7 +5426,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/hostings`
-- **Description:** Client hosting registry: monthly value, payment modality, validity, cycles and totals, with meta stat cards (active count / monthly income) and modal CRUD (per-modality payment-per-cycle default).
+- **Description:** Client hosting registry: monthly value, payment modality, validity and billing contact (email/contacto/identificación), with 4 KPI cards (active count, monthly income, expiring in 30 days, historic total paid) and modal CRUD (per-modality payment-per-cycle default). Estado is an inline select (see `admin-accounting-hosting-inline-edit`); ciclos/total pagado are read-only, computed from the cycle history (see `admin-accounting-hosting-cycles`).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-expenses-hostings.spec.js`
 
@@ -5370,7 +5446,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/recurring`
-- **Description:** Recurring operational costs with monthly COP proration, totals by frequency and payment method, and modal CRUD where the COP-equivalent field applies only to USD payments.
+- **Description:** Recurring operational costs with monthly COP proration, a monthly USD cost card (computed with the configurable settings exchange rate), totals by frequency and payment method, and modal CRUD where the COP-equivalent field applies only to USD payments.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-pocket-recurring.spec.js`
 
@@ -5415,7 +5491,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/settings`
-- **Description:** Notification recipients (email list with add/remove + validation) and the global notifications toggle; changes are themselves audited. Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá via Huey, re-alerts every 2 days until a snapshot dated on/after the cycle Friday exists; the global notifications toggle also gates it).
+- **Description:** Notification recipients (email list with add/remove + validation) and the global notifications toggle; changes are themselves audited. Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá via Huey, re-alerts every 2 days until a snapshot dated on/after the cycle Friday exists; the global notifications toggle also gates it), the hosting expiry notices toggle (15/7 days before `valid_to`, then every 5 days until the cuenta de cobro is sent) and the USD exchange rate (BaseCurrencyInput, min 1) used by the recurring USD KPI. Coverage note: recipients + card toggle are tested; the new toggle and USD rate field are not asserted yet (partial).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-ads-history-settings.spec.js`
 
@@ -5428,6 +5504,60 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Description:** Advertising spend log with a running accumulated column computed over the full history, platform/card filters and modal CRUD.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-ads-history-settings.spec.js`
+
+### FLOW: `admin-accounting-hosting-billing`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/hostings`
+- **Description:** Send a client the cuenta de cobro from a hosting row. The paper-plane action (disabled without client email, tooltip explains) opens a ConfirmModal previewing amount and recipient; confirm POSTs `/api/accounting/hostings/:id/send-collection-account/`, which issues the Document (public number PA-YYYY-NNNN, one line item for the next modality period, issuer default payment methods), emails the client the branded message with the Spanish PDF attached and stamps `billing_requested_at` (pauses the expiry notices; a "Cobro enviado" badge appears on the row). If the email fails the document stays issued and a warning toast points to Cobros for re-send.
+- **Steps:**
+  1. Superuser opens `/panel/accounting/hostings` and clicks the paper-plane action on a row with client email.
+  2. ConfirmModal previews `payment_per_cycle` and the recipient; confirm fires the POST.
+  3. Success toast (with "Ver en Cobros" action) and the row shows the "Cobro enviado" badge.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
+### FLOW: `admin-accounting-collections`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/collections`
+- **Description:** Cobros monitor: status counters (emitidas/pagadas/vencidas/anuladas with money totals from list meta), segmented status filter (Todas/Emitidas/Vencidas/Pagadas/Anuladas), table with número/origen/cliente/total/emisión/vence/estado (badge shows "Vencida" via `is_overdue`) and row actions: download PDF (`GET .../pdf/` blob), resend to client, mark paid and cancel (both behind ConfirmModal; cancelling a hosting-linked account clears `billing_requested_at` so the expiry notices resume).
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
+### FLOW: `admin-accounting-hosting-cycles`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/hostings`
+- **Description:** Cycle payment history per hosting (clock row action → `HostingCyclesModal`): history table (modality + amount snapshotted per paid period; consolidated "histórico" backfill rows flagged with their `cycles_represented`) plus a register form prefilled from the contract (amount = `payment_per_cycle`, current modality, paid_at = today) with an "Extender vigencia" toggle (on by default: `valid_to` advances one modality period, which re-arms the expiry notices). `total_paid`/`cycles_count` recompute from the history; deleting a cycle (ConfirmModal) recalculates but never rolls back `valid_to`.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
+### FLOW: `admin-accounting-hosting-inline-edit`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P3
+- **Routes:** `/panel/accounting/hostings`
+- **Description:** Inline edits without opening the modal: double-click on cliente, dominio or valor/mes swaps the cell for an input (`AccountingInlineCell`; money cells use BaseCurrencyInput), Enter/blur PATCHes only when the value changed, Esc cancels; a failed PATCH leaves the row untouched so the cell falls back. The estado column is `AccountingStatusSelect` (badge-styled select, snap-back + spinner) PATCHing `is_active` directly.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
+### FLOW: `admin-accounting-settings-reset-tabs`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P3
+- **Routes:** `/panel/accounting/settings`
+- **Description:** Restore the seeded default filter tabs per accounting view: the "Pestañas de filtros guardados" card lists the 6 views (Ingresos/Gastos/Hostings/Bolsillo/Recurrentes/Ads), each with a "Restablecer" button that, after a ConfirmModal warning that custom tabs will be deleted, POSTs `accounts/saved-filter-tabs/reset/` (atomic delete + re-seed from `DEFAULT_FILTER_TABS`) and toasts the result. New users get the defaults automatically on first GET.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
 
 ### FLOW: `admin-accounting-list-error-retry`
 
@@ -5465,6 +5595,11 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-export` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-export.spec.js` |
 | `admin-accounting-settings` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
 | `admin-accounting-ads` | admin | superuser | P3 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
+| `admin-accounting-hosting-billing` | admin | superuser | P1 | ❌ Missing | — |
+| `admin-accounting-collections` | admin | superuser | P2 | ❌ Missing | — |
+| `admin-accounting-hosting-cycles` | admin | superuser | P2 | ❌ Missing | — |
+| `admin-accounting-hosting-inline-edit` | admin | superuser | P3 | ❌ Missing | — |
+| `admin-accounting-settings-reset-tabs` | admin | superuser | P3 | ❌ Missing | — |
 | `admin-accounting-list-error-retry` | admin | superuser | P3 | ❌ Missing | — |
 | `admin-accounting-empty-state-cta` | admin | superuser | P4 | ❌ Missing | — |
 

@@ -13,7 +13,7 @@ The following models are imported:
 
 from .contact import Contact
 from .portfolio_works import PortfolioWork
-from .hour_packages import HourPackage, Nationality, CURRENCY_BY_NATIONALITY
+from .hour_packages import HourPackage, HourPackageSettings, Nationality, CURRENCY_BY_NATIONALITY
 from .business_proposal import BusinessProposal, ProposalAlert
 from .proposal_section import ProposalSection
 from .proposal_project_stage import ProposalProjectStage
@@ -56,10 +56,18 @@ from .pocket_movement import PocketMovement
 from .income_record import IncomeRecord
 from .expense_record import ExpenseRecord
 from .hosting_record import HostingRecord
+from .hosting_cycle import HostingCycle
 from .recurring_payment import RecurringPayment
 from .ads_spend_record import AdsSpendRecord
 from .card_balance_snapshot import CardBalanceSnapshot
 from .accounting_change_log import AccountingChangeLog
+from .credit_card_statement import (
+    CreditCardStatement,
+    CreditCardTransaction,
+    MerchantAlias,
+    TransactionCategory,
+    normalize_descriptor,
+)
 from .accounting_settings import AccountingSettings
 from .mcp_connector import McpConnector
 from .mcp_request_log import McpRequestLog

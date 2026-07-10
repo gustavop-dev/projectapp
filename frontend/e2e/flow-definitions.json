@@ -1,6 +1,6 @@
 {
   "version": "2.42.0",
-  "lastUpdated": "2026-07-07",
+  "lastUpdated": "2026-07-10",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -2573,7 +2573,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser manages expense records at /panel/accounting/expenses with category (Negocio/Personal), paid-from and ledger (Contabilidad) badges, partner split (hidden for personal-ledger expenses, which use a single Valor field) and the same modal CRUD + filters pattern as incomes.",
+      "description": "Superuser manages expense records at /panel/accounting/expenses with category (Negocio/Personal) and ledger (Contabilidad) badges, partner split (hidden for personal-ledger expenses, which use a single Valor field) and the same modal CRUD + filters pattern as incomes. Money inputs live-format es-CO thousands separators (BaseCurrencyInput). The paid-from field/column was removed: every expense draws from money already in the pocket (pocket OUT movements are registered manually).",
       "expectedSpecs": 2
     },
     "admin-accounting-hostings": {
@@ -2583,7 +2583,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser manages the client hosting registry at /panel/accounting/hostings: list with estado badge and validity, meta stat cards (active count, monthly income from list meta) and modal CRUD with per-modality payment defaults.",
+      "description": "Superuser manages the client hosting registry at /panel/accounting/hostings: list with an inline estado select (Activo/Inactivo, PATCHes on change with snap-back), validity, 4 KPI cards (active count, monthly income, expiring in 30 days, historic total paid from list meta) and modal CRUD with per-modality payment defaults plus client billing contact fields (email, contact name, identification). Ciclos/total pagado are read-only in the form (computed from the cycle history).",
       "expectedSpecs": 3
     },
     "admin-accounting-pocket": {
@@ -2603,7 +2603,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser manages recurring operational costs at /panel/accounting/recurring: monthly COP total card, breakdowns by frequency and payment method, and modal CRUD where the COP-equivalent field only applies to USD payments.",
+      "description": "Superuser manages recurring operational costs at /panel/accounting/recurring: monthly COP total card, monthly USD cost card (computed with the configurable exchange rate from settings), breakdowns by frequency and payment method, and modal CRUD where the COP-equivalent field only applies to USD payments.",
       "expectedSpecs": 3
     },
     "admin-accounting-history": {
@@ -2623,7 +2623,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser configures accounting email notifications at /panel/accounting/settings: recipient list (add/remove emails with validation) and global enable toggle, saved via PATCH /api/accounting/settings/update/ (audited). Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá, re-alert every 2 days until the snapshot is registered).",
+      "description": "Superuser configures accounting email notifications at /panel/accounting/settings: recipient list (add/remove emails with validation) and global enable toggle, saved via PATCH /api/accounting/settings/update/ (audited). Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá, re-alert every 2 days until the snapshot is registered), the hosting expiry notices toggle (15/7 days before valid_to, then every 5 days until the cuenta de cobro is sent) and the USD exchange rate used by the recurring USD KPI.",
       "expectedSpecs": 3
     },
     "admin-accounting-ads": {
@@ -2633,8 +2633,58 @@
         "admin"
       ],
       "priority": "P3",
-      "description": "Superuser tracks advertising spend at /panel/accounting/ads: chronological list with a computed running accumulated column (calculated over the full history), origin-card and platform filters, and modal CRUD.",
+      "description": "Superuser tracks advertising spend at /panel/accounting/ads: chronological list with a computed running accumulated column (calculated over the full history), origin-card and platform filters, saved filter tabs (accounting_ads view with seeded defaults) and modal CRUD.",
       "expectedSpecs": 2
+    },
+    "admin-accounting-hosting-billing": {
+      "name": "Admin Accounting Hosting — Enviar Cuenta de Cobro",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Superuser sends a client the cuenta de cobro from a hosting row at /panel/accounting/hostings: the paper-plane action (disabled without client email) opens a ConfirmModal previewing amount/recipient, POSTs /api/accounting/hostings/:id/send-collection-account/ which issues the Document (public number, one line item for the next modality period, issuer default payment methods), emails the client the branded message with the PDF attached and stamps billing_requested_at (pauses the expiry notices; a 'Cobro enviado' badge appears). Partial failure (email down) keeps the document issued and warns to re-send from Cobros.",
+      "expectedSpecs": 0
+    },
+    "admin-accounting-collections": {
+      "name": "Admin Accounting Cobros Monitor",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser monitors all cuentas de cobro at /panel/accounting/collections: status counters (emitidas/pagadas/vencidas/anuladas with totals), segmented status filter, table with número/origen/cliente/total/emisión/vence/estado (Vencida tint via is_overdue) and row actions: download PDF, resend to client, mark paid, cancel (cancelling a hosting-linked account resumes its expiry notices).",
+      "expectedSpecs": 0
+    },
+    "admin-accounting-hosting-cycles": {
+      "name": "Admin Accounting Hosting Cycle Payments",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser registers hosting cycle payments from the clock action at /panel/accounting/hostings: the modal shows the cycle history (modality + amount snapshotted per paid period, consolidated 'histórico' backfill rows flagged) and a register form prefilled from the contract (amount = payment_per_cycle, modality, paid_at = today) with an 'Extender vigencia' toggle (on by default: valid_to advances one modality period, re-arming the expiry notices). total_paid/cycles_count recompute from the history; deleting a cycle recalculates but never rolls back valid_to.",
+      "expectedSpecs": 0
+    },
+    "admin-accounting-hosting-inline-edit": {
+      "name": "Admin Accounting Hosting Inline Edit",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Superuser edits hosting cells without opening the modal at /panel/accounting/hostings: double-click on cliente, dominio or valor/mes swaps the cell for an input (money cells use BaseCurrencyInput), Enter/blur PATCHes only when the value changed, Esc cancels; a failed PATCH leaves the row untouched. The estado column is an inline select that PATCHes is_active with snap-back and spinner.",
+      "expectedSpecs": 0
+    },
+    "admin-accounting-settings-reset-tabs": {
+      "name": "Admin Accounting Settings — Reset Saved Filter Tabs",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Superuser restores the seeded default filter tabs per accounting view from /panel/accounting/settings: the 'Pestañas de filtros guardados' card lists the 6 views (Ingresos/Gastos/Hostings/Bolsillo/Recurrentes/Ads) each with a Restablecer button that, after a ConfirmModal warning about custom tabs, POSTs accounts/saved-filter-tabs/reset/ (delete + re-seed atomically) and toasts the result.",
+      "expectedSpecs": 0
     },
     "admin-mcps": {
       "name": "Admin MCPs Connectors",
@@ -2791,6 +2841,56 @@
       "priority": "P2",
       "description": "Admin adds a missing section type from the \"Agregar sección\" modal (seeded server-side from language defaults via POST /api/proposals/:id/sections/create/) and deletes sections via the per-row trash action (DELETE /api/proposals/sections/:id/delete/), including the backend guard for functional requirements with a confirmed calculator selection.",
       "expectedSpecs": 1
+    },
+    "admin-accounting-statements": {
+      "name": "Admin Accounting — Credit Card Statements",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser reviews the monthly credit-card statement ledger at /panel/accounting/statements: year + card filters over a 12-month grid (Procesado/Borrador/Pendiente chips per card), inline statement detail (totals stat cards, category bars, transactions table flagging unidentified lines), finalize with forced-close confirm on total mismatch (POST /api/accounting/statements/:id/finalize/), reopen, delete, per-line edit/delete on drafts, collapsible learned merchant aliases with delete, and a 'Copiar prompt' button for the MCP chat kick-off. Statements are normally created from the claude.ai chat via the accounting MCP connector (create_statement).",
+      "expectedSpecs": 0
+    },
+    "admin-hour-packages-view-modes": {
+      "name": "Admin Hour Packages — View Modes",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Admin switches the hour-package catalog between Tabla, Tarjetas (card grid) and Comparativa (pricing tiers highlighting 'Mejor tarifa') via a BaseSegmented control; the initial mode comes from GET /api/hour-packages/admin/settings/ (default_view_mode).",
+      "expectedSpecs": 0
+    },
+    "admin-hour-packages-config": {
+      "name": "Admin Hour Packages — Configuración",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Admin opens the Configuración section of /panel/hour-packages: saves the default view mode (PATCH /api/hour-packages/admin/settings/update/, toast on save) and restores one nationality's catalog to the canonical DEFAULT_PACKAGES ladder behind a ConfirmModal (POST /api/hour-packages/admin/restore-defaults/, destructive replace).",
+      "expectedSpecs": 0
+    },
+    "admin-clients-config-tab": {
+      "name": "Admin Clients — Configuraciones Tab",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Admin activates the trailing 'Configuraciones' pill in the clients status-tab row: the list area swaps to the shared ViewSettingsPanel with the client saved-filter-tabs reset (ConfirmModal + POST accounts/saved-filter-tabs/reset/ with view=client, tabs reload on success) and a link to /panel/defaults.",
+      "expectedSpecs": 0
+    },
+    "admin-proposals-config-tab": {
+      "name": "Admin Proposals — Configuraciones Tab",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Admin activates the fixed trailing 'Configuraciones' tab of the proposals filter-tab bar (right-aligned on desktop, select option on mobile): the list swaps to the shared ViewSettingsPanel with the proposal saved-filter-tabs reset (view=proposal) and a link to /panel/proposals/defaults. Selecting any filter tab closes the panel.",
+      "expectedSpecs": 0
     }
   }
 }

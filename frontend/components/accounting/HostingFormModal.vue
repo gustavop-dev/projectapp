@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { formatMoney } from '~/utils/formatMoney'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -22,15 +23,16 @@ const modalityOptions = [
 function defaultForm() {
   return {
     client_name: '',
+    client_email: '',
+    client_contact_name: '',
+    client_identification: '',
     domain_url: '',
     monthly_value: '',
     payment_modality: 'monthly',
     benefit: '',
     valid_from: '',
     valid_to: '',
-    cycles_count: '',
     payment_per_cycle: '',
-    total_paid: '',
     is_active: true,
     notes: '',
   }
@@ -45,15 +47,16 @@ watch(
     if (props.record) {
       form.value = {
         client_name: props.record.client_name ?? '',
+        client_email: props.record.client_email ?? '',
+        client_contact_name: props.record.client_contact_name ?? '',
+        client_identification: props.record.client_identification ?? '',
         domain_url: props.record.domain_url ?? '',
         monthly_value: props.record.monthly_value ?? '',
         payment_modality: props.record.payment_modality ?? 'monthly',
         benefit: props.record.benefit ?? '',
         valid_from: props.record.valid_from ?? '',
         valid_to: props.record.valid_to ?? '',
-        cycles_count: props.record.cycles_count ?? '',
         payment_per_cycle: props.record.payment_per_cycle ?? '',
-        total_paid: props.record.total_paid ?? '',
         is_active: props.record.is_active ?? true,
         notes: props.record.notes ?? '',
       }
@@ -75,14 +78,15 @@ function onSubmit() {
     payment_modality: form.value.payment_modality,
     is_active: form.value.is_active,
   }
+  payload.client_email = form.value.client_email
+  payload.client_contact_name = form.value.client_contact_name
+  payload.client_identification = form.value.client_identification
   payload.domain_url = form.value.domain_url
   payload.benefit = form.value.benefit
   payload.notes = form.value.notes
   payload.valid_from = form.value.valid_from || null
   payload.valid_to = form.value.valid_to || null
-  addIfFilled(payload, 'cycles_count', form.value.cycles_count)
   addIfFilled(payload, 'payment_per_cycle', form.value.payment_per_cycle)
-  addIfFilled(payload, 'total_paid', form.value.total_paid)
   emit('submit', payload)
 }
 </script>
@@ -103,8 +107,24 @@ function onSubmit() {
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <BaseFormField
+          label="Email del cliente"
+          hint="Destino de la cuenta de cobro"
+        >
+          <BaseInput v-model="form.client_email" type="email" placeholder="cliente@dominio.com" />
+        </BaseFormField>
+        <BaseFormField label="Contacto del cliente">
+          <BaseInput v-model="form.client_contact_name" placeholder="Nombre de quien recibe" />
+        </BaseFormField>
+      </div>
+
+      <BaseFormField label="Identificación del cliente (NIT/CC)">
+        <BaseInput v-model="form.client_identification" />
+      </BaseFormField>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <BaseFormField label="Valor por mes" required>
-          <BaseInput v-model="form.monthly_value" type="number" step="0.01" min="0" required />
+          <BaseCurrencyInput v-model="form.monthly_value" required />
         </BaseFormField>
         <BaseFormField label="Modalidad de pago">
           <BaseSelect v-model="form.payment_modality" :options="modalityOptions" />
@@ -124,21 +144,19 @@ function onSubmit() {
         </BaseFormField>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <BaseFormField label="Ciclos">
-          <BaseInput v-model="form.cycles_count" type="number" step="1" min="0" />
-        </BaseFormField>
-        <BaseFormField
-          label="Pago por ciclo"
-          hint="Si lo dejas vacío al crear, se calcula desde la modalidad"
-        >
-          <BaseInput v-model="form.payment_per_cycle" type="number" step="0.01" min="0" />
-        </BaseFormField>
-      </div>
-
-      <BaseFormField label="Total pagado a la fecha">
-        <BaseInput v-model="form.total_paid" type="number" step="0.01" min="0" />
+      <BaseFormField
+        label="Pago por ciclo"
+        hint="Si lo dejas vacío al crear, se calcula desde la modalidad"
+      >
+        <BaseCurrencyInput v-model="form.payment_per_cycle" />
       </BaseFormField>
+
+      <p v-if="isEdit" class="text-xs text-text-muted">
+        Ciclos: <span class="font-medium text-text-default">{{ record?.cycles_count ?? 0 }}</span>
+        · Total pagado:
+        <span class="font-medium text-text-default">{{ formatMoney(record?.total_paid ?? 0, 'COP') }}</span>
+        — se calculan desde el histórico de ciclos (acción "Ciclos de pago" en la tabla).
+      </p>
 
       <BaseFormField label="Activo">
         <BaseToggle v-model="form.is_active" aria-label="Activo" />

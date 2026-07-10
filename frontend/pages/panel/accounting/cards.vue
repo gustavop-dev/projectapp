@@ -235,7 +235,7 @@ const knownCards = computed(() =>
 
 const filterFields = computed(() => [
   { kind: 'daterange', label: 'Fecha', minKey: 'dateAfter', maxKey: 'dateBefore' },
-  { kind: 'range', label: 'Deuda', minKey: 'debtMin', maxKey: 'debtMax', type: 'number' },
+  { kind: 'range', label: 'Deuda', minKey: 'debtMin', maxKey: 'debtMax', type: 'money' },
   {
     kind: 'multi',
     key: 'cardName',

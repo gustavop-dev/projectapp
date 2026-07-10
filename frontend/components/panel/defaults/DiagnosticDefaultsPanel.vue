@@ -48,11 +48,9 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <BaseFormField label="Inversión por defecto">
-            <BaseInput
-              v-model.number="generalForm.default_investment_amount"
-              type="number"
-              min="0"
-              step="0.01"
+            <BaseCurrencyInput
+              v-model="generalForm.default_investment_amount"
+              :decimals="2"
               data-testid="defaults-investment"
             />
           </BaseFormField>

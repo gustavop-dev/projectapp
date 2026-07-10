@@ -6,7 +6,7 @@ shared query params (date_from/date_to/year, amount_min/amount_max,
 partner, q) plus per-entity choice filters; rich interactive filtering
 happens client-side. The change log is the only paginated endpoint.
 """
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.db.models import Count, F, Q, Sum
@@ -21,9 +21,11 @@ from content.models import (
     AccountingSettings,
     AdsSpendRecord,
     CardBalanceSnapshot,
+    CreditCardStatement,
     ExpenseRecord,
     HostingRecord,
     IncomeRecord,
+    MerchantAlias,
     PocketMovement,
     RecurringPayment,
 )
@@ -38,6 +40,8 @@ from content.serializers.accounting import (
     CardBalanceSnapshotSerializer,
     ExpenseRecordCreateUpdateSerializer,
     ExpenseRecordSerializer,
+    HostingCycleCreateSerializer,
+    HostingCycleSerializer,
     HostingRecordCreateUpdateSerializer,
     HostingRecordSerializer,
     IncomeRecordCreateUpdateSerializer,
@@ -46,6 +50,12 @@ from content.serializers.accounting import (
     PocketMovementSerializer,
     RecurringPaymentCreateUpdateSerializer,
     RecurringPaymentSerializer,
+)
+from content.serializers.accounting_statement import (
+    CreditCardStatementSerializer,
+    CreditCardStatementWriteSerializer,
+    MerchantAliasSerializer,
+    MerchantAliasWriteSerializer,
 )
 from content.services import accounting_service
 from content.utils import today_bogota
@@ -71,14 +81,96 @@ def _money(value):
     return str(Decimal(value).quantize(TWO_PLACES))
 
 
+def _top_record(queryset, concept_field='concept'):
+    top = (
+        queryset.order_by('-total_amount')
+        .values(concept_field, 'total_amount')
+        .first()
+    )
+    if not top:
+        return None
+    return {
+        'concept': top[concept_field],
+        'amount': _money(top['total_amount'] or 0),
+    }
+
+
+def _income_meta(queryset, params):
+    today = today_bogota()
+    year_qs = queryset.filter(period_date__year=today.year)
+    totals = year_qs.aggregate(
+        expected_total=Sum('total_amount', filter=Q(kind='expected')),
+        liquid_total=Sum('total_amount', filter=Q(kind='liquid')),
+        month_liquid=Sum(
+            'total_amount',
+            filter=Q(kind='liquid', period_date__month=today.month),
+        ),
+    )
+    expected = totals['expected_total'] or 0
+    liquid = totals['liquid_total'] or 0
+    received_pct = int(round(liquid / expected * 100)) if expected else None
+    return {
+        'expected_total': _money(expected),
+        'liquid_total': _money(liquid),
+        'received_pct': received_pct,
+        'current_month_liquid': _money(totals['month_liquid'] or 0),
+        'top_income': _top_record(year_qs.filter(kind='liquid')),
+    }
+
+
+def _expense_meta(queryset, params):
+    today = today_bogota()
+    year_qs = queryset.filter(period_date__year=today.year)
+    totals = year_qs.aggregate(
+        year_total=Sum('total_amount'),
+        month_total=Sum(
+            'total_amount', filter=Q(period_date__month=today.month),
+        ),
+        business_total=Sum('total_amount', filter=Q(category='business')),
+        personal_total=Sum('total_amount', filter=Q(category='personal')),
+    )
+    month_total = totals['month_total'] or 0
+    # Alert: current month >= 1.5x the average of the year's prior months.
+    prior_months = (
+        year_qs.filter(period_date__month__lt=today.month)
+        .values_list('period_date__month')
+        .annotate(total=Sum('total_amount'))
+    )
+    prior_totals = [row[1] for row in prior_months]
+    alert = False
+    if prior_totals:
+        average = sum(prior_totals) / len(prior_totals)
+        alert = average > 0 and month_total >= average * Decimal('1.5')
+    return {
+        'year_total': _money(totals['year_total'] or 0),
+        'current_month_total': _money(month_total),
+        'business_total': _money(totals['business_total'] or 0),
+        'personal_total': _money(totals['personal_total'] or 0),
+        'current_month_alert': alert,
+        'top_expense': _top_record(year_qs),
+    }
+
+
 def _hosting_meta(queryset, params):
+    today = today_bogota()
     totals = queryset.aggregate(
         active_count=Count('id', filter=Q(is_active=True)),
         monthly_income=Sum('monthly_value', filter=Q(is_active=True)),
+        total_paid=Sum('total_paid'),
+        expiring_soon_count=Count(
+            'id',
+            filter=Q(
+                is_active=True,
+                valid_to__gte=today,
+                valid_to__lte=today + timedelta(days=30),
+            ),
+        ),
     )
     return {
         'active_count': totals['active_count'] or 0,
         'monthly_income': _money(totals['monthly_income'] or 0),
+        'total_paid': _money(totals['total_paid'] or 0),
+        'expiring_soon_count': totals['expiring_soon_count'] or 0,
     }
 
 
@@ -90,10 +182,21 @@ def _pocket_meta(queryset, params):
 
 
 def _recurring_meta(queryset, params):
-    total = accounting_service.recurring_monthly_cost(
-        queryset.filter(is_active=True),
+    active = queryset.filter(is_active=True)
+    total = accounting_service.recurring_monthly_cost(active)
+    rate = AccountingSettings.load().usd_exchange_rate or 0
+    monthly_usd = (
+        _money((Decimal(total) / rate).quantize(TWO_PLACES)) if rate else None
     )
-    return {'monthly_cop_total': _money(total)}
+    usd_native = active.filter(currency='USD').aggregate(
+        total=Sum('price'),
+    )['total']
+    return {
+        'monthly_cop_total': _money(total),
+        'monthly_usd_total': monthly_usd,
+        'usd_native_total': _money(usd_native or 0),
+        'usd_exchange_rate': _money(rate) if rate else None,
+    }
 
 
 _ENTITIES = {
@@ -108,6 +211,7 @@ _ENTITIES = {
         'choice_filters': ('kind', 'destination', 'ledger'),
         'has_split': True,
         'pocket_filter': Q(destination=IncomeRecord.Destination.POCKET),
+        'meta': _income_meta,
     },
     'expense': {
         'entity_type': EntityType.EXPENSE,
@@ -117,9 +221,9 @@ _ENTITIES = {
         'date_field': 'period_date',
         'amount_field': 'total_amount',
         'search_fields': ('concept', 'notes'),
-        'choice_filters': ('category', 'paid_from', 'ledger'),
+        'choice_filters': ('category', 'ledger'),
         'has_split': True,
-        'pocket_filter': Q(paid_from=ExpenseRecord.PaidFrom.POCKET),
+        'meta': _expense_meta,
     },
     'hosting': {
         'entity_type': EntityType.HOSTING,
@@ -179,6 +283,26 @@ _ENTITIES = {
         'search_fields': ('card_name', 'notes'),
         'choice_filters': ('card_name',),
     },
+    'statement': {
+        'entity_type': EntityType.STATEMENT,
+        'model': CreditCardStatement,
+        'read': CreditCardStatementSerializer,
+        'write': CreditCardStatementWriteSerializer,
+        'date_field': 'period_date',
+        'amount_field': 'purchases_total',
+        'search_fields': ('card_name', 'notes'),
+        'choice_filters': ('status', 'card_name'),
+    },
+    'merchant_alias': {
+        'entity_type': EntityType.MERCHANT_ALIAS,
+        'model': MerchantAlias,
+        'read': MerchantAliasSerializer,
+        'write': MerchantAliasWriteSerializer,
+        'date_field': None,
+        'amount_field': None,
+        'search_fields': ('match_text', 'merchant_name', 'notes'),
+        'choice_filters': ('default_category',),
+    },
 }
 
 
@@ -205,13 +329,13 @@ def _apply_filters(queryset, params, config):
             })
 
     amount_field = config['amount_field']
-    if params.get('amount_min'):
+    if amount_field and params.get('amount_min'):
         queryset = queryset.filter(**{
             f'{amount_field}__gte': _parse_decimal(
                 params['amount_min'], 'amount_min',
             ),
         })
-    if params.get('amount_max'):
+    if amount_field and params.get('amount_max'):
         queryset = queryset.filter(**{
             f'{amount_field}__lte': _parse_decimal(
                 params['amount_max'], 'amount_max',
@@ -241,10 +365,13 @@ def _apply_filters(queryset, params, config):
             queryset = queryset.filter(carlos_amount__gt=0)
         elif partner == 'projectapp':
             # Pocket-bound records or records with an unassigned remainder.
-            queryset = queryset.filter(
-                config['pocket_filter']
-                | Q(total_amount__gt=F('gustavo_amount') + F('carlos_amount')),
+            partner_q = Q(
+                total_amount__gt=F('gustavo_amount') + F('carlos_amount'),
             )
+            pocket_q = config.get('pocket_filter')
+            if pocket_q is not None:
+                partner_q = pocket_q | partner_q
+            queryset = queryset.filter(partner_q)
         elif partner != 'all':
             raise ValueError(
                 "El parámetro 'partner' debe ser gustavo, carlos, "
@@ -440,6 +567,48 @@ def update_hosting_record(request, record_id):
 @permission_classes([IsSuperUser])
 def delete_hosting_record(request, record_id):
     return _delete_record(request, 'hosting', record_id)
+
+
+# ── Hosting cycles (payment history) ──
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def list_hosting_cycles(request, record_id):
+    hosting = get_object_or_404(HostingRecord, pk=record_id)
+    serializer = HostingCycleSerializer(hosting.cycles.all(), many=True)
+    return Response({'results': serializer.data})
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def create_hosting_cycle(request, record_id):
+    from content.services import hosting_cycle_service
+
+    hosting = get_object_or_404(HostingRecord, pk=record_id)
+    serializer = HostingCycleCreateSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    cycle = hosting_cycle_service.register_cycle_payment(
+        hosting, data=serializer.validated_data, user=request.user,
+    )
+    return Response(
+        {
+            'cycle': HostingCycleSerializer(cycle).data,
+            'hosting': HostingRecordSerializer(hosting).data,
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['DELETE'])
+@permission_classes([IsSuperUser])
+def delete_hosting_cycle(request, record_id, cycle_id):
+    from content.services import hosting_cycle_service
+
+    hosting = get_object_or_404(HostingRecord, pk=record_id)
+    cycle = get_object_or_404(hosting.cycles, pk=cycle_id)
+    hosting_cycle_service.delete_cycle(hosting, cycle, user=request.user)
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # ── Pocket movements ──

@@ -269,7 +269,7 @@ const filterFields = [
       { value: 'out', label: 'Egreso' },
     ],
   },
-  { kind: 'range', label: 'Valor', minKey: 'amountMin', maxKey: 'amountMax', type: 'number' },
+  { kind: 'range', label: 'Valor', minKey: 'amountMin', maxKey: 'amountMax', type: 'money' },
 ];
 
 const EXPORT_MAPPING = {

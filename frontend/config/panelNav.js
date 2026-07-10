@@ -44,10 +44,10 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
       label: 'Comercial',
       items: [
         { label: 'Defaults', href: lp('/panel/defaults'), icon: 'settings' },
-        { label: 'Paquetes de horas', href: lp('/panel/hour-packages'), icon: 'clock' },
+        { label: 'Paquetes de horas', href: lp('/panel/hour-packages'), icon: 'package' },
         { label: 'Clientes', href: lp('/panel/clients'), icon: 'users' },
         { label: 'Entregabilidad email', href: lp('/panel/proposals/email-deliverability'), icon: 'mail' },
-        { label: 'Propuestas', href: lp('/panel/proposals'), icon: 'folder' },
+        { label: 'Propuestas', href: lp('/panel/proposals'), icon: 'send' },
         { label: 'Nueva propuesta', href: lp('/panel/proposals/create'), icon: 'plus' },
         { divider: true },
         { label: 'Diagnósticos', href: lp('/panel/diagnostics'), icon: 'file' },

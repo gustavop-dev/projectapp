@@ -22,7 +22,7 @@
     <AccountingSubnav active="hostings" />
 
     <!-- Meta cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
       <AccountingStatCard
         label="Hostings activos"
         :value="String(hostingsMeta.active_count ?? 0)"
@@ -32,6 +32,16 @@
         label="Ingreso mensual"
         :value="formatMoney(hostingsMeta.monthly_income ?? 0)"
         tone="success"
+      />
+      <AccountingStatCard
+        label="Por vencer en 30 días"
+        :value="String(hostingsMeta.expiring_soon_count ?? 0)"
+        :tone="(hostingsMeta.expiring_soon_count ?? 0) > 0 ? 'warning' : 'default'"
+        sub="Activos con vigencia próxima"
+      />
+      <AccountingStatCard
+        label="Total pagado histórico"
+        :value="formatMoney(hostingsMeta.total_paid ?? 0)"
       />
     </div>
 
@@ -121,18 +131,42 @@
         @delete="confirmDeleteRecord"
         @sort="toggleSort"
       >
+        <template #cell-client_name="{ row }">
+          <AccountingInlineCell
+            :value="row.client_name"
+            :saving="inlineSavingKey === `${row.id}:client_name`"
+            @save="saveInline(row, 'client_name', $event)"
+          />
+        </template>
         <template #cell-domain_url="{ row }">
-          <a
-            v-if="row.domain_url"
-            :href="row.domain_url"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-text-brand hover:underline truncate inline-block max-w-[180px] align-middle"
-            :title="row.domain_url"
+          <AccountingInlineCell
+            :value="row.domain_url"
+            :saving="inlineSavingKey === `${row.id}:domain_url`"
+            @save="saveInline(row, 'domain_url', $event)"
           >
-            {{ row.domain_url }}
-          </a>
-          <span v-else class="text-text-subtle">—</span>
+            <a
+              v-if="row.domain_url"
+              :href="row.domain_url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-text-brand hover:underline truncate inline-block max-w-[180px] align-middle"
+              :title="row.domain_url"
+              @click.stop
+            >
+              {{ row.domain_url }}
+            </a>
+            <span v-else class="text-text-subtle">—</span>
+          </AccountingInlineCell>
+        </template>
+        <template #cell-monthly_value="{ row }">
+          <AccountingInlineCell
+            type="money"
+            :value="row.monthly_value"
+            :saving="inlineSavingKey === `${row.id}:monthly_value`"
+            @save="saveInline(row, 'monthly_value', $event)"
+          >
+            <span class="tabular-nums">{{ formatMoney(row.monthly_value, 'COP') }}</span>
+          </AccountingInlineCell>
         </template>
         <template #cell-validity="{ row }">
           <span class="text-text-muted text-xs whitespace-nowrap">
@@ -140,14 +174,46 @@
           </span>
         </template>
         <template #cell-is_active="{ row }">
-          <span
-            class="text-xs px-2.5 py-1 rounded-full font-medium"
-            :class="row.is_active
-              ? 'bg-success-soft text-success-strong'
-              : 'bg-surface-raised text-text-muted'"
+          <div class="flex items-center gap-2">
+            <AccountingStatusSelect
+              :value="row.is_active"
+              :updating="statusUpdatingId === row.id"
+              aria-label="Cambiar estado del hosting"
+              @change="changeStatus(row, $event)"
+            />
+            <span
+              v-if="row.billing_requested_at"
+              class="text-[10px] px-2 py-0.5 rounded-full font-medium bg-info-soft text-info-strong whitespace-nowrap"
+              title="Cuenta de cobro enviada para el período actual"
+            >
+              Cobro enviado
+            </span>
+          </div>
+        </template>
+        <template #row-actions="{ row }">
+          <button
+            type="button"
+            aria-label="Ciclos de pago"
+            title="Registrar pago de ciclo / ver histórico"
+            :data-testid="`hosting-cycles-${row.id}`"
+            class="p-2 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+            @click.stop="openCyclesModal(row)"
           >
-            {{ row.is_active ? 'Activo' : 'Inactivo' }}
-          </span>
+            <ClockIcon class="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            aria-label="Enviar cuenta de cobro"
+            :title="row.client_email
+              ? 'Enviar cuenta de cobro al cliente'
+              : 'Configura el email del cliente para enviar la cuenta de cobro'"
+            :disabled="!row.client_email || billingId === row.id"
+            :data-testid="`hosting-send-billing-${row.id}`"
+            class="p-2 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+            @click.stop="askSendBilling(row)"
+          >
+            <PaperAirplaneIcon class="w-5 h-5" />
+          </button>
         </template>
       </AccountingTable>
 
@@ -187,12 +253,30 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
+
+    <HostingCyclesModal
+      :open="cyclesModalOpen"
+      :record="cyclesRecord"
+      @close="cyclesModalOpen = false"
+      @changed="onCyclesChanged"
+    />
+
+    <ConfirmModal
+      v-model="billingConfirmOpen"
+      title="Enviar cuenta de cobro"
+      :message="billingConfirmMessage"
+      confirm-text="Enviar al cliente"
+      cancel-text="Cancelar"
+      variant="primary"
+      @confirm="sendBilling"
+      @cancel="billingRow = null"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
-import { PlusIcon } from '@heroicons/vue/24/outline';
+import { computed, onMounted, ref } from 'vue';
+import { ClockIcon, PaperAirplaneIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
@@ -201,9 +285,13 @@ import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
+import AccountingStatusSelect from '~/components/accounting/AccountingStatusSelect.vue';
+import AccountingInlineCell from '~/components/accounting/AccountingInlineCell.vue';
+import HostingCyclesModal from '~/components/accounting/HostingCyclesModal.vue';
 import HostingFormModal from '~/components/accounting/HostingFormModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import {
@@ -220,6 +308,7 @@ import { formatMoney } from '~/utils/formatMoney';
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
+const notify = usePanelNotify();
 
 // -------------------------------------------------------------------
 // Filters
@@ -271,7 +360,7 @@ const filterFields = [
       { value: 'annual', label: 'Anual' },
     ],
   },
-  { kind: 'range', label: 'Valor/mes', minKey: 'valueMin', maxKey: 'valueMax', type: 'number' },
+  { kind: 'range', label: 'Valor/mes', minKey: 'valueMin', maxKey: 'valueMax', type: 'money' },
   { kind: 'daterange', label: 'Vencimiento', minKey: 'validToAfter', maxKey: 'validToBefore' },
   {
     kind: 'segmented',
@@ -367,6 +456,109 @@ const columns = [
 
 async function loadRecords() {
   await store.fetchRecords('hostings');
+}
+
+// -------------------------------------------------------------------
+// Inline edits: estado dropdown + double-click cells
+// -------------------------------------------------------------------
+
+const statusUpdatingId = ref(null);
+
+async function changeStatus(row, isActive) {
+  statusUpdatingId.value = row.id;
+  const result = await store.updateRecord('hostings', row.id, { is_active: isActive });
+  statusUpdatingId.value = null;
+  if (result.success) {
+    notify.success({ title: isActive ? 'Hosting activado' : 'Hosting desactivado' });
+    loadRecords();
+  } else {
+    notify.error({ title: 'No se pudo cambiar el estado', detail: result.message });
+  }
+}
+
+const inlineSavingKey = ref(null);
+
+async function saveInline(row, field, value) {
+  inlineSavingKey.value = `${row.id}:${field}`;
+  const result = await store.updateRecord('hostings', row.id, { [field]: value });
+  inlineSavingKey.value = null;
+  if (result.success) {
+    notify.success({ title: 'Hosting actualizado' });
+    loadRecords();
+  } else {
+    notify.error({ title: 'No se pudo actualizar', detail: result.message });
+  }
+}
+
+// -------------------------------------------------------------------
+// Cycle history modal
+// -------------------------------------------------------------------
+
+const cyclesModalOpen = ref(false);
+const cyclesRecord = ref(null);
+
+function openCyclesModal(row) {
+  cyclesRecord.value = row;
+  cyclesModalOpen.value = true;
+}
+
+async function onCyclesChanged() {
+  await loadRecords();
+  if (cyclesRecord.value) {
+    cyclesRecord.value =
+      store.hostings.find((row) => row.id === cyclesRecord.value.id)
+      || cyclesRecord.value;
+  }
+}
+
+// -------------------------------------------------------------------
+// Cuenta de cobro (collection account) action
+// -------------------------------------------------------------------
+
+const billingConfirmOpen = ref(false);
+const billingRow = ref(null);
+const billingId = ref(null);
+
+const billingConfirmMessage = computed(() => {
+  const row = billingRow.value;
+  if (!row) return '';
+  return (
+    `Se emitirá la cuenta de cobro por ${formatMoney(row.payment_per_cycle, 'COP')} ` +
+    `y se enviará con el PDF adjunto a ${row.client_email}. ` +
+    'Los avisos de vencimiento de este hosting se pausan hasta la próxima renovación.'
+  );
+});
+
+function askSendBilling(row) {
+  billingRow.value = row;
+  billingConfirmOpen.value = true;
+}
+
+async function sendBilling() {
+  const row = billingRow.value;
+  billingRow.value = null;
+  if (!row) return;
+  billingId.value = row.id;
+  const result = await store.sendHostingCollectionAccount(row.id);
+  billingId.value = null;
+  if (result.success) {
+    const number = result.data?.document?.public_number || '';
+    if (result.data?.email_sent) {
+      notify.success({
+        title: 'Cuenta de cobro enviada',
+        detail: number ? `Documento ${number} enviado a ${row.client_email}.` : '',
+        action: { label: 'Ver en Cobros', to: '/panel/accounting/collections' },
+      });
+    } else {
+      notify.warning({
+        title: 'Cuenta de cobro emitida, pero el correo falló',
+        detail: 'Reenvíala desde el tab Cobros.',
+      });
+    }
+    loadRecords();
+  } else {
+    notify.error({ title: 'No se pudo enviar la cuenta de cobro', detail: result.message });
+  }
 }
 
 onMounted(loadRecords);

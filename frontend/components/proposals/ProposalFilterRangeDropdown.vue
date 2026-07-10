@@ -28,7 +28,22 @@
         <p class="text-[10px] font-semibold text-text-subtle uppercase tracking-wider mb-2">
           {{ label }}<span v-if="unit" class="ml-1 normal-case font-normal">({{ unit }})</span>
         </p>
-        <div :class="type === 'date' ? 'flex flex-col gap-2' : 'flex items-center gap-2'">
+        <div v-if="type === 'money'" class="flex items-center gap-2">
+          <BaseCurrencyInput
+            :model-value="minValue"
+            size="sm"
+            :placeholder="minPlaceholder"
+            @update:model-value="onMoneyInput('update:minValue', $event)"
+          />
+          <span class="text-text-subtle text-xs shrink-0">—</span>
+          <BaseCurrencyInput
+            :model-value="maxValue"
+            size="sm"
+            :placeholder="maxPlaceholder"
+            @update:model-value="onMoneyInput('update:maxValue', $event)"
+          />
+        </div>
+        <div v-else :class="type === 'date' ? 'flex flex-col gap-2' : 'flex items-center gap-2'">
           <input
             :value="minValue"
             :type="type"
@@ -64,6 +79,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { onClickOutside, useDebounceFn } from '@vueuse/core';
+import BaseCurrencyInput from '~/components/base/BaseCurrencyInput.vue';
 
 const props = defineProps({
   label: { type: String, required: true },
@@ -91,6 +107,18 @@ function onLiveInput(event, value) {
   debouncedEmit(event, value);
 }
 
+// Money inputs already emit numbers per keystroke; always debounce them.
+// One debounced fn per side: a shared one would cancel the min emission
+// when the user (or a test) fills max within the debounce window.
+const moneyEmitters = {
+  'update:minValue': useDebounceFn((value) => emit('update:minValue', parseValue(value)), 250),
+  'update:maxValue': useDebounceFn((value) => emit('update:maxValue', parseValue(value)), 250),
+};
+
+function onMoneyInput(event, value) {
+  moneyEmitters[event](value);
+}
+
 const isOpen = ref(false);
 const containerRef = ref(null);
 const isActive = computed(() => props.minValue != null || props.maxValue != null);
@@ -99,7 +127,7 @@ onClickOutside(containerRef, () => { isOpen.value = false; });
 
 function parseValue(val) {
   if (val === '' || val == null) return null;
-  return props.type === 'number' ? Number(val) : val;
+  return props.type === 'date' ? val : Number(val);
 }
 
 function clearRange() {

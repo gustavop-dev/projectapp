@@ -30,6 +30,9 @@ BASE_CONTENT = {
 
 
 def _mex_packages():
+    # Migration 0147 seeds MEX defaults; clear them so assertions on exact
+    # package lists stay deterministic.
+    HourPackage.objects.filter(nationality='MEX').delete()
     HourPackage.objects.create(
         nationality='MEX', name_es='Ágil MX', name_en='Agile MX',
         note_es='nota es', note_en='note en',
@@ -137,7 +140,8 @@ class TestProposalCreationSeeding:
         content = section['content_json']
         assert content['currency'] == 'COP'
         assert [p['name'] for p in content['packages']] == [
-            'Paquete Ágil', 'Paquete Pro', 'Paquete Premium',
+            'Hora Puntual', 'Paquete Inicial', 'Paquete Ágil',
+            'Paquete Pro', 'Paquete Premium',
         ]
 
     def test_from_json_seeds_when_section_not_in_payload(self):

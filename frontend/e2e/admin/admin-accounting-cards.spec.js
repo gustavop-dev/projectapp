@@ -123,7 +123,7 @@ test.describe('Admin Accounting Cards', () => {
     expect(dateValue).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
     await page.locator('form input[type="text"]').first().fill('T.C 0064');
-    const numbers = page.locator('form input[type="number"]');
+    const numbers = page.locator('form input[inputmode="numeric"]');
     await numbers.nth(0).fill('500000');
     await numbers.nth(1).fill('7500000');
     await page.getByTestId('card-snapshot-form-submit').click();
@@ -146,7 +146,7 @@ test.describe('Admin Accounting Cards', () => {
       page.getByRole('heading', { name: 'Editar Registro de Tarjeta' }),
     ).toBeVisible();
     await expect(page.locator('form input[type="text"]').first()).toHaveValue('T.C 0064');
-    const numbers = page.locator('form input[type="number"]');
+    const numbers = page.locator('form input[inputmode="numeric"]');
     await numbers.nth(1).fill('7000000');
     await page.getByTestId('card-snapshot-form-submit').click();
     await expect(page.getByText('Registro de tarjeta actualizado')).toBeVisible();

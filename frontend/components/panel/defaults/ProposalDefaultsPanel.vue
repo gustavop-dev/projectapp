@@ -42,7 +42,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-text-default mb-1">Inversión total por defecto</label>
-            <BaseInput v-model.number="generalForm.total_investment" type="number" min="0" step="0.01" />
+            <BaseCurrencyInput v-model="generalForm.total_investment" :decimals="2" />
           </div>
           <div>
             <label class="block text-sm font-medium text-text-default mb-1">Hosting (% de inversión)</label>

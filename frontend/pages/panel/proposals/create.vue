@@ -231,13 +231,10 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-text-default mb-1">Inversión total</label>
-            <input
-              v-model.number="form.total_investment"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="3500000"
-              class="w-full px-4 py-2.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+            <BaseCurrencyInput
+              v-model="form.total_investment"
+              :decimals="2"
+              placeholder="3.500.000"
             />
           </div>
           <div>

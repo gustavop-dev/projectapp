@@ -3,12 +3,11 @@
     <div class="grid gap-4 md:grid-cols-2">
       <label class="block">
         <span class="text-sm font-medium text-text-default">Inversión</span>
-        <input
-          type="number"
-          step="0.01"
-          class="mt-1 w-full border rounded px-3 py-2"
-          :value="modelValue.investment_amount"
-          @input="update('investment_amount', $event.target.value)"
+        <BaseCurrencyInput
+          class="mt-1"
+          :decimals="2"
+          :model-value="modelValue.investment_amount"
+          @update:model-value="update('investment_amount', $event)"
         />
       </label>
       <label class="block">
@@ -67,6 +66,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import BaseCurrencyInput from '~/components/base/BaseCurrencyInput.vue';
 
 const props = defineProps({
   modelValue: { type: Object, required: true },

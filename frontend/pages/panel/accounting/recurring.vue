@@ -22,11 +22,17 @@
     <AccountingSubnav active="recurring" />
 
     <!-- Stat cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
       <AccountingStatCard
         label="Costo mensual (COP)"
         :value="money(monthlyCopTotal)"
         sub="Pagos activos prorrateados por mes"
+      />
+      <AccountingStatCard
+        label="Costo mensual (USD)"
+        :value="monthlyUsdTotal != null ? formatMoney(monthlyUsdTotal, 'USD') : '—'"
+        :sub="usdKpiSub"
+        tone="brand"
       />
       <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4 sm:p-5">
         <p class="text-xs text-text-muted uppercase tracking-wider mb-2">Por frecuencia</p>
@@ -328,7 +334,7 @@ const filterFields = [
       { value: 'variable', label: 'Variable' },
     ],
   },
-  { kind: 'range', minKey: 'price_min', maxKey: 'price_max', label: 'Precio' },
+  { kind: 'range', minKey: 'price_min', maxKey: 'price_max', label: 'Precio', type: 'money' },
   {
     kind: 'segmented',
     key: 'is_active',
@@ -423,6 +429,23 @@ const {
 });
 
 const monthlyCopTotal = computed(() => store.metaFor('recurring').monthly_cop_total ?? 0);
+
+const monthlyUsdTotal = computed(() => {
+  const value = store.metaFor('recurring').monthly_usd_total;
+  return value == null ? null : Number(value);
+});
+
+const usdKpiSub = computed(() => {
+  const meta = store.metaFor('recurring');
+  const parts = [];
+  if (meta.usd_exchange_rate != null) {
+    parts.push(`Tasa: ${formatMoney(Number(meta.usd_exchange_rate), 'COP')}/USD`);
+  }
+  if (Number(meta.usd_native_total ?? 0) > 0) {
+    parts.push(`Nativos USD: ${formatMoney(Number(meta.usd_native_total), 'USD')}`);
+  }
+  return parts.join(' · ');
+});
 const frequencyEntries = computed(() => Object.entries(store.recurringTotalsByFrequency));
 const methodEntries = computed(() => Object.entries(store.recurringTotalsByMethod));
 

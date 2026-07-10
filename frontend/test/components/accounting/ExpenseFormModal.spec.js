@@ -41,6 +41,12 @@ function mountModal(props = {}) {
           template:
             '<input :type="type || \'text\'" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
+        BaseCurrencyInput: {
+          props: ['modelValue', 'decimals', 'size', 'error', 'placeholder', 'disabled'],
+          emits: ['update:modelValue'],
+          template:
+            '<input type="text" inputmode="numeric" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value === \'\' ? null : Number($event.target.value))" />',
+        },
         BaseTextarea: {
           props: ['modelValue', 'rows', 'size', 'error', 'placeholder', 'disabled'],
           emits: ['update:modelValue'],
@@ -92,7 +98,6 @@ describe('ExpenseFormModal', () => {
       concept: 'Windsurf, Marzo',
       period_date: '2026-03',
       category: 'business',
-      paid_from: 'partners',
       ledger: 'company',
       total_amount: '3000000',
       gustavo_amount: '1500000',
@@ -101,28 +106,24 @@ describe('ExpenseFormModal', () => {
     });
   });
 
-  it('personal ledger hides split and paid-from, forces partners and omits split amounts', async () => {
+  it('personal ledger hides split and omits split amounts', async () => {
     const wrapper = mountModal();
 
     expect(wrapper.find('[data-testid="partner-split-stub"]').exists()).toBe(true);
-    expect(wrapper.text()).toContain('Pagado desde');
 
-    await segmentedButton(wrapper, 'Bolsillo ProjectApp').trigger('click');
     await segmentedButton(wrapper, 'Personal Gustavo').trigger('click');
 
     expect(wrapper.find('[data-testid="partner-split-stub"]').exists()).toBe(false);
-    expect(wrapper.text()).not.toContain('Pagado desde');
     expect(wrapper.text()).toContain('Valor');
 
     await wrapper.find('input[type="text"]').setValue('Aporte Carro Onix');
     await wrapper.find('input[type="month"]').setValue('2026-06');
-    await wrapper.find('input[type="number"]').setValue('3000000');
+    await wrapper.find('input[inputmode="numeric"]').setValue('3000000');
     await wrapper.find('form').trigger('submit');
 
     const payload = wrapper.emitted('submit')[0][0];
     expect(payload.ledger).toBe('gustavo');
-    expect(payload.paid_from).toBe('partners');
-    expect(payload.total_amount).toBe('3000000');
+    expect(payload.total_amount).toBe(3000000);
     expect(payload).not.toHaveProperty('gustavo_amount');
     expect(payload).not.toHaveProperty('carlos_amount');
   });
@@ -133,7 +134,6 @@ describe('ExpenseFormModal', () => {
         concept: 'Aporte Interes Credito',
         period: '2026-06',
         category: 'personal',
-        paid_from: 'partners',
         ledger: 'gustavo',
         total_amount: '2616581',
         gustavo_amount: '2616581',

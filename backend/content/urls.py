@@ -7,6 +7,7 @@ from content.views.accounting import (
     update_expense_record, delete_expense_record,
     list_hosting_records, create_hosting_record, retrieve_hosting_record,
     update_hosting_record, delete_hosting_record,
+    list_hosting_cycles, create_hosting_cycle, delete_hosting_cycle,
     list_pocket_movements, create_pocket_movement, retrieve_pocket_movement,
     update_pocket_movement, delete_pocket_movement,
     list_recurring_payments, create_recurring_payment,
@@ -23,6 +24,15 @@ from content.views.accounting import (
 from content.views.accounting_export import (
     export_accounting_records, export_accounting_workbook,
 )
+from content.views.collection_accounts_panel import (
+    cancel_collection_account_view,
+    collection_account_pdf,
+    list_collection_accounts,
+    mark_collection_account_paid_view,
+    resend_collection_account,
+    retrieve_collection_account,
+    send_hosting_collection_account,
+)
 from content.views.contact import contact_list, new_contact
 from content.views.portfolio_works import (
     list_portfolio_works, retrieve_portfolio_work,
@@ -33,10 +43,19 @@ from content.views.portfolio_works import (
     delete_portfolio_work, duplicate_portfolio_work,
     upload_portfolio_cover_image,
 )
+from content.views.accounting_statement import (
+    batch_create_transactions, create_merchant_alias, create_statement,
+    delete_merchant_alias, delete_statement, delete_statement_transaction,
+    finalize_statement, list_merchant_aliases, list_statements,
+    reopen_statement, resolve_merchant_aliases, retrieve_statement,
+    statements_status, update_merchant_alias, update_statement,
+    update_statement_transaction,
+)
 from content.views.hour_packages import (
     list_admin_hour_packages, create_hour_package,
     retrieve_admin_hour_package, update_hour_package,
-    delete_hour_package,
+    delete_hour_package, get_hour_package_settings,
+    update_hour_package_settings, restore_default_hour_packages,
 )
 from content.views.proposal import (
     retrieve_public_proposal, retrieve_public_proposal_by_slug,
@@ -424,6 +443,9 @@ urlpatterns = [
     path('hour-packages/admin/<int:package_id>/detail/', retrieve_admin_hour_package, name='retrieve-admin-hour-package'),
     path('hour-packages/admin/<int:package_id>/update/', update_hour_package, name='update-hour-package'),
     path('hour-packages/admin/<int:package_id>/delete/', delete_hour_package, name='delete-hour-package'),
+    path('hour-packages/admin/settings/', get_hour_package_settings, name='hour-package-settings'),
+    path('hour-packages/admin/settings/update/', update_hour_package_settings, name='update-hour-package-settings'),
+    path('hour-packages/admin/restore-defaults/', restore_default_hour_packages, name='restore-default-hour-packages'),
     path('portfolio/admin/<int:work_id>/upload-cover/', upload_portfolio_cover_image, name='upload-portfolio-cover-image'),
 
     # Portfolio — public
@@ -451,6 +473,21 @@ urlpatterns = [
     path('accounting/hostings/<int:record_id>/', retrieve_hosting_record, name='retrieve-hosting-record'),
     path('accounting/hostings/<int:record_id>/update/', update_hosting_record, name='update-hosting-record'),
     path('accounting/hostings/<int:record_id>/delete/', delete_hosting_record, name='delete-hosting-record'),
+    path(
+        'accounting/hostings/<int:record_id>/send-collection-account/',
+        send_hosting_collection_account,
+        name='send-hosting-collection-account',
+    ),
+    path('accounting/hostings/<int:record_id>/cycles/', list_hosting_cycles, name='list-hosting-cycles'),
+    path('accounting/hostings/<int:record_id>/cycles/create/', create_hosting_cycle, name='create-hosting-cycle'),
+    path('accounting/hostings/<int:record_id>/cycles/<int:cycle_id>/delete/', delete_hosting_cycle, name='delete-hosting-cycle'),
+
+    path('accounting/collection-accounts/', list_collection_accounts, name='list-collection-accounts'),
+    path('accounting/collection-accounts/<int:doc_id>/', retrieve_collection_account, name='retrieve-collection-account'),
+    path('accounting/collection-accounts/<int:doc_id>/pdf/', collection_account_pdf, name='collection-account-pdf'),
+    path('accounting/collection-accounts/<int:doc_id>/resend/', resend_collection_account, name='resend-collection-account'),
+    path('accounting/collection-accounts/<int:doc_id>/mark-paid/', mark_collection_account_paid_view, name='mark-collection-account-paid'),
+    path('accounting/collection-accounts/<int:doc_id>/cancel/', cancel_collection_account_view, name='cancel-collection-account'),
 
     path('accounting/pocket/', list_pocket_movements, name='list-pocket-movements'),
     path('accounting/pocket/create/', create_pocket_movement, name='create-pocket-movement'),
@@ -475,6 +512,25 @@ urlpatterns = [
     path('accounting/card-snapshots/<int:record_id>/', retrieve_card_snapshot, name='retrieve-card-snapshot'),
     path('accounting/card-snapshots/<int:record_id>/update/', update_card_snapshot, name='update-card-snapshot'),
     path('accounting/card-snapshots/<int:record_id>/delete/', delete_card_snapshot, name='delete-card-snapshot'),
+
+    path('accounting/statements/', list_statements, name='list-statements'),
+    path('accounting/statements/create/', create_statement, name='create-statement'),
+    # 'status/' must resolve before '<int:record_id>/'.
+    path('accounting/statements/status/', statements_status, name='statements-status'),
+    path('accounting/statements/<int:record_id>/', retrieve_statement, name='retrieve-statement'),
+    path('accounting/statements/<int:record_id>/update/', update_statement, name='update-statement'),
+    path('accounting/statements/<int:record_id>/delete/', delete_statement, name='delete-statement'),
+    path('accounting/statements/<int:record_id>/finalize/', finalize_statement, name='finalize-statement'),
+    path('accounting/statements/<int:record_id>/reopen/', reopen_statement, name='reopen-statement'),
+    path('accounting/statements/<int:record_id>/transactions/batch/', batch_create_transactions, name='batch-create-statement-transactions'),
+    path('accounting/statements/<int:record_id>/transactions/<int:tx_id>/update/', update_statement_transaction, name='update-statement-transaction'),
+    path('accounting/statements/<int:record_id>/transactions/<int:tx_id>/delete/', delete_statement_transaction, name='delete-statement-transaction'),
+
+    path('accounting/merchant-aliases/', list_merchant_aliases, name='list-merchant-aliases'),
+    path('accounting/merchant-aliases/create/', create_merchant_alias, name='create-merchant-alias'),
+    path('accounting/merchant-aliases/resolve/', resolve_merchant_aliases, name='resolve-merchant-aliases'),
+    path('accounting/merchant-aliases/<int:record_id>/update/', update_merchant_alias, name='update-merchant-alias'),
+    path('accounting/merchant-aliases/<int:record_id>/delete/', delete_merchant_alias, name='delete-merchant-alias'),
 
     path('accounting/change-logs/', list_accounting_change_logs, name='list-accounting-change-logs'),
 

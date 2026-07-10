@@ -278,6 +278,7 @@ import BaseButton from '~/components/base/BaseButton.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useMcpsStore } from '~/stores/mcps';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
@@ -353,6 +354,8 @@ function showDetail(event) {
 onMounted(() => {
   store.fetchConnectors();
 });
+
+usePanelRefresh(() => store.fetchConnectors());
 
 function formatDate(iso) {
   return new Date(iso).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });

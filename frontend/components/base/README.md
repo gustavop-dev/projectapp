@@ -120,6 +120,7 @@ prefer the bare class without `/N`.
 | Component       | Props                                                                                  |
 | --------------- | -------------------------------------------------------------------------------------- |
 | `BaseInput`     | `modelValue`, `type`, `size` (`sm`/`md`), `error`, `placeholder`, `disabled`           |
+| `BaseCurrencyInput` | `modelValue` (Number/null), `decimals` (0 = COP; 2 allows a decimal comma), `size`, `error`, `placeholder`, `disabled` — money input that live-formats es-CO thousands (`1234567` → `1.234.567`) and emits the numeric value |
 | `BaseSelect`    | `modelValue`, `options` (array or default slot), `size`, `error`, `placeholder`, `disabled` |
 | `BaseTextarea`  | `modelValue`, `rows`, `size`, `error`, `placeholder`, `disabled`                       |
 | `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`accent`), `size` (`sm`/`md`/`lg`), `loading`, `disabled`, `as` |

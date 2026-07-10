@@ -92,6 +92,16 @@ def _fill_payer_from_issuer(extension, issuer):
     extension.payer_email = issuer.email or ''
 
 
+def _fill_customer_from_data(extension, customer):
+    """Snapshot customer fields from an explicit dict (no platform user)."""
+    extension.customer_name = customer.get('name', '')
+    extension.customer_email = customer.get('email', '')
+    extension.customer_identification = customer.get('identification', '')
+    extension.customer_identification_type = customer.get('identification_type', '')
+    extension.customer_contact_name = customer.get('contact_name', '')
+    extension.customer_address = customer.get('address', '')
+
+
 def _fill_customer_from_user(extension, user):
     from accounts.models import UserProfile
 
@@ -110,9 +120,15 @@ def _fill_customer_from_user(extension, user):
 
 
 @transaction.atomic
-def issue_collection_account(document, *, issuer, acting_user=None):
+def issue_collection_account(document, *, issuer, acting_user=None, customer=None):
     """
     Transition draft -> issued: allocate public number, set dates, snapshot payer/customer.
+
+    ``customer`` (optional dict: name, email, identification,
+    identification_type, contact_name, address) snapshots the customer
+    explicitly for documents without a platform user (e.g. hosting-driven
+    cuentas de cobro). Without it, the customer resolves from
+    ``client_user`` / ``project.client`` as before.
     """
     if not is_collection_account(document):
         raise CollectionAccountError('Document is not a collection account.')
@@ -123,10 +139,15 @@ def issue_collection_account(document, *, issuer, acting_user=None):
 
     _fill_payer_from_issuer(ext, issuer)
 
-    client_user = _resolve_client_user(document)
-    if not client_user:
-        raise CollectionAccountError('client_user or project with client is required to issue.')
-    _fill_customer_from_user(ext, client_user)
+    if customer is not None:
+        if not customer.get('name') or not customer.get('email'):
+            raise CollectionAccountError('customer requires name and email.')
+        _fill_customer_from_data(ext, customer)
+    else:
+        client_user = _resolve_client_user(document)
+        if not client_user:
+            raise CollectionAccountError('client_user or project with client is required to issue.')
+        _fill_customer_from_user(ext, client_user)
 
     today = timezone.now().date()
     document.issue_date = today

@@ -81,7 +81,7 @@ function onSubmit() {
           <BaseInput v-model="form.origin_card" placeholder="T.C 0655" />
         </BaseFormField>
         <BaseFormField label="Valor" required>
-          <BaseInput v-model="form.amount" type="number" step="0.01" min="0" required />
+          <BaseCurrencyInput v-model="form.amount" required />
         </BaseFormField>
       </div>
 

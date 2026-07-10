@@ -18,7 +18,7 @@ describe('PartnerSplitInput', () => {
 
     await totalInput(wrapper).setValue('1000');
 
-    expect(wrapper.emitted('update:total')[0]).toEqual(['1000']);
+    expect(wrapper.emitted('update:total')[0]).toEqual([1000]);
     expect(wrapper.emitted('update:gustavoAmount')[0]).toEqual([500]);
     expect(wrapper.emitted('update:carlosAmount')[0]).toEqual([500]);
   });
@@ -49,7 +49,7 @@ describe('PartnerSplitInput', () => {
     await gustavoInput(wrapper).setValue('70');
 
     expect(wrapper.emitted('update:gustavoAmount')).toBeTruthy();
-    expect(wrapper.emitted('update:gustavoAmount').at(-1)).toEqual(['70']);
+    expect(wrapper.emitted('update:gustavoAmount').at(-1)).toEqual([70]);
     // Editing one partner never auto-adjusts the other.
     expect(wrapper.emitted('update:carlosAmount')).toBeFalsy();
   });

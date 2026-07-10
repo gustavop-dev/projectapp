@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from content.models import HourPackage
+from content.models import HourPackage, HourPackageSettings
 
 
 class HourPackageAdminListSerializer(serializers.ModelSerializer):
@@ -11,7 +11,7 @@ class HourPackageAdminListSerializer(serializers.ModelSerializer):
         model = HourPackage
         fields = (
             'id', 'nationality', 'currency', 'name_es', 'name_en',
-            'hours', 'hourly_rate', 'discount_percent',
+            'note_es', 'note_en', 'hours', 'hourly_rate', 'discount_percent',
             'is_active', 'order', 'updated_at',
         )
 
@@ -60,3 +60,11 @@ class HourPackageCreateUpdateSerializer(serializers.ModelSerializer):
         if not 0 <= value <= 100:
             raise serializers.ValidationError('El descuento debe estar entre 0 y 100.')
         return value
+
+
+class HourPackageSettingsSerializer(serializers.ModelSerializer):
+    """Singleton settings for the hour-packages panel."""
+
+    class Meta:
+        model = HourPackageSettings
+        fields = ('default_view_mode', 'updated_at')

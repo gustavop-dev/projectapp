@@ -247,3 +247,92 @@ def test_non_admin_client_is_forbidden(api_client, client_headers):
 def test_anonymous_is_unauthorized(api_client):
     resp = api_client.get('/api/accounts/saved-filter-tabs/')
     assert resp.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# POST reset/ — restore a view's default tabs
+# ---------------------------------------------------------------------------
+
+RESET_URL = '/api/accounts/saved-filter-tabs/reset/'
+
+
+@pytest.fixture
+def _accounting_registry(monkeypatch):
+    """Small controlled registry (overrides the blank autouse one)."""
+    registry = {
+        'accounting_income': [
+            {'name': 'Esperados', 'filters': {'kind': 'expected'}},
+            {'name': 'Líquidos', 'filters': {'kind': 'liquid'}},
+        ],
+    }
+    monkeypatch.setattr(
+        saved_filter_tab_service, 'DEFAULT_FILTER_TABS', registry,
+    )
+    return registry
+
+
+def test_reset_deletes_custom_tabs_and_reseeds(
+    api_client, admin_a, admin_a_headers, _accounting_registry,
+):
+    SavedFilterTab.objects.create(
+        user=admin_a, view='accounting_income', name='Custom',
+        filters={'kind': 'liquid'},
+    )
+    resp = api_client.post(
+        RESET_URL, {'view': 'accounting_income'}, format='json',
+        **admin_a_headers,
+    )
+    assert resp.status_code == 200
+    assert [tab['name'] for tab in resp.json()] == ['Esperados', 'Líquidos']
+    assert not SavedFilterTab.objects.filter(
+        user=admin_a, name='Custom',
+    ).exists()
+
+
+def test_reset_invalid_view_returns_400(api_client, admin_a_headers):
+    resp = api_client.post(
+        RESET_URL, {'view': 'nope'}, format='json', **admin_a_headers,
+    )
+    assert resp.status_code == 400
+
+
+def test_reset_only_affects_the_caller(
+    api_client, admin_a, admin_b, admin_a_headers, _accounting_registry,
+):
+    other_tab = SavedFilterTab.objects.create(
+        user=admin_b, view='accounting_income', name='De B', filters={},
+    )
+    api_client.post(
+        RESET_URL, {'view': 'accounting_income'}, format='json',
+        **admin_a_headers,
+    )
+    assert SavedFilterTab.objects.filter(pk=other_tab.pk).exists()
+
+
+def test_reset_view_without_defaults_returns_empty(
+    api_client, admin_a, admin_a_headers, _accounting_registry,
+):
+    SavedFilterTab.objects.create(
+        user=admin_a, view='accounting_history', name='Vieja', filters={},
+    )
+    resp = api_client.post(
+        RESET_URL, {'view': 'accounting_history'}, format='json',
+        **admin_a_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_real_registry_covers_accounting_views():
+    from accounts.default_filter_tabs import DEFAULT_FILTER_TABS
+
+    expected_views = [
+        'accounting_income', 'accounting_expense', 'accounting_hosting',
+        'accounting_pocket', 'accounting_recurring', 'accounting_ads',
+    ]
+    for view in expected_views:
+        tabs = DEFAULT_FILTER_TABS.get(view)
+        assert tabs, f'registry sin defaults para {view}'
+        assert len(tabs) <= SavedFilterTab.MAX_TABS_PER_VIEW
+        names = [tab['name'] for tab in tabs]
+        assert len(names) == len(set(names))

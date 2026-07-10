@@ -20,6 +20,9 @@ class AccountingChangeLog(models.Model):
         RECURRING = 'recurring', 'Pago recurrente'
         ADS = 'ads', 'Ads'
         CARD_SNAPSHOT = 'card_snapshot', 'Saldo tarjeta'
+        STATEMENT = 'statement', 'Extracto de tarjeta'
+        STATEMENT_TX = 'statement_tx', 'Transacción de extracto'
+        MERCHANT_ALIAS = 'merchant_alias', 'Alias de comercio'
         SETTINGS = 'settings', 'Configuración'
 
     class Action(models.TextChoices):

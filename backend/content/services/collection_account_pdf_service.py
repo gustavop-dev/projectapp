@@ -27,6 +27,13 @@ from content.services.pdf_utils import (
 
 logger = logging.getLogger(__name__)
 
+STATUS_LABELS = {
+    'draft': 'Borrador',
+    'issued': 'Emitida',
+    'paid': 'Pagada',
+    'cancelled': 'Anulada',
+}
+
 
 class CollectionAccountPdfService:
     """Build PDF bytes from a Document with collection_account extension."""
@@ -62,7 +69,7 @@ class CollectionAccountPdfService:
 
             c.setFont(_font('bold'), 16)
             c.setFillColor(ESMERALD)
-            c.drawString(MARGIN_L, y, 'Collection account')
+            c.drawString(MARGIN_L, y, 'Cuenta de cobro')
             y -= 22
             c.setFont(_font('regular'), 10)
             c.setFillColor(GRAY_500)
@@ -91,18 +98,23 @@ class CollectionAccountPdfService:
                 y -= 6
 
             if document.issue_date:
-                line('Issue date', str(document.issue_date))
+                line('Fecha de emisión', str(document.issue_date))
             if document.due_date:
-                line('Due date', str(document.due_date))
+                line('Fecha de vencimiento', str(document.due_date))
             if document.city:
-                line('City', document.city)
-            line('Status', document.commercial_status or '')
+                line('Ciudad', document.city)
+            line(
+                'Estado',
+                STATUS_LABELS.get(
+                    document.commercial_status, document.commercial_status or '',
+                ),
+            )
 
             y -= 8
             ensure_space(60)
             c.setFont(_font('bold'), 10)
             c.setFillColor(LEMON)
-            c.drawString(MARGIN_L, y, 'Payer')
+            c.drawString(MARGIN_L, y, 'Pagador')
             y -= 14
             c.setFont(_font('regular'), 9)
             c.setFillColor(GRAY_500)
@@ -122,7 +134,7 @@ class CollectionAccountPdfService:
             ensure_space(60)
             c.setFont(_font('bold'), 10)
             c.setFillColor(LEMON)
-            c.drawString(MARGIN_L, y, 'Customer')
+            c.drawString(MARGIN_L, y, 'Cliente')
             y -= 14
             c.setFont(_font('regular'), 9)
             c.setFillColor(GRAY_500)
@@ -140,18 +152,18 @@ class CollectionAccountPdfService:
             y -= 8
 
             if ext.billing_concept:
-                line('Billing concept', ext.billing_concept)
+                line('Concepto de cobro', ext.billing_concept)
 
             y -= 10
             ensure_space(80)
             c.setFont(_font('bold'), 10)
             c.setFillColor(ESMERALD)
-            c.drawString(MARGIN_L, y, 'Line items')
+            c.drawString(MARGIN_L, y, 'Detalle')
             y -= 16
 
             c.setFont(_font('bold'), 8)
-            c.drawString(MARGIN_L, y, 'Description')
-            c.drawRightString(PAGE_W - MARGIN_R - 80, y, 'Qty')
+            c.drawString(MARGIN_L, y, 'Descripción')
+            c.drawRightString(PAGE_W - MARGIN_R - 80, y, 'Cant.')
             c.drawRightString(PAGE_W - MARGIN_R, y, 'Total')
             y -= 10
             c.line(MARGIN_L, y, PAGE_W - MARGIN_R, y)
@@ -171,7 +183,7 @@ class CollectionAccountPdfService:
             c.setFont(_font('bold'), 9)
             c.drawRightString(PAGE_W - MARGIN_R, y, f'Subtotal: {document.subtotal}')
             y -= 12
-            c.drawRightString(PAGE_W - MARGIN_R, y, f'Tax: {document.tax_total}')
+            c.drawRightString(PAGE_W - MARGIN_R, y, f'Impuestos: {document.tax_total}')
             y -= 12
             c.drawRightString(
                 PAGE_W - MARGIN_R, y, f'Total ({document.currency}): {document.total}',
@@ -183,7 +195,7 @@ class CollectionAccountPdfService:
                 ensure_space(40)
                 c.setFont(_font('bold'), 10)
                 c.setFillColor(ESMERALD)
-                c.drawString(MARGIN_L, y, 'Payment methods')
+                c.drawString(MARGIN_L, y, 'Formas de pago')
                 y -= 16
                 c.setFont(_font('regular'), 8)
                 c.setFillColor(GRAY_500)

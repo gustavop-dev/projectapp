@@ -41,7 +41,7 @@
         />
         <ProposalFilterRangeDropdown
           label="Inversión"
-          type="number"
+          type="money"
           :min-value="modelValue.investmentMin"
           :max-value="modelValue.investmentMax"
           @update:min-value="emit('update:modelValue', { ...modelValue, investmentMin: $event })"

@@ -1,0 +1,17 @@
+{% load date_filters %}[Contabilidad] Hosting de {{ record.client_name }} {% if is_expired %}vencido hace {{ days_expired }} día{{ days_expired|pluralize }}{% else %}vence en {{ days_left }} día{{ days_left|pluralize }}{% endif %}{% if notice_number > 1 %} (aviso #{{ notice_number }}){% endif %}
+
+Cliente: {{ record.client_name }}
+Dominio: {{ record.domain_url|default:'(sin dominio)' }}
+Vigencia: {{ record.valid_from|default:'—' }} → {{ record.valid_to }}
+Modalidad: {{ modality_label }}
+Pago por ciclo: ${{ record.payment_per_cycle }}
+Estado: {% if record.is_active %}Activo{% else %}Inactivo{% endif %}
+
+{% if is_expired %}La vigencia venció hace {{ days_expired }} día{{ days_expired|pluralize }} y aún no se envía la cuenta de cobro.{% else %}La vigencia vence en {{ days_left }} día{{ days_left|pluralize }}.{% endif %}
+Este aviso se repetirá cada 5 días hasta que envíes la cuenta de cobro al
+cliente desde el panel (acción "Enviar cuenta de cobro" en Hostings).
+
+Gestionar hostings: {{ panel_url }}
+
+—
+Aviso automático del módulo contable · ProjectApp.

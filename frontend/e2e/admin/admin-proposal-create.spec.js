@@ -341,7 +341,7 @@ test.describe('Admin Proposal Create & Send', () => {
     await page.getByLabel('Título').fill('Propuesta Directa');
     await page.getByLabel('Nombre').fill('Ana Test');
     await page.getByLabel('Email').fill('ana@test.com');
-    await page.getByPlaceholder('3500000').fill('5000000');
+    await page.getByPlaceholder('3.500.000').fill('5000000');
 
     // Button should now be visible
     await expect(page.getByRole('button', { name: /Crear y Enviar/i })).toBeVisible();
@@ -374,7 +374,7 @@ test.describe('Admin Proposal Create & Send', () => {
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
     await page.getByLabel('Nombre').fill('Carlos López');
     await page.getByLabel('Email').fill('carlos@test.com');
-    await page.getByPlaceholder('3500000').fill('15000000');
+    await page.getByPlaceholder('3.500.000').fill('15000000');
 
     await page.getByRole('button', { name: /Crear y Enviar/i }).click();
 
@@ -448,7 +448,7 @@ test.describe('Admin Proposal Create Preview', () => {
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
     await page.getByLabel('Nombre').fill('Carlos López');
     await page.getByLabel('Email').fill('carlos@test.com');
-    await page.getByPlaceholder('3500000').fill('15000000');
+    await page.getByPlaceholder('3.500.000').fill('15000000');
 
     const [response] = await Promise.all([
       page.waitForResponse(r => r.url().includes('proposals/create/')),

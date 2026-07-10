@@ -21,6 +21,33 @@
 
     <AccountingSubnav active="expenses" />
 
+    <!-- KPI cards (year scope, server-computed) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <AccountingStatCard
+        label="Total año"
+        :value="money(expensesMeta.year_total)"
+      />
+      <AccountingStatCard
+        label="Mes actual"
+        :value="money(expensesMeta.current_month_total)"
+        :tone="expensesMeta.current_month_alert ? 'warning' : 'default'"
+        :sub="expensesMeta.current_month_alert
+          ? 'Inusualmente alto vs promedio mensual'
+          : ''"
+      />
+      <AccountingStatCard
+        label="Mayor gasto del año"
+        :value="expensesMeta.top_expense ? money(expensesMeta.top_expense.amount) : '—'"
+        :sub="expensesMeta.top_expense?.concept || ''"
+      />
+      <AccountingStatCard
+        label="Negocio (año)"
+        :value="money(expensesMeta.business_total)"
+        :sub="`Personal: ${money(expensesMeta.personal_total)}`"
+        tone="brand"
+      />
+    </div>
+
     <!-- Saved filter tabs -->
     <ProposalFilterTabs
       :tabs="savedTabs"
@@ -185,6 +212,7 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
@@ -207,6 +235,12 @@ import { formatMoney } from '~/utils/formatMoney';
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
+
+const expensesMeta = computed(() => store.metaFor('expenses'));
+
+function money(value) {
+  return formatMoney(Number(value ?? 0), 'COP');
+}
 
 // -------------------------------------------------------------------
 // Filters
@@ -235,14 +269,12 @@ const {
     amountMin: '',
     amountMax: '',
     categories: [],
-    paidFrom: [],
     ledger: '',
   },
   matchers: {
     period: matchDateRange('period_date', 'periodAfter', 'periodBefore'),
     amount: matchNumberRange('total_amount', 'amountMin', 'amountMax'),
     categories: matchIncludes('category', 'categories'),
-    paidFrom: matchIncludes('paid_from', 'paidFrom'),
     ledger: matchEquals('ledger', 'ledger'),
   },
   searchFields: ['concept', 'notes'],
@@ -250,7 +282,7 @@ const {
 
 const filterFields = [
   { kind: 'daterange', label: 'Mes', minKey: 'periodAfter', maxKey: 'periodBefore' },
-  { kind: 'range', label: 'Total', minKey: 'amountMin', maxKey: 'amountMax', type: 'number' },
+  { kind: 'range', label: 'Total', minKey: 'amountMin', maxKey: 'amountMax', type: 'money' },
   {
     kind: 'multi',
     key: 'categories',
@@ -258,15 +290,6 @@ const filterFields = [
     options: [
       { value: 'business', label: 'Negocio' },
       { value: 'personal', label: 'Personal' },
-    ],
-  },
-  {
-    kind: 'multi',
-    key: 'paidFrom',
-    label: 'Pagado desde',
-    options: [
-      { value: 'partners', label: 'Socios' },
-      { value: 'pocket', label: 'Bolsillo ProjectApp' },
     ],
   },
   {
@@ -288,7 +311,6 @@ const EXPORT_MAPPING = {
   amountMin: 'amount_min',
   amountMax: 'amount_max',
   categories: 'category',
-  paidFrom: 'paid_from',
   ledger: 'ledger',
   search: 'q',
 };
@@ -358,7 +380,6 @@ const columns = [
   { key: 'period_label', label: 'Mes' },
   { key: 'category_label', label: 'Categoría' },
   { key: 'ledger_label', label: 'Contabilidad' },
-  { key: 'paid_from_label', label: 'Pagado desde' },
   { key: 'total_amount', label: 'Total', format: 'money', sortable: true },
   { key: 'gustavo_amount', label: 'Gustavo', format: 'money', sortable: true },
   { key: 'carlos_amount', label: 'Carlos', format: 'money', sortable: true },

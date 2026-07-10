@@ -47,17 +47,18 @@ class TestAccountingMcpToolList:
         _, token = accounting_connector
         response = api_client.post(_url(token), _rpc('tools/list'), format='json')
         names = [t['name'] for t in response.data['result']['tools']]
-        # 7 ledgers × 5 CRUD + 4 non-CRUD = 39
-        assert len(names) == 39
+        # 7 ledgers × 5 CRUD + 4 non-CRUD + 15 statement tools = 54
+        assert len(names) == 54
         for expected in (
             'list_income', 'create_expense', 'delete_pocket', 'get_hosting',
             'update_recurring', 'get_dashboard', 'list_change_logs',
-            'get_settings', 'update_settings',
+            'get_settings', 'update_settings', 'get_statement_instructions',
+            'create_statement', 'resolve_merchants', 'finalize_statement',
         ):
             assert expected in names
 
     def test_registry_length_matches_endpoint(self):
-        assert len(ACCOUNTING_TOOLS) == 39
+        assert len(ACCOUNTING_TOOLS) == 54
 
 
 @pytest.mark.django_db
