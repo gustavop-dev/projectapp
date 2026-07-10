@@ -4,6 +4,9 @@ import subprocess
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.contrib.auth import get_user_model
+from django.core import mail
+from django.core.cache import cache
 from django.utils import timezone
 
 from content.models import BlogPost
@@ -123,6 +126,64 @@ class TestRunFrontendRebuild:
 
         assert result['status'] == 'failed'
         assert not marker_path.exists()
+
+
+class TestFailureAlert:
+    """Staff email when the unattended rebuild fails (deduped per incident)."""
+
+    @pytest.fixture(autouse=True)
+    def _clear_alert_cache(self):
+        cache.delete(frontend_build.FAILURE_ALERT_CACHE_KEY)
+        yield
+        cache.delete(frontend_build.FAILURE_ALERT_CACHE_KEY)
+
+    @pytest.fixture
+    def staff_user(self, db):
+        return get_user_model().objects.create_user(
+            username='admin_rebuild', password='x', is_staff=True,
+            email='admin@projectapp.co',
+        )
+
+    def _run_failing(self, settings, force=False):
+        settings.FRONTEND_REBUILD_ENABLED = True
+        with patch.object(frontend_build.subprocess, 'run') as mock_run:
+            mock_run.return_value = MagicMock(returncode=1, stdout='', stderr='boom')
+            return frontend_build.run_frontend_rebuild(force=force)
+
+    def test_failure_emails_staff_with_detail(
+        self, staff_user, published_post, settings, marker_path,
+    ):
+        result = self._run_failing(settings)
+        assert result['status'] == 'failed'
+        assert len(mail.outbox) == 1
+        assert 'admin@projectapp.co' in mail.outbox[0].to
+        assert 'boom' in mail.outbox[0].body
+
+    def test_repeat_failure_within_window_alerts_once(
+        self, staff_user, published_post, settings, marker_path,
+    ):
+        self._run_failing(settings)
+        self._run_failing(settings)
+        assert len(mail.outbox) == 1
+
+    @patch.object(frontend_build, 'call_command')
+    def test_success_closes_incident_so_next_failure_alerts_again(
+        self, mock_collectstatic, staff_user, published_post, settings, marker_path,
+    ):
+        self._run_failing(settings)
+        with patch.object(frontend_build.subprocess, 'run') as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout='', stderr='')
+            assert frontend_build.run_frontend_rebuild(force=True)['status'] == 'success'
+        # force: the success above wrote the marker, which would otherwise skip
+        self._run_failing(settings, force=True)
+        assert len(mail.outbox) == 2
+
+    def test_no_staff_recipients_sends_nothing(
+        self, published_post, settings, marker_path,
+    ):
+        result = self._run_failing(settings)
+        assert result['status'] == 'failed'
+        assert len(mail.outbox) == 0
 
 
 class TestScheduleRebuildAfterPublish:

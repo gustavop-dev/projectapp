@@ -152,7 +152,9 @@ def mcp_endpoint(request, slug, token):
         raise Http404
 
     message = request.data
-    http_status, payload = handle_message(message, tools)
+    http_status, payload = handle_message(
+        message, tools, server_name=f'projectapp-{slug}-mcp',
+    )
 
     if isinstance(message, dict):
         method = message.get('method')

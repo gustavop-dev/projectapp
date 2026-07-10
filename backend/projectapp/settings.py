@@ -421,6 +421,14 @@ LOGGING = {
             'backupCount': 3,
             'formatter': 'verbose',
         },
+        'mcp_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'mcp.log',
+            'maxBytes': 5 * 1024 * 1024,
+            'backupCount': 3,
+            'formatter': 'verbose',
+        },
     },
     'loggers': {
         'django': {
@@ -445,14 +453,16 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
-        # MCP endpoint + tool execution audit trail.
+        # MCP endpoint + tool execution audit trail (all 8 connectors).
+        # Package-level logger: covers content.mcp.protocol and every
+        # content.mcp.*_tools module without listing them one by one.
         'content.views.mcp_blog': {
-            'handlers': ['blog_publish_file', 'console'],
+            'handlers': ['mcp_file', 'console'],
             'level': 'DEBUG',
             'propagate': False,
         },
-        'content.mcp.protocol': {
-            'handlers': ['blog_publish_file', 'console'],
+        'content.mcp': {
+            'handlers': ['mcp_file', 'console'],
             'level': 'DEBUG',
             'propagate': False,
         },

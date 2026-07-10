@@ -14,7 +14,9 @@ logger = logging.getLogger(__name__)
 
 SUPPORTED_PROTOCOL_VERSIONS = ('2025-06-18', '2025-03-26')
 DEFAULT_PROTOCOL_VERSION = '2025-06-18'
-SERVER_INFO = {'name': 'projectapp-blog-mcp', 'version': '1.0.0'}
+# Fallback identity; the endpoint passes a per-connector server_name so each
+# of the /api/mcp/<slug>/ connectors identifies itself distinctly.
+SERVER_INFO = {'name': 'projectapp-mcp', 'version': '1.0.0'}
 
 INVALID_REQUEST = -32600
 METHOD_NOT_FOUND = -32601
@@ -48,10 +50,12 @@ def _text_result(msg_id, payload, is_error=False):
     })
 
 
-def handle_message(message, tools):
+def handle_message(message, tools, server_name=None):
     """
     Handle one JSON-RPC message. Returns (http_status, response_dict|None).
     Notifications (no 'id') return (202, None) per Streamable HTTP transport.
+    server_name overrides the serverInfo name so each connector (blog,
+    documents, proposals, ...) identifies itself instead of a shared default.
     """
     if not isinstance(message, dict):
         return _error(None, INVALID_REQUEST, 'Expected a single JSON-RPC request object.')
@@ -74,10 +78,11 @@ def handle_message(message, tools):
     if method == 'initialize':
         requested = params.get('protocolVersion', '')
         version = requested if requested in SUPPORTED_PROTOCOL_VERSIONS else DEFAULT_PROTOCOL_VERSION
+        server_info = {**SERVER_INFO, 'name': server_name} if server_name else SERVER_INFO
         return _result(msg_id, {
             'protocolVersion': version,
             'capabilities': {'tools': {}},
-            'serverInfo': SERVER_INFO,
+            'serverInfo': server_info,
         })
 
     if method == 'ping':

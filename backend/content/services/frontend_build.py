@@ -18,6 +18,9 @@ import subprocess
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.core.mail import EmailMultiAlternatives
 from django.core.management import call_command
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -27,6 +30,8 @@ logger = logging.getLogger(__name__)
 FRONTEND_DIR = Path(settings.BASE_DIR).parent / 'frontend'
 MARKER_PATH = Path(settings.BASE_DIR) / 'logs' / 'frontend-build-marker.json'
 BUILD_TIMEOUT_SECONDS = 30 * 60
+FAILURE_ALERT_CACHE_KEY = 'frontend_rebuild_failure_alerted'
+FAILURE_ALERT_INTERVAL_SECONDS = 60 * 60 * 6
 
 
 def latest_published_change():
@@ -68,6 +73,42 @@ def rebuild_needed():
     return last is None or latest > last
 
 
+def _notify_failure(detail):
+    """Email staff that the rebuild failed, at most once per alert window.
+
+    The rebuild runs unattended inside Huey; without this, failures only show
+    up in logs and published posts silently never reach the public HTML.
+    """
+    if cache.get(FAILURE_ALERT_CACHE_KEY):
+        return
+    cache.set(FAILURE_ALERT_CACHE_KEY, True, timeout=FAILURE_ALERT_INTERVAL_SECONDS)
+
+    recipients = list(
+        get_user_model().objects.filter(is_staff=True, is_active=True)
+        .exclude(email='').values_list('email', flat=True)
+    )
+    if not recipients:
+        logger.warning('[FrontendRebuild] failure alert due but no staff recipients.')
+        return
+
+    body = (
+        'El rebuild automático del frontend (nuxi generate) está fallando.\n\n'
+        'Mientras siga fallando, los posts publicados no aparecen en el HTML '
+        'público que leen los crawlers y los previews de enlaces.\n\n'
+        f'Último error:\n{(detail or "(sin detalle)")[:2000]}\n\n'
+        'Diagnóstico: backend/logs/blog_publish.log y '
+        'journalctl -u projectapp-huey.'
+    )
+    email = EmailMultiAlternatives(
+        subject='ProjectApp: el rebuild del frontend está fallando',
+        body=body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=recipients,
+    )
+    email.send(fail_silently=True)
+    logger.info('[FrontendRebuild] failure alert sent to %s', ', '.join(recipients))
+
+
 def run_frontend_rebuild(force=False):
     """Run the static frontend build and swap it live.
 
@@ -84,6 +125,9 @@ def run_frontend_rebuild(force=False):
     # A production build that silently drops the prerendered posts is a
     # regression — make the build fail instead (see nuxt.config.ts).
     env.setdefault('PRERENDER_REQUIRE_BLOG', '0' if settings.DEBUG else '1')
+    # Under the huey service cgroup, Node derives a V8 heap cap too small for
+    # `nuxi generate` (observed OOM at ~750MB) — pin it explicitly.
+    env.setdefault('NODE_OPTIONS', '--max-old-space-size=2048')
 
     logger.info(
         '[FrontendRebuild] starting: %s (cwd=%s, api=%s)',
@@ -101,16 +145,22 @@ def run_frontend_rebuild(force=False):
         )
     except subprocess.TimeoutExpired:
         logger.error('[FrontendRebuild] build timed out after %ss', BUILD_TIMEOUT_SECONDS)
-        return {'status': 'failed', 'detail': f'timeout after {BUILD_TIMEOUT_SECONDS}s'}
+        detail = f'timeout after {BUILD_TIMEOUT_SECONDS}s'
+        _notify_failure(detail)
+        return {'status': 'failed', 'detail': detail}
 
     if result.returncode != 0:
         tail = (result.stderr or result.stdout or '')[-2000:]
         logger.error('[FrontendRebuild] build failed (rc=%s): %s', result.returncode, tail)
+        _notify_failure(tail)
         return {'status': 'failed', 'detail': tail}
 
     if not settings.DEBUG:
         call_command('collectstatic', interactive=False, verbosity=0)
 
+    # A success closes the incident: the next failure is a new one and
+    # should alert immediately instead of waiting out the dedupe window.
+    cache.delete(FAILURE_ALERT_CACHE_KEY)
     _write_marker(started_at)
     logger.info('[FrontendRebuild] success (started_at=%s)', started_at.isoformat())
     return {'status': 'success', 'detail': ''}
