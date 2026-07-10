@@ -74,7 +74,7 @@
                 {{ folderStore.folders.length }} carpeta{{ folderStore.folders.length !== 1 ? 's' : '' }}
               </span>
               <div class="flex-1 h-px bg-surface-raised"></div>
-              <span class="text-[10px] text-text-subtle flex items-center gap-1">
+              <span class="text-2xs text-text-subtle flex items-center gap-1">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
                 </svg>

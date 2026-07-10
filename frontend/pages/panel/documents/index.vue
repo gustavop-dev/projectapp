@@ -142,6 +142,7 @@
             class="hidden sm:block"
             :documents="pagedDocuments"
             :subfolders="currentSubfolders"
+            :edit-to-for="editToFor"
             :dragging-doc-id="draggingDoc?.id ?? null"
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"

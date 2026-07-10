@@ -7,6 +7,7 @@ import {
 defineProps({
   documents: { type: Array, default: () => [] },
   subfolders: { type: Array, default: () => [] },
+  editToFor: { type: Function, default: () => null },
   draggingDocId: { type: [Number, String], default: null },
   dragOverFolderId: { type: [Number, String], default: null },
   newlyCreatedId: { type: [Number, String], default: null },
@@ -80,7 +81,15 @@ const emit = defineEmits([
         >
           <td class="px-6 py-4">
             <div class="flex items-center gap-2">
-              <span class="text-sm font-medium text-text-default truncate">{{ doc.title }}</span>
+              <component
+                :is="editToFor(doc) ? 'NuxtLink' : 'span'"
+                :to="editToFor(doc) || undefined"
+                class="text-sm font-medium text-text-default truncate
+                       outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40 rounded"
+                @click.stop
+              >
+                {{ doc.title }}
+              </component>
               <span
                 v-if="doc.folder_name"
                 class="inline-flex items-center px-2 py-0.5 rounded text-2xs font-medium bg-surface-raised text-text-muted flex-shrink-0"
@@ -119,7 +128,7 @@ const emit = defineEmits([
           <td class="px-6 py-4" @click.stop>
             <button
               type="button"
-              class="p-1.5 rounded-lg hover:bg-surface-raised transition-colors text-text-subtle hover:text-text-default
+              class="p-2.5 -m-1 rounded-lg hover:bg-surface-raised transition-colors text-text-subtle hover:text-text-default
                      outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40"
               title="Acciones"
               :aria-label="`Acciones de ${doc.title}`"

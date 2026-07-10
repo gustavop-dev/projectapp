@@ -104,7 +104,7 @@
                     class="bg-surface-raised rounded-lg p-3 border border-border-muted"
                   >
                     <div class="flex items-center gap-2 mb-2">
-                      <span class="text-[10px] text-text-subtle uppercase tracking-wide">Sección {{ idx + 1 }}</span>
+                      <span class="text-2xs text-text-subtle uppercase tracking-wide">Sección {{ idx + 1 }}</span>
                       <div class="ml-auto flex items-center gap-1">
                         <button
                           type="button"
@@ -196,7 +196,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
-                    <span v-else class="text-[10px] uppercase tracking-wide text-text-subtle">Principal</span>
+                    <span v-else class="text-2xs uppercase tracking-wide text-text-subtle">Principal</span>
                   </div>
                 </div>
                 <button
