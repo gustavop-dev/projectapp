@@ -61,7 +61,7 @@
           :label="`Utilidad líquida ${summary.year}`"
           :value="Number(summary.liquid_utility ?? 0)"
           :tone="toneBySign(summary.liquid_utility)"
-          :sub="`Utilidad esperada: ${money(summary.expected_utility)}`"
+          :stats="heroStats"
           :progress="receivedProgress"
           :progress-label="receivedProgressLabel"
           :spark="utilitySpark"
@@ -350,6 +350,35 @@ const receivedProgressLabel = computed(() => {
 const utilitySpark = computed(() =>
   (summary.value?.monthly || []).map((month) => Number(month.utility)),
 );
+
+const heroStats = computed(() => {
+  const data = summary.value;
+  if (!data) return [];
+  const stats = [
+    {
+      label: 'Utilidad esperada',
+      value: money(data.expected_utility),
+      tone: toneBySign(data.expected_utility),
+    },
+    {
+      label: 'Diferencia líq − esp',
+      value: money(data.difference),
+      tone: toneBySign(data.difference),
+    },
+  ];
+  const liquidTotal = Number(data.liquid_total ?? 0);
+  if (liquidTotal > 0) {
+    const margin = Math.round(
+      (Number(data.liquid_utility ?? 0) / liquidTotal) * 100,
+    );
+    stats.push({
+      label: 'Margen líquido',
+      value: `${margin}%`,
+      tone: toneBySign(data.liquid_utility),
+    });
+  }
+  return stats;
+});
 
 const partnerCards = computed(() => {
   const partners = summary.value?.partners || {};
