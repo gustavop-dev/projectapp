@@ -2606,6 +2606,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-view-paste-rendering` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-view-paste-rendering.spec.js` |
 | `proposal-sticky-bar-accept` | proposal | guest | ~~P2~~ | 🗄️ Archived | — (feature removed) |
 | `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
+| `admin-document-gallery` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-gallery.spec.js` |
 | `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
@@ -3445,6 +3446,28 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-list.spec.js`
 
+#### FLOW: `admin-document-gallery`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **Description:** Toggle between the list (table) and gallery (cards) views of the document list via the "Lista"/"Galería" segmented control in the toolbar (`data-testid` `doc-view-list` / `doc-view-grid`). Gallery cards render a sanitized markdown mini-preview built from the list serializer's `content_excerpt`, a status badge overlay, client + creation date, up to 2 tag chips with a `+N` tooltip, and the same kebab "Acciones" opening `DocumentActionsSheet`. Subfolder cards render first with dashed borders and act as drag-and-drop targets. The chosen mode persists in `localStorage` (`projectapp-documents-view-mode`); the default is `list`. On mobile (`<sm`) the gallery grid is always the rendered view.
+- **Steps:**
+  1. Admin navigates to `/panel/documents` (table view by default).
+  2. Admin clicks "Galería" → the table swaps out and the card grid renders one card per document.
+  3. Cards show the markdown mini-preview, status badge, client/date meta and tag chips.
+  4. Admin clicks a card (or its title link) → navigates to `/panel/documents/:id/edit`.
+  5. Admin clicks a card kebab → `DocumentActionsSheet` opens with the full action list.
+  6. Admin reloads the page → the gallery view is restored from `localStorage`.
+  7. Admin clicks "Lista" → the table view returns.
+- **Branches:**
+  - [Branch A — Persistence] Reload restores the persisted mode; invalid stored values fall back to `list`.
+  - [Branch B — Subfolder cards] Inside a folder, subfolders render as dashed cards; clicking navigates into the folder and dropping a dragged document moves it there.
+  - [Branch C — Empty excerpt] Documents without content render a placeholder icon instead of the mini-preview.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-document-gallery.spec.js`
+
 #### FLOW: `admin-document-create`
 
 - **Module:** admin
@@ -3663,6 +3686,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
 | `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
+| `admin-document-gallery` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-gallery.spec.js` |
 | `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-folders` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folders.spec.js` |
