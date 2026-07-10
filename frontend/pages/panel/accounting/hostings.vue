@@ -131,18 +131,42 @@
         @delete="confirmDeleteRecord"
         @sort="toggleSort"
       >
+        <template #cell-client_name="{ row }">
+          <AccountingInlineCell
+            :value="row.client_name"
+            :saving="inlineSavingKey === `${row.id}:client_name`"
+            @save="saveInline(row, 'client_name', $event)"
+          />
+        </template>
         <template #cell-domain_url="{ row }">
-          <a
-            v-if="row.domain_url"
-            :href="row.domain_url"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-text-brand hover:underline truncate inline-block max-w-[180px] align-middle"
-            :title="row.domain_url"
+          <AccountingInlineCell
+            :value="row.domain_url"
+            :saving="inlineSavingKey === `${row.id}:domain_url`"
+            @save="saveInline(row, 'domain_url', $event)"
           >
-            {{ row.domain_url }}
-          </a>
-          <span v-else class="text-text-subtle">—</span>
+            <a
+              v-if="row.domain_url"
+              :href="row.domain_url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-text-brand hover:underline truncate inline-block max-w-[180px] align-middle"
+              :title="row.domain_url"
+              @click.stop
+            >
+              {{ row.domain_url }}
+            </a>
+            <span v-else class="text-text-subtle">—</span>
+          </AccountingInlineCell>
+        </template>
+        <template #cell-monthly_value="{ row }">
+          <AccountingInlineCell
+            type="money"
+            :value="row.monthly_value"
+            :saving="inlineSavingKey === `${row.id}:monthly_value`"
+            @save="saveInline(row, 'monthly_value', $event)"
+          >
+            <span class="tabular-nums">{{ formatMoney(row.monthly_value, 'COP') }}</span>
+          </AccountingInlineCell>
         </template>
         <template #cell-validity="{ row }">
           <span class="text-text-muted text-xs whitespace-nowrap">
@@ -150,14 +174,12 @@
           </span>
         </template>
         <template #cell-is_active="{ row }">
-          <span
-            class="text-xs px-2.5 py-1 rounded-full font-medium"
-            :class="row.is_active
-              ? 'bg-success-soft text-success-strong'
-              : 'bg-surface-raised text-text-muted'"
-          >
-            {{ row.is_active ? 'Activo' : 'Inactivo' }}
-          </span>
+          <AccountingStatusSelect
+            :value="row.is_active"
+            :updating="statusUpdatingId === row.id"
+            aria-label="Cambiar estado del hosting"
+            @change="changeStatus(row, $event)"
+          />
         </template>
       </AccountingTable>
 
@@ -201,7 +223,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
@@ -211,9 +233,12 @@ import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
+import AccountingStatusSelect from '~/components/accounting/AccountingStatusSelect.vue';
+import AccountingInlineCell from '~/components/accounting/AccountingInlineCell.vue';
 import HostingFormModal from '~/components/accounting/HostingFormModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import {
@@ -230,6 +255,7 @@ import { formatMoney } from '~/utils/formatMoney';
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
+const notify = usePanelNotify();
 
 // -------------------------------------------------------------------
 // Filters
@@ -377,6 +403,38 @@ const columns = [
 
 async function loadRecords() {
   await store.fetchRecords('hostings');
+}
+
+// -------------------------------------------------------------------
+// Inline edits: estado dropdown + double-click cells
+// -------------------------------------------------------------------
+
+const statusUpdatingId = ref(null);
+
+async function changeStatus(row, isActive) {
+  statusUpdatingId.value = row.id;
+  const result = await store.updateRecord('hostings', row.id, { is_active: isActive });
+  statusUpdatingId.value = null;
+  if (result.success) {
+    notify.success({ title: isActive ? 'Hosting activado' : 'Hosting desactivado' });
+    loadRecords();
+  } else {
+    notify.error({ title: 'No se pudo cambiar el estado', detail: result.message });
+  }
+}
+
+const inlineSavingKey = ref(null);
+
+async function saveInline(row, field, value) {
+  inlineSavingKey.value = `${row.id}:${field}`;
+  const result = await store.updateRecord('hostings', row.id, { [field]: value });
+  inlineSavingKey.value = null;
+  if (result.success) {
+    notify.success({ title: 'Hosting actualizado' });
+    loadRecords();
+  } else {
+    notify.error({ title: 'No se pudo actualizar', detail: result.message });
+  }
 }
 
 onMounted(loadRecords);
