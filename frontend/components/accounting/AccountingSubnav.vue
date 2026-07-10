@@ -35,6 +35,7 @@ const items = [
   { key: 'recurring', label: 'Recurrentes', to: '/panel/accounting/recurring' },
   { key: 'ads', label: 'Ads', to: '/panel/accounting/ads' },
   { key: 'cards', label: 'Tarjetas', to: '/panel/accounting/cards' },
+  { key: 'statements', label: 'Extractos', to: '/panel/accounting/statements' },
   { key: 'history', label: 'Historial', to: '/panel/accounting/history' },
   { key: 'settings', label: 'Configuración', to: '/panel/accounting/settings' },
 ];

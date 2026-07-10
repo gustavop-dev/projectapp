@@ -20,6 +20,8 @@ const ACCOUNTING_ENTITIES = {
   recurring: { stateKey: 'recurringPayments', path: 'accounting/recurring/' },
   ads: { stateKey: 'adsRecords', path: 'accounting/ads/' },
   cards: { stateKey: 'cardSnapshots', path: 'accounting/card-snapshots/' },
+  statements: { stateKey: 'statements', path: 'accounting/statements/' },
+  merchantAliases: { stateKey: 'merchantAliases', path: 'accounting/merchant-aliases/' },
 };
 
 function entityConfig(entity) {
@@ -61,6 +63,10 @@ export const useAccountingStore = defineStore('accounting', {
     cardSnapshots: [],
     collectionAccounts: [],
     collectionAccountsMeta: {},
+    statements: [],
+    merchantAliases: [],
+    statementStatus: null,
+    statementDetail: null,
     metas: {},
     summary: null,
     changelog: { results: [], count: 0, page: 1, numPages: 1 },
@@ -206,6 +212,142 @@ export const useAccountingStore = defineStore('accounting', {
       } catch (error) {
         this.error = 'delete_failed';
         console.error(`Error deleting accounting ${entity} ${id}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * fetchStatementStatus: 12-month processed/draft/pending grid.
+     */
+    async fetchStatementStatus(year, cardName = '') {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const response = await get_request(
+          `accounting/statements/status/${buildQuery({ year, card_name: cardName })}`,
+        );
+        this.statementStatus = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'fetch_failed';
+        console.error('Error fetching statement status:', error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    /**
+     * fetchStatementDetail: header + transactions + category totals.
+     */
+    async fetchStatementDetail(id) {
+      this.error = null;
+      try {
+        const response = await get_request(`accounting/statements/${id}/`);
+        this.statementDetail = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'fetch_failed';
+        console.error(`Error fetching statement ${id}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    /**
+     * finalizeStatement: validate totals and mark processed.
+     */
+    async finalizeStatement(id, force = false) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          `accounting/statements/${id}/finalize/`, { force },
+        );
+        this.statementDetail = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'update_failed';
+        console.error(`Error finalizing statement ${id}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * reopenStatement: processed → draft for corrections.
+     */
+    async reopenStatement(id) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          `accounting/statements/${id}/reopen/`, {},
+        );
+        this.statementDetail = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'update_failed';
+        console.error(`Error reopening statement ${id}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * updateStatementTransaction: patch one line of a draft statement.
+     */
+    async updateStatementTransaction(statementId, txId, payload) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await patch_request(
+          `accounting/statements/${statementId}/transactions/${txId}/update/`,
+          payload,
+        );
+        if (this.statementDetail?.id === statementId) {
+          this.statementDetail = {
+            ...this.statementDetail,
+            transactions: this.statementDetail.transactions.map((tx) =>
+              tx.id === txId ? response.data : tx,
+            ),
+          };
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'update_failed';
+        console.error(`Error updating statement transaction ${txId}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * deleteStatementTransaction: remove one line of a draft statement.
+     */
+    async deleteStatementTransaction(statementId, txId) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        await delete_request(
+          `accounting/statements/${statementId}/transactions/${txId}/delete/`,
+        );
+        if (this.statementDetail?.id === statementId) {
+          this.statementDetail = {
+            ...this.statementDetail,
+            transactions: this.statementDetail.transactions.filter(
+              (tx) => tx.id !== txId,
+            ),
+          };
+        }
+        return { success: true };
+      } catch (error) {
+        this.error = 'delete_failed';
+        console.error(`Error deleting statement transaction ${txId}:`, error);
         return { success: false, ...normalizeApiError(error) };
       } finally {
         this.isUpdating = false;

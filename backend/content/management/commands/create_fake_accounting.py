@@ -15,6 +15,9 @@ from django.core.management.base import BaseCommand
 
 from content.models import (
     AccountingSettings,
+    CreditCardStatement,
+    CreditCardTransaction,
+    MerchantAlias,
     AdsSpendRecord,
     CardBalanceSnapshot,
     ExpenseRecord,
@@ -210,6 +213,106 @@ class Command(BaseCommand):
                 source_ref=FAKE_REF,
             )
             created += 1
+
+        # Credit-card statements: two cards, mixed draft/processed, with
+        # installments, a USD purchase, a refund and an unidentified line.
+        aliases = [
+            ('PAYU*NETFLIX', 'Netflix', 'software'),
+            ('PRIMAX MEDELLIN', 'Primax', 'fuel'),
+            ('FACEBK ADS', 'Meta Ads', 'advertising'),
+        ]
+        for match_text, merchant, category in aliases:
+            MerchantAlias.objects.get_or_create(
+                match_text=match_text,
+                defaults={
+                    'merchant_name': merchant,
+                    'default_category': category,
+                    'source_ref': FAKE_REF,
+                },
+            )
+            created += 1
+
+        statement_specs = [
+            ('T.C 0064', 2, CreditCardStatement.Status.PROCESSED),
+            ('T.C 0064', 1, CreditCardStatement.Status.PROCESSED),
+            ('T.C 0064', 0, CreditCardStatement.Status.DRAFT),
+            ('T.C 0655', 1, CreditCardStatement.Status.PROCESSED),
+        ]
+        for card_name, months_ago, statement_status in statement_specs:
+            period = _month_start(months_ago)
+            transactions = [
+                {
+                    'raw_description': 'PAYU*NETFLIX 990011',
+                    'merchant_name': 'Netflix', 'category': 'software',
+                    'amount': Decimal('44900.00'), 'is_identified': True,
+                },
+                {
+                    'raw_description': 'PRIMAX MEDELLIN 8811',
+                    'merchant_name': 'Primax', 'category': 'fuel',
+                    'amount': Decimal(rng.randrange(120_000, 260_000, 5_000)),
+                    'is_identified': True,
+                },
+                {
+                    'raw_description': 'ANTHROP*CLAUDE.AI SF',
+                    'merchant_name': 'Anthropic', 'category': 'software',
+                    'amount': Decimal('88000.00'), 'is_identified': True,
+                    'original_amount': Decimal('20.00'),
+                    'original_currency': 'USD',
+                },
+                {
+                    'raw_description': 'EXITO POBLADO POS 4451',
+                    'merchant_name': 'Éxito', 'category': 'groceries',
+                    'amount': Decimal(rng.randrange(150_000, 500_000, 10_000)),
+                    'is_identified': True,
+                    'installment_number': 1 + months_ago,
+                    'installments_total': 12,
+                },
+                {
+                    'raw_description': 'COMERCIALIZADORA XYZ SAS',
+                    'amount': Decimal('99900.00'),
+                },
+                {
+                    'raw_description': 'REVERSION PAYU*NETFLIX',
+                    'merchant_name': 'Netflix', 'category': 'software',
+                    'amount': Decimal('-44900.00'), 'is_identified': True,
+                },
+            ]
+            purchases_total = sum(tx['amount'] for tx in transactions)
+            statement, was_created = CreditCardStatement.objects.get_or_create(
+                card_name=card_name,
+                period_date=period,
+                defaults={
+                    'status': statement_status,
+                    'purchases_total': purchases_total,
+                    'previous_balance': Decimal(
+                        rng.randrange(1_000_000, 5_000_000, 10_000),
+                    ),
+                    'payments_total': Decimal(
+                        rng.randrange(500_000, 2_000_000, 10_000),
+                    ),
+                    'interest_and_fees': Decimal(
+                        rng.randrange(30_000, 120_000, 1_000),
+                    ),
+                    'minimum_payment': Decimal(
+                        rng.randrange(200_000, 600_000, 10_000),
+                    ),
+                    'due_date': period + timedelta(days=45),
+                    'source_ref': FAKE_REF,
+                },
+            )
+            if was_created:
+                CreditCardTransaction.objects.bulk_create(
+                    CreditCardTransaction(
+                        statement=statement,
+                        transaction_date=period + timedelta(
+                            days=rng.randrange(1, 27),
+                        ),
+                        source_ref=FAKE_REF,
+                        **tx,
+                    )
+                    for tx in transactions
+                )
+                created += 1 + len(transactions)
 
         settings_obj = AccountingSettings.load()
         if not settings_obj.notification_recipients:
