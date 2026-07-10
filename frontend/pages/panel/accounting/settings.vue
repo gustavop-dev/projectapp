@@ -117,21 +117,60 @@
           se enviará mientras sigan así.
         </p>
       </div>
+
+      <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
+        <h2 class="text-lg font-bold text-text-default mb-1">Pestañas de filtros guardados</h2>
+        <p class="text-sm text-text-muted mb-5">
+          Restaura las pestañas predefinidas de cada vista del módulo contable.
+          Al restablecer una vista se eliminan sus pestañas personalizadas.
+        </p>
+        <div class="space-y-2">
+          <div
+            v-for="view in FILTER_VIEWS"
+            :key="view.value"
+            class="flex items-center justify-between gap-3"
+          >
+            <span class="text-sm text-text-default">{{ view.label }}</span>
+            <BaseButton
+              variant="secondary"
+              size="sm"
+              :disabled="resettingView !== null"
+              :data-testid="`settings-reset-tabs-${view.value}`"
+              @click="askResetTabs(view)"
+            >
+              {{ resettingView === view.value ? 'Restableciendo...' : 'Restablecer' }}
+            </BaseButton>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <ConfirmModal
+      v-model="resetConfirmOpen"
+      title="Restablecer pestañas"
+      :message="resetConfirmMessage"
+      confirm-text="Restablecer"
+      cancel-text="Cancelar"
+      variant="danger"
+      @confirm="doResetTabs"
+      @cancel="pendingResetView = null"
+    />
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
+import ConfirmModal from '~/components/ConfirmModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useAccountingStore } from '~/stores/accounting';
+import { create_request } from '~/stores/services/request_http';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
@@ -196,6 +235,56 @@ async function save() {
     notify.success('Configuración guardada');
   } else {
     notify.error({ title: 'No se pudo guardar la configuración', detail: result.message });
+  }
+}
+
+// -------------------------------------------------------------------
+// Saved filter tabs reset (per accounting view)
+// -------------------------------------------------------------------
+
+const FILTER_VIEWS = [
+  { value: 'accounting_income', label: 'Ingresos' },
+  { value: 'accounting_expense', label: 'Gastos' },
+  { value: 'accounting_hosting', label: 'Hostings' },
+  { value: 'accounting_pocket', label: 'Bolsillo' },
+  { value: 'accounting_recurring', label: 'Recurrentes' },
+  { value: 'accounting_ads', label: 'Ads' },
+];
+
+const resetConfirmOpen = ref(false);
+const pendingResetView = ref(null);
+const resettingView = ref(null);
+
+const resetConfirmMessage = computed(() =>
+  pendingResetView.value
+    ? `Se eliminarán tus pestañas personalizadas de "${pendingResetView.value.label}" ` +
+      'y se restaurarán las predefinidas. Esta acción no se puede deshacer.'
+    : '',
+);
+
+function askResetTabs(view) {
+  pendingResetView.value = view;
+  resetConfirmOpen.value = true;
+}
+
+async function doResetTabs() {
+  const view = pendingResetView.value;
+  if (!view) return;
+  resettingView.value = view.value;
+  try {
+    await create_request('accounts/saved-filter-tabs/reset/', { view: view.value });
+    notify.success({
+      title: 'Pestañas restablecidas',
+      detail: `La vista ${view.label} volvió a sus filtros predefinidos.`,
+    });
+  } catch (error) {
+    notify.error({
+      title: 'No se pudieron restablecer las pestañas',
+      detail: error?.response?.data?.view || error?.message,
+    });
+  } finally {
+    resettingView.value = null;
+    pendingResetView.value = null;
   }
 }
 
