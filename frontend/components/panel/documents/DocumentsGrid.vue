@@ -20,7 +20,9 @@ const emit = defineEmits([
 </script>
 
 <template>
-  <div
+  <TransitionGroup
+    tag="div"
+    name="doc-grid"
     class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4"
     data-testid="documents-grid"
   >
@@ -30,8 +32,12 @@ const emit = defineEmits([
       :key="`folder-${sub.id}`"
       class="flex flex-col items-center justify-center gap-2 min-h-44 p-4 rounded-xl
              border-2 border-dashed border-border-default bg-surface cursor-pointer select-none
-             text-center outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40"
-      :class="{ 'ring-2 ring-success-strong border-success-strong/60': dragOverFolderId === sub.id }"
+             text-center outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40
+             motion-safe:transition-transform motion-safe:duration-fast motion-safe:ease-out-soft"
+      :class="{
+        'ring-2 ring-success-strong border-success-strong/60 motion-safe:scale-[1.02]':
+          dragOverFolderId === sub.id,
+      }"
       role="button"
       tabindex="0"
       draggable="true"
@@ -63,5 +69,30 @@ const emit = defineEmits([
       @dragstart="emit('doc-dragstart', $event, doc)"
       @dragend="emit('doc-dragend')"
     />
-  </div>
+  </TransitionGroup>
 </template>
+
+<style scoped>
+/* Collection changes (filter/folder/page/drop): items fade up in and the
+ * survivors glide to their new cell. Leave is a quick fade in place — an
+ * absolutely-positioned leave would lose its grid cell sizing. */
+@media (prefers-reduced-motion: no-preference) {
+  .doc-grid-enter-active {
+    transition: opacity 250ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 250ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .doc-grid-enter-from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .doc-grid-leave-active {
+    transition: opacity 150ms ease-out;
+  }
+  .doc-grid-leave-to {
+    opacity: 0;
+  }
+  .doc-grid-move {
+    transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+</style>

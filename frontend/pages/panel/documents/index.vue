@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col min-h-full">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4" data-enter>
       <div>
         <h1 class="text-2xl font-light text-text-default">Documentos</h1>
         <p class="text-sm text-text-subtle mt-1">Crea, organiza y comparte documentos con tu marca.</p>
@@ -19,10 +19,14 @@
       v-model:search="searchQuery"
       v-model:view-mode="viewMode"
       class="mb-5"
+      data-enter
+      style="--enter-delay: 60ms"
     />
 
     <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 items-stretch flex-1">
       <FolderSidebar
+        data-enter
+        style="--enter-delay: 120ms"
         :folders="folderStore.rootFolders"
         :active-id="documentStore.activeFolderId"
         :total-count="documentStore.documents.length + otherFoldersCount"
@@ -34,7 +38,7 @@
         @folder-drop="handleDropOnFolder"
       />
 
-      <section class="min-w-0 flex flex-col">
+      <section class="min-w-0 flex flex-col" data-enter style="--enter-delay: 180ms">
         <FolderBreadcrumb
           v-if="documentStore.activeFolderId !== 'all'"
           :active-id="documentStore.activeFolderId"
@@ -131,7 +135,8 @@
         </BaseEmptyState>
 
         <!-- Collection: table (list mode, desktop) / card grid -->
-        <template v-else-if="hasContent">
+        <Transition v-else-if="hasContent" name="view-swap" mode="out-in">
+          <div :key="viewMode">
           <DocumentsTable
             v-if="viewMode === 'list'"
             class="hidden sm:block"
@@ -171,7 +176,8 @@
             @folder-dragleave="dragOverFolderId = null"
             @drop-on-folder="handleDropOnFolder"
           />
-        </template>
+          </div>
+        </Transition>
 
         <!-- Pagination -->
         <BasePagination
@@ -248,6 +254,7 @@ import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useDocumentViewMode } from '~/composables/useDocumentViewMode';
+import { useReducedMotion } from '~/composables/useReducedMotion';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -259,6 +266,7 @@ const tagStore = useDocumentTagStore();
 const notify = usePanelNotify();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 const { viewMode } = useDocumentViewMode();
+const { reducedMotion } = useReducedMotion();
 
 const searchQuery = ref('');
 const newlyCreatedId = ref(null);
@@ -522,8 +530,11 @@ async function handleDuplicate(id) {
   notify.success({ title: 'Documento duplicado' });
   clearTimeout(newlyCreatedTimer);
   await documentStore.fetchDocuments();
+  docResetPage();
   newlyCreatedId.value = result.data.id;
   newlyCreatedTimer = setTimeout(() => { newlyCreatedId.value = null; }, 2500);
+  // The duplicate lands at the top of the list; bring it into view.
+  window.scrollTo({ top: 0, behavior: reducedMotion.value ? 'auto' : 'smooth' });
 }
 
 async function handleCopyMarkdown(id) {
@@ -561,3 +572,40 @@ function handleDelete(doc) {
   });
 }
 </script>
+
+<style scoped>
+/* Staggered fade-up entrance, CSS-driven like the accounting dashboard:
+ * the list loads async, so the animation must not depend on JS timing. */
+@keyframes documents-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+[data-enter] {
+  animation: documents-enter 0.45s ease-out both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+
+/* List <-> gallery swap: quick fade + settle, out-in so layouts never overlap. */
+.view-swap-enter-active,
+.view-swap-leave-active {
+  transition: opacity 150ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.view-swap-enter-from,
+.view-swap-leave-to {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-enter] {
+    animation: none;
+  }
+  .view-swap-enter-active,
+  .view-swap-leave-active {
+    transition: none;
+  }
+}
+</style>

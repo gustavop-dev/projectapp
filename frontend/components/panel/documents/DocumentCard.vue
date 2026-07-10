@@ -33,7 +33,9 @@ const meta = computed(() => {
   <article
     class="group bg-surface border border-border-muted rounded-xl shadow-card overflow-hidden
            cursor-pointer select-none [content-visibility:auto]
-           focus-within:ring-2 focus-within:ring-focus-ring/40"
+           focus-within:ring-2 focus-within:ring-focus-ring/40
+           hover:shadow-raised motion-safe:transition-[transform,box-shadow]
+           motion-safe:duration-fast motion-safe:ease-out-soft motion-safe:hover:-translate-y-0.5"
     :class="[
       { 'opacity-50': dragging },
       { 'ring-2 ring-focus-ring/40 bg-primary-soft': newlyCreated },
