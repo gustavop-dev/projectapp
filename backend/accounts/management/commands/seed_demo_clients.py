@@ -9,9 +9,11 @@ Usage:
 """
 
 import os
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 from accounts.models import UserProfile
 
@@ -63,6 +65,7 @@ DEMO_CLIENTS = [
         'is_onboarded': True,
         'profile_completed': True,
         'is_active': False,
+        'deactivated_days_ago': 45,
     },
     {
         'email': 'cliente5@demo.com',
@@ -74,6 +77,18 @@ DEMO_CLIENTS = [
         'is_onboarded': True,
         'profile_completed': False,
         'is_active': True,
+    },
+    {
+        'email': 'cliente6@demo.com',
+        'first_name': 'Renata',
+        'last_name': 'Quintero',
+        'company_name': 'Estudio Pausa',
+        'phone': '+57 315 777 8888',
+        'cedula': '52998877',
+        'is_onboarded': True,
+        'profile_completed': True,
+        'is_active': True,
+        'deactivated_days_ago': 10,
     },
     {
         'email': 'pending.invite@demo.com',
@@ -126,10 +141,16 @@ class Command(BaseCommand):
                     'phone': client_data['phone'],
                     'cedula': client_data.get('cedula', ''),
                     'created_by': admin,
+                    'deactivated_at': (
+                        timezone.now() - timedelta(days=client_data['deactivated_days_ago'])
+                        if 'deactivated_days_ago' in client_data else None
+                    ),
                 },
             )
 
-            if not client_data['is_active']:
+            if 'deactivated_days_ago' in client_data:
+                status_label = 'deactivated'
+            elif not client_data['is_active']:
                 status_label = 'inactive'
             elif not client_data['is_onboarded']:
                 status_label = 'pending_onboarding'

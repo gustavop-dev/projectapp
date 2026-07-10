@@ -90,6 +90,9 @@ class Command(BaseCommand):
             self._run('demo-clients', 'seed_demo_clients')
             self._run('platform-enrich', 'enrich_platform_data')
 
+        # Saved filter tabs for staff (otherwise they only lazy-seed on first GET).
+        self._run('filter-tabs', 'seed_filter_tabs')
+
         if not options['skip_documents']:
             self._run('documents', 'create_fake_documents', '--count', n)
 
