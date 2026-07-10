@@ -102,37 +102,18 @@ class TestIncomePocketSync:
 
 @pytest.mark.django_db
 class TestExpensePocketSync:
-    def test_pocket_paid_expense_creates_out_movement(self, superuser):
-        data = {
-            'concept': 'Pago T.C Rappi',
-            'period_date': '2026-05',
-            'paid_from': 'pocket',
-            'total_amount': '2272000.00',
-        }
-        with patch.object(accounting_service, '_notify'):
-            expense = accounting_service.create_record(
-                EntityType.EXPENSE,
-                make_serializer(ExpenseRecordCreateUpdateSerializer, data),
-                superuser,
-            )
-        movement = expense.pocket_movement
-        assert movement is not None
-        assert movement.direction == PocketMovement.Direction.OUT
-        assert movement.concept == 'Gasto: Pago T.C Rappi'
-        assert movement.amount == Decimal('2272000.00')
-
-    def test_partner_paid_expense_creates_no_movement(self, superuser):
+    def test_expense_creates_no_movement(self, superuser):
+        # Expenses draw from money already in the pocket (team flow);
+        # pocket OUT movements are registered manually, never auto-synced.
         data = {
             'concept': 'Figma',
             'period_date': '2026-02',
-            'paid_from': 'partners',
             'total_amount': '80000.00',
         }
         with patch.object(accounting_service, '_notify'):
-            expense = accounting_service.create_record(
+            accounting_service.create_record(
                 EntityType.EXPENSE,
                 make_serializer(ExpenseRecordCreateUpdateSerializer, data),
                 superuser,
             )
-        assert expense.pocket_movement is None
         assert PocketMovement.objects.count() == 0

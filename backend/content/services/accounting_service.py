@@ -59,7 +59,6 @@ TRACKED_FIELDS = {
         ('ledger', 'Contabilidad'),
         ('period_date', 'Período'),
         ('category', 'Categoría'),
-        ('paid_from', 'Pagado desde'),
         ('total_amount', 'Monto total'),
         ('gustavo_amount', 'Monto Gustavo'),
         ('carlos_amount', 'Monto Carlos'),
@@ -282,7 +281,7 @@ def delete_record(entity_type, instance, user):
     changes = _deletion_changes(entity_type, old_values)
 
     linked_movement = None
-    if entity_type in (EntityType.INCOME, EntityType.EXPENSE):
+    if entity_type == EntityType.INCOME:
         linked_movement = instance.pocket_movement
 
     instance.delete()
@@ -316,18 +315,6 @@ def _sync_pocket(entity_type, instance, user):
             concept=f'Ingreso: {instance.concept}',
             movement_date=instance.period_date,
             source_ref=f'income:{instance.pk}',
-            user=user,
-        )
-    elif entity_type == EntityType.EXPENSE:
-        _sync_movement(
-            instance,
-            wants_movement=(
-                instance.paid_from == ExpenseRecord.PaidFrom.POCKET
-            ),
-            direction=PocketMovement.Direction.OUT,
-            concept=f'Gasto: {instance.concept}',
-            movement_date=instance.period_date,
-            source_ref=f'expense:{instance.pk}',
             user=user,
         )
 

@@ -43,7 +43,7 @@ FIXTURE = {
             'concept': 'Claude Code Marzo', 'period': '2026-03',
             'total_amount': '400000.00', 'gustavo_amount': '200000.00',
             'carlos_amount': '200000.00', 'category': 'business',
-            'paid_from': 'partners', 'notes': '',
+            'notes': '',
         },
     ],
     'hostings': [

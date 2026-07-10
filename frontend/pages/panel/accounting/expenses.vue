@@ -235,14 +235,12 @@ const {
     amountMin: '',
     amountMax: '',
     categories: [],
-    paidFrom: [],
     ledger: '',
   },
   matchers: {
     period: matchDateRange('period_date', 'periodAfter', 'periodBefore'),
     amount: matchNumberRange('total_amount', 'amountMin', 'amountMax'),
     categories: matchIncludes('category', 'categories'),
-    paidFrom: matchIncludes('paid_from', 'paidFrom'),
     ledger: matchEquals('ledger', 'ledger'),
   },
   searchFields: ['concept', 'notes'],
@@ -258,15 +256,6 @@ const filterFields = [
     options: [
       { value: 'business', label: 'Negocio' },
       { value: 'personal', label: 'Personal' },
-    ],
-  },
-  {
-    kind: 'multi',
-    key: 'paidFrom',
-    label: 'Pagado desde',
-    options: [
-      { value: 'partners', label: 'Socios' },
-      { value: 'pocket', label: 'Bolsillo ProjectApp' },
     ],
   },
   {
@@ -288,7 +277,6 @@ const EXPORT_MAPPING = {
   amountMin: 'amount_min',
   amountMax: 'amount_max',
   categories: 'category',
-  paidFrom: 'paid_from',
   ledger: 'ledger',
   search: 'q',
 };
@@ -358,7 +346,6 @@ const columns = [
   { key: 'period_label', label: 'Mes' },
   { key: 'category_label', label: 'Categoría' },
   { key: 'ledger_label', label: 'Contabilidad' },
-  { key: 'paid_from_label', label: 'Pagado desde' },
   { key: 'total_amount', label: 'Total', format: 'money', sortable: true },
   { key: 'gustavo_amount', label: 'Gustavo', format: 'money', sortable: true },
   { key: 'carlos_amount', label: 'Carlos', format: 'money', sortable: true },

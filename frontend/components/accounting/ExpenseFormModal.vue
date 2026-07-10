@@ -18,11 +18,6 @@ const categoryOptions = [
   { value: 'personal', label: 'Personal' },
 ]
 
-const paidFromOptions = [
-  { value: 'partners', label: 'Socios' },
-  { value: 'pocket', label: 'Bolsillo ProjectApp' },
-]
-
 const ledgerOptions = [
   { value: 'company', label: 'Empresa' },
   { value: 'gustavo', label: 'Personal Gustavo' },
@@ -34,7 +29,6 @@ function defaultForm() {
     concept: '',
     period_date: '',
     category: 'business',
-    paid_from: 'partners',
     ledger: 'company',
     total_amount: '',
     gustavo_amount: '',
@@ -56,7 +50,6 @@ watch(
         concept: props.record.concept ?? '',
         period_date: props.record.period ?? '',
         category: props.record.category ?? 'business',
-        paid_from: props.record.paid_from ?? 'partners',
         ledger: props.record.ledger ?? 'company',
         total_amount: props.record.total_amount ?? '',
         gustavo_amount: props.record.gustavo_amount ?? '',
@@ -70,19 +63,11 @@ watch(
   { immediate: true },
 )
 
-watch(
-  () => form.value.ledger,
-  (ledger) => {
-    if (ledger !== 'company') form.value.paid_from = 'partners'
-  },
-)
-
 function onSubmit() {
   const payload = {
     concept: form.value.concept,
     period_date: form.value.period_date,
     category: form.value.category,
-    paid_from: form.value.paid_from,
     ledger: form.value.ledger,
     total_amount: form.value.total_amount,
   }
@@ -116,10 +101,6 @@ function onSubmit() {
 
       <BaseFormField label="Contabilidad">
         <BaseSegmented v-model="form.ledger" :options="ledgerOptions" full-width />
-      </BaseFormField>
-
-      <BaseFormField v-if="!isPersonal" label="Pagado desde">
-        <BaseSegmented v-model="form.paid_from" :options="paidFromOptions" full-width />
       </BaseFormField>
 
       <PartnerSplitInput

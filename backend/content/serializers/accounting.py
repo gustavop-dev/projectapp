@@ -213,9 +213,6 @@ class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     category_label = serializers.CharField(
         source='get_category_display', read_only=True,
     )
-    paid_from_label = serializers.CharField(
-        source='get_paid_from_display', read_only=True,
-    )
     ledger_label = serializers.CharField(
         source='get_ledger_display', read_only=True,
     )
@@ -228,10 +225,9 @@ class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
         fields = (
             'id', 'concept',
             'period', 'period_label', 'period_date',
-            'category', 'category_label', 'paid_from', 'paid_from_label',
+            'category', 'category_label',
             'ledger', 'ledger_label',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'company_amount',
-            'pocket_movement',
             'notes', 'created_at', 'updated_at',
         )
 
@@ -244,30 +240,9 @@ class ExpenseRecordCreateUpdateSerializer(
     class Meta:
         model = ExpenseRecord
         fields = (
-            'concept', 'period_date', 'category', 'paid_from', 'ledger',
+            'concept', 'period_date', 'category', 'ledger',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'notes',
         )
-
-    def validate(self, data):
-        data = super().validate(data)
-
-        def effective(field, default=None):
-            if field in data:
-                return data[field]
-            if self.instance is not None:
-                return getattr(self.instance, field)
-            return default
-
-        ledger = effective('ledger', Ledger.COMPANY)
-        paid_from = effective('paid_from')
-        if (
-            ledger != Ledger.COMPANY
-            and paid_from == ExpenseRecord.PaidFrom.POCKET
-        ):
-            raise serializers.ValidationError(
-                'Los gastos personales no pueden pagarse desde el Bolsillo ProjectApp.'
-            )
-        return data
 
 
 # ── Hosting ──

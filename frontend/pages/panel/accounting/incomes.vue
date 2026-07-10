@@ -143,9 +143,6 @@
             {{ row.ledger === 'company' ? 'Empresa' : row.ledger_label }}
           </span>
         </template>
-        <template #cell-destination_label="{ row }">
-          {{ row.destination === 'pocket' ? row.destination_label : '—' }}
-        </template>
       </AccountingTable>
 
       <BasePagination
@@ -391,7 +388,6 @@ const columns = [
   { key: 'total_amount', label: 'Total', format: 'money', sortable: true },
   { key: 'gustavo_amount', label: 'Gustavo', format: 'money', sortable: true },
   { key: 'carlos_amount', label: 'Carlos', format: 'money', sortable: true },
-  { key: 'destination_label', label: 'Destino' },
 ];
 
 async function loadRecords() {

@@ -117,9 +117,8 @@ _ENTITIES = {
         'date_field': 'period_date',
         'amount_field': 'total_amount',
         'search_fields': ('concept', 'notes'),
-        'choice_filters': ('category', 'paid_from', 'ledger'),
+        'choice_filters': ('category', 'ledger'),
         'has_split': True,
-        'pocket_filter': Q(paid_from=ExpenseRecord.PaidFrom.POCKET),
     },
     'hosting': {
         'entity_type': EntityType.HOSTING,
@@ -241,10 +240,13 @@ def _apply_filters(queryset, params, config):
             queryset = queryset.filter(carlos_amount__gt=0)
         elif partner == 'projectapp':
             # Pocket-bound records or records with an unassigned remainder.
-            queryset = queryset.filter(
-                config['pocket_filter']
-                | Q(total_amount__gt=F('gustavo_amount') + F('carlos_amount')),
+            partner_q = Q(
+                total_amount__gt=F('gustavo_amount') + F('carlos_amount'),
             )
+            pocket_q = config.get('pocket_filter')
+            if pocket_q is not None:
+                partner_q = pocket_q | partner_q
+            queryset = queryset.filter(partner_q)
         elif partner != 'all':
             raise ValueError(
                 "El parámetro 'partner' debe ser gustavo, carlos, "

@@ -160,17 +160,6 @@ class TestPersonalLedger:
         assert not serializer.is_valid()
         assert 'personales' in str(serializer.errors)
 
-    def test_personal_expense_cannot_be_paid_from_pocket(self):
-        serializer = ExpenseRecordCreateUpdateSerializer(data={
-            'concept': 'Gasto personal',
-            'period_date': '2026-06',
-            'ledger': 'gustavo',
-            'paid_from': 'pocket',
-            'total_amount': '100.00',
-        })
-        assert not serializer.is_valid()
-        assert 'personales' in str(serializer.errors)
-
     def test_expected_income_link_must_share_ledger(self, make_income):
         expected = make_income(
             kind=IncomeRecord.Kind.EXPECTED,

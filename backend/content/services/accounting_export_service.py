@@ -41,7 +41,6 @@ EXPORT_SECTIONS = {
             ('Categoría', lambda r: r.get_category_display()),
             ('Contabilidad', lambda r: r.get_ledger_display()),
             ('Mes', 'period_date'),
-            ('Pagado desde', lambda r: r.get_paid_from_display()),
             ('Total', 'total_amount'),
             ('Gustavo', 'gustavo_amount'),
             ('Carlos', 'carlos_amount'),

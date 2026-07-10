@@ -236,7 +236,6 @@ _ENTITY_FIELDS = {
             'period_date': {'type': 'string', 'description': 'Periodo YYYY-MM.'},
             'total_amount': {'type': ['number', 'string']},
             'category': {'type': 'string', 'enum': ['business', 'personal']},
-            'paid_from': {'type': 'string', 'enum': ['partners', 'pocket']},
             'ledger': {'type': 'string', 'enum': _LEDGER_ENUM},
             'gustavo_amount': {'type': ['number', 'string']},
             'carlos_amount': {'type': ['number', 'string']},

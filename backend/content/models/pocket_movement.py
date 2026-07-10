@@ -12,8 +12,8 @@ class PocketMovement(AccountingRecordBase):
 
     Direction + positive amount keeps validation trivial and aggregation
     explicit: balance = Sum(in) - Sum(out). Movements can be auto-managed
-    by income/expense records (see their `pocket_movement` reverse
-    relations); those rows are not editable through the pocket CRUD.
+    by income records (see the `pocket_movement` reverse relation);
+    those rows are not editable through the pocket CRUD.
     """
 
     class Direction(models.TextChoices):
@@ -41,8 +41,5 @@ class PocketMovement(AccountingRecordBase):
 
     @property
     def is_auto_managed(self):
-        """True when this movement is controlled by an income/expense record."""
-        return (
-            getattr(self, 'income_record', None) is not None
-            or getattr(self, 'expense_record', None) is not None
-        )
+        """True when this movement is controlled by an income record."""
+        return getattr(self, 'income_record', None) is not None
