@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('content', '0145_remove_expenserecord_paid_from_and_more'),
+        ('content', '0150_backfill_hosting_cycles'),
     ]
 
     operations = [

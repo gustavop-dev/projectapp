@@ -55,7 +55,7 @@ def apply_defaults(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('content', '0146_hourpackagesettings'),
+        ('content', '0151_hourpackagesettings'),
     ]
 
     operations = [

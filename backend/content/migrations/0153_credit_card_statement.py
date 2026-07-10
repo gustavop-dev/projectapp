@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('content', '0147_reset_hour_package_defaults'),
+        ('content', '0152_reset_hour_package_defaults'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
