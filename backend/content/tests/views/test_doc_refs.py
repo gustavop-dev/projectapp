@@ -199,7 +199,7 @@ class TestResolveProposalDocRefsViaEndpoint:
 class TestResolveDiagnosticDocRefsViaEndpoint:
 
     @patch('content.services.diagnostic_email_service.EmailMultiAlternatives')
-    @patch('content.services.diagnostic_email_service.render_to_string')
+    @patch('content.services.proposal_email_service.render_to_string')
     def test_template_ref_resolves_md_file(
         self, mock_render, mock_email_cls, admin_client, diagnostic
     ):
@@ -214,7 +214,7 @@ class TestResolveDiagnosticDocRefsViaEndpoint:
         mock_render.assert_called()
 
     @patch('content.services.diagnostic_email_service.EmailMultiAlternatives')
-    @patch('content.services.diagnostic_email_service.render_to_string')
+    @patch('content.services.proposal_email_service.render_to_string')
     def test_attachment_ref_resolves_uploaded_file(
         self, mock_render, mock_email_cls, admin_client, diagnostic, diagnostic_with_attachment
     ):
@@ -232,7 +232,7 @@ class TestResolveDiagnosticDocRefsViaEndpoint:
         mock_render.assert_called()
 
     @patch('content.services.diagnostic_email_service.EmailMultiAlternatives')
-    @patch('content.services.diagnostic_email_service.render_to_string')
+    @patch('content.services.proposal_email_service.render_to_string')
     @patch('content.services.confidentiality_pdf_service.generate_confidentiality_pdf',
            return_value=b'%PDF-1.4 nda')
     def test_nda_final_ref_resolves_generated_pdf(

@@ -145,7 +145,9 @@ test.describe('Admin Document Folders and Tags', () => {
     await page.goto('/panel/documents');
     await page.waitForLoadState('domcontentloaded');
 
-    await page.getByRole('button', { name: 'Sin carpeta' }).click();
+    // exact: the row kebabs now expose "Acciones de <título>" labels that
+    // would substring-match "Sin carpeta".
+    await page.getByRole('button', { name: 'Sin carpeta', exact: true }).click();
 
     await expect.poll(
       () => requestedUrls.some((u) => u.includes('folder=none')),

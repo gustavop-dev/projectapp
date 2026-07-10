@@ -48,10 +48,23 @@ const mockHistoryWithEntries = {
 };
 
 function setupMocks(page, { history = mockHistoryEmpty } = {}) {
-  return mockApi(page, async ({ apiPath, method }) => {
+  return mockApi(page, async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') return authCheck;
     if (apiPath === 'emails/defaults/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDefaults) };
+    }
+    if (apiPath === 'emails/preview/' && method === 'POST') {
+      // Echo the composed sections back as the server-rendered branded html.
+      const payload = route.request().postDataJSON() || {};
+      const sectionsHtml = (payload.sections || []).map((s) => `<p>${s.text}</p>`).join('');
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          subject: payload.subject || '',
+          html_preview: `<!doctype html><html><body>${sectionsHtml}<div>team@projectapp.co</div></body></html>`,
+        }),
+      };
     }
     if (apiPath.startsWith('emails/history') && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(history) };
@@ -130,7 +143,7 @@ test.describe('Admin Standalone Email Composer', () => {
     await expect(page.getByText('Correo enviado correctamente.')).toBeVisible({ timeout: 5000 });
   });
 
-  test('preview tab shows branded email preview', {
+  test('preview tab fetches the server-rendered template into an iframe', {
     tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
   }, async ({ page }) => {
     await setupMocks(page);
@@ -141,9 +154,38 @@ test.describe('Admin Standalone Email Composer', () => {
     await page.getByPlaceholder('Asunto del correo').fill('Preview Test');
     await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Body content for preview.');
 
+    const previewWait = page.waitForResponse(
+      (res) => res.url().includes('emails/preview/') && res.status() === 200,
+    );
     await page.getByRole('button', { name: /vista previa/i }).click();
+    await previewWait;
 
-    await expect(page.getByText('Body content for preview.')).toBeVisible();
+    const frame = page.frameLocator('iframe[title="Vista previa del correo"]');
+    await expect(frame.getByText('Body content for preview.')).toBeVisible();
+    await expect(frame.getByText('team@projectapp.co')).toBeVisible();
+  });
+
+  test('markdown toggle sends the section flagged as markdown', {
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+  }, async ({ page }) => {
+    await setupMocks(page);
+    await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Emails' })).toBeVisible({ timeout: 20_000 });
+
+    await page.getByPlaceholder('correo@ejemplo.com').fill('test@example.com');
+    await page.getByPlaceholder('Asunto del correo').fill('Markdown Test');
+    await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Texto **con** markdown');
+    await page.getByRole('switch', { name: 'Activar Markdown en esta sección' }).click();
+
+    const previewRequest = page.waitForRequest(
+      (req) => req.url().includes('emails/preview/') && req.method() === 'POST',
+    );
+    await page.getByRole('button', { name: /vista previa/i }).click();
+    const request = await previewRequest;
+
+    expect(request.postDataJSON().sections).toEqual([
+      { text: 'Texto **con** markdown', markdown: true },
+    ]);
   });
 
   test('renders email history with entries', {

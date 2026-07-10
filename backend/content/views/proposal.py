@@ -3952,21 +3952,18 @@ def _parse_composed_email(request, proposal, template_key):
     footer = (request.data.get('footer') or '').strip()
 
     # ── Sections (JSON-encoded string in multipart) ──
-    raw_sections = request.data.get('sections', '[]')
-    try:
-        sections = json.loads(raw_sections) if isinstance(raw_sections, str) else raw_sections
-    except (json.JSONDecodeError, TypeError):
+    from content.views.standalone_email import _parse_sections_field
+    sections, sections_error = _parse_sections_field(request.data.get('sections', '[]'))
+    if sections_error:
         return None, Response(
-            {'error': 'Las secciones deben ser un JSON válido.'},
+            {'error': sections_error},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
-    if not isinstance(sections, list) or not any(s.strip() for s in sections if isinstance(s, str)):
+    if not sections:
         return None, Response(
             {'error': 'Debe incluir al menos una sección con contenido.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    sections = [s for s in sections if isinstance(s, str) and s.strip()]
 
     # ── File attachments ──
     attachments = []

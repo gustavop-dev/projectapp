@@ -29,6 +29,14 @@ function formatDate(isoString) {
   })
 }
 
+// metadata.sections stores legacy plain strings and new {text, markdown} dicts.
+function sectionText(section) {
+  return typeof section === 'string' ? section : (section?.text || '')
+}
+function sectionIsMarkdown(section) {
+  return typeof section === 'object' && !!section?.markdown
+}
+
 const expandedIds = ref({})
 function toggleExpand(id) {
   if (expandedIds.value[id]) delete expandedIds.value[id]
@@ -79,7 +87,9 @@ function toggleExpand(id) {
             <p class="text-2xs text-text-subtle uppercase tracking-wide mb-1">Secciones</p>
             <div v-for="(section, idx) in entry.metadata.sections" :key="idx"
               class="bg-surface rounded-lg px-3 py-2 mb-1.5 border border-border-muted">
-              <p class="text-xs text-text-default whitespace-pre-wrap">{{ section }}</p>
+              <span v-if="sectionIsMarkdown(section)"
+                class="inline-block mb-1 px-1.5 py-0.5 bg-primary-soft text-text-brand rounded text-[9px] font-medium uppercase tracking-wide">MD</span>
+              <p class="text-xs text-text-default whitespace-pre-wrap">{{ sectionText(section) }}</p>
             </div>
           </div>
           <div v-if="entry.metadata?.footer">

@@ -25,6 +25,26 @@ _MAX_FILE = 15 * 1024 * 1024  # 15 MB
 _TEMPLATE_KEY = 'branded_email'
 
 
+def _parse_sections_field(raw_sections):
+    """Parse a request ``sections`` field (JSON string or list).
+
+    Returns ``(sections, error_message)`` where ``sections`` is the
+    normalized ``[{'text', 'markdown'}]`` list. Accepts the legacy
+    plain-string shape and the new ``{text, markdown}`` dicts.
+    """
+    from content.services.email_markdown import normalize_sections
+
+    try:
+        sections = json.loads(raw_sections) if isinstance(raw_sections, str) else raw_sections
+    except (json.JSONDecodeError, TypeError):
+        return None, 'Las secciones deben ser un JSON válido.'
+    if sections is None:
+        sections = []
+    if not isinstance(sections, list):
+        return None, 'Las secciones deben ser un JSON válido.'
+    return normalize_sections(sections), None
+
+
 def _parse_standalone_email(request):
     """Validate and parse a standalone composed-email request.
 
@@ -67,21 +87,17 @@ def _parse_standalone_email(request):
     footer = (request.data.get('footer') or '').strip()
 
     # ── Sections (JSON-encoded string in multipart) ──
-    raw_sections = request.data.get('sections', '[]')
-    try:
-        sections = json.loads(raw_sections) if isinstance(raw_sections, str) else raw_sections
-    except (json.JSONDecodeError, TypeError):
+    sections, sections_error = _parse_sections_field(request.data.get('sections', '[]'))
+    if sections_error:
         return None, Response(
-            {'error': 'Las secciones deben ser un JSON válido.'},
+            {'error': sections_error},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
-    if not isinstance(sections, list) or not any(s.strip() for s in sections if isinstance(s, str)):
+    if not sections:
         return None, Response(
             {'error': 'Debe incluir al menos una sección con contenido.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    sections = [s for s in sections if isinstance(s, str) and s.strip()]
 
     # ── File attachments ──
     attachments = []
@@ -161,6 +177,49 @@ def send_standalone_email(request):
     return Response(
         {'error': 'Error al enviar el correo. Intenta de nuevo.'},
         status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def preview_composed_email(request):
+    """Render the branded email HTML exactly as the send path would.
+
+    Feeds the composers' "Vista previa" iframe: no email is sent, nothing
+    is logged in ``EmailLog`` and the send rate limit does not apply.
+    Accepts an optional ``proposal_id`` so the proposal composer's preview
+    resolves the same signature as its send path.
+    """
+    subject = (request.data.get('subject') or '').strip()
+    greeting = (request.data.get('greeting') or '').strip()
+    footer = (request.data.get('footer') or '').strip()
+
+    sections, sections_error = _parse_sections_field(request.data.get('sections', []))
+    if sections_error:
+        return Response(
+            {'error': sections_error},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    attachment_names = request.data.get('attachment_names') or []
+    if not isinstance(attachment_names, list):
+        attachment_names = []
+    attachment_names = [n.strip() for n in attachment_names if isinstance(n, str) and n.strip()]
+
+    proposal = None
+    proposal_id = request.data.get('proposal_id')
+    if proposal_id:
+        from content.models import BusinessProposal
+        proposal = BusinessProposal.objects.filter(pk=proposal_id).first()
+
+    from content.services.proposal_email_service import ProposalEmailService
+    html_content, _ = ProposalEmailService.render_composed_email(
+        _TEMPLATE_KEY, proposal, subject, greeting,
+        sections, footer, attachment_names,
+    )
+    return Response(
+        {'subject': subject, 'html_preview': html_content},
+        status=status.HTTP_200_OK,
     )
 
 

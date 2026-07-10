@@ -1,8 +1,11 @@
+import { replaceEmojiShortcodes } from '~/utils/emojiShortcodes';
+
 export function useMarkdownPreview() {
   const parseMarkdown = (md) => {
     if (!md) return '';
 
-    let html = md;
+    // :shortcode: → emoji (skips fenced blocks and inline code)
+    let html = replaceEmojiShortcodes(md);
 
     // Normalize line endings
     html = html.replace(/\r\n/g, '\n');

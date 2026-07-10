@@ -1209,26 +1209,18 @@ def _parse_diagnostic_email(request, diagnostic):
     greeting = (request.data.get('greeting') or '').strip()
     footer = (request.data.get('footer') or '').strip()
 
-    raw_sections = request.data.get('sections', '[]')
-    try:
-        sections = (
-            json.loads(raw_sections) if isinstance(raw_sections, str)
-            else raw_sections
-        )
-    except (json.JSONDecodeError, TypeError):
+    from content.views.standalone_email import _parse_sections_field
+    sections, sections_error = _parse_sections_field(request.data.get('sections', '[]'))
+    if sections_error:
         return None, error_response(
-            'Las secciones deben ser un JSON válido.',
+            sections_error,
             code='invalid_sections_json',
         )
-
-    if not isinstance(sections, list) or not any(
-        s.strip() for s in sections if isinstance(s, str)
-    ):
+    if not sections:
         return None, error_response(
             'Debe incluir al menos una sección con contenido.',
             code='sections_content_required',
         )
-    sections = [s for s in sections if isinstance(s, str) and s.strip()]
 
     attachments = []
     for f in request.FILES.getlist('attachments'):

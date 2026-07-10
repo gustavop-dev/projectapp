@@ -1526,7 +1526,7 @@ class TestSendComposedEmail:
         log = EmailLog.objects.get(proposal=email_proposal, template_key='branded_email')
         assert log.status == 'sent'
         assert log.metadata['greeting'] == 'Hola'
-        assert log.metadata['sections'] == ['Sec 1']
+        assert log.metadata['sections'] == [{'text': 'Sec 1', 'markdown': False}]
         assert log.metadata['footer'] == 'Bye'
 
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
@@ -1895,3 +1895,51 @@ class TestSendStageOverdue:
             stage_proposal, design_stage, days_overdue=3,
         )
         assert result is False
+
+
+class TestRenderComposedEmail:
+    """render_composed_email — shared render step for send + preview."""
+
+    def test_plain_string_sections_render_pre_wrap_paragraphs(self):
+        html, txt = ProposalEmailService.render_composed_email(
+            'branded_email', None, 'Asunto', 'Hola',
+            ['linea uno\nlinea dos'], 'Pie', [],
+        )
+        assert 'white-space:pre-wrap' in html
+        assert 'linea uno' in html
+        assert 'linea uno' in txt
+
+    def test_markdown_sections_render_html_only_in_html_alternative(self):
+        html, txt = ProposalEmailService.render_composed_email(
+            'branded_email', None, 'Asunto', 'Hola',
+            [{'text': '**negrita** y [web](https://projectapp.co)', 'markdown': True}],
+            '', [],
+        )
+        assert '<strong style="font-weight:500;">negrita</strong>' in html
+        assert '<a href="https://projectapp.co"' in html
+        # The plain-text alternative keeps the raw markdown source.
+        assert '**negrita**' in txt
+        assert '<strong' not in txt
+
+    def test_mixed_sections_and_elegant_footer_present(self):
+        html, _ = ProposalEmailService.render_composed_email(
+            'branded_email', None, 'Asunto', 'Hola',
+            ['plano', {'text': '## Titulo', 'markdown': True}], '', ['doc.pdf'],
+        )
+        assert 'plano' in html
+        assert 'font-size:19px' in html  # h2 heading from markdown
+        assert 'background:#001713' in html  # dark contact footer
+        assert 'doc.pdf' in html
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_send_composed_email_logs_normalized_dict_metadata(self):
+        result = ProposalEmailService._send_composed_email(
+            'branded_email', None, 'client@example.com', 'Asunto', 'Hola',
+            ['plano', {'text': '**md**', 'markdown': True}], 'Pie',
+        )
+        assert result is True
+        log = EmailLog.objects.get(template_key='branded_email')
+        assert log.metadata['sections'] == [
+            {'text': 'plano', 'markdown': False},
+            {'text': '**md**', 'markdown': True},
+        ]

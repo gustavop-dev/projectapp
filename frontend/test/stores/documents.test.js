@@ -72,6 +72,22 @@ describe('useDocumentStore', () => {
       expect(result.errors).toEqual({ detail: 'x' })
     })
 
+    it('normalizes failure into message/code/status', async () => {
+      get_request.mockRejectedValueOnce({
+        response: { status: 500, data: { detail: 'boom' } },
+      })
+      const result = await store.fetchDocuments()
+      expect(result.message).toBe('boom')
+      expect(result.status).toBe(500)
+    })
+
+    it('falls back to a spanish message when the error has no payload', async () => {
+      get_request.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchDocuments()
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No se pudieron cargar los documentos.')
+    })
+
     it('calls documents/ with no query params when no filters active', async () => {
       get_request.mockResolvedValueOnce({ data: [] })
       await store.fetchDocuments()

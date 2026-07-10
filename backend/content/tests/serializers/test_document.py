@@ -38,13 +38,34 @@ class TestDocumentListSerializer:
             'id', 'uuid', 'title', 'slug', 'status', 'client_name',
             'language', 'cover_type', 'include_portada', 'include_subportada',
             'include_contraportada', 'folder', 'folder_name', 'tag_details',
-            'created_at', 'updated_at',
+            'content_excerpt', 'created_at', 'updated_at',
         }
         assert set(data.keys()) == expected
 
     def test_excludes_content_markdown(self, document):
         data = DocumentListSerializer(document).data
         assert 'content_markdown' not in data
+
+    def test_content_excerpt_returns_short_markdown_whole(self, document):
+        data = DocumentListSerializer(document).data
+        assert data['content_excerpt'] == '# Hello'
+
+    def test_content_excerpt_cuts_long_markdown_at_line_boundary(self, document):
+        line = 'x' * 80
+        document.content_markdown = '\n'.join([line] * 10)  # 809 chars
+        document.save()
+
+        data = DocumentListSerializer(document).data
+
+        assert len(data['content_excerpt']) <= 500
+        # Cut lands on a line boundary: only whole 80-char lines survive.
+        assert all(part == line for part in data['content_excerpt'].split('\n'))
+
+    def test_content_excerpt_empty_when_no_markdown(self, document):
+        document.content_markdown = ''
+        document.save()
+        data = DocumentListSerializer(document).data
+        assert data['content_excerpt'] == ''
 
     def test_excludes_content_json(self, document):
         data = DocumentListSerializer(document).data

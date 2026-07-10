@@ -14,6 +14,9 @@ class DocumentListSerializer(serializers.ModelSerializer):
 
     folder_name = serializers.CharField(source='folder.name', read_only=True, default=None)
     tag_details = _TagSummarySerializer(source='tags', many=True, read_only=True)
+    content_excerpt = serializers.SerializerMethodField()
+
+    EXCERPT_MAX_CHARS = 500
 
     class Meta:
         model = Document
@@ -21,9 +24,24 @@ class DocumentListSerializer(serializers.ModelSerializer):
             'id', 'uuid', 'title', 'slug', 'status',
             'client_name', 'language', 'cover_type',
             'include_portada', 'include_subportada', 'include_contraportada',
-            'folder', 'folder_name', 'tag_details',
+            'folder', 'folder_name', 'tag_details', 'content_excerpt',
             'created_at', 'updated_at',
         )
+
+    def get_content_excerpt(self, obj):
+        """First ~500 chars of the markdown, cut at the last complete line.
+
+        Feeds the gallery mini-preview so the list payload stays small; the
+        frontend closes any dangling code fence before rendering it.
+        """
+        markdown = obj.content_markdown or ''
+        if len(markdown) <= self.EXCERPT_MAX_CHARS:
+            return markdown
+        cut = markdown[:self.EXCERPT_MAX_CHARS]
+        last_newline = cut.rfind('\n')
+        if last_newline > 0:
+            cut = cut[:last_newline]
+        return cut
 
 
 class DocumentDetailSerializer(serializers.ModelSerializer):

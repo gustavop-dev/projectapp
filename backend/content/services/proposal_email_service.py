@@ -2352,6 +2352,52 @@ class ProposalEmailService:
     # ── User-composed emails (branded & proposal) ───────────────────
 
     @classmethod
+    def render_composed_email(
+        cls, template_key, proposal, subject, greeting,
+        sections, footer='', attachment_names=None,
+    ):
+        """Render a user-composed email exactly as the send path does.
+
+        Returns ``(html_content, text_content)``. ``sections`` accepts both
+        plain strings and ``{'text', 'markdown'}`` dicts; markdown sections
+        are converted to inline-styled HTML for the html alternative while
+        the text alternative keeps the raw text. Shared by the send funnel
+        and the composed-email preview endpoint so they can never drift.
+        """
+        from content.services.email_markdown import (
+            markdown_to_email_html, normalize_sections,
+        )
+        from content.services.email_template_registry import get_template_entry
+
+        normalized = normalize_sections(sections)
+        html_sections = []
+        for item in normalized:
+            if item['markdown']:
+                html = markdown_to_email_html(item['text'])
+                # Empty conversion (e.g. only [TOC]) falls back to plain text.
+                html_sections.append({'html': html} if html else item['text'])
+            else:
+                html_sections.append(item['text'])
+        text_sections = [item['text'] for item in normalized]
+
+        base_context = {
+            'subject': subject,
+            'greeting': greeting,
+            'footer': footer,
+            'attachment_names': attachment_names or [],
+        }
+        base_context.update(_build_design_context(proposal))
+
+        entry = get_template_entry(template_key)
+        html_content = render_to_string(
+            entry['html_template'], {**base_context, 'sections': html_sections},
+        )
+        text_content = render_to_string(
+            entry['txt_template'], {**base_context, 'sections': text_sections},
+        )
+        return html_content, text_content
+
+    @classmethod
     def _send_composed_email(
         cls, template_key, proposal, recipient_email, subject,
         greeting, sections, footer='', attachments=None,
@@ -2361,28 +2407,22 @@ class ProposalEmailService:
 
         Shared implementation for branded emails and proposal emails.
         """
+        from content.services.email_markdown import normalize_sections
+
         attachment_names = [a[0] for a in attachments] if attachments else []
+        normalized_sections = normalize_sections(sections)
         log_metadata = {
             'greeting': greeting,
-            'sections': sections,
+            'sections': normalized_sections,
             'footer': footer,
             'attachment_names': attachment_names,
         }
 
         try:
-            context = {
-                'subject': subject,
-                'greeting': greeting,
-                'sections': sections,
-                'footer': footer,
-                'attachment_names': attachment_names,
-            }
-            context.update(_build_design_context(proposal))
-
-            from content.services.email_template_registry import get_template_entry
-            entry = get_template_entry(template_key)
-            html_content = render_to_string(entry['html_template'], context)
-            text_content = render_to_string(entry['txt_template'], context)
+            html_content, text_content = cls.render_composed_email(
+                template_key, proposal, subject, greeting,
+                normalized_sections, footer, attachment_names,
+            )
 
             email = EmailMultiAlternatives(
                 subject=subject,
