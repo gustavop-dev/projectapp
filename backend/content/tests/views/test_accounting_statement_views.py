@@ -149,7 +149,7 @@ class TestStatementLifecycleEndpoints:
 
 
 class TestTransactionEndpoints:
-    def test_batch_appends_to_draft(self, super_client):
+    def test_bulk_create_appends_to_draft(self, super_client):
         data = _create_statement(super_client)
         response = super_client.post(
             f"/api/accounting/statements/{data['id']}/transactions/batch/",

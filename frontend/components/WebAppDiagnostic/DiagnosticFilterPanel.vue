@@ -1,10 +1,10 @@
 <template>
   <div v-show="isOpen" class="mb-4">
-    <div class="bg-surface border border-border-default rounded-xl divide-y divide-gray-100 dark:divide-gray-700/60">
+    <div class="bg-surface border border-border-default rounded-xl divide-y divide-border-muted">
 
       <!-- Estado -->
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
-        <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-text-muted w-[5.5rem] shrink-0">Estado</span>
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Estado</span>
         <ProposalFilterDropdown
           label="Estado"
           :options="statusOptions"
@@ -15,7 +15,7 @@
 
       <!-- Inversión -->
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
-        <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-text-muted w-[5.5rem] shrink-0">Inversión</span>
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Inversión</span>
         <ProposalFilterRangeDropdown
           label="Monto"
           type="money"
@@ -30,7 +30,7 @@
 
       <!-- Fechas -->
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
-        <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-text-muted w-[5.5rem] shrink-0">Fechas</span>
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Fechas</span>
         <ProposalFilterRangeDropdown
           label="Creado"
           type="date"
@@ -49,7 +49,7 @@
         <button
           v-if="filterCount > 0"
           type="button"
-          class="text-xs text-gray-400 dark:text-text-muted hover:text-red-500 dark:hover:text-red-400 transition-colors font-medium whitespace-nowrap"
+          class="text-xs text-text-subtle hover:text-danger-strong transition-colors font-medium whitespace-nowrap"
           @click="emit('reset')"
         >
           Limpiar todo
@@ -59,7 +59,7 @@
 
     <!-- Active filter chips -->
     <div v-if="activeChips.length > 0" class="flex flex-wrap items-center gap-1.5 mt-2 px-1">
-      <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-text-muted mr-0.5">Activos:</span>
+      <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle mr-0.5">Activos:</span>
       <span
         v-for="chip in activeChips"
         :key="chip.key"

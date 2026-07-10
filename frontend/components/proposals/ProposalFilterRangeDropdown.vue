@@ -108,8 +108,15 @@ function onLiveInput(event, value) {
 }
 
 // Money inputs already emit numbers per keystroke; always debounce them.
+// One debounced fn per side: a shared one would cancel the min emission
+// when the user (or a test) fills max within the debounce window.
+const moneyEmitters = {
+  'update:minValue': useDebounceFn((value) => emit('update:minValue', parseValue(value)), 250),
+  'update:maxValue': useDebounceFn((value) => emit('update:maxValue', parseValue(value)), 250),
+};
+
 function onMoneyInput(event, value) {
-  debouncedEmit(event, value);
+  moneyEmitters[event](value);
 }
 
 const isOpen = ref(false);

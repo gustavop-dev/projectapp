@@ -3,7 +3,7 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 
 from content.models import (
     CreditCardStatement,
@@ -49,7 +49,9 @@ class TestCreditCardStatement:
     def test_card_and_period_are_unique_together(self):
         _statement()
         with pytest.raises(IntegrityError):
-            _statement()
+            with transaction.atomic():
+                _statement()
+        assert CreditCardStatement.objects.count() == 1
 
     def test_same_period_different_card_is_allowed(self):
         _statement()
@@ -74,6 +76,8 @@ class TestMerchantAlias:
             match_text='PAYU*NETFLIX', merchant_name='Netflix',
         )
         with pytest.raises(IntegrityError):
-            MerchantAlias.objects.create(
-                match_text='PAYU*NETFLIX', merchant_name='Otro',
-            )
+            with transaction.atomic():
+                MerchantAlias.objects.create(
+                    match_text='PAYU*NETFLIX', merchant_name='Otro',
+                )
+        assert MerchantAlias.objects.count() == 1

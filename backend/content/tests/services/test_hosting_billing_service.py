@@ -112,20 +112,26 @@ class TestSendFlow:
 
     def test_requires_client_email(self):
         hosting = make_hosting(client_email='')
-        with pytest.raises(HostingBillingError, match='email'):
+        with pytest.raises(HostingBillingError) as excinfo:
             send_hosting_collection_account(hosting)
+        assert 'email' in str(excinfo.value)
+        assert Document.objects.count() == 0
 
     def test_requires_payment_per_cycle(self):
         hosting = make_hosting(payment_per_cycle=Decimal('0'))
-        with pytest.raises(HostingBillingError, match='pago por ciclo'):
+        with pytest.raises(HostingBillingError) as excinfo:
             send_hosting_collection_account(hosting)
+        assert 'pago por ciclo' in str(excinfo.value)
+        assert Document.objects.count() == 0
 
     def test_duplicate_period_guard(self):
         hosting = make_hosting()
         send_hosting_collection_account(hosting)
         hosting.refresh_from_db()
-        with pytest.raises(HostingBillingError, match='Reenviar'):
+        with pytest.raises(HostingBillingError) as excinfo:
             send_hosting_collection_account(hosting)
+        assert 'Reenviar' in str(excinfo.value)
+        assert Document.objects.count() == 1
 
     def test_email_failure_keeps_document_issued(self):
         hosting = make_hosting()
@@ -160,5 +166,7 @@ class TestResend:
         hosting = make_hosting()
         document = create_hosting_collection_account(hosting)
         # Draft: the customer snapshot only happens at issue time.
-        with pytest.raises(HostingBillingError):
+        with pytest.raises(HostingBillingError) as excinfo:
             resend_collection_account_email(document)
+        assert 'email de cliente' in str(excinfo.value)
+        assert len(mail.outbox) == 0
