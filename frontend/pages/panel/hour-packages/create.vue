@@ -67,7 +67,7 @@
           </div>
           <div>
             <label for="hp-hourly-rate" class="block text-sm font-medium text-text-default mb-1">Tarifa por hora ({{ derivedCurrency }})</label>
-            <input id="hp-hourly-rate" v-model.number="form.hourly_rate" type="number" min="0" step="0.01" required class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-input-text text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" />
+            <BaseCurrencyInput id="hp-hourly-rate" v-model="form.hourly_rate" :decimals="2" required />
             <p v-if="fieldErrors.hourly_rate" class="text-xs text-danger-strong mt-1">{{ fieldErrors.hourly_rate }}</p>
           </div>
           <div>

@@ -9,6 +9,7 @@ const { isDark, toggle } = useDiagnosticDarkMode()
 // Demo state for components
 const sampleText = ref('Texto de ejemplo')
 const sampleNumber = ref(42)
+const sampleMoney = ref(1234567)
 const sampleSelect = ref('a')
 const sampleTextarea = ref('Una nota corta\ncon dos líneas.')
 const toggleA = ref(true)
@@ -141,6 +142,9 @@ const shadowScale = [
           </BaseFormField>
           <BaseFormField label="Número" required for="sg-num">
             <BaseInput id="sg-num" v-model.number="sampleNumber" type="number" min="0" />
+          </BaseFormField>
+          <BaseFormField label="Dinero (separador de miles)" hint="Emite Number; decimals=2 permite coma decimal" for="sg-money">
+            <BaseCurrencyInput id="sg-money" v-model="sampleMoney" placeholder="1.234.567" />
           </BaseFormField>
           <BaseFormField
             label="Con error"

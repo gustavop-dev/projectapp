@@ -236,7 +236,7 @@ const filterFields = computed(() => [
       { value: 'other', label: 'Otro' },
     ],
   },
-  { kind: 'range', minKey: 'amount_min', maxKey: 'amount_max', label: 'Valor' },
+  { kind: 'range', minKey: 'amount_min', maxKey: 'amount_max', label: 'Valor', type: 'money' },
 ]);
 
 const EXPORT_MAPPING = {

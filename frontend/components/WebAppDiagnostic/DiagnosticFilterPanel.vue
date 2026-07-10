@@ -18,7 +18,7 @@
         <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-text-muted w-[5.5rem] shrink-0">Inversión</span>
         <ProposalFilterRangeDropdown
           label="Monto"
-          type="number"
+          type="money"
           min-placeholder="Mín"
           max-placeholder="Máx"
           :min-value="modelValue.investmentMin"

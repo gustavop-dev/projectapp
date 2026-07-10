@@ -29,6 +29,12 @@ function mountModal(props = {}) {
           template:
             '<input :type="type || \'text\'" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
+        BaseCurrencyInput: {
+          props: ['modelValue', 'decimals', 'size', 'error', 'placeholder', 'disabled'],
+          emits: ['update:modelValue'],
+          template:
+            '<input type="text" inputmode="numeric" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value === \'\' ? null : Number($event.target.value))" />',
+        },
         BaseTextarea: {
           props: ['modelValue', 'rows', 'size', 'error', 'placeholder', 'disabled'],
           emits: ['update:modelValue'],
@@ -74,7 +80,7 @@ describe('CardSnapshotFormModal', () => {
     const wrapper = mountModal();
     await wrapper.find('input[type="text"]').setValue('T.C 0655');
     await wrapper.find('input[type="date"]').setValue('2026-07-03');
-    const numbers = wrapper.findAll('input[type="number"]');
+    const numbers = wrapper.findAll('input[inputmode="numeric"]');
     await numbers[0].setValue('500000');
     await numbers[1].setValue('2500000');
     await wrapper.find('form').trigger('submit');
@@ -82,8 +88,8 @@ describe('CardSnapshotFormModal', () => {
     expect(wrapper.emitted('submit')[0][0]).toEqual({
       snapshot_date: '2026-07-03',
       card_name: 'T.C 0655',
-      available_amount: '500000',
-      debt_amount: '2500000',
+      available_amount: 500000,
+      debt_amount: 2500000,
       notes: '',
     });
   });

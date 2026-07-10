@@ -271,7 +271,7 @@ const filterFields = [
       { value: 'annual', label: 'Anual' },
     ],
   },
-  { kind: 'range', label: 'Valor/mes', minKey: 'valueMin', maxKey: 'valueMax', type: 'number' },
+  { kind: 'range', label: 'Valor/mes', minKey: 'valueMin', maxKey: 'valueMax', type: 'money' },
   { kind: 'daterange', label: 'Vencimiento', minKey: 'validToAfter', maxKey: 'validToBefore' },
   {
     kind: 'segmented',

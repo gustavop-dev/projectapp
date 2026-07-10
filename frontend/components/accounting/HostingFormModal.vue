@@ -104,7 +104,7 @@ function onSubmit() {
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <BaseFormField label="Valor por mes" required>
-          <BaseInput v-model="form.monthly_value" type="number" step="0.01" min="0" required />
+          <BaseCurrencyInput v-model="form.monthly_value" required />
         </BaseFormField>
         <BaseFormField label="Modalidad de pago">
           <BaseSelect v-model="form.payment_modality" :options="modalityOptions" />
@@ -132,12 +132,12 @@ function onSubmit() {
           label="Pago por ciclo"
           hint="Si lo dejas vacío al crear, se calcula desde la modalidad"
         >
-          <BaseInput v-model="form.payment_per_cycle" type="number" step="0.01" min="0" />
+          <BaseCurrencyInput v-model="form.payment_per_cycle" />
         </BaseFormField>
       </div>
 
       <BaseFormField label="Total pagado a la fecha">
-        <BaseInput v-model="form.total_paid" type="number" step="0.01" min="0" />
+        <BaseCurrencyInput v-model="form.total_paid" />
       </BaseFormField>
 
       <BaseFormField label="Activo">

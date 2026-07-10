@@ -115,7 +115,11 @@ function onSubmit() {
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <BaseFormField label="Precio" required>
-          <BaseInput v-model="form.price" type="number" step="0.01" min="0" required />
+          <BaseCurrencyInput
+            v-model="form.price"
+            :decimals="form.currency === 'USD' ? 2 : 0"
+            required
+          />
         </BaseFormField>
         <BaseFormField label="Moneda">
           <BaseSegmented v-model="form.currency" :options="currencyOptions" full-width />
@@ -127,7 +131,7 @@ function onSubmit() {
         label="Equivalente COP"
         hint="Para COP se toma el precio automáticamente"
       >
-        <BaseInput v-model="form.cop_equivalent" type="number" step="0.01" min="0" />
+        <BaseCurrencyInput v-model="form.cop_equivalent" />
       </BaseFormField>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

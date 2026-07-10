@@ -2,9 +2,8 @@
   <div class="space-y-4">
     <div>
       <label class="block text-xs font-medium text-text-muted mb-1">Valor total</label>
-      <BaseInput
+      <BaseCurrencyInput
         :model-value="total"
-        type="number"
         placeholder="0"
         data-testid="partner-split-total"
         @update:model-value="onTotalInput"
@@ -24,9 +23,8 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
         <label class="block text-xs font-medium text-text-muted mb-1">Gustavo</label>
-        <BaseInput
+        <BaseCurrencyInput
           :model-value="gustavoAmount"
-          type="number"
           placeholder="0"
           :disabled="autoSplit"
           data-testid="partner-split-gustavo"
@@ -35,9 +33,8 @@
       </div>
       <div>
         <label class="block text-xs font-medium text-text-muted mb-1">Carlos</label>
-        <BaseInput
+        <BaseCurrencyInput
           :model-value="carlosAmount"
-          type="number"
           placeholder="0"
           :disabled="autoSplit"
           data-testid="partner-split-carlos"
@@ -66,7 +63,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import BaseInput from '~/components/base/BaseInput.vue';
+import BaseCurrencyInput from '~/components/base/BaseCurrencyInput.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
 import { formatMoney } from '~/utils/formatMoney';
 

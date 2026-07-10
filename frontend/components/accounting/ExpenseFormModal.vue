@@ -111,13 +111,7 @@ function onSubmit() {
       />
 
       <BaseFormField v-else label="Valor" required>
-        <BaseInput
-          v-model="form.total_amount"
-          type="number"
-          min="0"
-          step="0.01"
-          required
-        />
+        <BaseCurrencyInput v-model="form.total_amount" required />
       </BaseFormField>
 
       <BaseFormField label="Notas">

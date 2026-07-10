@@ -41,6 +41,12 @@ function mountModal(props = {}) {
           template:
             '<input :type="type || \'text\'" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
+        BaseCurrencyInput: {
+          props: ['modelValue', 'decimals', 'size', 'error', 'placeholder', 'disabled'],
+          emits: ['update:modelValue'],
+          template:
+            '<input type="text" inputmode="numeric" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value === \'\' ? null : Number($event.target.value))" />',
+        },
         BaseTextarea: {
           props: ['modelValue', 'rows', 'size', 'error', 'placeholder', 'disabled'],
           emits: ['update:modelValue'],
@@ -112,12 +118,12 @@ describe('ExpenseFormModal', () => {
 
     await wrapper.find('input[type="text"]').setValue('Aporte Carro Onix');
     await wrapper.find('input[type="month"]').setValue('2026-06');
-    await wrapper.find('input[type="number"]').setValue('3000000');
+    await wrapper.find('input[inputmode="numeric"]').setValue('3000000');
     await wrapper.find('form').trigger('submit');
 
     const payload = wrapper.emitted('submit')[0][0];
     expect(payload.ledger).toBe('gustavo');
-    expect(payload.total_amount).toBe('3000000');
+    expect(payload.total_amount).toBe(3000000);
     expect(payload).not.toHaveProperty('gustavo_amount');
     expect(payload).not.toHaveProperty('carlos_amount');
   });

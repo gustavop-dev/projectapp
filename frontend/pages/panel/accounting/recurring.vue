@@ -328,7 +328,7 @@ const filterFields = [
       { value: 'variable', label: 'Variable' },
     ],
   },
-  { kind: 'range', minKey: 'price_min', maxKey: 'price_max', label: 'Precio' },
+  { kind: 'range', minKey: 'price_min', maxKey: 'price_max', label: 'Precio', type: 'money' },
   {
     kind: 'segmented',
     key: 'is_active',

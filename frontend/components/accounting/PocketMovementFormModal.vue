@@ -82,7 +82,7 @@ function onSubmit() {
       </div>
 
       <BaseFormField label="Valor" required>
-        <BaseInput v-model="form.amount" type="number" step="0.01" min="0.01" required />
+        <BaseCurrencyInput v-model="form.amount" required />
       </BaseFormField>
 
       <BaseFormField label="Notas">

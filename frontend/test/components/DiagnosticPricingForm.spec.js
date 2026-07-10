@@ -18,8 +18,8 @@ describe('DiagnosticPricingForm', () => {
   it('renders investment_amount input with value from modelValue', () => {
     const wrapper = mountForm();
 
-    const input = wrapper.find('input[type="number"]');
-    expect(input.element.value).toBe('5000');
+    const input = wrapper.find('input[inputmode="decimal"]');
+    expect(input.element.value).toBe('5.000');
   });
 
   it('renders currency dropdown with COP and USD options', () => {
@@ -34,19 +34,19 @@ describe('DiagnosticPricingForm', () => {
   it('update emits update:modelValue with the new investment_amount', async () => {
     const wrapper = mountForm();
 
-    const input = wrapper.find('input[type="number"]');
+    const input = wrapper.find('input[inputmode="decimal"]');
     await input.setValue('9000');
     await input.trigger('input');
 
     const events = wrapper.emitted('update:modelValue');
     expect(events).toBeTruthy();
-    expect(events[0][0].investment_amount).toBe('9000');
+    expect(events[0][0].investment_amount).toBe(9000);
   });
 
   it('updatePayment emits update:modelValue with initial_pct coerced to Number', async () => {
     const wrapper = mountForm();
 
-    const initialPctInput = wrapper.findAll('input[type="number"]')[1];
+    const initialPctInput = wrapper.findAll('input[type="number"]')[0];
     await initialPctInput.setValue('30');
     await initialPctInput.trigger('input');
 
@@ -58,7 +58,7 @@ describe('DiagnosticPricingForm', () => {
   it('updatePayment emits update:modelValue with final_pct coerced to Number', async () => {
     const wrapper = mountForm();
 
-    const finalPctInput = wrapper.findAll('input[type="number"]')[2];
+    const finalPctInput = wrapper.findAll('input[type="number"]')[1];
     await finalPctInput.setValue('70');
     await finalPctInput.trigger('input');
 
@@ -88,14 +88,14 @@ describe('DiagnosticPricingForm', () => {
     });
 
     const inputs = wrapper.findAll('input[type="number"]');
-    expect(inputs[1].element.value).toBe('20');
-    expect(inputs[2].element.value).toBe('80');
+    expect(inputs[0].element.value).toBe('20');
+    expect(inputs[1].element.value).toBe('80');
   });
 
   it('updatePayment defaults to 0 when value is not a valid number', async () => {
     const wrapper = mountForm();
 
-    const initialPctInput = wrapper.findAll('input[type="number"]')[1];
+    const initialPctInput = wrapper.findAll('input[type="number"]')[0];
     await initialPctInput.setValue('');
     await initialPctInput.trigger('input');
 
