@@ -1526,7 +1526,7 @@ class TestSendComposedEmail:
         log = EmailLog.objects.get(proposal=email_proposal, template_key='branded_email')
         assert log.status == 'sent'
         assert log.metadata['greeting'] == 'Hola'
-        assert log.metadata['sections'] == ['Sec 1']
+        assert log.metadata['sections'] == [{'text': 'Sec 1', 'markdown': False}]
         assert log.metadata['footer'] == 'Bye'
 
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
