@@ -23,8 +23,9 @@ from content.services.pdf_utils import (
     GRAY_500, GRAY_300, WHITE, ESMERALD_80,
     COVER_PDF, BACK_COVER_PDF,
     PAGE_W, PAGE_H, MARGIN_L, MARGIN_R, MARGIN_T, MARGIN_B, CONTENT_W,
-    _strip_emoji, _replace_urls_with_placeholders,
-    _draw_line_with_links,
+    _sanitize_pdf_text, _replace_urls_with_placeholders,
+    _draw_line_with_links, _draw_mixed_string, _draw_mixed_centred,
+    _mixed_string_width,
     _new_page, _check_y,
     _draw_header_bar, _draw_footer,
     _draw_section_header, _draw_paragraphs, _draw_bullet_list,
@@ -239,7 +240,7 @@ class DocumentPdfService:
         c.restoreState()
 
         # Title
-        title = _strip_emoji(meta.get('title', document.title or 'Documento'))
+        title = _sanitize_pdf_text(meta.get('title', document.title or 'Documento'))
         y = PAGE_H / 2 + 60
 
         # Subtitle label (above title)
@@ -247,14 +248,15 @@ class DocumentPdfService:
         if subtitle:
             c.setFont(_font('light'), 14)
             c.setFillColor(GREEN_LIGHT)
-            c.drawCentredString(PAGE_W / 2, y + 30, _strip_emoji(subtitle))
+            _draw_mixed_centred(c, PAGE_W / 2, y + 30, _sanitize_pdf_text(subtitle),
+                                _font('light'), 14)
 
         # Main title
         c.setFont(_font('light'), 36)
         c.setFillColor(ESMERALD)
         title_lines = textwrap.wrap(title, width=24)
         for line in title_lines:
-            c.drawCentredString(PAGE_W / 2, y, line)
+            _draw_mixed_centred(c, PAGE_W / 2, y, line, _font('light'), 36)
             y -= 44
 
         # Lemon divider
@@ -273,7 +275,8 @@ class DocumentPdfService:
             y -= 30
             c.setFont(_font('regular'), 14)
             c.setFillColor(ESMERALD)
-            c.drawCentredString(PAGE_W / 2, y, _strip_emoji(client))
+            _draw_mixed_centred(c, PAGE_W / 2, y, _sanitize_pdf_text(client),
+                                _font('regular'), 14)
 
         # Date
         date_str = meta.get('date', '')
@@ -293,7 +296,7 @@ class DocumentPdfService:
     def _render_heading(c, y, block, ps):
         """Render h1/h2/h3 headings."""
         level = block.get('level', 1)
-        text = _strip_emoji(block.get('text', ''))
+        text = _sanitize_pdf_text(block.get('text', ''))
 
         if level == 1:
             font_size, font_style = 20, 'light'
@@ -311,7 +314,7 @@ class DocumentPdfService:
         max_chars = int(CONTENT_W / (font_size * 0.5))
         lines = textwrap.wrap(text, width=max_chars) or [text]
         for line in lines:
-            c.drawString(MARGIN_L, y, line)
+            _draw_mixed_string(c, MARGIN_L, y, line, _font(font_style), font_size)
             y -= font_size + 6
 
         if level <= 2:
@@ -529,7 +532,7 @@ class DocumentPdfService:
                 y = PAGE_H - MARGIN_T
 
             key = entry['key']
-            title = entry['display_title']
+            title = _sanitize_pdf_text(str(entry['display_title']))
             page_str = str(entry['page'])
             level = entry.get('level', 1)
 
@@ -542,8 +545,8 @@ class DocumentPdfService:
             # Title
             c.setFont(fn, font_size)
             c.setFillColor(ESMERALD if level == 1 else ESMERALD_DARK)
-            c.drawString(x, y, title)
-            title_w = c.stringWidth(title, fn, font_size)
+            _draw_mixed_string(c, x, y, title, fn, font_size)
+            title_w = _mixed_string_width(c, title, fn, font_size)
 
             # Page number (right-aligned)
             c.setFont(regular, font_size)

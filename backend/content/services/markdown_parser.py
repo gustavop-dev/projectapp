@@ -7,6 +7,8 @@ that the DocumentPdfService can render into a branded PDF.
 
 import re
 
+from content.services.emoji_shortcodes import replace_shortcodes
+
 _CALLOUT_RE = re.compile(r'^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]$', re.IGNORECASE)
 
 
@@ -29,6 +31,10 @@ def markdown_to_blocks(text):
     Returns:
         list[dict]: List of block objects.
     """
+    # :shortcode: → emoji before parsing (code spans are left untouched),
+    # so every writer — panel, MCP connector, seeds — gets the same PDF.
+    text = replace_shortcodes(text or '')
+
     blocks = []
     lines = text.split('\n')
     i = 0

@@ -35,6 +35,7 @@ _FONT_MAP = {
     'Ubuntu-BoldItalic': 'Ubuntu-BoldItalic.ttf',
     'Ubuntu-LightItalic': 'Ubuntu-LightItalic.ttf',
     'Ubuntu-MediumItalic': 'Ubuntu-MediumItalic.ttf',
+    'NotoEmoji': 'NotoEmoji-Regular.ttf',
 }
 _fonts_registered = False
 
@@ -163,6 +164,139 @@ def _strip_emoji(text):
     return _EMOJI_RE.sub('', text).strip()
 
 
+# ─────────────────────────────────────────────────────────────
+# Emoji rendering (monochrome Noto Emoji)
+# ─────────────────────────────────────────────────────────────
+
+EMOJI_FONT = 'NotoEmoji'
+
+# Codepoints that belong to emoji clusters but must never reach the canvas:
+# ReportLab does no text shaping (no GSUB), so ZWJ/variation selectors never
+# combine glyphs and skin-tone modifiers would print as standalone swatches.
+_EMOJI_IGNORABLE = frozenset(
+    {0x200B, 0x200D, 0x20E3, 0xFE0E, 0xFE0F, 0xFFFD}
+    | set(range(0xFE00, 0xFE10))
+    | set(range(0x1F3FB, 0x1F400))
+)
+
+_warned_missing_emoji_font = False
+
+
+def _emoji_font():
+    """Return EMOJI_FONT if registered, else None (e.g. dev without the TTF)."""
+    global _warned_missing_emoji_font
+    _register_fonts()
+    try:
+        pdfmetrics.getFont(EMOJI_FONT)
+        return EMOJI_FONT
+    except KeyError:
+        if not _warned_missing_emoji_font:
+            logger.warning(
+                'NotoEmoji-Regular.ttf is not registered; emojis will be '
+                'stripped from generated PDFs.'
+            )
+            _warned_missing_emoji_font = True
+        return None
+
+
+@lru_cache(maxsize=1)
+def _emoji_cmap():
+    """Frozenset of codepoints that have a real glyph in the emoji font."""
+    return frozenset(pdfmetrics.getFont(EMOJI_FONT).face.charToGlyph.keys())
+
+
+def _emoji_runs(text):
+    """Split text into [(segment, is_emoji)] runs using _EMOJI_RE."""
+    runs = []
+    last = 0
+    for match in _EMOJI_RE.finditer(text):
+        if match.start() > last:
+            runs.append((text[last:match.start()], False))
+        runs.append((match.group(0), True))
+        last = match.end()
+    if last < len(text):
+        runs.append((text[last:], False))
+    return runs
+
+
+def _renderable_emoji(cluster):
+    """Reduce an emoji cluster to what the font can draw, or '' (never tofu).
+
+    ZWJ sequences degrade to their individual member emojis and skin tones
+    are dropped; any remaining codepoint without a glyph kills the cluster.
+    """
+    if _emoji_font() is None:
+        return ''
+    cmap = _emoji_cmap()
+    kept = [ch for ch in cluster if ord(ch) not in _EMOJI_IGNORABLE]
+    if not kept or any(ord(ch) not in cmap for ch in kept):
+        return ''
+    return ''.join(kept)
+
+
+def _sanitize_pdf_text(text):
+    """Like _strip_emoji but keeps the emojis the emoji font can render.
+
+    Only use in code paths that draw through the emoji-aware primitives
+    below; anything drawn straight with the brand fonts would show tofu.
+    Falls back to exact _strip_emoji behavior when the font is missing.
+    """
+    if not text:
+        return text
+    text = _BOLD_HTML_RE.sub(r'**\1**', str(text))
+    text = _BR_TAG_RE.sub(' ', text)
+    text = _HTML_TAG_RE.sub('', text)
+    text = _EMOJI_RE.sub(lambda m: _renderable_emoji(m.group(0)), text)
+    return text.strip()
+
+
+def _mixed_string_width(c, text, font_name, font_size):
+    """stringWidth across emoji/text runs (emoji runs measured in EMOJI_FONT)."""
+    if not _EMOJI_RE.search(text):
+        return c.stringWidth(text, font_name, font_size)
+    total = 0.0
+    for segment, is_emoji in _emoji_runs(text):
+        if is_emoji:
+            segment = _renderable_emoji(segment)
+            if not segment:
+                continue
+            total += c.stringWidth(segment, EMOJI_FONT, font_size)
+        else:
+            total += c.stringWidth(segment, font_name, font_size)
+    return total
+
+
+def _draw_mixed_string(c, x, y, text, font_name, font_size):
+    """drawString with per-run font switching; returns the x after the text.
+
+    Emoji runs are drawn with EMOJI_FONT in the current fill color (monochrome
+    outlines). Non-renderable clusters are skipped defensively — never tofu.
+    """
+    if not _EMOJI_RE.search(text):
+        c.drawString(x, y, text)
+        return x + c.stringWidth(text, font_name, font_size)
+    cx = x
+    for segment, is_emoji in _emoji_runs(text):
+        if is_emoji:
+            segment = _renderable_emoji(segment)
+            if not segment:
+                continue
+            font = EMOJI_FONT
+        else:
+            font = font_name
+        c.setFont(font, font_size)
+        c.drawString(cx, y, segment)
+        cx += c.stringWidth(segment, font, font_size)
+    c.setFont(font_name, font_size)
+    return cx
+
+
+def _draw_mixed_centred(c, center_x, y, text, font_name, font_size):
+    """drawCentredString equivalent with emoji-font runs."""
+    width = _mixed_string_width(c, text, font_name, font_size)
+    _draw_mixed_string(c, center_x - width / 2.0, y, text, font_name, font_size)
+
+
 def _format_cop(value):
     """Format a number as Colombian currency: $1.490.000 (dots as thousands)."""
     try:
@@ -226,6 +360,17 @@ def _replace_urls_with_placeholders(text):
 _MD_MARKER_RE = re.compile(r'\*{1,3}|~~|`')
 
 
+def _visible_len(text):
+    """Wrap-measure length: markdown markers are free, emojis count double.
+
+    The char-count wrappers assume the average brand-font glyph; an emoji
+    glyph is roughly two of those, so each emoji char adds one extra unit.
+    """
+    base = len(_MD_MARKER_RE.sub('', text))
+    extra = sum(len(m.group(0)) for m in _EMOJI_RE.finditer(text))
+    return base + extra
+
+
 def _md_wrap(text, chars_per_line):
     """Like textwrap.wrap but ignores markdown markers when measuring length.
 
@@ -235,7 +380,7 @@ def _md_wrap(text, chars_per_line):
     words = text.split(' ')
     lines, cur, cur_len = [], [], 0
     for word in words:
-        word_len = len(_MD_MARKER_RE.sub('', word))
+        word_len = _visible_len(word)
         if cur and cur_len + 1 + word_len > chars_per_line:
             lines.append(' '.join(cur))
             cur, cur_len = [word], word_len
@@ -263,7 +408,7 @@ def _md_wrap(text, chars_per_line):
             pull_ok = False
             for dw_idx in range(len(dst_words)):
                 candidate = lines[i] + ' ' + ' '.join(dst_words[:dw_idx + 1])
-                cand_vis = len(_MD_MARKER_RE.sub('', candidate))
+                cand_vis = _visible_len(candidate)
                 if cand_vis > chars_per_line:
                     break  # would exceed width
                 cand_count = len(_DOUBLE_STAR.findall(candidate))
@@ -308,13 +453,13 @@ def _md_wrap(text, chars_per_line):
     # chars_per_line, causing text to overflow into sidebar regions.
     j = 0
     while j < len(lines):
-        vis_len = len(_MD_MARKER_RE.sub('', lines[j]))
+        vis_len = _visible_len(lines[j])
         if vis_len > chars_per_line:
             words = lines[j].split(' ')
             best = 0
             acc = 0
             for wi, w in enumerate(words):
-                wl = len(_MD_MARKER_RE.sub('', w))
+                wl = _visible_len(w)
                 acc = (acc + 1 + wl) if acc else wl
                 if acc <= chars_per_line:
                     prefix = ' '.join(words[:wi + 1])
@@ -326,7 +471,7 @@ def _md_wrap(text, chars_per_line):
                 # Try to merge short overflow with next line if combined fits
                 if j + 1 < len(lines):
                     candidate = overflow + ' ' + lines[j + 1]
-                    cand_vis = len(_MD_MARKER_RE.sub('', candidate))
+                    cand_vis = _visible_len(candidate)
                     cand_stars = len(_DOUBLE_STAR.findall(candidate))
                     if cand_vis <= chars_per_line and cand_stars % 2 == 0:
                         lines[j + 1] = candidate
@@ -482,7 +627,7 @@ def _draw_line_with_links(c, x, y, line, font_name, font_size, text_color,
             tp = tok['type']
             fn = _tok_font(tp)
             fs = max(font_size - 1, 7) if tp == 'code' else font_size
-            w = c.stringWidth(tt, fn, fs)
+            w = _mixed_string_width(c, tt, fn, fs)
             if tp == 'code':
                 w += 6  # pad * 2
             total_w += w
@@ -528,22 +673,20 @@ def _draw_line_with_links(c, x, y, line, font_name, font_size, text_color,
                 if j > 0:
                     cx += c.stringWidth(' ', fn, fs) + extra
                 if word:
-                    c.drawString(cx, y, word)
-                    ww = c.stringWidth(word, fn, fs)
+                    word_end = _draw_mixed_string(c, cx, y, word, fn, fs)
                     if tok_type == 'strike':
                         c.setStrokeColor(text_color)
                         c.setLineWidth(0.6)
-                        c.line(cx, y + font_size * 0.35, cx + ww, y + font_size * 0.35)
-                    cx += ww
+                        c.line(cx, y + font_size * 0.35, word_end, y + font_size * 0.35)
+                    cx = word_end
         else:
             # Non-justified: draw the whole token at once
-            c.drawString(cx, y, tok_text)
-            tw = c.stringWidth(tok_text, fn, fs)
+            tok_end = _draw_mixed_string(c, cx, y, tok_text, fn, fs)
             if tok_type == 'strike':
                 c.setStrokeColor(text_color)
                 c.setLineWidth(0.6)
-                c.line(cx, y + font_size * 0.35, cx + tw, y + font_size * 0.35)
-            cx += tw
+                c.line(cx, y + font_size * 0.35, tok_end, y + font_size * 0.35)
+            cx = tok_end
 
         # Link: URL + underline
         if tok_type == 'link':
@@ -634,14 +777,14 @@ def _draw_section_header(c, y, index_str, title, ps=None):
     c.setFont(_font('light'), 24)
     c.setFillColor(ESMERALD)
     max_chars = 38
-    clean_title = _strip_emoji(title)
-    if len(clean_title) > max_chars:
+    clean_title = _sanitize_pdf_text(title)
+    if _visible_len(clean_title) > max_chars:
         lines = textwrap.wrap(clean_title, width=max_chars)
         for line in lines:
-            c.drawString(MARGIN_L, y, line)
+            _draw_mixed_string(c, MARGIN_L, y, line, _font('light'), 24)
             y -= 30
     else:
-        c.drawString(MARGIN_L, y, clean_title)
+        _draw_mixed_string(c, MARGIN_L, y, clean_title, _font('light'), 24)
         y -= 30
     # Thin accent line
     c.setStrokeColor(LEMON)
@@ -664,7 +807,7 @@ def _draw_paragraphs(c, y, paragraphs, max_width=None, font_size=10,
     for para in (paragraphs or []):
         if not para:
             continue
-        clean, _links = _replace_urls_with_placeholders(_strip_emoji(str(para)))
+        clean, _links = _replace_urls_with_placeholders(_sanitize_pdf_text(str(para)))
         lines = _md_wrap(clean, chars_per_line)
         if ps and len(lines) > 1 and y < MARGIN_B + leading * 2:
             y = _new_page(c, ps)
@@ -693,7 +836,7 @@ def _estimate_text_height(paragraphs, max_width=None, font_size=10, leading=15):
     for para in (paragraphs or []):
         if not para:
             continue
-        clean, _links = _replace_urls_with_placeholders(_strip_emoji(str(para)))
+        clean, _links = _replace_urls_with_placeholders(_sanitize_pdf_text(str(para)))
         total += len(_md_wrap(clean, chars)) * leading + 5
     return total
 
@@ -717,7 +860,7 @@ def _draw_bullet_list(c, y, items, x=None, max_width=None,
             item_text = str(item)
             children  = []
 
-        clean = _strip_emoji(item_text)
+        clean = _sanitize_pdf_text(item_text)
         lines = _md_wrap(clean, chars_per_line - 4)
         if ps and len(lines) > 1 and y < MARGIN_B + leading * 2:
             y = _new_page(c, ps)
@@ -748,7 +891,7 @@ def _draw_bullet_list(c, y, items, x=None, max_width=None,
             child_bullet = '\u2013'  # en-dash
             child_chars = int((max_width - 18) / (font_size * 0.48))
             for child in children:
-                child_clean = _strip_emoji(str(child))
+                child_clean = _sanitize_pdf_text(str(child))
                 child_lines = _md_wrap(child_clean, child_chars - 4)
                 for ci, cline in enumerate(child_lines):
                     if ps:
@@ -799,18 +942,18 @@ def _draw_sidebar_box(c, y_start, title, items, sidebar_x=None,
     inner_y = y_start - 16
     c.setFont(_font('bold'), 10)
     c.setFillColor(ESMERALD)
-    c.drawString(sx + 10, inner_y, _strip_emoji(str(title)))
+    _draw_mixed_string(c, sx + 10, inner_y, _sanitize_pdf_text(str(title)), _font('bold'), 10)
     inner_y -= 16
 
     c.setFont(_font('regular'), 9)
     c.setFillColor(ESMERALD_80)
     chars = int(sw / 5.2)
     for item in (items or []):
-        text = _clean_inline_bold(_strip_emoji(str(item)))
+        text = _clean_inline_bold(_sanitize_pdf_text(str(item)))
         lines = textwrap.wrap(text, width=chars)
         for j, line in enumerate(lines):
             prefix = '\u2022  ' if j == 0 else '    '
-            c.drawString(sx + 10, inner_y, f'{prefix}{line}')
+            _draw_mixed_string(c, sx + 10, inner_y, f'{prefix}{line}', _font('regular'), 9)
             inner_y -= line_h
         inner_y -= 2
 
@@ -823,7 +966,8 @@ def _draw_subtitle(c, y, text, color=ESMERALD, ps=None):
         y = _check_y(c, y, ps, need=24)
     c.setFont(_font('bold'), 12)
     c.setFillColor(color)
-    c.drawString(MARGIN_L, y, _clean_inline_bold(_strip_emoji(str(text))))
+    _draw_mixed_string(c, MARGIN_L, y, _clean_inline_bold(_sanitize_pdf_text(str(text))),
+                       _font('bold'), 12)
     return y - 18
 
 
@@ -834,9 +978,9 @@ def _draw_pill(c, x, y, text, bg_color=ESMERALD_LIGHT, text_color=ESMERALD,
     The pill is vertically centred on *y* so that it aligns nicely next to
     text drawn at the same y coordinate.
     """
-    text = _strip_emoji(str(text))
+    text = _sanitize_pdf_text(str(text))
     c.setFont(_font('medium'), font_size)
-    tw = c.stringWidth(text, _font('medium'), font_size)
+    tw = _mixed_string_width(c, text, _font('medium'), font_size)
     pill_w = tw + padding_h * 2
     pill_h = font_size + padding_v * 2
     pill_y = y - padding_v + 1
@@ -844,7 +988,7 @@ def _draw_pill(c, x, y, text, bg_color=ESMERALD_LIGHT, text_color=ESMERALD,
     c.roundRect(x, pill_y, pill_w, pill_h, pill_h / 2, fill=1, stroke=0)
     c.setFont(_font('medium'), font_size)
     c.setFillColor(text_color)
-    c.drawString(x + padding_h, y, text)
+    _draw_mixed_string(c, x + padding_h, y, text, _font('medium'), font_size)
     return x + pill_w, pill_y
 
 
@@ -852,7 +996,7 @@ def _draw_banner_box(c, x, y, width, text, bg_color=BONE,
                      text_color=ESMERALD, font_size=9, icon_text='',
                      ps=None):
     """Draw a full-width banner box with optional icon prefix. Returns new y."""
-    text = _strip_emoji(str(text))
+    text = _sanitize_pdf_text(str(text))
     leading = font_size + 3
     pad_x = 12
     pad_y = 10
@@ -891,7 +1035,7 @@ def _draw_banner_box(c, x, y, width, text, bg_color=BONE,
     c.setFillColor(text_color)
     ty = text_top_y
     for line in lines:
-        c.drawString(inner_x, ty, line)
+        _draw_mixed_string(c, inner_x, ty, line, _font('regular'), font_size)
         ty -= leading
     return box_y - 6
 
@@ -977,7 +1121,7 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None):
         # Calculate header row height
         max_lines = 1
         for h in headers:
-            clean = _strip_emoji(str(h))
+            clean = _sanitize_pdf_text(str(h))
             chars = int((col_w - 2 * cell_pad_h) / (header_font_size * 0.48))
             lines = textwrap.wrap(clean, width=max(chars, 10))
             max_lines = max(max_lines, len(lines) if lines else 1)
@@ -990,14 +1134,14 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None):
         # Text
         for ci, h in enumerate(headers):
             cx = x_start + ci * col_w + cell_pad_h
-            clean = _strip_emoji(str(h))
+            clean = _sanitize_pdf_text(str(h))
             chars = int((col_w - 2 * cell_pad_h) / (header_font_size * 0.48))
             lines = textwrap.wrap(clean, width=max(chars, 10)) or ['']
             ty = y - cell_pad_v - header_font_size + 2
             for line in lines:
                 c.setFont(_font('bold'), header_font_size)
                 c.setFillColor(WHITE)
-                c.drawString(cx, ty, line)
+                _draw_mixed_string(c, cx, ty, line, _font('bold'), header_font_size)
                 ty -= leading
 
         return y - row_h
@@ -1015,7 +1159,7 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None):
         max_lines = 1
         for cell in row:
             lines = _break_long_tokens(
-                _md_wrap(_strip_emoji(str(cell)), chars), chars,
+                _md_wrap(_sanitize_pdf_text(str(cell)), chars), chars,
             )
             wrapped.append(lines)
             max_lines = max(max_lines, len(lines) or 1)
@@ -1059,7 +1203,7 @@ def _draw_blockquote(c, y, text, ps=None):
     if not text:
         return y
 
-    clean, _links = _replace_urls_with_placeholders(_strip_emoji(str(text)))
+    clean, _links = _replace_urls_with_placeholders(_sanitize_pdf_text(str(text)))
     font_size = 9
     line_leading = 13
     pad = 12
@@ -1171,7 +1315,7 @@ def _draw_callout_box(c, y, text, style='note', ps=None):
                 _draw_header_bar(c)
                 body_y = PAGE_H - MARGIN_T - leading
         _draw_line_with_links(
-            c, text_x, body_y, _strip_emoji(wl),
+            c, text_x, body_y, _sanitize_pdf_text(wl),
             _font('regular'), font_size, ESMERALD_DARK,
         )
 
@@ -1329,17 +1473,17 @@ def _draw_decorative_title_page(c, document_label, client_name, date_str, ps):
     c.drawCentredString(PAGE_W / 2, mid_y + 60, document_label)
 
     # Client name — large, centred
-    name = _strip_emoji(client_name or 'Cliente')
+    name = _sanitize_pdf_text(client_name or 'Cliente')
     c.setFont(_font('light'), 36)
     c.setFillColor(ESMERALD)
-    if len(name) > 22:
+    if _visible_len(name) > 22:
         lines = textwrap.wrap(name, width=22)
         ny = mid_y + 10
         for line in lines:
-            c.drawCentredString(PAGE_W / 2, ny, line)
+            _draw_mixed_centred(c, PAGE_W / 2, ny, line, _font('light'), 36)
             ny -= 44
     else:
-        c.drawCentredString(PAGE_W / 2, mid_y + 10, name)
+        _draw_mixed_centred(c, PAGE_W / 2, mid_y + 10, name, _font('light'), 36)
 
     # Decorative divider line with lemon accent
     line_y = mid_y - 40
@@ -1405,14 +1549,15 @@ def _draw_toc_page(c, entries, ps, link_areas=None):
         c.setFillColor(GREEN_LIGHT)
         c.drawString(MARGIN_L, y, str(idx_str).zfill(2))
 
+        title = _sanitize_pdf_text(str(title))
         c.setFont(_font('regular'), 12)
         c.setFillColor(ESMERALD)
-        c.drawString(title_x, y, title)
+        _draw_mixed_string(c, title_x, y, title, _font('regular'), 12)
 
         if page_num is not None:
             page_str = str(page_num)
             page_w = c.stringWidth(page_str, _font('light'), 10)
-            title_w = c.stringWidth(title, _font('regular'), 12)
+            title_w = _mixed_string_width(c, title, _font('regular'), 12)
             dot_w = c.stringWidth('.', _font('light'), 9)
             available = (PAGE_W - MARGIN_R - 4 - page_w) - (title_x + title_w + 6)
             num_dots = max(0, int(available / dot_w))

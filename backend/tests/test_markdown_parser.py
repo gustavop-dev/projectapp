@@ -447,3 +447,33 @@ def test_paragraph_breaks_when_sub_section_pattern_encountered():
     assert blocks[0]["text"] == "Some introductory text."
     assert blocks[1]["type"] == "sub_section"
     assert blocks[1]["index"] == "1.1"
+
+
+# -- Emoji shortcodes -----------------------------------------------------------
+
+def test_converts_emoji_shortcode_in_paragraph():
+    blocks = markdown_to_blocks("Deploy :rocket: listo")
+
+    assert blocks[0]["type"] == "paragraph"
+    assert blocks[0]["text"] == "Deploy 🚀 listo"
+
+
+def test_converts_emoji_shortcode_in_heading_and_table():
+    md = "# Plan :rocket:\n\n| Fase :clipboard: | Estado |\n|---|---|\n| Kickoff | :white_check_mark: |"
+
+    blocks = markdown_to_blocks(md)
+
+    assert blocks[0]["text"] == "Plan 🚀"
+    table = next(b for b in blocks if b["type"] == "table")
+    assert table["headers"][0] == "Fase 📋"
+    assert table["rows"][0][1] == "✅"
+
+
+def test_keeps_shortcodes_literal_inside_fenced_code():
+    md = "```\nusa :rocket: aquí\n```"
+
+    blocks = markdown_to_blocks(md)
+
+    assert blocks[0]["type"] == "code"
+    assert ":rocket:" in blocks[0]["content"]
+    assert "🚀" not in blocks[0]["content"]
