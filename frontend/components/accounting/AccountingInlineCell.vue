@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="!editing"
-    class="min-w-0 cursor-text rounded px-1 -mx-1 hover:bg-surface-raised/60 transition-colors"
+    class="min-w-0 cursor-text rounded px-1 -mx-1 hover:bg-surface-raised transition-colors"
     title="Doble clic para editar"
     data-testid="inline-cell-display"
     @dblclick="start"
