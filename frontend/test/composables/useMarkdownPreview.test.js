@@ -13,6 +13,29 @@ describe('useMarkdownPreview', () => {
     expect(html).toContain('md-h1')
   })
 
+  it('converts emoji shortcodes to unicode', () => {
+    const html = parseMarkdown('Deploy :rocket: listo :white_check_mark:')
+    expect(html).toContain('🚀')
+    expect(html).toContain('✅')
+    expect(html).not.toContain(':rocket:')
+  })
+
+  it('keeps shortcodes literal inside fenced code blocks', () => {
+    const html = parseMarkdown('```\nusa :rocket: aquí\n```')
+    expect(html).toContain(':rocket:')
+    expect(html).not.toContain('🚀')
+  })
+
+  it('keeps shortcodes literal inside inline code', () => {
+    const html = parseMarkdown('escribe `:smile:` para 😄')
+    expect(html).toContain('<code>:smile:</code>')
+  })
+
+  it('leaves unknown shortcodes as plain text', () => {
+    const html = parseMarkdown('esto :no_existe_xyz: queda igual')
+    expect(html).toContain(':no_existe_xyz:')
+  })
+
   it('wraps fenced code and escapes HTML entities', () => {
     const html = parseMarkdown('```\n<a>\n```')
     expect(html).toContain('&lt;a&gt;')
