@@ -2,7 +2,7 @@
 import pytest
 from django.urls import reverse
 
-from content.models import HourPackage
+from content.models import HourPackage, HourPackageSettings
 
 pytestmark = pytest.mark.django_db
 
@@ -29,16 +29,21 @@ class TestAdminHourPackageList:
         response = admin_client.get(reverse('list-admin-hour-packages'))
         assert response.status_code == 200
         col = [p for p in response.data if p['nationality'] == 'COL']
-        assert len(col) == 3
+        assert len(col) == 5
         assert all(p['currency'] == 'COP' for p in col)
+        # July 2026 ladder starts with a 1-hour package at 40.000 COP/h.
+        assert col[0]['hours'] == 1
+        assert float(col[0]['hourly_rate']) == 40000.0
 
     def test_filters_by_nationality(self, admin_client, mex_package):
         response = admin_client.get(
             reverse('list-admin-hour-packages'), {'nationality': 'MEX'}
         )
         assert response.status_code == 200
-        assert [p['id'] for p in response.data] == [mex_package.id]
-        assert response.data[0]['currency'] == 'USD'
+        ids = [p['id'] for p in response.data]
+        assert mex_package.id in ids
+        assert all(p['nationality'] == 'MEX' for p in response.data)
+        assert all(p['currency'] == 'USD' for p in response.data)
 
     def test_rejects_invalid_nationality_filter(self, admin_client):
         response = admin_client.get(
@@ -66,7 +71,8 @@ class TestAdminHourPackageCreate:
         )
         assert response.status_code == 201
         assert response.data['currency'] == 'USD'
-        assert HourPackage.objects.filter(nationality='MEX').count() == 1
+        assert HourPackage.objects.filter(
+            nationality='MEX', name_es='Paquete Pro MX').count() == 1
 
     def test_rejects_zero_hours(self, admin_client):
         payload = {
@@ -142,3 +148,64 @@ class TestAdminHourPackageDelete:
         response = admin_client.delete(url)
         assert response.status_code == 204
         assert not HourPackage.objects.filter(pk=mex_package.id).exists()
+
+
+class TestHourPackageSettings:
+    def test_returns_403_for_unauthenticated(self, api_client):
+        response = api_client.get(reverse('hour-package-settings'))
+        assert response.status_code in (401, 403)
+
+    def test_get_returns_table_default(self, admin_client):
+        response = admin_client.get(reverse('hour-package-settings'))
+        assert response.status_code == 200
+        assert response.data['default_view_mode'] == 'table'
+
+    def test_patch_updates_view_mode(self, admin_client):
+        response = admin_client.patch(
+            reverse('update-hour-package-settings'),
+            {'default_view_mode': 'cards'}, format='json',
+        )
+        assert response.status_code == 200
+        assert HourPackageSettings.load().default_view_mode == 'cards'
+
+    def test_patch_rejects_unknown_mode(self, admin_client):
+        response = admin_client.patch(
+            reverse('update-hour-package-settings'),
+            {'default_view_mode': 'carousel'}, format='json',
+        )
+        assert response.status_code == 400
+        assert 'default_view_mode' in response.data
+
+
+class TestRestoreDefaultHourPackages:
+    def test_returns_403_for_unauthenticated(self, api_client):
+        response = api_client.post(
+            reverse('restore-default-hour-packages'), {}, format='json'
+        )
+        assert response.status_code in (401, 403)
+
+    def test_rejects_invalid_nationality(self, admin_client):
+        response = admin_client.post(
+            reverse('restore-default-hour-packages'),
+            {'nationality': 'BRA'}, format='json',
+        )
+        assert response.status_code == 400
+
+    def test_replaces_catalog_with_defaults(self, admin_client):
+        HourPackage.objects.filter(nationality='COL').delete()
+        custom = HourPackage.objects.create(
+            nationality='COL', name_es='Custom', name_en='Custom',
+            hours=7, hourly_rate=99999, discount_percent=1, order=1,
+        )
+        response = admin_client.post(
+            reverse('restore-default-hour-packages'),
+            {'nationality': 'COL'}, format='json',
+        )
+        assert response.status_code == 200
+        assert not HourPackage.objects.filter(pk=custom.id).exists()
+        col = HourPackage.objects.filter(nationality='COL').order_by('order')
+        assert col.count() == 5
+        assert col.first().hours == 1
+        assert float(col.first().hourly_rate) == 40000.0
+        # The response returns the fresh list for the store to swap in.
+        assert len(response.data) == 5

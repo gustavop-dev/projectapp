@@ -13,7 +13,7 @@ The following models are imported:
 
 from .contact import Contact
 from .portfolio_works import PortfolioWork
-from .hour_packages import HourPackage, Nationality, CURRENCY_BY_NATIONALITY
+from .hour_packages import HourPackage, HourPackageSettings, Nationality, CURRENCY_BY_NATIONALITY
 from .business_proposal import BusinessProposal, ProposalAlert
 from .proposal_section import ProposalSection
 from .proposal_project_stage import ProposalProjectStage

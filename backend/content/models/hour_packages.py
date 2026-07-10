@@ -57,3 +57,42 @@ class HourPackage(models.Model):
     @property
     def currency(self):
         return CURRENCY_BY_NATIONALITY[self.nationality]
+
+
+class HourPackageSettings(models.Model):
+    """
+    Singleton storing hour-packages panel preferences.
+
+    Usage:
+        settings = HourPackageSettings.load()
+        settings.default_view_mode  # → 'table' | 'cards' | 'compare'
+    """
+
+    class ViewMode(models.TextChoices):
+        TABLE = 'table', 'Tabla'
+        CARDS = 'cards', 'Tarjetas'
+        COMPARE = 'compare', 'Comparativa'
+
+    default_view_mode = models.CharField(
+        max_length=10, choices=ViewMode.choices, default=ViewMode.TABLE,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Hour package settings'
+        verbose_name_plural = 'Hour package settings'
+
+    def __str__(self):
+        return f'HourPackageSettings — vista {self.default_view_mode}'
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        """Return the singleton instance, creating it if needed."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

@@ -1323,14 +1323,16 @@ DEFAULT_SECTIONS = [
             'packagesTitle': 'Paquetes de horas para requerimientos posteriores',
             'packagesIntro': (
                 'Para requerimientos de esfuerzo bajo o medio-bajo posteriores a la entrega, '
-                'ofrecemos tres bolsas de horas con tarifa preferencial. A mayor paquete, menor '
+                'ofrecemos bolsas de horas con tarifa preferencial. A mayor paquete, menor '
                 'es el costo por hora.'
             ),
-            'hourlyRate': 90000,
+            'hourlyRate': 40000,
             'currency': 'COP',
             'packages': [
-                {'name': 'Paquete Ágil', 'hours': 20, 'discountPercent': 0, 'note': 'Ideal para ajustes puntuales.'},
-                {'name': 'Paquete Pro', 'hours': 60, 'discountPercent': 10, 'note': 'Para mejoras continuas.'},
+                {'name': 'Hora Puntual', 'hours': 1, 'discountPercent': 0, 'note': 'Para un ajuste express.'},
+                {'name': 'Paquete Inicial', 'hours': 10, 'discountPercent': 5, 'note': 'Para ajustes puntuales.'},
+                {'name': 'Paquete Ágil', 'hours': 20, 'discountPercent': 10, 'note': 'Para iteraciones cortas.'},
+                {'name': 'Paquete Pro', 'hours': 60, 'discountPercent': 20, 'note': 'Para mejoras continuas.'},
                 {'name': 'Paquete Premium', 'hours': 180, 'discountPercent': 30, 'note': 'Para la evolución sostenida del producto.'},
             ],
             'effortBadge': (
@@ -2643,14 +2645,16 @@ DEFAULT_SECTIONS_EN = [
             'title': 'Commercial conditions',
             'packagesTitle': 'Hour packages for follow-up requirements',
             'packagesIntro': (
-                'For low or medium-low effort requirements after delivery, we offer three hour '
+                'For low or medium-low effort requirements after delivery, we offer hour '
                 'banks at a preferential rate. The larger the package, the lower the cost per hour.'
             ),
-            'hourlyRate': 90000,
+            'hourlyRate': 40000,
             'currency': 'COP',
             'packages': [
-                {'name': 'Agile Pack', 'hours': 20, 'discountPercent': 0, 'note': 'Ideal for one-off adjustments.'},
-                {'name': 'Pro Pack', 'hours': 60, 'discountPercent': 10, 'note': 'For continuous improvements.'},
+                {'name': 'Single Hour', 'hours': 1, 'discountPercent': 0, 'note': 'For a quick one-off tweak.'},
+                {'name': 'Starter Pack', 'hours': 10, 'discountPercent': 5, 'note': 'For one-off adjustments.'},
+                {'name': 'Agile Pack', 'hours': 20, 'discountPercent': 10, 'note': 'For short iterations.'},
+                {'name': 'Pro Pack', 'hours': 60, 'discountPercent': 20, 'note': 'For continuous improvements.'},
                 {'name': 'Premium Pack', 'hours': 180, 'discountPercent': 30, 'note': 'For sustained product evolution.'},
             ],
             'effortBadge': (

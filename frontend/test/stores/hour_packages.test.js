@@ -160,6 +160,61 @@ describe('useHourPackagesStore', () => {
     });
   });
 
+  describe('settings', () => {
+    it('fetchSettings stores the singleton', async () => {
+      get_request.mockResolvedValue({ data: { default_view_mode: 'cards' } });
+      const result = await store.fetchSettings();
+      expect(get_request).toHaveBeenCalledWith('hour-packages/admin/settings/');
+      expect(result.success).toBe(true);
+      expect(store.settings).toEqual({ default_view_mode: 'cards' });
+    });
+
+    it('fetchSettings reports failure without throwing', async () => {
+      get_request.mockRejectedValue(new Error('boom'));
+      const result = await store.fetchSettings();
+      expect(result.success).toBe(false);
+      expect(store.settings).toBeNull();
+    });
+
+    it('updateSettings patches and stores the new value', async () => {
+      patch_request.mockResolvedValue({ data: { default_view_mode: 'compare' } });
+      const result = await store.updateSettings({ default_view_mode: 'compare' });
+      expect(patch_request).toHaveBeenCalledWith(
+        'hour-packages/admin/settings/update/', { default_view_mode: 'compare' },
+      );
+      expect(result.success).toBe(true);
+      expect(store.settings).toEqual({ default_view_mode: 'compare' });
+    });
+
+    it('updateSettings propagates validation errors', async () => {
+      patch_request.mockRejectedValue({
+        response: { data: { default_view_mode: ['"x" is not a valid choice.'] } },
+      });
+      const result = await store.updateSettings({ default_view_mode: 'x' });
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual({ default_view_mode: ['"x" is not a valid choice.'] });
+    });
+  });
+
+  describe('restoreDefaults', () => {
+    it('posts the nationality and returns the fresh list', async () => {
+      const fresh = [{ ...mockPackage, id: 10, hours: 1 }];
+      create_request.mockResolvedValue({ data: fresh });
+      const result = await store.restoreDefaults('COL');
+      expect(create_request).toHaveBeenCalledWith(
+        'hour-packages/admin/restore-defaults/', { nationality: 'COL' },
+      );
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(fresh);
+    });
+
+    it('reports failure on error', async () => {
+      create_request.mockRejectedValue(new Error('boom'));
+      const result = await store.restoreDefaults('COL');
+      expect(result.success).toBe(false);
+    });
+  });
+
   describe('getPackageById', () => {
     it('finds a package in the list', () => {
       store.packages = [mockPackage];
