@@ -444,4 +444,6 @@ _NON_CRUD_TOOLS = [
     },
 ]
 
-ACCOUNTING_TOOLS = _build_ledger_tools() + _NON_CRUD_TOOLS
+from content.mcp.statement_tools import STATEMENT_TOOLS  # noqa: E402
+
+ACCOUNTING_TOOLS = _build_ledger_tools() + _NON_CRUD_TOOLS + STATEMENT_TOOLS
