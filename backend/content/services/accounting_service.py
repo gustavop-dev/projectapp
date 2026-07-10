@@ -17,10 +17,13 @@ from content.models import (
     AccountingChangeLog,
     AdsSpendRecord,
     CardBalanceSnapshot,
+    CreditCardStatement,
+    CreditCardTransaction,
     ExpenseRecord,
     HostingRecord,
     IncomeRecord,
     Ledger,
+    MerchantAlias,
     PocketMovement,
     RecurringPayment,
 )
@@ -39,6 +42,9 @@ ENTITY_MODELS = {
     EntityType.RECURRING: RecurringPayment,
     EntityType.ADS: AdsSpendRecord,
     EntityType.CARD_SNAPSHOT: CardBalanceSnapshot,
+    EntityType.STATEMENT: CreditCardStatement,
+    EntityType.STATEMENT_TX: CreditCardTransaction,
+    EntityType.MERCHANT_ALIAS: MerchantAlias,
 }
 
 TRACKED_FIELDS = {
@@ -114,6 +120,38 @@ TRACKED_FIELDS = {
         ('debt_amount', 'Deuda'),
         ('notes', 'Notas'),
     ],
+    EntityType.STATEMENT: [
+        ('card_name', 'Tarjeta'),
+        ('period_date', 'Período'),
+        ('status', 'Estado'),
+        ('purchases_total', 'Total compras'),
+        ('previous_balance', 'Saldo anterior'),
+        ('payments_total', 'Pagos y abonos'),
+        ('interest_and_fees', 'Intereses y comisiones'),
+        ('closing_balance', 'Saldo de cierre'),
+        ('minimum_payment', 'Pago mínimo'),
+        ('due_date', 'Fecha límite de pago'),
+        ('notes', 'Notas'),
+    ],
+    EntityType.STATEMENT_TX: [
+        ('transaction_date', 'Fecha'),
+        ('raw_description', 'Descripción'),
+        ('merchant_name', 'Comercio'),
+        ('category', 'Categoría'),
+        ('amount', 'Valor'),
+        ('original_amount', 'Valor original'),
+        ('original_currency', 'Moneda original'),
+        ('installment_number', 'Cuota'),
+        ('installments_total', 'Total cuotas'),
+        ('is_identified', 'Identificado'),
+        ('notes', 'Notas'),
+    ],
+    EntityType.MERCHANT_ALIAS: [
+        ('match_text', 'Texto de coincidencia'),
+        ('merchant_name', 'Comercio'),
+        ('default_category', 'Categoría por defecto'),
+        ('notes', 'Notas'),
+    ],
     EntityType.SETTINGS: [
         ('notification_recipients', 'Destinatarios de notificación'),
         ('notifications_enabled', 'Notificaciones activas'),
@@ -178,6 +216,12 @@ def object_repr(entity_type, instance):
         return f'{instance.get_platform_display()} — {instance.spend_date}'
     if entity_type == EntityType.CARD_SNAPSHOT:
         return f'{instance.card_name} — {instance.snapshot_date}'
+    if entity_type == EntityType.STATEMENT:
+        return f'{instance.card_name} — {month_label(instance.period_date)}'
+    if entity_type == EntityType.STATEMENT_TX:
+        return instance.merchant_name or instance.raw_description
+    if entity_type == EntityType.MERCHANT_ALIAS:
+        return instance.match_text
     return 'Configuración contable'
 
 

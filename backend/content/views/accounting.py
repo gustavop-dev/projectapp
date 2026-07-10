@@ -21,9 +21,11 @@ from content.models import (
     AccountingSettings,
     AdsSpendRecord,
     CardBalanceSnapshot,
+    CreditCardStatement,
     ExpenseRecord,
     HostingRecord,
     IncomeRecord,
+    MerchantAlias,
     PocketMovement,
     RecurringPayment,
 )
@@ -48,6 +50,12 @@ from content.serializers.accounting import (
     PocketMovementSerializer,
     RecurringPaymentCreateUpdateSerializer,
     RecurringPaymentSerializer,
+)
+from content.serializers.accounting_statement import (
+    CreditCardStatementSerializer,
+    CreditCardStatementWriteSerializer,
+    MerchantAliasSerializer,
+    MerchantAliasWriteSerializer,
 )
 from content.services import accounting_service
 from content.utils import today_bogota
@@ -275,6 +283,26 @@ _ENTITIES = {
         'search_fields': ('card_name', 'notes'),
         'choice_filters': ('card_name',),
     },
+    'statement': {
+        'entity_type': EntityType.STATEMENT,
+        'model': CreditCardStatement,
+        'read': CreditCardStatementSerializer,
+        'write': CreditCardStatementWriteSerializer,
+        'date_field': 'period_date',
+        'amount_field': 'purchases_total',
+        'search_fields': ('card_name', 'notes'),
+        'choice_filters': ('status', 'card_name'),
+    },
+    'merchant_alias': {
+        'entity_type': EntityType.MERCHANT_ALIAS,
+        'model': MerchantAlias,
+        'read': MerchantAliasSerializer,
+        'write': MerchantAliasWriteSerializer,
+        'date_field': None,
+        'amount_field': None,
+        'search_fields': ('match_text', 'merchant_name', 'notes'),
+        'choice_filters': ('default_category',),
+    },
 }
 
 
@@ -301,13 +329,13 @@ def _apply_filters(queryset, params, config):
             })
 
     amount_field = config['amount_field']
-    if params.get('amount_min'):
+    if amount_field and params.get('amount_min'):
         queryset = queryset.filter(**{
             f'{amount_field}__gte': _parse_decimal(
                 params['amount_min'], 'amount_min',
             ),
         })
-    if params.get('amount_max'):
+    if amount_field and params.get('amount_max'):
         queryset = queryset.filter(**{
             f'{amount_field}__lte': _parse_decimal(
                 params['amount_max'], 'amount_max',

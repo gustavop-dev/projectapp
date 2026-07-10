@@ -20,6 +20,50 @@ MONEY_FORMAT = '#,##0'
 HEADER_FONT = Font(bold=True)
 
 EXPORT_SECTIONS = {
+    'statement': {
+        'title': 'Extractos TC',
+        'columns': [
+            ('Tarjeta', 'card_name'),
+            ('Mes', 'period_date'),
+            ('Estado', lambda r: r.get_status_display()),
+            ('Total compras', 'purchases_total'),
+            ('Pagos y abonos', 'payments_total'),
+            ('Intereses y comisiones', 'interest_and_fees'),
+            ('Saldo anterior', 'previous_balance'),
+            ('Saldo de cierre', 'closing_balance'),
+            ('Pago mínimo', 'minimum_payment'),
+            ('Fecha límite', 'due_date'),
+            ('Notas', 'notes'),
+        ],
+    },
+    'statement_tx': {
+        'title': 'Transacciones TC',
+        'columns': [
+            ('Tarjeta', lambda r: r.statement.card_name),
+            ('Mes', lambda r: r.statement.period_date),
+            ('Fecha', 'transaction_date'),
+            ('Descripción', 'raw_description'),
+            ('Comercio', 'merchant_name'),
+            ('Categoría', lambda r: r.get_category_display()),
+            ('Cuota', lambda r: (
+                f'{r.installment_number}/{r.installments_total}'
+                if r.installment_number and r.installments_total else ''
+            )),
+            ('Valor', 'amount'),
+            ('Moneda original', 'original_currency'),
+            ('Valor original', 'original_amount'),
+            ('Notas', 'notes'),
+        ],
+    },
+    'merchant_alias': {
+        'title': 'Alias comercios',
+        'columns': [
+            ('Texto de coincidencia', 'match_text'),
+            ('Comercio', 'merchant_name'),
+            ('Categoría por defecto', lambda r: r.get_default_category_display()),
+            ('Notas', 'notes'),
+        ],
+    },
     'income': {
         'title': 'Ingresos',
         'columns': [

@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from rest_framework.decorators import api_view, permission_classes
 
 from content.api_errors import error_response
+from content.models import CreditCardTransaction
 from content.permissions import IsSuperUser
 from content.services import accounting_export_service
 from content.utils import today_bogota
@@ -21,7 +22,7 @@ XLSX_CONTENT_TYPE = (
 # sections without one (recurring) are exported in full.
 _WORKBOOK_SECTIONS = (
     'income', 'expense', 'hosting', 'pocket', 'recurring', 'ads',
-    'card_snapshot',
+    'card_snapshot', 'statement',
 )
 
 
@@ -91,6 +92,14 @@ def export_accounting_workbook(request):
                 **{f'{config["date_field"]}__year': year},
             )
         sections_querysets[section] = queryset
+
+    # Statement lines live outside _ENTITIES (nested resource): year-scope
+    # them through their parent statement.
+    sections_querysets['statement_tx'] = (
+        CreditCardTransaction.objects
+        .filter(statement__period_date__year=year)
+        .select_related('statement')
+    )
 
     workbook = accounting_export_service.build_workbook(
         year, sections_querysets,

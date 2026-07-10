@@ -61,6 +61,13 @@ from .recurring_payment import RecurringPayment
 from .ads_spend_record import AdsSpendRecord
 from .card_balance_snapshot import CardBalanceSnapshot
 from .accounting_change_log import AccountingChangeLog
+from .credit_card_statement import (
+    CreditCardStatement,
+    CreditCardTransaction,
+    MerchantAlias,
+    TransactionCategory,
+    normalize_descriptor,
+)
 from .accounting_settings import AccountingSettings
 from .mcp_connector import McpConnector
 from .mcp_request_log import McpRequestLog

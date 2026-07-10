@@ -43,6 +43,14 @@ from content.views.portfolio_works import (
     delete_portfolio_work, duplicate_portfolio_work,
     upload_portfolio_cover_image,
 )
+from content.views.accounting_statement import (
+    batch_create_transactions, create_merchant_alias, create_statement,
+    delete_merchant_alias, delete_statement, delete_statement_transaction,
+    finalize_statement, list_merchant_aliases, list_statements,
+    reopen_statement, resolve_merchant_aliases, retrieve_statement,
+    statements_status, update_merchant_alias, update_statement,
+    update_statement_transaction,
+)
 from content.views.hour_packages import (
     list_admin_hour_packages, create_hour_package,
     retrieve_admin_hour_package, update_hour_package,
@@ -504,6 +512,25 @@ urlpatterns = [
     path('accounting/card-snapshots/<int:record_id>/', retrieve_card_snapshot, name='retrieve-card-snapshot'),
     path('accounting/card-snapshots/<int:record_id>/update/', update_card_snapshot, name='update-card-snapshot'),
     path('accounting/card-snapshots/<int:record_id>/delete/', delete_card_snapshot, name='delete-card-snapshot'),
+
+    path('accounting/statements/', list_statements, name='list-statements'),
+    path('accounting/statements/create/', create_statement, name='create-statement'),
+    # 'status/' must resolve before '<int:record_id>/'.
+    path('accounting/statements/status/', statements_status, name='statements-status'),
+    path('accounting/statements/<int:record_id>/', retrieve_statement, name='retrieve-statement'),
+    path('accounting/statements/<int:record_id>/update/', update_statement, name='update-statement'),
+    path('accounting/statements/<int:record_id>/delete/', delete_statement, name='delete-statement'),
+    path('accounting/statements/<int:record_id>/finalize/', finalize_statement, name='finalize-statement'),
+    path('accounting/statements/<int:record_id>/reopen/', reopen_statement, name='reopen-statement'),
+    path('accounting/statements/<int:record_id>/transactions/batch/', batch_create_transactions, name='batch-create-statement-transactions'),
+    path('accounting/statements/<int:record_id>/transactions/<int:tx_id>/update/', update_statement_transaction, name='update-statement-transaction'),
+    path('accounting/statements/<int:record_id>/transactions/<int:tx_id>/delete/', delete_statement_transaction, name='delete-statement-transaction'),
+
+    path('accounting/merchant-aliases/', list_merchant_aliases, name='list-merchant-aliases'),
+    path('accounting/merchant-aliases/create/', create_merchant_alias, name='create-merchant-alias'),
+    path('accounting/merchant-aliases/resolve/', resolve_merchant_aliases, name='resolve-merchant-aliases'),
+    path('accounting/merchant-aliases/<int:record_id>/update/', update_merchant_alias, name='update-merchant-alias'),
+    path('accounting/merchant-aliases/<int:record_id>/delete/', delete_merchant_alias, name='delete-merchant-alias'),
 
     path('accounting/change-logs/', list_accounting_change_logs, name='list-accounting-change-logs'),
 
