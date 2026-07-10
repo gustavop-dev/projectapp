@@ -259,7 +259,11 @@ class HostingRecordSerializer(serializers.ModelSerializer):
             'payment_modality', 'payment_modality_label', 'benefit',
             'valid_from', 'valid_to', 'cycles_count',
             'payment_per_cycle', 'total_paid', 'is_active',
+            'expiry_notice_last_sent_at', 'billing_requested_at',
             'notes', 'created_at', 'updated_at',
+        )
+        read_only_fields = (
+            'expiry_notice_last_sent_at', 'billing_requested_at',
         )
 
 
@@ -477,5 +481,6 @@ class AccountingSettingsSerializer(serializers.ModelSerializer):
         model = AccountingSettings
         fields = (
             'notification_recipients', 'notifications_enabled',
-            'card_reminder_enabled', 'usd_exchange_rate', 'updated_at',
+            'card_reminder_enabled', 'hosting_expiry_reminder_enabled',
+            'usd_exchange_rate', 'updated_at',
         )

@@ -47,6 +47,18 @@ class HostingRecord(AccountingRecordBase):
     )
     is_active = models.BooleanField(default=True, db_index=True)
 
+    # Expiry-notice cadence state (system fields, managed by
+    # hosting_expiry_service — not user settings, not audited).
+    # `expiry_notice_target` snapshots the valid_to the cadence is armed
+    # against: when it differs from the live valid_to (renewal/correction)
+    # the daily task re-arms automatically.
+    expiry_notice_target = models.DateField(null=True, blank=True)
+    expiry_notice_last_sent_at = models.DateField(null=True, blank=True)
+    expiry_notice_count = models.PositiveSmallIntegerField(default=0)
+    # Set when the cuenta de cobro is sent to the client; silences the
+    # cadence for the current target period.
+    billing_requested_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ['client_name']
 

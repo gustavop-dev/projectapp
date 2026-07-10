@@ -23,6 +23,10 @@ class AccountingSettings(models.Model):
     card_reminder_cycle_start = models.DateField(null=True, blank=True)
     card_reminder_last_sent_at = models.DateField(null=True, blank=True)
 
+    # Hosting expiry notices (15/7 days before valid_to, then every 5 days
+    # until the cuenta de cobro is sent).
+    hosting_expiry_reminder_enabled = models.BooleanField(default=True)
+
     # Reference COP-per-USD rate for USD KPIs (editable from the panel).
     usd_exchange_rate = models.DecimalField(
         max_digits=10, decimal_places=2, default=Decimal('4000'),

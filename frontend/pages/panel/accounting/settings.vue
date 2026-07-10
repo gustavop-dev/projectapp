@@ -119,6 +119,28 @@
       </div>
 
       <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
+        <h2 class="text-lg font-bold text-text-default mb-1">Avisos de vencimiento de hostings</h2>
+        <p class="text-sm text-text-muted mb-5">
+          Se envía un correo a los destinatarios de arriba 15 días antes del
+          vencimiento de cada hosting activo, otro a los 7 días, y luego cada
+          5 días hasta que se envíe la cuenta de cobro al cliente desde
+          <NuxtLink :to="localePath('/panel/accounting/hostings')" class="text-text-brand hover:underline">Hostings</NuxtLink>.
+        </p>
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-sm font-medium text-text-default">Avisos activos</span>
+          <BaseToggle
+            v-model="hostingExpiryReminderEnabled"
+            aria-label="Avisos de vencimiento de hostings activos"
+            data-testid="settings-hosting-expiry-toggle"
+          />
+        </div>
+        <p v-if="!notificationsEnabled" class="text-xs text-warning-strong mt-3">
+          Las notificaciones generales están apagadas: estos avisos tampoco se
+          enviarán mientras sigan así.
+        </p>
+      </div>
+
+      <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
         <h2 class="text-lg font-bold text-text-default mb-1">Tasa de cambio USD</h2>
         <p class="text-sm text-text-muted mb-4">
           Pesos por dólar de referencia, usada para el KPI de costo mensual en
@@ -198,6 +220,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const notificationsEnabled = ref(true);
 const cardReminderEnabled = ref(true);
+const hostingExpiryReminderEnabled = ref(true);
 const recipients = ref([]);
 const usdExchangeRate = ref(null);
 let rowId = 0;
@@ -205,6 +228,9 @@ let rowId = 0;
 function syncFromSettings(settings) {
   notificationsEnabled.value = Boolean(settings?.notifications_enabled);
   cardReminderEnabled.value = Boolean(settings?.card_reminder_enabled);
+  hostingExpiryReminderEnabled.value = Boolean(
+    settings?.hosting_expiry_reminder_enabled,
+  );
   usdExchangeRate.value =
     settings?.usd_exchange_rate != null ? Number(settings.usd_exchange_rate) : null;
   recipients.value = (settings?.notification_recipients || []).map((email) => ({
@@ -256,6 +282,7 @@ async function save() {
     notification_recipients: nonEmpty,
     notifications_enabled: notificationsEnabled.value,
     card_reminder_enabled: cardReminderEnabled.value,
+    hosting_expiry_reminder_enabled: hostingExpiryReminderEnabled.value,
     usd_exchange_rate: usdExchangeRate.value,
   });
   if (result.success) {

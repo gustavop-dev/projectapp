@@ -115,6 +115,7 @@ TRACKED_FIELDS = {
         ('notification_recipients', 'Destinatarios de notificación'),
         ('notifications_enabled', 'Notificaciones activas'),
         ('card_reminder_enabled', 'Recordatorio de deuda de tarjetas'),
+        ('hosting_expiry_reminder_enabled', 'Avisos de vencimiento de hostings'),
         ('usd_exchange_rate', 'Tasa de cambio USD'),
     ],
 }
