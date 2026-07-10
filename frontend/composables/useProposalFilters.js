@@ -211,5 +211,6 @@ export function useProposalFilters() {
     saveTab,
     deleteTab,
     renameTab,
+    reloadTabs: tabs.loadTabs,
   };
 }

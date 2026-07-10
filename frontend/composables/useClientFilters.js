@@ -193,5 +193,6 @@ export function useClientFilters() {
     saveTab,
     deleteTab,
     renameTab,
+    reloadTabs: tabs.loadTabs,
   };
 }

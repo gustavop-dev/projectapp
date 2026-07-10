@@ -35,8 +35,39 @@
       >
         {{ tab.label }}
       </button>
+      <button
+        data-testid="clients-tab-config"
+        :class="[
+          'ml-auto px-4 py-2 rounded-xl text-sm font-medium transition-colors',
+          activeTab === 'config'
+            ? 'bg-primary text-white'
+            : 'bg-surface-raised text-text-muted hover:bg-border-muted',
+        ]"
+        @click="setActiveTab('config')"
+      >
+        Configuraciones
+      </button>
     </div>
 
+    <!-- Settings tab replaces the list area -->
+    <ViewSettingsPanel
+      v-if="activeTab === 'config'"
+      :filter-views="[{ value: 'client', label: 'Clientes' }]"
+      @reset="reloadFilterTabs"
+    >
+      <section class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6">
+        <h2 class="text-lg font-bold text-text-default mb-1">Defaults del panel</h2>
+        <p class="text-sm text-text-muted mb-4">
+          Los valores por defecto de propuestas y diagnósticos (que afectan a
+          los clientes) se administran en el panel de defaults.
+        </p>
+        <BaseButton as="NuxtLink" variant="secondary" size="sm" :to="localePath('/panel/defaults')">
+          Abrir defaults
+        </BaseButton>
+      </section>
+    </ViewSettingsPanel>
+
+    <template v-if="activeTab !== 'config'">
     <!-- Saved filter tabs -->
     <ProposalFilterTabs
       :tabs="savedTabs"
@@ -406,6 +437,7 @@
       @next="clientsNext"
       @go="clientsGoTo"
     />
+    </template>
 
     <!-- New client modal -->
     <div
@@ -577,6 +609,7 @@ import SidebarIcon from '~/components/platform/SidebarIcon.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
+import ViewSettingsPanel from '~/components/panel/ViewSettingsPanel.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import ProposalStatusSelect from '~/components/panel/proposal/ProposalStatusSelect.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
@@ -627,6 +660,7 @@ const {
   saveTab,
   deleteTab: deleteFilterTab,
   renameTab: renameFilterTab,
+  reloadTabs: reloadFilterTabs,
 } = useClientFilters();
 
 const filteredClients = computed(() => applyFilters(clientsStore.clients));

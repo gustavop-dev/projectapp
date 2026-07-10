@@ -9,12 +9,13 @@
                focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none
                appearance-none cursor-pointer"
         :style="selectArrowStyle"
-        @change="$emit('select', $event.target.value)"
+        @change="handleMobileSelect($event.target.value)"
       >
         <option value="all">Todas</option>
         <option v-for="tab in tabs" :key="tab.id" :value="tab.id">
           {{ tab.name }}
         </option>
+        <option v-if="showConfigTab" value="__config__">⚙ Configuraciones</option>
       </select>
     </div>
 
@@ -100,6 +101,20 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
       </button>
+
+      <!-- Fixed trailing config tab (opt-in per view) -->
+      <button
+        v-if="showConfigTab"
+        type="button"
+        data-testid="filter-tabs-config"
+        class="ml-auto px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap"
+        :class="configActive
+          ? 'border-emerald-600 text-text-brand'
+          : 'border-transparent text-text-muted hover:text-text-default'"
+        @click="$emit('config')"
+      >
+        Configuraciones
+      </button>
     </div>
 
     <!-- Create / Rename inline input -->
@@ -158,9 +173,20 @@ const props = defineProps({
   tabs: { type: Array, default: () => [] },
   activeTabId: { type: String, default: 'all' },
   isTabLimitReached: { type: Boolean, default: false },
+  // Opt-in fixed trailing "Configuraciones" tab (clients/proposals views).
+  showConfigTab: { type: Boolean, default: false },
+  configActive: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['select', 'create', 'rename', 'delete']);
+const emit = defineEmits(['select', 'create', 'rename', 'delete', 'config']);
+
+function handleMobileSelect(value) {
+  if (value === '__config__') {
+    emit('config');
+    return;
+  }
+  emit('select', value);
+}
 
 const openMenuId = ref(null);
 const showInput = ref(false);

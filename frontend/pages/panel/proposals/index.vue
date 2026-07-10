@@ -212,12 +212,34 @@
       :tabs="savedTabs"
       :active-tab-id="activeTabId"
       :is-tab-limit-reached="isTabLimitReached"
-      @select="selectTab"
+      show-config-tab
+      :config-active="showConfigTab"
+      @select="handleSelectTab"
       @create="handleCreateTab"
       @rename="renameTab"
       @delete="deleteTab"
+      @config="showConfigTab = true"
     />
 
+    <!-- Settings tab replaces the list area -->
+    <ViewSettingsPanel
+      v-if="showConfigTab"
+      :filter-views="[{ value: 'proposal', label: 'Propuestas' }]"
+      @reset="reloadFilterTabs"
+    >
+      <section class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6">
+        <h2 class="text-lg font-bold text-text-default mb-1">Defaults de propuestas</h2>
+        <p class="text-sm text-text-muted mb-4">
+          Secciones, textos y condiciones por defecto con los que nacen las
+          propuestas nuevas.
+        </p>
+        <BaseButton as="NuxtLink" variant="secondary" size="sm" :to="localePath('/panel/proposals/defaults')">
+          Abrir defaults de propuestas
+        </BaseButton>
+      </section>
+    </ViewSettingsPanel>
+
+    <template v-if="!showConfigTab">
     <!-- Search + Filter toggle -->
     <div class="flex flex-col sm:flex-row gap-3 mb-4">
       <div class="relative flex-1 max-w-sm">
@@ -587,6 +609,7 @@
         @go="goToPage"
       />
     </div>
+    </template>
     <!-- Status/send feedback now renders via the global <PanelNotificationHost /> -->
   </div>
 </template>
@@ -597,6 +620,7 @@ import ProposalDashboard from '~/components/BusinessProposal/admin/ProposalDashb
 import MetricsManual from '~/components/BusinessProposal/admin/MetricsManual.vue';
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
+import ViewSettingsPanel from '~/components/panel/ViewSettingsPanel.vue';
 import ProposalFilterPanel from '~/components/proposals/ProposalFilterPanel.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import ProposalStatusSelect from '~/components/panel/proposal/ProposalStatusSelect.vue';
@@ -625,7 +649,16 @@ const {
   saveTab,
   deleteTab,
   renameTab,
+  reloadTabs: reloadFilterTabs,
 } = useProposalFilters();
+
+// Fixed trailing "Configuraciones" tab: swaps the list for the settings panel.
+const showConfigTab = ref(false);
+
+function handleSelectTab(tabId) {
+  showConfigTab.value = false;
+  selectTab(tabId);
+}
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 const notify = usePanelNotify();
 const actionsModalProposal = ref(null);

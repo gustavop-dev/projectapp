@@ -115,3 +115,25 @@ describe('ProposalFilterTabs', () => {
     expect(wrapper.emitted('select')).toEqual([['tab-2']]);
   });
 });
+
+describe('config tab (opt-in)', () => {
+  it('is hidden by default', () => {
+    const wrapper = mountTabs()
+    expect(wrapper.find('[data-testid="filter-tabs-config"]').exists()).toBe(false)
+  })
+
+  it('renders and emits config when enabled', async () => {
+    const wrapper = mountTabs({ showConfigTab: true })
+    const tab = wrapper.find('[data-testid="filter-tabs-config"]')
+    expect(tab.exists()).toBe(true)
+    await tab.trigger('click')
+    expect(wrapper.emitted('config')).toHaveLength(1)
+  })
+
+  it('marks the config tab active via configActive', () => {
+    const wrapper = mountTabs({ showConfigTab: true, configActive: true })
+    expect(
+      wrapper.find('[data-testid="filter-tabs-config"]').classes(),
+    ).toContain('border-emerald-600')
+  })
+})
