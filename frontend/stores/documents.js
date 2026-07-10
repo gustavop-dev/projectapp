@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 import { get_request, create_request, patch_request, delete_request } from './services/request_http';
+import { normalizeApiError } from './services/normalize_api_error';
 
 export const useDocumentStore = defineStore('documents', {
   /**
@@ -60,7 +61,11 @@ export const useDocumentStore = defineStore('documents', {
       } catch (error) {
         this.error = 'fetch_failed';
         console.error('Error fetching documents:', error);
-        return { success: false, errors: error.response?.data };
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudieron cargar los documentos.'),
+        };
       /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
@@ -101,7 +106,11 @@ export const useDocumentStore = defineStore('documents', {
       } catch (error) {
         this.error = 'fetch_detail_failed';
         console.error('Error fetching document:', error);
-        return { success: false, errors: error.response?.data };
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudo cargar el documento.'),
+        };
       /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
@@ -122,7 +131,11 @@ export const useDocumentStore = defineStore('documents', {
       } catch (error) {
         this.error = 'create_from_markdown_failed';
         console.error('Error creating document from markdown:', error);
-        return { success: false, errors: error.response?.data };
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudo crear el documento.'),
+        };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -144,7 +157,11 @@ export const useDocumentStore = defineStore('documents', {
       } catch (error) {
         this.error = 'update_failed';
         console.error('Error updating document:', error);
-        return { success: false, errors: error.response?.data };
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudieron guardar los cambios.'),
+        };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -168,7 +185,11 @@ export const useDocumentStore = defineStore('documents', {
       } catch (error) {
         this.error = 'delete_failed';
         console.error('Error deleting document:', error);
-        return { success: false, errors: error.response?.data };
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudo eliminar el documento.'),
+        };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -189,7 +210,11 @@ export const useDocumentStore = defineStore('documents', {
       } catch (error) {
         this.error = 'duplicate_failed';
         console.error('Error duplicating document:', error);
-        return { success: false, errors: error.response?.data };
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudo duplicar el documento.'),
+        };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -207,7 +232,10 @@ export const useDocumentStore = defineStore('documents', {
         return { success: true, markdown: response.data.content_markdown || '' };
       } catch (error) {
         console.error('Error fetching document markdown:', error);
-        return { success: false };
+        return {
+          success: false,
+          ...normalizeApiError(error, 'No se pudo obtener el markdown del documento.'),
+        };
       }
     },
 
@@ -242,7 +270,12 @@ export const useDocumentStore = defineStore('documents', {
       } catch (error) {
         const data = error.response?.data;
         const errorCode = error.response?.status === 429 ? 'rate_limited' : 'send_failed';
-        return { success: false, errors: data, code: errorCode };
+        return {
+          success: false,
+          errors: data,
+          ...normalizeApiError(error, 'No se pudo enviar el correo.'),
+          code: errorCode,
+        };
       }
     },
 
@@ -268,7 +301,11 @@ export const useDocumentStore = defineStore('documents', {
         return { success: true };
       } catch (error) {
         console.error('Error downloading PDF:', error);
-        return { success: false, errors: error.response?.data };
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudo descargar el PDF.'),
+        };
       }
     },
   },

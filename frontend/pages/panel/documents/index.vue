@@ -2,41 +2,20 @@
   <div class="flex flex-col min-h-full">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-      <h1 class="text-2xl font-light text-text-default">Documentos</h1>
-      <NuxtLink
-        :to="createLink"
-        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl
-               font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div>
+        <h1 class="text-2xl font-light text-text-default">Documentos</h1>
+        <p class="text-sm text-text-subtle mt-1">Crea, organiza y comparte documentos con tu marca.</p>
+      </div>
+      <BaseButton as="NuxtLink" :to="createLink" variant="primary" class="shadow-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
         Nuevo Documento
-      </NuxtLink>
+      </BaseButton>
     </div>
 
     <!-- Search bar -->
-    <div class="relative mb-5">
-      <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-subtle pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-      </svg>
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="Buscar por título o cliente..."
-        class="w-full pl-10 pr-10 py-2.5 bg-surface border border-border-default rounded-xl text-sm text-text-default placeholder:text-input-placeholder focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none shadow-sm transition-colors"
-      />
-      <button
-        v-if="searchQuery"
-        type="button"
-        class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full text-text-subtle hover:text-text-muted hover:bg-surface-raised transition-colors"
-        @click="searchQuery = ''"
-      >
-        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-    </div>
+    <DocumentSearchInput v-model="searchQuery" class="mb-5" />
 
     <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 items-stretch flex-1">
       <FolderSidebar
@@ -72,49 +51,87 @@
         </div>
 
         <!-- Loading -->
-        <div v-if="documentStore.isLoading" class="text-center py-12 text-text-subtle text-sm">
-          Cargando...
-        </div>
+        <DocumentListSkeleton v-if="documentStore.isLoading" mode="list" />
 
-        <div v-else-if="!hasContent" class="text-center py-16">
-          <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-surface-raised  flex items-center justify-center">
-            <svg v-if="searchQuery" class="w-8 h-8 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- Load error (persistent: a toast would get lost) -->
+        <BaseAlert
+          v-else-if="loadError"
+          variant="danger"
+          title="No se pudieron cargar los documentos"
+        >
+          <p>{{ loadError }}</p>
+          <div class="mt-3">
+            <BaseButton variant="secondary" size="sm" @click="loadDocuments">Reintentar</BaseButton>
+          </div>
+        </BaseAlert>
+
+        <!-- Empty states, one per context -->
+        <BaseEmptyState
+          v-else-if="!hasContent && searchQuery"
+          title="Sin resultados"
+          :description="`No se encontraron documentos para &quot;${searchQuery}&quot;.`"
+        >
+          <template #icon>
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <svg v-else class="w-8 h-8 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          </template>
+          <template #actions>
+            <BaseButton variant="secondary" size="sm" @click="searchQuery = ''">Limpiar búsqueda</BaseButton>
+          </template>
+        </BaseEmptyState>
+        <BaseEmptyState
+          v-else-if="!hasContent && documentStore.activeTagIds.length > 0"
+          title="Ningún documento coincide"
+          description="Ningún documento tiene todas las etiquetas seleccionadas."
+        >
+          <template #icon>
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+          </template>
+          <template #actions>
+            <BaseButton variant="secondary" size="sm" @click="handleClearTagFilters">Quitar filtros</BaseButton>
+          </template>
+        </BaseEmptyState>
+        <BaseEmptyState
+          v-else-if="!hasContent && documentStore.activeFolderId !== 'all'"
+          title="Esta carpeta está vacía"
+          description="Crea un documento aquí o arrastra uno desde otra carpeta."
+        >
+          <template #icon>
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+            </svg>
+          </template>
+          <template #actions>
+            <BaseButton as="NuxtLink" :to="createLink" variant="secondary" size="sm">Crear documento aquí</BaseButton>
+          </template>
+        </BaseEmptyState>
+        <BaseEmptyState
+          v-else-if="!hasContent"
+          title="No hay documentos todavía"
+          description="Crea tu primer documento desde markdown y descárgalo como PDF con tu marca."
+        >
+          <template #icon>
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-          </div>
-          <template v-if="searchQuery">
-            <p class="text-text-muted text-sm">
-              No se encontraron documentos para "<span class="font-medium">{{ searchQuery }}</span>".
-            </p>
-            <button
-              type="button"
-              class="mt-3 text-sm text-text-brand hover:text-text-brand "
-              @click="searchQuery = ''"
-            >
-              Limpiar búsqueda
-            </button>
           </template>
-          <template v-else>
-            <p class="text-text-muted text-sm">No hay documentos todavia.</p>
-            <NuxtLink
-              :to="localePath('/panel/documents/create')"
-              class="inline-flex items-center gap-1 mt-3 text-sm text-text-brand hover:text-text-brand "
-            >
-              Crear el primero →
-            </NuxtLink>
+          <template #actions>
+            <BaseButton as="NuxtLink" :to="localePath('/panel/documents/create')" variant="primary" size="sm">
+              Crear el primero
+            </BaseButton>
           </template>
-        </div>
+        </BaseEmptyState>
 
         <!-- Desktop table -->
-        <div v-if="!documentStore.isLoading && hasContent" class="hidden sm:block bg-surface rounded-xl shadow-sm border border-border-muted overflow-x-auto  ">
+        <div v-if="!documentStore.isLoading && !loadError && hasContent" class="hidden sm:block bg-surface rounded-xl shadow-sm border border-border-muted overflow-x-auto  ">
           <table class="w-full">
             <thead>
               <tr class="border-b border-border-muted text-left">
-                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Titulo</th>
+                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Título</th>
                 <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Etiquetas</th>
                 <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
                 <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Creado</th>
@@ -127,7 +144,7 @@
                 v-for="sub in currentSubfolders"
                 :key="`folder-${sub.id}`"
                 class="transition-colors cursor-pointer select-none hover:bg-surface-muted"
-                :class="{ 'ring-2 ring-inset ring-emerald-400': dragOverFolderId === sub.id }"
+                :class="{ 'ring-2 ring-inset ring-success-strong': dragOverFolderId === sub.id }"
                 draggable="true"
                 @click="handleSelectFolder(sub.id)"
                 @dragstart="handleFolderDragStart($event, sub)"
@@ -224,7 +241,7 @@
         </div>
 
         <!-- Mobile cards -->
-        <div v-if="!documentStore.isLoading && hasContent" class="sm:hidden space-y-3">
+        <div v-if="!documentStore.isLoading && !loadError && hasContent" class="sm:hidden space-y-3">
           <!-- Tarjetas de subcarpeta -->
           <div
             v-for="sub in currentSubfolders"
@@ -284,7 +301,7 @@
 
         <!-- Pagination -->
         <BasePagination
-          v-if="!documentStore.isLoading && filteredDocuments.length > 0"
+          v-if="!documentStore.isLoading && !loadError && filteredDocuments.length > 0"
           :current-page="docPage"
           :total-pages="docTotalPages"
           :total-items="docTotalItems"
@@ -322,38 +339,16 @@
     />
 
     <!-- Delete confirmation modal -->
-    <Teleport to="body">
-      <Transition name="fade-modal">
-        <div
-          v-if="deleteConfirm"
-          class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-          @click.self="deleteConfirm = null"
-        >
-          <div class="bg-surface rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center ">
-            <div class="text-4xl mb-3">🗑️</div>
-            <h3 class="text-lg font-bold text-text-default mb-2">Eliminar documento</h3>
-            <p class="text-sm text-text-muted mb-6">
-              Se eliminara permanentemente "{{ deleteConfirm.title }}". Esta accion no se puede deshacer.
-            </p>
-            <div class="flex gap-3 justify-center">
-              <button
-                class="px-6 py-2.5 bg-red-600 text-white rounded-xl font-medium text-sm hover:bg-red-700 transition-colors disabled:opacity-50"
-                :disabled="documentStore.isUpdating"
-                @click="confirmDelete"
-              >
-                {{ documentStore.isUpdating ? 'Eliminando...' : 'Eliminar' }}
-              </button>
-              <button
-                class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-border-muted transition-colors"
-                @click="deleteConfirm = null"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      @confirm="handleConfirmed"
+      @cancel="handleCancelled"
+    />
   </div>
 </template>
 
@@ -368,10 +363,15 @@ import MoveFolderModal from '~/components/panel/documents/MoveFolderModal.vue';
 import RenameDocumentModal from '~/components/panel/documents/RenameDocumentModal.vue';
 import SendDocumentEmailModal from '~/components/panel/documents/SendDocumentEmailModal.vue';
 import DocumentActionsSheet from '~/components/panel/documents/DocumentActionsSheet.vue';
+import DocumentSearchInput from '~/components/panel/documents/DocumentSearchInput.vue';
+import DocumentListSkeleton from '~/components/panel/documents/DocumentListSkeleton.vue';
+import ConfirmModal from '~/components/ConfirmModal.vue';
 import { tagBadgeClass, tagDotClass } from '~/utils/documentTagColors.js';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { usePagination } from '~/composables/usePagination';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { useConfirmModal } from '~/composables/useConfirmModal';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -379,6 +379,9 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const documentStore = useDocumentStore();
 const folderStore = useDocumentFolderStore();
 const tagStore = useDocumentTagStore();
+
+const notify = usePanelNotify();
+const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
 const searchQuery = ref('');
 const newlyCreatedId = ref(null);
@@ -421,7 +424,6 @@ watch(searchQuery, () => docResetPage());
 watch(() => documentStore.activeFolderId, () => docResetPage());
 watch(() => documentStore.activeTagIds, () => docResetPage(), { deep: true });
 
-const deleteConfirm = ref(null);
 const showFolderManager = ref(false);
 const showTagManager = ref(false);
 const movingDoc = ref(null);
@@ -460,12 +462,18 @@ const otherFoldersCount = computed(() => {
   return folderStore.folders.reduce((sum, f) => sum + (f.document_count || 0), 0);
 });
 
+const loadError = ref(null);
+
 async function loadDocuments() {
-  await Promise.all([
+  loadError.value = null;
+  const [docsResult] = await Promise.all([
     documentStore.fetchDocuments(),
     folderStore.fetchFolders(),
     tagStore.fetchTags(),
   ]);
+  if (docsResult && !docsResult.success) {
+    loadError.value = docsResult.message || 'No se pudieron cargar los documentos.';
+  }
 }
 
 onMounted(loadDocuments);
@@ -573,6 +581,8 @@ async function reparentFolder(folder, destId) {
   const result = await folderStore.updateFolder(folder.id, { parent: destId });
   if (result.success) {
     await Promise.all([documentStore.fetchDocuments(), folderStore.fetchFolders()]);
+  } else {
+    notify.error({ title: 'No se pudo mover la carpeta' });
   }
 }
 
@@ -594,7 +604,13 @@ async function handleDropOnFolder(folderId) {
   const doc = draggingDoc.value;
   draggingDoc.value = null;
   if (doc.folder_id === folderId) return;
-  await documentStore.updateDocument(doc.id, { folder_id: folderId });
+  const result = await documentStore.updateDocument(doc.id, { folder_id: folderId });
+  if (result.success) {
+    const folderName = folderStore.folderById(folderId)?.name;
+    notify.success({ title: folderName ? `Documento movido a "${folderName}"` : 'Documento movido' });
+  } else {
+    notify.error({ title: 'No se pudo mover el documento', detail: result.message });
+  }
   await Promise.all([documentStore.fetchDocuments(), folderStore.fetchFolders()]);
 }
 
@@ -628,38 +644,57 @@ function formatDate(dateStr) {
 }
 
 async function handleDownloadPdf(doc) {
-  await documentStore.downloadPdf(doc.id, doc.title || 'document');
+  const result = await documentStore.downloadPdf(doc.id, doc.title || 'document');
+  if (!result.success) {
+    notify.error({ title: 'No se pudo descargar el PDF', detail: result.message });
+  }
 }
 
 async function handleDuplicate(id) {
   const result = await documentStore.duplicateDocument(id);
-  if (result.success) {
-    clearTimeout(newlyCreatedTimer);
-    await documentStore.fetchDocuments();
-    newlyCreatedId.value = result.data.id;
-    newlyCreatedTimer = setTimeout(() => { newlyCreatedId.value = null; }, 2500);
+  if (!result.success) {
+    notify.error({ title: 'No se pudo duplicar el documento', detail: result.message });
+    return;
   }
+  notify.success({ title: 'Documento duplicado' });
+  clearTimeout(newlyCreatedTimer);
+  await documentStore.fetchDocuments();
+  newlyCreatedId.value = result.data.id;
+  newlyCreatedTimer = setTimeout(() => { newlyCreatedId.value = null; }, 2500);
 }
 
 async function handleCopyMarkdown(id) {
   const result = await documentStore.getDocumentMarkdown(id);
-  if (!result.success) return;
+  if (!result.success) {
+    notify.error({ title: 'No se pudo obtener el markdown', detail: result.message });
+    return;
+  }
   try {
     await navigator.clipboard.writeText(result.markdown);
+    notify.success('Markdown copiado al portapapeles');
   } catch {
-    // clipboard unavailable or denied — no false feedback
+    notify.error({
+      title: 'No se pudo copiar al portapapeles',
+      detail: 'Tu navegador bloqueó el acceso al portapapeles.',
+    });
   }
 }
 
 function handleDelete(doc) {
-  deleteConfirm.value = doc;
-}
-
-async function confirmDelete() {
-  if (!deleteConfirm.value) return;
-  const result = await documentStore.deleteDocument(deleteConfirm.value.id);
-  if (result.success) {
-    deleteConfirm.value = null;
-  }
+  if (!doc) return;
+  requestConfirm({
+    title: 'Eliminar documento',
+    message: `Se eliminará permanentemente "${doc.title}". Esta acción no se puede deshacer.`,
+    variant: 'danger',
+    confirmText: 'Eliminar',
+    onConfirm: async () => {
+      const result = await documentStore.deleteDocument(doc.id);
+      if (result.success) {
+        notify.success({ title: 'Documento eliminado' });
+      } else {
+        notify.error({ title: 'No se pudo eliminar el documento', detail: result.message });
+      }
+    },
+  });
 }
 </script>
