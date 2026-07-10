@@ -9,6 +9,7 @@ export const useEmailStore = defineStore('emails', {
     isSending: false,
     isLoadingHistory: false,
     isLoadingDefaults: false,
+    isLoadingPreview: false,
     error: null,
   }),
 
@@ -53,6 +54,22 @@ export const useEmailStore = defineStore('emails', {
       /* c8 ignore next 3 */
       } finally {
         this.isLoadingHistory = false;
+      }
+    },
+
+    async previewEmail(payload) {
+      this.isLoadingPreview = true;
+      this.error = null;
+      try {
+        const response = await create_request('emails/preview/', payload);
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = error.response?.data?.error || 'preview_failed';
+        console.error('Error fetching email preview:', error);
+        return { success: false, error: error.response?.data?.error };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isLoadingPreview = false;
       }
     },
 

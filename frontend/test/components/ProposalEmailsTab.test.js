@@ -232,7 +232,7 @@ describe('ProposalEmailsTab', () => {
     expect(formData.get('recipient_email')).toBe('carlos@example.com');
     expect(formData.get('subject')).toBe('Seguimiento de propuesta');
     expect(formData.get('greeting')).toBe('Hola Carlos');
-    expect(formData.get('sections')).toBe(JSON.stringify(['Primer bloque']));
+    expect(formData.get('sections')).toBe(JSON.stringify([{ text: 'Primer bloque', markdown: false }]));
     expect(notify.notifications.value[0]).toMatchObject({ type: 'success', title: 'Correo enviado correctamente.' });
 
     jest.advanceTimersByTime(5000);

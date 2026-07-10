@@ -119,6 +119,7 @@ from content.views.linkedin import (
 )
 from content.views.standalone_email import (
     send_standalone_email, get_standalone_email_defaults, list_standalone_emails,
+    preview_composed_email,
 )
 from content.views.document import (
     list_documents, create_document, create_document_from_markdown,
@@ -321,6 +322,7 @@ urlpatterns = [
 
     # ── Standalone emails (generic branded, not proposal-tied) ────
     path('emails/send/', send_standalone_email, name='send-standalone-email'),
+    path('emails/preview/', preview_composed_email, name='preview-composed-email'),
     path('emails/defaults/', get_standalone_email_defaults, name='standalone-email-defaults'),
     path('emails/history/', list_standalone_emails, name='list-standalone-emails'),
 

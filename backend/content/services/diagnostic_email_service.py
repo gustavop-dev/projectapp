@@ -125,30 +125,25 @@ class DiagnosticEmailService:
         Reuses the shared branded-email template and records the send in
         ``EmailLog`` with ``metadata.diagnostic_uuid`` (no ``proposal`` FK).
         """
+        from content.services.email_markdown import normalize_sections
+
         attachment_names = [a[0] for a in attachments] if attachments else []
+        normalized_sections = normalize_sections(sections)
         log_metadata = {
             'diagnostic_uuid': str(diagnostic.uuid),
             'greeting': greeting,
-            'sections': sections,
+            'sections': normalized_sections,
             'footer': footer,
             'attachment_names': attachment_names,
         }
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL',
                              'team@projectapp.co')
 
-        from content.services.proposal_email_service import _build_design_context
-
         try:
-            context = {
-                'subject': subject,
-                'greeting': greeting,
-                'sections': sections,
-                'footer': footer,
-                'attachment_names': attachment_names,
-            }
-            context.update(_build_design_context())
-            html_body = render_to_string('emails/branded_email.html', context)
-            text_body = render_to_string('emails/branded_email.txt', context)
+            html_body, text_body = ProposalEmailService.render_composed_email(
+                'branded_email', None, subject, greeting,
+                normalized_sections, footer, attachment_names,
+            )
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=text_body,

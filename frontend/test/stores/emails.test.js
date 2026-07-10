@@ -223,4 +223,64 @@ describe('useEmailStore', () => {
       expect(result).toEqual({ success: false, error: undefined });
     });
   });
+
+  // ── previewEmail ────────────────────────────────────────────────────────────
+
+  describe('previewEmail', () => {
+    const payload = {
+      subject: 'Hola',
+      greeting: 'Hola Carlos',
+      sections: [{ text: '**md**', markdown: true }],
+      footer: 'Pie',
+      attachment_names: ['doc.pdf'],
+    };
+
+    it('posts payload to emails/preview/ and returns html_preview', async () => {
+      const mockResponse = { subject: 'Hola', html_preview: '<!doctype html>...' };
+      create_request.mockResolvedValue({ data: mockResponse });
+
+      const result = await store.previewEmail(payload);
+
+      expect(create_request).toHaveBeenCalledWith('emails/preview/', payload);
+      expect(result).toEqual({ success: true, data: mockResponse });
+      expect(store.isLoadingPreview).toBe(false);
+    });
+
+    it('sets isLoadingPreview during request', async () => {
+      let capturedLoading;
+      create_request.mockImplementation(() => {
+        capturedLoading = store.isLoadingPreview;
+        return Promise.resolve({ data: {} });
+      });
+
+      await store.previewEmail(payload);
+
+      expect(capturedLoading).toBe(true);
+      expect(store.isLoadingPreview).toBe(false);
+    });
+
+    it('handles error and sets error state', async () => {
+      create_request.mockRejectedValue({
+        response: { data: { error: 'Las secciones deben ser un JSON válido.' } },
+      });
+
+      const result = await store.previewEmail(payload);
+
+      expect(store.error).toBe('Las secciones deben ser un JSON válido.');
+      expect(result).toEqual({
+        success: false,
+        error: 'Las secciones deben ser un JSON válido.',
+      });
+      expect(store.isLoadingPreview).toBe(false);
+    });
+
+    it('falls back to preview_failed when no response error', async () => {
+      create_request.mockRejectedValue(new Error('Network error'));
+
+      const result = await store.previewEmail(payload);
+
+      expect(store.error).toBe('preview_failed');
+      expect(result).toEqual({ success: false, error: undefined });
+    });
+  });
 });

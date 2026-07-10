@@ -94,8 +94,12 @@
                 <div class="flex items-center gap-2 mb-2">
                   <span class="drag-handle cursor-grab text-text-subtle dark:text-green-light/40 hover:text-text-muted select-none text-sm">⠿</span>
                   <span class="text-[10px] text-text-subtle dark:text-green-light/40 uppercase tracking-wide">Sección {{ idx + 1 }}</span>
+                  <span class="ml-auto flex items-center gap-1.5">
+                    <span class="text-[10px] text-text-subtle dark:text-green-light/40 uppercase tracking-wide">Markdown</span>
+                    <BaseToggle v-model="section.markdown" size="sm" aria-label="Activar Markdown en esta sección" />
+                  </span>
                   <button v-if="sections.length > 1" type="button" @click="removeSection(idx)"
-                    class="ml-auto text-text-subtle hover:text-red-500 transition-colors p-0.5">
+                    class="text-text-subtle hover:text-red-500 transition-colors p-0.5">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
@@ -103,6 +107,9 @@
                 </div>
                 <textarea v-model="section.text" rows="3" placeholder="Escribe el contenido de esta sección..."
                   class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring resize-y" />
+                <p v-if="section.markdown" class="mt-1 text-[10px] text-text-subtle dark:text-green-light/40">
+                  Soporta **negrita**, *cursiva*, listas con -, [enlaces](https://...) y títulos con #.
+                </p>
               </div>
             </template>
           </draggable>
@@ -202,12 +209,14 @@
           <span>{{ subject || '(sin asunto)' }}</span>
         </div>
 
-        <!-- Email preview card -->
-        <EmailPreviewCard
+        <!-- Server-rendered preview: the real branded template (emails/branded_email.html) -->
+        <ComposedEmailPreview
+          :subject="subject"
           :greeting="greeting"
           :sections="sections"
           :footer="footer"
-          :attachments="attachments"
+          :attachment-names="[...docRefs.map(r => r.label), ...attachments.map(f => f.name)]"
+          :proposal-id="proposal.id"
         />
       </div>
     </section>
@@ -261,7 +270,7 @@ import { useMarkdownAttachmentHandler } from '~/composables/useMarkdownAttachmen
 import { validateEmailAttachments } from '~/utils/emailAttachments';
 import MarkdownAttachmentModal from '~/components/MarkdownAttachmentModal.vue';
 import AttachFromDocumentsModal from '~/components/AttachFromDocumentsModal.vue';
-import EmailPreviewCard from '~/components/EmailPreviewCard.vue';
+import ComposedEmailPreview from '~/components/ComposedEmailPreview.vue';
 import EmailHistoryList from '~/components/EmailHistoryList.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import { useDocRefsAttachment } from '~/composables/useDocRefsAttachment';
@@ -292,7 +301,7 @@ const defaultGreeting = ref(
 );
 const defaultFooter = ref('Quedamos atentos a tus comentarios.\nUn abrazo, el equipo de Project App.');
 const greeting = ref(defaultGreeting.value);
-const sections = ref([{ id: nextSectionId(), text: '' }]);
+const sections = ref([{ id: nextSectionId(), text: '', markdown: false }]);
 const footer = ref(defaultFooter.value);
 const attachments = ref([]);
 const { docRefs, removeDocRef, handleDocRefsAttach, appendDocRefsToFormData, resetDocRefs }
@@ -310,7 +319,7 @@ const hasNextPage = ref(false);
 
 // ── Sections ──
 function addSection() {
-  sections.value.push({ id: nextSectionId(), text: '' });
+  sections.value.push({ id: nextSectionId(), text: '', markdown: false });
 }
 
 function removeSection(idx) {
@@ -352,7 +361,7 @@ async function handleSend() {
   formData.append('subject', subject.value.trim());
   formData.append('greeting', greeting.value.trim());
   formData.append('sections', JSON.stringify(
-    sections.value.filter(s => s.text.trim()).map(s => s.text),
+    sections.value.filter(s => s.text.trim()).map(s => ({ text: s.text, markdown: !!s.markdown })),
   ));
   formData.append('footer', footer.value.trim());
   for (const file of attachments.value) {
@@ -376,7 +385,7 @@ function resetForm() {
   subject.value = '';
   greeting.value = defaultGreeting.value;
   footer.value = defaultFooter.value;
-  sections.value = [{ id: nextSectionId(), text: '' }];
+  sections.value = [{ id: nextSectionId(), text: '', markdown: false }];
   attachments.value = [];
   resetDocRefs();
   if (fileInput.value) fileInput.value.value = '';

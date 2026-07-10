@@ -71,8 +71,12 @@
                 <div class="flex items-center gap-2 mb-2">
                   <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted select-none text-sm">⠿</span>
                   <span class="text-[10px] text-text-subtle uppercase tracking-wide">Sección {{ idx + 1 }}</span>
+                  <span class="ml-auto flex items-center gap-1.5">
+                    <span class="text-[10px] text-text-subtle uppercase tracking-wide">Markdown</span>
+                    <BaseToggle v-model="section.markdown" size="sm" aria-label="Activar Markdown en esta sección" />
+                  </span>
                   <button v-if="sections.length > 1" type="button" @click="removeSection(idx)"
-                    class="ml-auto text-text-subtle hover:text-danger-strong transition-colors p-0.5">
+                    class="text-text-subtle hover:text-danger-strong transition-colors p-0.5">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
@@ -80,6 +84,9 @@
                 </div>
                 <textarea v-model="section.text" rows="3" placeholder="Escribe el contenido de esta sección..."
                   class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface  focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring resize-y" />
+                <p v-if="section.markdown" class="mt-1 text-[10px] text-text-subtle">
+                  Soporta **negrita**, *cursiva*, listas con -, [enlaces](https://...) y títulos con #.
+                </p>
               </div>
             </template>
           </draggable>
@@ -147,12 +154,13 @@
           <span>{{ subject || '(sin asunto)' }}</span>
         </div>
 
-        <!-- Email preview card (shared branded replica) -->
-        <EmailPreviewCard
+        <!-- Server-rendered preview: the real branded template (emails/branded_email.html) -->
+        <ComposedEmailPreview
+          :subject="subject"
           :greeting="greeting"
           :sections="sections"
           :footer="footer"
-          :attachments="attachments"
+          :attachment-names="attachments.map(f => f.name)"
         />
       </div>
     </section>
@@ -210,7 +218,9 @@
               <p class="text-[10px] text-text-subtle uppercase tracking-wide mb-1">Secciones</p>
               <div v-for="(section, idx) in entry.metadata.sections" :key="idx"
                 class="bg-surface rounded-lg px-3 py-2 mb-1.5 border border-border-muted ">
-                <p class="text-xs text-text-default whitespace-pre-wrap">{{ section }}</p>
+                <span v-if="sectionIsMarkdown(section)"
+                  class="inline-block mb-1 px-1.5 py-0.5 bg-primary-soft text-text-brand rounded text-[9px] font-medium uppercase tracking-wide">MD</span>
+                <p class="text-xs text-text-default whitespace-pre-wrap">{{ sectionText(section) }}</p>
               </div>
             </div>
             <div v-if="entry.metadata?.footer">
@@ -245,7 +255,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import draggable from 'vuedraggable';
-import EmailPreviewCard from '~/components/EmailPreviewCard.vue';
+import ComposedEmailPreview from '~/components/ComposedEmailPreview.vue';
 import { useEmailStore } from '~/stores/emails';
 import { validateEmailAttachments } from '~/utils/emailAttachments';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
@@ -266,7 +276,7 @@ const activeSubTab = ref('edit');
 const recipient = ref('');
 const subject = ref('');
 const greeting = ref(defaultGreeting.value);
-const sections = ref([{ id: nextSectionId(), text: '' }]);
+const sections = ref([{ id: nextSectionId(), text: '', markdown: false }]);
 const footer = ref(defaultFooter.value);
 const attachments = ref([]);
 const fileInput = ref(null);
@@ -279,7 +289,7 @@ const expandedIds = ref({});
 
 // ── Sections ──
 function addSection() {
-  sections.value.push({ id: nextSectionId(), text: '' });
+  sections.value.push({ id: nextSectionId(), text: '', markdown: false });
 }
 
 function removeSection(idx) {
@@ -321,7 +331,7 @@ async function handleSend() {
   formData.append('subject', subject.value.trim());
   formData.append('greeting', greeting.value.trim());
   formData.append('sections', JSON.stringify(
-    sections.value.filter(s => s.text.trim()).map(s => s.text),
+    sections.value.filter(s => s.text.trim()).map(s => ({ text: s.text, markdown: !!s.markdown })),
   ));
   formData.append('footer', footer.value.trim());
   for (const file of attachments.value) {
@@ -347,7 +357,7 @@ function resetForm() {
   subject.value = '';
   greeting.value = defaultGreeting.value;
   footer.value = defaultFooter.value;
-  sections.value = [{ id: nextSectionId(), text: '' }];
+  sections.value = [{ id: nextSectionId(), text: '', markdown: false }];
   attachments.value = [];
   if (fileInput.value) fileInput.value.value = '';
 }
@@ -378,6 +388,15 @@ function toggleExpand(id) {
   } else {
     expandedIds.value[id] = true;
   }
+}
+
+// History metadata stores legacy plain strings and new {text, markdown} dicts.
+function sectionText(section) {
+  return typeof section === 'string' ? section : (section?.text || '');
+}
+
+function sectionIsMarkdown(section) {
+  return typeof section === 'object' && !!section?.markdown;
 }
 
 const STATUS_LABELS = { sent: 'Enviado', delivered: 'Entregado', bounced: 'Rebotado', failed: 'Fallido' };

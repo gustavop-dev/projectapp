@@ -2359,7 +2359,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/diagnostics/:id/edit` → Correos tab
-- **Description:** Admin sends a follow-up branded email to the client from the Correos tab of the diagnostic detail page. The composer supports a recipient address, subject, greeting, draggable body sections, footer, and optional file attachments. Email history shows previous sends with expandable metadata.
+- **Description:** Admin sends a follow-up branded email to the client from the Correos tab of the diagnostic detail page. The composer supports a recipient address, subject, greeting, draggable body sections (each with an optional Markdown toggle), footer, and optional file attachments. The "Vista previa" sub-tab shows the real branded template server-rendered via `POST /api/emails/preview/`. Email history shows previous sends with expandable metadata (sections stored as legacy strings or `{text, markdown}` objects).
 - **Steps:**
   1. Admin navigates to `/panel/diagnostics/:id/edit`.
   2. Clicks the "Correos" tab → composer loads with defaults from `GET /api/diagnostics/:id/email/defaults/`.
@@ -3796,9 +3796,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Steps:**
   1. Navigate to `/panel/proposals/:id/edit`
   2. Click the "Correos" tab
-  3. Fill composer: recipient, subject, greeting, draggable sections, footer
+  3. Fill composer: recipient, subject, greeting, draggable sections (each with an optional Markdown toggle), footer
   4. Optionally attach files (PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, JPEG; max 15 MB)
-  5. Preview email in "Vista previa" sub-tab
+  5. Preview email in "Vista previa" sub-tab (server-rendered via `POST /api/emails/preview/` with `proposal_id`, shown in a sandboxed iframe)
   6. Click "Enviar correo" → `POST /api/proposals/:id/branded-email/send/`
   7. Verify history updates with new entry
 - **Coverage:** ✅ Covered
@@ -3827,13 +3827,13 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/emails`
-- **Description:** Admin composes and sends branded emails from the standalone Emails page (not tied to any proposal). Draggable sections, file attachments, branded preview, and paginated email history. Uses dedicated standalone endpoints distinct from proposal-scoped email flows.
+- **Description:** Admin composes and sends branded emails from the standalone Emails page (not tied to any proposal). Draggable sections with a per-section Markdown toggle, file attachments, server-rendered preview of the real branded template, and paginated email history. Uses dedicated standalone endpoints distinct from proposal-scoped email flows.
 - **Steps:**
   1. Admin navigates to `/panel/emails` via sidebar navigation.
   2. Composer loads with defaults from `GET /api/emails/defaults/`.
-  3. Admin fills recipient email, subject, greeting, draggable body sections, and footer.
+  3. Admin fills recipient email, subject, greeting, draggable body sections (each with an optional Markdown toggle), and footer.
   4. Optionally attaches files.
-  5. Admin previews email in branded template preview tab.
+  5. Admin opens the "Vista previa" sub-tab → `POST /api/emails/preview/` returns the real `branded_email.html` render (shown in a sandboxed iframe, markdown sections converted server-side).
   6. Admin clicks "Enviar" → `POST /api/emails/send/`.
   7. Success message renders; email history updates.
   8. Admin views paginated email history from `GET /api/emails/history/`.
