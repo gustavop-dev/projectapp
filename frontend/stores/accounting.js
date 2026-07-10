@@ -365,6 +365,55 @@ export const useAccountingStore = defineStore('accounting', {
       }
     },
 
+    // ── Hosting cycles (payment history) ──
+
+    async fetchHostingCycles(hostingId) {
+      try {
+        const response = await get_request(
+          `accounting/hostings/${hostingId}/cycles/`,
+        );
+        return { success: true, data: response.data.results ?? [] };
+      } catch (error) {
+        console.error(`Error fetching cycles (hosting ${hostingId}):`, error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    async createHostingCycle(hostingId, payload) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          `accounting/hostings/${hostingId}/cycles/create/`, payload,
+        );
+        if (response.data?.hosting) {
+          this.hostings = this.hostings.map((record) =>
+            record.id === hostingId ? response.data.hosting : record,
+          );
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error(`Error creating cycle (hosting ${hostingId}):`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    async deleteHostingCycle(hostingId, cycleId) {
+      this.isUpdating = true;
+      try {
+        await delete_request(
+          `accounting/hostings/${hostingId}/cycles/${cycleId}/delete/`,
+        );
+        return { success: true };
+      } catch (error) {
+        console.error(`Error deleting cycle ${cycleId}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
     async resendCollectionAccount(id) {
       return this._collectionAccountAction(id, 'resend');
     },

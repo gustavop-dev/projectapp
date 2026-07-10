@@ -18,6 +18,7 @@ from content.models import (
     AdsSpendRecord,
     CardBalanceSnapshot,
     ExpenseRecord,
+    HostingCycle,
     HostingRecord,
     IncomeRecord,
     PocketMovement,
@@ -130,18 +131,30 @@ class Command(BaseCommand):
 
         for client_name, domain in CLIENTS[:max(1, min(count, len(CLIENTS)))]:
             monthly = Decimal(rng.randrange(20_000, 100_000, 1_000))
-            HostingRecord.objects.create(
+            cycles = rng.randrange(1, 4)
+            hosting = HostingRecord.objects.create(
                 client_name=client_name,
+                client_email=f'facturacion@{domain.split("//")[-1].strip("/")}',
                 domain_url=domain,
                 monthly_value=monthly,
                 payment_modality=rng.choice(list(HostingRecord.Modality)),
                 valid_from=_month_start(6),
                 valid_to=_month_start(0) + timedelta(days=180),
-                cycles_count=rng.randrange(1, 4),
+                cycles_count=cycles,
                 payment_per_cycle=monthly * 6,
-                total_paid=monthly * 6,
+                total_paid=monthly * 6 * cycles,
                 source_ref=FAKE_REF,
             )
+            # Cycle history is the source of truth for total_paid.
+            for cycle_index in range(cycles):
+                HostingCycle.objects.create(
+                    hosting_record=hosting,
+                    modality=hosting.payment_modality,
+                    amount=monthly * 6,
+                    paid_at=_month_start(6 * (cycles - cycle_index)),
+                    source_ref=FAKE_REF,
+                )
+                created += 1
             created += 1
 
         for index in range(count):

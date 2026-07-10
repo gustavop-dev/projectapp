@@ -7,6 +7,7 @@ from content.views.accounting import (
     update_expense_record, delete_expense_record,
     list_hosting_records, create_hosting_record, retrieve_hosting_record,
     update_hosting_record, delete_hosting_record,
+    list_hosting_cycles, create_hosting_cycle, delete_hosting_cycle,
     list_pocket_movements, create_pocket_movement, retrieve_pocket_movement,
     update_pocket_movement, delete_pocket_movement,
     list_recurring_payments, create_recurring_payment,
@@ -465,6 +466,9 @@ urlpatterns = [
         send_hosting_collection_account,
         name='send-hosting-collection-account',
     ),
+    path('accounting/hostings/<int:record_id>/cycles/', list_hosting_cycles, name='list-hosting-cycles'),
+    path('accounting/hostings/<int:record_id>/cycles/create/', create_hosting_cycle, name='create-hosting-cycle'),
+    path('accounting/hostings/<int:record_id>/cycles/<int:cycle_id>/delete/', delete_hosting_cycle, name='delete-hosting-cycle'),
 
     path('accounting/collection-accounts/', list_collection_accounts, name='list-collection-accounts'),
     path('accounting/collection-accounts/<int:doc_id>/', retrieve_collection_account, name='retrieve-collection-account'),

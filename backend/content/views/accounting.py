@@ -38,6 +38,8 @@ from content.serializers.accounting import (
     CardBalanceSnapshotSerializer,
     ExpenseRecordCreateUpdateSerializer,
     ExpenseRecordSerializer,
+    HostingCycleCreateSerializer,
+    HostingCycleSerializer,
     HostingRecordCreateUpdateSerializer,
     HostingRecordSerializer,
     IncomeRecordCreateUpdateSerializer,
@@ -537,6 +539,48 @@ def update_hosting_record(request, record_id):
 @permission_classes([IsSuperUser])
 def delete_hosting_record(request, record_id):
     return _delete_record(request, 'hosting', record_id)
+
+
+# ── Hosting cycles (payment history) ──
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def list_hosting_cycles(request, record_id):
+    hosting = get_object_or_404(HostingRecord, pk=record_id)
+    serializer = HostingCycleSerializer(hosting.cycles.all(), many=True)
+    return Response({'results': serializer.data})
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def create_hosting_cycle(request, record_id):
+    from content.services import hosting_cycle_service
+
+    hosting = get_object_or_404(HostingRecord, pk=record_id)
+    serializer = HostingCycleCreateSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    cycle = hosting_cycle_service.register_cycle_payment(
+        hosting, data=serializer.validated_data, user=request.user,
+    )
+    return Response(
+        {
+            'cycle': HostingCycleSerializer(cycle).data,
+            'hosting': HostingRecordSerializer(hosting).data,
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['DELETE'])
+@permission_classes([IsSuperUser])
+def delete_hosting_cycle(request, record_id, cycle_id):
+    from content.services import hosting_cycle_service
+
+    hosting = get_object_or_404(HostingRecord, pk=record_id)
+    cycle = get_object_or_404(hosting.cycles, pk=cycle_id)
+    hosting_cycle_service.delete_cycle(hosting, cycle, user=request.user)
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # ── Pocket movements ──

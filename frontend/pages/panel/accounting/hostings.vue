@@ -193,6 +193,16 @@
         <template #row-actions="{ row }">
           <button
             type="button"
+            aria-label="Ciclos de pago"
+            title="Registrar pago de ciclo / ver histórico"
+            :data-testid="`hosting-cycles-${row.id}`"
+            class="p-2 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+            @click.stop="openCyclesModal(row)"
+          >
+            <ClockIcon class="w-5 h-5" />
+          </button>
+          <button
+            type="button"
             aria-label="Enviar cuenta de cobro"
             :title="row.client_email
               ? 'Enviar cuenta de cobro al cliente'
@@ -244,6 +254,13 @@
       @cancel="handleCancelled"
     />
 
+    <HostingCyclesModal
+      :open="cyclesModalOpen"
+      :record="cyclesRecord"
+      @close="cyclesModalOpen = false"
+      @changed="onCyclesChanged"
+    />
+
     <ConfirmModal
       v-model="billingConfirmOpen"
       title="Enviar cuenta de cobro"
@@ -259,7 +276,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { PaperAirplaneIcon, PlusIcon } from '@heroicons/vue/24/outline';
+import { ClockIcon, PaperAirplaneIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
@@ -270,6 +287,7 @@ import AccountingExportButton from '~/components/accounting/AccountingExportButt
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingStatusSelect from '~/components/accounting/AccountingStatusSelect.vue';
 import AccountingInlineCell from '~/components/accounting/AccountingInlineCell.vue';
+import HostingCyclesModal from '~/components/accounting/HostingCyclesModal.vue';
 import HostingFormModal from '~/components/accounting/HostingFormModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
@@ -469,6 +487,27 @@ async function saveInline(row, field, value) {
     loadRecords();
   } else {
     notify.error({ title: 'No se pudo actualizar', detail: result.message });
+  }
+}
+
+// -------------------------------------------------------------------
+// Cycle history modal
+// -------------------------------------------------------------------
+
+const cyclesModalOpen = ref(false);
+const cyclesRecord = ref(null);
+
+function openCyclesModal(row) {
+  cyclesRecord.value = row;
+  cyclesModalOpen.value = true;
+}
+
+async function onCyclesChanged() {
+  await loadRecords();
+  if (cyclesRecord.value) {
+    cyclesRecord.value =
+      store.hostings.find((row) => row.id === cyclesRecord.value.id)
+      || cyclesRecord.value;
   }
 }
 
