@@ -2055,6 +2055,82 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-hour-packages-list.spec.js`
 
+### FLOW: `admin-hour-packages-view-modes`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/hour-packages`
+- **Description:** Switch the catalog between Tabla, Tarjetas and Comparativa (pricing tiers with a "Mejor tarifa" highlight); the initial mode comes from the settings singleton.
+- **Steps:**
+  1. Admin opens `/panel/hour-packages` — `GET /api/hour-packages/admin/settings/` decides the initial view mode.
+  2. Admin switches the view-mode segmented control (Tabla / Tarjetas / Comparativa).
+  3. Tarjetas renders a card grid with effective rate, discount badge and totals; Comparativa renders side-by-side tiers highlighting the best effective rate.
+  4. Edit/Eliminar remain available from every mode.
+- **Coverage:** ⚠️ Missing
+- **E2E Spec:** _pending_
+
+### FLOW: `admin-hour-packages-config`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/hour-packages`
+- **Description:** Configuración section: default view mode + restore a nationality's catalog to the canonical defaults ladder.
+- **Steps:**
+  1. Admin switches the page section segmented to "Configuración".
+  2. Saving a default view mode PATCHes `/api/hour-packages/admin/settings/update/` and toasts.
+  3. "Restablecer" per nationality opens a ConfirmModal and POSTs `/api/hour-packages/admin/restore-defaults/`; the catalog of that country is replaced with the default ladder (1h/10h/20h/60h/180h).
+- **Coverage:** ⚠️ Missing
+- **E2E Spec:** _pending_
+
+### FLOW: `admin-accounting-statements`
+
+- **Module:** admin
+- **Role:** admin (superuser)
+- **Priority:** P2
+- **Routes:** `/panel/accounting/statements`
+- **Description:** Monthly credit-card statement ledger (extractos): 12-month processed/draft/pending grid per card, inline detail with totals, category bars and transactions, finalize/reopen lifecycle, learned merchant aliases, MCP chat kick-off prompt.
+- **Steps:**
+  1. Superuser opens `/panel/accounting/statements` — `GET /api/accounting/statements/status/?year=` renders the 12-month grid; card chips show Procesado/Borrador.
+  2. Clicking a chip loads `GET /api/accounting/statements/:id/` — detail shows stat cards (Compras/Pagos/Intereses/Saldo), category bars and the transactions table (unidentified lines flagged).
+  3. On a draft: per-line Editar (modal PATCH `.../transactions/:txId/update/`) and Eliminar; Finalizar validates Σ vs purchases_total (±1 COP) and offers a forced close on mismatch; Eliminar removes the statement after confirm.
+  4. On a processed statement: Reabrir returns it to draft.
+  5. "Comercios aprendidos" lists merchant aliases with delete.
+  6. "Copiar prompt" copies the Spanish kick-off prompt for the claude.ai accounting connector (statements are created from chat via `create_statement`).
+- **Coverage:** ⚠️ Missing
+- **E2E Spec:** _pending_
+
+### FLOW: `admin-clients-config-tab`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/clients`
+- **Description:** Trailing "Configuraciones" pill swaps the client list for the shared ViewSettingsPanel (saved-filter-tabs reset + defaults link).
+- **Steps:**
+  1. Admin clicks the right-aligned "Configuraciones" pill in the status-tab row.
+  2. The list area is replaced by the settings panel: "Restablecer" for the Clientes view opens a ConfirmModal and POSTs `accounts/saved-filter-tabs/reset/` (view=client); saved tabs reload on success.
+  3. "Abrir defaults" links to `/panel/defaults`.
+  4. Clicking any status pill returns to the list.
+- **Coverage:** ⚠️ Missing
+- **E2E Spec:** _pending_
+
+### FLOW: `admin-proposals-config-tab`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/proposals`
+- **Description:** Fixed trailing "Configuraciones" tab in the proposals filter-tab bar swaps the list for the shared ViewSettingsPanel (saved-filter-tabs reset + proposals defaults link).
+- **Steps:**
+  1. Admin clicks the right-aligned "Configuraciones" tab (mobile: the "⚙ Configuraciones" option of the tabs select).
+  2. The list area is replaced by the settings panel: "Restablecer" for the Propuestas view POSTs `accounts/saved-filter-tabs/reset/` (view=proposal) behind a ConfirmModal; tabs reload on success.
+  3. "Abrir defaults de propuestas" links to `/panel/proposals/defaults`.
+  4. Selecting any filter tab (or "Todas") closes the panel and restores the list.
+- **Coverage:** ⚠️ Missing
+- **E2E Spec:** _pending_
+
 ### FLOW: `admin-hour-packages-create`
 
 - **Module:** admin
