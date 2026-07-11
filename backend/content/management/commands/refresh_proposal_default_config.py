@@ -12,6 +12,10 @@ cares about, copying their current values from code:
   - corporate_branding_module.selected / default_selected = True
   - reports_alerts_module.title/description/items          (Telegram removed)
   - dark_mode_module.title/description                     (renamed)
+  - free modules title/description/items                   (scope caps: analytics 6
+    reports, KPI dashboard 8 KPIs / 4 charts / 5 alerts, manual 15 articles + 1
+    update, admin listed managers only, AI automation one (1) process)
+  - value_added_modules.conditions                         (per-module terms with caps)
 
 Everything else in sections_json is left untouched.
 
@@ -36,6 +40,11 @@ PATCHED_MODULE_IDS = (
     'corporate_branding_module',
     'reports_alerts_module',
     'dark_mode_module',
+    'admin_module',
+    'analytics_dashboard',
+    'kpi_dashboard_module',
+    'manual_module',
+    'ai_automation_module',
 )
 
 
@@ -104,6 +113,17 @@ def _patch(sections, code):
                 if field in code_g and g.get(field) != code_g[field]:
                     g[field] = copy.deepcopy(code_g[field])
                     changes.append(f'{mid}.{field} -> code')
+
+    # --- value_added_modules conditions (per-module gating/terms) ---
+    va = _section(sections, 'value_added_modules')
+    code_va = _section(code, 'value_added_modules')
+    conds = (va or {}).get('content_json', {}).get('conditions') if va else None
+    code_conds = (code_va or {}).get('content_json', {}).get('conditions') if code_va else None
+    if isinstance(conds, dict) and isinstance(code_conds, dict):
+        for mid, code_cond in code_conds.items():
+            if conds.get(mid) != code_cond:
+                conds[mid] = copy.deepcopy(code_cond)
+                changes.append(f'conditions.{mid} -> code')
     return changes
 
 
