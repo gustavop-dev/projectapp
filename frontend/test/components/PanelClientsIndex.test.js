@@ -103,8 +103,8 @@ describe('panel/clients index page', () => {
     await wrapper.get('[data-testid="clients-tab-orphans"]').trigger('click');
     await flushPromises();
 
-    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(1, { search: '', orphans: null, inactive: false });
-    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(2, { search: '', orphans: true, inactive: false });
+    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(1, { search: '', orphans: null, inactive: false, silent: false });
+    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(2, { search: '', orphans: true, inactive: false, silent: false });
   });
 
   it('submits the create modal payload trimmed and refreshes the list', async () => {
@@ -137,6 +137,6 @@ describe('panel/clients index page', () => {
     jest.advanceTimersByTime(250);
     await flushPromises();
 
-    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(2, { search: 'ana', orphans: null, inactive: false });
+    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(2, { search: 'ana', orphans: null, inactive: false, silent: false });
   });
 });
