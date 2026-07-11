@@ -1,6 +1,40 @@
+import json
+import re
+
 from rest_framework import serializers
 
 from content.models import BlogPost
+
+# Literal "\uXXXX" sequences (surrogate pairs first so emojis decode as one
+# character). Some MCP clients double-escape non-ASCII text, so the string
+# value itself arrives containing these sequences as plain characters.
+_LITERAL_UNICODE_ESCAPE_RE = re.compile(
+    r'\\u[dD][89abAB][0-9a-fA-F]{2}\\u[dD][c-fC-F][0-9a-fA-F]{2}'
+    r'|\\u[0-9a-fA-F]{4}'
+)
+
+
+def _decode_escape_match(match):
+    seq = match.group(0)
+    decoded = json.loads(f'"{seq}"')
+    if any('\ud800' <= ch <= '\udfff' for ch in decoded):
+        # Unpaired surrogate — not representable; keep the literal text.
+        return seq
+    return decoded
+
+
+def decode_literal_unicode_escapes(value):
+    """Recursively decode literal \\uXXXX sequences in strings so text
+    reaches the DB as real UTF-8 (defense against double-escaping clients)."""
+    if isinstance(value, str):
+        if '\\u' not in value:
+            return value
+        return _LITERAL_UNICODE_ESCAPE_RE.sub(_decode_escape_match, value)
+    if isinstance(value, dict):
+        return {k: decode_literal_unicode_escapes(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [decode_literal_unicode_escapes(item) for item in value]
+    return value
 
 
 def _get_lang(serializer):
@@ -235,6 +269,9 @@ class BlogPostCreateUpdateSerializer(serializers.ModelSerializer):
     def validate_content_json_en(self, value):
         return _validate_content_json(value)
 
+    def validate(self, attrs):
+        return decode_literal_unicode_escapes(attrs)
+
 
 # ---------------------------------------------------------------------------
 # JSON content validation helper
@@ -419,3 +456,6 @@ class BlogPostFromJSONSerializer(serializers.Serializer):
                     'Each source must have "name" and "url" keys.'
                 )
         return value
+
+    def validate(self, attrs):
+        return decode_literal_unicode_escapes(attrs)
