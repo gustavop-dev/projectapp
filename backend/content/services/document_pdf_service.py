@@ -27,7 +27,7 @@ from content.services.pdf_utils import (
     _sanitize_pdf_text, _replace_urls_with_placeholders,
     _draw_line_with_links, _draw_mixed_string, _draw_mixed_centred,
     _mixed_string_width,
-    _layout_inline, _draw_fragments_line,
+    _wrap_by_width, _table_col_widths,
     _new_page, _check_y,
     _draw_header_bar, _draw_footer,
     _draw_section_header, _draw_paragraphs, _draw_bullet_list,
@@ -324,11 +324,11 @@ class DocumentPdfService:
             y = _check_y(c, y, ps, need=24)
 
         fn = _font(font_style)
-        # Measured layout engine keeps emoji-safe wrapping/drawing.
-        lines = _layout_inline(text, CONTENT_W, fn, font_size)
-        for frags in lines:
-            _draw_fragments_line(c, MARGIN_L, y, frags, color,
-                                 link_color=theme.link_color)
+        # Width-accurate wrapping/drawing keeps measure == draw and emoji-safe.
+        lines = _wrap_by_width(text, fn, font_size, CONTENT_W)
+        for line in lines:
+            _draw_line_with_links(c, MARGIN_L, y, line, fn, font_size, color,
+                                  link_color=theme.link_color)
             y -= font_size + 6
 
         if level <= 2:
@@ -356,12 +356,18 @@ class DocumentPdfService:
 
     @staticmethod
     def _render_table(c, y, block, ps, theme):
-        """Render a table."""
+        """Render a table with content-proportional column widths."""
         headers = block.get('headers', [])
         rows = block.get('rows', [])
         if not headers:
             return y
-        return _draw_table(c, y, headers, rows, ps=ps, theme=theme)
+        # Size columns to their content, then hand the drawer relative
+        # fractions (its col_widths are normalised by their sum).
+        abs_widths = _table_col_widths(headers, rows, CONTENT_W, 6)
+        total = sum(abs_widths)
+        col_widths = [w / total for w in abs_widths] if total > 0 else None
+        return _draw_table(c, y, headers, rows, ps=ps,
+                           col_widths=col_widths, theme=theme)
 
     @staticmethod
     def _render_list(c, y, block, ps, theme):

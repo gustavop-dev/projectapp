@@ -114,6 +114,19 @@ PILL_AMBER_FG = colors.HexColor('#B45309')
 PILL_GRAY_BG = colors.HexColor('#F3F4F6')
 PILL_GRAY_FG = colors.HexColor('#6B7280')
 
+
+def _resolve_theme(theme):
+    """Resolve *theme* to a PdfTheme, defaulting to PROFESSIONAL_THEME.
+
+    Imported lazily to avoid a circular import: pdf_theme.py imports the
+    brand color constants from this module at load time. PROFESSIONAL_THEME
+    reproduces the historical constants exactly, so theme=None keeps every
+    existing (proposal) caller byte-identical.
+    """
+    from content.services.pdf_theme import PROFESSIONAL_THEME
+    return theme or PROFESSIONAL_THEME
+
+
 # ── Cover / back-cover PDF paths ─────────────────────────────
 COVER_PDF = Path(settings.BASE_DIR) / 'static' / 'front_page' / 'Portada_Propuesta_ProjectApp.pdf'
 COVER_TECHNICAL_PDF = (
@@ -1047,7 +1060,7 @@ def _new_page(c, ps):
     _draw_footer(c, ps['num'], ps.get('total'), ps['client'])
     c.showPage()
     ps['num'] += 1
-    _draw_header_bar(c)
+    _draw_header_bar(c, theme=ps.get('theme'))
     return PAGE_H - MARGIN_T
 
 
@@ -1088,12 +1101,13 @@ def _split_lines_for_page(lines, line_h, avail_h):
 # Drawing helpers
 # ─────────────────────────────────────────────────────────────
 
-def _draw_header_bar(c):
+def _draw_header_bar(c, theme=None):
     """Draw a thin accent bar at the top of the page."""
-    c.setFillColor(ESMERALD)
+    t = _resolve_theme(theme)
+    c.setFillColor(t.header_bar_color)
     c.rect(0, PAGE_H - 6, PAGE_W, 6, fill=1, stroke=0)
-    # Lemon accent dot
-    c.setFillColor(LEMON)
+    # Accent dot
+    c.setFillColor(t.header_dot_color)
     c.circle(PAGE_W - 30, PAGE_H - 3, 3, fill=1, stroke=0)
 
 
@@ -1121,21 +1135,22 @@ def _draw_footer(c, page_num, total_pages=None, client_name=''):
     c.drawRightString(PAGE_W - MARGIN_R, footer_y - 11, page_label)
 
 
-def _draw_section_header(c, y, index_str, title, ps=None):
+def _draw_section_header(c, y, index_str, title, ps=None, theme=None):
     """Draw section index + title and return the new y position."""
+    t = _resolve_theme(theme)
     if index_str:
         c.setFont(_font('light'), 11)
-        c.setFillColor(GREEN_LIGHT)
+        c.setFillColor(t.section_index_color)
         c.drawString(MARGIN_L, y, str(index_str).zfill(2))
         y -= 22
     c.setFont(_font('light'), 24)
-    c.setFillColor(ESMERALD)
+    c.setFillColor(t.section_title_color)
     clean_title = _sanitize_pdf_text(title)
     for line in _wrap_by_width(clean_title, _font('light'), 24, CONTENT_W):
         _draw_mixed_string(c, MARGIN_L, y, line, _font('light'), 24)
         y -= 30
     # Thin accent line
-    c.setStrokeColor(LEMON)
+    c.setStrokeColor(t.section_rule_color)
     c.setLineWidth(2)
     c.line(MARGIN_L, y + 6, MARGIN_L + 60, y + 6)
     y -= 18
@@ -1156,7 +1171,8 @@ def _section_header_height(title, index_str='01'):
 
 def _draw_paragraphs(c, y, paragraphs, max_width=None, font_size=10,
                       leading=15, color=ESMERALD_80, ps=None, x=None,
-                      font_name=None, justify=False, bold_font_name=None):
+                      font_name=None, justify=False, bold_font_name=None,
+                      link_color=None):
     """Draw a list of paragraph strings and return the new y."""
     if max_width is None:
         max_width = CONTENT_W
@@ -1180,6 +1196,7 @@ def _draw_paragraphs(c, y, paragraphs, max_width=None, font_size=10,
             is_justified = justify and i < len(lines) - 1
             _draw_line_with_links(
                 c, x, y, line, fn, font_size, color,
+                link_color=link_color,
                 bold_font_name=bold_font_name,
                 justify=is_justified, max_width=max_width,
             )
@@ -1208,84 +1225,90 @@ def _estimate_text_height(paragraphs, max_width=None, font_size=10, leading=15,
     return total
 
 
-def _draw_bullet_list(c, y, items, x=None, max_width=None,
-                       font_size=9, leading=13, color=ESMERALD_80,
-                       bullet='\u2022', ps=None, numbered=False):
-    """Draw a bulleted list and return the new y."""
-    if max_width is None:
-        max_width = CONTENT_W
-    if x is None:
-        x = MARGIN_L
-    fn = _font('regular')
-    for item_idx, item in enumerate(items or []):
-        # Support both legacy string items and new dict items {text, children}
-        if isinstance(item, dict):
-            item_text = item.get('text', '')
-            children  = item.get('children', [])
-        else:
-            item_text = str(item)
-            children  = []
+_UL_MARKERS = ['\u2022', '\u2013', '\u25e6']  # bullet, en-dash, white bullet
 
-        clean = _sanitize_pdf_text(item_text)
-        first_prefix = (f'  {item_idx + 1}.  ' if numbered
-                        else f'  {bullet}  ')
+
+def _normalize_list_item(item):
+    """Normalize a list item to ``{'text': str, 'children': [...]}``.
+
+    Accepts three shapes so both the documents parser and legacy
+    proposal callers keep working:
+      * recursive dicts ``{'text': str, 'children': [item, ...]}``
+      * legacy dicts whose children are plain strings
+      * legacy plain-string items (proposal bullet lists)
+    """
+    if isinstance(item, dict):
+        children = [_normalize_list_item(ch) for ch in item.get('children', [])]
+        return {'text': item.get('text', ''), 'children': children}
+    return {'text': str(item), 'children': []}
+
+
+def _draw_list_items(c, y, items, x, max_width, font_size, leading, color,
+                     ps, numbered, depth, link_color=None):
+    """Recursively draw (possibly nested) list items. Returns new y.
+
+    Depth selects the unordered marker (``_UL_MARKERS``); the width-accurate
+    ``_wrap_by_width`` / ``_draw_line_with_links`` primitives keep measure
+    == draw. At depth 0 with plain-string items this reproduces the legacy
+    single-level bullet layout exactly.
+    """
+    fn = _font('regular')
+    for idx, raw_item in enumerate(items or []):
+        item = _normalize_list_item(raw_item)
+        if numbered:
+            prefix = f'  {idx + 1}.  '
+        else:
+            prefix = f'  {_UL_MARKERS[min(depth, len(_UL_MARKERS) - 1)]}  '
         prefix_w = max(
-            pdfmetrics.stringWidth(first_prefix, fn, font_size),
-            pdfmetrics.stringWidth('      ', fn, font_size),
+            _string_width_mixed(prefix, fn, font_size),
+            _string_width_mixed('      ', fn, font_size),
         )
+        clean = _sanitize_pdf_text(item['text'])
         lines = _wrap_by_width(clean, fn, font_size,
                                max(max_width - prefix_w, 30))
         if ps and len(lines) > 1 and y < MARGIN_B + leading * 2:
             y = _new_page(c, ps)
-        for i, line in enumerate(lines):
+        for li, line in enumerate(lines):
             if ps:
                 y = _check_y(c, y, ps)
             elif y < MARGIN_B + 20:
                 return y
-            if i == 0:
-                if numbered:
-                    prefix = f'  {item_idx + 1}.  '
-                else:
-                    prefix = f'  {bullet}  '
-            else:
-                prefix = '      '
-            # Draw prefix in normal color, then line with inline formatting
+            line_prefix = prefix if li == 0 else '      '
+            # Draw prefix in normal color, then line with inline formatting.
             c.setFont(fn, font_size)
             c.setFillColor(color)
-            pw = c.stringWidth(prefix, fn, font_size)
-            c.drawString(x, y, prefix)
-            _draw_line_with_links(c, x + pw, y, line, fn, font_size, color)
+            pw = c.stringWidth(line_prefix, fn, font_size)
+            c.drawString(x, y, line_prefix)
+            _draw_line_with_links(c, x + pw, y, line, fn, font_size, color,
+                                  link_color=link_color)
             y -= leading
         y -= 2
 
-        # Render nested children (1 level deep) with en-dash + indent
-        if children:
-            child_x = x + 18
-            child_bullet = '\u2013'  # en-dash
-            child_prefix_w = max(
-                pdfmetrics.stringWidth(f'  {child_bullet}  ', fn, font_size),
-                pdfmetrics.stringWidth('      ', fn, font_size),
-            )
-            for child in children:
-                child_clean = _sanitize_pdf_text(str(child))
-                child_lines = _wrap_by_width(
-                    child_clean, fn, font_size,
-                    max(max_width - 18 - child_prefix_w, 30))
-                for ci, cline in enumerate(child_lines):
-                    if ps:
-                        y = _check_y(c, y, ps)
-                    elif y < MARGIN_B + 20:
-                        return y
-                    child_prefix = f'  {child_bullet}  ' if ci == 0 else '      '
-                    c.setFont(fn, font_size)
-                    c.setFillColor(color)
-                    cpw = c.stringWidth(child_prefix, fn, font_size)
-                    c.drawString(child_x, y, child_prefix)
-                    _draw_line_with_links(c, child_x + cpw, y, cline, fn, font_size, color)
-                    y -= leading
-                y -= 1
+        if item['children']:
+            y = _draw_list_items(c, y, item['children'], x + 18,
+                                 max_width - 18, font_size, leading, color,
+                                 ps, numbered, depth + 1, link_color=link_color)
 
     return y
+
+
+def _draw_bullet_list(c, y, items, x=None, max_width=None,
+                       font_size=9, leading=13, color=ESMERALD_80,
+                       bullet='\u2022', ps=None, numbered=False,
+                       link_color=None):
+    """Draw a (possibly multi-level nested) list and return the new y.
+
+    Items may be plain strings (legacy proposals) or recursive dicts
+    ``{'text': ..., 'children': [...]}`` (documents). The *bullet* param is
+    kept for signature compatibility; markers are chosen per depth from
+    ``_UL_MARKERS`` (depth 0 == the historical ``\u2022``).
+    """
+    if max_width is None:
+        max_width = CONTENT_W
+    if x is None:
+        x = MARGIN_L
+    return _draw_list_items(c, y, items, x, max_width, font_size, leading,
+                            color, ps, numbered, depth=0, link_color=link_color)
 
 
 def _wrap_sidebar_items(items, sw):
@@ -1668,8 +1691,56 @@ def _clean_inline_bold(text):
 # New drawing functions
 # ─────────────────────────────────────────────────────────────
 
+def _table_col_widths(headers, rows, max_width, pad_h, font_size=8):
+    """Distribute *max_width* across columns proportionally to content.
+
+    Returns absolute widths (summing to ~max_width). Each column is sized
+    to its widest cell, then a per-column floor is enforced by shaving the
+    excess off wider columns. Callers that feed a fraction-based drawer
+    should normalise ``w / sum(w)``.
+    """
+    num_cols = len(headers)
+    if num_cols == 0:
+        return []
+    min_w = max(30.0, (max_width / num_cols) * 0.35)
+    fn = _font('regular')
+    desired = []
+    for ci in range(num_cols):
+        cells = [str(headers[ci])] + [
+            str(r[ci]) for r in (rows or []) if ci < len(r)]
+        widest = max(
+            (_string_width_mixed(_clean_inline_bold(_sanitize_pdf_text(cell)),
+                                 fn, font_size) for cell in cells),
+            default=0.0)
+        desired.append(widest + 2 * pad_h + 4)
+    total = sum(desired)
+    if total <= 0:
+        return [max_width / num_cols] * num_cols
+    widths = [d * max_width / total for d in desired]
+    # enforce the floor, shaving the excess off wider columns
+    deficit = sum(min_w - w for w in widths if w < min_w)
+    if deficit > 0:
+        pool_idx = [i for i, w in enumerate(widths) if w > min_w]
+        pool = sum(widths[i] - min_w for i in pool_idx)
+        for i, w in enumerate(widths):
+            if w < min_w:
+                widths[i] = min_w
+        if pool >= deficit:
+            # Feasible: shave the deficit only from wide columns; the floor
+            # is preserved and the set still sums to max_width.
+            for i in pool_idx:
+                widths[i] -= deficit * (widths[i] - min_w) / pool
+        else:
+            # Infeasible (too many columns for the floor): renormalize so the
+            # widths still sum to max_width, degrading proportionally below
+            # the floor — unavoidable when min_w * num_cols > max_width.
+            scale = max_width / sum(widths)
+            widths = [w * scale for w in widths]
+    return widths
+
+
 def _draw_table(c, y, headers, rows, ps=None, max_width=None,
-                col_widths=None, aligns=None):
+                col_widths=None, aligns=None, theme=None):
     """Draw a table with header row and data rows. Returns new y.
 
     Args:
@@ -1688,6 +1759,7 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None,
         return y
     if max_width is None:
         max_width = CONTENT_W
+    t = _resolve_theme(theme)
 
     x_start = MARGIN_L
     num_cols = len(headers)
@@ -1733,14 +1805,14 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None,
             max_lines = max(max_lines, len(lines) or 1)
         row_h = max_lines * leading + 2 * cell_pad_v
 
-        c.setFillColor(ESMERALD)
+        c.setFillColor(t.table_header_bg)
         c.rect(x_start, y - row_h, max_width, row_h, fill=1, stroke=0)
 
         for ci, lines in enumerate(wrapped_h):
             ty = y - cell_pad_v - header_font_size + 2
             for line in lines:
                 c.setFont(fn_bold, header_font_size)
-                c.setFillColor(WHITE)
+                c.setFillColor(t.table_header_text)
                 _draw_mixed_string(
                     c, _cell_x(ci, line, fn_bold, header_font_size),
                     ty, line, fn_bold, header_font_size)
@@ -1760,7 +1832,7 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None,
 
         c.setFillColor(bg)
         c.rect(x_start, y - chunk_h, max_width, chunk_h, fill=1, stroke=0)
-        c.setStrokeColor(GRAY_300)
+        c.setStrokeColor(t.table_border_color)
         c.setLineWidth(0.4)
         c.line(x_start, y - chunk_h, x_start + max_width, y - chunk_h)
 
@@ -1776,11 +1848,11 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None,
                 if aligns[ci] == 'left':
                     _draw_line_with_links(c, x_offsets[ci] + cell_pad_h, ty,
                                           line, fn, data_font_size,
-                                          ESMERALD_80)
+                                          t.table_body_text)
                 else:
                     _draw_line_with_links(
                         c, _cell_x(ci, line, fn, data_font_size), ty,
-                        line, fn, data_font_size, ESMERALD_80)
+                        line, fn, data_font_size, t.table_body_text)
                 ty -= leading
 
         return y - chunk_h
@@ -1805,7 +1877,7 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None,
             wrapped.append(lines or [''])
             max_lines = max(max_lines, len(lines) or 1)
         row_h = max_lines * leading + 2 * cell_pad_v
-        bg = ESMERALD_LIGHT if ri % 2 == 0 else WHITE
+        bg = t.table_stripe_bg if ri % 2 == 0 else t.table_row_bg
 
         if row_h <= page_capacity or not ps:
             # Normal row: fits on one page (header repeats on break).
@@ -1833,10 +1905,11 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None,
     return y - 6
 
 
-def _draw_blockquote(c, y, text, ps=None):
+def _draw_blockquote(c, y, text, ps=None, theme=None):
     """Draw a blockquote with left accent bar. Returns new y."""
     if not text:
         return y
+    t = _resolve_theme(theme)
 
     clean, _links = _replace_urls_with_placeholders(_sanitize_pdf_text(str(text)))
     font_size = 9
@@ -1856,11 +1929,11 @@ def _draw_blockquote(c, y, text, ps=None):
     box_y = y - box_h
 
     # Background
-    c.setFillColor(BONE)
+    c.setFillColor(t.quote_bg)
     c.roundRect(MARGIN_L, box_y, CONTENT_W, box_h, 6, fill=1, stroke=0)
 
     # Left accent bar
-    c.setFillColor(LEMON)
+    c.setFillColor(t.quote_accent)
     c.rect(MARGIN_L, box_y, accent_w, box_h, fill=1, stroke=0)
 
     # Text
@@ -1868,7 +1941,7 @@ def _draw_blockquote(c, y, text, ps=None):
     ty = y - pad - font_size + 2
     for line in lines:
         _draw_line_with_links(c, MARGIN_L + accent_w + pad, ty, line,
-                              fn, font_size, ESMERALD)
+                              fn, font_size, t.quote_text)
         ty -= line_leading
 
     return box_y - 6
@@ -1960,15 +2033,39 @@ def _draw_callout_box(c, y, text, style='note', ps=None, label=None):
     return y - box_h - 12
 
 
-def _draw_code_block(c, y, content, ps=None, language=None):
+def _wrap_code_line(line, font_size, max_w):
+    """Split a preformatted code line at measured Courier width.
+
+    Continuation pieces get a 2-space indent so the wrap is visually
+    obvious while the original text is recoverable by stripping it.
+    """
+    if _string_width_mixed(line, 'Courier', font_size) <= max_w:
+        return [line]
+    out, cur = [], ''
+    for ch in line:
+        if cur and _string_width_mixed(cur + ch, 'Courier', font_size) > max_w:
+            out.append(cur)
+            cur = '  ' + ch
+        else:
+            cur += ch
+    if cur:
+        out.append(cur)
+    return out or [line]
+
+
+def _draw_code_block(c, y, content, ps=None, language=None, theme=None):
     """Draw a preformatted code block. Returns new y."""
     if not content:
         return y
+    t = _resolve_theme(theme)
 
     font_size = 8
     line_leading = 11
     pad = 10
-    code_lines = content.split('\n')
+    max_w = CONTENT_W - 2 * pad
+    code_lines = []
+    for raw in content.split('\n'):
+        code_lines.extend(_wrap_code_line(raw, font_size, max_w))
 
     box_h = 2 * pad + len(code_lines) * line_leading
 
@@ -1982,7 +2079,7 @@ def _draw_code_block(c, y, content, ps=None, language=None):
             if ps:
                 y = _check_y(c, y, ps, need=line_leading + 4)
             c.setFont('Courier', font_size)
-            c.setFillColor(ESMERALD_80)
+            c.setFillColor(t.code_text)
             c.drawString(MARGIN_L + pad, y, line)
             y -= line_leading
         return y - 6
@@ -1990,17 +2087,17 @@ def _draw_code_block(c, y, content, ps=None, language=None):
     box_y = y - box_h
 
     # Background
-    c.setFillColor(GRAY_200)
+    c.setFillColor(t.code_bg)
     c.roundRect(MARGIN_L, box_y, CONTENT_W, box_h, 6, fill=1, stroke=0)
 
     # Border
-    c.setStrokeColor(GRAY_300)
+    c.setStrokeColor(t.code_border)
     c.setLineWidth(0.5)
     c.roundRect(MARGIN_L, box_y, CONTENT_W, box_h, 6, fill=0, stroke=1)
 
     # Code text
     c.setFont('Courier', font_size)
-    c.setFillColor(ESMERALD_80)
+    c.setFillColor(t.code_text)
     ty = y - pad - font_size + 2
     for line in code_lines:
         c.drawString(MARGIN_L + pad, ty, line)
@@ -2009,12 +2106,13 @@ def _draw_code_block(c, y, content, ps=None, language=None):
     return box_y - 6
 
 
-def _draw_separator(c, y, ps=None):
+def _draw_separator(c, y, ps=None, theme=None):
     """Draw a horizontal rule. Returns new y."""
+    t = _resolve_theme(theme)
     y -= 12
     if ps:
         y = _check_y(c, y, ps, need=4)
-    c.setStrokeColor(GRAY_300)
+    c.setStrokeColor(t.rule_color)
     c.setLineWidth(0.5)
     c.line(MARGIN_L, y, PAGE_W - MARGIN_R, y)
     return y - 12
