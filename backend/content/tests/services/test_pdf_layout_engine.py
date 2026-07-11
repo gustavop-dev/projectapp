@@ -103,6 +103,29 @@ def test_wrap_by_width_keeps_bold_spans_balanced():
             assert line.count('**') % 2 == 0, line
 
 
+def test_wrap_by_width_keeps_italic_spans_balanced():
+    # A single-* italic span that wraps must close/reopen its marker so
+    # no literal asterisk leaks into a table cell or feature description.
+    fn = _font('regular')
+    text = ('Paquete Premium — *Para la evolución sostenida del producto '
+            'con muchas palabras que fuerzan el salto de línea.*')
+    for width in (120, 180, 240):
+        for line in _wrap_by_width(text, fn, 8, width):
+            # Non-** asterisks (italic markers) must be balanced per line.
+            singles = line.replace('**', '').count('*')
+            assert singles % 2 == 0, line
+
+
+def test_wrap_by_width_mixed_bold_italic_balanced():
+    fn = _font('regular')
+    text = ('Un **fragmento en negrita con *cursiva anidada dentro* que '
+            'se extiende** por varias líneas del párrafo completo.')
+    for width in (130, 200):
+        for line in _wrap_by_width(text, fn, 9, width):
+            assert line.count('**') % 2 == 0, line
+            assert line.replace('**', '').count('*') % 2 == 0, line
+
+
 def test_wrap_by_width_empty_and_tiny():
     fn = _font('regular')
     assert _wrap_by_width('', fn, 9, 200) == ['']

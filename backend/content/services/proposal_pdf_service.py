@@ -67,6 +67,7 @@ from content.services.pdf_utils import (  # noqa: F401 — re-exported
     _strip_emoji,
     _sanitize_pdf_text,
     _draw_mixed_string,
+    _draw_mixed_centred,
     _string_width_mixed,
     _measure_inline_width,
     _wrap_by_width,
@@ -270,21 +271,35 @@ def _render_greeting(c, data, proposal, ps=None):
     c.drawCentredString(PAGE_W / 2, mid_y + 60,
                         'PROPUESTA DE DESARROLLO WEB')
 
-    # Client name — large, centred
-    name = _safe(data, 'clientName', proposal.client_name)
-    c.setFont(_font('light'), 36)
+    # Client name — large, centred, wrapped by real width. The font
+    # steps down (36 -> 30 -> 26) until the name fits in three lines,
+    # so very long names never overprint the divider below.
+    name = _sanitize_pdf_text(
+        str(_safe(data, 'clientName', proposal.client_name) or 'Cliente'))
+    name_size = 36
+    name_lines = [name]
+    for size in (36, 30, 26):
+        name_size = size
+        name_lines = _wrap_by_width(name, _font('light'), size,
+                                    PAGE_W - 120)
+        if len(name_lines) <= 3:
+            break
+    if len(name_lines) > 3:
+        name_lines = name_lines[:3]
+        name_lines[-1] = _fit_text_ellipsis(
+            name_lines[-1] + '…', _font('light'), name_size, PAGE_W - 120)
+    name_leading = name_size + 8
+    c.setFont(_font('light'), name_size)
     c.setFillColor(ESMERALD)
-    if len(name) > 22:
-        lines = textwrap.wrap(name, width=22)
-        ny = mid_y + 10
-        for line in lines:
-            c.drawCentredString(PAGE_W / 2, ny, line)
-            ny -= 44
-    else:
-        c.drawCentredString(PAGE_W / 2, mid_y + 10, name)
+    ny = mid_y + 10
+    for line in name_lines:
+        _draw_mixed_centred(c, PAGE_W / 2, ny, line, _font('light'),
+                            name_size)
+        ny -= name_leading
 
-    # Decorative divider line with lemon accent
-    line_y = mid_y - 40
+    # Decorative divider line with lemon accent — flows 50pt below the
+    # last name baseline instead of sitting at a fixed height.
+    line_y = ny + name_leading - 50
     c.setStrokeColor(LEMON)
     c.setLineWidth(2)
     c.line(PAGE_W / 2 - 60, line_y, PAGE_W / 2 + 60, line_y)
@@ -292,16 +307,26 @@ def _render_greeting(c, data, proposal, ps=None):
     c.circle(PAGE_W / 2 - 60, line_y, 2.5, fill=1, stroke=0)
     c.circle(PAGE_W / 2 + 60, line_y, 2.5, fill=1, stroke=0)
 
-    # Quote
+    # Quote — clamped to the space above the bottom branding so a long
+    # quote can never collide with it.
     quote = _safe(data, 'inspirationalQuote')
     if quote:
-        c.setFont(_font('italic'), 11)
-        c.setFillColor(GREEN_LIGHT)
-        q_lines = textwrap.wrap(f'"{_strip_emoji(quote)}"', width=56)
         qy = line_y - 30
-        for ql in q_lines:
-            c.drawCentredString(PAGE_W / 2, qy, ql)
-            qy -= 16
+        q_leading = 16
+        max_q_lines = int((qy - (MARGIN_B + 30)) // q_leading)
+        if max_q_lines > 0:
+            c.setFont(_font('italic'), 11)
+            c.setFillColor(GREEN_LIGHT)
+            q_lines = _wrap_by_width(f'"{_sanitize_pdf_text(quote)}"',
+                                     _font('italic'), 11, 400)
+            if len(q_lines) > max_q_lines:
+                q_lines = q_lines[:max_q_lines]
+                q_lines[-1] = _fit_text_ellipsis(
+                    q_lines[-1] + '…', _font('italic'), 11, 400)
+            for ql in q_lines:
+                _draw_mixed_centred(c, PAGE_W / 2, qy, ql,
+                                    _font('italic'), 11)
+                qy -= q_leading
 
     # Bottom branding
     c.setFont(_font('regular'), 8)
@@ -1222,10 +1247,73 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             display_num = base_num
     display_total = _format_cop(display_num) if display_num else (total or '')
 
+    # ── Hosting figures (hoisted: reused by the KPI tiles and the
+    # hosting block below) ──
+    hosting = _safe(data, 'hostingPlan', {})
+    normalized_hosting = normalize_hosting_plan(_proposal, hosting)
+    h_percent = normalized_hosting.get('hostingPercent', 0) or 0
+    annual_hosting = (round(display_num * h_percent / 100)
+                      if h_percent and display_num else 0)
+
+    # ── Estimated duration (adjusted when modules are deselected) ──
+    duration_value = ''
+    duration_sub = ''
+    if ps:
+        base_weeks = ps.get('base_weeks', 0) or 0
+        if base_weeks > 0:
+            adjusted_weeks = base_weeks
+            if selected_ids is not None:
+                all_mods = _safe(data, 'modules', [])
+                fr_items = ps.get('_fr_items', []) or []
+                deselected = [
+                    m for m in all_mods
+                    if _safe(m, 'id') not in selected_ids
+                ] + [
+                    it for it in fr_items
+                    if it.get('id') not in selected_ids
+                ]
+                reduction = 0
+                views_removed = 0
+                features_removed = 0
+                for m in deselected:
+                    src = _safe(m, '_source') or m.get('_source', '')
+                    gid = _safe(m, 'groupId') or m.get('groupId', '')
+                    if src == 'investment' or gid.startswith('integration_'):
+                        reduction += 1
+                    elif gid == 'views':
+                        views_removed += 1
+                    elif gid == 'features':
+                        features_removed += 1
+                reduction += views_removed // 3
+                reduction += features_removed // 3
+                adjusted_weeks = max(1, base_weeks - reduction)
+            duration_value = f'{adjusted_weeks} semanas'
+            if adjusted_weeks != base_weeks:
+                duration_sub = f'reducido de {base_weeks}'
+
     # Intro text — full width, brief
     if intro:
         y = _draw_paragraphs(c, y, [intro], ps=ps)
         y -= 10
+
+    # ── Headline KPI tiles: the figures that matter, at a glance ──
+    tiles = []
+    if display_total:
+        total_label = 'Inversión Total'
+        if currency:
+            total_label = f'{total_label} · {currency}'
+        tiles.append({'value': display_total, 'label': total_label,
+                      'sub': tax_suffix.strip()})
+    if duration_value:
+        tiles.append({'value': duration_value,
+                      'label': 'Duración estimada', 'sub': duration_sub})
+    if annual_hosting > 0:
+        tiles.append({'value': f'{_format_cop(annual_hosting)}/año',
+                      'label': 'Hosting y mantenimiento',
+                      'sub': ''})
+    if tiles:
+        y = _draw_kpi_tile_row(c, y, tiles, ps=ps, accent_first=True)
+        y -= 6
 
     # ── Layout: Formas de Pago + Incluye ──
     col_gap = 20
@@ -1265,14 +1353,19 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 c.setFillColor(ESMERALD_LIGHT)
                 c.roundRect(MARGIN_L, left_y - 6, left_w, 18, 4,
                             fill=1, stroke=0)
+                pill_desc = _payment_pill_desc(label, desc, display_num,
+                                               tax_suffix=tax_suffix)
+                pill_w = (c.stringWidth(pill_desc, _font('medium'), 7) + 16
+                          if pill_desc else 0)
+                # Clamp the label so it can never run under the pill.
+                label = _fit_text_ellipsis(
+                    label, _font('regular'), 8,
+                    left_w - 16 - (pill_w + 6 if pill_w else 0))
                 c.setFont(_font('regular'), 8)
                 c.setFillColor(ESMERALD_80)
                 c.drawString(MARGIN_L + 8, left_y - 2, label)
-                pill_desc = _payment_pill_desc(label, desc, display_num,
-                                               tax_suffix=tax_suffix)
                 if pill_desc:
                     # Right-anchor the pill so the tax suffix cannot overflow.
-                    pill_w = c.stringWidth(pill_desc, _font('medium'), 7) + 16
                     _draw_pill(c, MARGIN_L + left_w - pill_w, left_y - 2, pill_desc,
                                bg_color=ESMERALD, text_color=WHITE, font_size=7)
                 left_y -= 22
@@ -1303,85 +1396,32 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 c.setFillColor(ESMERALD_LIGHT)
                 c.roundRect(MARGIN_L, y - 6, CONTENT_W, 18, 4,
                             fill=1, stroke=0)
+                pill_desc = _payment_pill_desc(label, desc, display_num,
+                                               tax_suffix=tax_suffix)
+                pill_w = (c.stringWidth(pill_desc, _font('medium'), 7) + 16
+                          if pill_desc else 0)
+                # Clamp the label so it can never run under the pill.
+                label = _fit_text_ellipsis(
+                    label, _font('regular'), 8,
+                    CONTENT_W - 16 - (pill_w + 6 if pill_w else 0))
                 c.setFont(_font('regular'), 8)
                 c.setFillColor(ESMERALD_80)
                 c.drawString(MARGIN_L + 8, y - 2, label)
-                pill_desc = _payment_pill_desc(label, desc, display_num,
-                                               tax_suffix=tax_suffix)
                 if pill_desc:
                     # Right-anchor the pill so the tax suffix cannot overflow.
-                    pill_w = c.stringWidth(pill_desc, _font('medium'), 7) + 16
                     _draw_pill(c, MARGIN_L + CONTENT_W - pill_w, y - 2, pill_desc,
                                bg_color=ESMERALD, text_color=WHITE, font_size=7)
                 y -= 22
 
-        if items_text:
+        if included:
             y -= 10
-            if ps:
-                y = _check_y(c, y, ps, need=right_need + 10)
-            y = _draw_sidebar_box(c, y, 'Incluye', items_text,
-                                   sidebar_x=MARGIN_L, sidebar_w=CONTENT_W)
-            y -= 8
+            y = _draw_subtitle(c, y, 'Incluye', ps=ps)
+            for it in included:
+                y = _draw_feature_row(
+                    c, y, _safe(it, 'title'),
+                    description=_safe(it, 'description'), ps=ps)
+            y -= 4
 
-    # ── Compact Inversión Total ──────────────────────────────────
-    if total:
-        if ps:
-            y = _check_y(c, y, ps, need=28)
-        box_h = 24
-        box_w = CONTENT_W
-        box_y = y - box_h
-        c.setFillColor(ESMERALD)
-        c.roundRect(MARGIN_L, box_y, box_w, box_h, 5, fill=1, stroke=0)
-        c.setFont(_font('bold'), 11)
-        c.setFillColor(WHITE)
-        label = f'Inversi\u00f3n Total: {display_total}'
-        if currency:
-            label = f'{label}  {currency}'
-        label = f'{label}{tax_suffix}'
-        c.drawCentredString(MARGIN_L + box_w / 2, box_y + 7, label)
-        y = box_y - 8
-
-    # ── Adjusted duration (when modules are deselected) ─────────
-    if selected_ids is not None and ps:
-        base_weeks = ps.get('base_weeks', 0)
-        if base_weeks > 0:
-            all_mods = _safe(data, 'modules', [])
-            fr_items = ps.get('_fr_items', []) if ps else []
-            deselected = [
-                m for m in all_mods
-                if _safe(m, 'id') not in selected_ids
-            ] + [
-                it for it in fr_items
-                if it.get('id') not in selected_ids
-            ]
-            reduction = 0
-            views_removed = 0
-            features_removed = 0
-            for m in deselected:
-                src = _safe(m, '_source') or m.get('_source', '')
-                gid = _safe(m, 'groupId') or m.get('groupId', '')
-                if src == 'investment' or gid.startswith('integration_'):
-                    reduction += 1
-                elif gid == 'views':
-                    views_removed += 1
-                elif gid == 'features':
-                    features_removed += 1
-            reduction += views_removed // 3
-            reduction += features_removed // 3
-            adjusted_weeks = max(1, base_weeks - reduction)
-            if adjusted_weeks != base_weeks:
-                if ps:
-                    y = _check_y(c, y, ps, need=20)
-                c.setFont(_font('regular'), 9)
-                c.setFillColor(GRAY_500)
-                duration_text = (
-                    f'Duraci\u00f3n estimada: {adjusted_weeks} semanas'
-                    f' (reducido de {base_weeks})'
-                )
-                c.drawCentredString(
-                    MARGIN_L + CONTENT_W / 2, y, duration_text
-                )
-                y -= 16
 
     # ── AI scope note (when AI module selected) ───────────────────
     # Only emit for invite modules WITHOUT a defined price. When
@@ -1399,7 +1439,6 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             _pp = ci.get('price_percent')
             if _pp is not None and _pp > 0:
                 continue
-            y = _check_y(c, y, ps, need=30)
             lang = (_proposal.language or 'es') if _proposal else 'es'
             ai_note = (
                 'Nota: El alcance y costos del módulo de IA se definirán '
@@ -1410,13 +1449,8 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 'in a personalized call. This module has no additional cost '
                 'assigned until the scope is agreed upon.'
             )
-            c.setFont(_font('regular'), 8)
-            c.setFillColor(GRAY_500)
-            note_lines = textwrap.wrap(ai_note, width=90)
-            for nl in note_lines:
-                c.drawString(MARGIN_L, y, nl)
-                y -= 11
-            y -= 4
+            y = _draw_callout_box(c, y, ai_note, style='important',
+                                  ps=ps, label='MÓDULO IA')
             break
 
     # ── Interactive Modules (if present) ──────────────────────────
@@ -1431,25 +1465,16 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         y -= 14
         if ps:
             y = _check_y(c, y, ps, need=60)
-        c.setFont(_font('bold'), 12)
-        c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L, y, 'Módulos del Proyecto')
-        y -= 18
+        y = _draw_subtitle(c, y, 'Módulos del Proyecto', ps=ps)
+        mod_rows = []
         for mod in visible_modules:
-            mod_name = _strip_emoji(_safe(mod, 'name'))
             mod_price = _safe(mod, 'price', 0)
-            if ps:
-                y = _check_y(c, y, ps, need=20)
-            c.setFillColor(ESMERALD_LIGHT)
-            c.roundRect(MARGIN_L, y - 6, CONTENT_W, 18, 4, fill=1, stroke=0)
-            c.setFont(_font('regular'), 8)
-            c.setFillColor(ESMERALD)
-            c.drawString(MARGIN_L + 8, y - 2, f'✓  {mod_name}')
-            if mod_price:
-                price_str = _format_cop(mod_price)
-                c.setFont(_font('bold'), 8)
-                c.drawRightString(MARGIN_L + CONTENT_W - 8, y - 2, price_str)
-            y -= 22
+            mod_rows.append([
+                _safe(mod, 'name'),
+                _format_cop(mod_price) if mod_price else '—',
+            ])
+        y = _draw_table(c, y, ['Módulo', 'Precio'], mod_rows, ps=ps,
+                        col_widths=[0.74, 0.26], aligns=['left', 'right'])
 
     # ── Hosting plan (detailed specs + pricing) ───────────────────
     hosting = _safe(data, 'hostingPlan', {})
@@ -1470,182 +1495,79 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                                  leading=13, ps=ps)
             y -= 6
 
-        # Specs grid — 2 columns of pill-style badges (2-line: label + value)
+        # Specs — full-width table (label | detail): long values wrap
+        # inside their column instead of overflowing a fixed-height badge.
         specs = [s for s in _safe(hosting, 'specs', [])
                  if _safe(s, 'label') or _safe(s, 'value')]
         if specs:
-            spec_col_w = (CONTENT_W - 14) / 2
-            spec_row_h = 38
-            for si, spec in enumerate(specs):
-                col = si % 2
-                if col == 0 and ps:
-                    y = _check_y(c, y, ps, need=spec_row_h + 4)
-                sx = MARGIN_L + col * (spec_col_w + 14)
-                # Badge background
-                c.setFillColor(ESMERALD_LIGHT)
-                c.roundRect(sx, y - 18, spec_col_w, spec_row_h, 5,
-                            fill=1, stroke=0)
-                # Label (bold) — top line
-                spec_label = _strip_emoji(_safe(spec, 'label'))
-                label_y = y - 18 + spec_row_h - 12
-                c.setFont(_font('bold'), 8)
-                c.setFillColor(ESMERALD)
-                c.drawString(sx + 8, label_y, spec_label)
-                # Value (regular) — second line below label
-                spec_value = _strip_emoji(_safe(spec, 'value'))
-                value_y = label_y - 13
-                c.setFont(_font('regular'), 7.5)
-                c.setFillColor(ESMERALD_80)
-                c.drawString(sx + 8, value_y, spec_value)
-                # Move down after every 2nd column
-                if col == 1 or si == len(specs) - 1:
-                    y -= spec_row_h + 4
+            spec_rows = [[_safe(s, 'label'), _safe(s, 'value')]
+                         for s in specs]
             y -= 2
+            y = _draw_table(c, y, ['Especificación', 'Detalle'], spec_rows,
+                            ps=ps, col_widths=[0.30, 0.70])
 
-        # Billing tiers — 3 frequency options side by side.
-        normalized_hosting = normalize_hosting_plan(_proposal, hosting)
-        h_percent = normalized_hosting.get('hostingPercent', 0) or 0
+        # Billing tiers — one full-width table instead of N fixed-height
+        # side-by-side cards (labels/prices can never collide again).
+        # normalized_hosting / h_percent / annual_hosting are hoisted at
+        # the top of the renderer (shared with the KPI tiles). Hosting is
+        # a percentage of the SAME "Inversión Total" the client sees —
+        # parity with Investment.vue ``hostingAnnualAmount``.
         billing_tiers = normalized_hosting.get('billingTiers', [])
-        # Hosting is a percentage of the SAME "Inversión Total" the client
-        # sees above — the effective total (base + admin-pre-selected
-        # additional modules, or the client's adjusted selection). Keeps
-        # parity with the public frontend (Investment.vue
-        # ``hostingAnnualAmount``) and the admin preview in the General tab.
-        basis = display_num
-        annual_hosting = round(basis * h_percent / 100) if h_percent and basis else 0
 
+        tier_headers = ['Frecuencia', 'Ahorro', 'Precio/mes', 'Equivalente']
+        tier_col_widths = [0.28, 0.14, 0.27, 0.31]
+        tier_aligns = ['left', 'center', 'right', 'right']
         if billing_tiers and annual_hosting > 0:
-            if ps:
-                y = _check_y(c, y, ps, need=56)
-            num_tiers = len(billing_tiers)
-            tier_gap = 10
-            tier_col_w = (CONTENT_W - tier_gap * (num_tiers - 1)) / num_tiers
-            tier_h = 48
-            tier_y = y - tier_h + 6
-
             monthly_base = round(annual_hosting / 12)
-
-            for ti, tier in enumerate(billing_tiers):
-                tx = MARGIN_L + ti * (tier_col_w + tier_gap)
+            tier_rows = []
+            for tier in billing_tiers:
                 discount = _safe(tier, 'discountPercent', 0)
                 months = _safe(tier, 'months', 1) or 1
-                label = _strip_emoji(_safe(tier, 'label', ''))
-                badge = _strip_emoji(_safe(tier, 'badge', ''))
+                label = _safe(tier, 'label', '')
+                badge = _safe(tier, 'badge', '')
                 monthly_discounted = round(monthly_base * (100 - discount) / 100)
                 period_total = monthly_discounted * months
-
-                # First tier (best price) gets esmerald bg
-                if ti == 0:
-                    c.setFillColor(ESMERALD)
-                    c.roundRect(tx, tier_y, tier_col_w, tier_h, 5,
-                                fill=1, stroke=0)
-                    label_color = colors.HexColor('#A7F3D0')
-                    price_color = WHITE
-                    sub_color = colors.HexColor('#A7F3D0')
-                else:
-                    c.setFillColor(ESMERALD_LIGHT)
-                    c.roundRect(tx, tier_y, tier_col_w, tier_h, 5,
-                                fill=1, stroke=0)
-                    label_color = GREEN_LIGHT
-                    price_color = ESMERALD
-                    sub_color = ESMERALD_80
-
-                # Badge (top-right corner)
+                freq_cell = f'**{label}**' if label else ''
                 if badge:
-                    c.setFont(_font('medium'), 6)
-                    badge_w = c.stringWidth(badge, _font('medium'), 6) + 8
-                    badge_x = tx + tier_col_w - badge_w - 4
-                    badge_y = tier_y + tier_h - 12
-                    c.setFillColor(LEMON)
-                    c.roundRect(badge_x, badge_y, badge_w, 10, 3,
-                                fill=1, stroke=0)
-                    c.setFont(_font('medium'), 6)
-                    c.setFillColor(ESMERALD)
-                    c.drawString(badge_x + 4, badge_y + 2, badge)
-
-                # Label
-                c.setFont(_font('medium'), 7)
-                c.setFillColor(label_color)
-                c.drawString(tx + 10, tier_y + tier_h - 12, label)
-
-                # Price per month
-                c.setFont(_font('bold'), 11)
-                c.setFillColor(price_color)
-                price_str = _format_cop(monthly_discounted) + ' /mes'
-                c.drawString(tx + 10, tier_y + tier_h - 26, price_str)
-
-                # Period total
-                c.setFont(_font('regular'), 7)
-                c.setFillColor(sub_color)
-                sub_str = f'{_format_cop(period_total)} cada {months} mes{"es" if months > 1 else ""}'
-                c.drawString(tx + 10, tier_y + 5, sub_str)
-
-            y = tier_y - 6
+                    freq_cell = f'{freq_cell} — {badge}' if freq_cell else badge
+                tier_rows.append([
+                    freq_cell,
+                    f'-{int(discount)}%' if discount else '—',
+                    f'{_format_cop(monthly_discounted)} /mes',
+                    f'{_format_cop(period_total)} cada {months} '
+                    f'mes{"es" if months > 1 else ""}',
+                ])
+            y -= 4
+            y = _draw_table(c, y, tier_headers, tier_rows, ps=ps,
+                            col_widths=tier_col_widths, aligns=tier_aligns)
         else:
-            # Legacy fallback: monthlyPrice / annualPrice
+            # Legacy fallback: monthlyPrice / annualPrice — same table,
+            # one code path with the tiers above.
             m_price = _safe(hosting, 'monthlyPrice')
             a_price = _safe(hosting, 'annualPrice')
-            if m_price or a_price:
-                if ps:
-                    y = _check_y(c, y, ps, need=40)
-                price_col_w = (CONTENT_W - 14) / 2
-                price_h = 34
-                price_y = y - price_h + 6
-                p_label_y = price_y + price_h - 11
-                p_price_y = price_y + 5
-                if m_price:
-                    c.setFillColor(ESMERALD)
-                    c.roundRect(MARGIN_L, price_y, price_col_w, price_h, 5,
-                                fill=1, stroke=0)
-                    c.setFont(_font('medium'), 7)
-                    c.setFillColor(colors.HexColor('#A7F3D0'))
-                    c.drawString(MARGIN_L + 10, p_label_y,
-                                 _strip_emoji(_safe(hosting, 'monthlyLabel', 'por mes')))
-                    c.setFont(_font('bold'), 11)
-                    c.setFillColor(WHITE)
-                    c.drawString(MARGIN_L + 10, p_price_y,
-                                 _strip_emoji(str(m_price)))
-                if a_price:
-                    ax = MARGIN_L + price_col_w + 14
-                    c.setFillColor(BONE)
-                    c.roundRect(ax, price_y, price_col_w, price_h, 5,
-                                fill=1, stroke=0)
-                    c.setFont(_font('medium'), 7)
-                    c.setFillColor(GRAY_500)
-                    c.drawString(ax + 10, p_label_y,
-                                 _strip_emoji(_safe(hosting, 'annualLabel', 'pago anual')))
-                    c.setFont(_font('bold'), 11)
-                    c.setFillColor(ESMERALD)
-                    c.drawString(ax + 10, p_price_y,
-                                 _strip_emoji(str(a_price)))
-                y = price_y - 6
+            legacy_rows = []
+            if m_price:
+                legacy_rows.append([
+                    f"**{_safe(hosting, 'monthlyLabel', 'por mes')}**",
+                    '—', str(m_price), '—',
+                ])
+            if a_price:
+                legacy_rows.append([
+                    f"**{_safe(hosting, 'annualLabel', 'pago anual')}**",
+                    '—', '—', str(a_price),
+                ])
+            if legacy_rows:
+                y -= 4
+                y = _draw_table(c, y, tier_headers, legacy_rows, ps=ps,
+                                col_widths=tier_col_widths,
+                                aligns=tier_aligns)
 
-        # Coverage + free-month notes: identical light pill-style boxes, only
-        # the font weight differs. Local helper keeps the two in lockstep.
-        def _note_box(y, note_text, font_weight='medium'):
-            lines = textwrap.wrap(
-                _strip_emoji(str(note_text)), width=int(CONTENT_W / (8 * 0.48))
-            )
-            box_h = len(lines) * 12 + 16
-            box_y = y - box_h + 6
-            c.setFillColor(ESMERALD_LIGHT)
-            c.roundRect(MARGIN_L, box_y, CONTENT_W, box_h, 5, fill=1, stroke=0)
-            c.setFont(_font(font_weight), 7.5)
-            c.setFillColor(ESMERALD)
-            text_block_h = len(lines) * 12
-            ty = box_y + box_h - (box_h - text_block_h) / 2 - 10
-            for line in lines:
-                c.drawString(MARGIN_L + 10, ty, line)
-                ty -= 12
-            return box_y - 6
-
-        # Coverage note — pill-style block describing the 3 hosting components
+        # Coverage note — callout describing the 3 hosting components
         coverage = _safe(hosting, 'coverageNote')
         if coverage:
             y -= 8
-            if ps:
-                y = _check_y(c, y, ps, need=50)
-            y = _note_box(y, coverage, 'medium')
+            y = _draw_callout_box(c, y, str(coverage), style='note',
+                                  ps=ps, label='COBERTURA')
 
         # Free-month gift block (copy is bilingual via content_json)
         free_note = _safe(hosting, 'freeMonthNote')
@@ -1655,9 +1577,8 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             free_months_int = 0
         if free_months_int > 0 and free_note:
             y -= 8
-            if ps:
-                y = _check_y(c, y, ps, need=50)
-            y = _note_box(y, free_note, 'bold')
+            y = _draw_callout_box(c, y, str(free_note), style='tip',
+                                  ps=ps, label='REGALO')
 
         # Renewal note — SMLMV formula text
         renewal = _safe(hosting, 'renewalNote')
@@ -1674,19 +1595,22 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 '$113.000 COP (un aumento de $13.000).'
             )
         if renewal:
-            y -= 6
-            if ps:
-                y = _check_y(c, y, ps, need=80)
-            c.setFont(_font('bold'), 8)
-            c.setFillColor(ESMERALD)
-            c.drawString(MARGIN_L, y, 'Renovaciones')
-            y -= 14
-            # Split on double-newlines to preserve paragraph breaks
+            y -= 8
+            # Split on double-newlines to preserve paragraph breaks. The
+            # intro goes in a labelled callout, the formula line stands
+            # out as a blockquote, remaining paragraphs as fine print.
             renewal_paras = [
                 p.strip() for p in str(renewal).split('\n\n') if p.strip()
             ]
-            y = _draw_paragraphs(c, y, renewal_paras, font_size=8,
-                                 leading=11, ps=ps)
+            if renewal_paras:
+                y = _draw_callout_box(c, y, renewal_paras[0], style='note',
+                                      ps=ps, label='RENOVACIONES')
+                for para in renewal_paras[1:]:
+                    if para.lower().startswith('costo de renovación'):
+                        y = _draw_blockquote(c, y, para, ps=ps)
+                    else:
+                        y = _draw_paragraphs(c, y, [para], font_size=8,
+                                             leading=11, ps=ps)
 
     # Value reasons
     reasons = _safe(data, 'valueReasons', [])
@@ -2248,7 +2172,10 @@ def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
     except (TypeError, ValueError):
         hourly_rate = 0
 
-    pad_x = 14
+    # One full-width table replaces the stack of fixed-height cards:
+    # long names/notes wrap inside their cell, the header repeats across
+    # pages, and money columns align right for easy comparison.
+    pkg_rows = []
     for pkg in _safe(data, 'packages', []) or []:
         name = _safe(pkg, 'name') or 'Paquete'
         try:
@@ -2267,58 +2194,28 @@ def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
         total_price = hours * rate_eff
         note = _safe(pkg, 'note')
 
-        note_h = (_estimate_text_height(
-                      [note], max_width=CONTENT_W - pad_x * 2,
-                      font_size=8, leading=11)
-                  if note else 0)
-        card_h = 12 + 16 + 14 + (4 + note_h if note else 0) + 10
-
-        if ps:
-            y = _check_y(c, y, ps, need=card_h + 12)
-
-        card_top = y
-        card_bottom = y - card_h
-        c.setFillColor(ESMERALD_LIGHT)
-        c.roundRect(MARGIN_L, card_bottom, CONTENT_W, card_h, 8,
-                    fill=1, stroke=0)
-
-        text_x = MARGIN_L + pad_x
-        line_y = card_top - 12 - 10
-
-        c.setFont(_font('bold'), 12)
-        c.setFillColor(ESMERALD)
-        c.drawString(text_x, line_y, _strip_emoji(name))
-        if discount > 0:
-            disc_text = f'-{int(discount)}%'
-            pill_w = c.stringWidth(disc_text, _font('medium'), 8) + 16
-            _draw_pill(c, MARGIN_L + CONTENT_W - pad_x - pill_w, line_y,
-                       disc_text, bg_color=LEMON, text_color=ESMERALD,
-                       font_size=8)
-        line_y -= 16
-
-        c.setFont(_font('regular'), 9)
-        c.setFillColor(ESMERALD_80)
-        detail = (f'{int(hours)} h   ·   {_money(rate_eff)}/h   ·   '
-                  f'Total: {_money(total_price)}')
-        c.drawString(text_x, line_y, detail)
-        line_y -= 14
-
+        pkg_cell = f'**{name}**'
         if note:
-            _draw_paragraphs(
-                c, line_y, [str(note)], max_width=CONTENT_W - pad_x * 2,
-                font_size=8, leading=11, color=ESMERALD_80, x=text_x,
-                font_name=_font('italic'),
-            )
-        y = card_bottom - 10
+            pkg_cell = f'{pkg_cell} — *{note}*'
+        pkg_rows.append([
+            pkg_cell,
+            f'{int(hours)} h',
+            f'-{int(discount)}%' if discount else '—',
+            f'{_money(rate_eff)}/h',
+            _money(total_price),
+        ])
+    if pkg_rows:
+        y -= 2
+        y = _draw_table(
+            c, y, ['Paquete', 'Horas', 'Dcto.', 'Tarifa/hora', 'Total'],
+            pkg_rows, ps=ps, col_widths=[0.34, 0.10, 0.10, 0.22, 0.24],
+            aligns=['left', 'center', 'center', 'right', 'right'])
 
     effort_badge = _safe(data, 'effortBadge')
     if effort_badge:
-        y -= 2
-        y = _draw_banner_box(
-            c, MARGIN_L, y, CONTENT_W, str(effort_badge),
-            bg_color=BONE, text_color=ESMERALD, font_size=9,
-            icon_text='!', ps=ps,
-        )
+        y -= 4
+        y = _draw_callout_box(c, y, str(effort_badge), style='warning',
+                              ps=ps, label='IMPORTANTE')
 
     # ── Scope-exclusion clause ─────────────────────────────────
     scope_title = _safe(data, 'scopeTitle')

@@ -717,10 +717,8 @@ def _wrap_by_width(text, font_name, font_size, max_width,
                 continue
         i += 1
 
-    # Final pass: any line still over budget has an oversized token or a
-    # bold span longer than one line (push-rebalancing merges those).
-    # Break tokens, then re-flow closing/reopening ** at every boundary
-    # so each emitted piece is balanced and drawn in real bold.
+    # Break any line still over budget (oversized token, or a span the
+    # push-rebalancing merged) at word/glyph boundaries.
     normalized = []
     for line in lines:
         if _w(line) <= max_width:
@@ -736,42 +734,84 @@ def _wrap_by_width(text, font_name, font_size, max_width,
                 rebuilt.append(word)
         normalized.extend(
             _split_line_balanced(' '.join(rebuilt), _w, max_width))
-    return normalized or [text]
+    # Final safety pass: close any **bold**/*italic* span left open at a
+    # line end and reopen it on the next line, so a span broken by the
+    # plain greedy wrap never leaks literal asterisks.
+    return _rebalance_lines(normalized) or [text]
+
+
+def _rebalance_lines(lines):
+    """Close open **bold**/*italic* spans at each line end, reopen next.
+
+    Recomputes emphasis state per line: whatever span is still open when
+    a line ends is closed with its markers, and the following line is
+    re-opened with the same markers. Idempotent on already-balanced
+    lines (a fully-closed span adds nothing).
+    """
+    result = []
+    bold_carry = italic_carry = False
+    for line in lines:
+        prefix = ('**' if bold_carry else '') + ('*' if italic_carry else '')
+        text = prefix + line
+        bold_carry, italic_carry = _md_marker_state(text)
+        suffix = ('*' if italic_carry else '') + ('**' if bold_carry else '')
+        result.append(text + suffix)
+    return result
+
+
+def _md_marker_state(text):
+    """Return (bold_open, italic_open) after parsing markdown markers.
+
+    ``**`` toggles bold and is matched before a lone ``*`` (which toggles
+    italic), mirroring how _tokenize_inline consumes them.
+    """
+    i = 0
+    bold = italic = False
+    while i < len(text):
+        if text[i:i + 2] == '**':
+            bold = not bold
+            i += 2
+        elif text[i] == '*':
+            italic = not italic
+            i += 1
+        else:
+            i += 1
+    return bold, italic
 
 
 def _split_line_balanced(line, w_fn, max_width):
-    """Split an overweight line at word boundaries with balanced ** spans.
+    """Split an overweight line at word boundaries with balanced markers.
 
-    A bold span longer than one physical line cannot keep its markers on
-    a single line, so each emitted piece closes the span with '**' and
-    the next piece re-opens it — every piece parses (and measures) as
-    real bold instead of leaking literal asterisks.
+    A ``**bold**`` or ``*italic*`` span longer than one physical line
+    cannot keep its markers on a single line, so each emitted piece
+    closes any open span and the next piece re-opens it — every piece
+    parses (and measures) as real emphasis instead of leaking literal
+    asterisks. Proper nesting order is preserved: bold opens outermost,
+    italic closes innermost.
     """
     words = [x for x in line.split(' ') if x != '']
     if not words:
         return [line]
 
-    def emit(cur_words, opened):
-        txt = ' '.join(cur_words)
-        if opened:
-            txt = '**' + txt
-        still_open = txt.count('**') % 2 == 1
-        if still_open:
-            txt += '**'
-        return txt, still_open
+    def emit(cur_words, bold_in, italic_in):
+        prefix = ('**' if bold_in else '') + ('*' if italic_in else '')
+        txt = prefix + ' '.join(cur_words)
+        bold_out, italic_out = _md_marker_state(txt)
+        suffix = ('*' if italic_out else '') + ('**' if bold_out else '')
+        return txt + suffix, bold_out, italic_out
 
     pieces, cur = [], []
-    carry_open = False
+    bold_carry = italic_carry = False
     for word in words:
-        trial_txt, _ = emit(cur + [word], carry_open)
+        trial_txt, _, _ = emit(cur + [word], bold_carry, italic_carry)
         if cur and w_fn(trial_txt) > max_width:
-            txt, carry_open = emit(cur, carry_open)
+            txt, bold_carry, italic_carry = emit(cur, bold_carry, italic_carry)
             pieces.append(txt)
             cur = [word]
         else:
             cur.append(word)
     if cur:
-        txt, _ = emit(cur, carry_open)
+        txt, _, _ = emit(cur, bold_carry, italic_carry)
         pieces.append(txt)
     return pieces or [line]
 
