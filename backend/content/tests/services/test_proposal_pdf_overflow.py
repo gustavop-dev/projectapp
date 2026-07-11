@@ -153,15 +153,21 @@ def _requirements_proposal():
 
 
 @pytest.mark.django_db
-def test_requirement_group_large_generates_and_paginates():
-    """A 60-item group must render and span multiple pages without error.
-
-    (Header-repeat across pages is asserted in test_proposal_pdf_overflow
-    Fase 3 once the bespoke requirement table is migrated.)"""
+def test_requirement_group_header_repeats_on_every_page():
+    """A 60-item group spans multiple pages and repeats its column header
+    (# | Requerimiento | Descripción) on every page the table covers."""
     pdf = ProposalPdfService.generate(_requirements_proposal())
     assert pdf[:4] == b'%PDF'
     reader = PdfReader(io.BytesIO(pdf))
     assert len(reader.pages) >= 3
+    # Detail table pages carry both column headers, not just the TOC's
+    # section title. Require the pair to appear together on >= 2 pages.
+    table_pages = [
+        pg for pg in reader.pages
+        if 'Requerimiento' in (pg.extract_text() or '')
+        and 'Descripción' in (pg.extract_text() or '')
+    ]
+    assert len(table_pages) >= 2
 
 
 @pytest.mark.django_db

@@ -6,7 +6,6 @@ Commercial proposal PDF excludes this section; ?doc=technical uses this module.
 
 import io
 import logging
-import textwrap
 
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -18,7 +17,6 @@ from content.services.pdf_utils import (
     COVER_TECHNICAL_PDF,
     ESMERALD,
     ESMERALD_80,
-    ESMERALD_DARK,
     ESMERALD_LIGHT,
     GRAY_500,
     LEMON,
@@ -29,12 +27,15 @@ from content.services.pdf_utils import (
     WHITE,
     _apply_toc_links,
     _check_y,
+    _check_y_with_redraw,
     _draw_bullet_list,
     _draw_decorative_title_page,
     _draw_footer,
     _draw_header_bar,
+    _draw_kpi_tile_row,
     _draw_paragraphs,
     _draw_pill,
+    _draw_priority_pill,
     _draw_section_header,
     _draw_separator,
     _draw_subtitle,
@@ -43,7 +44,10 @@ from content.services.pdf_utils import (
     _font,
     _register_fonts,
     _safe,
+    _sanitize_pdf_text,
     _strip_emoji,
+    _string_width_mixed,
+    _wrap_by_width,
     format_date_es,
     merge_with_covers,
 )
@@ -110,6 +114,31 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
         section_i = 0
         toc_entries = []
 
+        # Opening KPI tiles — same "product family" glance as the web.
+        _epics_for_kpi = [e for e in (data.get('epics') or [])
+                          if isinstance(e, dict)]
+        _reqs_total = sum(
+            len([q for q in (e.get('requirements') or [])
+                 if isinstance(q, dict)])
+            for e in _epics_for_kpi)
+        _integ = data.get('integrations') if isinstance(
+            data.get('integrations'), dict) else {}
+        _integ_total = len([r for r in (_integ.get('included') or [])
+                            if isinstance(r, dict)])
+        _kpi_tiles = []
+        if _epics_for_kpi:
+            _kpi_tiles.append({'value': str(len(_epics_for_kpi)),
+                               'label': 'Módulos'})
+        if _reqs_total:
+            _kpi_tiles.append({'value': str(_reqs_total),
+                               'label': 'Requerimientos'})
+        if _integ_total:
+            _kpi_tiles.append({'value': str(_integ_total),
+                               'label': 'Integraciones'})
+        if _kpi_tiles:
+            y = _draw_kpi_tile_row(c, y, _kpi_tiles, ps=ps,
+                                   accent_first=True)
+
         def next_section(title_es):
             nonlocal y, section_i
             section_i += 1
@@ -144,7 +173,8 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                 ]
                 for r in stack_rows
             ]
-            y = _draw_table(c, y, headers, rows, ps=ps)
+            y = _draw_table(c, y, headers, rows, ps=ps,
+                            col_widths=[0.18, 0.28, 0.54])
 
         # ── 3. Arquitectura ───────────────────────────────────
         arch = data.get('architecture') if isinstance(data.get('architecture'), dict) else {}
@@ -168,7 +198,8 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                     ]
                     for p in patterns
                 ]
-                y = _draw_table(c, y, headers, rows, ps=ps)
+                y = _draw_table(c, y, headers, rows, ps=ps,
+                                col_widths=[0.20, 0.24, 0.56])
             if arch_note:
                 y -= 8
                 y = _draw_paragraphs(c, y, [f'Nota: {arch_note}'], ps=ps)
@@ -192,11 +223,13 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                     [
                         _safe(e, 'name') or '\u2014',
                         _safe(e, 'description') or '',
-                        _safe(e, 'keyFields') or '',
+                        (f"`{_safe(e, 'keyFields')}`"
+                         if _safe(e, 'keyFields') else ''),
                     ]
                     for e in entities
                 ]
-                y = _draw_table(c, y, headers, rows, ps=ps)
+                y = _draw_table(c, y, headers, rows, ps=ps,
+                                col_widths=[0.18, 0.44, 0.38])
             if dm_rel:
                 y -= 8
                 y = _draw_subtitle(c, y, 'Relaciones', ps=ps)
@@ -224,7 +257,8 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                     ]
                     for r in gr_strat
                 ]
-                y = _draw_table(c, y, headers, rows, ps=ps)
+                y = _draw_table(c, y, headers, rows, ps=ps,
+                                col_widths=[0.18, 0.41, 0.41])
 
         # ── 6. Módulos del producto ───────────────────────────
         epics = [e for e in (data.get('epics') or []) if isinstance(e, dict)]
@@ -240,12 +274,20 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                 epic_blocks.append((ep, reqs))
         if epic_blocks:
             y = next_section('M\u00f3dulos del producto')
+            epic_lang = getattr(proposal, 'language', 'es') or 'es'
             for ei, (ep, reqs) in enumerate(epic_blocks):
                 if ei > 0:
                     y = _draw_separator(c, y, ps=ps)
 
                 head = _safe(ep, 'title') or _safe(ep, 'epicKey') or 'M\u00f3dulo'
                 y = _draw_subtitle(c, y, _strip_emoji(head)[:80], ps=ps)
+                if reqs:
+                    _draw_pill(
+                        c, MARGIN_L, y + 4,
+                        f'{len(reqs)} requerimiento'
+                        f'{"s" if len(reqs) != 1 else ""}',
+                        bg_color=BONE, text_color=ESMERALD, font_size=7)
+                    y -= 16
 
                 desc = (_safe(ep, 'description') or '').strip()
                 if desc:
@@ -256,23 +298,26 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                     num_col_w = 28
                     name_col_w = int((CONTENT_W - num_col_w) * 0.36)
                     desc_col_w = CONTENT_W - num_col_w - name_col_w
-                    name_chars = int(name_col_w / 5.0) - 1
-                    desc_chars = int(desc_col_w / 4.5) - 1
-
-                    # Table header
+                    name_text_w = name_col_w - 12
+                    desc_text_w = desc_col_w - 12
                     hdr_h = 22
+
+                    def _draw_reqs_header(c, yy):
+                        hb = yy - hdr_h
+                        c.setFillColor(ESMERALD)
+                        c.rect(MARGIN_L, hb, CONTENT_W, hdr_h, fill=1, stroke=0)
+                        hty = hb + (hdr_h - 8) / 2 + 2
+                        c.setFont(_font('bold'), 8)
+                        c.setFillColor(WHITE)
+                        c.drawCentredString(MARGIN_L + num_col_w / 2, hty, '#')
+                        c.drawString(MARGIN_L + num_col_w + 6, hty,
+                                     'Requerimiento')
+                        c.drawString(MARGIN_L + num_col_w + name_col_w + 6,
+                                     hty, 'Descripción')
+                        return hb
+
                     y = _check_y(c, y, ps, need=hdr_h + 32)
-                    hdr_bottom = y - hdr_h
-                    c.setFillColor(ESMERALD_DARK)
-                    c.rect(MARGIN_L, hdr_bottom, CONTENT_W, hdr_h, fill=1, stroke=0)
-                    # Optical-center offset — see proposal_pdf_service.py:~722.
-                    hdr_text_y = hdr_bottom + (hdr_h - 8) / 2 + 2
-                    c.setFont(_font('bold'), 8)
-                    c.setFillColor(WHITE)
-                    c.drawCentredString(MARGIN_L + num_col_w / 2, hdr_text_y, '#')
-                    c.drawString(MARGIN_L + num_col_w + 6, hdr_text_y, 'Requerimiento')
-                    c.drawString(MARGIN_L + num_col_w + name_col_w + 6, hdr_text_y, 'Descripción')
-                    y = hdr_bottom
+                    y = _draw_reqs_header(c, y)
 
                     for qi, q in enumerate(reqs):
                         pr = _safe(q, 'priority') or ''
@@ -281,26 +326,31 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                         q_conf = (_safe(q, 'configuration') or '').strip()
                         q_flow = (_safe(q, 'usageFlow') or '').strip()
 
-                        name_lines = textwrap.wrap(qt, width=name_chars) or [qt]
-                        all_desc_lines = []  # list of (text, bold_prefix | None)
-                        if q_desc:
-                            for line in textwrap.wrap(q_desc, width=desc_chars) or [q_desc]:
-                                all_desc_lines.append((line, None))
-                        if q_conf:
-                            conf_lines = textwrap.wrap(f'Config: {q_conf}', width=desc_chars) or [f'Config: {q_conf}']
-                            for i, line in enumerate(conf_lines):
-                                all_desc_lines.append((line, 'Config:' if i == 0 else None))
-                        if q_flow:
-                            flow_lines = textwrap.wrap(f'Flujo: {q_flow}', width=desc_chars) or [f'Flujo: {q_flow}']
-                            for i, line in enumerate(flow_lines):
-                                all_desc_lines.append((line, 'Flujo:' if i == 0 else None))
+                        name_lines = _wrap_by_width(
+                            qt, _font('bold'), 9, name_text_w) or [qt]
+                        all_desc_lines = []  # (text, bold_prefix | None)
+                        for label, val in (('', q_desc),
+                                           ('Config: ', q_conf),
+                                           ('Flujo: ', q_flow)):
+                            if not val:
+                                continue
+                            wrapped = _wrap_by_width(
+                                f'{label}{val}', _font('regular'), 8,
+                                desc_text_w) or [f'{label}{val}']
+                            for i, line in enumerate(wrapped):
+                                bp = (label.rstrip() if label and i == 0
+                                      else None)
+                                all_desc_lines.append((line, bp))
 
                         line_h = 11
-                        n_lines = max(len(name_lines), len(all_desc_lines) if all_desc_lines else 1)
-                        row_h = n_lines * line_h + 14
-                        row_h = max(row_h, 28)
+                        n_lines = max(len(name_lines),
+                                      len(all_desc_lines) if all_desc_lines
+                                      else 1)
+                        row_h = max(n_lines * line_h + 14, 28)
 
-                        y = _check_y(c, y, ps, need=row_h)
+                        # Repeat the header when a row spills to a new page.
+                        y = _check_y_with_redraw(c, y, ps, need=row_h,
+                                                 redraw=_draw_reqs_header)
                         row_bottom = y - row_h
 
                         # Row background (alternating)
@@ -328,11 +378,10 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                             c.drawString(MARGIN_L + num_col_w + 6, text_y, nl)
                             text_y -= line_h
                         if pr:
-                            _draw_pill(
+                            # Semantic priority badge (localized label).
+                            _draw_priority_pill(
                                 c, MARGIN_L + num_col_w + 6, text_y + 2, pr,
-                                bg_color=BONE, text_color=ESMERALD,
-                                font_size=6, padding_h=4, padding_v=2,
-                            )
+                                lang=epic_lang)
 
                         # Description + config + flow (top-aligned; config/flujo prefix bold only)
                         if all_desc_lines:
@@ -375,7 +424,8 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                     [_safe(d, 'domain') or '\u2014', _safe(d, 'summary') or '']
                     for d in api_dom
                 ]
-                y = _draw_table(c, y, headers, rows, ps=ps)
+                y = _draw_table(c, y, headers, rows, ps=ps,
+                                col_widths=[0.24, 0.76])
 
         # ── 8. Integraciones ──────────────────────────────────
         integ = data.get('integrations') if isinstance(data.get('integrations'), dict) else {}
@@ -394,25 +444,35 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
             y = next_section('Integraciones')
             if inc:
                 y = _draw_subtitle(c, y, 'Incluidas', ps=ps)
-                headers = ['Servicio', 'Proveedor', 'Conexi\u00f3n']
-                rows = [
-                    [
+                headers = ['Servicio', 'Proveedor', 'Conexi\u00f3n', 'Datos']
+                rows = []
+                for r in inc:
+                    provider = _safe(r, 'provider') or ''
+                    owner = _safe(r, 'accountOwner')
+                    if owner:
+                        provider = f'{provider} *{owner}*'.strip()
+                    rows.append([
                         _safe(r, 'service') or '\u2014',
-                        _safe(r, 'provider') or '',
+                        provider,
                         _safe(r, 'connection') or '',
-                    ]
-                    for r in inc
-                ]
-                y = _draw_table(c, y, headers, rows, ps=ps)
+                        _safe(r, 'dataExchange') or '',
+                    ])
+                y = _draw_table(c, y, headers, rows, ps=ps,
+                                col_widths=[0.20, 0.20, 0.22, 0.38])
             if exc:
                 y -= 8
                 y = _draw_subtitle(c, y, 'Excluidas', ps=ps)
-                headers = ['Servicio', 'Raz\u00f3n']
+                headers = ['Servicio', 'Raz\u00f3n', 'Disponibilidad']
                 rows = [
-                    [_safe(r, 'service') or '\u2014', _safe(r, 'reason') or '']
+                    [
+                        _safe(r, 'service') or '\u2014',
+                        _safe(r, 'reason') or '',
+                        _safe(r, 'availability') or '',
+                    ]
                     for r in exc
                 ]
-                y = _draw_table(c, y, headers, rows, ps=ps)
+                y = _draw_table(c, y, headers, rows, ps=ps,
+                                col_widths=[0.24, 0.46, 0.30])
             if notes:
                 y -= 8
                 bullets = [b.strip() for b in notes.splitlines() if b.strip()]
@@ -433,16 +493,19 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                 y = _draw_paragraphs(c, y, [env_note], ps=ps)
             if envs:
                 y -= 8
-                headers = ['Nombre', 'Prop\u00f3sito', 'URL']
+                headers = ['Nombre', 'Prop\u00f3sito', 'URL', 'BD', 'Acceso']
                 rows = [
                     [
                         _safe(r, 'name') or '\u2014',
                         _safe(r, 'purpose') or '',
                         _safe(r, 'url') or '',
+                        _safe(r, 'database') or '',
+                        _safe(r, 'whoAccesses') or '',
                     ]
                     for r in envs
                 ]
-                y = _draw_table(c, y, headers, rows, ps=ps)
+                y = _draw_table(c, y, headers, rows, ps=ps,
+                                col_widths=[0.13, 0.24, 0.23, 0.22, 0.18])
 
         # ── 10. Seguridad ─────────────────────────────────────
         sec_rows = [
@@ -456,7 +519,8 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                 [_safe(r, 'aspect') or '\u2014', _safe(r, 'implementation') or '']
                 for r in sec_rows
             ]
-            y = _draw_table(c, y, headers, rows, ps=ps)
+            y = _draw_table(c, y, headers, rows, ps=ps,
+                            col_widths=[0.24, 0.76])
 
         # ── 11. Rendimiento ───────────────────────────────────
         pq = data.get('performanceQuality') if isinstance(data.get('performanceQuality'), dict) else {}
@@ -480,7 +544,9 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                     ]
                     for m in metrics
                 ]
-                y = _draw_table(c, y, headers, rows, ps=ps)
+                y = _draw_table(c, y, headers, rows, ps=ps,
+                                col_widths=[0.28, 0.30, 0.42],
+                                aligns=['left', 'center', 'left'])
             if practices:
                 y -= 8
                 y = _draw_subtitle(c, y, 'Pr\u00e1cticas', ps=ps)
@@ -489,7 +555,8 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                     [_safe(p, 'strategy') or '\u2014', _safe(p, 'description') or '']
                     for p in practices
                 ]
-                y = _draw_table(c, y, headers, rows, ps=ps)
+                y = _draw_table(c, y, headers, rows, ps=ps,
+                                col_widths=[0.30, 0.70])
 
         # ── 12. Backups ───────────────────────────────────────
         bk = (data.get('backupsNote') or '').strip()
@@ -520,20 +587,23 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                     ]
                     for x in dims
                 ]
-                y = _draw_table(c, y, headers, rows, ps=ps)
+                y = _draw_table(c, y, headers, rows, ps=ps,
+                                col_widths=[0.22, 0.40, 0.38])
             if tests:
                 y -= 8
                 y = _draw_subtitle(c, y, 'Tipos de prueba', ps=ps)
-                headers = ['Tipo', 'Valida', 'Herramienta']
+                headers = ['Tipo', 'Valida', 'Herramienta', 'Cu\u00e1ndo']
                 rows = [
                     [
                         _safe(x, 'type') or '\u2014',
                         _safe(x, 'validates') or '',
                         _safe(x, 'tool') or '',
+                        _safe(x, 'whenRun') or '',
                     ]
                     for x in tests
                 ]
-                y = _draw_table(c, y, headers, rows, ps=ps)
+                y = _draw_table(c, y, headers, rows, ps=ps,
+                                col_widths=[0.14, 0.34, 0.24, 0.28])
             if cf:
                 y -= 8
                 y = _draw_subtitle(c, y, 'Flujos cr\u00edticos', ps=ps)
@@ -555,7 +625,8 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                 ]
                 for r in decisions
             ]
-            y = _draw_table(c, y, headers, rows, ps=ps)
+            y = _draw_table(c, y, headers, rows, ps=ps,
+                            col_widths=[0.30, 0.26, 0.44])
 
         # ── Footer note ──────────────────────────────────────
         y -= 20

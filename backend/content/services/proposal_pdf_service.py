@@ -581,51 +581,25 @@ def _render_development_stages(c, data, _proposal, ps=None, y=None):
 
     stages = _safe(data, 'stages', [])
     for i, stage in enumerate(stages):
-        if ps:
-            y = _check_y(c, y, ps, need=50)
-        elif y < MARGIN_B + 50:
-            break
         stage_title = _safe(stage, 'title')
         desc = _safe(stage, 'description')
         is_current = _safe(stage, 'current', False)
 
-        circle_x = MARGIN_L + 14
-        circle_y = y - 4
-        if is_current:
-            c.setFillColor(LEMON)
-        else:
-            c.setFillColor(ESMERALD)
-        c.circle(circle_x, circle_y, 11, fill=1, stroke=0)
-        c.setFillColor(ESMERALD if is_current else WHITE)
-        c.setFont(_font('bold'), 9)
-        c.drawCentredString(circle_x, circle_y - 3, str(i + 1))
+        # Feature row: numbered chip + title + "Etapa actual" pill +
+        # description. The connector line is drawn afterwards spanning the
+        # real block height, and skipped if the block crossed a page.
+        page_before = ps['num'] if ps else 0
+        circle_top = y + 3.5
+        y = _draw_feature_row(
+            c, y, stage_title, description=desc, ps=ps, index=i + 1,
+            pill_text=('Etapa actual' if is_current else None),
+            pill_bg=LEMON, pill_fg=ESMERALD)
 
-        if i < len(stages) - 1:
+        # Vertical connector to the next stage — only within the same page.
+        if i < len(stages) - 1 and (not ps or ps['num'] == page_before):
             c.setStrokeColor(GRAY_200)
             c.setLineWidth(1)
-            c.line(circle_x, circle_y - 13, circle_x, circle_y - 44)
-
-        tx = MARGIN_L + 36
-        c.setFont(_font('bold'), 11)
-        c.setFillColor(ESMERALD)
-        c.drawString(tx, y, _strip_emoji(stage_title))
-        # "Etapa actual" pill for the current stage
-        if is_current:
-            title_w = c.stringWidth(_strip_emoji(stage_title),
-                                    _font('bold'), 11)
-            _draw_pill(c, tx + title_w + 8, y + 1, 'Etapa actual',
-                       bg_color=LEMON, text_color=ESMERALD)
-        y -= 15
-
-        if desc:
-            c.setFont(_font('regular'), 9)
-            c.setFillColor(ESMERALD_80)
-            stage_chars = int((PAGE_W - MARGIN_R - tx) / (9 * 0.48))
-            d_lines = textwrap.wrap(_strip_emoji(str(desc)), width=stage_chars)
-            for dl in d_lines:
-                c.drawString(tx, y, dl)
-                y -= 13
-        y -= 12
+            c.line(MARGIN_L + 8, circle_top - 13, MARGIN_L + 8, y + 6)
     return y
 
 
@@ -689,6 +663,63 @@ def _desc_to_segmented_lines(desc, width):
     return lines
 
 
+def _desc_to_segmented_lines_w(desc, max_width, font_size):
+    """Width-accurate twin of _desc_to_segmented_lines.
+
+    Same output shape (list of lines, each a list of ``[text, is_bold]``
+    segments, ``[]`` marking a paragraph break) but wraps by real glyph
+    width — measuring bold segments in the bold font and regular in the
+    regular font — so text can never exceed *max_width* in its column.
+    """
+    if not desc:
+        return []
+    text = _BR_TAG_RE.sub('\n', str(desc))
+    text = _FR_BOLD_SPAN_RE.sub(r'**\1**', text)
+    text = _HTML_TAG_RE.sub('', text)
+    text = _strip_emoji(text)
+    fn_r = _font('regular')
+    fn_b = _font('bold')
+
+    def seg_w(t, bold):
+        return _string_width_mixed(t, fn_b if bold else fn_r, font_size)
+
+    lines = []
+    first_para = True
+    for para in text.split('\n'):
+        para = para.strip()
+        if not para:
+            continue
+        if not first_para:
+            lines.append([])
+        first_para = False
+
+        segments = []
+        is_bold = False
+        for piece in para.split('**'):
+            if piece:
+                segments.append((piece, is_bold))
+            is_bold = not is_bold
+
+        cur, cur_w = [], 0.0
+        for seg_text, seg_bold in segments:
+            for word in seg_text.split():
+                chunk = (' ' if cur else '') + word
+                w = seg_w(chunk, seg_bold)
+                if cur and cur_w + w > max_width:
+                    lines.append(cur)
+                    cur, cur_w = [], 0.0
+                    chunk = word
+                    w = seg_w(chunk, seg_bold)
+                if cur and cur[-1][1] == seg_bold:
+                    cur[-1][0] += chunk
+                else:
+                    cur.append([chunk, seg_bold])
+                cur_w += w
+        if cur:
+            lines.append(cur)
+    return lines
+
+
 def _render_functional_requirements(c, data, proposal, ps=None, y=None):
     """Render functional requirements overview page."""
     if y is None:
@@ -726,102 +757,47 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
     sel_ids = ps.get('selected_modules') if ps else None
     all_groups = _filter_calculator_groups(all_groups, sel_ids)
 
-    # Overview cards (2-column grid) — paginated with dynamic height
-    col_w = (CONTENT_W - 16) / 2
-    inner_w = col_w - 20  # 10pt padding each side
-    title_chars = int(inner_w / 6.0)  # bold 10pt ≈ 6pt per char
-    desc_chars = int(inner_w / 5.0)   # regular 8pt ≈ 5pt per char
-    row_y = y
-    idx = 0
-    while idx < len(all_groups):
-        # Pre-compute card data and heights for this row (up to 2 cards)
-        row_cards = []
-        for col in range(2):
-            ci = idx + col
-            if ci >= len(all_groups):
-                break
-            grp = all_groups[ci]
-            grp_title = _strip_emoji(_safe(grp, 'title'))
-            t_lines = textwrap.wrap(grp_title, width=title_chars) or [grp_title]
-            t_lines = t_lines[:2]  # max 2 title lines
-            desc = _safe(grp, 'description')
-            d_lines = textwrap.wrap(_strip_emoji(str(desc)), width=desc_chars)[:2] if desc else []
-            # Filter items (same logic as before)
-            grp_items = _safe(grp, 'items', [])
-            if sel_ids is not None and grp_items:
-                grp_key = (_safe(grp, 'id') or _safe(grp, 'title') or '')
-                kept = []
-                for it in grp_items:
-                    is_req = _safe(it, 'is_required')
-                    if is_req is True:
+    # Overview index table (# | Módulo | Descripción | Ítems). Full-width,
+    # zebra rows, header repeats across pages — no truncation, unlike the
+    # old 2-column card grid that clipped titles and descriptions to two
+    # lines each. The detail sub-sections that follow use this as an index.
+    def _count_items(grp):
+        grp_items = _safe(grp, 'items', [])
+        if sel_ids is not None and grp_items:
+            grp_key = (_safe(grp, 'id') or _safe(grp, 'title') or '')
+            kept = []
+            for it in grp_items:
+                is_req = _safe(it, 'is_required')
+                if is_req is True:
+                    kept.append(it)
+                else:
+                    configurable = _safe(it, 'price') or is_req is False
+                    if not configurable:
                         kept.append(it)
                     else:
-                        configurable = _safe(it, 'price') or is_req is False
-                        if not configurable:
+                        fr_id = re.sub(
+                            r'\s+', '-',
+                            f'fr-{grp_key}-{_safe(it, "name") or ""}').lower()
+                        if fr_id in sel_ids:
                             kept.append(it)
-                        else:
-                            fr_id = re.sub(r'\s+', '-', f'fr-{grp_key}-{_safe(it, "name") or ""}').lower()
-                            if fr_id in sel_ids:
-                                kept.append(it)
-                grp_items = kept
-            # Card height: top pad + title lines + gap + desc lines + bottom pad
-            ch = 10 + (len(t_lines) * 13) + 4 + (len(d_lines) * 11) + 6
-            ch = max(ch, 44)  # minimum height
-            row_cards.append({
-                'grp': grp, 'title_lines': t_lines, 'desc_lines': d_lines,
-                'items': grp_items, 'height': ch,
-            })
+            grp_items = kept
+        return len(grp_items)
 
-        if not row_cards:
-            break
-
-        row_h = max(rc['height'] for rc in row_cards)
-
-        # Page break check
-        if ps:
-            row_y = _check_y(c, row_y, ps, need=row_h + 10)
-        elif row_y < MARGIN_B + row_h + 10:
-            break
-
-        # Draw cards in this row
-        for col, rc in enumerate(row_cards):
-            card_x = MARGIN_L + col * (col_w + 16)
-            card_y = row_y
-
-            c.setFillColor(ESMERALD_LIGHT)
-            c.roundRect(card_x, card_y - row_h + 6, col_w, row_h, 5, fill=1, stroke=0)
-            # Left accent bar
-            c.setFillColor(LEMON)
-            c.roundRect(card_x, card_y - row_h + 6, 3, row_h, 1, fill=1, stroke=0)
-
-            # Title (wrapped)
-            c.setFont(_font('bold'), 10)
-            c.setFillColor(ESMERALD)
-            for ti, tl in enumerate(rc['title_lines']):
-                c.drawString(card_x + 10, card_y - 10 - (ti * 13), tl)
-
-            # Item count pill (after last title line)
-            if rc['items']:
-                last_ti = len(rc['title_lines']) - 1
-                last_line = rc['title_lines'][last_ti]
-                tw = c.stringWidth(last_line, _font('bold'), 10)
-                pill_y = card_y - 10 - (last_ti * 13)
-                _draw_pill(c, card_x + 10 + tw + 6, pill_y,
-                           str(len(rc['items'])),
-                           bg_color=BONE, text_color=ESMERALD, font_size=6,
-                           padding_h=5, padding_v=2)
-
-            # Description
-            if rc['desc_lines']:
-                c.setFont(_font('regular'), 8)
-                c.setFillColor(ESMERALD_80)
-                desc_y = card_y - 10 - (len(rc['title_lines']) * 13) - 4
-                for dl in rc['desc_lines']:
-                    c.drawString(card_x + 10, desc_y, dl)
-                    desc_y -= 11
-
-        idx += len(row_cards)
-        row_y -= (row_h + 12)
+    overview_rows = []
+    for gi, grp in enumerate(all_groups):
+        overview_rows.append([
+            str(gi + 1),
+            f"**{_safe(grp, 'title')}**",
+            _safe(grp, 'description'),
+            str(_count_items(grp)),
+        ])
+    if overview_rows:
+        row_y = _draw_table(
+            c, y, ['#', 'Módulo', 'Descripción', 'Ítems'], overview_rows,
+            ps=ps, col_widths=[0.07, 0.28, 0.53, 0.12],
+            aligns=['center', 'left', 'left', 'center'])
+    else:
+        row_y = y
 
     # Store groups for generate() to render detail sub-sections
     if ps is not None:
@@ -842,19 +818,19 @@ def _render_linked_requirements(c, item, ps, row_y):
     if not linked:
         return row_y
 
-    labels = _REQ_PRIORITY_LABELS.get(ps.get('_pdf_lang'), _REQ_PRIORITY_LABELS['es'])
+    lang = ps.get('_pdf_lang') or 'es'
     indent_x = MARGIN_L + 28
     text_w = CONTENT_W - 28 - 12
-    title_chars = int(text_w / 5.0) - 1
-    desc_chars = int(text_w / 4.5) - 1
     line_h = 11
 
     for req in linked:
         title = _strip_emoji(req.get('title') or '')
-        title_lines = textwrap.wrap(title, width=title_chars) or ([title] if title else [])
+        title_lines = _wrap_by_width(title, _font('bold'), 8, text_w) \
+            if title else []
         # Rich description like the parent item rows (honors <br>/<b>/**bold**),
         # capped so dense groups don't explode the page count.
-        desc_seg_lines = _desc_to_segmented_lines(req.get('description') or '', desc_chars)[:3]
+        desc_seg_lines = _desc_to_segmented_lines_w(
+            req.get('description') or '', text_w, 8)[:3]
         if not title_lines and not desc_seg_lines:
             continue
         n_lines = len(title_lines) + len(desc_seg_lines)
@@ -873,15 +849,11 @@ def _render_linked_requirements(c, item, ps, row_y):
         for i, tl in enumerate(title_lines):
             c.drawString(indent_x + 8, text_y, tl)
             if i == 0:
-                priority = (req.get('priority') or '').strip().lower()
-                label = labels.get(priority)
-                if label:
-                    title_line_w = c.stringWidth(tl, _font('bold'), 8)
-                    _draw_pill(
-                        c, indent_x + 8 + title_line_w + 6, text_y + 2, label,
-                        bg_color=BONE, text_color=ESMERALD,
-                        font_size=6, padding_h=4, padding_v=2,
-                    )
+                # Semantic priority badge (rose/amber/esmerald/gray).
+                title_line_w = c.stringWidth(tl, _font('bold'), 8)
+                _draw_priority_pill(
+                    c, indent_x + 8 + title_line_w + 6, text_y + 2,
+                    req.get('priority'), lang=lang)
             text_y -= line_h
         c.setFillColor(ESMERALD_80)
         for seg_line in desc_seg_lines:
@@ -944,48 +916,53 @@ def _render_requirement_group_page(c, grp, ps=None, y=None,
     num_col_w = 28
     name_col_w = int((CONTENT_W - num_col_w) * 0.36)
     desc_col_w = CONTENT_W - num_col_w - name_col_w
-
-    # Approximate chars that fit per column
-    name_chars = int(name_col_w / 5.0) - 1
-    desc_chars = int(desc_col_w / 4.5) - 1
+    name_text_w = name_col_w - 12
+    desc_text_w = desc_col_w - 12
 
     row_y = y
 
-    # ── Table header ──────────────────────────────────────────
+    # ── Table header (closure so it repeats after every page break) ──
     hdr_h = 22
+
+    def _draw_items_header(c, yy):
+        hdr_bottom = yy - hdr_h
+        c.setFillColor(ESMERALD)
+        c.rect(MARGIN_L, hdr_bottom, CONTENT_W, hdr_h, fill=1, stroke=0)
+        # Offset +2 aligns the optical midline of the glyphs with the
+        # rect's vertical center.
+        hdr_text_y = hdr_bottom + (hdr_h - 8) / 2 + 2
+        c.setFont(_font('bold'), 8)
+        c.setFillColor(WHITE)
+        c.drawCentredString(MARGIN_L + num_col_w / 2, hdr_text_y, '#')
+        c.drawString(MARGIN_L + num_col_w + 6, hdr_text_y, 'Requerimiento')
+        c.drawString(MARGIN_L + num_col_w + name_col_w + 6, hdr_text_y,
+                     'Descripción')
+        return hdr_bottom
+
     if ps:
         row_y = _check_y(c, row_y, ps, need=hdr_h + 32)
-    hdr_bottom = row_y - hdr_h
-    c.setFillColor(ESMERALD_DARK)
-    c.rect(MARGIN_L, hdr_bottom, CONTENT_W, hdr_h, fill=1, stroke=0)
-    # Offset +2 aligns the optical midline of the glyphs with the rect's
-    # vertical center (without it, the text sits low because the descender
-    # makes the geometric baseline fall below the cap-height midpoint).
-    hdr_text_y = hdr_bottom + (hdr_h - 8) / 2 + 2
-    c.setFont(_font('bold'), 8)
-    c.setFillColor(WHITE)
-    c.drawCentredString(MARGIN_L + num_col_w / 2, hdr_text_y, '#')
-    c.drawString(MARGIN_L + num_col_w + 6, hdr_text_y, 'Requerimiento')
-    c.drawString(MARGIN_L + num_col_w + name_col_w + 6, hdr_text_y, 'Descripción')
-    row_y = hdr_bottom
+    row_y = _draw_items_header(c, row_y)
 
     # ── Item rows ─────────────────────────────────────────────
+    line_h = 11
     for idx, item in enumerate(items):
         name = _strip_emoji(_safe(item, 'name') or '')
-        # Rich description: honor <br><br> (paragraphs) and <b>/<strong>/**bold** so the
-        # PDF matches the web instead of showing literal tags. Each line is a list of
-        # [text, is_bold] segments; an empty list is a blank line between paragraphs.
-        desc_seg_lines = _desc_to_segmented_lines(_safe(item, 'description') or '', desc_chars)
-        name_lines = textwrap.wrap(name, width=name_chars) or [name]
+        # Rich description honoring <br><br> and <b>/<strong>/**bold**,
+        # wrapped by real glyph width so it stays inside its column.
+        desc_seg_lines = _desc_to_segmented_lines_w(
+            _safe(item, 'description') or '', desc_text_w, 8)
+        name_lines = _wrap_by_width(name, _font('bold'), 9,
+                                    name_text_w) or [name]
 
-        line_h = 11
-        n_lines = max(len(name_lines), len(desc_seg_lines) if desc_seg_lines else 1)
-        row_h = n_lines * line_h + 14
-        row_h = max(row_h, 28)
+        n_lines = max(len(name_lines),
+                      len(desc_seg_lines) if desc_seg_lines else 1)
+        row_h = max(n_lines * line_h + 14, 28)
 
-        # Page break check
+        # Page break: repeat the column header on the fresh page so
+        # continued rows keep their context.
         if ps:
-            row_y = _check_y(c, row_y, ps, need=row_h)
+            row_y = _check_y_with_redraw(c, row_y, ps, need=row_h,
+                                         redraw=_draw_items_header)
 
         row_bottom = row_y - row_h
 
@@ -1045,52 +1022,23 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
     if intro:
         y = _draw_paragraphs(c, y, [intro], ps=ps)
 
-    total = _safe(data, 'totalDuration')
-    if total:
-        # Duration badge — width adapts to content, capped at CONTENT_W
-        total_str = _strip_emoji(total)
-        label_str = 'Duración Total Estimada'
-        value_w = c.stringWidth(total_str, _font('bold'), 11)
-        label_w = c.stringWidth(label_str, _font('regular'), 8)
-        badge_w = min(CONTENT_W, max(200, math.ceil(max(value_w, label_w)) + 40))
-        badge_h = 36
-
-        # Truncate value text if it would overflow badge's inner width
-        inner_w = badge_w - 24  # 12px left padding + 12px right guard
-        if value_w > inner_w:
-            stripped = total_str.rstrip()
-            lo, hi = 0, len(stripped)
-            while lo < hi:
-                mid = (lo + hi + 1) // 2
-                if c.stringWidth(stripped[:mid] + '...', _font('bold'), 11) <= inner_w:
-                    lo = mid
-                else:
-                    hi = mid - 1
-            total_str = stripped[:lo] + '...'
-        # Truncate label too if it overflows
-        if label_w > inner_w:
-            lbl_stripped = label_str.rstrip()
-            lo, hi = 0, len(lbl_stripped)
-            while lo < hi:
-                mid = (lo + hi + 1) // 2
-                if c.stringWidth(lbl_stripped[:mid] + '...', _font('regular'), 8) <= inner_w:
-                    lo = mid
-                else:
-                    hi = mid - 1
-            label_str = lbl_stripped[:lo] + '...'
-
-        c.setFillColor(BONE)
-        c.roundRect(MARGIN_L, y - badge_h + 4, badge_w, badge_h,
-                    4, fill=1, stroke=0)
-        c.setFont(_font('regular'), 8)
-        c.setFillColor(GRAY_500)
-        c.drawString(MARGIN_L + 12, y - 8, label_str)
-        c.setFont(_font('bold'), 11)
-        c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L + 12, y - 23, total_str)
-        y -= badge_h + 12
-
     phases = _safe(data, 'phases', [])
+
+    # Headline KPI tiles: total duration + phase / milestone counts.
+    total = _safe(data, 'totalDuration')
+    tiles = []
+    if total:
+        tiles.append({'value': _sanitize_pdf_text(str(total)),
+                      'label': 'Duración total'})
+    if len(phases) >= 2:
+        tiles.append({'value': str(len(phases)), 'label': 'Fases'})
+        milestones = sum(1 for ph in phases if _safe(ph, 'milestone'))
+        if milestones:
+            tiles.append({'value': str(milestones), 'label': 'Hitos'})
+    if tiles:
+        y = _draw_kpi_tile_row(c, y, tiles, ps=ps, accent_first=True)
+        y -= 8
+
     for i, phase in enumerate(phases):
         if ps:
             y = _check_y(c, y, ps, need=50)
@@ -1106,26 +1054,42 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
         c.drawCentredString(cx, cy - 3, str(i + 1))
 
         tx = MARGIN_L + 30
+
+        # Duration pill — measured and right-anchored; the phase title
+        # wraps to the space left of it so the two can never collide.
+        dur = _safe(phase, 'duration')
+        pill_w = 0.0
+        if dur:
+            dur_txt = _sanitize_pdf_text(str(dur))
+            pill_w = _string_width_mixed(dur_txt, _font('medium'), 7) + 16
+            _draw_pill(c, PAGE_W - MARGIN_R - pill_w, y + 1, dur_txt,
+                       bg_color=ESMERALD_LIGHT, text_color=ESMERALD)
+
+        title_w = (PAGE_W - MARGIN_R - tx) - (pill_w + 10 if pill_w else 0)
+        title = _sanitize_pdf_text(_safe(phase, 'title'))
         c.setFont(_font('bold'), 11)
         c.setFillColor(ESMERALD)
-        c.drawString(tx, y, _strip_emoji(_safe(phase, 'title')))
+        title_lines = _wrap_by_width(title, _font('bold'), 11,
+                                     max(title_w, 60))
+        for li, tl in enumerate(title_lines):
+            if li > 0 and ps:
+                y = _check_y(c, y, ps, need=15)
+            _draw_mixed_string(c, tx, y, tl, _font('bold'), 11)
+            y -= 15
 
-        dur = _safe(phase, 'duration')
-        if dur:
-            _draw_pill(c, PAGE_W - MARGIN_R - 80, y + 1,
-                       _strip_emoji(dur),
-                       bg_color=ESMERALD_LIGHT, text_color=ESMERALD)
-        y -= 15
+        # Optional week span, right under the pill.
+        weeks = _safe(phase, 'weeks')
+        if weeks:
+            c.setFont(_font('regular'), 7)
+            c.setFillColor(GRAY_500)
+            c.drawRightString(PAGE_W - MARGIN_R, y + 4,
+                              _sanitize_pdf_text(str(weeks)))
 
         desc = _safe(phase, 'description')
         if desc:
-            c.setFont(_font('regular'), 9)
-            c.setFillColor(ESMERALD_80)
-            phase_chars = int((PAGE_W - MARGIN_R - tx) / (9 * 0.48))
-            d_lines = textwrap.wrap(_strip_emoji(str(desc)), width=phase_chars)
-            for dl in d_lines:
-                c.drawString(tx, y, dl)
-                y -= 12
+            y = _draw_paragraphs(c, y, [desc], x=tx,
+                                 max_width=PAGE_W - MARGIN_R - tx,
+                                 font_size=9, leading=12, ps=ps)
 
         tasks = _safe(phase, 'tasks', [])
         if tasks:
@@ -1136,7 +1100,9 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
 
         milestone = _safe(phase, 'milestone')
         if milestone:
-            _draw_pill(c, tx, y, f'Hito: {_strip_emoji(milestone)}',
+            if ps:
+                y = _check_y(c, y, ps, need=18)
+            _draw_pill(c, tx, y, f'Hito: {_sanitize_pdf_text(str(milestone))}',
                        bg_color=BONE, text_color=ESMERALD, font_size=7)
             y -= 16
 
