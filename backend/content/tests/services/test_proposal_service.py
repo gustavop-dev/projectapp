@@ -22,6 +22,7 @@ pytestmark = pytest.mark.django_db
 # Module-level constants for reusable payloads
 CALCULATOR_MODULE_IDS = (
     'pwa_module', 'corporate_branding_module', 'ai_module', 'reports_alerts_module',
+    'behavior_tracking_module',
     'email_marketing_module',
     'qr_generator_module', 'content_generator_module',
     'i18n_module',
@@ -44,6 +45,7 @@ EXPECTED_ADDITIONAL_MODULE_ORDER = [
     'pwa_module', 'corporate_branding_module', 'ai_module',
     'integration_conversion_tracking',
     'biometric_verification_module',
+    'behavior_tracking_module',
     'reports_alerts_module', 'email_marketing_module',
     'qr_generator_module', 'content_generator_module',
     'i18n_module',
@@ -108,13 +110,13 @@ class TestGetDefaultSections:
         assert 'Resumen' in es_section['content_json']['title']
 
     def test_functional_requirements_has_default_groups(self):
-        """Verify ES functional_requirements has 8 groups and 16 additionalModules."""
+        """Verify ES functional_requirements has 8 groups and 17 additionalModules."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
         additional = fr['content_json']['additionalModules']
         assert len(groups) == 8
-        assert len(additional) == 16
+        assert len(additional) == 17
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
@@ -125,7 +127,7 @@ class TestGetDefaultSections:
         assert additional_ids == {
             'integration_international_payments', 'integration_regional_payments',
             'integration_electronic_invoicing', 'integration_conversion_tracking',
-            'biometric_verification_module',
+            'biometric_verification_module', 'behavior_tracking_module',
             'pwa_module', 'corporate_branding_module', 'ai_module', 'reports_alerts_module',
             'email_marketing_module',
             'qr_generator_module', 'content_generator_module',
@@ -314,6 +316,31 @@ class TestGetDefaultSections:
         assert 'Integración con WhatsApp' in item_names
         assert all('Telegram' not in n for n in item_names)
 
+    def test_behavior_tracking_module_is_priced_calculator_module(self):
+        """Verify behavior_tracking_module: calculator module at 30%, not invite, closed scope copy."""
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        bt = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'behavior_tracking_module')
+        assert bt['icon'] == '👣'
+        assert 'Rastreo' in bt['title']
+        assert bt['is_visible'] is True
+        assert bt['is_calculator_module'] is True
+        assert bt['default_selected'] is False
+        assert bt['selected'] is False
+        assert bt['price_percent'] == 30
+        assert bt.get('is_invite', False) is False
+        assert 'invite_note' not in bt
+        assert len(bt['items']) == 7
+        assert 'hasta 15 vistas' in bt['description']
+
+    @pytest.mark.parametrize('lang', ['es', 'en'])
+    def test_behavior_tracking_module_position_before_reports_alerts(self, lang):
+        """Verify behavior_tracking_module sits immediately before reports_alerts_module in both languages."""
+        sections = ProposalService.get_default_sections(lang)
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        ids = [m['id'] for m in fr['content_json']['additionalModules']]
+        assert ids.index('behavior_tracking_module') + 1 == ids.index('reports_alerts_module')
+
     def test_en_calculator_modules_mirror_es(self):
         """EN additional modules match ES in item count, calculator flag, and price percent."""
         es = ProposalService.get_default_sections('es')
@@ -327,14 +354,14 @@ class TestGetDefaultSections:
             assert es_g['is_calculator_module'] == en_g['is_calculator_module']
             assert es_g.get('price_percent') == en_g.get('price_percent')
 
-    def test_en_functional_requirements_has_8_groups_and_16_modules(self):
-        """Verify EN functional_requirements has 8 groups and 16 additionalModules."""
+    def test_en_functional_requirements_has_8_groups_and_17_modules(self):
+        """Verify EN functional_requirements has 8 groups and 17 additionalModules."""
         sections = ProposalService.get_default_sections('en')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
         additional = fr['content_json']['additionalModules']
         assert len(groups) == 8
-        assert len(additional) == 16
+        assert len(additional) == 17
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
@@ -345,7 +372,7 @@ class TestGetDefaultSections:
         assert additional_ids == {
             'integration_international_payments', 'integration_regional_payments',
             'integration_electronic_invoicing', 'integration_conversion_tracking',
-            'biometric_verification_module',
+            'biometric_verification_module', 'behavior_tracking_module',
             'pwa_module', 'corporate_branding_module', 'ai_module', 'reports_alerts_module',
             'email_marketing_module',
             'qr_generator_module', 'content_generator_module',

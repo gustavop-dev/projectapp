@@ -371,7 +371,8 @@ DEFAULT_SECTIONS = [
                         'El Dashboard de KPIs y Métricas se incluye sin costo adicional para proyectos cuya '
                         'inversión total supere los 1.500 USD (o su equivalente en COP). Su implementación queda '
                         'sujeta a que el negocio tenga indicadores clave que tenga sentido medir; de no existir '
-                        'métricas relevantes, este beneficio no aplica.'
+                        'métricas relevantes, este beneficio no aplica. El beneficio cubre hasta 8 KPIs, '
+                        '4 gráficos y 5 alertas; indicadores adicionales se cotizan por separado.'
                     ),
                 },
                 'analytics_dashboard': {
@@ -382,7 +383,9 @@ DEFAULT_SECTIONS = [
                     'terms': (
                         'El Módulo de Analítica se incluye sin costo adicional para proyectos cuya inversión total '
                         'supere los 1.800 USD (o su equivalente en COP). Su implementación queda sujeta a que exista '
-                        'tráfico o comportamiento de usuarios que tenga sentido analizar.'
+                        'tráfico o comportamiento de usuarios que tenga sentido analizar. El beneficio cubre hasta '
+                        '6 reportes estándar con datos de los últimos 12 meses; reportes personalizados adicionales '
+                        'se cotizan por separado.'
                     ),
                 },
                 'admin_module': {
@@ -392,7 +395,8 @@ DEFAULT_SECTIONS = [
                     'discretionary_note': 'Se implementa si la lógica de negocio permite gestionar contenido u operación de forma autónoma.',
                     'terms': (
                         'El Módulo Administrativo se incluye sin costo adicional y sin monto mínimo de proyecto. '
-                        'Su alcance se ajusta a las entidades y flujos definidos dentro del alcance de la propuesta.'
+                        'Su alcance se ajusta a las entidades y flujos definidos dentro del alcance de la propuesta. '
+                        'Cubre únicamente los gestores de contenido listados en la sección de requerimientos funcionales.'
                     ),
                 },
                 'manual_module': {
@@ -402,7 +406,9 @@ DEFAULT_SECTIONS = [
                     'discretionary_note': 'Se implementa sobre los procesos y roles definidos dentro del alcance de la propuesta.',
                     'terms': (
                         'El Manual de Usuario Interactivo se incluye sin costo adicional y sin monto mínimo de '
-                        'proyecto. Documenta los procesos, flujos y roles que hacen parte del alcance aprobado.'
+                        'proyecto. Documenta los procesos, flujos y roles que hacen parte del alcance aprobado. '
+                        'Incluye hasta 15 artículos y una (1) actualización de contenido al cierre del proyecto; '
+                        'actualizaciones posteriores se cotizan por separado.'
                     ),
                 },
                 'ai_automation_module': {
@@ -416,6 +422,7 @@ DEFAULT_SECTIONS = [
                         'periodo de 6 meses. Consiste en integrar un proceso que hoy se realiza de forma manual con '
                         'un asistente de IA (Claude o ChatGPT), de modo que pueda controlarse desde el chat y '
                         'automatizarse mediante tareas programadas dentro del propio asistente. '
+                        'Cubre un (1) proceso de negocio; procesos adicionales se cotizan por separado. '
                         'IMPORTANTE: esta integración depende de que el asistente de IA (Claude o ChatGPT) ofrezca '
                         'y mantenga disponible dicha capacidad de integración. Si el proveedor del asistente deja de '
                         'ofrecer o soportar esta funcionalidad, la automatización podría dejar de estar disponible, '
@@ -511,7 +518,8 @@ DEFAULT_SECTIONS = [
                     'price_percent': 0,
                     'description': (
                         'El módulo administrativo permite gestionar el contenido y la operación del sitio '
-                        'sin depender de desarrollo técnico.'
+                        'sin depender de desarrollo técnico. El alcance cubre únicamente los gestores '
+                        'listados en esta propuesta; gestores adicionales se cotizan como ampliación.'
                     ),
                     'items': [
                         {'icon': '📂', 'name': 'Gestor de Productos', 'description': 'Crear, editar y eliminar productos o contenidos principales.'},
@@ -530,7 +538,9 @@ DEFAULT_SECTIONS = [
                     'price_percent': 0,
                     'description': (
                         'Dashboard de reportes inteligentes y métricas en tiempo real para entender '
-                        'el comportamiento de los visitantes y tomar decisiones basadas en datos.'
+                        'el comportamiento de los visitantes y tomar decisiones basadas en datos. '
+                        'Incluye hasta 6 reportes estándar (los listados aquí) con datos de los '
+                        'últimos 12 meses; reportes personalizados adicionales se cotizan aparte.'
                     ),
                     'items': [
                         {
@@ -597,12 +607,13 @@ DEFAULT_SECTIONS = [
                     'description': (
                         'Panel de control complementario al módulo de analítica, con indicadores '
                         'clave de rendimiento en tiempo real para monitorear la salud de tu '
-                        'negocio y tomar decisiones basadas en datos.'
+                        'negocio y tomar decisiones basadas en datos. Incluye hasta 8 KPIs y '
+                        '4 gráficos, definidos junto al cliente al inicio del proyecto.'
                     ),
                     'items': [
-                        {'icon': '📈', 'name': 'KPIs en tiempo real', 'description': 'Visualiza los indicadores más importantes de tu negocio actualizados al instante: ventas, conversiones, tráfico y más.'},
-                        {'icon': '📊', 'name': 'Gráficos interactivos', 'description': 'Dashboards visuales con gráficos de línea, barras y torta que permiten filtrar por período, categoría o segmento.'},
-                        {'icon': '🔔', 'name': 'Alertas de rendimiento', 'description': 'Notificaciones automáticas cuando un KPI cae por debajo del umbral definido o supera una meta establecida.'},
+                        {'icon': '📈', 'name': 'KPIs en tiempo real', 'description': 'Visualiza los indicadores más importantes de tu negocio actualizados al instante: ventas, conversiones, tráfico y más. Hasta 8 indicadores definidos junto al cliente.'},
+                        {'icon': '📊', 'name': 'Gráficos interactivos', 'description': 'Dashboards visuales con gráficos de línea, barras y torta que permiten filtrar por período, categoría o segmento. Hasta 4 gráficos incluidos.'},
+                        {'icon': '🔔', 'name': 'Alertas de rendimiento', 'description': 'Notificaciones automáticas cuando un KPI cae por debajo del umbral definido o supera una meta establecida. Hasta 5 alertas configuradas dentro del alcance.'},
                         {'icon': '📥', 'name': 'Exportación de reportes', 'description': 'Descarga reportes en CSV para compartir con tu equipo o stakeholders sin necesidad de acceder al sistema.'},
                     ],
                 },
@@ -617,7 +628,9 @@ DEFAULT_SECTIONS = [
                         'Manual/wiki interactivo no técnico, con índice navegable y buscador, '
                         'que describe los procesos, flujos, dependencias, roles y responsabilidades '
                         'de tu aplicación. Pensado para que cualquier persona del equipo pueda '
-                        'entender el sistema sin pedir ayuda al desarrollador.'
+                        'entender el sistema sin pedir ayuda al desarrollador. Cubre los procesos '
+                        'y roles del alcance aprobado, con hasta 15 artículos de documentación y '
+                        'una (1) actualización incluida al momento de la entrega.'
                     ),
                     'items': [
                         {'icon': '🔎', 'name': 'Buscador y navegación por índice', 'description': 'Encuentra cualquier proceso, vista o rol en segundos.'},
@@ -634,7 +647,7 @@ DEFAULT_SECTIONS = [
                     'selected': True,
                     'price_percent': 0,
                     'description': (
-                        'Tomamos un proceso que hoy realizas de forma manual y lo automatizamos '
+                        'Tomamos un (1) proceso que hoy realizas de forma manual y lo automatizamos '
                         'conectándolo a un asistente de IA (Claude o ChatGPT). Desde el chat podrás '
                         'controlar el proceso y, mediante tareas programadas dentro del propio '
                         'asistente, dejar que se ejecute solo.'
@@ -851,6 +864,33 @@ DEFAULT_SECTIONS = [
                         {'icon': '🛡️', 'name': 'Antifraude y KYC', 'description': 'Reglas de aceptación, listas de control y trazabilidad por intento — alineado con buenas prácticas de KYC y cumplimiento.'},
                         {'icon': '⚡', 'name': 'Onboarding digital sin fricción', 'description': 'Flujo end-to-end embebido en tu plataforma: el usuario se valida en minutos desde su celular o computador, sin trámites presenciales.'},
                         {'icon': '📊', 'name': 'Panel de verificaciones', 'description': 'Vista administrativa con el estado de cada verificación (aprobada, rechazada, pendiente), evidencias y motivo, lista para auditoría.'},
+                    ],
+                },
+                {
+                    'id': 'behavior_tracking_module',
+                    'icon': '👣',
+                    'title': 'Rastreo de Comportamiento de Usuarios',
+                    'is_visible': True,
+                    'description': (
+                        'Descubre cómo usan realmente tu plataforma: cuándo entran tus usuarios, '
+                        'qué vistas abren y cuánto tiempo pasan en cada una. Es la misma capacidad '
+                        'que nosotros usamos para entender el interés en nuestras propuestas, '
+                        'instalada en tu propio producto y con datos 100% tuyos. Alcance incluido: '
+                        'rastreo de hasta 15 vistas, panel con hasta 8 KPIs y 4 gráficos, y '
+                        'retención de datos de 12 meses.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 30,
+                    'items': [
+                        {'icon': '📍', 'name': 'Registro de sesiones y aperturas', 'description': 'Captura cada sesión de uso: cuándo entra el usuario, desde qué dispositivo y si es su primera visita o está regresando. Todo de primera mano (first-party), sin cookies de terceros ni herramientas externas.'},
+                        {'icon': '🖥️', 'name': 'Vistas abiertas y tiempo por vista', 'description': 'Registra qué vistas o secciones abre cada usuario y cuántos segundos permanece en cada una. Cubre hasta 15 vistas del sistema, definidas junto al cliente al inicio del proyecto.'},
+                        {'icon': '🔥', 'name': 'Mapa de interés por vista', 'description': 'Ranking de las vistas con mayor y menor atención según tiempo acumulado y número de visitas — para saber qué funciona y qué pasa desapercibido, sin instalar nada adicional.'},
+                        {'icon': '🚪', 'name': 'Embudo de recorrido con abandonos', 'description': 'Visualiza el recorrido de los usuarios entre las vistas rastreadas y detecta en qué paso abandonan. Incluye un (1) embudo principal definido junto al cliente sobre las vistas rastreadas.'},
+                        {'icon': '📊', 'name': 'Panel de comportamiento integrado', 'description': 'Dashboard dentro de tu propio panel administrativo con hasta 8 KPIs y 4 gráficos: sesiones, tiempo promedio, vistas más abiertas y desglose por dispositivo. Sin licencias externas ni suscripciones.'},
+                        {'icon': '📱', 'name': 'Desglose por dispositivo', 'description': 'Identifica desde qué dispositivo usan tu plataforma — móvil, tablet o escritorio — para priorizar mejoras donde tus usuarios realmente están.'},
+                        {'icon': '🗄️', 'name': 'Datos propios con retención de 12 meses', 'description': 'Los eventos se almacenan en tu propia base de datos y se conservan los últimos 12 meses. No incluye grabación de pantalla, mapas de calor de clics ni rastreo entre sitios de terceros.'},
                     ],
                 },
                 {
@@ -1703,7 +1743,8 @@ DEFAULT_SECTIONS_EN = [
                     'terms': (
                         'The KPIs & Metrics Dashboard is included at no extra cost for projects whose total '
                         'investment exceeds 1,500 USD (or the COP equivalent). Its implementation is subject to '
-                        'the business having key indicators worth measuring.'
+                        'the business having key indicators worth measuring. The benefit covers up to 8 KPIs, '
+                        '4 charts and 5 alerts; additional indicators are quoted separately.'
                     ),
                 },
                 'analytics_dashboard': {
@@ -1714,7 +1755,8 @@ DEFAULT_SECTIONS_EN = [
                     'terms': (
                         'The Analytics Module is included at no extra cost for projects whose total investment '
                         'exceeds 1,800 USD (or the COP equivalent). Its implementation is subject to there being '
-                        'traffic or user behavior worth analyzing.'
+                        'traffic or user behavior worth analyzing. The benefit covers up to 6 standard reports '
+                        'with data from the last 12 months; additional custom reports are quoted separately.'
                     ),
                 },
                 'admin_module': {
@@ -1724,7 +1766,8 @@ DEFAULT_SECTIONS_EN = [
                     'discretionary_note': 'Implemented if the business logic allows managing content or operations autonomously.',
                     'terms': (
                         'The Admin Module is included at no extra cost and with no minimum project amount. '
-                        'Its scope is limited to the entities and flows defined within the proposal scope.'
+                        'Its scope is limited to the entities and flows defined within the proposal scope. '
+                        'It covers only the content managers listed in the functional requirements section.'
                     ),
                 },
                 'manual_module': {
@@ -1734,7 +1777,9 @@ DEFAULT_SECTIONS_EN = [
                     'discretionary_note': 'Implemented over the processes and roles defined within the proposal scope.',
                     'terms': (
                         'The Interactive User Manual is included at no extra cost and with no minimum project '
-                        'amount. It documents the processes, flows and roles within the approved scope.'
+                        'amount. It documents the processes, flows and roles within the approved scope. '
+                        'It includes up to 15 articles and one (1) content update at project close; '
+                        'later updates are quoted separately.'
                     ),
                 },
                 'ai_automation_module': {
@@ -1747,6 +1792,7 @@ DEFAULT_SECTIONS_EN = [
                         'exceeds 2,900 USD (or the COP equivalent), and is available for a period of 6 months. It '
                         'connects a currently manual process to an AI assistant (Claude or ChatGPT), so it can be '
                         'controlled from the chat and automated via scheduled tasks inside the assistant itself. '
+                        'It covers one (1) business process; additional processes are quoted separately. '
                         'IMPORTANT: this integration depends on the AI assistant (Claude or ChatGPT) offering and '
                         'keeping that integration capability available. If the assistant provider stops offering or '
                         'supporting this feature, the automation may become unavailable — a situation beyond our '
@@ -1842,7 +1888,8 @@ DEFAULT_SECTIONS_EN = [
                     'price_percent': 0,
                     'description': (
                         'The admin module allows managing the site content and operations '
-                        'without depending on technical development.'
+                        'without depending on technical development. The scope covers only the '
+                        'managers listed in this proposal; additional managers are quoted as an extension.'
                     ),
                     'items': [
                         {'icon': '📂', 'name': 'Product Manager', 'description': 'Create, edit, and delete main products or content.'},
@@ -1861,7 +1908,9 @@ DEFAULT_SECTIONS_EN = [
                     'price_percent': 0,
                     'description': (
                         'Smart reporting dashboard with real-time metrics to understand '
-                        'visitor behavior and make data-driven decisions.'
+                        'visitor behavior and make data-driven decisions. Includes up to '
+                        '6 standard reports (the ones listed here) with data from the last '
+                        '12 months; additional custom reports are quoted separately.'
                     ),
                     'items': [
                         {
@@ -1929,12 +1978,13 @@ DEFAULT_SECTIONS_EN = [
                     'description': (
                         'Control panel complementary to the analytics module, with real-time '
                         'key performance indicators to monitor the health of your business '
-                        'and make data-driven decisions.'
+                        'and make data-driven decisions. Includes up to 8 KPIs and 4 charts, '
+                        'defined with the client at project kickoff.'
                     ),
                     'items': [
-                        {'icon': '📈', 'name': 'Real-time KPIs', 'description': 'Visualize the most important indicators of your business updated instantly: sales, conversions, traffic and more.'},
-                        {'icon': '📊', 'name': 'Interactive Charts', 'description': 'Visual dashboards with line, bar and pie charts that allow filtering by period, category or segment.'},
-                        {'icon': '🔔', 'name': 'Performance Alerts', 'description': 'Automatic notifications when a KPI falls below the defined threshold or exceeds a set goal.'},
+                        {'icon': '📈', 'name': 'Real-time KPIs', 'description': 'Visualize the most important indicators of your business updated instantly: sales, conversions, traffic and more. Up to 8 indicators defined with the client.'},
+                        {'icon': '📊', 'name': 'Interactive Charts', 'description': 'Visual dashboards with line, bar and pie charts that allow filtering by period, category or segment. Up to 4 charts included.'},
+                        {'icon': '🔔', 'name': 'Performance Alerts', 'description': 'Automatic notifications when a KPI falls below the defined threshold or exceeds a set goal. Up to 5 alerts configured within scope.'},
                         {'icon': '📥', 'name': 'Report Export', 'description': 'Download reports in CSV to share with your team or stakeholders without needing to access the system.'},
                     ],
                 },
@@ -1949,7 +1999,9 @@ DEFAULT_SECTIONS_EN = [
                         'A non-technical interactive manual/wiki, with a navigable index and search, '
                         'that describes the processes, flows, dependencies, roles and responsibilities '
                         'of your application. Designed so anyone on the team can understand the '
-                        'system without asking the developer for help.'
+                        'system without asking the developer for help. It covers the processes and '
+                        'roles of the approved scope, with up to 15 documentation articles and one '
+                        '(1) content update included at delivery.'
                     ),
                     'items': [
                         {'icon': '🔎', 'name': 'Search and index navigation', 'description': 'Find any process, view or role in seconds.'},
@@ -1966,7 +2018,7 @@ DEFAULT_SECTIONS_EN = [
                     'selected': True,
                     'price_percent': 0,
                     'description': (
-                        'We take a process you do manually today and automate it by connecting it to '
+                        'We take one (1) process you do manually today and automate it by connecting it to '
                         'an AI assistant (Claude or ChatGPT). From the chat you can control the process '
                         'and, via scheduled tasks inside the assistant itself, let it run on its own.'
                     ),
@@ -2181,6 +2233,33 @@ DEFAULT_SECTIONS_EN = [
                         {'icon': '🛡️', 'name': 'Antifraud & KYC', 'description': 'Acceptance rules, watchlists, and per-attempt traceability — aligned with KYC best practices and compliance.'},
                         {'icon': '⚡', 'name': 'Frictionless Digital Onboarding', 'description': 'End-to-end flow embedded in your platform: the user validates in minutes from their phone or computer, without in-person paperwork.'},
                         {'icon': '📊', 'name': 'Verifications Panel', 'description': 'Admin view with the status of each verification (approved, rejected, pending), evidence, and reason — ready for audit.'},
+                    ],
+                },
+                {
+                    'id': 'behavior_tracking_module',
+                    'icon': '👣',
+                    'title': 'User Behavior Tracking',
+                    'is_visible': True,
+                    'description': (
+                        'Discover how people actually use your platform: when your users come in, '
+                        'which views they open and how long they spend on each one. It is the same '
+                        'capability we use to understand interest in our own proposals, installed '
+                        'in your product with data that is 100% yours. Included scope: tracking for '
+                        'up to 15 views, a panel with up to 8 KPIs and 4 charts, and 12-month data '
+                        'retention.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 30,
+                    'items': [
+                        {'icon': '📍', 'name': 'Session & Open Tracking', 'description': 'Captures every usage session: when the user enters, from which device, and whether it is a first visit or a return. Fully first-party — no third-party cookies or external tools.'},
+                        {'icon': '🖥️', 'name': 'Views Opened & Time per View', 'description': 'Records which views or sections each user opens and how many seconds they stay on each one. Covers up to 15 system views, defined with the client at project kickoff.'},
+                        {'icon': '🔥', 'name': 'Interest Map per View', 'description': 'Ranking of the views with the most and least attention based on accumulated time and visit counts — so you know what works and what goes unnoticed, with nothing extra to install.'},
+                        {'icon': '🚪', 'name': 'Journey Funnel with Drop-off', 'description': 'Visualize how users move across the tracked views and detect at which step they leave. Includes one (1) main funnel defined with the client over the tracked views.'},
+                        {'icon': '📊', 'name': 'Built-in Behavior Panel', 'description': 'A dashboard inside your own admin panel with up to 8 KPIs and 4 charts: sessions, average time, most-opened views and device breakdown. No external licenses or subscriptions.'},
+                        {'icon': '📱', 'name': 'Device Breakdown', 'description': 'Identify which device your users prefer — mobile, tablet or desktop — to prioritize improvements where your users actually are.'},
+                        {'icon': '🗄️', 'name': 'Own Data with 12-Month Retention', 'description': 'Events are stored in your own database and kept for the last 12 months. Does not include screen recording, click heatmaps or third-party cross-site tracking.'},
                     ],
                 },
                 {
