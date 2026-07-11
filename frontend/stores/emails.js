@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { get_request, create_request } from './services/request_http';
+import { get_request, create_request, put_request } from './services/request_http';
 
 export const useEmailStore = defineStore('emails', {
   state: () => ({
@@ -9,6 +9,7 @@ export const useEmailStore = defineStore('emails', {
     isSending: false,
     isLoadingHistory: false,
     isLoadingDefaults: false,
+    isSavingDefaults: false,
     isLoadingPreview: false,
     error: null,
   }),
@@ -28,6 +29,23 @@ export const useEmailStore = defineStore('emails', {
       /* c8 ignore next 3 */
       } finally {
         this.isLoadingDefaults = false;
+      }
+    },
+
+    async saveDefaults(payload) {
+      this.isSavingDefaults = true;
+      this.error = null;
+      try {
+        const response = await put_request('emails/defaults/', payload);
+        this.defaults = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = error.response?.data?.error || 'save_defaults_failed';
+        console.error('Error saving email defaults:', error);
+        return { success: false, error: error.response?.data?.error };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isSavingDefaults = false;
       }
     },
 

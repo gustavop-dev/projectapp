@@ -9,8 +9,11 @@
       </div>
     </div>
 
+    <!-- ── Page tabs ── -->
+    <BaseTabs v-model="activeTab" :tabs="PAGE_TABS" variant="underline" />
+
     <!-- ── Email composer ── -->
-    <section class="bg-surface border border-border-muted rounded-xl p-5  ">
+    <section v-if="activeTab === 'compose'" class="bg-surface border border-border-muted rounded-xl p-5  ">
       <div class="flex items-center gap-2 mb-5">
         <svg class="w-5 h-5 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -70,10 +73,11 @@
               <div class="bg-surface-muted  rounded-lg p-3 border border-border-muted ">
                 <div class="flex items-center gap-2 mb-2">
                   <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted select-none text-sm">⠿</span>
-                  <span class="text-[10px] text-text-subtle uppercase tracking-wide">Sección {{ idx + 1 }}</span>
+                  <span class="text-[10px] text-text-muted uppercase tracking-wide">Sección {{ idx + 1 }}</span>
                   <span class="ml-auto flex items-center gap-1.5">
-                    <span class="text-[10px] text-text-subtle uppercase tracking-wide">Markdown</span>
-                    <BaseToggle v-model="section.markdown" size="sm" aria-label="Activar Markdown en esta sección" />
+                    <span class="text-[10px] font-medium text-text-muted uppercase tracking-wide">Markdown</span>
+                    <BaseToggle v-model="section.markdown" size="sm" aria-label="Activar Markdown en esta sección"
+                      off-class="bg-text-subtle/40 !border-text-muted" />
                   </span>
                   <button v-if="sections.length > 1" type="button" @click="removeSection(idx)"
                     class="text-text-subtle hover:text-danger-strong transition-colors p-0.5">
@@ -165,8 +169,55 @@
       </div>
     </section>
 
+    <!-- ── Defaults config ── -->
+    <section v-else-if="activeTab === 'defaults'" class="bg-surface border border-border-muted rounded-xl p-5">
+      <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <h3 class="text-sm font-semibold text-text-default">Valores por defecto</h3>
+      </div>
+      <p class="text-xs text-text-muted mb-5">
+        Estos valores se precargan automáticamente al redactar un correo nuevo.
+      </p>
+
+      <div v-if="emailStore.isLoadingDefaults" class="text-xs text-text-subtle py-4 text-center">Cargando valores...</div>
+
+      <div v-else class="space-y-4 max-w-xl">
+        <div>
+          <label class="block text-xs text-text-muted mb-1">Saludo por defecto</label>
+          <BaseInput v-model="cfgGreeting" placeholder="Hola {client_name}" />
+          <p v-if="availableVariables.length" class="mt-1 text-[11px] text-text-muted">
+            Variables disponibles: <span class="font-mono">{{ variablesHint }}</span>
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-xs text-text-muted mb-1">Pie de correo por defecto</label>
+          <BaseTextarea v-model="cfgFooter" :rows="3" placeholder="Texto de cierre..." />
+        </div>
+
+        <div>
+          <label class="block text-xs text-text-muted mb-1">Firmante por defecto</label>
+          <BaseSelect v-model="cfgSigner" :options="signerOptions" placeholder="Selecciona un firmante" />
+          <p class="mt-1 text-[11px] text-text-muted">La firma aparece al final del correo con nombre y cargo.</p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 pt-2">
+          <BaseButton size="sm" :disabled="emailStore.isSavingDefaults" @click="handleSaveDefaults">
+            {{ emailStore.isSavingDefaults ? 'Guardando...' : 'Guardar valores' }}
+          </BaseButton>
+          <BaseButton size="sm" variant="ghost" :disabled="emailStore.isSavingDefaults" @click="handleRestoreDefaults">
+            Restaurar valores originales
+          </BaseButton>
+        </div>
+      </div>
+    </section>
+
     <!-- ── History ── -->
-    <section class="bg-surface border border-border-muted rounded-xl p-5  ">
+    <section v-else class="bg-surface border border-border-muted rounded-xl p-5  ">
       <div class="flex items-center gap-2 mb-4">
         <svg class="w-5 h-5 text-info-strong" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -253,16 +304,32 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import draggable from 'vuedraggable';
 import ComposedEmailPreview from '~/components/ComposedEmailPreview.vue';
 import { useEmailStore } from '~/stores/emails';
 import { validateEmailAttachments } from '~/utils/emailAttachments';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const emailStore = useEmailStore();
+const notify = usePanelNotify();
+const route = useRoute();
+const router = useRouter();
+
+// ── Page tabs (synced to ?tab= for deep-linking) ──
+const PAGE_TABS = [
+  { id: 'compose', label: 'Redactar' },
+  { id: 'history', label: 'Historial' },
+  { id: 'defaults', label: 'Valores por defecto' },
+];
+const TAB_IDS = PAGE_TABS.map(t => t.id);
+const activeTab = ref(TAB_IDS.includes(route.query.tab) ? route.query.tab : 'compose');
+watch(activeTab, (tab) => {
+  router.replace({ query: { ...route.query, tab } });
+});
 
 let sectionIdSeq = 0;
 const nextSectionId = () => ++sectionIdSeq;
@@ -362,18 +429,72 @@ function resetForm() {
   if (fileInput.value) fileInput.value.value = '';
 }
 
+// ── Defaults config form ──
+const cfgGreeting = ref('');
+const cfgFooter = ref('');
+const cfgSigner = ref('');
+
+const availableVariables = computed(() => emailStore.defaults?.available_variables || []);
+// Built in script: the literal "}}" inside a template interpolation would
+// close the interpolation early and break the SFC compiler.
+const variablesHint = computed(() =>
+  availableVariables.value.map(v => '{' + v + '}').join(', '),
+);
+const signerOptions = computed(() =>
+  (emailStore.defaults?.available_signers || []).map(s => ({
+    value: s.key,
+    label: `${s.name} — ${s.role}`,
+  })),
+);
+
+/**
+ * Apply a defaults payload: update the composer seeds (only overwriting
+ * composer fields the user hasn't touched) and the config form values.
+ */
+function applyDefaults(data) {
+  const prevGreeting = defaultGreeting.value;
+  const prevFooter = defaultFooter.value;
+  if (data.greeting) defaultGreeting.value = data.greeting;
+  if (data.footer) defaultFooter.value = data.footer;
+  if (greeting.value === prevGreeting) greeting.value = defaultGreeting.value;
+  if (footer.value === prevFooter) footer.value = defaultFooter.value;
+
+  const cfg = data.config || {};
+  cfgGreeting.value = cfg.greeting || '';
+  cfgFooter.value = cfg.footer || '';
+  cfgSigner.value = cfg.signer || '';
+}
+
 async function loadDefaults() {
   const result = await emailStore.fetchDefaults();
   if (result.success && result.data) {
-    if (result.data.greeting) {
-      defaultGreeting.value = result.data.greeting;
-      greeting.value = result.data.greeting;
-    }
-    if (result.data.footer) {
-      defaultFooter.value = result.data.footer;
-      footer.value = result.data.footer;
-    }
+    applyDefaults(result.data);
   }
+}
+
+async function handleSaveDefaults() {
+  const result = await emailStore.saveDefaults({
+    greeting: cfgGreeting.value.trim(),
+    footer: cfgFooter.value.trim(),
+    signer: cfgSigner.value,
+  });
+  if (result.success && result.data) {
+    applyDefaults(result.data);
+    notify.success({ title: 'Valores por defecto guardados' });
+  } else {
+    notify.error({
+      title: 'No se pudieron guardar los valores por defecto',
+      detail: result.error || 'Intenta de nuevo.',
+    });
+  }
+}
+
+async function handleRestoreDefaults() {
+  const originals = emailStore.defaults?.defaults || {};
+  cfgGreeting.value = originals.greeting || '';
+  cfgFooter.value = originals.footer || '';
+  cfgSigner.value = originals.signer || '';
+  await handleSaveDefaults();
 }
 
 // ── History helpers ──

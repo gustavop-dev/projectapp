@@ -8,13 +8,29 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_STANDALONE_EMAIL_COMPOSER } from '../helpers/flow-tags.js';
+import { ADMIN_STANDALONE_EMAIL_COMPOSER, ADMIN_STANDALONE_EMAIL_DEFAULTS } from '../helpers/flow-tags.js';
 
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
 
 const mockDefaults = {
   greeting: 'Hola',
   footer: 'Quedamos atentos a tus comentarios.\nUn abrazo, el equipo de Project App.',
+  config: {
+    greeting: 'Hola {client_name}',
+    footer: 'Quedamos atentos a tus comentarios.\nUn abrazo, el equipo de Project App.',
+    signer: 'vanessa',
+  },
+  defaults: {
+    greeting: 'Hola {client_name}',
+    footer: 'Quedamos atentos a tus comentarios.\nUn abrazo, el equipo de Project App.',
+    signer: 'vanessa',
+  },
+  is_customized: false,
+  available_signers: [
+    { key: 'gustavo', name: 'Gustavo Pérez', role: 'CEO · ProjectApp.' },
+    { key: 'vanessa', name: 'Vanessa Rodríguez', role: 'Asistente Comercial · ProjectApp.' },
+  ],
+  available_variables: ['client_name', 'title'],
 };
 
 const mockHistoryEmpty = { results: [], total: 0, page: 1, has_next: false };
@@ -52,6 +68,18 @@ function setupMocks(page, { history = mockHistoryEmpty } = {}) {
     if (apiPath === 'auth/check/') return authCheck;
     if (apiPath === 'emails/defaults/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDefaults) };
+    }
+    if (apiPath === 'emails/defaults/' && method === 'PUT') {
+      const payload = route.request().postDataJSON() || {};
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ...mockDefaults,
+          config: { ...mockDefaults.config, ...payload },
+          is_customized: true,
+        }),
+      };
     }
     if (apiPath === 'emails/preview/' && method === 'POST') {
       // Echo the composed sections back as the server-rendered branded html.
@@ -188,25 +216,80 @@ test.describe('Admin Standalone Email Composer', () => {
     ]);
   });
 
-  test('renders email history with entries', {
+  test('renders email history with entries in the Historial tab', {
     tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
   }, async ({ page }) => {
     await setupMocks(page, { history: mockHistoryWithEntries });
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: 'Emails' })).toBeVisible({ timeout: 20_000 });
 
+    await page.getByRole('tab', { name: 'Historial' }).click();
+
     await expect(page.getByText('Bienvenido al proyecto')).toBeVisible();
     await expect(page.getByText('client@example.com')).toBeVisible();
     await expect(page.getByText('Seguimiento entregable')).toBeVisible();
   });
 
-  test('shows empty history state', {
+  test('shows empty history state in the Historial tab', {
     tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
   }, async ({ page }) => {
     await setupMocks(page, { history: mockHistoryEmpty });
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: 'Emails' })).toBeVisible({ timeout: 20_000 });
 
+    await page.getByRole('tab', { name: 'Historial' }).click();
+
+    await expect(page.getByText('No se han enviado correos aún.')).toBeVisible();
     await expect(page.getByText('Bienvenido al proyecto')).not.toBeVisible();
+  });
+
+  test('defaults tab shows the config form prefilled from the API', {
+    tag: [...ADMIN_STANDALONE_EMAIL_DEFAULTS, '@role:admin'],
+  }, async ({ page }) => {
+    await setupMocks(page);
+    await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Emails' })).toBeVisible({ timeout: 20_000 });
+
+    await page.getByRole('tab', { name: 'Valores por defecto' }).click();
+
+    await expect(page.getByPlaceholder('Hola {client_name}')).toHaveValue('Hola {client_name}');
+    await expect(page.getByPlaceholder('Texto de cierre...')).toHaveValue(mockDefaults.config.footer);
+    await expect(page.getByRole('combobox')).toHaveValue('vanessa');
+    await expect(page.getByText('Variables disponibles:')).toBeVisible();
+  });
+
+  test('saving defaults sends a PUT with greeting, footer and signer', {
+    tag: [...ADMIN_STANDALONE_EMAIL_DEFAULTS, '@role:admin'],
+  }, async ({ page }) => {
+    await setupMocks(page);
+    await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Emails' })).toBeVisible({ timeout: 20_000 });
+
+    await page.getByRole('tab', { name: 'Valores por defecto' }).click();
+
+    await page.getByPlaceholder('Hola {client_name}').fill('Buen día {client_name}');
+    await page.getByRole('combobox').selectOption('gustavo');
+
+    const putRequest = page.waitForRequest(
+      (req) => req.url().includes('emails/defaults/') && req.method() === 'PUT',
+    );
+    await page.getByRole('button', { name: 'Guardar valores' }).click();
+    const request = await putRequest;
+
+    const body = request.postDataJSON();
+    expect(body.greeting).toBe('Buen día {client_name}');
+    expect(body.signer).toBe('gustavo');
+    await expect(page.getByText('Valores por defecto guardados')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('opens the defaults tab directly from a ?tab=defaults URL', {
+    tag: [...ADMIN_STANDALONE_EMAIL_DEFAULTS, '@role:admin'],
+  }, async ({ page }) => {
+    await setupMocks(page);
+    await page.goto('/panel/emails?tab=defaults', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Emails' })).toBeVisible({ timeout: 20_000 });
+
+    await expect(page.getByRole('button', { name: 'Guardar valores' })).toBeVisible();
+    await expect(page.getByPlaceholder('correo@ejemplo.com')).not.toBeVisible();
   });
 });

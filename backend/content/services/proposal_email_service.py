@@ -33,6 +33,20 @@ def _resolve_signature(signer_key):
     }
 
 
+def _configured_standalone_signer():
+    """Signer key for standalone branded emails.
+
+    Reads the ``signer`` override stored by the panel defaults form on the
+    ``branded_email`` template config, falling back to
+    ``settings.EMAIL_DEFAULT_SIGNER``.
+    """
+    from content.models import EmailTemplateConfig
+
+    config = EmailTemplateConfig.objects.filter(template_key='branded_email').first()
+    overrides = (config.content_overrides if config else {}) or {}
+    return overrides.get('signer') or getattr(settings, 'EMAIL_DEFAULT_SIGNER', 'gustavo')
+
+
 def _build_design_context(proposal=None):
     """Common context keys for the redesigned client-facing emails.
 
@@ -2387,6 +2401,13 @@ class ProposalEmailService:
             'attachment_names': attachment_names or [],
         }
         base_context.update(_build_design_context(proposal))
+
+        # Standalone emails (no proposal) honor the signer configured in the
+        # panel defaults form; proposal emails keep their per-proposal signer.
+        if proposal is None:
+            sig = _resolve_signature(_configured_standalone_signer())
+            base_context['signature_name'] = sig['name']
+            base_context['signature_role'] = sig['role']
 
         entry = get_template_entry(template_key)
         html_content = render_to_string(

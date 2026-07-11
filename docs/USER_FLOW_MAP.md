@@ -3851,19 +3851,38 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/emails`
-- **Description:** Admin composes and sends branded emails from the standalone Emails page (not tied to any proposal). Draggable sections with a per-section Markdown toggle, file attachments, server-rendered preview of the real branded template, and paginated email history. Uses dedicated standalone endpoints distinct from proposal-scoped email flows.
+- **Description:** Admin composes and sends branded emails from the standalone Emails page (not tied to any proposal). The page has three tabs (Redactar / Historial / Valores por defecto, deep-linked via `?tab=`). Redactar: draggable sections with a per-section Markdown toggle, file attachments and a server-rendered preview of the real branded template. Historial: paginated email history. Uses dedicated standalone endpoints distinct from proposal-scoped email flows.
 - **Steps:**
-  1. Admin navigates to `/panel/emails` via sidebar navigation.
+  1. Admin navigates to `/panel/emails` via sidebar navigation (Redactar tab active by default).
   2. Composer loads with defaults from `GET /api/emails/defaults/`.
   3. Admin fills recipient email, subject, greeting, draggable body sections (each with an optional Markdown toggle), and footer.
   4. Optionally attaches files.
   5. Admin opens the "Vista previa" sub-tab → `POST /api/emails/preview/` returns the real `branded_email.html` render (shown in a sandboxed iframe, markdown sections converted server-side).
   6. Admin clicks "Enviar" → `POST /api/emails/send/`.
   7. Success message renders; email history updates.
-  8. Admin views paginated email history from `GET /api/emails/history/`.
+  8. Admin opens the "Historial" tab and views paginated email history from `GET /api/emails/history/`.
 - **Branches:**
   - [Branch A — Empty recipient] Send button disabled when recipient email is empty.
   - [Branch B — File limits] Attachment validation enforces type and size limits.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-standalone-email-composer.spec.js`
+
+#### FLOW: `admin-standalone-email-defaults`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/emails?tab=defaults`
+- **Description:** Admin configures the defaults used by the standalone email composer from the "Valores por defecto" tab of `/panel/emails`: default greeting (supports `{client_name}` / `{title}` variables), default footer and default signer. Values persist as `EmailTemplateConfig('branded_email').content_overrides`; the configured signer is used for standalone sends and previews (proposal emails keep their per-proposal signer).
+- **Steps:**
+  1. Admin opens `/panel/emails` and clicks the "Valores por defecto" tab (or deep-links `?tab=defaults`).
+  2. Form loads prefilled from `GET /api/emails/defaults/` (`config` + `available_signers` + `available_variables`).
+  3. Admin edits greeting/footer and/or picks a signer from the select.
+  4. Admin clicks "Guardar valores" → `PUT /api/emails/defaults/` stores the overrides (values equal to defaults or blank are dropped) and a success notification renders.
+  5. The composer on the Redactar tab now seeds new emails with the saved values.
+- **Branches:**
+  - [Branch A — Restore] "Restaurar valores originales" submits the registry/settings defaults, clearing all overrides.
+  - [Branch B — Invalid signer] Backend rejects unknown signer keys with 400 (`El firmante seleccionado no es válido.`).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-standalone-email-composer.spec.js`
 
@@ -3881,6 +3900,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `admin-send-proposal-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `admin-standalone-email-composer` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-standalone-email-composer.spec.js` |
+| `admin-standalone-email-defaults` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-standalone-email-composer.spec.js` |
 
 ---
 

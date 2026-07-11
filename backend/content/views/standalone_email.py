@@ -10,6 +10,7 @@ import mimetypes
 from datetime import timedelta
 from pathlib import Path
 
+from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
 from django.utils import timezone
@@ -223,16 +224,105 @@ def preview_composed_email(request):
     )
 
 
-@api_view(['GET'])
-@permission_classes([IsAdminUser])
-def get_standalone_email_defaults(request):
-    """Return admin-configurable defaults for the standalone email composer."""
+def _available_signers():
+    """Return the signers configured in settings as ``[{key, name, role}]``."""
+    signatures = getattr(settings, 'EMAIL_SIGNATURES', {}) or {}
+    return [
+        {'key': key, 'name': sig.get('name', ''), 'role': sig.get('role', '')}
+        for key, sig in signatures.items()
+    ]
+
+
+def _defaults_payload():
+    """Build the standalone composer defaults payload (GET/PUT response).
+
+    Top-level ``greeting``/``footer`` keep the historical shape consumed by
+    the composer (overrides merged over defaults, variables substituted).
+    ``config`` carries the raw editable values for the defaults form and
+    ``defaults`` the registry/settings values used by "restore defaults".
+    """
+    from content.models import EmailTemplateConfig
+    from content.services.email_template_registry import (
+        get_default_field_values, get_template_entry,
+    )
     from content.services.proposal_email_service import ProposalEmailService
+
+    config = EmailTemplateConfig.objects.filter(template_key=_TEMPLATE_KEY).first()
+    overrides = (config.content_overrides if config else {}) or {}
+    defaults = get_default_field_values(_TEMPLATE_KEY)
+    default_signer = getattr(settings, 'EMAIL_DEFAULT_SIGNER', 'gustavo')
+    entry = get_template_entry(_TEMPLATE_KEY) or {}
 
     context = {'client_name': '', 'title': ''}
     field_values = ProposalEmailService._resolve_content(_TEMPLATE_KEY, context)
 
-    return Response(field_values, status=status.HTTP_200_OK)
+    return {
+        **field_values,
+        'config': {
+            'greeting': overrides.get('greeting') or defaults.get('greeting', ''),
+            'footer': overrides.get('footer') or defaults.get('footer', ''),
+            'signer': overrides.get('signer') or default_signer,
+        },
+        'defaults': {
+            'greeting': defaults.get('greeting', ''),
+            'footer': defaults.get('footer', ''),
+            'signer': default_signer,
+        },
+        'is_customized': bool(overrides),
+        'available_signers': _available_signers(),
+        'available_variables': entry.get('available_variables', []),
+    }
+
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAdminUser])
+def standalone_email_defaults(request):
+    """GET/PUT admin-configurable defaults for the standalone email composer.
+
+    PUT stores ``greeting``/``footer``/``signer`` as ``content_overrides`` on
+    the ``branded_email`` template config. Values that are empty or equal to
+    the registry/settings default are dropped, so submitting the defaults (or
+    blanks) restores the original behavior.
+    """
+    if request.method == 'GET':
+        return Response(_defaults_payload(), status=status.HTTP_200_OK)
+
+    from content.models import EmailTemplateConfig
+    from content.services.email_template_registry import get_default_field_values
+
+    greeting = (request.data.get('greeting') or '').strip()
+    footer = (request.data.get('footer') or '').strip()
+    signer = (request.data.get('signer') or '').strip()
+
+    signatures = getattr(settings, 'EMAIL_SIGNATURES', {}) or {}
+    if signer and signer not in signatures:
+        return Response(
+            {'error': 'El firmante seleccionado no es válido.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    defaults = get_default_field_values(_TEMPLATE_KEY)
+    default_signer = getattr(settings, 'EMAIL_DEFAULT_SIGNER', 'gustavo')
+
+    overrides = {}
+    if greeting and greeting != defaults.get('greeting'):
+        overrides['greeting'] = greeting
+    if footer and footer != defaults.get('footer'):
+        overrides['footer'] = footer
+    if signer and signer != default_signer:
+        overrides['signer'] = signer
+
+    config = EmailTemplateConfig.objects.filter(template_key=_TEMPLATE_KEY).first()
+    if config:
+        config.content_overrides = overrides
+        config.save(update_fields=['content_overrides', 'updated_at'])
+    elif overrides:
+        EmailTemplateConfig.objects.create(
+            template_key=_TEMPLATE_KEY,
+            content_overrides=overrides,
+        )
+
+    return Response(_defaults_payload(), status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
