@@ -76,16 +76,26 @@ def test_section_key_map_has_roi_projection():
     assert SECTION_TYPE_TO_KEY['roi_projection'] == 'roiProjection'
 
 
-# ─── PDF renderer is intentionally absent (web-only section) ──────────
+# ─── PDF renderer is wired but gated on content ──────────────────────
 
-def test_pdf_renderer_intentionally_absent():
-    """``roi_projection`` is rendered only on the web, not in the PDF.
+def test_pdf_renderer_is_registered():
+    """``roi_projection`` now has a PDF renderer (KPI tiles + scenario
+    tables), so it must be wired into ``SECTION_RENDERERS``."""
+    assert 'roi_projection' in SECTION_RENDERERS
 
-    The PDF generator silently skips section types that have no entry in
-    ``SECTION_RENDERERS`` (same behavior as ``proposal_summary`` and other
-    web-only sections), so this assertion guards against accidental wiring.
-    """
-    assert 'roi_projection' not in SECTION_RENDERERS
+
+def test_pdf_renderer_gated_on_empty_content():
+    """An empty ROI section (the shipped default: no kpis, no scenarios)
+    must NOT be rendered — the generator skips it before adding a TOC
+    entry so default proposals don't grow a blank section."""
+    from content.services.proposal_pdf_service import _roi_has_content
+
+    assert _roi_has_content({'kpis': [], 'scenarios': []}) is False
+    assert _roi_has_content({}) is False
+    assert _roi_has_content(
+        {'kpis': [{'value': '3x', 'label': 'ROI'}], 'scenarios': []}) is True
+    assert _roi_has_content(
+        {'kpis': [], 'scenarios': [{'name': 'Base', 'metrics': []}]}) is True
 
 
 # ─── ORM persistence ───────────────────────────────────────────────────

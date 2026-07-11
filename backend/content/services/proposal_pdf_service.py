@@ -60,8 +60,18 @@ from content.services.pdf_utils import (  # noqa: F401 — re-exported
     TEXT_AREA_W,
     SIDEBAR_X,
     SIDEBAR_W,
+    # Accent / semantic colours
+    MINT_TEXT,
+    LINK_GREEN,
     # Text utilities
     _strip_emoji,
+    _sanitize_pdf_text,
+    _draw_mixed_string,
+    _draw_mixed_centred,
+    _string_width_mixed,
+    _measure_inline_width,
+    _wrap_by_width,
+    _fit_text_ellipsis,
     _format_cop,
     _clean_url_display,
     _replace_urls_with_placeholders,
@@ -70,10 +80,13 @@ from content.services.pdf_utils import (  # noqa: F401 — re-exported
     # Pagination helpers
     _new_page,
     _check_y,
+    _check_y_with_redraw,
+    _split_lines_for_page,
     # Drawing helpers
     _draw_header_bar,
     _draw_footer,
     _draw_section_header,
+    _section_header_height,
     _draw_paragraphs,
     _estimate_text_height,
     _draw_bullet_list,
@@ -82,6 +95,13 @@ from content.services.pdf_utils import (  # noqa: F401 — re-exported
     _draw_subtitle,
     _draw_pill,
     _draw_banner_box,
+    _draw_callout_box,
+    _draw_blockquote,
+    _draw_table,
+    _draw_kpi_tile_row,
+    _draw_feature_row,
+    _draw_priority_pill,
+    _REQ_PRIORITY_LABELS,
     _apply_toc_links,
     _draw_toc_page,
     format_date_es,
@@ -251,21 +271,35 @@ def _render_greeting(c, data, proposal, ps=None):
     c.drawCentredString(PAGE_W / 2, mid_y + 60,
                         'PROPUESTA DE DESARROLLO WEB')
 
-    # Client name — large, centred
-    name = _safe(data, 'clientName', proposal.client_name)
-    c.setFont(_font('light'), 36)
+    # Client name — large, centred, wrapped by real width. The font
+    # steps down (36 -> 30 -> 26) until the name fits in three lines,
+    # so very long names never overprint the divider below.
+    name = _sanitize_pdf_text(
+        str(_safe(data, 'clientName', proposal.client_name) or 'Cliente'))
+    name_size = 36
+    name_lines = [name]
+    for size in (36, 30, 26):
+        name_size = size
+        name_lines = _wrap_by_width(name, _font('light'), size,
+                                    PAGE_W - 120)
+        if len(name_lines) <= 3:
+            break
+    if len(name_lines) > 3:
+        name_lines = name_lines[:3]
+        name_lines[-1] = _fit_text_ellipsis(
+            name_lines[-1] + '…', _font('light'), name_size, PAGE_W - 120)
+    name_leading = name_size + 8
+    c.setFont(_font('light'), name_size)
     c.setFillColor(ESMERALD)
-    if len(name) > 22:
-        lines = textwrap.wrap(name, width=22)
-        ny = mid_y + 10
-        for line in lines:
-            c.drawCentredString(PAGE_W / 2, ny, line)
-            ny -= 44
-    else:
-        c.drawCentredString(PAGE_W / 2, mid_y + 10, name)
+    ny = mid_y + 10
+    for line in name_lines:
+        _draw_mixed_centred(c, PAGE_W / 2, ny, line, _font('light'),
+                            name_size)
+        ny -= name_leading
 
-    # Decorative divider line with lemon accent
-    line_y = mid_y - 40
+    # Decorative divider line with lemon accent — flows 50pt below the
+    # last name baseline instead of sitting at a fixed height.
+    line_y = ny + name_leading - 50
     c.setStrokeColor(LEMON)
     c.setLineWidth(2)
     c.line(PAGE_W / 2 - 60, line_y, PAGE_W / 2 + 60, line_y)
@@ -273,16 +307,26 @@ def _render_greeting(c, data, proposal, ps=None):
     c.circle(PAGE_W / 2 - 60, line_y, 2.5, fill=1, stroke=0)
     c.circle(PAGE_W / 2 + 60, line_y, 2.5, fill=1, stroke=0)
 
-    # Quote
+    # Quote — clamped to the space above the bottom branding so a long
+    # quote can never collide with it.
     quote = _safe(data, 'inspirationalQuote')
     if quote:
-        c.setFont(_font('italic'), 11)
-        c.setFillColor(GREEN_LIGHT)
-        q_lines = textwrap.wrap(f'"{_strip_emoji(quote)}"', width=56)
         qy = line_y - 30
-        for ql in q_lines:
-            c.drawCentredString(PAGE_W / 2, qy, ql)
-            qy -= 16
+        q_leading = 16
+        max_q_lines = int((qy - (MARGIN_B + 30)) // q_leading)
+        if max_q_lines > 0:
+            c.setFont(_font('italic'), 11)
+            c.setFillColor(GREEN_LIGHT)
+            q_lines = _wrap_by_width(f'"{_sanitize_pdf_text(quote)}"',
+                                     _font('italic'), 11, 400)
+            if len(q_lines) > max_q_lines:
+                q_lines = q_lines[:max_q_lines]
+                q_lines[-1] = _fit_text_ellipsis(
+                    q_lines[-1] + '…', _font('italic'), 11, 400)
+            for ql in q_lines:
+                _draw_mixed_centred(c, PAGE_W / 2, qy, ql,
+                                    _font('italic'), 11)
+                qy -= q_leading
 
     # Bottom branding
     c.setFont(_font('regular'), 8)
@@ -402,27 +446,17 @@ def _render_conversion_strategy(c, data, _proposal, ps=None, y=None):
         y -= 4
 
     steps = _safe(data, 'steps', [])
-    for step in steps:
-        if ps:
-            y = _check_y(c, y, ps, need=40)
-        elif y < MARGIN_B + 40:
-            break
-        title = _safe(step, 'title')
-        if title:
-            y = _draw_subtitle(c, y, title, ps=ps)
-        bullets = _safe(step, 'bullets', [])
-        if bullets:
-            y = _draw_bullet_list(c, y, bullets, ps=ps)
-        y -= 4
+    for i, step in enumerate(steps):
+        y = _draw_feature_row(
+            c, y, _safe(step, 'title'), ps=ps, index=i + 1,
+            children=_safe(step, 'bullets', []))
 
-    # Result sidebar or inline
-    result_title = _safe(data, 'resultTitle')
+    # Result — highlighted callout
     result = _safe(data, 'result')
     if result:
         y -= 6
-        if result_title:
-            y = _draw_subtitle(c, y, result_title, ps=ps)
-        y = _draw_paragraphs(c, y, [result], ps=ps)
+        y = _draw_callout_box(c, y, str(result), style='tip', ps=ps,
+                              label='RESULTADO')
     return y
 
 
@@ -448,7 +482,7 @@ def _render_design_ux(c, data, _proposal, ps=None, y=None):
         if obj:
             y -= 6
             y = _draw_subtitle(c, y, obj_title or 'Objetivo', ps=ps)
-            y = _draw_paragraphs(c, y, [obj], ps=ps)
+            y = _draw_blockquote(c, y, str(obj), ps=ps)
         y -= 10
         # Focus items as a full-width branded box below paragraphs
         if ps:
@@ -460,7 +494,7 @@ def _render_design_ux(c, data, _proposal, ps=None, y=None):
         if obj:
             y -= 6
             y = _draw_subtitle(c, y, obj_title or 'Objetivo', ps=ps)
-            y = _draw_paragraphs(c, y, [obj], ps=ps)
+            y = _draw_blockquote(c, y, str(obj), ps=ps)
     return y
 
 
@@ -537,51 +571,25 @@ def _render_development_stages(c, data, _proposal, ps=None, y=None):
 
     stages = _safe(data, 'stages', [])
     for i, stage in enumerate(stages):
-        if ps:
-            y = _check_y(c, y, ps, need=50)
-        elif y < MARGIN_B + 50:
-            break
         stage_title = _safe(stage, 'title')
         desc = _safe(stage, 'description')
         is_current = _safe(stage, 'current', False)
 
-        circle_x = MARGIN_L + 14
-        circle_y = y - 4
-        if is_current:
-            c.setFillColor(LEMON)
-        else:
-            c.setFillColor(ESMERALD)
-        c.circle(circle_x, circle_y, 11, fill=1, stroke=0)
-        c.setFillColor(ESMERALD if is_current else WHITE)
-        c.setFont(_font('bold'), 9)
-        c.drawCentredString(circle_x, circle_y - 3, str(i + 1))
+        # Feature row: numbered chip + title + "Etapa actual" pill +
+        # description. The connector line is drawn afterwards spanning the
+        # real block height, and skipped if the block crossed a page.
+        page_before = ps['num'] if ps else 0
+        circle_top = y + 3.5
+        y = _draw_feature_row(
+            c, y, stage_title, description=desc, ps=ps, index=i + 1,
+            pill_text=('Etapa actual' if is_current else None),
+            pill_bg=LEMON, pill_fg=ESMERALD)
 
-        if i < len(stages) - 1:
+        # Vertical connector to the next stage — only within the same page.
+        if i < len(stages) - 1 and (not ps or ps['num'] == page_before):
             c.setStrokeColor(GRAY_200)
             c.setLineWidth(1)
-            c.line(circle_x, circle_y - 13, circle_x, circle_y - 44)
-
-        tx = MARGIN_L + 36
-        c.setFont(_font('bold'), 11)
-        c.setFillColor(ESMERALD)
-        c.drawString(tx, y, _strip_emoji(stage_title))
-        # "Etapa actual" pill for the current stage
-        if is_current:
-            title_w = c.stringWidth(_strip_emoji(stage_title),
-                                    _font('bold'), 11)
-            _draw_pill(c, tx + title_w + 8, y + 1, 'Etapa actual',
-                       bg_color=LEMON, text_color=ESMERALD)
-        y -= 15
-
-        if desc:
-            c.setFont(_font('regular'), 9)
-            c.setFillColor(ESMERALD_80)
-            stage_chars = int((PAGE_W - MARGIN_R - tx) / (9 * 0.48))
-            d_lines = textwrap.wrap(_strip_emoji(str(desc)), width=stage_chars)
-            for dl in d_lines:
-                c.drawString(tx, y, dl)
-                y -= 13
-        y -= 12
+            c.line(MARGIN_L + 8, circle_top - 13, MARGIN_L + 8, y + 6)
     return y
 
 
@@ -645,6 +653,63 @@ def _desc_to_segmented_lines(desc, width):
     return lines
 
 
+def _desc_to_segmented_lines_w(desc, max_width, font_size):
+    """Width-accurate twin of _desc_to_segmented_lines.
+
+    Same output shape (list of lines, each a list of ``[text, is_bold]``
+    segments, ``[]`` marking a paragraph break) but wraps by real glyph
+    width — measuring bold segments in the bold font and regular in the
+    regular font — so text can never exceed *max_width* in its column.
+    """
+    if not desc:
+        return []
+    text = _BR_TAG_RE.sub('\n', str(desc))
+    text = _FR_BOLD_SPAN_RE.sub(r'**\1**', text)
+    text = _HTML_TAG_RE.sub('', text)
+    text = _strip_emoji(text)
+    fn_r = _font('regular')
+    fn_b = _font('bold')
+
+    def seg_w(t, bold):
+        return _string_width_mixed(t, fn_b if bold else fn_r, font_size)
+
+    lines = []
+    first_para = True
+    for para in text.split('\n'):
+        para = para.strip()
+        if not para:
+            continue
+        if not first_para:
+            lines.append([])
+        first_para = False
+
+        segments = []
+        is_bold = False
+        for piece in para.split('**'):
+            if piece:
+                segments.append((piece, is_bold))
+            is_bold = not is_bold
+
+        cur, cur_w = [], 0.0
+        for seg_text, seg_bold in segments:
+            for word in seg_text.split():
+                chunk = (' ' if cur else '') + word
+                w = seg_w(chunk, seg_bold)
+                if cur and cur_w + w > max_width:
+                    lines.append(cur)
+                    cur, cur_w = [], 0.0
+                    chunk = word
+                    w = seg_w(chunk, seg_bold)
+                if cur and cur[-1][1] == seg_bold:
+                    cur[-1][0] += chunk
+                else:
+                    cur.append([chunk, seg_bold])
+                cur_w += w
+        if cur:
+            lines.append(cur)
+    return lines
+
+
 def _render_functional_requirements(c, data, proposal, ps=None, y=None):
     """Render functional requirements overview page."""
     if y is None:
@@ -682,114 +747,53 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
     sel_ids = ps.get('selected_modules') if ps else None
     all_groups = _filter_calculator_groups(all_groups, sel_ids)
 
-    # Overview cards (2-column grid) — paginated with dynamic height
-    col_w = (CONTENT_W - 16) / 2
-    inner_w = col_w - 20  # 10pt padding each side
-    title_chars = int(inner_w / 6.0)  # bold 10pt ≈ 6pt per char
-    desc_chars = int(inner_w / 5.0)   # regular 8pt ≈ 5pt per char
-    row_y = y
-    idx = 0
-    while idx < len(all_groups):
-        # Pre-compute card data and heights for this row (up to 2 cards)
-        row_cards = []
-        for col in range(2):
-            ci = idx + col
-            if ci >= len(all_groups):
-                break
-            grp = all_groups[ci]
-            grp_title = _strip_emoji(_safe(grp, 'title'))
-            t_lines = textwrap.wrap(grp_title, width=title_chars) or [grp_title]
-            t_lines = t_lines[:2]  # max 2 title lines
-            desc = _safe(grp, 'description')
-            d_lines = textwrap.wrap(_strip_emoji(str(desc)), width=desc_chars)[:2] if desc else []
-            # Filter items (same logic as before)
-            grp_items = _safe(grp, 'items', [])
-            if sel_ids is not None and grp_items:
-                grp_key = (_safe(grp, 'id') or _safe(grp, 'title') or '')
-                kept = []
-                for it in grp_items:
-                    is_req = _safe(it, 'is_required')
-                    if is_req is True:
+    # Overview index table (# | Módulo | Descripción | Ítems). Full-width,
+    # zebra rows, header repeats across pages — no truncation, unlike the
+    # old 2-column card grid that clipped titles and descriptions to two
+    # lines each. The detail sub-sections that follow use this as an index.
+    def _count_items(grp):
+        grp_items = _safe(grp, 'items', [])
+        if sel_ids is not None and grp_items:
+            grp_key = (_safe(grp, 'id') or _safe(grp, 'title') or '')
+            kept = []
+            for it in grp_items:
+                is_req = _safe(it, 'is_required')
+                if is_req is True:
+                    kept.append(it)
+                else:
+                    configurable = _safe(it, 'price') or is_req is False
+                    if not configurable:
                         kept.append(it)
                     else:
-                        configurable = _safe(it, 'price') or is_req is False
-                        if not configurable:
+                        fr_id = re.sub(
+                            r'\s+', '-',
+                            f'fr-{grp_key}-{_safe(it, "name") or ""}').lower()
+                        if fr_id in sel_ids:
                             kept.append(it)
-                        else:
-                            fr_id = re.sub(r'\s+', '-', f'fr-{grp_key}-{_safe(it, "name") or ""}').lower()
-                            if fr_id in sel_ids:
-                                kept.append(it)
-                grp_items = kept
-            # Card height: top pad + title lines + gap + desc lines + bottom pad
-            ch = 10 + (len(t_lines) * 13) + 4 + (len(d_lines) * 11) + 6
-            ch = max(ch, 44)  # minimum height
-            row_cards.append({
-                'grp': grp, 'title_lines': t_lines, 'desc_lines': d_lines,
-                'items': grp_items, 'height': ch,
-            })
+            grp_items = kept
+        return len(grp_items)
 
-        if not row_cards:
-            break
-
-        row_h = max(rc['height'] for rc in row_cards)
-
-        # Page break check
-        if ps:
-            row_y = _check_y(c, row_y, ps, need=row_h + 10)
-        elif row_y < MARGIN_B + row_h + 10:
-            break
-
-        # Draw cards in this row
-        for col, rc in enumerate(row_cards):
-            card_x = MARGIN_L + col * (col_w + 16)
-            card_y = row_y
-
-            c.setFillColor(ESMERALD_LIGHT)
-            c.roundRect(card_x, card_y - row_h + 6, col_w, row_h, 5, fill=1, stroke=0)
-            # Left accent bar
-            c.setFillColor(LEMON)
-            c.roundRect(card_x, card_y - row_h + 6, 3, row_h, 1, fill=1, stroke=0)
-
-            # Title (wrapped)
-            c.setFont(_font('bold'), 10)
-            c.setFillColor(ESMERALD)
-            for ti, tl in enumerate(rc['title_lines']):
-                c.drawString(card_x + 10, card_y - 10 - (ti * 13), tl)
-
-            # Item count pill (after last title line)
-            if rc['items']:
-                last_ti = len(rc['title_lines']) - 1
-                last_line = rc['title_lines'][last_ti]
-                tw = c.stringWidth(last_line, _font('bold'), 10)
-                pill_y = card_y - 10 - (last_ti * 13)
-                _draw_pill(c, card_x + 10 + tw + 6, pill_y,
-                           str(len(rc['items'])),
-                           bg_color=BONE, text_color=ESMERALD, font_size=6,
-                           padding_h=5, padding_v=2)
-
-            # Description
-            if rc['desc_lines']:
-                c.setFont(_font('regular'), 8)
-                c.setFillColor(ESMERALD_80)
-                desc_y = card_y - 10 - (len(rc['title_lines']) * 13) - 4
-                for dl in rc['desc_lines']:
-                    c.drawString(card_x + 10, desc_y, dl)
-                    desc_y -= 11
-
-        idx += len(row_cards)
-        row_y -= (row_h + 12)
+    overview_rows = []
+    for gi, grp in enumerate(all_groups):
+        overview_rows.append([
+            str(gi + 1),
+            f"**{_safe(grp, 'title')}**",
+            _safe(grp, 'description'),
+            str(_count_items(grp)),
+        ])
+    if overview_rows:
+        row_y = _draw_table(
+            c, y, ['#', 'Módulo', 'Descripción', 'Ítems'], overview_rows,
+            ps=ps, col_widths=[0.07, 0.28, 0.53, 0.12],
+            aligns=['center', 'left', 'left', 'center'])
+    else:
+        row_y = y
 
     # Store groups for generate() to render detail sub-sections
     if ps is not None:
         ps['_func_req_groups'] = all_groups
 
     return row_y - 8
-
-
-_REQ_PRIORITY_LABELS = {
-    'es': {'critical': 'Crítico', 'high': 'Alta', 'medium': 'Media', 'low': 'Baja'},
-    'en': {'critical': 'Critical', 'high': 'High', 'medium': 'Medium', 'low': 'Low'},
-}
 
 
 def _render_linked_requirements(c, item, ps, row_y):
@@ -804,19 +808,19 @@ def _render_linked_requirements(c, item, ps, row_y):
     if not linked:
         return row_y
 
-    labels = _REQ_PRIORITY_LABELS.get(ps.get('_pdf_lang'), _REQ_PRIORITY_LABELS['es'])
+    lang = ps.get('_pdf_lang') or 'es'
     indent_x = MARGIN_L + 28
     text_w = CONTENT_W - 28 - 12
-    title_chars = int(text_w / 5.0) - 1
-    desc_chars = int(text_w / 4.5) - 1
     line_h = 11
 
     for req in linked:
         title = _strip_emoji(req.get('title') or '')
-        title_lines = textwrap.wrap(title, width=title_chars) or ([title] if title else [])
+        title_lines = _wrap_by_width(title, _font('bold'), 8, text_w) \
+            if title else []
         # Rich description like the parent item rows (honors <br>/<b>/**bold**),
         # capped so dense groups don't explode the page count.
-        desc_seg_lines = _desc_to_segmented_lines(req.get('description') or '', desc_chars)[:3]
+        desc_seg_lines = _desc_to_segmented_lines_w(
+            req.get('description') or '', text_w, 8)[:3]
         if not title_lines and not desc_seg_lines:
             continue
         n_lines = len(title_lines) + len(desc_seg_lines)
@@ -835,15 +839,11 @@ def _render_linked_requirements(c, item, ps, row_y):
         for i, tl in enumerate(title_lines):
             c.drawString(indent_x + 8, text_y, tl)
             if i == 0:
-                priority = (req.get('priority') or '').strip().lower()
-                label = labels.get(priority)
-                if label:
-                    title_line_w = c.stringWidth(tl, _font('bold'), 8)
-                    _draw_pill(
-                        c, indent_x + 8 + title_line_w + 6, text_y + 2, label,
-                        bg_color=BONE, text_color=ESMERALD,
-                        font_size=6, padding_h=4, padding_v=2,
-                    )
+                # Semantic priority badge (rose/amber/esmerald/gray).
+                title_line_w = c.stringWidth(tl, _font('bold'), 8)
+                _draw_priority_pill(
+                    c, indent_x + 8 + title_line_w + 6, text_y + 2,
+                    req.get('priority'), lang=lang)
             text_y -= line_h
         c.setFillColor(ESMERALD_80)
         for seg_line in desc_seg_lines:
@@ -906,48 +906,53 @@ def _render_requirement_group_page(c, grp, ps=None, y=None,
     num_col_w = 28
     name_col_w = int((CONTENT_W - num_col_w) * 0.36)
     desc_col_w = CONTENT_W - num_col_w - name_col_w
-
-    # Approximate chars that fit per column
-    name_chars = int(name_col_w / 5.0) - 1
-    desc_chars = int(desc_col_w / 4.5) - 1
+    name_text_w = name_col_w - 12
+    desc_text_w = desc_col_w - 12
 
     row_y = y
 
-    # ── Table header ──────────────────────────────────────────
+    # ── Table header (closure so it repeats after every page break) ──
     hdr_h = 22
+
+    def _draw_items_header(c, yy):
+        hdr_bottom = yy - hdr_h
+        c.setFillColor(ESMERALD)
+        c.rect(MARGIN_L, hdr_bottom, CONTENT_W, hdr_h, fill=1, stroke=0)
+        # Offset +2 aligns the optical midline of the glyphs with the
+        # rect's vertical center.
+        hdr_text_y = hdr_bottom + (hdr_h - 8) / 2 + 2
+        c.setFont(_font('bold'), 8)
+        c.setFillColor(WHITE)
+        c.drawCentredString(MARGIN_L + num_col_w / 2, hdr_text_y, '#')
+        c.drawString(MARGIN_L + num_col_w + 6, hdr_text_y, 'Requerimiento')
+        c.drawString(MARGIN_L + num_col_w + name_col_w + 6, hdr_text_y,
+                     'Descripción')
+        return hdr_bottom
+
     if ps:
         row_y = _check_y(c, row_y, ps, need=hdr_h + 32)
-    hdr_bottom = row_y - hdr_h
-    c.setFillColor(ESMERALD_DARK)
-    c.rect(MARGIN_L, hdr_bottom, CONTENT_W, hdr_h, fill=1, stroke=0)
-    # Offset +2 aligns the optical midline of the glyphs with the rect's
-    # vertical center (without it, the text sits low because the descender
-    # makes the geometric baseline fall below the cap-height midpoint).
-    hdr_text_y = hdr_bottom + (hdr_h - 8) / 2 + 2
-    c.setFont(_font('bold'), 8)
-    c.setFillColor(WHITE)
-    c.drawCentredString(MARGIN_L + num_col_w / 2, hdr_text_y, '#')
-    c.drawString(MARGIN_L + num_col_w + 6, hdr_text_y, 'Requerimiento')
-    c.drawString(MARGIN_L + num_col_w + name_col_w + 6, hdr_text_y, 'Descripción')
-    row_y = hdr_bottom
+    row_y = _draw_items_header(c, row_y)
 
     # ── Item rows ─────────────────────────────────────────────
+    line_h = 11
     for idx, item in enumerate(items):
         name = _strip_emoji(_safe(item, 'name') or '')
-        # Rich description: honor <br><br> (paragraphs) and <b>/<strong>/**bold** so the
-        # PDF matches the web instead of showing literal tags. Each line is a list of
-        # [text, is_bold] segments; an empty list is a blank line between paragraphs.
-        desc_seg_lines = _desc_to_segmented_lines(_safe(item, 'description') or '', desc_chars)
-        name_lines = textwrap.wrap(name, width=name_chars) or [name]
+        # Rich description honoring <br><br> and <b>/<strong>/**bold**,
+        # wrapped by real glyph width so it stays inside its column.
+        desc_seg_lines = _desc_to_segmented_lines_w(
+            _safe(item, 'description') or '', desc_text_w, 8)
+        name_lines = _wrap_by_width(name, _font('bold'), 9,
+                                    name_text_w) or [name]
 
-        line_h = 11
-        n_lines = max(len(name_lines), len(desc_seg_lines) if desc_seg_lines else 1)
-        row_h = n_lines * line_h + 14
-        row_h = max(row_h, 28)
+        n_lines = max(len(name_lines),
+                      len(desc_seg_lines) if desc_seg_lines else 1)
+        row_h = max(n_lines * line_h + 14, 28)
 
-        # Page break check
+        # Page break: repeat the column header on the fresh page so
+        # continued rows keep their context.
         if ps:
-            row_y = _check_y(c, row_y, ps, need=row_h)
+            row_y = _check_y_with_redraw(c, row_y, ps, need=row_h,
+                                         redraw=_draw_items_header)
 
         row_bottom = row_y - row_h
 
@@ -1007,52 +1012,23 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
     if intro:
         y = _draw_paragraphs(c, y, [intro], ps=ps)
 
-    total = _safe(data, 'totalDuration')
-    if total:
-        # Duration badge — width adapts to content, capped at CONTENT_W
-        total_str = _strip_emoji(total)
-        label_str = 'Duración Total Estimada'
-        value_w = c.stringWidth(total_str, _font('bold'), 11)
-        label_w = c.stringWidth(label_str, _font('regular'), 8)
-        badge_w = min(CONTENT_W, max(200, math.ceil(max(value_w, label_w)) + 40))
-        badge_h = 36
-
-        # Truncate value text if it would overflow badge's inner width
-        inner_w = badge_w - 24  # 12px left padding + 12px right guard
-        if value_w > inner_w:
-            stripped = total_str.rstrip()
-            lo, hi = 0, len(stripped)
-            while lo < hi:
-                mid = (lo + hi + 1) // 2
-                if c.stringWidth(stripped[:mid] + '...', _font('bold'), 11) <= inner_w:
-                    lo = mid
-                else:
-                    hi = mid - 1
-            total_str = stripped[:lo] + '...'
-        # Truncate label too if it overflows
-        if label_w > inner_w:
-            lbl_stripped = label_str.rstrip()
-            lo, hi = 0, len(lbl_stripped)
-            while lo < hi:
-                mid = (lo + hi + 1) // 2
-                if c.stringWidth(lbl_stripped[:mid] + '...', _font('regular'), 8) <= inner_w:
-                    lo = mid
-                else:
-                    hi = mid - 1
-            label_str = lbl_stripped[:lo] + '...'
-
-        c.setFillColor(BONE)
-        c.roundRect(MARGIN_L, y - badge_h + 4, badge_w, badge_h,
-                    4, fill=1, stroke=0)
-        c.setFont(_font('regular'), 8)
-        c.setFillColor(GRAY_500)
-        c.drawString(MARGIN_L + 12, y - 8, label_str)
-        c.setFont(_font('bold'), 11)
-        c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L + 12, y - 23, total_str)
-        y -= badge_h + 12
-
     phases = _safe(data, 'phases', [])
+
+    # Headline KPI tiles: total duration + phase / milestone counts.
+    total = _safe(data, 'totalDuration')
+    tiles = []
+    if total:
+        tiles.append({'value': _sanitize_pdf_text(str(total)),
+                      'label': 'Duración total'})
+    if len(phases) >= 2:
+        tiles.append({'value': str(len(phases)), 'label': 'Fases'})
+        milestones = sum(1 for ph in phases if _safe(ph, 'milestone'))
+        if milestones:
+            tiles.append({'value': str(milestones), 'label': 'Hitos'})
+    if tiles:
+        y = _draw_kpi_tile_row(c, y, tiles, ps=ps, accent_first=True)
+        y -= 8
+
     for i, phase in enumerate(phases):
         if ps:
             y = _check_y(c, y, ps, need=50)
@@ -1068,26 +1044,42 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
         c.drawCentredString(cx, cy - 3, str(i + 1))
 
         tx = MARGIN_L + 30
+
+        # Duration pill — measured and right-anchored; the phase title
+        # wraps to the space left of it so the two can never collide.
+        dur = _safe(phase, 'duration')
+        pill_w = 0.0
+        if dur:
+            dur_txt = _sanitize_pdf_text(str(dur))
+            pill_w = _string_width_mixed(dur_txt, _font('medium'), 7) + 16
+            _draw_pill(c, PAGE_W - MARGIN_R - pill_w, y + 1, dur_txt,
+                       bg_color=ESMERALD_LIGHT, text_color=ESMERALD)
+
+        title_w = (PAGE_W - MARGIN_R - tx) - (pill_w + 10 if pill_w else 0)
+        title = _sanitize_pdf_text(_safe(phase, 'title'))
         c.setFont(_font('bold'), 11)
         c.setFillColor(ESMERALD)
-        c.drawString(tx, y, _strip_emoji(_safe(phase, 'title')))
+        title_lines = _wrap_by_width(title, _font('bold'), 11,
+                                     max(title_w, 60))
+        for li, tl in enumerate(title_lines):
+            if li > 0 and ps:
+                y = _check_y(c, y, ps, need=15)
+            _draw_mixed_string(c, tx, y, tl, _font('bold'), 11)
+            y -= 15
 
-        dur = _safe(phase, 'duration')
-        if dur:
-            _draw_pill(c, PAGE_W - MARGIN_R - 80, y + 1,
-                       _strip_emoji(dur),
-                       bg_color=ESMERALD_LIGHT, text_color=ESMERALD)
-        y -= 15
+        # Optional week span, right under the pill.
+        weeks = _safe(phase, 'weeks')
+        if weeks:
+            c.setFont(_font('regular'), 7)
+            c.setFillColor(GRAY_500)
+            c.drawRightString(PAGE_W - MARGIN_R, y + 4,
+                              _sanitize_pdf_text(str(weeks)))
 
         desc = _safe(phase, 'description')
         if desc:
-            c.setFont(_font('regular'), 9)
-            c.setFillColor(ESMERALD_80)
-            phase_chars = int((PAGE_W - MARGIN_R - tx) / (9 * 0.48))
-            d_lines = textwrap.wrap(_strip_emoji(str(desc)), width=phase_chars)
-            for dl in d_lines:
-                c.drawString(tx, y, dl)
-                y -= 12
+            y = _draw_paragraphs(c, y, [desc], x=tx,
+                                 max_width=PAGE_W - MARGIN_R - tx,
+                                 font_size=9, leading=12, ps=ps)
 
         tasks = _safe(phase, 'tasks', [])
         if tasks:
@@ -1098,7 +1090,9 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
 
         milestone = _safe(phase, 'milestone')
         if milestone:
-            _draw_pill(c, tx, y, f'Hito: {_strip_emoji(milestone)}',
+            if ps:
+                y = _check_y(c, y, ps, need=18)
+            _draw_pill(c, tx, y, f'Hito: {_sanitize_pdf_text(str(milestone))}',
                        bg_color=BONE, text_color=ESMERALD, font_size=7)
             y -= 16
 
@@ -1209,10 +1203,73 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             display_num = base_num
     display_total = _format_cop(display_num) if display_num else (total or '')
 
+    # ── Hosting figures (hoisted: reused by the KPI tiles and the
+    # hosting block below) ──
+    hosting = _safe(data, 'hostingPlan', {})
+    normalized_hosting = normalize_hosting_plan(_proposal, hosting)
+    h_percent = normalized_hosting.get('hostingPercent', 0) or 0
+    annual_hosting = (round(display_num * h_percent / 100)
+                      if h_percent and display_num else 0)
+
+    # ── Estimated duration (adjusted when modules are deselected) ──
+    duration_value = ''
+    duration_sub = ''
+    if ps:
+        base_weeks = ps.get('base_weeks', 0) or 0
+        if base_weeks > 0:
+            adjusted_weeks = base_weeks
+            if selected_ids is not None:
+                all_mods = _safe(data, 'modules', [])
+                fr_items = ps.get('_fr_items', []) or []
+                deselected = [
+                    m for m in all_mods
+                    if _safe(m, 'id') not in selected_ids
+                ] + [
+                    it for it in fr_items
+                    if it.get('id') not in selected_ids
+                ]
+                reduction = 0
+                views_removed = 0
+                features_removed = 0
+                for m in deselected:
+                    src = _safe(m, '_source') or m.get('_source', '')
+                    gid = _safe(m, 'groupId') or m.get('groupId', '')
+                    if src == 'investment' or gid.startswith('integration_'):
+                        reduction += 1
+                    elif gid == 'views':
+                        views_removed += 1
+                    elif gid == 'features':
+                        features_removed += 1
+                reduction += views_removed // 3
+                reduction += features_removed // 3
+                adjusted_weeks = max(1, base_weeks - reduction)
+            duration_value = f'{adjusted_weeks} semanas'
+            if adjusted_weeks != base_weeks:
+                duration_sub = f'reducido de {base_weeks}'
+
     # Intro text — full width, brief
     if intro:
         y = _draw_paragraphs(c, y, [intro], ps=ps)
         y -= 10
+
+    # ── Headline KPI tiles: the figures that matter, at a glance ──
+    tiles = []
+    if display_total:
+        total_label = 'Inversión Total'
+        if currency:
+            total_label = f'{total_label} · {currency}'
+        tiles.append({'value': display_total, 'label': total_label,
+                      'sub': tax_suffix.strip()})
+    if duration_value:
+        tiles.append({'value': duration_value,
+                      'label': 'Duración estimada', 'sub': duration_sub})
+    if annual_hosting > 0:
+        tiles.append({'value': f'{_format_cop(annual_hosting)}/año',
+                      'label': 'Hosting y mantenimiento',
+                      'sub': ''})
+    if tiles:
+        y = _draw_kpi_tile_row(c, y, tiles, ps=ps, accent_first=True)
+        y -= 6
 
     # ── Layout: Formas de Pago + Incluye ──
     col_gap = 20
@@ -1252,14 +1309,19 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 c.setFillColor(ESMERALD_LIGHT)
                 c.roundRect(MARGIN_L, left_y - 6, left_w, 18, 4,
                             fill=1, stroke=0)
+                pill_desc = _payment_pill_desc(label, desc, display_num,
+                                               tax_suffix=tax_suffix)
+                pill_w = (c.stringWidth(pill_desc, _font('medium'), 7) + 16
+                          if pill_desc else 0)
+                # Clamp the label so it can never run under the pill.
+                label = _fit_text_ellipsis(
+                    label, _font('regular'), 8,
+                    left_w - 16 - (pill_w + 6 if pill_w else 0))
                 c.setFont(_font('regular'), 8)
                 c.setFillColor(ESMERALD_80)
                 c.drawString(MARGIN_L + 8, left_y - 2, label)
-                pill_desc = _payment_pill_desc(label, desc, display_num,
-                                               tax_suffix=tax_suffix)
                 if pill_desc:
                     # Right-anchor the pill so the tax suffix cannot overflow.
-                    pill_w = c.stringWidth(pill_desc, _font('medium'), 7) + 16
                     _draw_pill(c, MARGIN_L + left_w - pill_w, left_y - 2, pill_desc,
                                bg_color=ESMERALD, text_color=WHITE, font_size=7)
                 left_y -= 22
@@ -1290,85 +1352,32 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 c.setFillColor(ESMERALD_LIGHT)
                 c.roundRect(MARGIN_L, y - 6, CONTENT_W, 18, 4,
                             fill=1, stroke=0)
+                pill_desc = _payment_pill_desc(label, desc, display_num,
+                                               tax_suffix=tax_suffix)
+                pill_w = (c.stringWidth(pill_desc, _font('medium'), 7) + 16
+                          if pill_desc else 0)
+                # Clamp the label so it can never run under the pill.
+                label = _fit_text_ellipsis(
+                    label, _font('regular'), 8,
+                    CONTENT_W - 16 - (pill_w + 6 if pill_w else 0))
                 c.setFont(_font('regular'), 8)
                 c.setFillColor(ESMERALD_80)
                 c.drawString(MARGIN_L + 8, y - 2, label)
-                pill_desc = _payment_pill_desc(label, desc, display_num,
-                                               tax_suffix=tax_suffix)
                 if pill_desc:
                     # Right-anchor the pill so the tax suffix cannot overflow.
-                    pill_w = c.stringWidth(pill_desc, _font('medium'), 7) + 16
                     _draw_pill(c, MARGIN_L + CONTENT_W - pill_w, y - 2, pill_desc,
                                bg_color=ESMERALD, text_color=WHITE, font_size=7)
                 y -= 22
 
-        if items_text:
+        if included:
             y -= 10
-            if ps:
-                y = _check_y(c, y, ps, need=right_need + 10)
-            y = _draw_sidebar_box(c, y, 'Incluye', items_text,
-                                   sidebar_x=MARGIN_L, sidebar_w=CONTENT_W)
-            y -= 8
+            y = _draw_subtitle(c, y, 'Incluye', ps=ps)
+            for it in included:
+                y = _draw_feature_row(
+                    c, y, _safe(it, 'title'),
+                    description=_safe(it, 'description'), ps=ps)
+            y -= 4
 
-    # ── Compact Inversión Total ──────────────────────────────────
-    if total:
-        if ps:
-            y = _check_y(c, y, ps, need=28)
-        box_h = 24
-        box_w = CONTENT_W
-        box_y = y - box_h
-        c.setFillColor(ESMERALD)
-        c.roundRect(MARGIN_L, box_y, box_w, box_h, 5, fill=1, stroke=0)
-        c.setFont(_font('bold'), 11)
-        c.setFillColor(WHITE)
-        label = f'Inversi\u00f3n Total: {display_total}'
-        if currency:
-            label = f'{label}  {currency}'
-        label = f'{label}{tax_suffix}'
-        c.drawCentredString(MARGIN_L + box_w / 2, box_y + 7, label)
-        y = box_y - 8
-
-    # ── Adjusted duration (when modules are deselected) ─────────
-    if selected_ids is not None and ps:
-        base_weeks = ps.get('base_weeks', 0)
-        if base_weeks > 0:
-            all_mods = _safe(data, 'modules', [])
-            fr_items = ps.get('_fr_items', []) if ps else []
-            deselected = [
-                m for m in all_mods
-                if _safe(m, 'id') not in selected_ids
-            ] + [
-                it for it in fr_items
-                if it.get('id') not in selected_ids
-            ]
-            reduction = 0
-            views_removed = 0
-            features_removed = 0
-            for m in deselected:
-                src = _safe(m, '_source') or m.get('_source', '')
-                gid = _safe(m, 'groupId') or m.get('groupId', '')
-                if src == 'investment' or gid.startswith('integration_'):
-                    reduction += 1
-                elif gid == 'views':
-                    views_removed += 1
-                elif gid == 'features':
-                    features_removed += 1
-            reduction += views_removed // 3
-            reduction += features_removed // 3
-            adjusted_weeks = max(1, base_weeks - reduction)
-            if adjusted_weeks != base_weeks:
-                if ps:
-                    y = _check_y(c, y, ps, need=20)
-                c.setFont(_font('regular'), 9)
-                c.setFillColor(GRAY_500)
-                duration_text = (
-                    f'Duraci\u00f3n estimada: {adjusted_weeks} semanas'
-                    f' (reducido de {base_weeks})'
-                )
-                c.drawCentredString(
-                    MARGIN_L + CONTENT_W / 2, y, duration_text
-                )
-                y -= 16
 
     # ── AI scope note (when AI module selected) ───────────────────
     # Only emit for invite modules WITHOUT a defined price. When
@@ -1386,7 +1395,6 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             _pp = ci.get('price_percent')
             if _pp is not None and _pp > 0:
                 continue
-            y = _check_y(c, y, ps, need=30)
             lang = (_proposal.language or 'es') if _proposal else 'es'
             ai_note = (
                 'Nota: El alcance y costos del módulo de IA se definirán '
@@ -1397,13 +1405,8 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 'in a personalized call. This module has no additional cost '
                 'assigned until the scope is agreed upon.'
             )
-            c.setFont(_font('regular'), 8)
-            c.setFillColor(GRAY_500)
-            note_lines = textwrap.wrap(ai_note, width=90)
-            for nl in note_lines:
-                c.drawString(MARGIN_L, y, nl)
-                y -= 11
-            y -= 4
+            y = _draw_callout_box(c, y, ai_note, style='important',
+                                  ps=ps, label='MÓDULO IA')
             break
 
     # ── Interactive Modules (if present) ──────────────────────────
@@ -1418,25 +1421,16 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         y -= 14
         if ps:
             y = _check_y(c, y, ps, need=60)
-        c.setFont(_font('bold'), 12)
-        c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L, y, 'Módulos del Proyecto')
-        y -= 18
+        y = _draw_subtitle(c, y, 'Módulos del Proyecto', ps=ps)
+        mod_rows = []
         for mod in visible_modules:
-            mod_name = _strip_emoji(_safe(mod, 'name'))
             mod_price = _safe(mod, 'price', 0)
-            if ps:
-                y = _check_y(c, y, ps, need=20)
-            c.setFillColor(ESMERALD_LIGHT)
-            c.roundRect(MARGIN_L, y - 6, CONTENT_W, 18, 4, fill=1, stroke=0)
-            c.setFont(_font('regular'), 8)
-            c.setFillColor(ESMERALD)
-            c.drawString(MARGIN_L + 8, y - 2, f'✓  {mod_name}')
-            if mod_price:
-                price_str = _format_cop(mod_price)
-                c.setFont(_font('bold'), 8)
-                c.drawRightString(MARGIN_L + CONTENT_W - 8, y - 2, price_str)
-            y -= 22
+            mod_rows.append([
+                _safe(mod, 'name'),
+                _format_cop(mod_price) if mod_price else '—',
+            ])
+        y = _draw_table(c, y, ['Módulo', 'Precio'], mod_rows, ps=ps,
+                        col_widths=[0.74, 0.26], aligns=['left', 'right'])
 
     # ── Hosting plan (detailed specs + pricing) ───────────────────
     hosting = _safe(data, 'hostingPlan', {})
@@ -1457,182 +1451,79 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                                  leading=13, ps=ps)
             y -= 6
 
-        # Specs grid — 2 columns of pill-style badges (2-line: label + value)
+        # Specs — full-width table (label | detail): long values wrap
+        # inside their column instead of overflowing a fixed-height badge.
         specs = [s for s in _safe(hosting, 'specs', [])
                  if _safe(s, 'label') or _safe(s, 'value')]
         if specs:
-            spec_col_w = (CONTENT_W - 14) / 2
-            spec_row_h = 38
-            for si, spec in enumerate(specs):
-                col = si % 2
-                if col == 0 and ps:
-                    y = _check_y(c, y, ps, need=spec_row_h + 4)
-                sx = MARGIN_L + col * (spec_col_w + 14)
-                # Badge background
-                c.setFillColor(ESMERALD_LIGHT)
-                c.roundRect(sx, y - 18, spec_col_w, spec_row_h, 5,
-                            fill=1, stroke=0)
-                # Label (bold) — top line
-                spec_label = _strip_emoji(_safe(spec, 'label'))
-                label_y = y - 18 + spec_row_h - 12
-                c.setFont(_font('bold'), 8)
-                c.setFillColor(ESMERALD)
-                c.drawString(sx + 8, label_y, spec_label)
-                # Value (regular) — second line below label
-                spec_value = _strip_emoji(_safe(spec, 'value'))
-                value_y = label_y - 13
-                c.setFont(_font('regular'), 7.5)
-                c.setFillColor(ESMERALD_80)
-                c.drawString(sx + 8, value_y, spec_value)
-                # Move down after every 2nd column
-                if col == 1 or si == len(specs) - 1:
-                    y -= spec_row_h + 4
+            spec_rows = [[_safe(s, 'label'), _safe(s, 'value')]
+                         for s in specs]
             y -= 2
+            y = _draw_table(c, y, ['Especificación', 'Detalle'], spec_rows,
+                            ps=ps, col_widths=[0.30, 0.70])
 
-        # Billing tiers — 3 frequency options side by side.
-        normalized_hosting = normalize_hosting_plan(_proposal, hosting)
-        h_percent = normalized_hosting.get('hostingPercent', 0) or 0
+        # Billing tiers — one full-width table instead of N fixed-height
+        # side-by-side cards (labels/prices can never collide again).
+        # normalized_hosting / h_percent / annual_hosting are hoisted at
+        # the top of the renderer (shared with the KPI tiles). Hosting is
+        # a percentage of the SAME "Inversión Total" the client sees —
+        # parity with Investment.vue ``hostingAnnualAmount``.
         billing_tiers = normalized_hosting.get('billingTiers', [])
-        # Hosting is a percentage of the SAME "Inversión Total" the client
-        # sees above — the effective total (base + admin-pre-selected
-        # additional modules, or the client's adjusted selection). Keeps
-        # parity with the public frontend (Investment.vue
-        # ``hostingAnnualAmount``) and the admin preview in the General tab.
-        basis = display_num
-        annual_hosting = round(basis * h_percent / 100) if h_percent and basis else 0
 
+        tier_headers = ['Frecuencia', 'Ahorro', 'Precio/mes', 'Equivalente']
+        tier_col_widths = [0.28, 0.14, 0.27, 0.31]
+        tier_aligns = ['left', 'center', 'right', 'right']
         if billing_tiers and annual_hosting > 0:
-            if ps:
-                y = _check_y(c, y, ps, need=56)
-            num_tiers = len(billing_tiers)
-            tier_gap = 10
-            tier_col_w = (CONTENT_W - tier_gap * (num_tiers - 1)) / num_tiers
-            tier_h = 48
-            tier_y = y - tier_h + 6
-
             monthly_base = round(annual_hosting / 12)
-
-            for ti, tier in enumerate(billing_tiers):
-                tx = MARGIN_L + ti * (tier_col_w + tier_gap)
+            tier_rows = []
+            for tier in billing_tiers:
                 discount = _safe(tier, 'discountPercent', 0)
                 months = _safe(tier, 'months', 1) or 1
-                label = _strip_emoji(_safe(tier, 'label', ''))
-                badge = _strip_emoji(_safe(tier, 'badge', ''))
+                label = _safe(tier, 'label', '')
+                badge = _safe(tier, 'badge', '')
                 monthly_discounted = round(monthly_base * (100 - discount) / 100)
                 period_total = monthly_discounted * months
-
-                # First tier (best price) gets esmerald bg
-                if ti == 0:
-                    c.setFillColor(ESMERALD)
-                    c.roundRect(tx, tier_y, tier_col_w, tier_h, 5,
-                                fill=1, stroke=0)
-                    label_color = colors.HexColor('#A7F3D0')
-                    price_color = WHITE
-                    sub_color = colors.HexColor('#A7F3D0')
-                else:
-                    c.setFillColor(ESMERALD_LIGHT)
-                    c.roundRect(tx, tier_y, tier_col_w, tier_h, 5,
-                                fill=1, stroke=0)
-                    label_color = GREEN_LIGHT
-                    price_color = ESMERALD
-                    sub_color = ESMERALD_80
-
-                # Badge (top-right corner)
+                freq_cell = f'**{label}**' if label else ''
                 if badge:
-                    c.setFont(_font('medium'), 6)
-                    badge_w = c.stringWidth(badge, _font('medium'), 6) + 8
-                    badge_x = tx + tier_col_w - badge_w - 4
-                    badge_y = tier_y + tier_h - 12
-                    c.setFillColor(LEMON)
-                    c.roundRect(badge_x, badge_y, badge_w, 10, 3,
-                                fill=1, stroke=0)
-                    c.setFont(_font('medium'), 6)
-                    c.setFillColor(ESMERALD)
-                    c.drawString(badge_x + 4, badge_y + 2, badge)
-
-                # Label
-                c.setFont(_font('medium'), 7)
-                c.setFillColor(label_color)
-                c.drawString(tx + 10, tier_y + tier_h - 12, label)
-
-                # Price per month
-                c.setFont(_font('bold'), 11)
-                c.setFillColor(price_color)
-                price_str = _format_cop(monthly_discounted) + ' /mes'
-                c.drawString(tx + 10, tier_y + tier_h - 26, price_str)
-
-                # Period total
-                c.setFont(_font('regular'), 7)
-                c.setFillColor(sub_color)
-                sub_str = f'{_format_cop(period_total)} cada {months} mes{"es" if months > 1 else ""}'
-                c.drawString(tx + 10, tier_y + 5, sub_str)
-
-            y = tier_y - 6
+                    freq_cell = f'{freq_cell} — {badge}' if freq_cell else badge
+                tier_rows.append([
+                    freq_cell,
+                    f'-{int(discount)}%' if discount else '—',
+                    f'{_format_cop(monthly_discounted)} /mes',
+                    f'{_format_cop(period_total)} cada {months} '
+                    f'mes{"es" if months > 1 else ""}',
+                ])
+            y -= 4
+            y = _draw_table(c, y, tier_headers, tier_rows, ps=ps,
+                            col_widths=tier_col_widths, aligns=tier_aligns)
         else:
-            # Legacy fallback: monthlyPrice / annualPrice
+            # Legacy fallback: monthlyPrice / annualPrice — same table,
+            # one code path with the tiers above.
             m_price = _safe(hosting, 'monthlyPrice')
             a_price = _safe(hosting, 'annualPrice')
-            if m_price or a_price:
-                if ps:
-                    y = _check_y(c, y, ps, need=40)
-                price_col_w = (CONTENT_W - 14) / 2
-                price_h = 34
-                price_y = y - price_h + 6
-                p_label_y = price_y + price_h - 11
-                p_price_y = price_y + 5
-                if m_price:
-                    c.setFillColor(ESMERALD)
-                    c.roundRect(MARGIN_L, price_y, price_col_w, price_h, 5,
-                                fill=1, stroke=0)
-                    c.setFont(_font('medium'), 7)
-                    c.setFillColor(colors.HexColor('#A7F3D0'))
-                    c.drawString(MARGIN_L + 10, p_label_y,
-                                 _strip_emoji(_safe(hosting, 'monthlyLabel', 'por mes')))
-                    c.setFont(_font('bold'), 11)
-                    c.setFillColor(WHITE)
-                    c.drawString(MARGIN_L + 10, p_price_y,
-                                 _strip_emoji(str(m_price)))
-                if a_price:
-                    ax = MARGIN_L + price_col_w + 14
-                    c.setFillColor(BONE)
-                    c.roundRect(ax, price_y, price_col_w, price_h, 5,
-                                fill=1, stroke=0)
-                    c.setFont(_font('medium'), 7)
-                    c.setFillColor(GRAY_500)
-                    c.drawString(ax + 10, p_label_y,
-                                 _strip_emoji(_safe(hosting, 'annualLabel', 'pago anual')))
-                    c.setFont(_font('bold'), 11)
-                    c.setFillColor(ESMERALD)
-                    c.drawString(ax + 10, p_price_y,
-                                 _strip_emoji(str(a_price)))
-                y = price_y - 6
+            legacy_rows = []
+            if m_price:
+                legacy_rows.append([
+                    f"**{_safe(hosting, 'monthlyLabel', 'por mes')}**",
+                    '—', str(m_price), '—',
+                ])
+            if a_price:
+                legacy_rows.append([
+                    f"**{_safe(hosting, 'annualLabel', 'pago anual')}**",
+                    '—', '—', str(a_price),
+                ])
+            if legacy_rows:
+                y -= 4
+                y = _draw_table(c, y, tier_headers, legacy_rows, ps=ps,
+                                col_widths=tier_col_widths,
+                                aligns=tier_aligns)
 
-        # Coverage + free-month notes: identical light pill-style boxes, only
-        # the font weight differs. Local helper keeps the two in lockstep.
-        def _note_box(y, note_text, font_weight='medium'):
-            lines = textwrap.wrap(
-                _strip_emoji(str(note_text)), width=int(CONTENT_W / (8 * 0.48))
-            )
-            box_h = len(lines) * 12 + 16
-            box_y = y - box_h + 6
-            c.setFillColor(ESMERALD_LIGHT)
-            c.roundRect(MARGIN_L, box_y, CONTENT_W, box_h, 5, fill=1, stroke=0)
-            c.setFont(_font(font_weight), 7.5)
-            c.setFillColor(ESMERALD)
-            text_block_h = len(lines) * 12
-            ty = box_y + box_h - (box_h - text_block_h) / 2 - 10
-            for line in lines:
-                c.drawString(MARGIN_L + 10, ty, line)
-                ty -= 12
-            return box_y - 6
-
-        # Coverage note — pill-style block describing the 3 hosting components
+        # Coverage note — callout describing the 3 hosting components
         coverage = _safe(hosting, 'coverageNote')
         if coverage:
             y -= 8
-            if ps:
-                y = _check_y(c, y, ps, need=50)
-            y = _note_box(y, coverage, 'medium')
+            y = _draw_callout_box(c, y, str(coverage), style='note',
+                                  ps=ps, label='COBERTURA')
 
         # Free-month gift block (copy is bilingual via content_json)
         free_note = _safe(hosting, 'freeMonthNote')
@@ -1642,9 +1533,8 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             free_months_int = 0
         if free_months_int > 0 and free_note:
             y -= 8
-            if ps:
-                y = _check_y(c, y, ps, need=50)
-            y = _note_box(y, free_note, 'bold')
+            y = _draw_callout_box(c, y, str(free_note), style='tip',
+                                  ps=ps, label='REGALO')
 
         # Renewal note — SMLMV formula text
         renewal = _safe(hosting, 'renewalNote')
@@ -1661,19 +1551,22 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 '$113.000 COP (un aumento de $13.000).'
             )
         if renewal:
-            y -= 6
-            if ps:
-                y = _check_y(c, y, ps, need=80)
-            c.setFont(_font('bold'), 8)
-            c.setFillColor(ESMERALD)
-            c.drawString(MARGIN_L, y, 'Renovaciones')
-            y -= 14
-            # Split on double-newlines to preserve paragraph breaks
+            y -= 8
+            # Split on double-newlines to preserve paragraph breaks. The
+            # intro goes in a labelled callout, the formula line stands
+            # out as a blockquote, remaining paragraphs as fine print.
             renewal_paras = [
                 p.strip() for p in str(renewal).split('\n\n') if p.strip()
             ]
-            y = _draw_paragraphs(c, y, renewal_paras, font_size=8,
-                                 leading=11, ps=ps)
+            if renewal_paras:
+                y = _draw_callout_box(c, y, renewal_paras[0], style='note',
+                                      ps=ps, label='RENOVACIONES')
+                for para in renewal_paras[1:]:
+                    if para.lower().startswith('costo de renovación'):
+                        y = _draw_blockquote(c, y, para, ps=ps)
+                    else:
+                        y = _draw_paragraphs(c, y, [para], font_size=8,
+                                             leading=11, ps=ps)
 
     # Value reasons
     reasons = _safe(data, 'valueReasons', [])
@@ -1779,7 +1672,6 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
               + 8 * 2)  # padding_h*2 in _draw_pill
     content_area_w = CONTENT_W - card_pad_x * 2 - icon_size - icon_gap
     title_max_w = content_area_w - pill_w - 8  # gap before pill
-    title_chars = max(int(title_max_w / (title_font_size * 0.55)), 10)
 
     for mid in module_ids:
         module = catalog.get(mid)
@@ -1790,7 +1682,10 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
         justification = (justifications.get(mid)
                          if isinstance(justifications, dict) else None)
 
-        title_lines = textwrap.wrap(title, width=title_chars)[:2] or [title]
+        # Wrap by real width; the card height grows to fit — no silent
+        # 2-line truncation of the title anymore.
+        title_lines = _wrap_by_width(title, _font('bold'), title_font_size,
+                                     max(title_max_w, 40)) or [title]
         just_h = (_estimate_text_height(
                       [justification], max_width=content_area_w,
                       font_size=just_font_size, leading=just_leading)
@@ -1890,7 +1785,7 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
     # Consolidated terms & conditions for the included modules (Req 3).
     # The web shows these in a per-module modal; the PDF has no modal, so the
     # terms are printed here as a closing block.
-    tc_paras = []
+    tc_items = []
     for mid in module_ids:
         cond = conditions.get(mid) if isinstance(conditions, dict) else None
         terms = cond.get('terms') if isinstance(cond, dict) else None
@@ -1898,8 +1793,8 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
             continue
         module = catalog.get(mid) or {}
         mtitle = _strip_emoji(_safe(module, 'title')) or str(mid)
-        tc_paras.append(f'{mtitle} — {terms}')
-    if tc_paras:
+        tc_items.append(f'**{mtitle}** — {terms}')
+    if tc_items:
         y -= 6
         tc_title = ('Términos y condiciones de los módulos incluidos'
                     if lang != 'en'
@@ -1907,9 +1802,7 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
         if ps:
             y = _check_y(c, y, ps, need=40)
         y = _draw_subtitle(c, y, tc_title, ps=ps)
-        y = _draw_paragraphs(
-            c, y, tc_paras, ps=ps, font_size=8, leading=11,
-        )
+        y = _draw_bullet_list(c, y, tc_items, ps=ps, font_size=8, leading=11)
         y -= 4
 
     footer_note = _safe(data, 'footer_note')
@@ -1946,16 +1839,14 @@ def _render_final_note(c, data, proposal, ps=None, y=None):
     personal = _safe(data, 'personalNote')
     if personal:
         y -= 6
-        chars = int(CONTENT_W / (10 * 0.48))
-        c.setFont(_font('italic'), 10)
         c.setFillColor(GREEN_LIGHT)
-        p_lines = textwrap.wrap(_strip_emoji(str(personal)), width=chars)
-        for pl in p_lines:
+        for pl in _wrap_by_width(_sanitize_pdf_text(str(personal)),
+                                 _font('italic'), 10, CONTENT_W):
             if ps:
                 y = _check_y(c, y, ps)
             c.setFont(_font('italic'), 10)
             c.setFillColor(GREEN_LIGHT)
-            c.drawString(MARGIN_L, y, pl)
+            _draw_mixed_string(c, MARGIN_L, y, pl, _font('italic'), 10)
             y -= 14
 
     # Validity period — eye-catching banner
@@ -1978,10 +1869,8 @@ def _render_final_note(c, data, proposal, ps=None, y=None):
         )
     if validity:
         y -= 12
-        y = _draw_banner_box(c, MARGIN_L, y, CONTENT_W,
-                             _strip_emoji(str(validity)),
-                             bg_color=BONE, text_color=ESMERALD,
-                             icon_text='Vigencia:', ps=ps)
+        y = _draw_callout_box(c, y, str(validity), style='important',
+                              ps=ps, label='VIGENCIA')
 
     # Client name
     client_name = getattr(proposal, 'client_name', '')
@@ -2007,19 +1896,25 @@ def _render_final_note(c, data, proposal, ps=None, y=None):
     role = _safe(data, 'teamRole')
     email = _safe(data, 'contactEmail')
     if team:
-        c.setFont(_font('bold'), 12)
         c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L, y, team)
+        _draw_mixed_string(
+            c, MARGIN_L, y,
+            _fit_text_ellipsis(_sanitize_pdf_text(team), _font('bold'), 12,
+                               CONTENT_W), _font('bold'), 12)
         y -= 15
     if role:
         c.setFont(_font('regular'), 9)
         c.setFillColor(GRAY_500)
-        c.drawString(MARGIN_L, y, role)
+        c.drawString(MARGIN_L, y,
+                     _fit_text_ellipsis(_strip_emoji(role), _font('regular'),
+                                        9, CONTENT_W))
         y -= 13
     if email:
         c.setFont(_font('regular'), 9)
         c.setFillColor(GRAY_500)
-        c.drawString(MARGIN_L, y, email)
+        c.drawString(MARGIN_L, y,
+                     _fit_text_ellipsis(_strip_emoji(email), _font('regular'),
+                                        9, CONTENT_W))
         y -= 13
 
     # Commitment badges as inline pills
@@ -2067,72 +1962,72 @@ def _render_next_steps(c, data, _proposal, ps=None, y=None):
 
     steps = _safe(data, 'steps', [])
     for i, step in enumerate(steps):
-        if ps:
-            y = _check_y(c, y, ps, need=30)
-        elif y < MARGIN_B + 30:
-            break
-        step_title = _safe(step, 'title')
-        step_desc = _safe(step, 'description')
-
-        c.setFont(_font('bold'), 11)
-        c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L, y, f'{i + 1}.  {_strip_emoji(step_title)}')
-        y -= 15
-
-        if step_desc:
-            c.setFont(_font('regular'), 9)
-            c.setFillColor(ESMERALD_80)
-            desc_w = CONTENT_W - 18  # account for x offset
-            desc_chars = int(desc_w / (9 * 0.48))
-            s_lines = textwrap.wrap(_strip_emoji(str(step_desc)), width=desc_chars)
-            for sl in s_lines:
-                if ps:
-                    y = _check_y(c, y, ps)
-                    c.setFont(_font('regular'), 9)
-                    c.setFillColor(ESMERALD_80)
-                c.drawString(MARGIN_L + 18, y, sl)
-                y -= 13
-        y -= 5
+        y = _draw_feature_row(
+            c, y, _safe(step, 'title'),
+            description=_safe(step, 'description'), ps=ps, index=i + 1)
 
     # CTA message
     cta = _safe(data, 'ctaMessage')
     if cta:
         y -= 8
-        c.setFont(_font('bold'), 12)
+        if ps:
+            y = _check_y(c, y, ps, need=24)
         c.setFillColor(ESMERALD)
-        cta_chars = int(CONTENT_W / (12 * 0.48))
-        cta_lines = textwrap.wrap(_strip_emoji(str(cta)), width=cta_chars)
-        for cl in cta_lines:
+        for cl in _wrap_by_width(_sanitize_pdf_text(str(cta)),
+                                 _font('bold'), 12, CONTENT_W):
             if ps:
-                y = _check_y(c, y, ps)
-            c.setFont(_font('bold'), 12)
-            c.setFillColor(ESMERALD)
-            c.drawString(MARGIN_L, y, cl)
+                y = _check_y(c, y, ps, need=16)
+            _draw_mixed_string(c, MARGIN_L, y, cl, _font('bold'), 12)
             y -= 16
 
-    # Contact methods as pills
+    # CTA buttons — clickable link pills (primary + secondary), side by side
+    ctas = []
+    for key, primary in (('primaryCTA', True), ('secondaryCTA', False)):
+        obj = _safe(data, key, {})
+        if isinstance(obj, dict) and _safe(obj, 'text'):
+            ctas.append((obj, primary))
+    if ctas:
+        y -= 6
+        if ps:
+            y = _check_y(c, y, ps, need=26)
+        btn_x = MARGIN_L
+        for obj, primary in ctas:
+            text = _sanitize_pdf_text(_safe(obj, 'text'))
+            bg, fg = ((ESMERALD, WHITE) if primary
+                      else (ESMERALD_LIGHT, ESMERALD))
+            right_x, _ = _draw_pill(c, btn_x, y, text, bg_color=bg,
+                                    text_color=fg, font_size=9,
+                                    padding_h=12, padding_v=5)
+            link = _safe(obj, 'link')
+            if link:
+                c.linkURL(link, (btn_x, y - 6, right_x, y + 12), relative=0)
+            btn_x = right_x + 10
+        y -= 24
+
+    # Contact methods as pills (value is a clickable link when present)
     if contacts:
         y -= 10
         if ps:
             y = _check_y(c, y, ps, need=40)
-        c.setFont(_font('bold'), 10)
-        c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L, y, 'Contacto')
-        y -= 18
+        y = _draw_subtitle(c, y, 'Contacto', ps=ps)
         for ct in contacts:
-            ct_title = _strip_emoji(_safe(ct, 'title'))
-            ct_value = _strip_emoji(_safe(ct, 'value'))
+            ct_title = _sanitize_pdf_text(_safe(ct, 'title'))
+            ct_value = _sanitize_pdf_text(_safe(ct, 'value'))
+            ct_link = _safe(ct, 'link')
             if not ct_title:
                 continue
             if ps:
                 y = _check_y(c, y, ps, need=18)
-            # Title pill + value text
             pr, _ = _draw_pill(c, MARGIN_L, y, ct_title,
                                bg_color=ESMERALD, text_color=WHITE,
                                font_size=7)
             c.setFont(_font('regular'), 9)
             c.setFillColor(ESMERALD_80)
-            c.drawString(pr + 8, y, ct_value)
+            val_end = _draw_mixed_string(c, pr + 8, y, ct_value,
+                                         _font('regular'), 9)
+            if ct_link:
+                c.linkURL(ct_link, (pr + 8, y - 2, val_end, y + 10),
+                          relative=0)
             y -= 18
     return y
 
@@ -2235,7 +2130,10 @@ def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
     except (TypeError, ValueError):
         hourly_rate = 0
 
-    pad_x = 14
+    # One full-width table replaces the stack of fixed-height cards:
+    # long names/notes wrap inside their cell, the header repeats across
+    # pages, and money columns align right for easy comparison.
+    pkg_rows = []
     for pkg in _safe(data, 'packages', []) or []:
         name = _safe(pkg, 'name') or 'Paquete'
         try:
@@ -2254,58 +2152,28 @@ def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
         total_price = hours * rate_eff
         note = _safe(pkg, 'note')
 
-        note_h = (_estimate_text_height(
-                      [note], max_width=CONTENT_W - pad_x * 2,
-                      font_size=8, leading=11)
-                  if note else 0)
-        card_h = 12 + 16 + 14 + (4 + note_h if note else 0) + 10
-
-        if ps:
-            y = _check_y(c, y, ps, need=card_h + 12)
-
-        card_top = y
-        card_bottom = y - card_h
-        c.setFillColor(ESMERALD_LIGHT)
-        c.roundRect(MARGIN_L, card_bottom, CONTENT_W, card_h, 8,
-                    fill=1, stroke=0)
-
-        text_x = MARGIN_L + pad_x
-        line_y = card_top - 12 - 10
-
-        c.setFont(_font('bold'), 12)
-        c.setFillColor(ESMERALD)
-        c.drawString(text_x, line_y, _strip_emoji(name))
-        if discount > 0:
-            disc_text = f'-{int(discount)}%'
-            pill_w = c.stringWidth(disc_text, _font('medium'), 8) + 16
-            _draw_pill(c, MARGIN_L + CONTENT_W - pad_x - pill_w, line_y,
-                       disc_text, bg_color=LEMON, text_color=ESMERALD,
-                       font_size=8)
-        line_y -= 16
-
-        c.setFont(_font('regular'), 9)
-        c.setFillColor(ESMERALD_80)
-        detail = (f'{int(hours)} h   ·   {_money(rate_eff)}/h   ·   '
-                  f'Total: {_money(total_price)}')
-        c.drawString(text_x, line_y, detail)
-        line_y -= 14
-
+        pkg_cell = f'**{name}**'
         if note:
-            _draw_paragraphs(
-                c, line_y, [str(note)], max_width=CONTENT_W - pad_x * 2,
-                font_size=8, leading=11, color=ESMERALD_80, x=text_x,
-                font_name=_font('italic'),
-            )
-        y = card_bottom - 10
+            pkg_cell = f'{pkg_cell} — *{note}*'
+        pkg_rows.append([
+            pkg_cell,
+            f'{int(hours)} h',
+            f'-{int(discount)}%' if discount else '—',
+            f'{_money(rate_eff)}/h',
+            _money(total_price),
+        ])
+    if pkg_rows:
+        y -= 2
+        y = _draw_table(
+            c, y, ['Paquete', 'Horas', 'Dcto.', 'Tarifa/hora', 'Total'],
+            pkg_rows, ps=ps, col_widths=[0.34, 0.10, 0.10, 0.22, 0.24],
+            aligns=['left', 'center', 'center', 'right', 'right'])
 
     effort_badge = _safe(data, 'effortBadge')
     if effort_badge:
-        y -= 2
-        y = _draw_banner_box(
-            c, MARGIN_L, y, CONTENT_W, str(effort_badge),
-            bg_color=BONE, text_color=ESMERALD, font_size=9,
-            icon_text='!', ps=ps,
-        )
+        y -= 4
+        y = _draw_callout_box(c, y, str(effort_badge), style='warning',
+                              ps=ps, label='IMPORTANTE')
 
     # ── Scope-exclusion clause ─────────────────────────────────
     scope_title = _safe(data, 'scopeTitle')
@@ -2321,6 +2189,123 @@ def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
     return y
 
 
+def _render_process_methodology(c, data, _proposal, ps=None, y=None):
+    """Render the process methodology section as numbered feature rows.
+
+    Each step shows a numbered chip + title + description, with the
+    client's contribution ("Tu aporte: …") as a right-anchored BONE pill.
+    Mirrors ProcessMethodology.vue; previously the PDF skipped it.
+    """
+    if y is None:
+        y = PAGE_H - MARGIN_T
+    y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
+    y -= 8
+
+    intro = _safe(data, 'intro')
+    if intro:
+        y = _draw_paragraphs(c, y, [intro], ps=ps)
+        y -= 6
+
+    # clientAction already carries its own "Tu aporte:" / "Your input:"
+    # label in the stored content, so it is used verbatim as the pill.
+    for i, step in enumerate(_safe(data, 'steps', [])):
+        action = _safe(step, 'clientAction')
+        pill = _sanitize_pdf_text(str(action)) if action else None
+        y = _draw_feature_row(
+            c, y, _safe(step, 'title'),
+            description=_safe(step, 'description'), ps=ps, index=i + 1,
+            pill_text=pill, pill_bg=BONE, pill_fg=ESMERALD)
+    return y
+
+
+def _roi_has_content(data):
+    """True when a roi_projection section has anything worth a PDF page.
+
+    Defaults ship empty kpis/scenarios; without this gate every default
+    proposal would grow a blank ROI section (and a stray TOC entry).
+    """
+    return bool(
+        [k for k in _safe(data, 'kpis', []) if isinstance(k, dict)
+         and (_safe(k, 'value') or _safe(k, 'label'))]
+        or [s for s in _safe(data, 'scenarios', []) if isinstance(s, dict)
+            and (_safe(s, 'metrics') or _safe(s, 'assumptions')
+                 or _safe(s, 'name') or _safe(s, 'label'))]
+    )
+
+
+def _render_roi_projection(c, data, _proposal, ps=None, y=None):
+    """Render the ROI projection: KPI tiles + per-scenario metric tables.
+
+    Mirrors RoiProjection.vue. The generator only calls this when
+    _roi_has_content(data) is True, so empty defaults are skipped.
+    """
+    if y is None:
+        y = PAGE_H - MARGIN_T
+    y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
+    y -= 8
+
+    subtitle = _safe(data, 'subtitle')
+    if subtitle:
+        y = _draw_paragraphs(c, y, [subtitle], ps=ps)
+        y -= 4
+
+    methodology = _safe(data, 'methodology')
+    if methodology:
+        y = _draw_callout_box(c, y, str(methodology), style='note',
+                              ps=ps, label='METODOLOGÍA')
+
+    # Headline KPI tiles (value + label; source as a sub-line).
+    kpis = [k for k in _safe(data, 'kpis', []) if isinstance(k, dict)
+            and (_safe(k, 'value') or _safe(k, 'label'))]
+    if kpis:
+        tiles = [{'value': _safe(k, 'value'), 'label': _safe(k, 'label'),
+                  'sub': _safe(k, 'source')} for k in kpis]
+        y = _draw_kpi_tile_row(c, y, tiles, ps=ps, accent_first=True)
+        y -= 6
+
+    scenarios = [s for s in _safe(data, 'scenarios', [])
+                 if isinstance(s, dict)]
+    if scenarios:
+        sc_title = _safe(data, 'scenariosTitle')
+        if sc_title:
+            y -= 4
+            y = _draw_subtitle(c, y, sc_title, ps=ps)
+        for sc in scenarios:
+            name = _safe(sc, 'label') or _safe(sc, 'name')
+            if name:
+                y = _draw_subtitle(c, y, name, ps=ps)
+            assumptions = [a for a in _safe(sc, 'assumptions', []) if a]
+            if assumptions:
+                y = _draw_bullet_list(c, y, [str(a) for a in assumptions],
+                                      ps=ps, font_size=8, leading=11)
+            metrics = [m for m in _safe(sc, 'metrics', [])
+                       if isinstance(m, dict)
+                       and (_safe(m, 'label') or _safe(m, 'value'))]
+            if metrics:
+                rows = []
+                for m in metrics:
+                    label = _safe(m, 'label')
+                    val = _safe(m, 'value')
+                    basis = _safe(m, 'basis')
+                    if _safe(m, 'emphasis'):
+                        label = f'**{label}**'
+                        val = f'**{val}**'
+                    # Basis reads as a lighter inline note after the label
+                    # (table cells wrap by width, not on newlines).
+                    cell = label + (f' — *{basis}*' if basis else '')
+                    rows.append([cell, val])
+                y = _draw_table(c, y, ['Métrica', 'Proyección'], rows,
+                                ps=ps, col_widths=[0.68, 0.32],
+                                aligns=['left', 'right'])
+            y -= 6
+
+    cta = _safe(data, 'ctaNote')
+    if cta:
+        y -= 4
+        y = _draw_callout_box(c, y, str(cta), style='tip', ps=ps)
+    return y
+
+
 # Map section_type → renderer
 SECTION_RENDERERS = {
     'greeting': _render_greeting,
@@ -2330,14 +2315,18 @@ SECTION_RENDERERS = {
     'design_ux': _render_design_ux,
     'creative_support': _render_creative_support,
     'development_stages': _render_development_stages,
+    'process_methodology': _render_process_methodology,
     'functional_requirements': _render_functional_requirements,
     'timeline': _render_timeline,
     'investment': _render_investment,
     'value_added_modules': _render_value_added_modules,
     'commercial_conditions': _render_commercial_conditions,
+    'roi_projection': _render_roi_projection,
     'final_note': _render_final_note,
     'next_steps': _render_next_steps,
-    # Note: 'roi_projection' is intentionally web-only — no PDF renderer.
+    # 'proposal_summary' stays web-only: its cards resolve dynamic server
+    # sources (total_investment, timeline_duration, expires_at) the PDF
+    # already shows in Investment / Timeline / Final Note.
     # Sections without a renderer are silently skipped by the generator.
 }
 
@@ -2538,11 +2527,20 @@ class ProposalPdfService:
                 if not is_paste and not renderer:
                     continue
 
+                # ROI has a renderer but ships empty by default — skip
+                # (before the TOC entry) when there is nothing to show.
+                if (stype == 'roi_projection' and not is_paste
+                        and not _roi_has_content(data)):
+                    continue
+
                 if first_content:
                     first_content = False
                 else:
                     y -= 28
-                    y = _check_y(c, y, ps, need=80)
+                    # Reserve the measured height of the section header so a
+                    # multi-line title is never orphaned at the page bottom.
+                    y = _check_y(c, y, ps,
+                                 need=_section_header_height(data['title']))
 
                 # Record TOC entry at the page where this section starts
                 toc_entries.append((data['index'], data['title'], ps['num']))
@@ -2593,7 +2591,10 @@ class ProposalPdfService:
                                 if parent_idx else str(gi + 1)
                             )
                             y -= 28
-                            y = _check_y(c, y, ps, need=80)
+                            y = _check_y(
+                                c, y, ps,
+                                need=_section_header_height(
+                                    _safe(grp, 'title'), sub_idx))
                             if grp_paste:
                                 y = _render_raw_text(
                                     c,

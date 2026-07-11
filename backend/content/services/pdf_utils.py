@@ -4,12 +4,23 @@ Shared PDF drawing utilities for ReportLab-based document generation.
 Provides brand colours, font registration, page layout constants,
 text processing helpers, and reusable drawing functions used by
 proposal_pdf_service and other PDF generators.
+
+Wrapping: prefer the width-accurate ``_wrap_by_width`` /
+``_measure_inline_width`` helpers (real glyph metrics, emoji- and
+markdown-aware) over the legacy char-count ``_md_wrap``; they guarantee
+measure == draw, which is what keeps text inside its box.
+
+Emoji policy: emoji is kept wherever text flows through the shared
+primitives (they sanitize with ``_sanitize_pdf_text`` and draw/measure
+with ``_draw_mixed_string`` / ``_mixed_string_width``). ``_strip_emoji``
+is only safe when the *same* stripped string is both measured and drawn
+— strip once at the top of a block, never strip in one place and wrap
+the raw text in another, or measurement and drawing diverge.
 """
 
 import io
 import logging
 import re
-import textwrap
 from functools import lru_cache
 from pathlib import Path
 
@@ -92,6 +103,16 @@ WHITE = colors.white
 
 # Derived colours
 ESMERALD_80 = colors.HexColor('#335550')  # esmerald at ~80% mixed with white
+
+# Accent / semantic colours used by shared PDF components
+MINT_TEXT = colors.HexColor('#A7F3D0')    # light mint text on esmerald bg
+LINK_GREEN = colors.HexColor('#059669')   # emerald-600 hyperlinks
+PILL_ROSE_BG = colors.HexColor('#FFF1F2')
+PILL_ROSE_FG = colors.HexColor('#BE123C')
+PILL_AMBER_BG = colors.HexColor('#FFFBEB')
+PILL_AMBER_FG = colors.HexColor('#B45309')
+PILL_GRAY_BG = colors.HexColor('#F3F4F6')
+PILL_GRAY_FG = colors.HexColor('#6B7280')
 
 # ── Cover / back-cover PDF paths ─────────────────────────────
 COVER_PDF = Path(settings.BASE_DIR) / 'static' / 'front_page' / 'Portada_Propuesta_ProjectApp.pdf'
@@ -519,6 +540,313 @@ def _break_long_tokens(lines, chars_per_line):
     return result
 
 
+# ─────────────────────────────────────────────────────────────
+# Width-accurate measurement and wrapping (real glyph metrics)
+#
+# The char-count wrappers above (_md_wrap / _visible_len) assume an
+# average glyph width and drift on digits, caps, URLs and emoji. The
+# helpers below measure with pdfmetrics.stringWidth using the exact
+# fonts the draw path will use, so measure == draw by construction.
+# ─────────────────────────────────────────────────────────────
+
+def _string_width_mixed(text, font_name, font_size):
+    """pdfmetrics.stringWidth across emoji/text runs (no canvas needed)."""
+    if not text:
+        return 0.0
+    if not _EMOJI_RE.search(text):
+        return pdfmetrics.stringWidth(text, font_name, font_size)
+    total = 0.0
+    for segment, is_emoji in _emoji_runs(text):
+        if is_emoji:
+            segment = _renderable_emoji(segment)
+            if not segment:
+                continue
+            total += pdfmetrics.stringWidth(segment, EMOJI_FONT, font_size)
+        else:
+            total += pdfmetrics.stringWidth(segment, font_name, font_size)
+    return total
+
+
+def _measure_inline_width(text, font_name, font_size, bold_font_name=None):
+    """Width of one line as _draw_line_with_links will draw it.
+
+    Tokenizes with the same _tokenize_inline the draw path uses and
+    measures every token in its real font (bold/italic/code/link),
+    including the inline-code background padding and emoji runs.
+    """
+    if not text:
+        return 0.0
+    _register_fonts()
+    if bold_font_name is None:
+        bold_font_name = _font('bold')
+    total = 0.0
+    for tok in _tokenize_inline(text):
+        tok_text = tok.get('text', '')
+        if not tok_text:
+            continue
+        tok_type = tok['type']
+        if tok_type == 'bold':
+            fn = bold_font_name
+        elif tok_type == 'italic':
+            fn = _font('italic')
+        elif tok_type == 'bold_italic':
+            fn = _font('bolditalic')
+        elif tok_type == 'code':
+            fn = 'Courier'
+        else:
+            fn = font_name
+        fs = max(font_size - 1, 7) if tok_type == 'code' else font_size
+        if tok_type == 'code':
+            # Code tokens are drawn raw (no emoji runs) plus bg padding.
+            total += pdfmetrics.stringWidth(tok_text, fn, fs) + 6
+        else:
+            total += _string_width_mixed(tok_text, fn, fs)
+    return total
+
+
+def _break_token_by_width(token, font_name, font_size, max_width):
+    """Break a whitespace-free token into chunks that each fit max_width.
+
+    Width-based counterpart of _break_long_tokens: prefers the rightmost
+    separator (/ | _ - . ,) inside the width budget and falls back to a
+    hard glyph boundary. A single glyph wider than max_width is emitted
+    as-is (progress is always guaranteed).
+    """
+    pieces = []
+    pending = token
+    guard = 0
+    while pending and guard < 500:
+        guard += 1
+        if _measure_inline_width(pending, font_name, font_size) <= max_width:
+            break
+        # Largest prefix that fits (binary search over chars).
+        lo, hi = 1, len(pending) - 1
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            if _measure_inline_width(
+                    pending[:mid], font_name, font_size) <= max_width:
+                lo = mid
+            else:
+                hi = mid - 1
+        cut = max(lo, 1)
+        window = pending[:cut]
+        best = -1
+        for m in _HARD_SEP_RE.finditer(window):
+            best = m.end()
+        if best >= max(2, cut // 3):
+            cut = best
+        pieces.append(pending[:cut])
+        pending = pending[cut:]
+    if pending:
+        pieces.append(pending)
+    return pieces or [token]
+
+
+def _wrap_by_width(text, font_name, font_size, max_width,
+                   bold_font_name=None):
+    """Width-accurate counterpart of _md_wrap. Returns wrapped lines.
+
+    Greedy word wrap with _measure_inline_width as the fit predicate,
+    keeping _md_wrap's guarantee that **bold** spans are never split
+    across lines. Overlong single tokens (URLs, enum strings) are broken
+    at separators / glyph boundaries.
+
+    Invariant: every returned line measures <= max_width (only a single
+    glyph that alone exceeds max_width can break it).
+    """
+    if text is None or text == '':
+        return ['']
+    text = str(text)
+    _register_fonts()
+    if bold_font_name is None:
+        bold_font_name = _font('bold')
+    if max_width <= 0:
+        return [text]
+
+    def _w(s):
+        return _measure_inline_width(s, font_name, font_size, bold_font_name)
+
+    words = text.split(' ')
+    lines, cur = [], []
+    for word in words:
+        if not cur:
+            cur = [word]
+            continue
+        if _w(' '.join(cur) + ' ' + word) > max_width:
+            lines.append(' '.join(cur))
+            cur = [word]
+        else:
+            cur.append(word)
+    if cur:
+        lines.append(' '.join(cur))
+    if not lines:
+        return [text]
+
+    # Fix bold spans split across lines: PULL the closing ** from the
+    # next line while it fits, else PUSH the opening ** words forward.
+    _DOUBLE_STAR = re.compile(r'\*{2}')
+    i = 0
+    while i < len(lines) - 1:
+        count = len(_DOUBLE_STAR.findall(lines[i]))
+        if count % 2 != 0:
+            dst_words = lines[i + 1].split(' ')
+            pulled = 0
+            pull_ok = False
+            for dw_idx in range(len(dst_words)):
+                candidate = lines[i] + ' ' + ' '.join(dst_words[:dw_idx + 1])
+                if _w(candidate) > max_width:
+                    break
+                pulled = dw_idx + 1
+                if len(_DOUBLE_STAR.findall(candidate)) % 2 == 0:
+                    pull_ok = True
+                    break
+
+            if pull_ok and pulled > 0:
+                lines[i] = lines[i] + ' ' + ' '.join(dst_words[:pulled])
+                remaining = dst_words[pulled:]
+                if remaining:
+                    lines[i + 1] = ' '.join(remaining)
+                else:
+                    lines.pop(i + 1)
+                    continue
+                i += 1
+                continue
+
+            src_words = lines[i].split(' ')
+            dst_words = lines[i + 1].split(' ')
+            moved = []
+            while src_words:
+                w = src_words.pop()
+                moved.insert(0, w)
+                if len(_DOUBLE_STAR.findall(' '.join(src_words))) % 2 == 0:
+                    break
+            if src_words:
+                lines[i] = ' '.join(src_words)
+                lines[i + 1] = ' '.join(moved + dst_words)
+            else:
+                lines[i + 1] = ' '.join(moved + dst_words)
+                lines.pop(i)
+                continue
+        i += 1
+
+    # Break any line still over budget (oversized token, or a span the
+    # push-rebalancing merged) at word/glyph boundaries.
+    normalized = []
+    for line in lines:
+        if _w(line) <= max_width:
+            normalized.append(line)
+            continue
+        rebuilt = []
+        for word in line.split(' '):
+            if word and _w(word) > max_width:
+                rebuilt.extend(
+                    _break_token_by_width(word, font_name, font_size,
+                                          max_width))
+            else:
+                rebuilt.append(word)
+        normalized.extend(
+            _split_line_balanced(' '.join(rebuilt), _w, max_width))
+    # Final safety pass: close any **bold**/*italic* span left open at a
+    # line end and reopen it on the next line, so a span broken by the
+    # plain greedy wrap never leaks literal asterisks.
+    return _rebalance_lines(normalized) or [text]
+
+
+def _rebalance_lines(lines):
+    """Close open **bold**/*italic* spans at each line end, reopen next.
+
+    Recomputes emphasis state per line: whatever span is still open when
+    a line ends is closed with its markers, and the following line is
+    re-opened with the same markers. Idempotent on already-balanced
+    lines (a fully-closed span adds nothing).
+    """
+    result = []
+    bold_carry = italic_carry = False
+    for line in lines:
+        prefix = ('**' if bold_carry else '') + ('*' if italic_carry else '')
+        text = prefix + line
+        bold_carry, italic_carry = _md_marker_state(text)
+        suffix = ('*' if italic_carry else '') + ('**' if bold_carry else '')
+        result.append(text + suffix)
+    return result
+
+
+def _md_marker_state(text):
+    """Return (bold_open, italic_open) after parsing markdown markers.
+
+    ``**`` toggles bold and is matched before a lone ``*`` (which toggles
+    italic), mirroring how _tokenize_inline consumes them.
+    """
+    i = 0
+    bold = italic = False
+    while i < len(text):
+        if text[i:i + 2] == '**':
+            bold = not bold
+            i += 2
+        elif text[i] == '*':
+            italic = not italic
+            i += 1
+        else:
+            i += 1
+    return bold, italic
+
+
+def _split_line_balanced(line, w_fn, max_width):
+    """Split an overweight line at word boundaries with balanced markers.
+
+    A ``**bold**`` or ``*italic*`` span longer than one physical line
+    cannot keep its markers on a single line, so each emitted piece
+    closes any open span and the next piece re-opens it — every piece
+    parses (and measures) as real emphasis instead of leaking literal
+    asterisks. Proper nesting order is preserved: bold opens outermost,
+    italic closes innermost.
+    """
+    words = [x for x in line.split(' ') if x != '']
+    if not words:
+        return [line]
+
+    def emit(cur_words, bold_in, italic_in):
+        prefix = ('**' if bold_in else '') + ('*' if italic_in else '')
+        txt = prefix + ' '.join(cur_words)
+        bold_out, italic_out = _md_marker_state(txt)
+        suffix = ('*' if italic_out else '') + ('**' if bold_out else '')
+        return txt + suffix, bold_out, italic_out
+
+    pieces, cur = [], []
+    bold_carry = italic_carry = False
+    for word in words:
+        trial_txt, _, _ = emit(cur + [word], bold_carry, italic_carry)
+        if cur and w_fn(trial_txt) > max_width:
+            txt, bold_carry, italic_carry = emit(cur, bold_carry, italic_carry)
+            pieces.append(txt)
+            cur = [word]
+        else:
+            cur.append(word)
+    if cur:
+        txt, _, _ = emit(cur, bold_carry, italic_carry)
+        pieces.append(txt)
+    return pieces or [line]
+
+
+def _fit_text_ellipsis(text, font_name, font_size, max_w):
+    """Truncate *text* with an ellipsis so it fits max_w when drawn.
+
+    Returns the text unchanged when it already fits. Never returns a
+    string wider than max_w (empty string when even '…' does not fit).
+    """
+    text = str(text if text is not None else '')
+    _register_fonts()
+    if _string_width_mixed(text, font_name, font_size) <= max_w:
+        return text
+    ell = '…'
+    if pdfmetrics.stringWidth(ell, font_name, font_size) > max_w:
+        return ''
+    while text and _string_width_mixed(
+            text.rstrip() + ell, font_name, font_size) > max_w:
+        text = text[:-1]
+    return (text.rstrip() + ell) if text else ell
+
+
 # Compiled once at module level — used by _tokenize_inline
 _INLINE_RE = re.compile(
     r'(?P<bold_italic>\*{3}(?P<bi_text>.+?)\*{3})'
@@ -598,7 +926,7 @@ def _draw_line_with_links(c, x, y, line, font_name, font_size, text_color,
     whitespace across word boundaries so the line fills *max_width*.
     """
     if link_color is None:
-        link_color = colors.HexColor('#059669')  # emerald-600
+        link_color = LINK_GREEN
     if bold_font_name is None:
         bold_font_name = _font('bold')
 
@@ -730,6 +1058,32 @@ def _check_y(c, y, ps, need=20):
     return y
 
 
+def _check_y_with_redraw(c, y, ps, need=20, redraw=None):
+    """_check_y variant that re-draws context after a page break.
+
+    When the page breaks, *redraw* is called as ``redraw(c, y) -> y``
+    before returning — e.g. to re-paint a table header row so rows that
+    continue on the next page keep their column context.
+    """
+    if y < MARGIN_B + need:
+        y = _new_page(c, ps)
+        if redraw is not None:
+            y = redraw(c, y)
+    return y
+
+
+def _split_lines_for_page(lines, line_h, avail_h):
+    """Split wrapped lines into (head, tail) so head fits in avail_h.
+
+    Always takes at least one line so callers make progress even when
+    avail_h is smaller than a single line.
+    """
+    if not lines:
+        return [], []
+    n = max(int(avail_h // line_h), 1)
+    return lines[:n], lines[n:]
+
+
 # ─────────────────────────────────────────────────────────────
 # Drawing helpers
 # ─────────────────────────────────────────────────────────────
@@ -776,15 +1130,9 @@ def _draw_section_header(c, y, index_str, title, ps=None):
         y -= 22
     c.setFont(_font('light'), 24)
     c.setFillColor(ESMERALD)
-    max_chars = 38
     clean_title = _sanitize_pdf_text(title)
-    if _visible_len(clean_title) > max_chars:
-        lines = textwrap.wrap(clean_title, width=max_chars)
-        for line in lines:
-            _draw_mixed_string(c, MARGIN_L, y, line, _font('light'), 24)
-            y -= 30
-    else:
-        _draw_mixed_string(c, MARGIN_L, y, clean_title, _font('light'), 24)
+    for line in _wrap_by_width(clean_title, _font('light'), 24, CONTENT_W):
+        _draw_mixed_string(c, MARGIN_L, y, line, _font('light'), 24)
         y -= 30
     # Thin accent line
     c.setStrokeColor(LEMON)
@@ -792,6 +1140,18 @@ def _draw_section_header(c, y, index_str, title, ps=None):
     c.line(MARGIN_L, y + 6, MARGIN_L + 60, y + 6)
     y -= 18
     return y
+
+
+def _section_header_height(title, index_str='01'):
+    """Exact height _draw_section_header will consume for *title*.
+
+    Keep in sync with _draw_section_header: index row (22) + 30 per
+    wrapped title line + 18 after the accent line.
+    """
+    h = 22 if index_str else 0
+    clean_title = _sanitize_pdf_text(title)
+    lines = _wrap_by_width(clean_title, _font('light'), 24, CONTENT_W)
+    return h + 30 * max(len(lines), 1) + 18
 
 
 def _draw_paragraphs(c, y, paragraphs, max_width=None, font_size=10,
@@ -802,13 +1162,14 @@ def _draw_paragraphs(c, y, paragraphs, max_width=None, font_size=10,
         max_width = CONTENT_W
     if x is None:
         x = MARGIN_L
-    chars_per_line = int(max_width / (font_size * 0.48))
     fn = font_name or _font('regular')
+    bfn = bold_font_name or _font('bold')
     for para in (paragraphs or []):
         if not para:
             continue
         clean, _links = _replace_urls_with_placeholders(_sanitize_pdf_text(str(para)))
-        lines = _md_wrap(clean, chars_per_line)
+        lines = _wrap_by_width(clean, fn, font_size, max_width,
+                               bold_font_name=bfn)
         if ps and len(lines) > 1 and y < MARGIN_B + leading * 2:
             y = _new_page(c, ps)
         for i, line in enumerate(lines):
@@ -827,17 +1188,23 @@ def _draw_paragraphs(c, y, paragraphs, max_width=None, font_size=10,
     return y
 
 
-def _estimate_text_height(paragraphs, max_width=None, font_size=10, leading=15):
-    """Pre-estimate vertical height for wrapped paragraphs without drawing."""
+def _estimate_text_height(paragraphs, max_width=None, font_size=10, leading=15,
+                          font_name=None, bold_font_name=None):
+    """Pre-estimate vertical height for wrapped paragraphs without drawing.
+
+    Pass *font_name*/*bold_font_name* when the caller draws with a font
+    other than the regular one so the estimate matches the drawing.
+    """
     if max_width is None:
         max_width = CONTENT_W
-    chars = int(max_width / (font_size * 0.48))
+    fn = font_name or _font('regular')
     total = 0
     for para in (paragraphs or []):
         if not para:
             continue
         clean, _links = _replace_urls_with_placeholders(_sanitize_pdf_text(str(para)))
-        total += len(_md_wrap(clean, chars)) * leading + 5
+        total += len(_wrap_by_width(clean, fn, font_size, max_width,
+                                    bold_font_name=bold_font_name)) * leading + 5
     return total
 
 
@@ -849,7 +1216,6 @@ def _draw_bullet_list(c, y, items, x=None, max_width=None,
         max_width = CONTENT_W
     if x is None:
         x = MARGIN_L
-    chars_per_line = int(max_width / (font_size * 0.48))
     fn = _font('regular')
     for item_idx, item in enumerate(items or []):
         # Support both legacy string items and new dict items {text, children}
@@ -861,7 +1227,14 @@ def _draw_bullet_list(c, y, items, x=None, max_width=None,
             children  = []
 
         clean = _sanitize_pdf_text(item_text)
-        lines = _md_wrap(clean, chars_per_line - 4)
+        first_prefix = (f'  {item_idx + 1}.  ' if numbered
+                        else f'  {bullet}  ')
+        prefix_w = max(
+            pdfmetrics.stringWidth(first_prefix, fn, font_size),
+            pdfmetrics.stringWidth('      ', fn, font_size),
+        )
+        lines = _wrap_by_width(clean, fn, font_size,
+                               max(max_width - prefix_w, 30))
         if ps and len(lines) > 1 and y < MARGIN_B + leading * 2:
             y = _new_page(c, ps)
         for i, line in enumerate(lines):
@@ -889,10 +1262,15 @@ def _draw_bullet_list(c, y, items, x=None, max_width=None,
         if children:
             child_x = x + 18
             child_bullet = '\u2013'  # en-dash
-            child_chars = int((max_width - 18) / (font_size * 0.48))
+            child_prefix_w = max(
+                pdfmetrics.stringWidth(f'  {child_bullet}  ', fn, font_size),
+                pdfmetrics.stringWidth('      ', fn, font_size),
+            )
             for child in children:
                 child_clean = _sanitize_pdf_text(str(child))
-                child_lines = _md_wrap(child_clean, child_chars - 4)
+                child_lines = _wrap_by_width(
+                    child_clean, fn, font_size,
+                    max(max_width - 18 - child_prefix_w, 30))
                 for ci, cline in enumerate(child_lines):
                     if ps:
                         y = _check_y(c, y, ps)
@@ -910,14 +1288,34 @@ def _draw_bullet_list(c, y, items, x=None, max_width=None,
     return y
 
 
+def _wrap_sidebar_items(items, sw):
+    """Wrap sidebar items exactly as _draw_sidebar_box draws them.
+
+    Single source of truth for _sidebar_box_height and _draw_sidebar_box
+    so the estimated and the drawn heights can never diverge. Returns a
+    list of line-lists (one per item).
+    """
+    fn = _font('regular')
+    prefix_w = max(
+        pdfmetrics.stringWidth('\u2022  ', fn, 9),
+        pdfmetrics.stringWidth('    ', fn, 9),
+    )
+    avail = max(sw - 20 - prefix_w, 30)
+    return [
+        _wrap_by_width(_clean_inline_bold(_sanitize_pdf_text(str(it))),
+                       fn, 9, avail) or ['']
+        for it in (items or [])
+    ]
+
+
 def _sidebar_box_height(items, sidebar_w=None):
     """Pre-calculate the height a sidebar box would occupy (without drawing)."""
     sw = sidebar_w or SIDEBAR_W
     line_h = 13
     header_h = 22
     items_h = sum(
-        max(1, len(textwrap.wrap(str(it), width=int(sw / 5.2)))) * line_h + 2
-        for it in (items or [])
+        max(1, len(lines)) * line_h + 2
+        for lines in _wrap_sidebar_items(items, sw)
     )
     return header_h + items_h + 14
 
@@ -929,10 +1327,8 @@ def _draw_sidebar_box(c, y_start, title, items, sidebar_x=None,
     sw = sidebar_w or SIDEBAR_W
     line_h = 13
     header_h = 22
-    items_h = sum(
-        max(1, len(textwrap.wrap(str(it), width=int(sw / 5.2)))) * line_h + 2
-        for it in (items or [])
-    )
+    wrapped = _wrap_sidebar_items(items, sw)
+    items_h = sum(max(1, len(lines)) * line_h + 2 for lines in wrapped)
     box_h = header_h + items_h + 14
     box_y = y_start - box_h
 
@@ -947,10 +1343,7 @@ def _draw_sidebar_box(c, y_start, title, items, sidebar_x=None,
 
     c.setFont(_font('regular'), 9)
     c.setFillColor(ESMERALD_80)
-    chars = int(sw / 5.2)
-    for item in (items or []):
-        text = _clean_inline_bold(_sanitize_pdf_text(str(item)))
-        lines = textwrap.wrap(text, width=chars)
+    for lines in wrapped:
         for j, line in enumerate(lines):
             prefix = '\u2022  ' if j == 0 else '    '
             _draw_mixed_string(c, sx + 10, inner_y, f'{prefix}{line}', _font('regular'), 9)
@@ -1001,17 +1394,18 @@ def _draw_banner_box(c, x, y, width, text, bg_color=BONE,
     pad_x = 12
     pad_y = 10
 
-    # Calculate available width for body text
+    # Calculate available width for body text. The icon is measured and
+    # drawn through the emoji-aware primitives so glyphs like the U+2713
+    # check mark (which the brand fonts lack) render instead of tofu.
     icon_w = 0
     if icon_text:
-        icon_w = pdfmetrics.stringWidth(
-            icon_text, _font('bold'), font_size
+        icon_w = _mixed_string_width(
+            c, icon_text, _font('bold'), font_size
         ) + 6
 
     avail_w = width - 2 * pad_x - icon_w
-    char_w = font_size * 0.48
-    wrap_width = max(int(avail_w / char_w), 20)
-    lines = textwrap.wrap(text, width=wrap_width)
+    lines = _wrap_by_width(text, _font('regular'), font_size,
+                           max(avail_w, 30))
     if not lines:
         lines = ['']
 
@@ -1028,7 +1422,8 @@ def _draw_banner_box(c, x, y, width, text, bg_color=BONE,
     if icon_text:
         c.setFont(_font('bold'), font_size)
         c.setFillColor(text_color)
-        c.drawString(inner_x, text_top_y, icon_text)
+        _draw_mixed_string(c, inner_x, text_top_y, icon_text,
+                           _font('bold'), font_size)
         inner_x += icon_w
 
     c.setFont(_font('regular'), font_size)
@@ -1038,6 +1433,179 @@ def _draw_banner_box(c, x, y, width, text, bg_color=BONE,
         _draw_mixed_string(c, inner_x, ty, line, _font('regular'), font_size)
         ty -= leading
     return box_y - 6
+
+
+# ─────────────────────────────────────────────────────────────
+# Composite components: KPI tiles, feature rows, priority pills
+# ─────────────────────────────────────────────────────────────
+
+def _draw_kpi_tile_row(c, y, tiles, ps=None, x=None, max_width=None,
+                       accent_first=False):
+    """Draw a row of KPI tiles (headline figures). Returns new y.
+
+    Args:
+        tiles: list of dicts {'value': '$14.900.000', 'label':
+            'Inversión total', 'sub': '+ IVA'} — 'sub' is optional and
+            drawn after the value when it fits.
+        accent_first: paint the first tile ESMERALD with white value.
+
+    Tiles never shrink below ~110pt: extra tiles wrap to another row.
+    Values auto-shrink 14 -> 11pt and then ellipsize, so long figures
+    can never overflow their tile.
+    """
+    tiles = [t for t in (tiles or [])
+             if _safe(t, 'value') or _safe(t, 'label')]
+    if not tiles:
+        return y
+    if x is None:
+        x = MARGIN_L
+    if max_width is None:
+        max_width = CONTENT_W
+    gap = 10
+    tile_h = 44
+    fn_bold = _font('bold')
+    fn_med = _font('medium')
+
+    max_per_row = max(int((max_width + gap) // (110 + gap)), 1)
+    rows = [tiles[i:i + max_per_row]
+            for i in range(0, len(tiles), max_per_row)]
+
+    first_overall = True
+    for row in rows:
+        n = len(row)
+        tile_w = (max_width - gap * (n - 1)) / n
+        if ps:
+            y = _check_y(c, y, ps, need=tile_h + 8)
+        ty = y - tile_h
+        for i, tile in enumerate(row):
+            tx = x + i * (tile_w + gap)
+            accent = accent_first and first_overall and i == 0
+            c.setFillColor(ESMERALD if accent else ESMERALD_LIGHT)
+            c.roundRect(tx, ty, tile_w, tile_h, 6, fill=1, stroke=0)
+
+            inner_w = tile_w - 20
+            value = _sanitize_pdf_text(str(_safe(tile, 'value')))
+            vsize = 14
+            while vsize > 11 and _string_width_mixed(
+                    value, fn_bold, vsize) > inner_w:
+                vsize -= 1
+            value = _fit_text_ellipsis(value, fn_bold, vsize, inner_w)
+            c.setFont(fn_bold, vsize)
+            c.setFillColor(WHITE if accent else ESMERALD)
+            val_end = _draw_mixed_string(c, tx + 10, ty + tile_h - 20,
+                                         value, fn_bold, vsize)
+
+            sub = _sanitize_pdf_text(str(_safe(tile, 'sub')))
+            if sub:
+                sub_w = _string_width_mixed(sub, fn_med, 7)
+                if val_end + 4 + sub_w <= tx + tile_w - 10:
+                    c.setFont(fn_med, 7)
+                    c.setFillColor(MINT_TEXT if accent else GRAY_500)
+                    _draw_mixed_string(c, val_end + 4, ty + tile_h - 20,
+                                       sub, fn_med, 7)
+
+            label = _sanitize_pdf_text(str(_safe(tile, 'label')))
+            label = _fit_text_ellipsis(label, fn_med, 7.5, inner_w)
+            c.setFont(fn_med, 7.5)
+            c.setFillColor(MINT_TEXT if accent else GRAY_500)
+            _draw_mixed_string(c, tx + 10, ty + 12, label, fn_med, 7.5)
+        y = ty - 8
+        first_overall = False
+    return y
+
+
+def _draw_feature_row(c, y, title, description=None, ps=None, x=None,
+                      max_width=None, index=None, pill_text=None,
+                      pill_bg=ESMERALD_LIGHT, pill_fg=ESMERALD,
+                      children=None):
+    """Draw a feature row: numbered chip + bold title + right pill +
+    wrapped description + optional nested bullets. Returns new y.
+
+    Replaces fixed-height card grids: every part is measured, so long
+    titles wrap (never under the pill) and nothing truncates silently.
+    """
+    if x is None:
+        x = MARGIN_L
+    if max_width is None:
+        max_width = CONTENT_W
+    fn_bold = _font('bold')
+
+    title_clean = _clean_inline_bold(_sanitize_pdf_text(str(title or '')))
+    pill_clean = _sanitize_pdf_text(str(pill_text)) if pill_text else ''
+    pill_w = 0.0
+    if pill_clean:
+        pill_w = _string_width_mixed(pill_clean, _font('medium'), 7) + 16
+
+    chip_w = 22 if index is not None else 0
+    text_x = x + chip_w
+    title_avail = max(max_width - chip_w - (pill_w + 8 if pill_w else 0), 40)
+    title_lines = _wrap_by_width(title_clean, fn_bold, 11, title_avail)
+
+    desc_clean = _sanitize_pdf_text(str(description)) if description else ''
+    first_need = 30 + (13 if desc_clean else 0)
+    if ps:
+        y = _check_y(c, y, ps, need=first_need)
+
+    if index is not None:
+        c.setFillColor(ESMERALD)
+        c.circle(x + 8, y + 3.5, 8, fill=1, stroke=0)
+        c.setFont(fn_bold, 9)
+        c.setFillColor(WHITE)
+        c.drawCentredString(x + 8, y, str(index))
+
+    if pill_clean:
+        _draw_pill(c, x + max_width - pill_w, y, pill_clean,
+                   pill_bg, pill_fg)
+
+    for i, line in enumerate(title_lines):
+        if ps and i > 0:
+            y = _check_y(c, y, ps, need=15)
+        c.setFont(fn_bold, 11)
+        c.setFillColor(ESMERALD)
+        _draw_mixed_string(c, text_x, y, line, fn_bold, 11)
+        y -= 15
+
+    if desc_clean:
+        y -= 1
+        y = _draw_paragraphs(c, y, [desc_clean],
+                             max_width=max_width - chip_w, x=text_x,
+                             font_size=9, leading=13, ps=ps)
+
+    if children:
+        y = _draw_bullet_list(c, y, children, x=text_x,
+                              max_width=max_width - chip_w,
+                              font_size=8, leading=11, ps=ps)
+
+    return y - 6
+
+
+_REQ_PRIORITY_LABELS = {
+    'es': {'critical': 'Crítico', 'high': 'Alta', 'medium': 'Media', 'low': 'Baja'},
+    'en': {'critical': 'Critical', 'high': 'High', 'medium': 'Medium', 'low': 'Low'},
+}
+
+_PRIORITY_PILL_COLORS = {
+    'critical': (PILL_ROSE_BG, PILL_ROSE_FG),
+    'high': (PILL_AMBER_BG, PILL_AMBER_FG),
+    'medium': (ESMERALD_LIGHT, ESMERALD),
+    'low': (PILL_GRAY_BG, PILL_GRAY_FG),
+}
+
+
+def _draw_priority_pill(c, x, y, priority, lang='es'):
+    """Draw a semantic-color priority badge. Returns (right_x, bottom_y).
+
+    critical -> rose, high -> amber, medium -> esmerald, low -> gray.
+    Unknown values render a neutral pill with the raw text capitalized;
+    empty values draw nothing and return (x, y).
+    """
+    key = str(priority or '').strip().lower()
+    if not key:
+        return x, y
+    labels = _REQ_PRIORITY_LABELS.get(lang) or _REQ_PRIORITY_LABELS['es']
+    label = labels.get(key) or key.capitalize()
+    bg, fg = _PRIORITY_PILL_COLORS.get(key, (ESMERALD_LIGHT, ESMERALD))
+    return _draw_pill(c, x, y, label, bg, fg)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1100,8 +1668,22 @@ def _clean_inline_bold(text):
 # New drawing functions
 # ─────────────────────────────────────────────────────────────
 
-def _draw_table(c, y, headers, rows, ps=None, max_width=None):
-    """Draw a table with header row and data rows. Returns new y."""
+def _draw_table(c, y, headers, rows, ps=None, max_width=None,
+                col_widths=None, aligns=None):
+    """Draw a table with header row and data rows. Returns new y.
+
+    Args:
+        col_widths: Optional relative column width fractions
+            (len == len(headers)); normalized internally. Equal
+            widths when omitted.
+        aligns: Optional per-column alignment, 'left' | 'center' |
+            'right' (money/number columns read best right-aligned).
+            Defaults to left.
+
+    The header row repeats after every page break, and a row taller
+    than a full page is split into chunks across pages instead of
+    overrunning the bottom margin.
+    """
     if not headers:
         return y
     if max_width is None:
@@ -1109,91 +1691,144 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None):
 
     x_start = MARGIN_L
     num_cols = len(headers)
-    col_w = max_width / num_cols
+    if col_widths and len(col_widths) == num_cols and sum(col_widths) > 0:
+        total_frac = float(sum(col_widths))
+        widths = [max_width * (w / total_frac) for w in col_widths]
+    else:
+        widths = [max_width / num_cols] * num_cols
+    if not aligns or len(aligns) != num_cols:
+        aligns = ['left'] * num_cols
+    x_offsets = []
+    acc = x_start
+    for w in widths:
+        x_offsets.append(acc)
+        acc += w
+
     cell_pad_h = 6
     cell_pad_v = 4
     header_font_size = 9
     data_font_size = 8
     leading = 12
+    fn_bold = _font('bold')
+    fn = _font('regular')
+
+    def _cell_x(ci, line, cell_fn, cell_fs):
+        """Anchor x for a line inside column ci honoring its alignment."""
+        if aligns[ci] == 'left':
+            return x_offsets[ci] + cell_pad_h
+        lw = _measure_inline_width(line, cell_fn, cell_fs)
+        if aligns[ci] == 'right':
+            return x_offsets[ci] + widths[ci] - cell_pad_h - lw
+        return x_offsets[ci] + (widths[ci] - lw) / 2.0
 
     def _draw_header_row(c, y):
         """Draw the header row and return new y."""
-        # Calculate header row height
+        wrapped_h = []
         max_lines = 1
-        for h in headers:
+        for ci, h in enumerate(headers):
             clean = _sanitize_pdf_text(str(h))
-            chars = int((col_w - 2 * cell_pad_h) / (header_font_size * 0.48))
-            lines = textwrap.wrap(clean, width=max(chars, 10))
-            max_lines = max(max_lines, len(lines) if lines else 1)
+            lines = _wrap_by_width(clean, fn_bold, header_font_size,
+                                   max(widths[ci] - 2 * cell_pad_h, 20))
+            wrapped_h.append(lines or [''])
+            max_lines = max(max_lines, len(lines) or 1)
         row_h = max_lines * leading + 2 * cell_pad_v
 
-        # Background
         c.setFillColor(ESMERALD)
         c.rect(x_start, y - row_h, max_width, row_h, fill=1, stroke=0)
 
-        # Text
-        for ci, h in enumerate(headers):
-            cx = x_start + ci * col_w + cell_pad_h
-            clean = _sanitize_pdf_text(str(h))
-            chars = int((col_w - 2 * cell_pad_h) / (header_font_size * 0.48))
-            lines = textwrap.wrap(clean, width=max(chars, 10)) or ['']
+        for ci, lines in enumerate(wrapped_h):
             ty = y - cell_pad_v - header_font_size + 2
             for line in lines:
-                c.setFont(_font('bold'), header_font_size)
+                c.setFont(fn_bold, header_font_size)
                 c.setFillColor(WHITE)
-                _draw_mixed_string(c, cx, ty, line, _font('bold'), header_font_size)
+                _draw_mixed_string(
+                    c, _cell_x(ci, line, fn_bold, header_font_size),
+                    ty, line, fn_bold, header_font_size)
                 ty -= leading
 
         return y - row_h
+
+    def _draw_row_slice(c, y, wrapped, start, take, bg, v_center):
+        """Draw *take* lines of every cell starting at *start*. Returns y."""
+        slice_max = max(
+            (min(len(lines) - start, take) for lines in wrapped if
+             len(lines) > start),
+            default=0,
+        )
+        slice_max = max(slice_max, 1)
+        chunk_h = slice_max * leading + 2 * cell_pad_v
+
+        c.setFillColor(bg)
+        c.rect(x_start, y - chunk_h, max_width, chunk_h, fill=1, stroke=0)
+        c.setStrokeColor(GRAY_300)
+        c.setLineWidth(0.4)
+        c.line(x_start, y - chunk_h, x_start + max_width, y - chunk_h)
+
+        for ci, lines in enumerate(wrapped):
+            cell_slice = lines[start:start + take]
+            if not cell_slice:
+                continue
+            v_offset = 0
+            if v_center:
+                v_offset = (slice_max - len(cell_slice)) * leading / 2
+            ty = y - cell_pad_v - v_offset - data_font_size + 2
+            for line in cell_slice:
+                if aligns[ci] == 'left':
+                    _draw_line_with_links(c, x_offsets[ci] + cell_pad_h, ty,
+                                          line, fn, data_font_size,
+                                          ESMERALD_80)
+                else:
+                    _draw_line_with_links(
+                        c, _cell_x(ci, line, fn, data_font_size), ty,
+                        line, fn, data_font_size, ESMERALD_80)
+                ty -= leading
+
+        return y - chunk_h
 
     # Draw initial header
     if ps:
         y = _check_y(c, y, ps, need=40)
     y = _draw_header_row(c, y)
 
-    # Draw data rows
-    chars = max(int((col_w - 2 * cell_pad_h) / (data_font_size * 0.48)), 10)
+    page_capacity = PAGE_H - MARGIN_T - MARGIN_B - 60
+
     for ri, row in enumerate(rows or []):
         # Wrap each cell once and reuse for height + render.
         wrapped = []
         max_lines = 1
-        for cell in row:
-            lines = _break_long_tokens(
-                _md_wrap(_sanitize_pdf_text(str(cell)), chars), chars,
-            )
-            wrapped.append(lines)
+        for ci, cell in enumerate(row):
+            if ci >= num_cols:
+                break
+            lines = _wrap_by_width(_sanitize_pdf_text(str(cell)), fn,
+                                   data_font_size,
+                                   max(widths[ci] - 2 * cell_pad_h, 20))
+            wrapped.append(lines or [''])
             max_lines = max(max_lines, len(lines) or 1)
         row_h = max_lines * leading + 2 * cell_pad_v
-
-        # Check pagination
-        if ps and y - row_h < MARGIN_B + 20:
-            y = _new_page(c, ps)
-            y = _draw_header_row(c, y)
-
-        # Alternating background
         bg = ESMERALD_LIGHT if ri % 2 == 0 else WHITE
-        c.setFillColor(bg)
-        c.rect(x_start, y - row_h, max_width, row_h, fill=1, stroke=0)
 
-        # Bottom border
-        c.setStrokeColor(GRAY_300)
-        c.setLineWidth(0.4)
-        c.line(x_start, y - row_h, x_start + max_width, y - row_h)
-
-        # Cell text — vertically centered within the row so short cells
-        # (e.g. single-line "#" column) align with the mid-line of taller
-        # multi-line cells instead of sitting flush with the top.
-        fn = _font('regular')
-        for ci, lines in enumerate(wrapped):
-            cx = x_start + ci * col_w + cell_pad_h
-            cell_lines = len(lines) or 1
-            v_offset = (max_lines - cell_lines) * leading / 2
-            ty = y - cell_pad_v - v_offset - data_font_size + 2
-            for line in lines:
-                _draw_line_with_links(c, cx, ty, line, fn, data_font_size, ESMERALD_80)
-                ty -= leading
-
-        y -= row_h
+        if row_h <= page_capacity or not ps:
+            # Normal row: fits on one page (header repeats on break).
+            if ps and y - row_h < MARGIN_B + 20:
+                y = _new_page(c, ps)
+                y = _draw_header_row(c, y)
+            y = _draw_row_slice(c, y, wrapped, 0, max_lines, bg,
+                                v_center=True)
+        else:
+            # Row taller than a page: draw it in chunks, repeating the
+            # header, so it never overruns the bottom margin.
+            offset = 0
+            while offset < max_lines:
+                avail = y - (MARGIN_B + 20) - 2 * cell_pad_v
+                if avail < leading:
+                    y = _new_page(c, ps)
+                    y = _draw_header_row(c, y)
+                    avail = y - (MARGIN_B + 20) - 2 * cell_pad_v
+                take = max(int(avail // leading), 1)
+                take = min(take, max_lines - offset)
+                y = _draw_row_slice(c, y, wrapped, offset, take, bg,
+                                    v_center=False)
+                offset += take
 
     return y - 6
 
@@ -1209,8 +1844,7 @@ def _draw_blockquote(c, y, text, ps=None):
     pad = 12
     accent_w = 3
     avail_w = CONTENT_W - 2 * pad - accent_w
-    chars = int(avail_w / (font_size * 0.48))
-    lines = _md_wrap(clean, max(chars, 20))
+    lines = _wrap_by_width(clean, _font('regular'), font_size, avail_w)
     if not lines:
         lines = ['']
 
@@ -1249,7 +1883,7 @@ _CALLOUT_STYLES = {
 }
 
 
-def _draw_callout_box(c, y, text, style='note', ps=None):
+def _draw_callout_box(c, y, text, style='note', ps=None, label=None):
     """Draw a GitHub-style callout box with a left accent bar and label.
 
     Args:
@@ -1258,11 +1892,13 @@ def _draw_callout_box(c, y, text, style='note', ps=None):
         text: Body text (supports inline markdown formatting).
         style: One of note | tip | important | warning | caution.
         ps: Pagination state dict.
+        label: Optional label text override (keeps the style colors),
+            e.g. 'VIGENCIA' on an important callout.
     """
     cfg = _CALLOUT_STYLES.get(style, _CALLOUT_STYLES['note'])
     bg_color   = colors.HexColor(cfg['bg'])
     bar_color  = colors.HexColor(cfg['bar'])
-    label_text = cfg['label']
+    label_text = label or cfg['label']
 
     font_size  = 9
     label_size = 8
@@ -1274,10 +1910,12 @@ def _draw_callout_box(c, y, text, style='note', ps=None):
 
     # Wrap text to calculate height
     text_w = CONTENT_W - bar_w - pad_x * 2
-    chars = max(int(text_w / (font_size * 0.48)), 20)
     wrapped_lines = []
     for raw_line in (text or '').split('\n'):
-        wrapped_lines.extend(_md_wrap(raw_line.strip(), chars) if raw_line.strip() else [''])
+        wrapped_lines.extend(
+            _wrap_by_width(raw_line.strip(), _font('regular'), font_size,
+                           text_w)
+            if raw_line.strip() else [''])
     if not wrapped_lines:
         wrapped_lines = ['']
 
@@ -1472,21 +2110,19 @@ def _draw_decorative_title_page(c, document_label, client_name, date_str, ps):
     c.setFillColor(GREEN_LIGHT)
     c.drawCentredString(PAGE_W / 2, mid_y + 60, document_label)
 
-    # Client name — large, centred
+    # Client name — large, centred, wrapped by real width (max 3 lines)
     name = _sanitize_pdf_text(client_name or 'Cliente')
     c.setFont(_font('light'), 36)
     c.setFillColor(ESMERALD)
-    if _visible_len(name) > 22:
-        lines = textwrap.wrap(name, width=22)
-        ny = mid_y + 10
-        for line in lines:
-            _draw_mixed_centred(c, PAGE_W / 2, ny, line, _font('light'), 36)
-            ny -= 44
-    else:
-        _draw_mixed_centred(c, PAGE_W / 2, mid_y + 10, name, _font('light'), 36)
+    name_lines = _wrap_by_width(name, _font('light'), 36, PAGE_W - 120)[:3]
+    ny = mid_y + 10
+    for line in name_lines:
+        _draw_mixed_centred(c, PAGE_W / 2, ny, line, _font('light'), 36)
+        ny -= 44
 
-    # Decorative divider line with lemon accent
-    line_y = mid_y - 40
+    # Decorative divider line with lemon accent — flows below the last
+    # name line instead of overprinting multi-line names.
+    line_y = mid_y + 10 - 44 * (len(name_lines) - 1) - 50
     c.setStrokeColor(LEMON)
     c.setLineWidth(2)
     c.line(PAGE_W / 2 - 60, line_y, PAGE_W / 2 + 60, line_y)
