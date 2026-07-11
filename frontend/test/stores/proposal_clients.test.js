@@ -202,6 +202,27 @@ describe('useProposalClientsStore', () => {
       expect(inFlightLoading).toBe(true);
       expect(store.isLoading).toBe(false);
     });
+
+    it('silent=true refreshes clients without touching isLoading', async () => {
+      let inFlightLoading;
+      get_request.mockImplementationOnce(() => {
+        inFlightLoading = store.isLoading;
+        return Promise.resolve({ data: [{ id: 1, name: 'Acme', is_orphan: false }] });
+      });
+      const result = await store.fetchClients({ silent: true });
+      expect(inFlightLoading).toBe(false);
+      expect(store.isLoading).toBe(false);
+      expect(result.success).toBe(true);
+      expect(store.clients).toHaveLength(1);
+    });
+
+    it('silent=true leaves isLoading untouched on failure', async () => {
+      get_request.mockRejectedValueOnce({ response: { data: { error: 'boom' } } });
+      const result = await store.fetchClients({ silent: true });
+      expect(result.success).toBe(false);
+      expect(store.isLoading).toBe(false);
+      expect(store.error).toBe('boom');
+    });
   });
 
   // -------------------------------------------------------------------

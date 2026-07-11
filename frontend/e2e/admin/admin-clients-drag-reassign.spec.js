@@ -2,8 +2,9 @@
  * E2E tests for drag-and-drop reassignment in the admin clients page.
  *
  * Covers: dragging a proposal/diagnostic row from an expanded client onto
- * another client card header PATCHes client_id, and dropping on the source
- * client is a no-op. Native DnD is simulated with a shared DataTransfer
+ * another client card header OR its matching proposals/diagnostics zone
+ * PATCHes client_id; dropping on the source client or on a zone of the
+ * other type is a no-op. Native DnD is simulated with a shared DataTransfer
  * handle + dispatchEvent (Playwright's dragAndDrop is unreliable with
  * custom handlers).
  */
@@ -70,7 +71,19 @@ const mockClientDetails = {
       },
     ],
   },
-  102: { ...mockClients[1], proposals: [], projects: [], diagnostics: [] },
+  102: {
+    ...mockClients[1],
+    proposals: [],
+    projects: [],
+    diagnostics: [
+      {
+        id: 6,
+        title: 'Diagnóstico Web Ana',
+        status: 'draft',
+        created_at: '2026-03-01T10:00:00Z',
+      },
+    ],
+  },
 };
 
 function setupMock(page, { onProposalUpdate = null, onDiagnosticUpdate = null } = {}) {
@@ -124,11 +137,11 @@ async function gotoClientsAndExpandCarlos(page) {
   await expect(page.getByTestId('client-proposal-row-1')).toBeVisible();
 }
 
-async function dragRowToHeader(page, rowTestId, headerTestId) {
+async function dragRowTo(page, rowTestId, targetTestId) {
   const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
   await page.getByTestId(rowTestId).dispatchEvent('dragstart', { dataTransfer });
-  await page.getByTestId(headerTestId).dispatchEvent('dragover', { dataTransfer });
-  await page.getByTestId(headerTestId).dispatchEvent('drop', { dataTransfer });
+  await page.getByTestId(targetTestId).dispatchEvent('dragover', { dataTransfer });
+  await page.getByTestId(targetTestId).dispatchEvent('drop', { dataTransfer });
   await page.getByTestId(rowTestId).dispatchEvent('dragend', { dataTransfer }).catch(() => {});
 }
 
@@ -149,10 +162,58 @@ test.describe('Admin Clients Drag Reassign', () => {
     await setupMock(page, { onProposalUpdate: (id, body) => updates.push({ id, body }) });
     await gotoClientsAndExpandCarlos(page);
 
-    await dragRowToHeader(page, 'client-proposal-row-1', 'client-header-102');
+    await dragRowTo(page, 'client-proposal-row-1', 'client-header-102');
 
     await expect(page.getByText('"Propuesta Alpha" movido a Ana Martínez.')).toBeVisible();
     expect(updates).toEqual([{ id: 1, body: { client_id: 102 } }]);
+  });
+
+  test('dropping a proposal on another client proposals zone PATCHes client_id', {
+    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin'],
+  }, async ({ page }) => {
+    const updates = [];
+    await setupMock(page, { onProposalUpdate: (id, body) => updates.push({ id, body }) });
+    await gotoClientsAndExpandCarlos(page);
+    await page.getByTestId('client-header-102').click();
+    await expect(page.getByTestId('client-proposals-zone-102')).toBeVisible();
+
+    await dragRowTo(page, 'client-proposal-row-1', 'client-proposals-zone-102');
+
+    await expect(page.getByText('"Propuesta Alpha" movido a Ana Martínez.')).toBeVisible();
+    expect(updates).toEqual([{ id: 1, body: { client_id: 102 } }]);
+  });
+
+  test('dropping a diagnostic on another client diagnostics zone PATCHes client_id', {
+    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin'],
+  }, async ({ page }) => {
+    const updates = [];
+    await setupMock(page, { onDiagnosticUpdate: (id, body) => updates.push({ id, body }) });
+    await gotoClientsAndExpandCarlos(page);
+    await page.getByTestId('client-header-102').click();
+    await expect(page.getByTestId('client-diagnostics-zone-102')).toBeVisible();
+
+    await dragRowTo(page, 'client-diagnostic-row-5', 'client-diagnostics-zone-102');
+
+    await expect(page.getByText('"Diagnóstico Web Carlos" movido a Ana Martínez.')).toBeVisible();
+    expect(updates).toEqual([{ id: 5, body: { client_id: 102 } }]);
+  });
+
+  test('dropping a diagnostic on a proposals zone issues no PATCH', {
+    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin'],
+  }, async ({ page }) => {
+    const updates = [];
+    await setupMock(page, {
+      onProposalUpdate: (id, body) => updates.push({ id, body }),
+      onDiagnosticUpdate: (id, body) => updates.push({ id, body }),
+    });
+    await gotoClientsAndExpandCarlos(page);
+    await page.getByTestId('client-header-102').click();
+    await expect(page.getByTestId('client-proposals-zone-102')).toBeVisible();
+
+    await dragRowTo(page, 'client-diagnostic-row-5', 'client-proposals-zone-102');
+
+    await expect(page.getByText('movido a')).not.toBeVisible();
+    expect(updates).toEqual([]);
   });
 
   test('dropping a diagnostic on another client PATCHes client_id', {
@@ -163,7 +224,7 @@ test.describe('Admin Clients Drag Reassign', () => {
     await gotoClientsAndExpandCarlos(page);
     await expect(page.getByTestId('client-diagnostic-row-5')).toBeVisible();
 
-    await dragRowToHeader(page, 'client-diagnostic-row-5', 'client-header-102');
+    await dragRowTo(page, 'client-diagnostic-row-5', 'client-header-102');
 
     await expect(page.getByText('"Diagnóstico Web Carlos" movido a Ana Martínez.')).toBeVisible();
     expect(updates).toEqual([{ id: 5, body: { client_id: 102 } }]);
@@ -179,7 +240,7 @@ test.describe('Admin Clients Drag Reassign', () => {
     });
     await gotoClientsAndExpandCarlos(page);
 
-    await dragRowToHeader(page, 'client-proposal-row-1', 'client-header-101');
+    await dragRowTo(page, 'client-proposal-row-1', 'client-header-101');
 
     await expect(page.getByText('movido a')).not.toBeVisible();
     expect(updates).toEqual([]);

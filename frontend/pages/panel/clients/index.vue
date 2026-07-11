@@ -257,78 +257,86 @@
             Cargando...
           </div>
           <template v-else>
-            <!-- Proposals -->
-            <div class="px-5 pt-4 pb-1">
-              <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mb-2">Propuestas</p>
-            </div>
+            <!-- Proposals (drop target for proposal reassignment) -->
             <div
-              v-if="(detailCache[client.id]?.proposals || []).length === 0"
-              class="px-5 pb-4 text-sm text-text-subtle"
+              :data-testid="`client-proposals-zone-${client.id}`"
+              :class="{ 'ring-2 ring-inset ring-focus-ring bg-primary-soft': dragOverZoneKey === `${client.id}:proposal` }"
+              @dragover="onZoneDragOver($event, client, 'proposal')"
+              @dragleave="onZoneDragLeave($event, client, 'proposal')"
+              @drop.prevent="onZoneDrop(client, 'proposal')"
             >
-              Sin propuestas.
-            </div>
-            <div v-else class="overflow-x-auto">
-              <table class="w-full min-w-[600px] text-sm">
-                <thead>
-                  <tr
-                    class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider"
-                  >
-                    <th class="px-5 py-3">Propuesta</th>
-                    <th class="px-4 py-3">Estado</th>
-                    <th class="px-4 py-3">Inversión</th>
-                    <th class="px-4 py-3 text-center">Vistas</th>
-                    <th class="px-4 py-3">Enviada</th>
-                    <th class="px-4 py-3 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-border-muted">
-                  <tr
-                    v-for="p in detailCache[client.id].proposals"
-                    :key="p.id"
-                    draggable="true"
-                    :data-testid="`client-proposal-row-${p.id}`"
-                    class="hover:bg-surface-raised transition-colors bg-surface cursor-grab active:cursor-grabbing select-none"
-                    :class="{ 'opacity-50': draggingItem?.type === 'proposal' && draggingItem?.id === p.id }"
-                    @dragstart="onRowDragStart($event, client, 'proposal', p)"
-                    @dragend="onRowDragEnd"
-                  >
-                    <td class="px-5 py-3">
-                      <NuxtLink
-                        :to="localePath(`/panel/proposals/${p.id}/edit`)"
-                        draggable="false"
-                        class="font-medium text-text-default hover:text-text-brand transition-colors"
-                      >
-                        {{ p.title }}
-                      </NuxtLink>
-                    </td>
-                    <td class="px-4 py-3">
-                      <ProposalStatusSelect
-                        :proposal="p"
-                        :updating="updatingProposalStatusId === p.id"
-                        @change="(s) => onProposalStatusSelect(client, p, s)"
-                      />
-                    </td>
-                    <td class="px-4 py-3 text-text-muted/60 tabular-nums">
-                      ${{ Number(p.total_investment).toLocaleString() }} {{ p.currency }}
-                    </td>
-                    <td class="px-4 py-3 text-center text-text-muted/60">{{ p.view_count }}</td>
-                    <td class="px-4 py-3 text-text-muted text-xs">
-                      {{ p.sent_at ? formatDate(p.sent_at) : '—' }}
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        :data-testid="`client-proposal-delete-${p.id}`"
-                        class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
-                        title="Eliminar propuesta"
-                        @click.stop="confirmDeleteProposal(client, p)"
-                      >
-                        <TrashIcon class="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div class="px-5 pt-4 pb-1">
+                <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mb-2">Propuestas</p>
+              </div>
+              <div
+                v-if="(detailCache[client.id]?.proposals || []).length === 0"
+                class="px-5 pb-4 text-sm text-text-subtle"
+              >
+                Sin propuestas.
+              </div>
+              <div v-else class="overflow-x-auto">
+                <table class="w-full min-w-[600px] text-sm">
+                  <thead>
+                    <tr
+                      class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider"
+                    >
+                      <th class="px-5 py-3">Propuesta</th>
+                      <th class="px-4 py-3">Estado</th>
+                      <th class="px-4 py-3">Inversión</th>
+                      <th class="px-4 py-3 text-center">Vistas</th>
+                      <th class="px-4 py-3">Enviada</th>
+                      <th class="px-4 py-3 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-border-muted">
+                    <tr
+                      v-for="p in detailCache[client.id].proposals"
+                      :key="p.id"
+                      draggable="true"
+                      :data-testid="`client-proposal-row-${p.id}`"
+                      class="hover:bg-surface-raised transition-colors bg-surface cursor-grab active:cursor-grabbing select-none"
+                      :class="{ 'opacity-50': draggingItem?.type === 'proposal' && draggingItem?.id === p.id }"
+                      @dragstart="onRowDragStart($event, client, 'proposal', p)"
+                      @dragend="onRowDragEnd"
+                    >
+                      <td class="px-5 py-3">
+                        <NuxtLink
+                          :to="localePath(`/panel/proposals/${p.id}/edit`)"
+                          draggable="false"
+                          class="font-medium text-text-default hover:text-text-brand transition-colors"
+                        >
+                          {{ p.title }}
+                        </NuxtLink>
+                      </td>
+                      <td class="px-4 py-3">
+                        <ProposalStatusSelect
+                          :proposal="p"
+                          :updating="updatingProposalStatusId === p.id"
+                          @change="(s) => onProposalStatusSelect(client, p, s)"
+                        />
+                      </td>
+                      <td class="px-4 py-3 text-text-muted/60 tabular-nums">
+                        ${{ Number(p.total_investment).toLocaleString() }} {{ p.currency }}
+                      </td>
+                      <td class="px-4 py-3 text-center text-text-muted/60">{{ p.view_count }}</td>
+                      <td class="px-4 py-3 text-text-muted text-xs">
+                        {{ p.sent_at ? formatDate(p.sent_at) : '—' }}
+                      </td>
+                      <td class="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          :data-testid="`client-proposal-delete-${p.id}`"
+                          class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
+                          title="Eliminar propuesta"
+                          @click.stop="confirmDeleteProposal(client, p)"
+                        >
+                          <TrashIcon class="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <!-- Platform projects -->
@@ -368,8 +376,15 @@
               </div>
             </template>
 
-            <!-- Web diagnostics -->
-            <template v-if="(detailCache[client.id]?.diagnostics || []).length > 0">
+            <!-- Web diagnostics (drop target for diagnostic reassignment) -->
+            <div
+              v-if="(detailCache[client.id]?.diagnostics || []).length > 0"
+              :data-testid="`client-diagnostics-zone-${client.id}`"
+              :class="{ 'ring-2 ring-inset ring-focus-ring bg-primary-soft': dragOverZoneKey === `${client.id}:diagnostic` }"
+              @dragover="onZoneDragOver($event, client, 'diagnostic')"
+              @dragleave="onZoneDragLeave($event, client, 'diagnostic')"
+              @drop.prevent="onZoneDrop(client, 'diagnostic')"
+            >
               <div class="px-5 pt-4 pb-1 border-t border-border-muted mt-2">
                 <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mb-2">Diagnósticos web</p>
               </div>
@@ -418,7 +433,7 @@
                   </tbody>
                 </table>
               </div>
-            </template>
+            </div>
           </template>
         </div>
       </div>
@@ -698,7 +713,7 @@ let searchTimer = null;
 // Data loading
 // -------------------------------------------------------------------
 
-async function loadClients() {
+async function loadClients({ silent = false } = {}) {
   let orphans = null;
   if (activeTab.value === 'orphans') orphans = true;
   else if (activeTab.value === 'active') orphans = false;
@@ -706,6 +721,7 @@ async function loadClients() {
     search: search.value.trim(),
     orphans,
     inactive: activeTab.value === 'inactive',
+    silent,
   });
 }
 
@@ -942,6 +958,7 @@ async function refreshClientDetail(clientId) {
 
 const draggingItem = ref(null); // { type, id, title, sourceClientId, sourceClientName }
 const dragOverClientId = ref(null);
+const dragOverZoneKey = ref(null); // `${clientId}:${type}` for the proposals/diagnostics zones
 
 function onRowDragStart(event, client, type, item) {
   draggingItem.value = {
@@ -959,6 +976,7 @@ function onRowDragStart(event, client, type, item) {
 function onRowDragEnd() {
   draggingItem.value = null;
   dragOverClientId.value = null;
+  dragOverZoneKey.value = null;
 }
 
 function onClientDragOver(event, client) {
@@ -974,10 +992,35 @@ function onClientDragLeave(client) {
 
 async function onClientDrop(targetClient) {
   dragOverClientId.value = null;
+  dragOverZoneKey.value = null;
   const dragged = draggingItem.value;
   draggingItem.value = null;
   if (!dragged || dragged.sourceClientId === targetClient.id) return;
   await reassignItem(dragged, { targetClientId: targetClient.id, targetName: targetClient.name });
+}
+
+// Zone variants: the proposals/diagnostics areas of an expanded client accept
+// only items of their own type; the client header keeps accepting both.
+function onZoneDragOver(event, client, zoneType) {
+  if (!draggingItem.value || draggingItem.value.type !== zoneType) return;
+  if (client.id === draggingItem.value.sourceClientId) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  dragOverZoneKey.value = `${client.id}:${zoneType}`;
+}
+
+function onZoneDragLeave(event, client, zoneType) {
+  // dragleave also fires when moving between the zone's own children.
+  if (event.relatedTarget && event.currentTarget.contains(event.relatedTarget)) return;
+  if (dragOverZoneKey.value === `${client.id}:${zoneType}`) dragOverZoneKey.value = null;
+}
+
+async function onZoneDrop(client, zoneType) {
+  if (draggingItem.value?.type !== zoneType) {
+    dragOverZoneKey.value = null;
+    return;
+  }
+  await onClientDrop(client);
 }
 
 async function reassignItem(dragged, { targetClientId, targetName }) {
@@ -1001,19 +1044,23 @@ async function reassignItem(dragged, { targetClientId, targetName }) {
   });
 }
 
-// Unlike refreshClientDetail, this invalidates BOTH affected clients and
-// reloads the list once (the source/target orphan state may flip tabs).
+// Unlike refreshClientDetail, this refreshes BOTH affected clients and the
+// list once (the source/target orphan state may flip tabs). Everything runs
+// silently and in-place: expanded details are overwritten only when the fresh
+// payload arrives, and the list skips the loading skeleton, so the page does
+// not visually "reload" after a drop.
 async function refreshAfterReassign(...clientIds) {
-  clientIds.forEach((id) => { delete detailCache[id]; });
-  await Promise.all(
-    clientIds
-      .filter((id) => expandedClients.value.has(id))
-      .map(async (id) => {
-        const result = await clientsStore.fetchClient(id);
-        if (result.success) detailCache[id] = result.data;
-      }),
-  );
-  await loadClients();
+  await Promise.all([
+    ...clientIds.map(async (id) => {
+      if (!expandedClients.value.has(id)) {
+        delete detailCache[id]; // refetched on next expand
+        return;
+      }
+      const result = await clientsStore.fetchClient(id);
+      if (result.success) detailCache[id] = result.data;
+    }),
+    loadClients({ silent: true }),
+  ]);
 }
 
 function confirmDeleteProposal(client, proposal) {

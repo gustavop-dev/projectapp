@@ -54,9 +54,11 @@ export const useProposalClientsStore = defineStore('proposalClients', {
      * @param {boolean} [params.inactive=false] - true=only manually
      *     deactivated clients; false/omitted=exclude them (server default).
      * @param {number} [params.limit=100] - hard cap 500 (server-side).
+     * @param {boolean} [params.silent=false] - true skips the isLoading
+     *     flip so in-place refreshes don't swap the list to a skeleton.
      */
-    async fetchClients({ search = '', orphans = null, inactive = false, limit = 100 } = {}) {
-      this.isLoading = true;
+    async fetchClients({ search = '', orphans = null, inactive = false, limit = 100, silent = false } = {}) {
+      if (!silent) this.isLoading = true;
       this.error = null;
       try {
         const query = new URLSearchParams();
@@ -70,12 +72,12 @@ export const useProposalClientsStore = defineStore('proposalClients', {
         }`;
         const response = await get_request(url);
         this.clients = Array.isArray(response.data) ? response.data : [];
-        this.isLoading = false;
+        if (!silent) this.isLoading = false;
         return { success: true, data: this.clients };
       } catch (error) {
         const data = error?.response?.data;
         this.error = data?.error || 'fetch_failed';
-        this.isLoading = false;
+        if (!silent) this.isLoading = false;
         return { success: false, errors: data };
       }
     },
