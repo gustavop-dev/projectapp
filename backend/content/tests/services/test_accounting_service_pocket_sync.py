@@ -185,6 +185,48 @@ class TestExpensePocketSync:
             )
         assert PocketMovement.objects.count() == 0
 
+    def test_unchecked_register_flag_skips_movement(self, superuser):
+        expense = create_expense(superuser, register_in_pocket=False)
+        assert expense.pocket_movement is None
+        assert PocketMovement.objects.count() == 0
+
+    def test_unchecking_flag_on_linked_expense_removes_movement(
+        self, superuser,
+    ):
+        expense = create_expense(superuser)
+        movement_pk = expense.pocket_movement.pk
+        serializer = make_serializer(
+            ExpenseRecordCreateUpdateSerializer,
+            {'register_in_pocket': False},
+            instance=expense,
+        )
+        with patch.object(accounting_service, '_notify'):
+            accounting_service.update_record(
+                EntityType.EXPENSE, expense, serializer, superuser,
+            )
+        expense.refresh_from_db()
+        assert expense.pocket_movement is None
+        assert not PocketMovement.objects.filter(pk=movement_pk).exists()
+
+    def test_checking_flag_on_historical_expense_creates_movement(
+        self, superuser, make_expense,
+    ):
+        expense = make_expense()
+        serializer = make_serializer(
+            ExpenseRecordCreateUpdateSerializer,
+            {'register_in_pocket': True},
+            instance=expense,
+        )
+        with patch.object(accounting_service, '_notify'):
+            accounting_service.update_record(
+                EntityType.EXPENSE, expense, serializer, superuser,
+            )
+        expense.refresh_from_db()
+        movement = expense.pocket_movement
+        assert movement is not None
+        assert movement.direction == PocketMovement.Direction.OUT
+        assert movement.amount == expense.total_amount
+
     def test_linked_expense_edit_mirrors_and_preserves_day(self, superuser):
         expense = create_expense(superuser)
         movement = expense.pocket_movement

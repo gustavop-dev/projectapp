@@ -229,6 +229,7 @@ class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'category', 'category_label',
             'ledger', 'ledger_label',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'company_amount',
+            'pocket_movement',
             'notes', 'created_at', 'updated_at',
         )
 
@@ -237,12 +238,19 @@ class ExpenseRecordCreateUpdateSerializer(
     PartnerSplitWriteMixin, serializers.ModelSerializer,
 ):
     period_date = MonthPeriodField()
+    # Not a model field: the service pops it. Checked by default — unchecked
+    # covers paper adjustments and personal expenses that never touched the
+    # company pocket. On update it can also link/unlink the mirror movement.
+    register_in_pocket = serializers.BooleanField(
+        required=False, default=True, write_only=True,
+    )
 
     class Meta:
         model = ExpenseRecord
         fields = (
             'concept', 'period_date', 'category', 'ledger',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'notes',
+            'register_in_pocket',
         )
 
 

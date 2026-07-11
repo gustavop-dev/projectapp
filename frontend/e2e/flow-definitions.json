@@ -1,6 +1,6 @@
 {
-  "version": "2.42.0",
-  "lastUpdated": "2026-07-10",
+  "version": "2.43.0",
+  "lastUpdated": "2026-07-11",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -944,6 +944,16 @@
       ],
       "priority": "P2",
       "description": "Calculator displays the biometric_verification_module as a provider-billed integration: appears with 'Agendar llamada' label instead of a price (is_invite=true, price_percent=0), and clicking the row reveals the invite_note. Sibling modules QR generator (25%) and AI content generator with editorial calendar (30%) are catalog-level only and structurally covered by existing calculator-modules and calculator-new-modules flows.",
+      "expectedSpecs": 1
+    },
+    "proposal-calculator-behavior-tracking-module": {
+      "name": "Proposal Calculator Behavior Tracking Module",
+      "module": "proposal",
+      "roles": [
+        "guest"
+      ],
+      "priority": "P2",
+      "description": "Calculator displays behavior_tracking_module as a priced add-on (30% of base investment, not selected by default): first-party session/view tracking, interest map, journey funnel, built-in behavior panel (up to 8 KPIs / 4 charts), device breakdown and 12-month retention. Selecting it adds base*30% to the effective total; the technical document epic linked via module-behavior_tracking_module is gated by the selection.",
       "expectedSpecs": 1
     },
     "proposal-calculator-integrations": {
@@ -2593,7 +2603,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser manages expense records at /panel/accounting/expenses with category (Negocio/Personal) and ledger (Contabilidad) badges, partner split (hidden for personal-ledger expenses, which use a single Valor field) and the same modal CRUD + filters pattern as incomes. Money inputs live-format es-CO thousands separators (BaseCurrencyInput). Since Jul 2026 every new expense auto-creates a linked pocket OUT movement (bidirectional sync); edits/deletes mirror/cascade into the movement, while pre-existing expenses stay unlinked.",
+      "description": "Superuser manages expense records at /panel/accounting/expenses with category (Negocio/Personal) and ledger (Contabilidad) badges, partner split (hidden for personal-ledger expenses, which use a single Valor field) and the same modal CRUD + filters pattern as incomes. Money inputs live-format es-CO thousands separators (BaseCurrencyInput). Since Jul 2026 the modal has a 'Registrar egreso en bolsillo' toggle (on by default): on creates/keeps a linked pocket OUT movement (bidirectional sync, edits/deletes mirror/cascade), off covers paper adjustments and expenses that never touched the pocket; on edit the toggle can link/unlink deliberately.",
       "expectedSpecs": 2
     },
     "admin-accounting-hostings": {

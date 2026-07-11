@@ -375,7 +375,16 @@ const {
     deleteErrorTitle: 'No se pudo eliminar',
     deleteTitle: 'Eliminar gasto',
     deleteMessage: (record) =>
-      `Esto eliminará el gasto "${record.concept}" de forma permanente. Esta acción no se puede deshacer.`,
+      `Esto eliminará el gasto "${record.concept}" de forma permanente. ` +
+      (record.pocket_movement != null
+        ? 'También se eliminará el egreso vinculado en bolsillo. '
+        : '') +
+      'Esta acción no se puede deshacer.',
+  },
+  // Expense mutations can create/mirror/delete pocket movements: drop the
+  // pocket cache so the Bolsillo tab refetches fresh on mount.
+  onAfterMutation: () => {
+    store.pocketMovements = [];
   },
 });
 

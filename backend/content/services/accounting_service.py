@@ -290,12 +290,23 @@ def _pop_mirror_ledger(entity_type, serializer):
     return serializer.validated_data.pop('ledger', None)
 
 
+def _pop_register_in_pocket(entity_type, serializer):
+    """Extract the write-only expense `register_in_pocket` flag."""
+    if entity_type != EntityType.EXPENSE:
+        return None
+    return serializer.validated_data.pop('register_in_pocket', None)
+
+
 def create_record(entity_type, serializer, user):
     """Persist a validated write serializer, audit it and notify."""
     mirror_ledger = _pop_mirror_ledger(entity_type, serializer)
+    register_in_pocket = _pop_register_in_pocket(entity_type, serializer)
     with transaction.atomic():
         instance = serializer.save(created_by=user)
-        _sync_pocket(entity_type, instance, user, is_create=True)
+        _sync_pocket(
+            entity_type, instance, user,
+            register_in_pocket=register_in_pocket,
+        )
         if entity_type == EntityType.POCKET:
             _sync_from_pocket(instance, mirror_ledger, user, is_create=True)
     new_values = snapshot_values(instance, entity_type)
@@ -316,10 +327,14 @@ def update_record(entity_type, instance, serializer, user):
     """Apply a validated partial update, audit the diff and notify."""
     _ensure_pocket_update_allowed(entity_type, instance, serializer)
     mirror_ledger = _pop_mirror_ledger(entity_type, serializer)
+    register_in_pocket = _pop_register_in_pocket(entity_type, serializer)
     old_values = snapshot_values(instance, entity_type)
     with transaction.atomic():
         instance = serializer.save()
-        _sync_pocket(entity_type, instance, user, is_create=False)
+        _sync_pocket(
+            entity_type, instance, user,
+            register_in_pocket=register_in_pocket,
+        )
         if entity_type == EntityType.POCKET:
             _sync_from_pocket(instance, mirror_ledger, user, is_create=False)
     changes = compute_changes(
@@ -396,7 +411,7 @@ def delete_record(entity_type, instance, user):
 
 # ── Income/Expense ↔ Pocket side effects ──
 
-def _sync_pocket(entity_type, instance, user, *, is_create):
+def _sync_pocket(entity_type, instance, user, *, register_in_pocket=None):
     if entity_type == EntityType.INCOME:
         _sync_movement(
             instance,
@@ -409,12 +424,18 @@ def _sync_pocket(entity_type, instance, user, *, is_create):
             user=user,
         )
     elif entity_type == EntityType.EXPENSE:
-        # Every new expense draws from the pocket. Historical expenses
-        # (created before the linkage existed) stay unlinked: updating
-        # one never creates a movement retroactively.
+        # The write serializer's `register_in_pocket` flag drives the
+        # linkage (checked by default; unchecked covers paper adjustments
+        # and personal expenses that never touched the company pocket).
+        # A partial update without the flag preserves the current state,
+        # so historical unlinked expenses never gain a movement silently.
+        if register_in_pocket is None:
+            wants_movement = instance.pocket_movement is not None
+        else:
+            wants_movement = register_in_pocket
         _sync_movement(
             instance,
-            wants_movement=is_create or instance.pocket_movement is not None,
+            wants_movement=wants_movement,
             direction=PocketMovement.Direction.OUT,
             source_ref=f'expense:{instance.pk}',
             user=user,

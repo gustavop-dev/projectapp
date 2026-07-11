@@ -75,15 +75,15 @@ class Command(BaseCommand):
             'total_amount': str(adjustment),
             'carlos_amount': str(adjustment),
             'gustavo_amount': '0',
+            # Paper adjustment: it must NOT drain the pocket (the pocket
+            # balance is the very reference the target is computed from).
+            'register_in_pocket': False,
             'notes': (
                 'Ajuste automático: deja el neto de Carlos en la mitad del '
                 'bolsillo/valor líquido al inicio del módulo contable.'
             ),
         })
         serializer.is_valid(raise_exception=True)
-        # Since the pocket sync (July 2026), creating an expense here also
-        # creates its linked pocket OUT movement — intended: the adjustment
-        # is real money leaving the pocket.
         instance = accounting_service.create_record(
             AccountingChangeLog.EntityType.EXPENSE, serializer, user=None,
         )

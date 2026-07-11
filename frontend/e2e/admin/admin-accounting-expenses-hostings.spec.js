@@ -162,12 +162,15 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     await page.locator('form input[type="text"]').first().fill('Windsurf Julio');
     await page.locator('form input[type="month"]').fill('2026-07');
     await page.getByTestId('partner-split-total').fill('3000000');
+    await expect(page.getByTestId('expense-register-in-pocket')).toBeVisible();
     await page.getByTestId('expense-form-submit').click();
 
     await expect(page.getByText('Gasto creado')).toBeVisible();
     expect(calls).toHaveLength(1);
     expect(calls[0].body.concept).toBe('Windsurf Julio');
     expect(Number(calls[0].body.gustavo_amount)).toBe(1500000);
+    // The pocket toggle defaults to on: the new expense mirrors to the pocket.
+    expect(calls[0].body.register_in_pocket).toBe(true);
   });
 
   test('hostings list renders meta stat cards', {
