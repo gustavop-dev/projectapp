@@ -21,6 +21,7 @@ from content.models import (
     AccountingSettings,
     AdsSpendRecord,
     CardBalanceSnapshot,
+    CreditCard,
     CreditCardStatement,
     ExpenseRecord,
     HostingRecord,
@@ -38,6 +39,8 @@ from content.serializers.accounting import (
     AdsSpendRecordSerializer,
     CardBalanceSnapshotCreateUpdateSerializer,
     CardBalanceSnapshotSerializer,
+    CreditCardCreateUpdateSerializer,
+    CreditCardSerializer,
     ExpenseRecordCreateUpdateSerializer,
     ExpenseRecordSerializer,
     HostingCycleCreateSerializer,
@@ -273,6 +276,16 @@ _ENTITIES = {
         'search_fields': ('origin_card', 'notes'),
         'choice_filters': ('platform', 'origin_card'),
         'with_accumulated': True,
+    },
+    'credit_card': {
+        'entity_type': EntityType.CREDIT_CARD,
+        'model': CreditCard,
+        'read': CreditCardSerializer,
+        'write': CreditCardCreateUpdateSerializer,
+        'date_field': None,
+        'amount_field': 'credit_limit',
+        'search_fields': ('name', 'notes'),
+        'bool_filters': ('is_active',),
     },
     'card_snapshot': {
         'entity_type': EntityType.CARD_SNAPSHOT,
@@ -708,6 +721,55 @@ def update_ads_spend_record(request, record_id):
 @permission_classes([IsSuperUser])
 def delete_ads_spend_record(request, record_id):
     return _delete_record(request, 'ads', record_id)
+
+
+# ── Credit-card catalog ──
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def list_credit_cards(request):
+    return _list_records(request, 'credit_card')
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def create_credit_card(request):
+    return _create_record(request, 'credit_card')
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def retrieve_credit_card(request, record_id):
+    return _retrieve_record(request, 'credit_card', record_id)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsSuperUser])
+def update_credit_card(request, record_id):
+    return _update_record(request, 'credit_card', record_id)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsSuperUser])
+def delete_credit_card(request, record_id):
+    """Delete a catalog card unless history references its name.
+
+    Snapshots/statements keep plain-string card names; deleting a card
+    they reference would orphan that history in the UI filters, so the
+    card must be deactivated instead.
+    """
+    instance = get_object_or_404(CreditCard, pk=record_id)
+    referenced = (
+        CardBalanceSnapshot.objects.filter(card_name=instance.name).exists()
+        or CreditCardStatement.objects.filter(card_name=instance.name).exists()
+    )
+    if referenced:
+        return error_response(
+            'La tarjeta tiene registros o extractos asociados; '
+            'desactívala en lugar de eliminarla.',
+            code='credit_card_referenced',
+        )
+    return _delete_record(request, 'credit_card', record_id)
 
 
 # ── Card snapshots ──

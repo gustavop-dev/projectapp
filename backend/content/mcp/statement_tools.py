@@ -30,7 +30,7 @@ from content.serializers.accounting_statement import (
 from content.services import accounting_statement_service
 from content.utils import today_bogota
 
-WORKFLOW_VERSION = 1
+WORKFLOW_VERSION = 2
 
 _INSTRUCTIONS = """\
 Flujo para procesar un extracto de tarjeta de crédito. Sigue las fases EN ORDEN.
@@ -47,8 +47,9 @@ borrador usa `delete_statement` y vuelve a crear; si está procesado, primero
 `reopen_statement`). Si hay un `draft` de ese mes, ofrécele continuar sobre
 él o reemplazarlo.
 
-FASE 2 — EXTRAER DEL PDF: identifica tarjeta (usa los nombres de tarjeta ya
-existentes en el status cuando coincidan), período de corte (`YYYY-MM`),
+FASE 2 — EXTRAER DEL PDF: identifica tarjeta (usa los nombres de `cards` del
+status — vienen del catálogo de tarjetas del panel; usa el que coincida),
+período de corte (`YYYY-MM`),
 totales del extracto (compras, pagos/abonos, intereses y comisiones, saldo
 anterior, saldo de cierre, pago mínimo, fecha límite) y cada línea de
 consumo: fecha, DESCRIPCIÓN CRUDA EXACTA como aparece impresa, y valor COP
@@ -84,7 +85,8 @@ explícita para cerrar con `force=true`.
 
 FASE 7 — CIERRE: resume totales, breakdown por categoría y cuotas activas.
 Recuérdale al usuario que el abono de la tarjeta se registra como siempre en
-el módulo contable principal.
+el módulo contable principal, y que suba el PDF del extracto como
+documentación en el panel (Contable → Extractos → mes correspondiente).
 
 FORMATOS: fechas `YYYY-MM-DD`; período `YYYY-MM`; montos numéricos sin
 separadores de miles (punto decimal).

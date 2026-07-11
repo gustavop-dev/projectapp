@@ -88,6 +88,7 @@ class CreditCardStatementSerializer(PeriodReadMixin, serializers.ModelSerializer
     )
     transactions_count = serializers.SerializerMethodField()
     transactions_sum = serializers.SerializerMethodField()
+    pdf_file_url = serializers.SerializerMethodField()
 
     class Meta:
         model = CreditCardStatement
@@ -96,7 +97,7 @@ class CreditCardStatementSerializer(PeriodReadMixin, serializers.ModelSerializer
             'status', 'status_label', 'purchases_total', 'previous_balance',
             'payments_total', 'interest_and_fees', 'closing_balance',
             'minimum_payment', 'due_date', 'notes', 'source_ref',
-            'transactions_count', 'transactions_sum',
+            'transactions_count', 'transactions_sum', 'pdf_file_url',
             'created_at', 'updated_at',
         )
 
@@ -106,6 +107,9 @@ class CreditCardStatementSerializer(PeriodReadMixin, serializers.ModelSerializer
     def get_transactions_sum(self, obj):
         total = sum((tx.amount for tx in obj.transactions.all()), start=0)
         return str(total)
+
+    def get_pdf_file_url(self, obj):
+        return obj.pdf_file.url if obj.pdf_file else None
 
 
 class CreditCardStatementDetailSerializer(CreditCardStatementSerializer):

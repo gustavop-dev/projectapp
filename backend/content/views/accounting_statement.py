@@ -4,9 +4,12 @@ Statement CRUD reuses the generic accounting handlers (audit + email);
 transactions and merchant aliases route through accounting_statement_service
 so their audit rows stay silent (no per-line emails).
 """
+from pathlib import Path
+
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
 from content.api_errors import error_response, error_response_from_exc
@@ -129,6 +132,56 @@ def reopen_statement(request, record_id):
         )
     except ValueError as exc:
         return error_response_from_exc(exc)
+    return Response(CreditCardStatementDetailSerializer(statement).data)
+
+
+# ── Statement PDF (bank document kept as documentation) ──
+
+_PDF_MAX_SIZE = 15 * 1024 * 1024  # 15 MB
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+@parser_classes([MultiPartParser])
+def upload_statement_pdf(request, record_id):
+    statement = get_object_or_404(CreditCardStatement, pk=record_id)
+    file = request.FILES.get('file')
+    if not file:
+        return error_response(
+            'No se adjuntó ningún archivo.',
+            code='statement_pdf_required',
+        )
+    if Path(file.name).suffix.lower() != '.pdf':
+        return error_response(
+            'El extracto debe adjuntarse en formato PDF.',
+            code='statement_pdf_type_not_allowed',
+        )
+    if file.size > _PDF_MAX_SIZE:
+        return error_response(
+            'El archivo es demasiado grande. El tamaño máximo es 15 MB.',
+            code='statement_pdf_too_large',
+        )
+    try:
+        statement = accounting_statement_service.attach_statement_pdf(
+            statement, file, request.user,
+        )
+    except ValueError as exc:
+        return error_response_from_exc(exc)
+    return Response(CreditCardStatementDetailSerializer(statement).data)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsSuperUser])
+def delete_statement_pdf(request, record_id):
+    statement = get_object_or_404(CreditCardStatement, pk=record_id)
+    if not statement.pdf_file:
+        return error_response(
+            'El extracto no tiene un PDF adjunto.',
+            code='statement_pdf_missing',
+        )
+    statement = accounting_statement_service.remove_statement_pdf(
+        statement, request.user,
+    )
     return Response(CreditCardStatementDetailSerializer(statement).data)
 
 

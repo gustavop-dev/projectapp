@@ -20,6 +20,7 @@ from content.models import (
     MerchantAlias,
     AdsSpendRecord,
     CardBalanceSnapshot,
+    CreditCard,
     ExpenseRecord,
     HostingCycle,
     HostingRecord,
@@ -203,12 +204,32 @@ class Command(BaseCommand):
             )
             created += 1
 
+        # Card catalog: 'T.C 0064' may already exist as the real seeded
+        # card (source_ref='') — get_or_create leaves it intact and only
+        # tags cards this command actually creates.
+        catalog_specs = [
+            ('T.C 0064', Decimal('8000000.00'), _month_start(5)),
+            ('T.C 0655', Decimal('5000000.00'), _month_start(2)),
+        ]
+        for name, credit_limit, statements_since in catalog_specs:
+            _, was_created = CreditCard.objects.get_or_create(
+                name=name,
+                defaults={
+                    'credit_limit': credit_limit,
+                    'statements_since': statements_since,
+                    'source_ref': FAKE_REF,
+                },
+            )
+            if was_created:
+                created += 1
+
+        main_card = CreditCard.objects.get(name='T.C 0064')
         for months_ago in range(3):
             debt = Decimal(rng.randrange(1_000_000, 8_000_000, 1_000))
             CardBalanceSnapshot.objects.create(
                 snapshot_date=_month_start(months_ago),
-                card_name='T.C 0064',
-                available_amount=Decimal('8000000.00') - debt,
+                card_name=main_card.name,
+                available_amount=main_card.credit_limit - debt,
                 debt_amount=debt,
                 source_ref=FAKE_REF,
             )

@@ -119,6 +119,41 @@
       </div>
 
       <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
+        <h2 class="text-lg font-bold text-text-default mb-1">Catálogo de tarjetas</h2>
+        <p class="text-sm text-text-muted mb-5">
+          Tarjetas de crédito disponibles en
+          <NuxtLink :to="localePath('/panel/accounting/cards')" class="text-text-brand hover:underline">Tarjetas</NuxtLink>.
+          El cupo se usa para calcular la deuda (cupo − disponible) y
+          "extractos desde" define desde qué mes se esperan extractos.
+          Cambiar el cupo no modifica los registros históricos.
+        </p>
+        <AccountingCardCatalog />
+      </div>
+
+      <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
+        <h2 class="text-lg font-bold text-text-default mb-1">Recordatorio de extractos</h2>
+        <p class="text-sm text-text-muted mb-5">
+          Si el extracto del mes anterior de una tarjeta activa no está
+          procesado o no tiene su PDF adjunto en
+          <NuxtLink :to="localePath('/panel/accounting/statements')" class="text-text-brand hover:underline">Extractos</NuxtLink>,
+          se envía un correo a los destinatarios de arriba cada 8 días,
+          junto con la alerta de deuda de tarjetas.
+        </p>
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-sm font-medium text-text-default">Recordatorio activo</span>
+          <BaseToggle
+            v-model="statementReminderEnabled"
+            aria-label="Recordatorio de extractos activo"
+            data-testid="settings-statement-reminder-toggle"
+          />
+        </div>
+        <p v-if="!notificationsEnabled" class="text-xs text-warning-strong mt-3">
+          Las notificaciones generales están apagadas: el recordatorio tampoco
+          se enviará mientras sigan así.
+        </p>
+      </div>
+
+      <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
         <h2 class="text-lg font-bold text-text-default mb-1">Avisos de vencimiento de hostings</h2>
         <p class="text-sm text-text-muted mb-5">
           Se envía un correo a los destinatarios de arriba 15 días antes del
@@ -199,6 +234,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import AccountingCardCatalog from '~/components/accounting/AccountingCardCatalog.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
@@ -220,6 +256,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const notificationsEnabled = ref(true);
 const cardReminderEnabled = ref(true);
+const statementReminderEnabled = ref(true);
 const hostingExpiryReminderEnabled = ref(true);
 const recipients = ref([]);
 const usdExchangeRate = ref(null);
@@ -228,6 +265,7 @@ let rowId = 0;
 function syncFromSettings(settings) {
   notificationsEnabled.value = Boolean(settings?.notifications_enabled);
   cardReminderEnabled.value = Boolean(settings?.card_reminder_enabled);
+  statementReminderEnabled.value = Boolean(settings?.statement_reminder_enabled);
   hostingExpiryReminderEnabled.value = Boolean(
     settings?.hosting_expiry_reminder_enabled,
   );
@@ -274,6 +312,7 @@ async function save() {
     notification_recipients: nonEmpty,
     notifications_enabled: notificationsEnabled.value,
     card_reminder_enabled: cardReminderEnabled.value,
+    statement_reminder_enabled: statementReminderEnabled.value,
     hosting_expiry_reminder_enabled: hostingExpiryReminderEnabled.value,
   };
   // Only send the rate when the user has one loaded/typed: the backend

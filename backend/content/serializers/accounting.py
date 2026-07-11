@@ -15,6 +15,7 @@ from content.models import (
     AccountingSettings,
     AdsSpendRecord,
     CardBalanceSnapshot,
+    CreditCard,
     ExpenseRecord,
     HostingCycle,
     HostingRecord,
@@ -521,6 +522,30 @@ class AdsSpendRecordCreateUpdateSerializer(serializers.ModelSerializer):
         fields = ('spend_date', 'platform', 'origin_card', 'amount', 'notes')
 
 
+# ── Credit-card catalog ──
+
+class CreditCardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CreditCard
+        fields = (
+            'id', 'name', 'credit_limit', 'is_active',
+            'statements_since', 'notes', 'created_at', 'updated_at',
+        )
+
+
+class CreditCardCreateUpdateSerializer(serializers.ModelSerializer):
+    credit_limit = serializers.DecimalField(
+        max_digits=14, decimal_places=2, min_value=Decimal('0.01'),
+    )
+    statements_since = MonthPeriodField(required=False, allow_null=True)
+
+    class Meta:
+        model = CreditCard
+        fields = (
+            'name', 'credit_limit', 'is_active', 'statements_since', 'notes',
+        )
+
+
 # ── Card snapshots ──
 
 class CardBalanceSnapshotSerializer(serializers.ModelSerializer):
@@ -534,11 +559,20 @@ class CardBalanceSnapshotSerializer(serializers.ModelSerializer):
 
 
 class CardBalanceSnapshotCreateUpdateSerializer(serializers.ModelSerializer):
+    """Snapshot writes with server-computed debt.
+
+    When the card exists in the catalog, ``debt_amount`` is authoritative
+    on the server: cupo − disponible (any client-sent value is ignored).
+    Cards outside the catalog (legacy names) keep the old contract: an
+    explicit debt on create, and the stored value on partial updates.
+    """
+
     available_amount = serializers.DecimalField(
         max_digits=14, decimal_places=2, min_value=Decimal('0'),
     )
     debt_amount = serializers.DecimalField(
         max_digits=14, decimal_places=2, min_value=Decimal('0'),
+        required=False,
     )
 
     class Meta:
@@ -547,6 +581,42 @@ class CardBalanceSnapshotCreateUpdateSerializer(serializers.ModelSerializer):
             'snapshot_date', 'card_name',
             'available_amount', 'debt_amount', 'notes',
         )
+
+    def validate(self, attrs):
+        card_name = attrs.get('card_name') or getattr(
+            self.instance, 'card_name', None,
+        )
+        available = attrs.get('available_amount', getattr(
+            self.instance, 'available_amount', None,
+        ))
+        # Recompute only when the money-relevant inputs change: a notes-only
+        # edit must not rewrite a historic debt with today's cupo.
+        recompute = (
+            self.instance is None
+            or 'available_amount' in attrs
+            or 'card_name' in attrs
+        )
+        card = CreditCard.objects.filter(name=card_name).first()
+        if card is not None:
+            if recompute and available is not None:
+                if available > card.credit_limit:
+                    raise serializers.ValidationError({
+                        'available_amount': (
+                            'El disponible no puede superar el cupo de la '
+                            f'tarjeta (${card.credit_limit:,.0f}).'
+                        ),
+                    })
+                attrs['debt_amount'] = card.credit_limit - available
+            else:
+                attrs.pop('debt_amount', None)
+        elif self.instance is None and 'debt_amount' not in attrs:
+            raise serializers.ValidationError({
+                'debt_amount': (
+                    'La tarjeta no está en el catálogo; la deuda debe '
+                    'indicarse explícitamente.'
+                ),
+            })
+        return attrs
 
 
 # ── Change log & settings ──
@@ -583,6 +653,7 @@ class AccountingSettingsSerializer(serializers.ModelSerializer):
         model = AccountingSettings
         fields = (
             'notification_recipients', 'notifications_enabled',
-            'card_reminder_enabled', 'hosting_expiry_reminder_enabled',
+            'card_reminder_enabled', 'statement_reminder_enabled',
+            'hosting_expiry_reminder_enabled',
             'usd_exchange_rate', 'updated_at',
         )

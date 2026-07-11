@@ -300,10 +300,18 @@ _ENTITY_FIELDS = {
             'snapshot_date': {'type': 'string', 'description': 'YYYY-MM-DD.'},
             'card_name': {'type': 'string'},
             'available_amount': {'type': ['number', 'string']},
-            'debt_amount': {'type': ['number', 'string']},
+            'debt_amount': {
+                'type': ['number', 'string'],
+                'description': (
+                    'Opcional: si la tarjeta está en el catálogo, la deuda '
+                    'se calcula en el servidor como cupo − disponible y '
+                    'este valor se ignora. Obligatorio sólo para tarjetas '
+                    'fuera del catálogo.'
+                ),
+            },
             'notes': {'type': 'string'},
         },
-        'required': ['snapshot_date', 'card_name', 'available_amount', 'debt_amount'],
+        'required': ['snapshot_date', 'card_name', 'available_amount'],
     },
 }
 

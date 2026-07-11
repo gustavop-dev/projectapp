@@ -7,6 +7,7 @@ from django.db.models.signals import post_delete
 from django.dispatch import receiver
 
 from content.models.blog_post import BlogPost
+from content.models.credit_card_statement import CreditCardStatement
 from content.models.issuer_profile import IssuerProfile
 from content.models.portfolio_works import PortfolioWork
 
@@ -33,3 +34,8 @@ def delete_portfolio_work_files(sender, instance, **kwargs):
 @receiver(post_delete, sender=IssuerProfile)
 def delete_issuer_profile_files(sender, instance, **kwargs):
     _delete_file(instance.logo)
+
+
+@receiver(post_delete, sender=CreditCardStatement)
+def delete_credit_card_statement_files(sender, instance, **kwargs):
+    _delete_file(instance.pdf_file)

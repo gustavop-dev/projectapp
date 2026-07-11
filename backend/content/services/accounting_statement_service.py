@@ -13,17 +13,20 @@ WITHOUT their own email — same precedent as auto pocket movements — so a
 
 from datetime import date
 from decimal import Decimal
+from pathlib import Path
 
 from django.db import transaction
 from django.db.models import Sum
 
 from content.models import (
+    CreditCard,
     CreditCardStatement,
     MerchantAlias,
     TransactionCategory,
     normalize_descriptor,
 )
 from content.serializers.accounting import month_label
+from content.utils import today_bogota
 from content.services import accounting_service
 from content.services.accounting_service import (
     TRACKED_FIELDS,
@@ -221,6 +224,43 @@ def _set_status(statement, new_status, user):
     return statement
 
 
+# ── Statement PDF ──
+
+def _log_pdf_change(statement, old_name, new_name, user):
+    """Silent audit row: the PDF is documentation, not accounting data."""
+    _log_silent(
+        EntityType.STATEMENT, statement, Action.UPDATED,
+        [{
+            'field': 'pdf_file',
+            'label': 'PDF del extracto',
+            'old': old_name,
+            'new': new_name,
+        }],
+        user,
+    )
+
+
+def attach_statement_pdf(statement, file, user):
+    """Attach (or replace) the bank PDF of a statement."""
+    old_name = Path(statement.pdf_file.name).name if statement.pdf_file else ''
+    if statement.pdf_file:
+        statement.pdf_file.delete(save=False)
+    statement.pdf_file = file
+    statement.save(update_fields=['pdf_file', 'updated_at'])
+    _log_pdf_change(statement, old_name, Path(file.name).name, user)
+    return statement
+
+
+def remove_statement_pdf(statement, user):
+    """Delete the attached bank PDF from the statement and storage."""
+    old_name = Path(statement.pdf_file.name).name
+    statement.pdf_file.delete(save=False)
+    statement.pdf_file = None
+    statement.save(update_fields=['pdf_file', 'updated_at'])
+    _log_pdf_change(statement, old_name, '', user)
+    return statement
+
+
 # ── Merchant aliases ──
 
 def resolve_merchants(raw_descriptions):
@@ -351,8 +391,29 @@ def update_merchant_alias(alias, serializer, user):
 
 # ── Read helpers ──
 
+def _statements_earliest_period(card_name=None):
+    """First month with bank statements, from the active card catalog.
+
+    None when no active catalog card declares ``statements_since`` — the
+    grid then falls back to whatever statements actually exist.
+    """
+    catalog = CreditCard.objects.filter(
+        is_active=True, statements_since__isnull=False,
+    )
+    if card_name:
+        catalog = catalog.filter(name=card_name)
+    return catalog.order_by('statements_since').values_list(
+        'statements_since', flat=True,
+    ).first()
+
+
 def statement_month_status(year, card_name=None):
-    """12-month grid: which months have processed/draft statements."""
+    """12-month grid: which months have processed/draft statements.
+
+    ``year_options`` spans from the catalog's earliest statements_since
+    (fallback: earliest existing statement) to the current year, and each
+    month carries ``applies`` = False before statements existed.
+    """
     queryset = CreditCardStatement.objects.filter(period_date__year=year)
     if card_name:
         queryset = queryset.filter(card_name=card_name)
@@ -361,12 +422,17 @@ def statement_month_status(year, card_name=None):
     for statement in queryset:
         by_month.setdefault(statement.period_date.month, []).append(statement)
 
+    earliest = _statements_earliest_period(card_name)
+
     months = []
     for month in range(1, 13):
         statements = by_month.get(month, [])
         months.append({
             'period': f'{year}-{month:02d}',
             'label': month_label(date(year, month, 1)),
+            'applies': (
+                earliest is None or date(year, month, 1) >= earliest
+            ) or bool(statements),
             'statements': [
                 {
                     'id': s.pk,
@@ -383,11 +449,37 @@ def statement_month_status(year, card_name=None):
             'has_draft': any(s.status == Status.DRAFT for s in statements),
         })
 
+    current_year = today_bogota().year
+    if earliest is not None:
+        start_year = min(earliest.year, current_year)
+    else:
+        first_statement = (
+            CreditCardStatement.objects.order_by('period_date')
+            .values_list('period_date', flat=True)
+            .first()
+        )
+        start_year = (
+            min(first_statement.year, current_year)
+            if first_statement else current_year
+        )
+    year_options = list(range(start_year, current_year + 1))
+
     cards = sorted(
-        CreditCardStatement.objects.values_list('card_name', flat=True)
-        .distinct()
+        set(
+            CreditCardStatement.objects.values_list('card_name', flat=True)
+            .distinct()
+        )
+        | set(
+            CreditCard.objects.filter(is_active=True)
+            .values_list('name', flat=True)
+        )
     )
-    return {'year': year, 'cards': cards, 'months': months}
+    return {
+        'year': year,
+        'cards': cards,
+        'months': months,
+        'year_options': year_options,
+    }
 
 
 def statement_category_totals(statement):

@@ -60,6 +60,7 @@ from .hosting_cycle import HostingCycle
 from .recurring_payment import RecurringPayment
 from .ads_spend_record import AdsSpendRecord
 from .card_balance_snapshot import CardBalanceSnapshot
+from .credit_card import CreditCard
 from .accounting_change_log import AccountingChangeLog
 from .credit_card_statement import (
     CreditCardStatement,

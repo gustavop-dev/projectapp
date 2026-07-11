@@ -2106,14 +2106,15 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin (superuser)
 - **Priority:** P2
 - **Routes:** `/panel/accounting/statements`
-- **Description:** Monthly credit-card statement ledger (extractos): 12-month processed/draft/pending grid per card, inline detail with totals, category bars and transactions, finalize/reopen lifecycle, learned merchant aliases, MCP chat kick-off prompt.
+- **Description:** Monthly credit-card statement ledger (extractos): 12-month processed/draft/pending grid per card, inline detail with totals, category bars and transactions, finalize/reopen lifecycle, learned merchant aliases, MCP chat kick-off prompt. Since Jul 2026 the year selector options come from the backend (`year_options`, derived from the card catalog's `statements_since` — 2026-05 for T.C 0064, so 2025 no longer renders) and months before that date show a gray "No aplica" chip instead of "Pendiente"; drafts also allow editing the statement header (modal over PATCH `.../update/`; card/period read-only) and adding transactions manually (create mode of the tx modal over POST `.../transactions/batch/`); every statement has a "Documento del extracto" block to upload/view/replace/delete the bank PDF (POST `.../pdf/upload/`, .pdf only, 15 MB max; DELETE `.../pdf/delete/`).
 - **Steps:**
-  1. Superuser opens `/panel/accounting/statements` — `GET /api/accounting/statements/status/?year=` renders the 12-month grid; card chips show Procesado/Borrador.
-  2. Clicking a chip loads `GET /api/accounting/statements/:id/` — detail shows stat cards (Compras/Pagos/Intereses/Saldo), category bars and the transactions table (unidentified lines flagged).
-  3. On a draft: per-line Editar (modal PATCH `.../transactions/:txId/update/`) and Eliminar; Finalizar validates Σ vs purchases_total (±1 COP) and offers a forced close on mismatch; Eliminar removes the statement after confirm.
+  1. Superuser opens `/panel/accounting/statements` — `GET /api/accounting/statements/status/?year=` renders the 12-month grid with backend-driven `year_options`; months before `statements_since` show "No aplica" and card chips show Procesado/Borrador.
+  2. Clicking a chip loads `GET /api/accounting/statements/:id/` — detail shows stat cards (Compras/Pagos/Intereses/Saldo), category bars, the PDF block and the transactions table (unidentified lines flagged).
+  3. On a draft: "Editar encabezado" (modal PATCH `.../update/`), "Agregar transacción" (tx modal in create mode → POST `.../transactions/batch/`), per-line Editar (modal PATCH `.../transactions/:txId/update/`) and Eliminar; Finalizar validates Σ vs purchases_total (±1 COP) and offers a forced close on mismatch; Eliminar removes the statement after confirm.
   4. On a processed statement: Reabrir returns it to draft.
-  5. "Comercios aprendidos" lists merchant aliases with delete.
-  6. "Copiar prompt" copies the Spanish kick-off prompt for the claude.ai accounting connector (statements are created from chat via `create_statement`).
+  5. "Documento del extracto": Subir PDF / Ver PDF / Reemplazar / Eliminar (with confirm) manage the bank PDF kept as documentation; the statement reminder email nags every 8 days until the previous month is processed with its PDF attached.
+  6. "Comercios aprendidos" lists merchant aliases with delete.
+  7. "Copiar prompt" copies the Spanish kick-off prompt for the claude.ai accounting connector (statements are created from chat via `create_statement`).
 - **Coverage:** ⚠️ Missing
 - **E2E Spec:** _pending_
 
@@ -5527,12 +5528,12 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/cards`
-- **Description:** Weekly credit-card balance snapshots (CardBalanceSnapshot): list with a latest-debt-per-card chip, filters (date range, debt range, card multi-select) and search; modal create (snapshot date defaults to today, card name with datalist of known cards), edit prefill and ConfirmModal delete. Registering a snapshot dated on/after the cycle Friday silences the weekly card-debt reminder email.
+- **Description:** Weekly credit-card balance snapshots (CardBalanceSnapshot): list with a latest-debt-per-card chip, filters (date range, debt range, card multi-select) and search; modal create (snapshot date defaults to today, card selected from a dropdown fed by the CreditCard catalog — see `admin-accounting-card-catalog`), edit prefill and ConfirmModal delete. Since Jul 2026 the Deuda input is gone: debt is server-computed as cupo − disponible for catalog cards (the form previews it and blocks disponible > cupo); legacy card names outside the catalog stay editable and keep their stored debt. Registering a snapshot dated on/after the cycle Friday silences the weekly card-debt reminder email.
 - **Steps:**
   1. Superuser opens `/panel/accounting/cards` (subnav "Tarjetas" or the dashboard "Ver historial de tarjetas" link).
-  2. "Nuevo registro" opens the modal with today's date preselected; superuser fills card, available and debt amounts.
-  3. Submit POSTs `/api/accounting/card-snapshots/create/` → success toast + audit + email.
-  4. Row edit prefills the modal and PATCHes `.../update/`; delete asks for confirmation.
+  2. "Nuevo registro" opens the modal with today's date preselected; superuser picks the card from the catalog dropdown and fills the available amount — the computed debt (cupo − disponible) previews below the input.
+  3. Submit POSTs `/api/accounting/card-snapshots/create/` without `debt_amount` (server computes it) → success toast + audit + email.
+  4. Row edit prefills the modal (a legacy card name not in the catalog is injected as an extra option) and PATCHes `.../update/`; delete asks for confirmation.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-cards.spec.js`
 
@@ -5552,9 +5553,24 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/settings`
-- **Description:** Notification recipients (email list with add/remove + validation) and the global notifications toggle; changes are themselves audited. Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá via Huey, re-alerts every 2 days until a snapshot dated on/after the cycle Friday exists; the global notifications toggle also gates it), the hosting expiry notices toggle (15/7 days before `valid_to`, then every 5 days until the cuenta de cobro is sent) and the USD exchange rate (BaseCurrencyInput, min 1) used by the recurring USD KPI. Coverage note: recipients + card toggle are tested; the new toggle and USD rate field are not asserted yet (partial).
+- **Description:** Notification recipients (email list with add/remove + validation) and the global notifications toggle; changes are themselves audited. Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá via Huey, re-alerts every 2 days until a snapshot dated on/after the cycle Friday exists; the global notifications toggle also gates it), the statement reminder toggle (`statement_reminder_enabled`, Jul 2026: emails every 8 days at 9:05 Bogotá while the previous month's statement of an active catalog card is missing, draft or lacks its PDF), the "Catálogo de tarjetas" section (see `admin-accounting-card-catalog`), the hosting expiry notices toggle (15/7 days before `valid_to`, then every 5 days until the cuenta de cobro is sent) and the USD exchange rate (BaseCurrencyInput, min 1) used by the recurring USD KPI. Coverage note: recipients + card toggle are tested; the statement reminder toggle, hosting toggle and USD rate field are not asserted yet (partial).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-ads-history-settings.spec.js`
+
+### FLOW: `admin-accounting-card-catalog`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/settings`
+- **Description:** (Jul 2026) "Catálogo de tarjetas" section inside accounting settings: CRUD over the CreditCard catalog (name, cupo/credit_limit, "extractos desde" month, active toggle) that feeds the Tarjetas form dropdown, the server-side debt computation (cupo − disponible) and the Extractos year/month range. Seeded with T.C 0064 (cupo 8.000.000, extractos desde 2026-05). Delete is blocked with a Spanish error when snapshots/statements reference the card name (deactivate instead). Changes are audited as the `credit_card` entity (visible in Historial).
+- **Steps:**
+  1. Superuser opens `/panel/accounting/settings` — the section lists catalog rows (GET `/api/accounting/credit-cards/`).
+  2. "Agregar tarjeta" appends an empty row; per-row Guardar POSTs `/api/accounting/credit-cards/create/` (or PATCHes `.../update/` for existing rows).
+  3. Editing the cupo changes future snapshot computations only (historic debts untouched).
+  4. Trash icon asks for confirmation; DELETE `.../delete/` returns `credit_card_referenced` (400) when history references the name.
+- **Coverage:** ⚠️ Missing
+- **E2E Spec:** _pending_
 
 ### FLOW: `admin-accounting-ads`
 
@@ -5655,6 +5671,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-cards` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-cards.spec.js` |
 | `admin-accounting-export` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-export.spec.js` |
 | `admin-accounting-settings` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
+| `admin-accounting-card-catalog` | admin | superuser | P2 | ❌ Missing | — |
 | `admin-accounting-ads` | admin | superuser | P3 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
 | `admin-accounting-hosting-billing` | admin | superuser | P1 | ❌ Missing | — |
 | `admin-accounting-collections` | admin | superuser | P2 | ❌ Missing | — |

@@ -18,6 +18,26 @@
         </span>
         <BaseButton
           v-if="!isProcessed"
+          variant="secondary"
+          size="sm"
+          :disabled="isUpdating"
+          data-testid="statement-edit-header"
+          @click="$emit('edit-header')"
+        >
+          Editar encabezado
+        </BaseButton>
+        <BaseButton
+          v-if="!isProcessed"
+          variant="secondary"
+          size="sm"
+          :disabled="isUpdating"
+          data-testid="statement-add-tx"
+          @click="$emit('add-tx')"
+        >
+          Agregar transacción
+        </BaseButton>
+        <BaseButton
+          v-if="!isProcessed"
           variant="primary"
           size="sm"
           :disabled="isUpdating"
@@ -57,6 +77,59 @@
         :value="money(statement.closing_balance)"
         :sub="statement.due_date ? `Pago mínimo ${money(statement.minimum_payment)} · vence ${statement.due_date}` : ''"
       />
+    </div>
+
+    <!-- Bank PDF kept as documentation -->
+    <div class="px-5 pb-4">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border border-border-muted bg-surface-raised px-4 py-3">
+        <div class="flex-1">
+          <p class="text-xs font-medium text-text-muted uppercase tracking-wider">Documento del extracto</p>
+          <p class="text-xs text-text-subtle mt-0.5">
+            {{ statement.pdf_file_url
+              ? 'PDF del banco adjunto como documentación.'
+              : 'Adjunta el PDF del banco para dejarlo como documentación.' }}
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <a
+            v-if="statement.pdf_file_url"
+            :href="statement.pdf_file_url"
+            target="_blank"
+            rel="noopener"
+            class="text-sm font-medium text-text-brand hover:underline"
+            data-testid="statement-pdf-view"
+          >
+            Ver PDF
+          </a>
+          <BaseButton
+            variant="secondary"
+            size="sm"
+            :disabled="isUpdating"
+            data-testid="statement-pdf-upload"
+            @click="pdfInput?.click()"
+          >
+            {{ statement.pdf_file_url ? 'Reemplazar' : 'Subir PDF' }}
+          </BaseButton>
+          <BaseButton
+            v-if="statement.pdf_file_url"
+            variant="danger"
+            size="sm"
+            :disabled="isUpdating"
+            data-testid="statement-pdf-delete"
+            @click="$emit('delete-pdf')"
+          >
+            Eliminar
+          </BaseButton>
+          <input
+            ref="pdfInput"
+            type="file"
+            accept=".pdf"
+            class="hidden"
+            data-testid="statement-pdf-input"
+            @change="onPdfChosen"
+          >
+        </div>
+      </div>
     </div>
 
     <div v-if="statement.category_totals.length" class="px-5 pb-4">
@@ -145,7 +218,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import { formatMoney } from '~/utils/formatMoney';
@@ -155,7 +228,18 @@ const props = defineProps({
   isUpdating: { type: Boolean, default: false },
 });
 
-defineEmits(['finalize', 'reopen', 'delete', 'edit-tx', 'delete-tx']);
+const emit = defineEmits([
+  'finalize', 'reopen', 'delete', 'edit-tx', 'delete-tx',
+  'edit-header', 'add-tx', 'upload-pdf', 'delete-pdf',
+]);
+
+const pdfInput = ref(null);
+
+function onPdfChosen(event) {
+  const file = event.target.files?.[0];
+  if (file) emit('upload-pdf', file);
+  event.target.value = '';
+}
 
 const isProcessed = computed(() => props.statement.status === 'processed');
 

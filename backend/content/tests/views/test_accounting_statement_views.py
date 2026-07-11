@@ -204,3 +204,49 @@ class TestMerchantAliasEndpoints:
         )
         assert response.status_code == 201
         assert response.data['match_text'] == 'PRIMAX'
+
+
+class TestStatementPdfEndpoints:
+    def _upload(self, client, statement_id, name='extracto.pdf', size=4):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        file = SimpleUploadedFile(name, b'x' * size, content_type='application/pdf')
+        return client.post(
+            f'/api/accounting/statements/{statement_id}/pdf/upload/',
+            {'file': file},
+            format='multipart',
+        )
+
+    def test_upload_view_and_delete_cycle(self, super_client):
+        statement = _create_statement(super_client)
+        response = self._upload(super_client, statement['id'])
+        assert response.status_code == 200, response.data
+        assert response.data['pdf_file_url']
+
+        deletion = super_client.delete(
+            f"/api/accounting/statements/{statement['id']}/pdf/delete/",
+        )
+        assert deletion.status_code == 200
+        assert deletion.data['pdf_file_url'] is None
+
+    def test_upload_rejects_non_pdf(self, super_client):
+        statement = _create_statement(super_client)
+        response = self._upload(super_client, statement['id'], name='extracto.png')
+        assert response.status_code == 400
+        assert response.data['code'] == 'statement_pdf_type_not_allowed'
+
+    def test_upload_rejects_oversize(self, super_client):
+        statement = _create_statement(super_client)
+        response = self._upload(
+            super_client, statement['id'], size=15 * 1024 * 1024 + 1,
+        )
+        assert response.status_code == 400
+        assert response.data['code'] == 'statement_pdf_too_large'
+
+    def test_delete_without_pdf_is_rejected(self, super_client):
+        statement = _create_statement(super_client)
+        response = super_client.delete(
+            f"/api/accounting/statements/{statement['id']}/pdf/delete/",
+        )
+        assert response.status_code == 400
+        assert response.data['code'] == 'statement_pdf_missing'
