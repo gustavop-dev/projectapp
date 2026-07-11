@@ -217,13 +217,20 @@ class TestValueAddedGating:
 
     def _render_capture(self, pdf_canvas, monkeypatch, effective_total):
         recorded = []
-        orig = pdf_mod._draw_paragraphs
+        orig_p = pdf_mod._draw_paragraphs
+        orig_b = pdf_mod._draw_bullet_list
 
-        def rec(c, y, paragraphs, *a, **k):
+        def rec_p(c, y, paragraphs, *a, **k):
             recorded.extend(str(p) for p in (paragraphs or []))
-            return orig(c, y, paragraphs, *a, **k)
+            return orig_p(c, y, paragraphs, *a, **k)
 
-        monkeypatch.setattr(pdf_mod, '_draw_paragraphs', rec)
+        def rec_b(c, y, items, *a, **k):
+            # Consolidated module terms now render as a bullet list.
+            recorded.extend(str(it) for it in (items or []))
+            return orig_b(c, y, items, *a, **k)
+
+        monkeypatch.setattr(pdf_mod, '_draw_paragraphs', rec_p)
+        monkeypatch.setattr(pdf_mod, '_draw_bullet_list', rec_b)
         data, ps = self._data_and_ps(effective_total)
         _render_value_added_modules(
             pdf_canvas, data, None, ps=ps, y=PAGE_H - MARGIN_T)
