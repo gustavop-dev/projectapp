@@ -1,5 +1,6 @@
 <template>
-  <div class="flex gap-4 overflow-x-auto pb-2">
+  <!-- pt-3 gives the -top-2.5 badge room inside the overflow-x-auto clip box -->
+  <div class="flex gap-4 overflow-x-auto pt-3 pb-2">
     <article
       v-for="pkg in packages"
       :key="pkg.id"
