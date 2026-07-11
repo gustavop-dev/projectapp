@@ -81,6 +81,9 @@ class Command(BaseCommand):
             ),
         })
         serializer.is_valid(raise_exception=True)
+        # Since the pocket sync (July 2026), creating an expense here also
+        # creates its linked pocket OUT movement — intended: the adjustment
+        # is real money leaving the pocket.
         instance = accounting_service.create_record(
             AccountingChangeLog.EntityType.EXPENSE, serializer, user=None,
         )

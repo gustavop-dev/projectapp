@@ -369,24 +369,66 @@ class PocketMovementSerializer(serializers.ModelSerializer):
         source='get_direction_display', read_only=True,
     )
     is_auto_managed = serializers.ReadOnlyField()
+    linked_income_id = serializers.SerializerMethodField()
+    linked_expense_id = serializers.SerializerMethodField()
+    linked_ledger = serializers.SerializerMethodField()
 
     class Meta:
         model = PocketMovement
         fields = (
             'id', 'concept', 'movement_date',
             'direction', 'direction_label', 'amount', 'is_auto_managed',
+            'linked_income_id', 'linked_expense_id', 'linked_ledger',
             'notes', 'created_at', 'updated_at',
         )
+
+    def get_linked_income_id(self, obj):
+        income = getattr(obj, 'income_record', None)
+        return income.pk if income else None
+
+    def get_linked_expense_id(self, obj):
+        expense = getattr(obj, 'expense_record', None)
+        return expense.pk if expense else None
+
+    def get_linked_ledger(self, obj):
+        linked = obj.linked_record
+        return linked.ledger if linked else None
 
 
 class PocketMovementCreateUpdateSerializer(serializers.ModelSerializer):
     amount = serializers.DecimalField(
         max_digits=14, decimal_places=2, min_value=Decimal('0.01'),
     )
+    # Not a model field: the service pops it and applies it to the mirrored
+    # income/expense record (accounting of Empresa / Gustavo / Carlos).
+    ledger = serializers.ChoiceField(
+        choices=Ledger.choices, required=False, write_only=True,
+    )
 
     class Meta:
         model = PocketMovement
-        fields = ('concept', 'movement_date', 'direction', 'amount', 'notes')
+        fields = ('concept', 'movement_date', 'direction', 'amount', 'notes', 'ledger')
+
+    def validate(self, data):
+        data = super().validate(data)
+        if 'direction' in data:
+            direction = data['direction']
+        elif self.instance is not None:
+            direction = self.instance.direction
+        else:
+            direction = None
+        ledger = data.get('ledger')
+        if ledger is None and self.instance is not None:
+            linked = self.instance.linked_record
+            ledger = linked.ledger if linked else None
+        if (
+            direction == PocketMovement.Direction.IN
+            and ledger not in (None, Ledger.COMPANY)
+        ):
+            raise serializers.ValidationError(
+                'Los movimientos personales no pueden ir al Bolsillo ProjectApp.'
+            )
+        return data
 
 
 # ── Recurring payments ──

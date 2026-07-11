@@ -293,6 +293,11 @@ const {
   entity: 'cards',
   store,
   filteredRecords,
+  sortDefaults: {
+    snapshot_date: 'desc',
+    available_amount: 'desc',
+    debt_amount: 'desc',
+  },
   saveTab,
   resetFilters,
   isFilterPanelOpen,

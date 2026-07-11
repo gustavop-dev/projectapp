@@ -246,6 +246,7 @@ _ENTITIES = {
         'amount_field': 'amount',
         'search_fields': ('concept', 'notes'),
         'choice_filters': ('direction',),
+        'select_related': ('income_record', 'expense_record'),
         'meta': _pocket_meta,
     },
     'recurring': {
@@ -393,6 +394,8 @@ def _apply_filters(queryset, params, config):
 def _list_records(request, key):
     config = _ENTITIES[key]
     queryset = config['model'].objects.all()
+    if config.get('select_related'):
+        queryset = queryset.select_related(*config['select_related'])
     try:
         queryset = _apply_filters(queryset, request.query_params, config)
         meta = config.get('meta', lambda qs, params: {})(

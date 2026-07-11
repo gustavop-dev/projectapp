@@ -8,8 +8,9 @@ class ExpenseRecord(PartnerSplitMixin, AccountingRecordBase):
     Expense entry of the accounting module.
 
     Partner amounts represent each partner's share of the expense.
-    Pocket OUT movements are registered manually in the pocket tab
-    (the team's flow: every expense draws from money already in the pocket).
+    Every expense draws from money already in the pocket, so new expenses
+    keep a linked pocket OUT movement in sync (see accounting_service);
+    records created before the linkage existed stay unlinked.
     """
 
     class Category(models.TextChoices):
@@ -23,6 +24,14 @@ class ExpenseRecord(PartnerSplitMixin, AccountingRecordBase):
         max_length=10,
         choices=Category.choices,
         default=Category.BUSINESS,
+    )
+    # Auto-managed pocket OUT movement kept in sync by accounting_service.
+    pocket_movement = models.OneToOneField(
+        'PocketMovement',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='expense_record',
     )
 
     class Meta:

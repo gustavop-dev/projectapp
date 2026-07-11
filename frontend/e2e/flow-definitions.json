@@ -2563,7 +2563,7 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Superuser opens /panel/accounting and sees the financial overview fed by GET /api/accounting/dashboard/?year=: expected vs liquid income, expenses, utilities and monthly breakdown computed from the company ledger only (personal-ledger records excluded), pocket balance, per-partner cards (Gustavo/Carlos combine company participation + personal ledger; ProjectApp (Empresa) shows the full company ledger totals), operative cost cards and latest card snapshots. Includes the superuser gate: staff non-superusers are redirected to /panel and the Accounting sidebar section is hidden. Includes the Evolución section: two ApexCharts (expected vs liquid vs expenses per month, and card-debt evolution from snapshots) driven by the year selector plus a client-side month-range filter, a link to the cards history and the year persisted as a query param.",
+      "description": "Superuser opens /panel/accounting and sees the financial overview fed by GET /api/accounting/dashboard/?year=: expected vs liquid income, expenses, utilities and monthly breakdown computed from the company ledger only (personal-ledger records excluded), pocket balance, per-partner cards (Gustavo/Carlos combine company participation + personal ledger; ProjectApp (Empresa) shows the full company ledger totals), operative cost cards and latest card snapshots. The hero Utilidad líquida card embeds a full-width 'Utilidad por mes' ApexCharts line with axes and money tooltips (replaced the corner sparkline). The subnav orders Bolsillo second, after Resumen. Includes the superuser gate: staff non-superusers are redirected to /panel and the Accounting sidebar section is hidden. Includes the Evolución section: two ApexCharts (expected vs liquid vs expenses per month, and card-debt evolution from snapshots) driven by the year selector plus a client-side month-range filter, a link to the cards history and the year persisted as a query param.",
       "expectedSpecs": 7
     },
     "admin-accounting-income-crud": {
@@ -2593,7 +2593,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser manages expense records at /panel/accounting/expenses with category (Negocio/Personal) and ledger (Contabilidad) badges, partner split (hidden for personal-ledger expenses, which use a single Valor field) and the same modal CRUD + filters pattern as incomes. Money inputs live-format es-CO thousands separators (BaseCurrencyInput). The paid-from field/column was removed: every expense draws from money already in the pocket (pocket OUT movements are registered manually).",
+      "description": "Superuser manages expense records at /panel/accounting/expenses with category (Negocio/Personal) and ledger (Contabilidad) badges, partner split (hidden for personal-ledger expenses, which use a single Valor field) and the same modal CRUD + filters pattern as incomes. Money inputs live-format es-CO thousands separators (BaseCurrencyInput). Since Jul 2026 every new expense auto-creates a linked pocket OUT movement (bidirectional sync); edits/deletes mirror/cascade into the movement, while pre-existing expenses stay unlinked.",
       "expectedSpecs": 2
     },
     "admin-accounting-hostings": {
@@ -2613,8 +2613,8 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser reviews the ProjectApp pocket ledger at /panel/accounting/pocket: balance card from list meta, chronological running-balance column, manual movement CRUD, and protection of auto-managed movements (edit/delete warns and never calls the API — they are managed from the linked income/expense).",
-      "expectedSpecs": 3
+      "description": "Superuser manages the ProjectApp pocket ledger at /panel/accounting/pocket: balance card from list meta, running-balance column (default view newest-first). The pocket is the money entry point: creating a movement also creates its linked income (IN) or expense (OUT) with the ledger chosen in the modal's Contabilidad segmented (Empresa/Personal Gustavo/Personal Carlos; IN is company-only). Linked movements open the edit modal with the direction locked and ledger prefilled; edits mirror into the linked record and deletes cascade both ways (confirm warns about the cascade). Unlinked historical movements keep plain CRUD.",
+      "expectedSpecs": 5
     },
     "admin-accounting-recurring": {
       "name": "Admin Accounting Recurring Payments",

@@ -10,24 +10,18 @@
       <div class="h-8 w-full rounded bg-surface-raised motion-safe:animate-pulse mt-auto" />
     </template>
     <template v-else>
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div class="min-w-0">
-          <p class="text-xs text-text-muted uppercase tracking-wider leading-tight mb-1">
-            {{ label }}
-          </p>
-          <p
-            class="text-4xl sm:text-5xl font-semibold tabular-nums"
-            :class="toneClass"
-            data-testid="accounting-hero-value"
-          >
-            {{ formattedValue }}
-          </p>
-          <p v-if="sub" class="text-xs text-text-muted mt-2">{{ sub }}</p>
-        </div>
-        <div v-if="spark.length >= 2" class="shrink-0 pt-1 text-right">
-          <AccountingSparkline :points="spark" :aria-label="sparkLabel" />
-          <p v-if="sparkCaption" class="text-[10px] text-text-subtle mt-1">{{ sparkCaption }}</p>
-        </div>
+      <div class="min-w-0">
+        <p class="text-xs text-text-muted uppercase tracking-wider leading-tight mb-1">
+          {{ label }}
+        </p>
+        <p
+          class="text-4xl sm:text-5xl font-semibold tabular-nums"
+          :class="toneClass"
+          data-testid="accounting-hero-value"
+        >
+          {{ formattedValue }}
+        </p>
+        <p v-if="sub" class="text-xs text-text-muted mt-2">{{ sub }}</p>
       </div>
       <div v-if="progress !== null" class="mt-5">
         <div
@@ -45,6 +39,9 @@
           />
         </div>
         <p v-if="progressLabel" class="text-xs text-text-muted mt-1.5">{{ progressLabel }}</p>
+      </div>
+      <div v-if="monthly.length >= 2" class="mt-4 flex-1 min-h-[150px]">
+        <AccountingHeroUtilityChart :monthly="monthly" />
       </div>
       <div
         v-if="stats.length"
@@ -69,15 +66,15 @@
 
 <script setup>
 import { computed, toRef } from 'vue';
-import AccountingSparkline from '~/components/accounting/AccountingSparkline.vue';
+import AccountingHeroUtilityChart from '~/components/accounting/charts/AccountingHeroUtilityChart.vue';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import { formatMoney } from '~/utils/formatMoney';
 
 /**
  * Primary dashboard KPI: one large animated money figure with optional
- * progress bar and 12-month sparkline. Not interactive on purpose (no
- * hover-lift); the count-up respects prefers-reduced-motion via
- * useAnimatedNumber.
+ * progress bar and a full-width "Utilidad por mes" line chart filling
+ * the card's free vertical space. The count-up respects
+ * prefers-reduced-motion via useAnimatedNumber.
  */
 const props = defineProps({
   label: { type: String, required: true },
@@ -91,9 +88,8 @@ const props = defineProps({
   /** 0-100 (clamped). null hides the progress bar. */
   progress: { type: Number, default: null },
   progressLabel: { type: String, default: '' },
-  spark: { type: Array, default: () => [] },
-  sparkLabel: { type: String, default: '' },
-  sparkCaption: { type: String, default: '' },
+  /** summary.monthly rows for the "Utilidad por mes" chart. */
+  monthly: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   /** Mini-stats footer pinned to the card bottom: [{ label, value, tone? }]. */
   stats: { type: Array, default: () => [] },

@@ -11,9 +11,9 @@ class PocketMovement(AccountingRecordBase):
     Ledger entry of the company pocket (Bolsillo ProjectApp).
 
     Direction + positive amount keeps validation trivial and aggregation
-    explicit: balance = Sum(in) - Sum(out). Movements can be auto-managed
-    by income records (see the `pocket_movement` reverse relation);
-    those rows are not editable through the pocket CRUD.
+    explicit: balance = Sum(in) - Sum(out). Movements can be linked to an
+    income or expense record (see the `pocket_movement` reverse relations);
+    edits on either side of a linked pair are mirrored by accounting_service.
     """
 
     class Direction(models.TextChoices):
@@ -40,6 +40,14 @@ class PocketMovement(AccountingRecordBase):
         return f'{self.concept} ({sign}{self.amount})'
 
     @property
+    def linked_record(self):
+        """The income or expense record this movement mirrors, if any."""
+        return (
+            getattr(self, 'income_record', None)
+            or getattr(self, 'expense_record', None)
+        )
+
+    @property
     def is_auto_managed(self):
-        """True when this movement is controlled by an income record."""
-        return getattr(self, 'income_record', None) is not None
+        """True when linked to an income or expense (name kept for API compat)."""
+        return self.linked_record is not None

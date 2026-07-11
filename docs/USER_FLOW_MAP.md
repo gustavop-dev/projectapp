@@ -5412,7 +5412,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting`
-- **Description:** Annual financial overview fed by `GET /api/accounting/dashboard/?year=`: expected vs liquid income, expenses, expected/liquid utility, pocket balance, per-partner cards, 12-month breakdown, operative cost cards and latest card snapshots. Company totals aggregate the company ledger only (personal-ledger records are excluded); the "ProjectApp (Empresa)" card shows the full company ledger, and Gustavo/Carlos cards combine their company participation with their personal ledger (breakdown line shown when personal activity exists). Year selector re-fetches the summary and persists as a query param. The "Evolución" section renders two ApexCharts — expected vs liquid vs expenses per month, and card-debt evolution from snapshots — filtered by the year plus a client-side month-range selector; a "Exportar Excel" button downloads the full workbook and the Tarjetas table links to the cards history.
+- **Description:** Annual financial overview fed by `GET /api/accounting/dashboard/?year=`: expected vs liquid income, expenses, expected/liquid utility, pocket balance, per-partner cards, 12-month breakdown, operative cost cards and latest card snapshots. The hero "Utilidad líquida" card embeds a full-width "Utilidad por mes" ApexCharts line (axes + money tooltips) filling the card body (replaced the tiny corner sparkline, Jul 2026). Company totals aggregate the company ledger only (personal-ledger records are excluded); the "ProjectApp (Empresa)" card shows the full company ledger, and Gustavo/Carlos cards combine their company participation with their personal ledger (breakdown line shown when personal activity exists). Year selector re-fetches the summary and persists as a query param. The "Evolución" section renders two ApexCharts — expected vs liquid vs expenses per month, and card-debt evolution from snapshots — filtered by the year plus a client-side month-range selector; a "Exportar Excel" button downloads the full workbook and the Tarjetas table links to the cards history. The subnav orders Bolsillo second, right after Resumen.
 - **Steps:**
   1. Superuser opens `/panel/accounting`.
   2. Stat cards render the summary totals; partner cards show Gustavo/Carlos (participation + personal) and ProjectApp (Empresa) company totals.
@@ -5460,7 +5460,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/expenses`
-- **Description:** Expense records with category (Negocio/Personal) and ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos — personal expenses hide the split, use a single "Valor" field and are excluded from company totals) and partner split; same modal CRUD + filters pattern as incomes. Money inputs live-format es-CO thousands (BaseCurrencyInput). The paid-from field/column was removed (2026-07): every expense draws from money already in the pocket; pocket OUT movements are manual.
+- **Description:** Expense records with category (Negocio/Personal) and ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos — personal expenses hide the split, use a single "Valor" field and are excluded from company totals) and partner split; same modal CRUD + filters pattern as incomes. Money inputs live-format es-CO thousands (BaseCurrencyInput). Since Jul 2026 every NEW expense auto-creates a linked pocket OUT movement (bidirectional sync via `accounting_service`); edits/deletes mirror/cascade into the movement. Expenses created before the linkage stay unlinked and never gain a movement retroactively.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-expenses-hostings.spec.js`
 
@@ -5480,8 +5480,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/pocket`
-- **Description:** ProjectApp pocket ledger with balance card and chronological running-balance column. Manual movements have full CRUD; auto-managed movements (created by pocket-bound incomes/expenses) warn on edit/delete and are only editable through their source record.
-- **Coverage:** ✅ Covered
+- **Description:** ProjectApp pocket ledger with balance card and running-balance column (default view newest-first; the balance is computed chronologically). The pocket is the money entry point (Jul 2026): creating a movement also creates its linked income (IN → liquid/pocket) or expense (OUT) with the ledger chosen in the modal's "Contabilidad" segmented (Empresa/Personal Gustavo/Personal Carlos; IN movements are company-only). Linked movements open the edit modal with the direction locked and the ledger prefilled; edits mirror into the linked record and deleting either side cascades to the other (the delete confirm warns about the cascade). Unlinked historical movements keep plain CRUD and never gain a mirror.
+- **Coverage:** ⚠️ Partial — modal ledger selector and locked-direction edit are covered; the create-POST payload (ledger included) and the cascade delete confirm are asserted at unit level only.
 - **E2E Spec:** `e2e/admin/admin-accounting-pocket-recurring.spec.js`
 
 ### FLOW: `admin-accounting-recurring`

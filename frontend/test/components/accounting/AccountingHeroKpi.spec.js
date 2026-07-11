@@ -2,15 +2,17 @@
  * Tests for AccountingHeroKpi.
  *
  * Covers: label + formatted value, tone class, clamped progressbar,
- * hidden progress, sparkline passthrough, and loading skeleton.
+ * hidden progress, the monthly utility chart, and loading skeleton.
  */
 import { mount } from '@vue/test-utils';
 import AccountingHeroKpi from '../../../components/accounting/AccountingHeroKpi.vue';
+import AccountingHeroUtilityChart from '../../../components/accounting/charts/AccountingHeroUtilityChart.vue';
 import { formatMoney } from '../../../utils/formatMoney';
 
 function mountHero(props = {}) {
   return mount(AccountingHeroKpi, {
     props: { label: 'Utilidad líquida 2026', value: 8400000, ...props },
+    global: { stubs: { AccountingHeroUtilityChart: true } },
   });
 }
 
@@ -44,10 +46,21 @@ describe('AccountingHeroKpi', () => {
     expect(wrapper.find('[role="progressbar"]').exists()).toBe(false);
   });
 
-  it('renders the sparkline when spark has at least 2 points', () => {
-    const wrapper = mountHero({ spark: [1, 5, 3], sparkLabel: 'Utilidad mensual' });
+  it('renders the utility chart when monthly has at least 2 rows', () => {
+    const wrapper = mountHero({
+      monthly: [
+        { label: 'Ene', utility: '100' },
+        { label: 'Feb', utility: '200' },
+      ],
+    });
 
-    expect(wrapper.find('[data-testid="accounting-sparkline"]').exists()).toBe(true);
+    expect(wrapper.findComponent(AccountingHeroUtilityChart).exists()).toBe(true);
+  });
+
+  it('hides the utility chart with fewer than 2 monthly rows', () => {
+    const wrapper = mountHero({ monthly: [{ label: 'Ene', utility: '100' }] });
+
+    expect(wrapper.findComponent(AccountingHeroUtilityChart).exists()).toBe(false);
   });
 
   it('renders a skeleton without value while loading', () => {

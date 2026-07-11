@@ -1,23 +1,12 @@
-import { computed, getCurrentScope, onScopeDispose, ref, watch } from 'vue';
+import { getCurrentScope, onScopeDispose, ref, watch } from 'vue';
 
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePagination } from '~/composables/usePagination';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { useTableSort } from '~/composables/useTableSort';
 
 const PAGE_SIZE = 15;
 const HIGHLIGHT_MS = 2500;
-
-function compareValues(a, b, key) {
-  const left = a?.[key];
-  const right = b?.[key];
-  const leftNumber = Number(left);
-  const rightNumber = Number(right);
-  if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
-    return leftNumber - rightNumber;
-  }
-  // ISO dates and plain text both sort correctly with localeCompare.
-  return String(left ?? '').localeCompare(String(right ?? ''), 'es');
-}
 
 /**
  * Shared page-controller for the accounting CRUD subviews (incomes,
@@ -39,6 +28,8 @@ function compareValues(a, b, key) {
  *     after a successful create/update/delete (e.g. refetch server meta).
  * - beforeEdit(record) / beforeDelete(record)  optional guards; returning
  *     false aborts opening the edit modal / the delete confirm.
+ * - sortAccessors / sortDefaults  forwarded to useTableSort (per-column
+ *     sort field overrides and first-click directions).
  * - saveTab / resetFilters / isFilterPanelOpen  from useAccountingFilters,
  *     used by handleCreateFilterTab / handleResetFilters.
  */
@@ -50,6 +41,8 @@ export function useAccountingCrudPage({
   onAfterMutation = null,
   beforeEdit = null,
   beforeDelete = null,
+  sortAccessors = {},
+  sortDefaults = {},
   saveTab = null,
   resetFilters = null,
   isFilterPanelOpen = null,
@@ -59,31 +52,13 @@ export function useAccountingCrudPage({
     useConfirmModal();
 
   // -----------------------------------------------------------------
-  // Column sorting (asc → desc → off) + pagination over the rows
+  // Column sorting + pagination over the rows
   // -----------------------------------------------------------------
 
-  const sortKey = ref('');
-  const sortDir = ref('asc');
-
-  function toggleSort(key) {
-    if (sortKey.value !== key) {
-      sortKey.value = key;
-      sortDir.value = 'asc';
-    } else if (sortDir.value === 'asc') {
-      sortDir.value = 'desc';
-    } else {
-      sortKey.value = '';
-      sortDir.value = 'asc';
-    }
-  }
-
-  const sortedRecords = computed(() => {
-    if (!sortKey.value) return filteredRecords.value;
-    const direction = sortDir.value === 'desc' ? -1 : 1;
-    return [...filteredRecords.value].sort(
-      (a, b) => direction * compareValues(a, b, sortKey.value),
-    );
-  });
+  const { sortKey, sortDir, toggleSort, sortedRecords } = useTableSort(
+    filteredRecords,
+    { sortAccessors, sortDefaults },
+  );
 
   const {
     currentPage,

@@ -8,6 +8,7 @@ from content.api_errors import ProposalActionError
 from content.models import AccountingChangeLog, IncomeRecord
 from content.serializers.accounting import (
     IncomeRecordCreateUpdateSerializer,
+    PocketMovementCreateUpdateSerializer,
 )
 from content.services import accounting_service
 
@@ -126,8 +127,8 @@ class TestDeleteRecord:
 
 
 @pytest.mark.django_db
-class TestAutoManagedGuard:
-    def _auto_movement(self, superuser):
+class TestLinkedMovementEditing:
+    def _linked_movement(self, superuser):
         income = accounting_service.create_record(
             EntityType.INCOME,
             valid_serializer(income_payload(
@@ -137,18 +138,37 @@ class TestAutoManagedGuard:
         )
         return income.pocket_movement
 
-    def test_auto_movement_update_is_rejected(self, superuser):
-        movement = self._auto_movement(superuser)
+    def test_linked_movement_update_mirrors_into_income(self, superuser):
+        movement = self._linked_movement(superuser)
+        serializer = PocketMovementCreateUpdateSerializer(
+            instance=movement, data={'amount': '999000.00'}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        with patch.object(accounting_service, '_notify'):
+            accounting_service.update_record(
+                EntityType.POCKET, movement, serializer, superuser,
+            )
+        income = movement.income_record
+        income.refresh_from_db()
+        assert income.total_amount == Decimal('999000.00')
+
+    def test_linked_movement_direction_change_is_rejected(self, superuser):
+        movement = self._linked_movement(superuser)
+        serializer = PocketMovementCreateUpdateSerializer(
+            instance=movement, data={'direction': 'out'}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
         with pytest.raises(ProposalActionError) as exc_info:
             accounting_service.update_record(
-                EntityType.POCKET, movement, None, superuser,
+                EntityType.POCKET, movement, serializer, superuser,
             )
-        assert exc_info.value.code == 'auto_managed_movement'
+        assert exc_info.value.code == 'linked_direction_locked'
 
-    def test_auto_movement_delete_is_rejected(self, superuser):
-        movement = self._auto_movement(superuser)
-        with pytest.raises(ProposalActionError) as exc_info:
+    def test_linked_movement_delete_cascades_to_income(self, superuser):
+        movement = self._linked_movement(superuser)
+        income_pk = movement.income_record.pk
+        with patch.object(accounting_service, '_notify'):
             accounting_service.delete_record(
                 EntityType.POCKET, movement, superuser,
             )
-        assert exc_info.value.code == 'auto_managed_movement'
+        assert not IncomeRecord.objects.filter(pk=income_pk).exists()

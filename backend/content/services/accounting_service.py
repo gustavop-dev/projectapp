@@ -4,11 +4,18 @@ Every mutation goes through create_record/update_record/delete_record:
 the same function mutates, writes the AccountingChangeLog row and
 enqueues the email notification (the established convention — explicit
 logging in services, not signals).
+
+Pocket <-> income/expense sync invariant: exactly two one-way sync
+writers exist. `_sync_pocket` (record -> movement) and `_sync_from_pocket`
+(movement -> record) each write the other side with plain ORM
+create()/save(update_fields=...) and never re-enter the service pipeline,
+so ping-pong loops are impossible by construction.
 """
 import logging
 from datetime import date
 from decimal import Decimal
 
+from django.db import transaction
 from django.db.models import Count, Q, Sum
 
 from content.api_errors import ProposalActionError
@@ -27,7 +34,7 @@ from content.models import (
     PocketMovement,
     RecurringPayment,
 )
-from content.serializers.accounting import month_label, month_period
+from content.serializers.accounting import month_label, month_period, split_half
 
 logger = logging.getLogger(__name__)
 
@@ -262,20 +269,35 @@ def _notify(change_log):
 
 # ── Generic mutation pipeline ──
 
-def _ensure_editable(entity_type, instance):
-    if entity_type == EntityType.POCKET and instance.is_auto_managed:
+def _ensure_pocket_update_allowed(entity_type, instance, serializer):
+    """Linked movements mirror an income/expense; their direction is fixed."""
+    if entity_type != EntityType.POCKET or not instance.is_auto_managed:
+        return
+    new_direction = serializer.validated_data.get('direction')
+    if new_direction and new_direction != instance.direction:
         raise ProposalActionError(
-            'Este movimiento del bolsillo es gestionado automáticamente por '
-            'un ingreso o gasto vinculado.',
-            code='auto_managed_movement',
-            hint='Edita o elimina el ingreso/gasto que lo genera.',
+            'La dirección de un movimiento vinculado a un ingreso o gasto '
+            'no se puede cambiar.',
+            code='linked_direction_locked',
+            hint='Elimina el movimiento y créalo de nuevo con la otra dirección.',
         )
+
+
+def _pop_mirror_ledger(entity_type, serializer):
+    """Extract the write-only pocket `ledger` field (not a model field)."""
+    if entity_type != EntityType.POCKET:
+        return None
+    return serializer.validated_data.pop('ledger', None)
 
 
 def create_record(entity_type, serializer, user):
     """Persist a validated write serializer, audit it and notify."""
-    instance = serializer.save(created_by=user)
-    _sync_pocket(entity_type, instance, user)
+    mirror_ledger = _pop_mirror_ledger(entity_type, serializer)
+    with transaction.atomic():
+        instance = serializer.save(created_by=user)
+        _sync_pocket(entity_type, instance, user, is_create=True)
+        if entity_type == EntityType.POCKET:
+            _sync_from_pocket(instance, mirror_ledger, user, is_create=True)
     new_values = snapshot_values(instance, entity_type)
     changes = compute_changes(entity_type, {}, new_values)
     change_log = log_accounting_change(
@@ -292,10 +314,14 @@ def create_record(entity_type, serializer, user):
 
 def update_record(entity_type, instance, serializer, user):
     """Apply a validated partial update, audit the diff and notify."""
-    _ensure_editable(entity_type, instance)
+    _ensure_pocket_update_allowed(entity_type, instance, serializer)
+    mirror_ledger = _pop_mirror_ledger(entity_type, serializer)
     old_values = snapshot_values(instance, entity_type)
-    instance = serializer.save()
-    _sync_pocket(entity_type, instance, user)
+    with transaction.atomic():
+        instance = serializer.save()
+        _sync_pocket(entity_type, instance, user, is_create=False)
+        if entity_type == EntityType.POCKET:
+            _sync_from_pocket(instance, mirror_ledger, user, is_create=False)
     changes = compute_changes(
         entity_type, old_values, snapshot_values(instance, entity_type),
     )
@@ -322,22 +348,40 @@ def _deletion_changes(entity_type, old_values):
 
 
 def delete_record(entity_type, instance, user):
-    """Delete a record (and its auto pocket movement), audit and notify."""
-    _ensure_editable(entity_type, instance)
+    """Delete a record and its linked counterpart, audit and notify.
+
+    A linked pocket movement and its income/expense are one money event:
+    deleting either side hard-deletes the other (an orphan would silently
+    diverge the pocket balance from the records).
+    """
     deleted_id = instance.pk
     deleted_repr = object_repr(entity_type, instance)
     old_values = snapshot_values(instance, entity_type)
     changes = _deletion_changes(entity_type, old_values)
 
     linked_movement = None
-    if entity_type == EntityType.INCOME:
+    linked_record = None
+    linked_record_type = None
+    if entity_type in (EntityType.INCOME, EntityType.EXPENSE):
         linked_movement = instance.pocket_movement
+    elif entity_type == EntityType.POCKET:
+        # Capture before deleting: the record FK is SET_NULL on delete.
+        linked_record = instance.linked_record
+        if linked_record is not None:
+            linked_record_type = (
+                EntityType.INCOME
+                if isinstance(linked_record, IncomeRecord)
+                else EntityType.EXPENSE
+            )
 
-    instance.delete()
-
-    if linked_movement is not None:
-        _log_pocket_removal(linked_movement, user)
-        linked_movement.delete()
+    with transaction.atomic():
+        instance.delete()
+        if linked_movement is not None:
+            _log_pocket_removal(linked_movement, user)
+            linked_movement.delete()
+        if linked_record is not None:
+            _log_record_removal(linked_record_type, linked_record, user)
+            linked_record.delete()
 
     change_log = log_accounting_change(
         entity_type=entity_type,
@@ -352,7 +396,7 @@ def delete_record(entity_type, instance, user):
 
 # ── Income/Expense ↔ Pocket side effects ──
 
-def _sync_pocket(entity_type, instance, user):
+def _sync_pocket(entity_type, instance, user, *, is_create):
     if entity_type == EntityType.INCOME:
         _sync_movement(
             instance,
@@ -361,28 +405,36 @@ def _sync_pocket(entity_type, instance, user):
                 and instance.destination == IncomeRecord.Destination.POCKET
             ),
             direction=PocketMovement.Direction.IN,
-            concept=f'Ingreso: {instance.concept}',
-            movement_date=instance.period_date,
             source_ref=f'income:{instance.pk}',
+            user=user,
+        )
+    elif entity_type == EntityType.EXPENSE:
+        # Every new expense draws from the pocket. Historical expenses
+        # (created before the linkage existed) stay unlinked: updating
+        # one never creates a movement retroactively.
+        _sync_movement(
+            instance,
+            wants_movement=is_create or instance.pocket_movement is not None,
+            direction=PocketMovement.Direction.OUT,
+            source_ref=f'expense:{instance.pk}',
             user=user,
         )
 
 
-def _sync_movement(
-    record, *, wants_movement, direction, concept, movement_date,
-    source_ref, user,
-):
-    """Create/mirror/remove the auto-managed pocket movement of a record.
+def _sync_movement(record, *, wants_movement, direction, source_ref, user):
+    """Create/mirror/remove the linked pocket movement of a record.
 
-    Auto movements are audited (the pocket ledger history stays complete)
+    Linked movements are audited (the pocket ledger history stays complete)
     but do NOT send their own email — the income/expense email covers it.
+    The concept mirrors the record verbatim (no prefix) so edits stay
+    invertible from the pocket side.
     """
     movement = record.pocket_movement
 
     if wants_movement and movement is None:
         movement = PocketMovement.objects.create(
-            concept=concept,
-            movement_date=movement_date,
+            concept=record.concept,
+            movement_date=record.period_date,
             direction=direction,
             amount=record.total_amount,
             source_ref=source_ref,
@@ -403,8 +455,14 @@ def _sync_movement(
         )
     elif wants_movement and movement is not None:
         old_values = snapshot_values(movement, EntityType.POCKET)
-        movement.concept = concept
-        movement.movement_date = movement_date
+        movement.concept = record.concept
+        # The record only carries month granularity; a same-month period
+        # keeps the exact day chosen on the pocket side.
+        period = record.period_date
+        if (movement.movement_date.year, movement.movement_date.month) != (
+            period.year, period.month,
+        ):
+            movement.movement_date = period
         movement.amount = record.total_amount
         movement.save(update_fields=[
             'concept', 'movement_date', 'amount', 'updated_at',
@@ -429,6 +487,117 @@ def _sync_movement(
         movement.delete()
 
 
+def _default_split(ledger, total):
+    """Partner split applied to records mirrored from the pocket side."""
+    if ledger == Ledger.GUSTAVO:
+        return total, Decimal('0')
+    if ledger == Ledger.CARLOS:
+        return Decimal('0'), total
+    return split_half(total)
+
+
+def _sync_from_pocket(movement, mirror_ledger, user, *, is_create):
+    """Create/mirror the income/expense record of a pocket movement.
+
+    Counterpart of `_sync_movement`. Writes the record with plain ORM
+    calls — never through create_record/update_record — so the two sync
+    writers cannot re-enter each other. Setting `pocket_movement` at
+    creation also keeps a later `_sync_movement` for that record in its
+    idempotent mirror branch (no duplicate movements).
+    Mirrored records are audited without their own email — the pocket
+    email covers the user action.
+    """
+    linked = movement.linked_record
+
+    if linked is None:
+        if not is_create:
+            # Historical movement created before the linkage existed.
+            return
+        ledger = mirror_ledger or Ledger.COMPANY
+        gustavo, carlos = _default_split(ledger, movement.amount)
+        common = {
+            'concept': movement.concept,
+            'period_date': movement.movement_date.replace(day=1),
+            'ledger': ledger,
+            'total_amount': movement.amount,
+            'gustavo_amount': gustavo,
+            'carlos_amount': carlos,
+            'source_ref': f'pocket:{movement.pk}',
+            'pocket_movement': movement,
+            'created_by': (
+                user if getattr(user, 'is_authenticated', False) else None
+            ),
+        }
+        if movement.direction == PocketMovement.Direction.IN:
+            record_type = EntityType.INCOME
+            record = IncomeRecord.objects.create(
+                kind=IncomeRecord.Kind.LIQUID,
+                destination=IncomeRecord.Destination.POCKET,
+                **common,
+            )
+        else:
+            record_type = EntityType.EXPENSE
+            record = ExpenseRecord.objects.create(
+                category=(
+                    ExpenseRecord.Category.BUSINESS
+                    if ledger == Ledger.COMPANY
+                    else ExpenseRecord.Category.PERSONAL
+                ),
+                **common,
+            )
+        log_accounting_change(
+            entity_type=record_type,
+            object_id=record.pk,
+            object_repr=object_repr(record_type, record),
+            action=Action.CREATED,
+            changes=compute_changes(
+                record_type, {}, snapshot_values(record, record_type),
+            ),
+            actor=user,
+        )
+        return
+
+    record_type = (
+        EntityType.INCOME
+        if isinstance(linked, IncomeRecord)
+        else EntityType.EXPENSE
+    )
+    old_values = snapshot_values(linked, record_type)
+    linked.concept = movement.concept
+    update_fields = ['concept', 'updated_at']
+    if (linked.period_date.year, linked.period_date.month) != (
+        movement.movement_date.year, movement.movement_date.month,
+    ):
+        linked.period_date = movement.movement_date.replace(day=1)
+        update_fields.append('period_date')
+    ledger = mirror_ledger or linked.ledger
+    if movement.amount != linked.total_amount or ledger != linked.ledger:
+        # The pocket modal has no split editor: amount/ledger edits from
+        # the pocket side reset the split to the ledger default. Custom
+        # splits are edited from the Ingresos/Gastos tabs.
+        gustavo, carlos = _default_split(ledger, movement.amount)
+        linked.ledger = ledger
+        linked.total_amount = movement.amount
+        linked.gustavo_amount = gustavo
+        linked.carlos_amount = carlos
+        update_fields += [
+            'ledger', 'total_amount', 'gustavo_amount', 'carlos_amount',
+        ]
+    linked.save(update_fields=update_fields)
+    changes = compute_changes(
+        record_type, old_values, snapshot_values(linked, record_type),
+    )
+    if changes:
+        log_accounting_change(
+            entity_type=record_type,
+            object_id=linked.pk,
+            object_repr=object_repr(record_type, linked),
+            action=Action.UPDATED,
+            changes=changes,
+            actor=user,
+        )
+
+
 def _log_pocket_removal(movement, user):
     old_values = snapshot_values(movement, EntityType.POCKET)
     log_accounting_change(
@@ -437,6 +606,19 @@ def _log_pocket_removal(movement, user):
         object_repr=movement.concept,
         action=Action.DELETED,
         changes=_deletion_changes(EntityType.POCKET, old_values),
+        actor=user,
+    )
+
+
+def _log_record_removal(entity_type, record, user):
+    """Silent DELETED audit row for a record cascaded from its movement."""
+    old_values = snapshot_values(record, entity_type)
+    log_accounting_change(
+        entity_type=entity_type,
+        object_id=record.pk,
+        object_repr=object_repr(entity_type, record),
+        action=Action.DELETED,
+        changes=_deletion_changes(entity_type, old_values),
         actor=user,
     )
 

@@ -64,9 +64,7 @@
           :stats="heroStats"
           :progress="receivedProgress"
           :progress-label="receivedProgressLabel"
-          :spark="utilitySpark"
-          :spark-label="`Utilidad mensual de ${summary.year}`"
-          spark-caption="Utilidad por mes"
+          :monthly="summary.monthly || []"
         />
         <div
           class="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:content-start"
@@ -346,10 +344,6 @@ const receivedProgressLabel = computed(() => {
   if (receivedProgress.value === null) return '';
   return `${Math.round(receivedProgress.value)}% de lo esperado ya está recibido`;
 });
-
-const utilitySpark = computed(() =>
-  (summary.value?.monthly || []).map((month) => Number(month.utility)),
-);
 
 const heroStats = computed(() => {
   const data = summary.value;

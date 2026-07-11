@@ -125,9 +125,9 @@
             <span
               v-if="row.is_auto_managed"
               class="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-raised text-text-muted font-medium uppercase tracking-wide"
-              title="Movimiento gestionado automáticamente desde el ingreso o gasto vinculado"
+              title="Sincronizado con el ingreso o gasto vinculado"
             >
-              Auto
+              Vinculado
             </span>
           </span>
         </template>
@@ -203,7 +203,6 @@ import AccountingExportButton from '~/components/accounting/AccountingExportButt
 import PocketMovementFormModal from '~/components/accounting/PocketMovementFormModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
-import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import {
@@ -219,7 +218,6 @@ import { formatMoney } from '~/utils/formatMoney';
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
-const notify = usePanelNotify();
 
 // -------------------------------------------------------------------
 // Filters
@@ -292,24 +290,11 @@ const exportParams = computed(() =>
 // Server meta is the single owner of the headline balance.
 const pocketBalance = computed(() => Number(store.metaFor('pocket').balance ?? 0));
 
+// Running balance is computed chronologically (oldest first) in the getter;
+// the default view shows the most recent movement first.
 const filteredMovements = computed(() =>
-  applyFilters(store.pocketWithRunningBalance),
+  applyFilters(store.pocketWithRunningBalance).slice().reverse(),
 );
-
-function warnAutoManaged() {
-  notify.warning({
-    title: 'Movimiento automático',
-    detail: 'Se gestiona desde el ingreso o gasto vinculado.',
-  });
-}
-
-function guardAutoManaged(record) {
-  if (record.is_auto_managed) {
-    warnAutoManaged();
-    return false;
-  }
-  return true;
-}
 
 const {
   isModalOpen,
@@ -341,6 +326,7 @@ const {
   entity: 'pocket',
   store,
   filteredRecords: filteredMovements,
+  sortDefaults: { movement_date: 'desc', amount: 'desc' },
   labels: {
     created: 'Movimiento creado',
     updated: 'Movimiento actualizado',
@@ -350,10 +336,18 @@ const {
     deleteTitle: 'Eliminar movimiento',
     deleteMessage: (record) =>
       `Esto eliminará el movimiento "${record.concept}" de forma permanente. ` +
+      (record.is_auto_managed
+        ? 'También se eliminará el ingreso/gasto vinculado. '
+        : '') +
       'Esta acción no se puede deshacer.',
   },
-  beforeEdit: guardAutoManaged,
-  beforeDelete: guardAutoManaged,
+  onAfterMutation: async () => {
+    // Refresh meta.balance + link fields, and drop the sibling caches so
+    // the Ingresos/Gastos tabs refetch the mirrored records on mount.
+    await loadRecords();
+    store.incomes = [];
+    store.expenses = [];
+  },
   saveTab,
   resetFilters,
   isFilterPanelOpen,

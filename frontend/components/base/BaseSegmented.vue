@@ -11,6 +11,7 @@ const props = defineProps({
   },
   size: { type: String, default: 'md', validator: oneOf(['sm', 'md']) },
   fullWidth: { type: Boolean, default: false },
+  disabled: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -41,14 +42,16 @@ const sizeClass = computed(() =>
       role="tab"
       :data-testid="opt.testId"
       :aria-selected="modelValue === opt.value"
+      :disabled="disabled"
       :class="[
         'flex-1 rounded-lg transition-all outline-none focus:ring-2 focus:ring-focus-ring/40',
         sizeClass,
         modelValue === opt.value
           ? 'bg-surface shadow-sm font-medium text-text-default'
           : 'text-text-muted hover:text-text-default',
+        disabled ? 'opacity-60 cursor-not-allowed' : '',
       ]"
-      @click="emit('update:modelValue', opt.value)"
+      @click="!disabled && emit('update:modelValue', opt.value)"
     >
       {{ opt.label }}
     </button>
