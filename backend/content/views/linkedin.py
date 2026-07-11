@@ -150,7 +150,8 @@ def publish_to_linkedin(request, post_id):
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
-    lang = request.data.get('lang', 'es')
+    # English is the default: LinkedIn content targets the US market.
+    lang = request.data.get('lang', 'en')
     summary = post.linkedin_summary_es if lang == 'es' else post.linkedin_summary_en
     title = post.title_es if lang == 'es' else post.title_en
 

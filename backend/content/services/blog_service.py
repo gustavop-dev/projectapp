@@ -24,7 +24,7 @@ def auto_publish_blog_to_linkedin(post):
     """
     Publish a blog post to LinkedIn if conditions are met:
     - Post is published (is_published=True)
-    - Has a linkedin_summary (es or en)
+    - Has a linkedin_summary (en preferred, es fallback)
     - Has not been published to LinkedIn yet (no linkedin_post_id)
 
     Runs silently — logs errors but never raises.
@@ -43,12 +43,13 @@ def auto_publish_blog_to_linkedin(post):
         logger.info('[LinkedIn] skip: post "%s" already has linkedin_post_id=%s', post.slug, post.linkedin_post_id)
         return
 
-    summary = post.linkedin_summary_es or post.linkedin_summary_en
+    # English first: LinkedIn content targets the US market.
+    summary = post.linkedin_summary_en or post.linkedin_summary_es
     if not summary:
-        logger.info('[LinkedIn] skip: post "%s" has no linkedin_summary (es or en) — fill it to enable auto-post', post.slug)
+        logger.info('[LinkedIn] skip: post "%s" has no linkedin_summary (en or es) — fill it to enable auto-post', post.slug)
         return
 
-    lang = 'es' if post.linkedin_summary_es else 'en'
+    lang = 'en' if post.linkedin_summary_en else 'es'
     title = post.title_es if lang == 'es' else post.title_en
 
     # Get cover image URL
@@ -185,8 +186,8 @@ def build_blog_json_template():
         'meta_description_en': '',
         'meta_keywords_es': '',
         'meta_keywords_en': '',
-        'linkedin_summary_es': 'Resumen para LinkedIn en español (máx. ~1300 caracteres).',
-        'linkedin_summary_en': 'LinkedIn summary in English (max ~1300 chars).',
+        'linkedin_summary_es': 'Resumen para LinkedIn en español (máx. ~1300 caracteres). Solo se usa si falta el resumen en inglés.',
+        'linkedin_summary_en': 'LinkedIn summary in English (max ~1300 chars). Preferred: the auto-post publishes in English when this field is filled.',
         '_available_categories': AVAILABLE_CATEGORIES,
     }
 
