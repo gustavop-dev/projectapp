@@ -4,11 +4,6 @@
 import { setActivePinia, createPinia } from 'pinia'
 import { useDocumentStore } from '../../stores/documents'
 
-jest.mock('axios', () => ({
-  __esModule: true,
-  default: { get: jest.fn() },
-}))
-
 jest.mock('../../stores/services/request_http', () => ({
   get_request: jest.fn(),
   create_request: jest.fn(),
@@ -16,7 +11,6 @@ jest.mock('../../stores/services/request_http', () => ({
   delete_request: jest.fn(),
 }))
 
-const axios = require('axios').default
 const {
   get_request,
   create_request,
@@ -265,60 +259,54 @@ describe('useDocumentStore', () => {
   })
 
   describe('downloadPdf', () => {
-    it('requests blob and triggers download', async () => {
-      const prevCreate = window.URL.createObjectURL
-      const prevRevoke = window.URL.revokeObjectURL
-      window.URL.createObjectURL = jest.fn(() => 'blob:u')
-      window.URL.revokeObjectURL = jest.fn()
-      const link = { href: '', setAttribute: jest.fn(), click: jest.fn(), remove: jest.fn() }
-      jest.spyOn(document, 'createElement').mockReturnValue(link)
+    beforeEach(() => {
+      global.URL.createObjectURL = jest.fn(() => 'blob:x')
+      global.URL.revokeObjectURL = jest.fn()
+    })
+
+    it('requests the pdf blob and triggers a download', async () => {
+      get_request.mockResolvedValue({ data: new Blob(['x']) })
+      const clickSpy = jest.fn()
+      jest.spyOn(document, 'createElement').mockReturnValue({
+        href: '', setAttribute: jest.fn(), click: clickSpy, remove: jest.fn(),
+      })
       jest.spyOn(document.body, 'appendChild').mockImplementation(() => {})
-      Object.defineProperty(document, 'cookie', { value: 'csrftoken=abc', configurable: true })
-      axios.get.mockResolvedValueOnce({ data: new Blob(['pdf']) })
 
       const result = await store.downloadPdf(3, 'My Doc')
-
-      expect(axios.get).toHaveBeenCalledWith(
-        '/api/documents/3/pdf/',
-        expect.objectContaining({ responseType: 'blob' }),
-      )
-      expect(link.click).toHaveBeenCalled()
-      expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:u')
+      expect(get_request).toHaveBeenCalledWith(
+        'documents/3/pdf/', { responseType: 'blob' })
+      expect(clickSpy).toHaveBeenCalled()
       expect(result.success).toBe(true)
-      window.URL.createObjectURL = prevCreate
-      window.URL.revokeObjectURL = prevRevoke
-      document.createElement.mockRestore()
-      document.body.appendChild.mockRestore()
     })
 
-    it('returns failure when axios get rejects', async () => {
-      axios.get.mockRejectedValueOnce({ response: { data: { detail: 'nope' } } })
-      const result = await store.downloadPdf(1, 't')
-      expect(result.success).toBe(false)
-      expect(result.errors).toEqual({ detail: 'nope' })
-    })
-
-    it('sends empty csrf header when cookie has no csrftoken', async () => {
-      const prevCreate = window.URL.createObjectURL
-      const prevRevoke = window.URL.revokeObjectURL
-      window.URL.createObjectURL = jest.fn(() => 'blob:u')
-      window.URL.revokeObjectURL = jest.fn()
-      const link = { click: jest.fn(), setAttribute: jest.fn(), remove: jest.fn() }
-      jest.spyOn(document, 'createElement').mockReturnValue(link)
+    it('appends the template query when given a valid style', async () => {
+      get_request.mockResolvedValue({ data: new Blob(['x']) })
+      jest.spyOn(document, 'createElement').mockReturnValue({
+        href: '', setAttribute: jest.fn(), click: jest.fn(), remove: jest.fn(),
+      })
       jest.spyOn(document.body, 'appendChild').mockImplementation(() => {})
-      Object.defineProperty(document, 'cookie', { value: '', configurable: true })
-      axios.get.mockResolvedValueOnce({ data: new Blob(['x']) })
-      await store.downloadPdf(1)
-      expect(axios.get).toHaveBeenCalledWith(
-        '/api/documents/1/pdf/',
-        expect.objectContaining({
-          headers: { 'X-CSRFToken': '' },
-        }),
-      )
-      window.URL.createObjectURL = prevCreate
-      window.URL.revokeObjectURL = prevRevoke
-      document.createElement.mockRestore()
-      document.body.appendChild.mockRestore()
+
+      await store.downloadPdf(1, 't', 'friendly')
+      expect(get_request).toHaveBeenCalledWith(
+        'documents/1/pdf/?template=friendly', { responseType: 'blob' })
+    })
+
+    it('ignores an unknown template value', async () => {
+      get_request.mockResolvedValue({ data: new Blob(['x']) })
+      jest.spyOn(document, 'createElement').mockReturnValue({
+        href: '', setAttribute: jest.fn(), click: jest.fn(), remove: jest.fn(),
+      })
+      jest.spyOn(document.body, 'appendChild').mockImplementation(() => {})
+
+      await store.downloadPdf(1, 't', 'bogus')
+      expect(get_request).toHaveBeenCalledWith(
+        'documents/1/pdf/', { responseType: 'blob' })
+    })
+
+    it('returns an error result on failure', async () => {
+      get_request.mockRejectedValue(new Error('boom'))
+      const result = await store.downloadPdf(1)
+      expect(result.success).toBe(false)
     })
   })
 })

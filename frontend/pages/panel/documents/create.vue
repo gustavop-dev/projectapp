@@ -153,6 +153,12 @@
               <span v-if="form.content_markdown" class="text-xs text-text-subtle tabular-nums">
                 {{ form.content_markdown.length.toLocaleString() }} caracteres
               </span>
+              <BaseSegmented
+                v-model="form.template_style"
+                size="sm"
+                :options="templateStyleOptions"
+                aria-label="Estilo de plantilla"
+              />
               <button
                 type="button"
                 class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
@@ -192,6 +198,7 @@
               <DocumentMarkdownBody
                 v-if="form.content_markdown.trim()"
                 :markdown="form.content_markdown"
+                :theme="form.template_style"
                 class="px-5 py-4"
               />
               <div
@@ -293,6 +300,7 @@ const form = reactive({
   content_markdown: '',
   folder_id: null,
   tag_ids: [],
+  template_style: 'professional',
 });
 
 usePanelRefresh(() => Promise.all([folderStore.fetchFolders(), tagStore.fetchTags()]));
@@ -314,6 +322,11 @@ const coverOptions = [
   { key: 'include_portada', label: 'Incluir portada' },
   { key: 'include_subportada', label: 'Incluir subportada' },
   { key: 'include_contraportada', label: 'Incluir contraportada' },
+];
+
+const templateStyleOptions = [
+  { value: 'friendly', label: 'Amigable', testId: 'doc-style-friendly' },
+  { value: 'professional', label: 'Profesional', testId: 'doc-style-professional' },
 ];
 
 const modeTabs = [
@@ -366,6 +379,7 @@ async function handleSubmit() {
     markdown: form.content_markdown,
     folder_id: form.folder_id,
     tag_ids: form.tag_ids,
+    template_style: form.template_style,
   };
 
   const result = await documentStore.createFromMarkdown(payload);

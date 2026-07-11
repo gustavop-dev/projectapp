@@ -14,10 +14,13 @@ import { oneOf } from '~/components/base/propValidators'
  *
  * variant: default → editor split preview; full → full-page preview modal;
  * mini → card thumbnail (non-interactive).
+ * theme: friendly (default) → current look; professional → mirrors the
+ * ReportLab brand PDF palette (dark esmerald headings, lemon accent).
  */
 const props = defineProps({
   markdown: { type: String, default: '' },
   variant: { type: String, default: 'default', validator: oneOf(['default', 'full', 'mini']) },
+  theme: { type: String, default: 'friendly', validator: oneOf(['friendly', 'professional']) },
 })
 
 const { parseMarkdown } = useMarkdownPreview()
@@ -41,6 +44,7 @@ const safeHtml = computed(() => {
     :class="{
       'markdown-preview--full': variant === 'full',
       'markdown-preview--mini': variant === 'mini',
+      'markdown-preview--professional': theme === 'professional',
     }"
     v-html="safeHtml"
   />
@@ -293,4 +297,48 @@ const safeHtml = computed(() => {
 }
 .markdown-preview--full :deep(.md-table) { font-size: 0.95rem; }
 .markdown-preview--full :deep(.md-code-block) { font-size: 0.9rem; }
+
+/* Professional theme — mirrors the ReportLab brand PDF */
+.markdown-preview--professional :deep(.md-h1),
+.markdown-preview--professional :deep(.md-h2) {
+  color: #002921;
+  border-bottom-color: #f0ff3d;
+}
+.markdown-preview--professional :deep(.md-h3),
+.markdown-preview--professional :deep(.md-h4),
+.markdown-preview--professional :deep(.md-h5),
+.markdown-preview--professional :deep(.md-h6) { color: #335550; }
+.markdown-preview--professional :deep(.md-p),
+.markdown-preview--professional :deep(.md-ul),
+.markdown-preview--professional :deep(.md-ol) { color: #335550; }
+.markdown-preview--professional :deep(.md-blockquote) {
+  background-color: #faf3e0;
+  border-left-color: #f0ff3d;
+  color: #002921;
+  font-style: normal;
+}
+.markdown-preview--professional :deep(.md-table th) {
+  background-color: #002921;
+  color: #ffffff;
+  border-color: #002921;
+}
+.markdown-preview--professional :deep(.md-table td) { border-color: #d1d5db; }
+.markdown-preview--professional :deep(.md-table tbody tr:nth-child(even)) {
+  background-color: #e6efef;
+}
+.markdown-preview--professional :deep(.md-link) { color: #059669; }
+.markdown-preview--professional :deep(.md-code-block) {
+  background-color: #e5e7eb;
+  border-color: #d1d5db;
+}
+:global(.dark) .markdown-preview--professional :deep(.md-h1),
+:global(.dark) .markdown-preview--professional :deep(.md-h2),
+:global(.dark) .markdown-preview--professional :deep(.md-h3) { color: #a7f3d0; }
+:global(.dark) .markdown-preview--professional :deep(.md-p),
+:global(.dark) .markdown-preview--professional :deep(.md-ul),
+:global(.dark) .markdown-preview--professional :deep(.md-ol) { color: #d1d5db; }
+:global(.dark) .markdown-preview--professional :deep(.md-blockquote) {
+  background-color: rgba(250, 243, 224, 0.08);
+  color: #e5e7eb;
+}
 </style>

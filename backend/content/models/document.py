@@ -31,6 +31,10 @@ class Document(models.Model):
         NONE = 'none', 'Sin portada'
         PROPOSAL = 'proposal', 'Propuesta'
 
+    class TemplateStyle(models.TextChoices):
+        PROFESSIONAL = 'professional', 'Profesional'
+        FRIENDLY = 'friendly', 'Amigable'
+
     uuid = models.UUIDField(
         default=uuid.uuid4, unique=True, editable=False, db_index=True,
     )
@@ -151,6 +155,13 @@ class Document(models.Model):
     include_portada = models.BooleanField(default=True)
     include_subportada = models.BooleanField(default=True)
     include_contraportada = models.BooleanField(default=True)
+
+    template_style = models.CharField(
+        max_length=20,
+        choices=TemplateStyle.choices,
+        default=TemplateStyle.PROFESSIONAL,
+        help_text='Estilo de PDF por defecto: profesional o amigable.',
+    )
 
     # Client-facing signature (click-to-accept). requires_signature marks the
     # main contract the client must sign; siblings in the same project are annexes.

@@ -10,6 +10,12 @@ import re
 from content.services.emoji_shortcodes import replace_shortcodes
 
 _CALLOUT_RE = re.compile(r'^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]$', re.IGNORECASE)
+_LIST_ITEM_RE = re.compile(r'^([ \t]*)([-*]|\d+\.)\s+(.+)$')
+
+
+def _indent_depth(ws):
+    """2 spaces or 1 tab = one nesting level."""
+    return ws.count('\t') + len(ws.replace('\t', '')) // 2
 
 
 def markdown_to_blocks(text):
@@ -157,29 +163,26 @@ def markdown_to_blocks(text):
                 })
             continue
 
-        # 7. Unordered list
-        if re.match(r'^[-*]\s+', stripped):
-            items = []
+        # 7. Lists (ordered or unordered, arbitrarily nested)
+        list_m = _LIST_ITEM_RE.match(line)
+        if list_m and not re.match(r'^[-*_]{3,}\s*$', stripped):
+            ordered = list_m.group(2) not in ('-', '*')
+            root_items = []
+            stack = [(0, root_items)]  # (depth, items list at that depth)
             while i < len(lines):
-                raw_line = lines[i]
-                s = raw_line.strip()
-
-                # Check for nested item (indented list marker)
-                nested_m = re.match(r'^(?:\s{2,}|\t)[-*]\s+(.+)$', raw_line)
-                if nested_m:
-                    if items:
-                        items[-1]['children'].append(nested_m.group(1).strip())
+                raw = lines[i]
+                m = _LIST_ITEM_RE.match(raw)
+                if m and not re.match(r'^[-*_]{3,}\s*$', raw.strip()):
+                    depth = min(_indent_depth(m.group(1)), stack[-1][0] + 1)
+                    while len(stack) > 1 and depth < stack[-1][0]:
+                        stack.pop()
+                    if depth > stack[-1][0] and stack[-1][1]:
+                        stack.append((depth, stack[-1][1][-1]['children']))
+                    stack[-1][1].append(
+                        {'text': m.group(3).strip(), 'children': []})
                     i += 1
                     continue
-
-                # Top-level unordered item
-                m = re.match(r'^[-*]\s+(.+)$', s)
-                if m:
-                    items.append({'text': m.group(1), 'children': []})
-                    i += 1
-                    continue
-
-                # Continuation line (non-empty, non-special) — append to last item text
+                s = raw.strip()
                 if (
                     s
                     and not s.startswith('#')
@@ -187,64 +190,20 @@ def markdown_to_blocks(text):
                     and not s.startswith('>')
                     and not s.startswith('```')
                     and not re.match(r'^[-*_]{3,}\s*$', s)
-                    and not re.match(r'^[-*]\s+', s)
-                    and not re.match(r'^(?:\s{2,}|\t)[-*]\s+', raw_line)
+                    and not re.match(r'^\*\*\d+\.\d+', s)
                 ):
+                    # Continuation line: append to the innermost last item
+                    items = stack[-1][1]
                     if items:
                         items[-1]['text'] += ' ' + s
-                    i += 1
-                    continue
-
+                        i += 1
+                        continue
                 break
-
-            if items:
+            if root_items:
                 blocks.append({
                     'type': 'list',
-                    'ordered': False,
-                    'items': items,
-                })
-            continue
-
-        # 8. Ordered list
-        if re.match(r'^\d+\.\s+', stripped):
-            items = []
-            while i < len(lines):
-                raw_line = lines[i]
-                s = raw_line.strip()
-
-                # Check for nested item (indented ordered or unordered marker)
-                nested_m = re.match(r'^(?:\s{2,}|\t)(?:[-*]|\d+\.)\s+(.+)$', raw_line)
-                if nested_m:
-                    if items:
-                        items[-1]['children'].append(nested_m.group(1).strip())
-                    i += 1
-                    continue
-
-                m = re.match(r'^\d+\.\s+(.+)$', s)
-                if m:
-                    items.append({'text': m.group(1), 'children': []})
-                    i += 1
-                    continue
-
-                if (
-                    s
-                    and not s.startswith('#')
-                    and not s.startswith('|')
-                    and not re.match(r'^\d+\.', s)
-                    and not re.match(r'^(?:\s{2,}|\t)(?:[-*]|\d+\.)\s+', raw_line)
-                ):
-                    if items:
-                        items[-1]['text'] += ' ' + s
-                    i += 1
-                    continue
-
-                break
-
-            if items:
-                blocks.append({
-                    'type': 'list',
-                    'ordered': True,
-                    'items': items,
+                    'ordered': ordered,
+                    'items': root_items,
                 })
             continue
 

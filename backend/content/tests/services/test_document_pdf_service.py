@@ -17,7 +17,13 @@ pytestmark = pytest.mark.django_db
 # -- Fixtures -----------------------------------------------------------------
 
 def _document(**kwargs):
-    """Create a minimal Document with sensible defaults."""
+    """Create a minimal Document with sensible defaults.
+
+    Any kwarg that isn't an actual model field yet (e.g. ``template_style``
+    ahead of Task 8's migration) is set as a plain instance attribute after
+    creation, so tests can exercise ``getattr(document, ..., None)``-style
+    fallbacks without requiring the DB column to exist.
+    """
     defaults = {
         'title': 'Test Document',
         'client_name': 'Test Client',
@@ -26,7 +32,14 @@ def _document(**kwargs):
         'include_contraportada': False,
     }
     defaults.update(kwargs)
-    return Document.objects.create(**defaults)
+    model_field_names = {f.name for f in Document._meta.get_fields()}
+    extra = {k: v for k, v in defaults.items() if k not in model_field_names}
+    for k in extra:
+        defaults.pop(k)
+    doc = Document.objects.create(**defaults)
+    for k, v in extra.items():
+        setattr(doc, k, v)
+    return doc
 
 
 def _with_blocks(blocks):
@@ -393,3 +406,52 @@ class TestDocumentPdfServiceGenerateFromMarkdown:
             result = DocumentPdfService.generate(doc)
 
         assert result is None
+
+
+# ── template_style / theme selection ──────────────────────────────────────
+
+class TestDocumentPdfServiceTemplateStyle:
+    @pytest.fixture(autouse=True)
+    def _bypass_merge(self):
+        with patch(
+            'content.services.document_pdf_service.DocumentPdfService._merge_with_covers',
+            side_effect=lambda b, **kw: b,
+        ):
+            yield
+
+    def test_friendly_style_generates_pdf(self):
+        from content.services.document_pdf_service import DocumentPdfService
+        doc = _document(content_json=_with_blocks([
+            {'type': 'heading', 'level': 1, 'text': 'Titulo'},
+            {'type': 'paragraph', 'text': 'Cuerpo del documento.'},
+            {'type': 'table', 'headers': ['A', 'B'], 'rows': [['1', '2']]},
+        ]))
+        out = DocumentPdfService.generate(doc, template_style='friendly')
+        assert isinstance(out, bytes) and out[:4] == b'%PDF'
+
+    def test_professional_is_default_when_unspecified(self):
+        from content.services.document_pdf_service import DocumentPdfService
+        doc = _document(content_json=_with_blocks([
+            {'type': 'paragraph', 'text': 'Hola.'}]))
+        # no template_style attribute set on the fixture → professional
+        out = DocumentPdfService.generate(doc)
+        assert out[:4] == b'%PDF'
+
+    def test_uses_document_field_when_style_arg_none(self):
+        from content.services.document_pdf_service import DocumentPdfService
+        doc = _document(template_style='friendly', content_json=_with_blocks([
+            {'type': 'paragraph', 'text': 'Hola.'}]))
+        out = DocumentPdfService.generate(doc, template_style=None)
+        assert out[:4] == b'%PDF'
+
+    def test_toc_page_count_matches_between_passes(self):
+        """Dry-run and real pass share the theme → stable page numbers."""
+        from content.services.document_pdf_service import DocumentPdfService
+        blocks = [{'type': 'toc'}]
+        for n in range(6):
+            blocks.append({'type': 'heading', 'level': 1, 'text': f'H{n}'})
+            blocks.append({'type': 'paragraph', 'text': 'x ' * 200})
+        doc = _document(include_subportada=False,
+                        content_json=_with_blocks(blocks))
+        out = DocumentPdfService.generate(doc, template_style='friendly')
+        assert out[:4] == b'%PDF'

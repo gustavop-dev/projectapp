@@ -269,7 +269,10 @@ def test_parses_nested_unordered_list():
     assert blocks[0]["type"] == "list"
     assert blocks[0]["ordered"] is False
     assert blocks[0]["items"][0]["text"] == "Item 1"
-    assert blocks[0]["items"][0]["children"] == ["Sub A", "Sub B"]
+    assert blocks[0]["items"][0]["children"] == [
+        {"text": "Sub A", "children": []},
+        {"text": "Sub B", "children": []},
+    ]
 
 
 def test_nested_list_item_has_children_key():
@@ -404,7 +407,9 @@ def test_ordered_list_with_nested_unordered_items():
     assert len(blocks) == 1
     assert blocks[0]["type"] == "list"
     assert blocks[0]["ordered"] is True
-    assert blocks[0]["items"][0]["children"] == ["nested bullet"]
+    assert blocks[0]["items"][0]["children"] == [
+        {"text": "nested bullet", "children": []},
+    ]
     assert blocks[0]["items"][1]["text"] == "Second item"
 
 

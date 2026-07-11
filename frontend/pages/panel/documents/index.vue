@@ -212,7 +212,7 @@
       @edit="handleEditDoc(actionDoc)"
       @rename="handleRenameDoc(actionDoc)"
       @move="handleMoveDoc(actionDoc)"
-      @download-pdf="handleDownloadPdf(actionDoc)"
+      @download-pdf="(tpl) => handleDownloadPdf(actionDoc, tpl)"
       @copy-markdown="handleCopyMarkdown(actionDoc.id)"
       @duplicate="handleDuplicate(actionDoc.id)"
       @send-email="handleSendEmail(actionDoc)"
@@ -515,8 +515,8 @@ async function handleDropOnFolder(folderId) {
   await Promise.all([documentStore.fetchDocuments(), folderStore.fetchFolders()]);
 }
 
-async function handleDownloadPdf(doc) {
-  const result = await documentStore.downloadPdf(doc.id, doc.title || 'document');
+async function handleDownloadPdf(doc, template = null) {
+  const result = await documentStore.downloadPdf(doc.id, doc.title || 'document', template);
   if (!result.success) {
     notify.error({ title: 'No se pudo descargar el PDF', detail: result.message });
   }

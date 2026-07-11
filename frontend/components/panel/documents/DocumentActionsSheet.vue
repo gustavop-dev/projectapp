@@ -30,11 +30,11 @@
           <div class="p-2">
             <button
               v-for="action in actions"
-              :key="action.event"
+              :key="action.template ? `${action.event}-${action.template}` : action.event"
               type="button"
               class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all active:scale-[0.98] hover:bg-surface-muted"
               :class="action.danger ? 'text-danger-strong hover:bg-danger-soft' : 'text-text-default'"
-              @click="trigger(action.event)"
+              @click="trigger(action)"
             >
               <div
                 class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -110,8 +110,13 @@ const actions = [
     icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
   },
   {
-    event: 'download-pdf',
-    label: 'Descargar PDF',
+    event: 'download-pdf', template: 'friendly',
+    label: 'Descargar PDF · Amigable',
+    icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
+  },
+  {
+    event: 'download-pdf', template: 'professional',
+    label: 'Descargar PDF · Profesional',
     icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
   },
   {
@@ -137,8 +142,8 @@ function close() {
   emit('update:modelValue', false);
 }
 
-function trigger(eventName) {
-  emit(eventName);
+function trigger(action) {
+  emit(action.event, action.template);
   close();
 }
 </script>

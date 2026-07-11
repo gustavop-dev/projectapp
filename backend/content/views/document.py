@@ -109,6 +109,7 @@ def create_document_from_markdown(request):
         client_name=data.get('client_name', ''),
         language=data.get('language', 'es'),
         cover_type=data.get('cover_type', 'generic'),
+        template_style=data.get('template_style', 'professional'),
         include_portada=data.get('include_portada', True),
         include_subportada=data.get('include_subportada', True),
         include_contraportada=data.get('include_contraportada', True),
@@ -118,6 +119,7 @@ def create_document_from_markdown(request):
                 'title': data['title'],
                 'client_name': data.get('client_name', ''),
                 'cover_type': data.get('cover_type', 'generic'),
+                'template_style': data.get('template_style', 'professional'),
                 'include_portada': data.get('include_portada', True),
                 'include_subportada': data.get('include_subportada', True),
                 'include_contraportada': data.get('include_contraportada', True),
@@ -157,6 +159,7 @@ def upload_document_markdown(request):
     client_name = request.data.get('client_name', '')
     language = request.data.get('language', 'es')
     cover_type = request.data.get('cover_type', 'generic')
+    template_style = request.data.get('template_style', 'professional')
 
     blocks = markdown_to_blocks(markdown_text)
 
@@ -184,6 +187,7 @@ def upload_document_markdown(request):
         client_name=client_name,
         language=language,
         cover_type=cover_type,
+        template_style=template_style,
         include_portada=include_portada,
         include_subportada=include_subportada,
         include_contraportada=include_contraportada,
@@ -193,6 +197,7 @@ def upload_document_markdown(request):
                 'title': title,
                 'client_name': client_name,
                 'cover_type': cover_type,
+                'template_style': template_style,
                 'include_portada': include_portada,
                 'include_subportada': include_subportada,
                 'include_contraportada': include_contraportada,
@@ -314,7 +319,10 @@ def download_document_pdf(request, document_id):
         )
 
     from content.services.document_pdf_service import DocumentPdfService  # noqa: E402
-    pdf_bytes = DocumentPdfService.generate(document)
+    requested = request.query_params.get('template')
+    valid = {'professional', 'friendly'}
+    style = requested if requested in valid else document.template_style
+    pdf_bytes = DocumentPdfService.generate(document, template_style=style)
 
     if not pdf_bytes:
         return Response(

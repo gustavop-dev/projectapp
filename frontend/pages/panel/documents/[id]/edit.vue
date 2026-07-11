@@ -23,15 +23,21 @@
         <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-text-muted hover:text-text-default">
           Cancelar
         </NuxtLink>
-        <button
-          type="button"
-          :disabled="isDownloading"
-          class="px-5 py-2.5 bg-surface text-text-default border border-border-default rounded-xl font-medium text-sm
-                 hover:bg-surface-raised hover:border-border-default transition-colors disabled:opacity-50"
-          @click="handleDownloadPdf"
-        >
-          {{ isDownloading ? 'Descargando...' : 'Descargar PDF' }}
-        </button>
+        <BaseDropdown :items="downloadItems" align="right">
+          <template #trigger>
+            <button
+              type="button"
+              :disabled="isDownloading"
+              class="px-5 py-2.5 bg-surface text-text-default border border-border-default rounded-xl font-medium text-sm
+                     hover:bg-surface-raised transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+            >
+              {{ isDownloading ? 'Descargando...' : 'Descargar PDF' }}
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </template>
+        </BaseDropdown>
         <button
           type="submit"
           form="doc-edit-form"
@@ -213,6 +219,12 @@
               </svg>
               {{ pastedMarkdown ? 'Pegado' : 'Pegar' }}
             </button>
+            <BaseSegmented
+              v-model="form.template_style"
+              size="sm"
+              :options="templateStyleOptions"
+              aria-label="Estilo de plantilla"
+            />
             <button
               type="button"
               class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors
@@ -265,6 +277,7 @@
             <DocumentMarkdownBody
               v-if="form.content_markdown.trim()"
               :markdown="form.content_markdown"
+              :theme="form.template_style"
               class="px-5 py-4"
             />
             <div
@@ -285,15 +298,21 @@
           >
             {{ documentStore.isUpdating ? 'Guardando...' : 'Guardar' }}
           </button>
-          <button
-            type="button"
-            :disabled="isDownloading"
-            class="px-5 sm:px-6 py-2.5 bg-surface text-text-default border border-border-default rounded-xl font-medium text-sm
-                   hover:bg-surface-raised hover:border-border-default transition-colors disabled:opacity-50"
-            @click="handleDownloadPdf"
-          >
-            {{ isDownloading ? 'Descargando...' : 'Descargar PDF' }}
-          </button>
+          <BaseDropdown :items="downloadItems" align="right">
+            <template #trigger>
+              <button
+                type="button"
+                :disabled="isDownloading"
+                class="px-5 sm:px-6 py-2.5 bg-surface text-text-default border border-border-default rounded-xl font-medium text-sm
+                       hover:bg-surface-raised transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+              >
+                {{ isDownloading ? 'Descargando...' : 'Descargar PDF' }}
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </template>
+          </BaseDropdown>
           <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-text-muted hover:text-text-default">
             Cancelar
           </NuxtLink>
@@ -309,6 +328,7 @@
         v-if="form.content_markdown.trim()"
         :markdown="form.content_markdown"
         variant="full"
+        :theme="form.template_style"
         class="max-w-4xl mx-auto"
       />
       <div v-else class="flex items-center justify-center h-full text-sm text-text-subtle">
@@ -359,12 +379,18 @@ const form = reactive({
   content_markdown: '',
   folder_id: null,
   tag_ids: [],
+  template_style: 'professional',
 });
 
 const coverOptions = [
   { key: 'include_portada', label: 'Incluir portada' },
   { key: 'include_subportada', label: 'Incluir subportada' },
   { key: 'include_contraportada', label: 'Incluir contraportada' },
+];
+
+const templateStyleOptions = [
+  { value: 'friendly', label: 'Amigable', testId: 'doc-style-friendly' },
+  { value: 'professional', label: 'Profesional', testId: 'doc-style-professional' },
 ];
 
 const statusOptions = [
@@ -434,6 +460,7 @@ async function reloadDocument() {
     form.content_markdown = result.data.content_markdown || '';
     form.folder_id = result.data.folder || null;
     form.tag_ids = Array.isArray(result.data.tag_ids) ? [...result.data.tag_ids] : [];
+    form.template_style = result.data.template_style || 'professional';
     savedForm.value = { ...form, tag_ids: [...form.tag_ids] };
   } else {
     loadError.value = true;
@@ -455,6 +482,7 @@ async function handleSave() {
     content_markdown: form.content_markdown,
     folder_id: form.folder_id,
     tag_ids: form.tag_ids,
+    template_style: form.template_style,
   };
 
   const result = await documentStore.updateDocument(route.params.id, payload);
@@ -472,9 +500,15 @@ async function handleSave() {
   }
 }
 
-async function handleDownloadPdf() {
+const downloadItems = computed(() => [
+  { label: 'Descargar · Amigable', onClick: () => handleDownloadPdf('friendly') },
+  { label: 'Descargar · Profesional', onClick: () => handleDownloadPdf('professional') },
+]);
+
+async function handleDownloadPdf(template = null) {
   isDownloading.value = true;
-  const result = await documentStore.downloadPdf(route.params.id, form.title || 'document');
+  const result = await documentStore.downloadPdf(
+    route.params.id, form.title || 'document', template);
   isDownloading.value = false;
   if (!result.success) {
     notify.error({ title: 'No se pudo descargar el PDF', detail: result.message });
