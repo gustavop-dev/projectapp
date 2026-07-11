@@ -174,28 +174,28 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 | \`closing\` | string | **1-2 oraciones.** Máx ~200 caracteres. |
 
 #### \`valueAddedModules\` (resumen "incluido sin costo")
-Sección de presentación que **agrupa los 4 módulos base sin costo extra** (admin_module, analytics_dashboard, kpi_dashboard_module, manual_module). Aparece tanto en modo ejecutivo como en modo completo. Los datos completos de cada módulo siguen viviendo en \`functionalRequirements.groups[]\`; aquí solo se editan título, intro, justificación corta por módulo y nota de cierre.
+Sección de presentación que **agrupa los 5 módulos base sin costo extra** (admin_module, analytics_dashboard, kpi_dashboard_module, manual_module, ai_automation_module). Aparece tanto en modo ejecutivo como en modo completo. Los datos completos de cada módulo siguen viviendo en \`functionalRequirements.groups[]\`; aquí solo se editan título, intro, justificación corta por módulo y nota de cierre.
 
 | Campo | Tipo | Restricción |
 |---|---|---|
 | \`index\` | string | Numérico, ≤3 chars. Valor por defecto: \`"10"\` (va **después** de \`functionalRequirements\`, cuyo \`index\` es \`"9"\`). |
 | \`title\` | string | ≤80 chars. Mensaje corto (ej. "Lo que sumamos a tu proyecto sin costo extra"). |
 | \`intro\` | string | ≤300 chars. 1 párrafo que explique por qué se incluyen sin costo. |
-| \`module_ids\` | array<string> | **Exactamente los 4 ids:** \`["admin_module","analytics_dashboard","kpi_dashboard_module","manual_module"]\`. NO eliminar ninguno. |
+| \`module_ids\` | array<string> | **Exactamente los 5 ids:** \`["admin_module","analytics_dashboard","kpi_dashboard_module","manual_module","ai_automation_module"]\`. NO eliminar ninguno. |
 | \`justifications\` | object<string,string> | Una entrada por id (mismas claves que \`module_ids\`). Cada valor: ≤180 chars, una oración explicando por qué ese módulo aporta valor. |
 | \`footer_note\` | string | ≤120 chars. Nota de cierre tipo "Total adicional: $0. Ya está cotizado dentro del precio del proyecto." |
 
 **Regla:** este bloque NO debe contener precios numéricos ni listados de items (esos viven en \`functionalRequirements\`). Solo justificación corta por módulo.
 
-**Regla UI (anti-duplicidad):** los 4 módulos base (\`admin_module\`, \`analytics_dashboard\`, \`kpi_dashboard_module\`, \`manual_module\`) **se muestran como tarjetas clickeables solo en \`valueAddedModules\`**. El render público de \`functionalRequirements\` los oculta automáticamente cuando \`valueAddedModules\` está habilitado, para evitar duplicidad visual. Sus definiciones completas (\`icon\`, \`description\`, \`items\`) siguen viviendo en \`functionalRequirements.groups[]\` como catálogo de datos que alimenta el modal de detalle — **NO eliminarlas de allí ni duplicarlas en \`valueAddedModules\`**.
+**Regla UI (anti-duplicidad):** los 5 módulos base (\`admin_module\`, \`analytics_dashboard\`, \`kpi_dashboard_module\`, \`manual_module\`, \`ai_automation_module\`) **se muestran como tarjetas clickeables solo en \`valueAddedModules\`**. El render público de \`functionalRequirements\` los oculta automáticamente cuando \`valueAddedModules\` está habilitado, para evitar duplicidad visual. Sus definiciones completas (\`icon\`, \`description\`, \`items\`) siguen viviendo en \`functionalRequirements.groups[]\` como catálogo de datos que alimenta el modal de detalle — **NO eliminarlas de allí ni duplicarlas en \`valueAddedModules\`**.
 
 #### \`functionalRequirements\`
 | Campo | Tipo | Restricción |
 |---|---|---|
-| \`groups\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN grupo base.** Los 7 grupos base (views, components, features, admin_module, analytics_dashboard, kpi_dashboard_module, manual_module) deben permanecer en \`groups[]\`. Solo modificar contenido interno (title, description, items). Se pueden AGREGAR grupos nuevos al final. **NO mover módulos de \`additionalModules\` a \`groups\`.** **Nota:** los 4 últimos (\`admin_module\`, \`analytics_dashboard\`, \`kpi_dashboard_module\`, \`manual_module\`) son catálogo de datos para el modal de \`valueAddedModules\`; el UI los oculta automáticamente del render de \`functionalRequirements\` cuando \`valueAddedModules\` está activa. Deben quedarse aquí de todas formas. |
+| \`groups\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN grupo base.** Los 8 grupos base (views, components, features, admin_module, analytics_dashboard, kpi_dashboard_module, manual_module, ai_automation_module) deben permanecer en \`groups[]\`. Solo modificar contenido interno (title, description, items). Se pueden AGREGAR grupos nuevos al final. **NO mover módulos de \`additionalModules\` a \`groups\`.** **Nota:** los 5 últimos (\`admin_module\`, \`analytics_dashboard\`, \`kpi_dashboard_module\`, \`manual_module\`, \`ai_automation_module\`) son catálogo de datos para el modal de \`valueAddedModules\`; el UI los oculta automáticamente del render de \`functionalRequirements\` cuando \`valueAddedModules\` está activa. Deben quedarse aquí de todas formas. |
 | \`groups[].items\` | array de objetos | Cada item tiene \`icon\` (emoji), \`name\`, \`description\` e \`id\`. **Los 4 campos son OBLIGATORIOS en todo item**, tanto en \`groups\` como en \`additionalModules\`. Se pueden agregar o modificar items dentro de un grupo, pero no eliminar el grupo completo. |
 | \`groups[].items[].id\` | string | **ID estable del item** con formato \`item-<id_del_grupo>-<slug-del-nombre>\`. **Algoritmo del slug (aplícalo EXACTAMENTE, sin variaciones):** (a) toma el \`name\` completo; (b) todo a minúsculas; (c) elimina tildes y diéresis y convierte ñ→n (á→a, é→e, ü→u); (d) reemplaza TODA secuencia de caracteres que no sea \`a-z\` o \`0-9\` (espacios, \`&\`, \`/\`, comas, paréntesis, emojis) por UN solo guion; (e) elimina guiones al inicio y al final. Ej.: "Registro de usuario" en \`views\` → \`item-views-registro-de-usuario\`; "Panel de KPIs & Métricas" en \`features\` → \`item-features-panel-de-kpis-metricas\`. **Unicidad determinista:** los ids son únicos en TODA la sección (groups + additionalModules). Si dos items generan el mismo slug, recorre el documento en orden (groups[] de arriba abajo, luego additionalModules[] de arriba abajo): la PRIMERA aparición conserva el slug base y las siguientes reciben sufijo \`-2\`, \`-3\`… en orden de aparición. **Estabilidad:** al EDITAR una propuesta existente, **NUNCA cambies un \`id\` ya asignado**, ni siquiera si el \`name\` cambia — el id queda desacoplado del nombre tras su creación (id≠slug(name) es un estado VÁLIDO y esperado). El detalle técnico (paso 2) enlaza requerimientos a estos ids vía \`linked_item_ids\`; cambiar un id rompe esos enlaces, el modal "Ver requerimientos" y el PDF. **Idioma:** los ids derivan del nombre en el idioma de la propuesta (\`item-views-registro-de-usuario\` ≠ \`item-views-user-registration\`); nunca reutilices ids ni detalle técnico entre versiones ES/EN. |
-| \`additionalModules\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN módulo opcional.** Los 16 módulos con \`is_calculator_module: true\` deben permanecer en \`additionalModules[]\`. Solo modificar contenido interno (title, description, items, invite_note). **NO moverlos a \`groups[]\`.** |
+| \`additionalModules\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN módulo opcional.** Los 17 módulos con \`is_calculator_module: true\` deben permanecer en \`additionalModules[]\`. Solo modificar contenido interno (title, description, items, invite_note). **NO moverlos a \`groups[]\`.** |
 
 **Flags de control por grupo** (solo aplican a módulos opcionales, es decir grupos con \`is_calculator_module: true\`):
 
@@ -209,7 +209,7 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 | \`is_invite\` | boolean | \`true\` si el módulo no tiene precio fijo sino invitación a llamada. NO cambiar. |
 | \`invite_note\` | string | Texto de invitación. Personalizar con el nombre del negocio del cliente pero mantener tono y estructura similar. |
 
-**Referencia: \`groups[]\`** (7 grupos base — orden obligatorio):
+**Referencia: \`groups[]\`** (8 grupos base — orden obligatorio):
 
 | # | \`id\` | Tipo |
 |---|---|---|
@@ -220,8 +220,9 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 | 4 | \`analytics_dashboard\` | Base (incluido sin costo) |
 | 5 | \`kpi_dashboard_module\` | Base (incluido sin costo) |
 | 6 | \`manual_module\` | Base (incluido sin costo) |
+| 7 | \`ai_automation_module\` | Base (incluido sin costo) |
 
-**Referencia: \`additionalModules[]\`** (16 módulos opcionales — orden obligatorio):
+**Referencia: \`additionalModules[]\`** (17 módulos opcionales — orden obligatorio):
 
 | # | \`id\` | Tipo | \`price_percent\` |
 |---|---|---|---|
@@ -233,14 +234,15 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 | 5 | \`ai_module\` | Invitación | 0% |
 | 6 | \`integration_conversion_tracking\` | Invitación | 0% |
 | 7 | \`biometric_verification_module\` | Invitación | 0% |
-| 8 | \`reports_alerts_module\` | Opcional | 20% |
-| 9 | \`email_marketing_module\` | Opcional | 10% |
-| 10 | \`qr_generator_module\` | Opcional | 25% |
-| 11 | \`content_generator_module\` | Opcional | 30% |
-| 12 | \`i18n_module\` | Opcional | 15% |
-| 13 | \`live_chat_module\` | Opcional | 40% |
-| 14 | \`dark_mode_module\` | Opcional | 20% |
-| 15 | \`gift_cards_module\` | Opcional (oculto) | 20% |
+| 8 | \`behavior_tracking_module\` | Opcional | 30% |
+| 9 | \`reports_alerts_module\` | Opcional | 20% |
+| 10 | \`email_marketing_module\` | Opcional | 10% |
+| 11 | \`qr_generator_module\` | Opcional | 25% |
+| 12 | \`content_generator_module\` | Opcional | 30% |
+| 13 | \`i18n_module\` | Opcional | 15% |
+| 14 | \`live_chat_module\` | Opcional | 40% |
+| 15 | \`dark_mode_module\` | Opcional | 20% |
+| 16 | \`gift_cards_module\` | Opcional (oculto) | 20% |
 
 #### \`developmentStages\` 
 | Campo | Tipo | Restricción |
@@ -363,7 +365,7 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 
 ### \`functionalRequirements\`
 - **SINERGIA COMERCIAL↔TÉCNICA (léelo antes de escribir esta sección):** esta sección y el detalle técnico del paso 2 son DOS VISTAS DE LA MISMA HISTORIA. Cada tarjeta comercial (Vistas, Componentes, Funcionalidades, módulos) tendrá una épica técnica homónima, y cada item será enlazado por requerimientos técnicos vía su \`id\` (\`linked_item_ids\`). El cliente navega del item comercial al detalle técnico con un clic — un id mal formado, cambiado o faltante rompe esa navegación, y una descripción comercial que el detalle técnico no pueda sustentar rompe la confianza. Escribe cada item pensando en que el paso 2 DEBERÁ detallarlo.
-- **REGLA CRÍTICA**: NO elimines ningún grupo que tenga \`"_do_not_remove": true\`. Los 23 grupos (7 base + 16 opcionales) deben permanecer. Solo modifica su contenido interno.
+- **REGLA CRÍTICA**: NO elimines ningún grupo que tenga \`"_do_not_remove": true\`. Los 25 grupos (8 base + 17 opcionales) deben permanecer. Solo modifica su contenido interno.
 - Adapta cada vista, componente y funcionalidad al negocio del cliente. Si es una pet shop, las categorías son "alimentos, accesorios, salud, juguetes". Si es una inmobiliaria, son "apartamentos, casas, locales".
 - **Asigna a CADA item de \`groups[].items\` y \`additionalModules[].items\` su \`id\` estable** (formato \`item-<id_del_grupo>-<slug-del-nombre>\`, algoritmo exacto en la tabla de restricciones). SIN EXCEPCIONES: un item sin \`id\` es un JSON inválido.
 - **Coherencia de las descripciones de items (regla estricta):** la \`description\` de un item cuenta el QUÉ y el valor de negocio; el CÓMO (configuración, flujos, tecnología) vive en el detalle técnico del paso 2. PROHIBIDO afirmar en un item capacidades que pertenecen a un módulo de \`additionalModules\` NO seleccionado (ej.: no menciones pagos con Stripe, modo offline, chat en vivo, facturación DIAN ni generación con IA en items de \`views\`/\`components\`/\`features\` si el módulo correspondiente no quedó \`default_selected: true\` — para eso existe el módulo). Toda afirmación de una descripción debe poder expandirse en requerimientos técnicos del paso 2 sin contradicción.
@@ -376,6 +378,7 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
     - \`ai_module\` → IA, inteligencia artificial, chatbot inteligente, automatización con IA, agentes.
     - \`integration_conversion_tracking\` → Meta Ads, Facebook Ads, Google Ads, Conversions API, CAPI, ROAS, pixel, Enhanced Conversions.
     - \`biometric_verification_module\` → verificación biométrica, validación de identidad, reconocimiento facial, KYC, huella, prueba de vida.
+    - \`behavior_tracking_module\` → rastreo de comportamiento de usuarios, qué hacen los usuarios dentro de la plataforma, analítica de producto, tiempo por vista o pantalla, sesiones de uso, embudos de uso, product analytics, user tracking first-party. (No confundir: \`integration_conversion_tracking\` rastrea conversiones de ANUNCIOS hacia Meta/Google, y \`analytics_dashboard\` es la analítica web básica gratuita de visitantes; este módulo rastrea el comportamiento DENTRO del producto del cliente.)
     - \`reports_alerts_module\` → reportes, notificaciones, alertas por correo / WhatsApp, avisos de ventas o stock.
     - \`email_marketing_module\` → email marketing, Mailchimp, Brevo, SendGrid, captura de leads, newsletters.
     - \`qr_generator_module\` → códigos QR, menús QR, escaneo, acceso rápido por QR, etiquetas escaneables.
@@ -446,7 +449,7 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 Antes de emitir el JSON, verifica UNO POR UNO estos puntos. Si alguno falla, corrige y vuelve a verificar. No respondas hasta que todos pasen:
 
 1. **Ids de items:** TODO item de \`groups[]\` y \`additionalModules[]\` tiene \`id\` con formato \`item-<id_del_grupo>-<slug>\`, generado con el algoritmo exacto (minúsculas, sin tildes, guiones), único en toda la sección, con dedupe \`-2\`/\`-3\` en orden de documento. En ediciones, ningún id existente cambió.
-2. **Estructura de functionalRequirements:** 7 grupos base en su orden original + 16 módulos opcionales en su orden original. Ningún grupo eliminado, ningún módulo movido entre arrays.
+2. **Estructura de functionalRequirements:** 8 grupos base en su orden original + 17 módulos opcionales en su orden original. Ningún grupo eliminado, ningún módulo movido entre arrays.
 3. **Coherencia de descripciones:** ninguna descripción de item afirma capacidades de módulos no seleccionados; cada descripción es expandible en requerimientos técnicos sin contradicción.
 4. **roiProjection:** exactamente 3 \`kpis\` (todos con \`source\` verificable) y 3 \`scenarios\` con métricas paralelas y UNA sola \`emphasis: true\` por escenario.
 5. **technicalDocument:** presente como esqueleto de plantilla (sin contenido técnico profundo — eso es el paso 2).

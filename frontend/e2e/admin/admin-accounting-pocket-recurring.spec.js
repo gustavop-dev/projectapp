@@ -2,9 +2,10 @@
  * E2E tests for the pocket ledger and recurring payments subviews.
  *
  * FLOWS: admin-accounting-pocket, admin-accounting-recurring
- * Covers: pocket balance card, running-balance ledger, auto-managed
- *         movement protection; recurring totals cards and the
- *         currency-dependent COP-equivalent field in the modal.
+ * Covers: pocket balance card, running-balance ledger, linked-movement
+ *         editing (ledger prefill + locked direction); recurring totals
+ *         cards and the currency-dependent COP-equivalent field in the
+ *         modal.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -19,12 +20,15 @@ test.setTimeout(60_000);
 const POCKET_ROWS = [
   {
     id: 1,
-    concept: 'Ingreso: Vastago (Fase 1) - Inicio 40%',
+    concept: 'Vastago (Fase 1) - Inicio 40%',
     movement_date: '2026-04-29',
     direction: 'in',
     direction_label: 'Ingreso',
     amount: '2123000.00',
     is_auto_managed: true,
+    linked_income_id: 11,
+    linked_expense_id: null,
+    linked_ledger: 'company',
     notes: '',
     created_at: '2026-04-29T10:00:00Z',
     updated_at: '2026-04-29T10:00:00Z',
@@ -37,6 +41,9 @@ const POCKET_ROWS = [
     direction_label: 'Egreso',
     amount: '2272000.00',
     is_auto_managed: false,
+    linked_income_id: null,
+    linked_expense_id: null,
+    linked_ledger: null,
     notes: '',
     created_at: '2026-05-06T10:00:00Z',
     updated_at: '2026-05-06T10:00:00Z',
@@ -144,7 +151,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     await expect(page.getByText('Pago T.C Rappi')).toBeVisible();
   });
 
-  test('auto-managed movements warn instead of opening the edit modal', {
+  test('linked movements open the edit modal with direction locked', {
     tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
@@ -153,10 +160,41 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
 
     await page.getByTestId('accounting-edit-1').click();
 
-    await expect(page.getByText('Movimiento automático')).toBeVisible();
+    const modal = page.getByRole('dialog');
     await expect(
-      page.getByRole('heading', { name: 'Editar movimiento de bolsillo' }),
-    ).toHaveCount(0);
+      modal.getByRole('heading', { name: 'Editar Movimiento de bolsillo' }),
+    ).toBeVisible();
+    await expect(
+      modal.getByText('La dirección se fija al crear el movimiento vinculado.'),
+    ).toBeVisible();
+    await expect(modal.getByTestId('pocket-movement-ledger')).toBeVisible();
+    await expect(
+      modal.getByRole('tab', { name: 'Empresa', exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('new movement modal offers the ledger selector for egresos', {
+    tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({ calls: [] }));
+    await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('pocket-new-button')).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('pocket-new-button').click();
+    const modal = page.getByRole('dialog');
+    await expect(
+      modal.getByRole('heading', { name: 'Nuevo Movimiento de bolsillo' }),
+    ).toBeVisible();
+
+    // IN movements are company-only; the selector unlocks for egresos.
+    await expect(
+      modal.getByText('Los ingresos al bolsillo siempre son de la empresa.'),
+    ).toBeVisible();
+    await modal.getByRole('tab', { name: 'Egreso', exact: true }).click();
+    await modal.getByRole('tab', { name: 'Personal Gustavo', exact: true }).click();
+    await expect(
+      modal.getByRole('tab', { name: 'Personal Gustavo', exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
   });
 
   test('recurring subview shows monthly cost and breakdown cards', {

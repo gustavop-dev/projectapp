@@ -324,6 +324,7 @@ const {
   entity: 'ads',
   store,
   filteredRecords: filteredRows,
+  sortDefaults: { spend_date: 'desc', amount: 'desc' },
   saveTab,
   resetFilters,
   isFilterPanelOpen,

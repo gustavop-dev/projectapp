@@ -441,6 +441,7 @@ const {
   },
   // Refresh meta (active_count / monthly_income) after changes.
   onAfterMutation: () => loadRecords(),
+  sortDefaults: { monthly_value: 'desc', total_paid: 'desc' },
 });
 
 const columns = [

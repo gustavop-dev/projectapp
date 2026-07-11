@@ -115,7 +115,7 @@ class TestPocketEndpoints:
         )
         assert delete.status_code == 204
 
-    def test_auto_managed_movement_is_protected(self, super_client):
+    def test_linked_movement_edit_mirrors_into_income(self, super_client):
         income = super_client.post(
             '/api/accounting/incomes/create/',
             {
@@ -132,16 +132,31 @@ class TestPocketEndpoints:
 
         update = super_client.patch(
             f'/api/accounting/pocket/{movement_id}/update/',
-            {'amount': '1.00'},
+            {'amount': '1500000.00'},
             format='json',
         )
-        assert update.status_code == 400
-        assert update.data['code'] == 'auto_managed_movement'
+        assert update.status_code == 200, update.data
+        linked = super_client.get(
+            f'/api/accounting/incomes/{income.data["id"]}/',
+        )
+        assert linked.data['total_amount'] == '1500000.00'
+
+        locked = super_client.patch(
+            f'/api/accounting/pocket/{movement_id}/update/',
+            {'direction': 'out'},
+            format='json',
+        )
+        assert locked.status_code == 400
+        assert locked.data['code'] == 'linked_direction_locked'
 
         delete = super_client.delete(
             f'/api/accounting/pocket/{movement_id}/delete/',
         )
-        assert delete.status_code == 400
+        assert delete.status_code == 204
+        gone = super_client.get(
+            f'/api/accounting/incomes/{income.data["id"]}/',
+        )
+        assert gone.status_code == 404
 
 
 @pytest.mark.django_db

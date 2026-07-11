@@ -1173,14 +1173,14 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/clients/`
-- **Description:** Reassign a proposal or diagnostic to a different client by dragging its row (from an expanded client card) and dropping it on another client's card header (native HTML5 DnD; drop target highlights). The drop PATCHes `client_id` on the item's update endpoint, refreshes both affected clients + the list once, and shows a success toast with a "Deshacer" action (reverse PATCH). Diagnostics also rebuild their client snapshot (`sync_diagnostic_snapshot`). Touch devices are not supported — fallback is the client picker on the edit pages.
+- **Description:** Reassign a proposal or diagnostic to a different client by dragging its row (from an expanded client card) and dropping it on another client's card header, or on the matching zone of another expanded client: proposals on the proposals zone, diagnostics on the diagnostics zone (zones are type-matched — a zone of the other type ignores the drop; the header accepts both types). Native HTML5 DnD; every drop target highlights on hover. The drop PATCHes `client_id` on the item's update endpoint, then refreshes both affected clients + the list silently and in place (no loading skeleton — the page does not visually "reload"), and shows a success toast with a "Deshacer" action (reverse PATCH). Diagnostics also rebuild their client snapshot (`sync_diagnostic_snapshot`). Touch devices are not supported — fallback is the client picker on the edit pages.
 - **Steps:**
   1. Admin expands a client card to reveal its proposals/diagnostics tables.
   2. Admin drags a row (data-testid: `client-proposal-row-<id>` / `client-diagnostic-row-<id>`).
-  3. Hovering another client header (data-testid: `client-header-<id>`) highlights it; dropping on the source client is a no-op.
+  3. Hovering another client header (data-testid: `client-header-<id>`) highlights it; on an expanded client, the matching zone (data-testid: `client-proposals-zone-<id>` / `client-diagnostics-zone-<id>`) also highlights and accepts the drop. Dropping on the source client, or on a zone of the other item type, is a no-op.
   4. Drop → `PATCH /api/proposals/:id/update/` or `PATCH /api/diagnostics/:id/update/` with `{client_id}`.
-  5. Both clients' detail caches invalidate, the list reloads respecting the active tab, and the toast offers "Deshacer".
-- **Coverage:** 🟡 Partial — proposal drop, diagnostic drop, and same-client no-op are covered; **the "Deshacer" (undo) action is not asserted in E2E**.
+  5. Both clients' expanded details refetch and overwrite in place, and the list refreshes silently (`fetchClients({silent:true})`, no skeleton) respecting the active tab; the toast offers "Deshacer".
+- **Coverage:** 🟡 Partial — proposal drop on header and on proposals zone, diagnostic drop on header and on diagnostics zone, same-client no-op, and type-mismatch zone no-op are covered; **the "Deshacer" (undo) action is not asserted in E2E**.
 - **E2E Spec:** `e2e/admin/admin-clients-drag-reassign.spec.js`
 - **Backend Tests:** `content/tests/views/test_diagnostic_views_gaps.py::test_update_diagnostic_with_client_id_reassigns_and_resyncs_snapshot`, `content/tests/views/test_proposal_clients_views.py::TestProposalCreateWithClientId::test_proposal_update_with_client_id_switches_profile_and_resyncs_snapshot`
 
@@ -1839,6 +1839,22 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   5. Selecting the module does NOT alter the total investment (provider-billed; verified at the unit level by `computeWeeksAddition — does not count invite modules`).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-calculator-biometric-module.spec.js`
+
+### FLOW: `proposal-calculator-behavior-tracking-module`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** The investment calculator exposes `behavior_tracking_module` as a priced add-on (30% of the base investment, `default_selected: False`): first-party user behavior tracking installed in the client's own product — session/open registry, views opened + time per view (up to 15 tracked views), interest map, journey funnel with drop-off (1 main funnel), built-in behavior panel (up to 8 KPIs / 4 charts), device breakdown, and 12-month data retention with explicit exclusions (no screen recording, click heatmaps or cross-site tracking). It is the same capability the platform uses in its own proposal analytics tab, productized for clients.
+- **Steps:**
+  1. Client opens the calculator modal on a proposal that includes `behavior_tracking_module`.
+  2. Module row renders under the bilingual label "👣 Rastreo de Comportamiento" with `+30%` pricing over the base total (e.g. base $4.000.000 COP → +$1.200.000).
+  3. Client expands the module → 7 scope-closed items are listed.
+  4. Selecting the module raises the effective total by base×30% and rescales payment options.
+  5. In technical mode, an epic with `linked_module_ids: ["module-behavior_tracking_module"]` is hidden while the module is deselected and shown once selected (same gating as other additional modules).
+- **Coverage:** ⚠️ Pending (registered, E2E spec not yet implemented; catalog data verified by `backend/content/tests/services/test_proposal_service.py` and migration tests, calculator mechanics structurally covered by `proposal-calculator-modules` / `proposal-investment-calculator`)
+- **E2E Spec:** _suggested:_ `e2e/proposal/proposal-calculator-behavior-tracking-module.spec.js`
 
 ### FLOW: `proposal-calculator-integrations`
 
@@ -2590,6 +2606,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-log-activity` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-log-activity.spec.js` |
 | `proposal-calculator-new-modules` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-new-modules.spec.js` |
 | `proposal-calculator-biometric-module` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-biometric-module.spec.js` |
+| `proposal-calculator-behavior-tracking-module` | proposal | guest | P2 | ⚠️ Pending | _suggested:_ `e2e/proposal/proposal-calculator-behavior-tracking-module.spec.js` |
 | `admin-proposal-inline-status-change` | admin | admin | P2 | 🟡 Partial (email_delivery toast + clients/edit-view selects + actions-modal row not asserted) | `e2e/admin/admin-proposal-inline-status.spec.js` |
 | `admin-proposal-scorecard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-scorecard.spec.js` |
 | `admin-proposal-section-completeness` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-section-completeness.spec.js` |
@@ -3859,7 +3876,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   4. Optionally attaches files.
   5. Admin opens the "Vista previa" sub-tab → `POST /api/emails/preview/` returns the real `branded_email.html` render (shown in a sandboxed iframe, markdown sections converted server-side).
   6. Admin clicks "Enviar" → `POST /api/emails/send/`.
-  7. Success message renders; email history updates.
+  7. Success toast renders bottom-right via `usePanelNotify` ("Correo enviado correctamente."); email history updates. Errors surface inline next to the send button and as an error toast.
   8. Admin opens the "Historial" tab and views paginated email history from `GET /api/emails/history/`.
 - **Branches:**
   - [Branch A — Empty recipient] Send button disabled when recipient email is empty.
@@ -5412,7 +5429,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting`
-- **Description:** Annual financial overview fed by `GET /api/accounting/dashboard/?year=`: expected vs liquid income, expenses, expected/liquid utility, pocket balance, per-partner cards, 12-month breakdown, operative cost cards and latest card snapshots. Company totals aggregate the company ledger only (personal-ledger records are excluded); the "ProjectApp (Empresa)" card shows the full company ledger, and Gustavo/Carlos cards combine their company participation with their personal ledger (breakdown line shown when personal activity exists). Year selector re-fetches the summary and persists as a query param. The "Evolución" section renders two ApexCharts — expected vs liquid vs expenses per month, and card-debt evolution from snapshots — filtered by the year plus a client-side month-range selector; a "Exportar Excel" button downloads the full workbook and the Tarjetas table links to the cards history.
+- **Description:** Annual financial overview fed by `GET /api/accounting/dashboard/?year=`: expected vs liquid income, expenses, expected/liquid utility, pocket balance, per-partner cards, 12-month breakdown, operative cost cards and latest card snapshots. The hero "Utilidad líquida" card embeds a full-width "Utilidad por mes" ApexCharts line (axes + money tooltips) filling the card body (replaced the tiny corner sparkline, Jul 2026). Company totals aggregate the company ledger only (personal-ledger records are excluded); the "ProjectApp (Empresa)" card shows the full company ledger, and Gustavo/Carlos cards combine their company participation with their personal ledger (breakdown line shown when personal activity exists). Year selector re-fetches the summary and persists as a query param. The "Evolución" section renders two ApexCharts — expected vs liquid vs expenses per month, and card-debt evolution from snapshots — filtered by the year plus a client-side month-range selector; a "Exportar Excel" button downloads the full workbook and the Tarjetas table links to the cards history. The subnav orders Bolsillo second, right after Resumen.
 - **Steps:**
   1. Superuser opens `/panel/accounting`.
   2. Stat cards render the summary totals; partner cards show Gustavo/Carlos (participation + personal) and ProjectApp (Empresa) company totals.
@@ -5460,7 +5477,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/expenses`
-- **Description:** Expense records with category (Negocio/Personal) and ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos — personal expenses hide the split, use a single "Valor" field and are excluded from company totals) and partner split; same modal CRUD + filters pattern as incomes. Money inputs live-format es-CO thousands (BaseCurrencyInput). The paid-from field/column was removed (2026-07): every expense draws from money already in the pocket; pocket OUT movements are manual.
+- **Description:** Expense records with category (Negocio/Personal) and ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos — personal expenses hide the split, use a single "Valor" field and are excluded from company totals) and partner split; same modal CRUD + filters pattern as incomes. Money inputs live-format es-CO thousands (BaseCurrencyInput). Since Jul 2026 the modal has a "Registrar egreso en bolsillo" toggle (on by default): when on, the new expense creates a linked pocket OUT movement (bidirectional sync via `accounting_service`) and edits/deletes mirror/cascade into it; when off (paper adjustments, personal expenses that never touched the company pocket) no movement is created. On edit the toggle prefills from the linkage and can link/unlink deliberately; a partial update without the flag preserves the current state, so historical expenses never gain a movement silently.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-expenses-hostings.spec.js`
 
@@ -5480,8 +5497,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/pocket`
-- **Description:** ProjectApp pocket ledger with balance card and chronological running-balance column. Manual movements have full CRUD; auto-managed movements (created by pocket-bound incomes/expenses) warn on edit/delete and are only editable through their source record.
-- **Coverage:** ✅ Covered
+- **Description:** ProjectApp pocket ledger with balance card and running-balance column (default view newest-first; the balance is computed chronologically). The pocket is the money entry point (Jul 2026): creating a movement also creates its linked income (IN → liquid/pocket) or expense (OUT) with the ledger chosen in the modal's "Contabilidad" segmented (Empresa/Personal Gustavo/Personal Carlos; IN movements are company-only). Linked movements open the edit modal with the direction locked and the ledger prefilled; edits mirror into the linked record and deleting either side cascades to the other (the delete confirm warns about the cascade). Unlinked historical movements keep plain CRUD and never gain a mirror.
+- **Coverage:** ⚠️ Partial — modal ledger selector and locked-direction edit are covered; the create-POST payload (ledger included) and the cascade delete confirm are asserted at unit level only.
 - **E2E Spec:** `e2e/admin/admin-accounting-pocket-recurring.spec.js`
 
 ### FLOW: `admin-accounting-recurring`

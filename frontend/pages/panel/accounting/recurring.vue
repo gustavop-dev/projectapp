@@ -424,6 +424,7 @@ const {
   },
   // Refetch: the monthly COP total meta is computed server-side.
   onAfterMutation: loadRecords,
+  sortDefaults: { cop_equivalent: 'desc' },
   saveTab,
   isFilterPanelOpen,
 });

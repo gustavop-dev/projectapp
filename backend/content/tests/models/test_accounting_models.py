@@ -121,6 +121,18 @@ class TestPocketMovement:
             amount=Decimal('200000.00'),
         )
         assert movement.is_auto_managed is False
+        assert movement.linked_record is None
+
+    def test_expense_linked_movement_is_auto_managed(self, make_expense):
+        movement = PocketMovement.objects.create(
+            concept='Figma',
+            movement_date=date(2026, 3, 1),
+            direction=PocketMovement.Direction.OUT,
+            amount=Decimal('80000.00'),
+        )
+        expense = make_expense(pocket_movement=movement)
+        assert movement.is_auto_managed is True
+        assert movement.linked_record == expense
 
 
 @pytest.mark.django_db

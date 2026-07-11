@@ -125,6 +125,12 @@ describe('useTechnicalPrompt DEFAULT_PROMPT coherence rules (regression guard)',
     expect(DEFAULT_PROMPT).toContain('PROHIBIDO crear épicas para módulos NO contratados')
   })
 
+  it('enumerates the 5 base modules including ai_automation_module', () => {
+    expect(DEFAULT_PROMPT).toContain('ai_automation_module')
+    expect(DEFAULT_PROMPT).toContain('5 módulos base')
+    expect(DEFAULT_PROMPT).not.toContain('4 módulos base')
+  })
+
   it('requires canonical linked_module_ids on additional-module epics', () => {
     expect(DEFAULT_PROMPT).toContain('["module-<id>"]')
     expect(DEFAULT_PROMPT).toContain('OBLIGATORIO')

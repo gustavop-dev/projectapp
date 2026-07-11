@@ -381,6 +381,14 @@ const {
   toggleSort,
 } = useAccountingCrudPage({
   entity: 'incomes',
+  // The month column shows the localized label but sorts by the ISO date.
+  sortAccessors: { period_label: 'period_date' },
+  sortDefaults: {
+    period_label: 'desc',
+    total_amount: 'desc',
+    gustavo_amount: 'desc',
+    carlos_amount: 'desc',
+  },
   store,
   filteredRecords,
   saveTab,
@@ -415,7 +423,7 @@ const columns = [
   { key: 'concept', label: 'Concepto', sortable: true },
   { key: 'kind_label', label: 'Tipo' },
   { key: 'ledger_label', label: 'Contabilidad' },
-  { key: 'period_label', label: 'Mes' },
+  { key: 'period_label', label: 'Mes', sortable: true },
   { key: 'total_amount', label: 'Total', format: 'money', sortable: true },
   { key: 'gustavo_amount', label: 'Gustavo', format: 'money', sortable: true },
   { key: 'carlos_amount', label: 'Carlos', format: 'money', sortable: true },

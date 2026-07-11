@@ -71,6 +71,12 @@ function mountModal(props = {}) {
           template:
             '<button :type="type || \'button\'" :disabled="disabled" @click="$emit(\'click\', $event)"><slot /></button>',
         },
+        BaseToggle: {
+          props: ['modelValue', 'size', 'disabled', 'ariaLabel'],
+          emits: ['update:modelValue'],
+          template:
+            '<button type="button" data-testid="expense-register-in-pocket" role="switch" :aria-checked="modelValue" @click="$emit(\'update:modelValue\', !modelValue)" />',
+        },
         PartnerSplitInput: PartnerSplitInputStub,
       },
     },
@@ -102,8 +108,21 @@ describe('ExpenseFormModal', () => {
       total_amount: '3000000',
       gustavo_amount: '1500000',
       carlos_amount: '1500000',
+      register_in_pocket: true,
       notes: '',
     });
+  });
+
+  it('submits register_in_pocket false when the toggle is turned off', async () => {
+    const wrapper = mountModal();
+
+    await wrapper.find('input[type="text"]').setValue('Ajuste contable');
+    await wrapper.find('input[type="month"]').setValue('2026-07');
+    await wrapper.find('[data-testid="split-total"]').setValue('100000');
+    await wrapper.find('[data-testid="expense-register-in-pocket"]').trigger('click');
+    await wrapper.find('form').trigger('submit');
+
+    expect(wrapper.emitted('submit')[0][0].register_in_pocket).toBe(false);
   });
 
   it('personal ledger hides split and omits split amounts', async () => {
@@ -145,5 +164,35 @@ describe('ExpenseFormModal', () => {
     expect(wrapper.text()).toContain('Editar Gasto');
     expect(segmentedButton(wrapper, 'Personal Gustavo').attributes('aria-selected')).toBe('true');
     expect(wrapper.find('[data-testid="partner-split-stub"]').exists()).toBe(false);
+  });
+
+  it('prefills the pocket toggle from the linked movement in edit mode', () => {
+    const linked = mountModal({
+      record: {
+        concept: 'Dominio',
+        period: '2026-07',
+        ledger: 'company',
+        total_amount: '150000',
+        pocket_movement: 42,
+      },
+    });
+    const historical = mountModal({
+      record: {
+        concept: 'Gasto histórico',
+        period: '2026-02',
+        ledger: 'company',
+        total_amount: '80000',
+        pocket_movement: null,
+      },
+    });
+
+    expect(
+      linked.find('[data-testid="expense-register-in-pocket"]')
+        .attributes('aria-checked'),
+    ).toBe('true');
+    expect(
+      historical.find('[data-testid="expense-register-in-pocket"]')
+        .attributes('aria-checked'),
+    ).toBe('false');
   });
 });

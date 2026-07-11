@@ -33,6 +33,7 @@ function defaultForm() {
     total_amount: '',
     gustavo_amount: '',
     carlos_amount: '',
+    register_in_pocket: true,
     notes: '',
   }
 }
@@ -54,6 +55,7 @@ watch(
         total_amount: props.record.total_amount ?? '',
         gustavo_amount: props.record.gustavo_amount ?? '',
         carlos_amount: props.record.carlos_amount ?? '',
+        register_in_pocket: props.record.pocket_movement != null,
         notes: props.record.notes ?? '',
       }
     } else {
@@ -75,6 +77,7 @@ function onSubmit() {
     payload.gustavo_amount = form.value.gustavo_amount
     payload.carlos_amount = form.value.carlos_amount
   }
+  payload.register_in_pocket = form.value.register_in_pocket
   payload.notes = form.value.notes
   emit('submit', payload)
 }
@@ -113,6 +116,20 @@ function onSubmit() {
       <BaseFormField v-else label="Valor" required>
         <BaseCurrencyInput v-model="form.total_amount" required />
       </BaseFormField>
+
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-medium text-text-default">Registrar egreso en bolsillo</p>
+          <p class="text-xs text-text-subtle">
+            Desactívalo para ajustes contables o gastos que no salieron del bolsillo.
+          </p>
+        </div>
+        <BaseToggle
+          v-model="form.register_in_pocket"
+          aria-label="Registrar egreso en bolsillo"
+          data-testid="expense-register-in-pocket"
+        />
+      </div>
 
       <BaseFormField label="Notas">
         <BaseTextarea v-model="form.notes" :rows="3" />

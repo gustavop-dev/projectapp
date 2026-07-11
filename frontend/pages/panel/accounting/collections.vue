@@ -63,8 +63,11 @@
       <AccountingTable
         :loading="store.isLoading"
         :columns="columns"
-        :rows="filteredRows"
+        :rows="sortedRows"
         :show-actions="false"
+        :sort-key="sortKey"
+        :sort-dir="sortDir"
+        @sort="toggleSort"
       >
         <template #cell-public_number="{ row }">
           <span class="font-medium text-text-default">{{ row.public_number || `#${row.id}` }}</span>
@@ -156,6 +159,7 @@ import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { useTableSort } from '~/composables/useTableSort';
 import { useAccountingStore } from '~/stores/accounting';
 import { get_request } from '~/stores/services/request_http';
 import { downloadBlob, filenameFromDisposition } from '~/utils/downloadFile';
@@ -196,12 +200,17 @@ const columns = [
   { key: 'public_number', label: 'Número' },
   { key: 'origin_label', label: 'Origen' },
   { key: 'customer_name', label: 'Cliente' },
-  { key: 'total', label: 'Total', format: 'money' },
-  { key: 'issue_date', label: 'Emisión', format: 'date' },
-  { key: 'due_date', label: 'Vence', format: 'date' },
+  { key: 'total', label: 'Total', format: 'money', sortable: true },
+  { key: 'issue_date', label: 'Emisión', format: 'date', sortable: true },
+  { key: 'due_date', label: 'Vence', format: 'date', sortable: true },
   { key: 'commercial_status', label: 'Estado' },
   { key: 'row_actions', label: '', align: 'right' },
 ];
+
+const { sortKey, sortDir, toggleSort, sortedRecords: sortedRows } = useTableSort(
+  filteredRows,
+  { sortDefaults: { total: 'desc', issue_date: 'desc', due_date: 'desc' } },
+);
 
 function statusBadgeClass(row) {
   if (row.is_overdue) return 'bg-warning-soft text-warning-strong';

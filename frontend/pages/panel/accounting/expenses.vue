@@ -353,6 +353,14 @@ const {
   toggleSort,
 } = useAccountingCrudPage({
   entity: 'expenses',
+  // The month column shows the localized label but sorts by the ISO date.
+  sortAccessors: { period_label: 'period_date' },
+  sortDefaults: {
+    period_label: 'desc',
+    total_amount: 'desc',
+    gustavo_amount: 'desc',
+    carlos_amount: 'desc',
+  },
   store,
   filteredRecords,
   saveTab,
@@ -367,7 +375,16 @@ const {
     deleteErrorTitle: 'No se pudo eliminar',
     deleteTitle: 'Eliminar gasto',
     deleteMessage: (record) =>
-      `Esto eliminará el gasto "${record.concept}" de forma permanente. Esta acción no se puede deshacer.`,
+      `Esto eliminará el gasto "${record.concept}" de forma permanente. ` +
+      (record.pocket_movement != null
+        ? 'También se eliminará el egreso vinculado en bolsillo. '
+        : '') +
+      'Esta acción no se puede deshacer.',
+  },
+  // Expense mutations can create/mirror/delete pocket movements: drop the
+  // pocket cache so the Bolsillo tab refetches fresh on mount.
+  onAfterMutation: () => {
+    store.pocketMovements = [];
   },
 });
 
@@ -377,7 +394,7 @@ const totalFiltered = computed(() =>
 
 const columns = [
   { key: 'concept', label: 'Concepto', sortable: true },
-  { key: 'period_label', label: 'Mes' },
+  { key: 'period_label', label: 'Mes', sortable: true },
   { key: 'category_label', label: 'Categoría' },
   { key: 'ledger_label', label: 'Contabilidad' },
   { key: 'total_amount', label: 'Total', format: 'money', sortable: true },
