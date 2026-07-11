@@ -239,6 +239,16 @@ test.describe('Admin Blog LinkedIn — Publish', () => {
     await expect(page.getByRole('button', { name: /Publicar en LinkedIn/ })).toBeVisible();
   });
 
+  test('language selector defaults to English', {
+    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin'],
+  }, async ({ page }) => {
+    await setupEditPageMock(page, { linkedinStatus: connectedStatus });
+    await page.goto('/panel/blog/1/edit');
+    await waitForLinkedInSection(page);
+
+    await expect(page.locator('select').filter({ hasText: 'Publish in English' })).toHaveValue('en');
+  });
+
   test('publish button is disabled when summary is empty', {
     tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin'],
   }, async ({ page }) => {
