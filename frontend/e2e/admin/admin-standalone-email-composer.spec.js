@@ -282,7 +282,7 @@ test.describe('Admin Standalone Email Composer', () => {
     await expect(page.getByText('Valores por defecto guardados')).toBeVisible({ timeout: 5000 });
   });
 
-  test('deep link ?tab=defaults opens the defaults tab directly', {
+  test('opens the defaults tab directly from a ?tab=defaults URL', {
     tag: [...ADMIN_STANDALONE_EMAIL_DEFAULTS, '@role:admin'],
   }, async ({ page }) => {
     await setupMocks(page);
