@@ -34,8 +34,10 @@ class TestThemeSelection:
         assert FRIENDLY_THEME.quote_bg == HexColor('#F0FDF4')
 
     def test_is_frozen(self):
+        original = FRIENDLY_THEME.h1_color
         with pytest.raises(Exception):
             FRIENDLY_THEME.h1_color = None
+        assert FRIENDLY_THEME.h1_color == original
 
 
 class TestDefaultThemePreservesLook:

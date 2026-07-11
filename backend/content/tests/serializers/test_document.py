@@ -36,7 +36,8 @@ class TestDocumentListSerializer:
         data = DocumentListSerializer(document).data
         expected = {
             'id', 'uuid', 'title', 'slug', 'status', 'client_name',
-            'language', 'cover_type', 'include_portada', 'include_subportada',
+            'language', 'cover_type', 'template_style',
+            'include_portada', 'include_subportada',
             'include_contraportada', 'folder', 'folder_name', 'tag_details',
             'content_excerpt', 'created_at', 'updated_at',
         }
@@ -94,7 +95,8 @@ class TestDocumentDetailSerializer:
         expected = {
             'id', 'uuid', 'title', 'slug', 'status',
             'content_markdown', 'content_json', 'client_name',
-            'language', 'cover_type', 'include_portada', 'include_subportada',
+            'language', 'cover_type', 'template_style',
+            'include_portada', 'include_subportada',
             'include_contraportada', 'folder', 'folder_name',
             'tag_ids', 'tag_details',
             'created_at', 'updated_at',
