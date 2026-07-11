@@ -820,13 +820,14 @@ class TestCleanInlineBold:
 
 
 class TestSectionRenderersMap:
-    def test_contains_all_14_section_types(self):
+    def test_contains_all_section_types(self):
         expected = {
             'greeting', 'executive_summary', 'context_diagnostic',
             'conversion_strategy', 'design_ux', 'creative_support',
-            'development_stages', 'functional_requirements',
+            'development_stages', 'process_methodology',
+            'functional_requirements',
             'timeline', 'investment', 'value_added_modules',
-            'commercial_conditions',
+            'commercial_conditions', 'roi_projection',
             'final_note', 'next_steps',
         }
         assert set(SECTION_RENDERERS.keys()) == expected

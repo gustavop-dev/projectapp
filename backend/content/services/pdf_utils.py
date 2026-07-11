@@ -4,6 +4,18 @@ Shared PDF drawing utilities for ReportLab-based document generation.
 Provides brand colours, font registration, page layout constants,
 text processing helpers, and reusable drawing functions used by
 proposal_pdf_service and other PDF generators.
+
+Wrapping: prefer the width-accurate ``_wrap_by_width`` /
+``_measure_inline_width`` helpers (real glyph metrics, emoji- and
+markdown-aware) over the legacy char-count ``_md_wrap``; they guarantee
+measure == draw, which is what keeps text inside its box.
+
+Emoji policy: emoji is kept wherever text flows through the shared
+primitives (they sanitize with ``_sanitize_pdf_text`` and draw/measure
+with ``_draw_mixed_string`` / ``_mixed_string_width``). ``_strip_emoji``
+is only safe when the *same* stripped string is both measured and drawn
+— strip once at the top of a block, never strip in one place and wrap
+the raw text in another, or measurement and drawing diverge.
 """
 
 import io
@@ -1382,11 +1394,13 @@ def _draw_banner_box(c, x, y, width, text, bg_color=BONE,
     pad_x = 12
     pad_y = 10
 
-    # Calculate available width for body text
+    # Calculate available width for body text. The icon is measured and
+    # drawn through the emoji-aware primitives so glyphs like the U+2713
+    # check mark (which the brand fonts lack) render instead of tofu.
     icon_w = 0
     if icon_text:
-        icon_w = pdfmetrics.stringWidth(
-            icon_text, _font('bold'), font_size
+        icon_w = _mixed_string_width(
+            c, icon_text, _font('bold'), font_size
         ) + 6
 
     avail_w = width - 2 * pad_x - icon_w
@@ -1408,7 +1422,8 @@ def _draw_banner_box(c, x, y, width, text, bg_color=BONE,
     if icon_text:
         c.setFont(_font('bold'), font_size)
         c.setFillColor(text_color)
-        c.drawString(inner_x, text_top_y, icon_text)
+        _draw_mixed_string(c, inner_x, text_top_y, icon_text,
+                           _font('bold'), font_size)
         inner_x += icon_w
 
     c.setFont(_font('regular'), font_size)

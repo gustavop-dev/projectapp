@@ -446,27 +446,17 @@ def _render_conversion_strategy(c, data, _proposal, ps=None, y=None):
         y -= 4
 
     steps = _safe(data, 'steps', [])
-    for step in steps:
-        if ps:
-            y = _check_y(c, y, ps, need=40)
-        elif y < MARGIN_B + 40:
-            break
-        title = _safe(step, 'title')
-        if title:
-            y = _draw_subtitle(c, y, title, ps=ps)
-        bullets = _safe(step, 'bullets', [])
-        if bullets:
-            y = _draw_bullet_list(c, y, bullets, ps=ps)
-        y -= 4
+    for i, step in enumerate(steps):
+        y = _draw_feature_row(
+            c, y, _safe(step, 'title'), ps=ps, index=i + 1,
+            children=_safe(step, 'bullets', []))
 
-    # Result sidebar or inline
-    result_title = _safe(data, 'resultTitle')
+    # Result — highlighted callout
     result = _safe(data, 'result')
     if result:
         y -= 6
-        if result_title:
-            y = _draw_subtitle(c, y, result_title, ps=ps)
-        y = _draw_paragraphs(c, y, [result], ps=ps)
+        y = _draw_callout_box(c, y, str(result), style='tip', ps=ps,
+                              label='RESULTADO')
     return y
 
 
@@ -492,7 +482,7 @@ def _render_design_ux(c, data, _proposal, ps=None, y=None):
         if obj:
             y -= 6
             y = _draw_subtitle(c, y, obj_title or 'Objetivo', ps=ps)
-            y = _draw_paragraphs(c, y, [obj], ps=ps)
+            y = _draw_blockquote(c, y, str(obj), ps=ps)
         y -= 10
         # Focus items as a full-width branded box below paragraphs
         if ps:
@@ -504,7 +494,7 @@ def _render_design_ux(c, data, _proposal, ps=None, y=None):
         if obj:
             y -= 6
             y = _draw_subtitle(c, y, obj_title or 'Objetivo', ps=ps)
-            y = _draw_paragraphs(c, y, [obj], ps=ps)
+            y = _draw_blockquote(c, y, str(obj), ps=ps)
     return y
 
 
@@ -1682,7 +1672,6 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
               + 8 * 2)  # padding_h*2 in _draw_pill
     content_area_w = CONTENT_W - card_pad_x * 2 - icon_size - icon_gap
     title_max_w = content_area_w - pill_w - 8  # gap before pill
-    title_chars = max(int(title_max_w / (title_font_size * 0.55)), 10)
 
     for mid in module_ids:
         module = catalog.get(mid)
@@ -1693,7 +1682,10 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
         justification = (justifications.get(mid)
                          if isinstance(justifications, dict) else None)
 
-        title_lines = textwrap.wrap(title, width=title_chars)[:2] or [title]
+        # Wrap by real width; the card height grows to fit — no silent
+        # 2-line truncation of the title anymore.
+        title_lines = _wrap_by_width(title, _font('bold'), title_font_size,
+                                     max(title_max_w, 40)) or [title]
         just_h = (_estimate_text_height(
                       [justification], max_width=content_area_w,
                       font_size=just_font_size, leading=just_leading)
@@ -1793,7 +1785,7 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
     # Consolidated terms & conditions for the included modules (Req 3).
     # The web shows these in a per-module modal; the PDF has no modal, so the
     # terms are printed here as a closing block.
-    tc_paras = []
+    tc_items = []
     for mid in module_ids:
         cond = conditions.get(mid) if isinstance(conditions, dict) else None
         terms = cond.get('terms') if isinstance(cond, dict) else None
@@ -1801,8 +1793,8 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
             continue
         module = catalog.get(mid) or {}
         mtitle = _strip_emoji(_safe(module, 'title')) or str(mid)
-        tc_paras.append(f'{mtitle} — {terms}')
-    if tc_paras:
+        tc_items.append(f'**{mtitle}** — {terms}')
+    if tc_items:
         y -= 6
         tc_title = ('Términos y condiciones de los módulos incluidos'
                     if lang != 'en'
@@ -1810,9 +1802,7 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
         if ps:
             y = _check_y(c, y, ps, need=40)
         y = _draw_subtitle(c, y, tc_title, ps=ps)
-        y = _draw_paragraphs(
-            c, y, tc_paras, ps=ps, font_size=8, leading=11,
-        )
+        y = _draw_bullet_list(c, y, tc_items, ps=ps, font_size=8, leading=11)
         y -= 4
 
     footer_note = _safe(data, 'footer_note')
@@ -1849,16 +1839,14 @@ def _render_final_note(c, data, proposal, ps=None, y=None):
     personal = _safe(data, 'personalNote')
     if personal:
         y -= 6
-        chars = int(CONTENT_W / (10 * 0.48))
-        c.setFont(_font('italic'), 10)
         c.setFillColor(GREEN_LIGHT)
-        p_lines = textwrap.wrap(_strip_emoji(str(personal)), width=chars)
-        for pl in p_lines:
+        for pl in _wrap_by_width(_sanitize_pdf_text(str(personal)),
+                                 _font('italic'), 10, CONTENT_W):
             if ps:
                 y = _check_y(c, y, ps)
             c.setFont(_font('italic'), 10)
             c.setFillColor(GREEN_LIGHT)
-            c.drawString(MARGIN_L, y, pl)
+            _draw_mixed_string(c, MARGIN_L, y, pl, _font('italic'), 10)
             y -= 14
 
     # Validity period — eye-catching banner
@@ -1881,10 +1869,8 @@ def _render_final_note(c, data, proposal, ps=None, y=None):
         )
     if validity:
         y -= 12
-        y = _draw_banner_box(c, MARGIN_L, y, CONTENT_W,
-                             _strip_emoji(str(validity)),
-                             bg_color=BONE, text_color=ESMERALD,
-                             icon_text='Vigencia:', ps=ps)
+        y = _draw_callout_box(c, y, str(validity), style='important',
+                              ps=ps, label='VIGENCIA')
 
     # Client name
     client_name = getattr(proposal, 'client_name', '')
@@ -1910,19 +1896,25 @@ def _render_final_note(c, data, proposal, ps=None, y=None):
     role = _safe(data, 'teamRole')
     email = _safe(data, 'contactEmail')
     if team:
-        c.setFont(_font('bold'), 12)
         c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L, y, team)
+        _draw_mixed_string(
+            c, MARGIN_L, y,
+            _fit_text_ellipsis(_sanitize_pdf_text(team), _font('bold'), 12,
+                               CONTENT_W), _font('bold'), 12)
         y -= 15
     if role:
         c.setFont(_font('regular'), 9)
         c.setFillColor(GRAY_500)
-        c.drawString(MARGIN_L, y, role)
+        c.drawString(MARGIN_L, y,
+                     _fit_text_ellipsis(_strip_emoji(role), _font('regular'),
+                                        9, CONTENT_W))
         y -= 13
     if email:
         c.setFont(_font('regular'), 9)
         c.setFillColor(GRAY_500)
-        c.drawString(MARGIN_L, y, email)
+        c.drawString(MARGIN_L, y,
+                     _fit_text_ellipsis(_strip_emoji(email), _font('regular'),
+                                        9, CONTENT_W))
         y -= 13
 
     # Commitment badges as inline pills
@@ -1970,72 +1962,72 @@ def _render_next_steps(c, data, _proposal, ps=None, y=None):
 
     steps = _safe(data, 'steps', [])
     for i, step in enumerate(steps):
-        if ps:
-            y = _check_y(c, y, ps, need=30)
-        elif y < MARGIN_B + 30:
-            break
-        step_title = _safe(step, 'title')
-        step_desc = _safe(step, 'description')
-
-        c.setFont(_font('bold'), 11)
-        c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L, y, f'{i + 1}.  {_strip_emoji(step_title)}')
-        y -= 15
-
-        if step_desc:
-            c.setFont(_font('regular'), 9)
-            c.setFillColor(ESMERALD_80)
-            desc_w = CONTENT_W - 18  # account for x offset
-            desc_chars = int(desc_w / (9 * 0.48))
-            s_lines = textwrap.wrap(_strip_emoji(str(step_desc)), width=desc_chars)
-            for sl in s_lines:
-                if ps:
-                    y = _check_y(c, y, ps)
-                    c.setFont(_font('regular'), 9)
-                    c.setFillColor(ESMERALD_80)
-                c.drawString(MARGIN_L + 18, y, sl)
-                y -= 13
-        y -= 5
+        y = _draw_feature_row(
+            c, y, _safe(step, 'title'),
+            description=_safe(step, 'description'), ps=ps, index=i + 1)
 
     # CTA message
     cta = _safe(data, 'ctaMessage')
     if cta:
         y -= 8
-        c.setFont(_font('bold'), 12)
+        if ps:
+            y = _check_y(c, y, ps, need=24)
         c.setFillColor(ESMERALD)
-        cta_chars = int(CONTENT_W / (12 * 0.48))
-        cta_lines = textwrap.wrap(_strip_emoji(str(cta)), width=cta_chars)
-        for cl in cta_lines:
+        for cl in _wrap_by_width(_sanitize_pdf_text(str(cta)),
+                                 _font('bold'), 12, CONTENT_W):
             if ps:
-                y = _check_y(c, y, ps)
-            c.setFont(_font('bold'), 12)
-            c.setFillColor(ESMERALD)
-            c.drawString(MARGIN_L, y, cl)
+                y = _check_y(c, y, ps, need=16)
+            _draw_mixed_string(c, MARGIN_L, y, cl, _font('bold'), 12)
             y -= 16
 
-    # Contact methods as pills
+    # CTA buttons — clickable link pills (primary + secondary), side by side
+    ctas = []
+    for key, primary in (('primaryCTA', True), ('secondaryCTA', False)):
+        obj = _safe(data, key, {})
+        if isinstance(obj, dict) and _safe(obj, 'text'):
+            ctas.append((obj, primary))
+    if ctas:
+        y -= 6
+        if ps:
+            y = _check_y(c, y, ps, need=26)
+        btn_x = MARGIN_L
+        for obj, primary in ctas:
+            text = _sanitize_pdf_text(_safe(obj, 'text'))
+            bg, fg = ((ESMERALD, WHITE) if primary
+                      else (ESMERALD_LIGHT, ESMERALD))
+            right_x, _ = _draw_pill(c, btn_x, y, text, bg_color=bg,
+                                    text_color=fg, font_size=9,
+                                    padding_h=12, padding_v=5)
+            link = _safe(obj, 'link')
+            if link:
+                c.linkURL(link, (btn_x, y - 6, right_x, y + 12), relative=0)
+            btn_x = right_x + 10
+        y -= 24
+
+    # Contact methods as pills (value is a clickable link when present)
     if contacts:
         y -= 10
         if ps:
             y = _check_y(c, y, ps, need=40)
-        c.setFont(_font('bold'), 10)
-        c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L, y, 'Contacto')
-        y -= 18
+        y = _draw_subtitle(c, y, 'Contacto', ps=ps)
         for ct in contacts:
-            ct_title = _strip_emoji(_safe(ct, 'title'))
-            ct_value = _strip_emoji(_safe(ct, 'value'))
+            ct_title = _sanitize_pdf_text(_safe(ct, 'title'))
+            ct_value = _sanitize_pdf_text(_safe(ct, 'value'))
+            ct_link = _safe(ct, 'link')
             if not ct_title:
                 continue
             if ps:
                 y = _check_y(c, y, ps, need=18)
-            # Title pill + value text
             pr, _ = _draw_pill(c, MARGIN_L, y, ct_title,
                                bg_color=ESMERALD, text_color=WHITE,
                                font_size=7)
             c.setFont(_font('regular'), 9)
             c.setFillColor(ESMERALD_80)
-            c.drawString(pr + 8, y, ct_value)
+            val_end = _draw_mixed_string(c, pr + 8, y, ct_value,
+                                         _font('regular'), 9)
+            if ct_link:
+                c.linkURL(ct_link, (pr + 8, y - 2, val_end, y + 10),
+                          relative=0)
             y -= 18
     return y
 
@@ -2197,6 +2189,123 @@ def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
     return y
 
 
+def _render_process_methodology(c, data, _proposal, ps=None, y=None):
+    """Render the process methodology section as numbered feature rows.
+
+    Each step shows a numbered chip + title + description, with the
+    client's contribution ("Tu aporte: …") as a right-anchored BONE pill.
+    Mirrors ProcessMethodology.vue; previously the PDF skipped it.
+    """
+    if y is None:
+        y = PAGE_H - MARGIN_T
+    y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
+    y -= 8
+
+    intro = _safe(data, 'intro')
+    if intro:
+        y = _draw_paragraphs(c, y, [intro], ps=ps)
+        y -= 6
+
+    # clientAction already carries its own "Tu aporte:" / "Your input:"
+    # label in the stored content, so it is used verbatim as the pill.
+    for i, step in enumerate(_safe(data, 'steps', [])):
+        action = _safe(step, 'clientAction')
+        pill = _sanitize_pdf_text(str(action)) if action else None
+        y = _draw_feature_row(
+            c, y, _safe(step, 'title'),
+            description=_safe(step, 'description'), ps=ps, index=i + 1,
+            pill_text=pill, pill_bg=BONE, pill_fg=ESMERALD)
+    return y
+
+
+def _roi_has_content(data):
+    """True when a roi_projection section has anything worth a PDF page.
+
+    Defaults ship empty kpis/scenarios; without this gate every default
+    proposal would grow a blank ROI section (and a stray TOC entry).
+    """
+    return bool(
+        [k for k in _safe(data, 'kpis', []) if isinstance(k, dict)
+         and (_safe(k, 'value') or _safe(k, 'label'))]
+        or [s for s in _safe(data, 'scenarios', []) if isinstance(s, dict)
+            and (_safe(s, 'metrics') or _safe(s, 'assumptions')
+                 or _safe(s, 'name') or _safe(s, 'label'))]
+    )
+
+
+def _render_roi_projection(c, data, _proposal, ps=None, y=None):
+    """Render the ROI projection: KPI tiles + per-scenario metric tables.
+
+    Mirrors RoiProjection.vue. The generator only calls this when
+    _roi_has_content(data) is True, so empty defaults are skipped.
+    """
+    if y is None:
+        y = PAGE_H - MARGIN_T
+    y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
+    y -= 8
+
+    subtitle = _safe(data, 'subtitle')
+    if subtitle:
+        y = _draw_paragraphs(c, y, [subtitle], ps=ps)
+        y -= 4
+
+    methodology = _safe(data, 'methodology')
+    if methodology:
+        y = _draw_callout_box(c, y, str(methodology), style='note',
+                              ps=ps, label='METODOLOGÍA')
+
+    # Headline KPI tiles (value + label; source as a sub-line).
+    kpis = [k for k in _safe(data, 'kpis', []) if isinstance(k, dict)
+            and (_safe(k, 'value') or _safe(k, 'label'))]
+    if kpis:
+        tiles = [{'value': _safe(k, 'value'), 'label': _safe(k, 'label'),
+                  'sub': _safe(k, 'source')} for k in kpis]
+        y = _draw_kpi_tile_row(c, y, tiles, ps=ps, accent_first=True)
+        y -= 6
+
+    scenarios = [s for s in _safe(data, 'scenarios', [])
+                 if isinstance(s, dict)]
+    if scenarios:
+        sc_title = _safe(data, 'scenariosTitle')
+        if sc_title:
+            y -= 4
+            y = _draw_subtitle(c, y, sc_title, ps=ps)
+        for sc in scenarios:
+            name = _safe(sc, 'label') or _safe(sc, 'name')
+            if name:
+                y = _draw_subtitle(c, y, name, ps=ps)
+            assumptions = [a for a in _safe(sc, 'assumptions', []) if a]
+            if assumptions:
+                y = _draw_bullet_list(c, y, [str(a) for a in assumptions],
+                                      ps=ps, font_size=8, leading=11)
+            metrics = [m for m in _safe(sc, 'metrics', [])
+                       if isinstance(m, dict)
+                       and (_safe(m, 'label') or _safe(m, 'value'))]
+            if metrics:
+                rows = []
+                for m in metrics:
+                    label = _safe(m, 'label')
+                    val = _safe(m, 'value')
+                    basis = _safe(m, 'basis')
+                    if _safe(m, 'emphasis'):
+                        label = f'**{label}**'
+                        val = f'**{val}**'
+                    # Basis reads as a lighter inline note after the label
+                    # (table cells wrap by width, not on newlines).
+                    cell = label + (f' — *{basis}*' if basis else '')
+                    rows.append([cell, val])
+                y = _draw_table(c, y, ['Métrica', 'Proyección'], rows,
+                                ps=ps, col_widths=[0.68, 0.32],
+                                aligns=['left', 'right'])
+            y -= 6
+
+    cta = _safe(data, 'ctaNote')
+    if cta:
+        y -= 4
+        y = _draw_callout_box(c, y, str(cta), style='tip', ps=ps)
+    return y
+
+
 # Map section_type → renderer
 SECTION_RENDERERS = {
     'greeting': _render_greeting,
@@ -2206,14 +2315,18 @@ SECTION_RENDERERS = {
     'design_ux': _render_design_ux,
     'creative_support': _render_creative_support,
     'development_stages': _render_development_stages,
+    'process_methodology': _render_process_methodology,
     'functional_requirements': _render_functional_requirements,
     'timeline': _render_timeline,
     'investment': _render_investment,
     'value_added_modules': _render_value_added_modules,
     'commercial_conditions': _render_commercial_conditions,
+    'roi_projection': _render_roi_projection,
     'final_note': _render_final_note,
     'next_steps': _render_next_steps,
-    # Note: 'roi_projection' is intentionally web-only — no PDF renderer.
+    # 'proposal_summary' stays web-only: its cards resolve dynamic server
+    # sources (total_investment, timeline_duration, expires_at) the PDF
+    # already shows in Investment / Timeline / Final Note.
     # Sections without a renderer are silently skipped by the generator.
 }
 
@@ -2414,11 +2527,20 @@ class ProposalPdfService:
                 if not is_paste and not renderer:
                     continue
 
+                # ROI has a renderer but ships empty by default — skip
+                # (before the TOC entry) when there is nothing to show.
+                if (stype == 'roi_projection' and not is_paste
+                        and not _roi_has_content(data)):
+                    continue
+
                 if first_content:
                     first_content = False
                 else:
                     y -= 28
-                    y = _check_y(c, y, ps, need=80)
+                    # Reserve the measured height of the section header so a
+                    # multi-line title is never orphaned at the page bottom.
+                    y = _check_y(c, y, ps,
+                                 need=_section_header_height(data['title']))
 
                 # Record TOC entry at the page where this section starts
                 toc_entries.append((data['index'], data['title'], ps['num']))
@@ -2469,7 +2591,10 @@ class ProposalPdfService:
                                 if parent_idx else str(gi + 1)
                             )
                             y -= 28
-                            y = _check_y(c, y, ps, need=80)
+                            y = _check_y(
+                                c, y, ps,
+                                need=_section_header_height(
+                                    _safe(grp, 'title'), sub_idx))
                             if grp_paste:
                                 y = _render_raw_text(
                                     c,

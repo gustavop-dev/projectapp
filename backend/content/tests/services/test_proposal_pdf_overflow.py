@@ -179,8 +179,19 @@ def test_all_section_renderers_stay_above_bottom_margin():
 
     p = _make_proposal()
     big_text = ' '.join([LONG_WORD] * 40)
+    # Section titles are short in practice; the overflow risk lives in
+    # the bodies/tables/lists, which is what this harness stresses.
     adversarial = {
-        'index': '1', 'title': f'Título {big_text}',
+        'index': '1', 'title': 'Sección de prueba adversarial',
+        'subtitle': big_text, 'scenariosTitle': 'Escenarios',
+        'kpis': [{'value': '+999%', 'label': big_text, 'source': big_text}],
+        'scenarios': [{
+            'name': big_text, 'label': big_text,
+            'assumptions': [big_text, big_text],
+            'metrics': [{'label': big_text, 'value': '$999.999.999',
+                         'basis': big_text, 'emphasis': True}],
+        }],
+        'ctaNote': big_text, 'methodology': big_text,
         'introText': big_text, 'intro': big_text, 'message': big_text,
         'personalNote': big_text, 'paragraphs': [big_text],
         'highlights': [big_text], 'issues': [big_text],
