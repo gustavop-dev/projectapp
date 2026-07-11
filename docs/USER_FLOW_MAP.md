@@ -3859,7 +3859,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   4. Optionally attaches files.
   5. Admin opens the "Vista previa" sub-tab → `POST /api/emails/preview/` returns the real `branded_email.html` render (shown in a sandboxed iframe, markdown sections converted server-side).
   6. Admin clicks "Enviar" → `POST /api/emails/send/`.
-  7. Success message renders; email history updates.
+  7. Success toast renders bottom-right via `usePanelNotify` ("Correo enviado correctamente."); email history updates. Errors surface inline next to the send button and as an error toast.
   8. Admin opens the "Historial" tab and views paginated email history from `GET /api/emails/history/`.
 - **Branches:**
   - [Branch A — Empty recipient] Send button disabled when recipient email is empty.

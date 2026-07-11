@@ -77,7 +77,7 @@
                   <span class="ml-auto flex items-center gap-1.5">
                     <span class="text-[10px] font-medium text-text-muted uppercase tracking-wide">Markdown</span>
                     <BaseToggle v-model="section.markdown" size="sm" aria-label="Activar Markdown en esta sección"
-                      off-class="bg-text-subtle/40 !border-text-muted" />
+                      off-class="bg-surface !border-primary" />
                   </span>
                   <button v-if="sections.length > 1" type="button" @click="removeSection(idx)"
                     class="text-text-subtle hover:text-danger-strong transition-colors p-0.5">
@@ -86,8 +86,8 @@
                     </svg>
                   </button>
                 </div>
-                <textarea v-model="section.text" rows="3" placeholder="Escribe el contenido de esta sección..."
-                  class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface  focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring resize-y" />
+                <textarea v-model="section.text" v-auto-resize rows="3" placeholder="Escribe el contenido de esta sección..."
+                  class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface  focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring resize-none" />
                 <p v-if="section.markdown" class="mt-1 text-[10px] text-text-subtle">
                   Soporta **negrita**, *cursiva*, listas con -, [enlaces](https://...) y títulos con #.
                 </p>
@@ -106,8 +106,8 @@
         <!-- Footer -->
         <div>
           <label class="block text-xs text-text-muted mb-1">Pie de correo</label>
-          <textarea v-model="footer" rows="2" placeholder="Texto de cierre..."
-            class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring resize-y" />
+          <textarea v-model="footer" v-auto-resize rows="2" placeholder="Texto de cierre..."
+            class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring resize-none" />
         </div>
 
         <!-- Attachments -->
@@ -134,7 +134,6 @@
         <!-- Send button -->
         <div class="flex items-center justify-between pt-2">
           <p v-if="sendError" class="text-xs text-danger-strong">{{ sendError }}</p>
-          <p v-else-if="sendSuccess" class="text-xs text-text-brand">Correo enviado correctamente.</p>
           <span v-else />
           <button type="button" :disabled="!canSend || sending" @click="handleSend"
             class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
@@ -304,11 +303,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import draggable from 'vuedraggable';
 import ComposedEmailPreview from '~/components/ComposedEmailPreview.vue';
 import { useEmailStore } from '~/stores/emails';
 import { validateEmailAttachments } from '~/utils/emailAttachments';
+import { vAutoResize } from '~/utils/autoResizeDirective';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 
@@ -348,7 +348,6 @@ const footer = ref(defaultFooter.value);
 const attachments = ref([]);
 const fileInput = ref(null);
 const sending = ref(false);
-const sendSuccess = ref(false);
 const sendError = ref('');
 
 // ── History state ──
@@ -385,13 +384,9 @@ const canSend = computed(() => {
 });
 
 // ── Send ──
-let successTimer = null;
-onBeforeUnmount(() => { clearTimeout(successTimer); });
-
 async function handleSend() {
   sending.value = true;
   sendError.value = '';
-  sendSuccess.value = false;
 
   const formData = new FormData();
   formData.append('recipient_email', recipient.value.trim());
@@ -409,13 +404,12 @@ async function handleSend() {
   sending.value = false;
 
   if (result.success) {
-    sendSuccess.value = true;
+    notify.success({ title: 'Correo enviado correctamente.' });
     resetForm();
     await emailStore.fetchHistory(1);
-    clearTimeout(successTimer);
-    successTimer = setTimeout(() => { sendSuccess.value = false; }, 5000);
   } else {
     sendError.value = result.error || 'Error al enviar el correo. Intenta de nuevo.';
+    notify.error({ title: 'No se pudo enviar el correo', detail: sendError.value });
   }
 }
 
