@@ -222,4 +222,6 @@ class TestLifecycleGuards:
         })
         payload = _payload(response)
         assert payload['months'][5]['has_processed'] is True
-        assert payload['cards'] == ['Visa Bancolombia']
+        # `cards` merges statement names with the active catalog (the
+        # seed migration adds 'T.C 0064').
+        assert 'Visa Bancolombia' in payload['cards']

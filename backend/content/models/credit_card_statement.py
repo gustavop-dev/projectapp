@@ -72,6 +72,10 @@ class CreditCardStatement(AccountingRecordBase):
         max_digits=14, decimal_places=2, null=True, blank=True,
     )
     due_date = models.DateField(null=True, blank=True)
+    # Bank PDF kept as documentation once the statement is processed.
+    pdf_file = models.FileField(
+        upload_to='statement_pdfs/%Y/%m/', null=True, blank=True,
+    )
 
     class Meta:
         ordering = ['-period_date', 'card_name']

@@ -1567,6 +1567,25 @@ def send_card_debt_reminder():
     return run_card_reminder()
 
 
+# 14:05 UTC = 09:05 Bogotá — right after the card-debt reminder so both
+# alerts arrive together when both are pending.
+@periodic_task(crontab(hour='14', minute='5'))
+@lock_task('accounting-statement-reminder')
+def send_statement_reminder():
+    """
+    Huey task (daily 9:05 Bogotá): monthly statement reminder.
+
+    Pending detection (previous month processed + PDF attached per active
+    catalog card) and the 8-day re-alert cadence live in
+    content.services.accounting_statement_reminder_service.
+    """
+    from content.services.accounting_statement_reminder_service import (
+        run_statement_reminder,
+    )
+
+    return run_statement_reminder()
+
+
 # 13:30 UTC = 08:30 Bogotá (UTC-5, no DST).
 @periodic_task(crontab(hour='13', minute='30'))
 @lock_task('hosting-expiry-notices')

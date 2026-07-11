@@ -1,0 +1,14 @@
+[Contabilidad] Recordatorio: extracto de tarjeta pendiente
+
+El extracto de {{ period_label }} aún no está completo. Este recordatorio
+se repetirá cada 8 días hasta que el extracto quede procesado y con su
+PDF adjunto.
+
+Pendientes:
+{% for item in pending %}- {{ item.card_name }} — {{ item.period_label }} — {{ item.reason }}
+{% endfor %}
+Revisar extractos: {{ panel_url }}
+
+—
+Recordatorio automático del módulo contable · ProjectApp. Se apaga cuando
+el extracto del mes anterior está procesado y tiene el PDF adjunto.

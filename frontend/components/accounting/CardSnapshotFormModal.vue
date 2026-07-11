@@ -1,11 +1,13 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { formatMoney } from '~/utils/formatMoney'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
   record: { type: Object, default: null },
   saving: { type: Boolean, default: false },
-  knownCards: { type: Array, default: () => [] },
+  // Active catalog cards: [{ name, credit_limit }].
+  cards: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['close', 'submit'])
@@ -22,9 +24,8 @@ function todayIso() {
 function defaultForm() {
   return {
     snapshot_date: todayIso(),
-    card_name: '',
+    card_name: props.cards.length === 1 ? props.cards[0].name : '',
     available_amount: '',
-    debt_amount: '',
     notes: '',
   }
 }
@@ -40,7 +41,6 @@ watch(
         snapshot_date: props.record.snapshot_date ?? todayIso(),
         card_name: props.record.card_name ?? '',
         available_amount: props.record.available_amount ?? '',
-        debt_amount: props.record.debt_amount ?? '',
         notes: props.record.notes ?? '',
       }
     } else {
@@ -50,12 +50,52 @@ watch(
   { immediate: true },
 )
 
+const cardOptions = computed(() => {
+  const options = props.cards.map((card) => ({
+    value: card.name,
+    label: card.name,
+  }))
+  // A legacy record can reference a card missing from the catalog; keep
+  // its own name selectable so edits don't force a card change.
+  const current = props.record?.card_name
+  if (current && !options.some((option) => option.value === current)) {
+    options.push({ value: current, label: `${current} (fuera de catálogo)` })
+  }
+  return options
+})
+
+const selectedCard = computed(() =>
+  props.cards.find((card) => card.name === form.value.card_name) || null,
+)
+
+const computedDebt = computed(() => {
+  if (!selectedCard.value) return null
+  const available = Number(form.value.available_amount)
+  if (form.value.available_amount === '' || Number.isNaN(available)) return null
+  return Number(selectedCard.value.credit_limit) - available
+})
+
+const debtPreview = computed(() => {
+  if (!selectedCard.value) {
+    return isEdit.value
+      ? 'Tarjeta fuera de catálogo: la deuda registrada se mantiene.'
+      : ''
+  }
+  const cupo = formatMoney(Number(selectedCard.value.credit_limit))
+  if (computedDebt.value === null) return `Cupo ${cupo}`
+  return `Deuda: ${formatMoney(computedDebt.value)} (cupo ${cupo} − disponible)`
+})
+
+const availableExceedsLimit = computed(() =>
+  computedDebt.value !== null && computedDebt.value < 0,
+)
+
 function onSubmit() {
+  if (availableExceedsLimit.value) return
   emit('submit', {
     snapshot_date: form.value.snapshot_date,
     card_name: form.value.card_name,
     available_amount: form.value.available_amount,
-    debt_amount: form.value.debt_amount,
     notes: form.value.notes,
   })
 }
@@ -69,29 +109,32 @@ function onSubmit() {
     <form class="px-6 py-4 space-y-4" @submit.prevent="onSubmit">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <BaseFormField label="Tarjeta" required>
-          <BaseInput
+          <BaseSelect
             v-model="form.card_name"
-            list="card-snapshot-known-cards"
-            placeholder="T.C 0064"
+            :options="cardOptions"
+            placeholder="Selecciona una tarjeta"
             required
+            data-testid="card-snapshot-card-select"
           />
-          <datalist id="card-snapshot-known-cards">
-            <option v-for="card in knownCards" :key="card" :value="card" />
-          </datalist>
         </BaseFormField>
         <BaseFormField label="Fecha" required>
           <BaseInput v-model="form.snapshot_date" type="date" required />
         </BaseFormField>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <BaseFormField label="Disponible" required>
-          <BaseCurrencyInput v-model="form.available_amount" required />
-        </BaseFormField>
-        <BaseFormField label="Deuda" required>
-          <BaseCurrencyInput v-model="form.debt_amount" required />
-        </BaseFormField>
-      </div>
+      <BaseFormField label="Disponible" required>
+        <BaseCurrencyInput v-model="form.available_amount" required />
+        <p
+          v-if="debtPreview"
+          class="text-xs mt-1"
+          :class="availableExceedsLimit ? 'text-danger-strong' : 'text-text-subtle'"
+          data-testid="card-snapshot-debt-preview"
+        >
+          {{ availableExceedsLimit
+            ? 'El disponible no puede superar el cupo de la tarjeta.'
+            : debtPreview }}
+        </p>
+      </BaseFormField>
 
       <BaseFormField label="Notas">
         <BaseTextarea v-model="form.notes" :rows="3" />
@@ -104,7 +147,7 @@ function onSubmit() {
         <BaseButton
           type="submit"
           variant="primary"
-          :disabled="saving"
+          :disabled="saving || availableExceedsLimit"
           data-testid="card-snapshot-form-submit"
         >
           {{ saving ? 'Guardando...' : 'Guardar' }}

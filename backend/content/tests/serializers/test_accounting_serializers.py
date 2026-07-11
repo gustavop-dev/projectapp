@@ -7,6 +7,7 @@ import pytest
 from content.models import HostingRecord, IncomeRecord, RecurringPayment
 from content.serializers.accounting import (
     AccountingSettingsSerializer,
+    CardBalanceSnapshotCreateUpdateSerializer,
     ExpenseRecordCreateUpdateSerializer,
     HostingRecordCreateUpdateSerializer,
     IncomeRecordCreateUpdateSerializer,
@@ -277,3 +278,97 @@ class TestSettingsSerializer:
             'notifications_enabled': True,
         })
         assert serializer.is_valid(), serializer.errors
+
+
+@pytest.mark.django_db
+class TestCardSnapshotDebtComputation:
+    """Debt is server-computed (cupo − disponible) for catalog cards."""
+
+    CARD = 'T.C Test 01'
+
+    def _card(self, **overrides):
+        from content.models import CreditCard
+
+        defaults = {
+            'name': self.CARD,
+            'credit_limit': Decimal('8000000.00'),
+            'statements_since': date(2026, 5, 1),
+        }
+        defaults.update(overrides)
+        return CreditCard.objects.create(**defaults)
+
+    def test_catalog_card_computes_debt_and_ignores_client_value(self):
+        self._card()
+        serializer = CardBalanceSnapshotCreateUpdateSerializer(data={
+            'snapshot_date': '2026-07-10',
+            'card_name': self.CARD,
+            'available_amount': '3000000.00',
+            'debt_amount': '1.00',
+        })
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['debt_amount'] == Decimal('5000000.00')
+
+    def test_available_over_limit_is_rejected(self):
+        self._card()
+        serializer = CardBalanceSnapshotCreateUpdateSerializer(data={
+            'snapshot_date': '2026-07-10',
+            'card_name': self.CARD,
+            'available_amount': '9000000.00',
+        })
+        assert not serializer.is_valid()
+        assert 'available_amount' in serializer.errors
+
+    def test_non_catalog_card_requires_explicit_debt_on_create(self):
+        payload = {
+            'snapshot_date': '2026-07-10',
+            'card_name': 'T.C Legacy',
+            'available_amount': '3000000.00',
+        }
+        serializer = CardBalanceSnapshotCreateUpdateSerializer(data=payload)
+        assert not serializer.is_valid()
+        assert 'debt_amount' in serializer.errors
+
+        serializer = CardBalanceSnapshotCreateUpdateSerializer(
+            data={**payload, 'debt_amount': '1200000.00'},
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['debt_amount'] == Decimal('1200000.00')
+
+    def test_notes_only_update_keeps_stored_debt(self):
+        from content.models import CardBalanceSnapshot
+
+        card = self._card()
+        snapshot = CardBalanceSnapshot.objects.create(
+            snapshot_date=date(2026, 6, 1),
+            card_name=self.CARD,
+            available_amount=Decimal('3000000.00'),
+            debt_amount=Decimal('5000000.00'),
+        )
+        # The cupo changed after the snapshot was written: a notes-only
+        # edit must not rewrite the historic debt.
+        card.credit_limit = Decimal('10000000.00')
+        card.save(update_fields=['credit_limit'])
+
+        serializer = CardBalanceSnapshotCreateUpdateSerializer(
+            snapshot, data={'notes': 'revisado'}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        serializer.save()
+        snapshot.refresh_from_db()
+        assert snapshot.debt_amount == Decimal('5000000.00')
+
+    def test_available_change_recomputes_with_current_cupo(self):
+        from content.models import CardBalanceSnapshot
+
+        self._card()
+        snapshot = CardBalanceSnapshot.objects.create(
+            snapshot_date=date(2026, 6, 1),
+            card_name=self.CARD,
+            available_amount=Decimal('3000000.00'),
+            debt_amount=Decimal('5000000.00'),
+        )
+        serializer = CardBalanceSnapshotCreateUpdateSerializer(
+            snapshot, data={'available_amount': '2000000.00'}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['debt_amount'] == Decimal('6000000.00')

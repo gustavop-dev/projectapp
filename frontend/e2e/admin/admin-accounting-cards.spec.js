@@ -44,6 +44,24 @@ function buildHandler({ rows, calls }) {
         body: JSON.stringify({ results: rows, meta: {} }),
       };
     }
+    if (apiPath === 'accounting/credit-cards/' && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: [
+            {
+              id: 1,
+              name: 'T.C 0064',
+              credit_limit: '8000000.00',
+              is_active: true,
+              statements_since: '2026-05-01',
+            },
+          ],
+          meta: {},
+        }),
+      };
+    }
     if (apiPath === 'accounting/card-snapshots/create/' && method === 'POST') {
       const body = route.request().postDataJSON();
       calls.push({ method, apiPath, body });
@@ -122,16 +140,18 @@ test.describe('Admin Accounting Cards', () => {
     const dateValue = await page.locator('form input[type="date"]').inputValue();
     expect(dateValue).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
-    await page.locator('form input[type="text"]').first().fill('T.C 0064');
-    const numbers = page.locator('form input[inputmode="numeric"]');
-    await numbers.nth(0).fill('500000');
-    await numbers.nth(1).fill('7500000');
+    // Single catalog card: the dropdown preselects it.
+    await expect(page.getByTestId('card-snapshot-card-select')).toHaveValue('T.C 0064');
+    await page.locator('form input[inputmode="numeric"]').fill('500000');
+    // Debt is server-computed; the form only previews it.
+    await expect(page.getByTestId('card-snapshot-debt-preview')).toContainText('7.500.000');
     await page.getByTestId('card-snapshot-form-submit').click();
 
     await expect(page.getByText('Registro de tarjeta creado')).toBeVisible();
     expect(calls).toHaveLength(1);
     expect(calls[0].body.card_name).toBe('T.C 0064');
-    expect(Number(calls[0].body.debt_amount)).toBe(7500000);
+    expect(calls[0].body.debt_amount).toBeUndefined();
+    expect(Number(calls[0].body.available_amount)).toBe(500000);
   });
 
   test('edit prefills and PATCHes; delete asks for confirmation', {
@@ -145,9 +165,8 @@ test.describe('Admin Accounting Cards', () => {
     await expect(
       page.getByRole('heading', { name: 'Editar Registro de Tarjeta' }),
     ).toBeVisible();
-    await expect(page.locator('form input[type="text"]').first()).toHaveValue('T.C 0064');
-    const numbers = page.locator('form input[inputmode="numeric"]');
-    await numbers.nth(1).fill('7000000');
+    await expect(page.getByTestId('card-snapshot-card-select')).toHaveValue('T.C 0064');
+    await page.locator('form input[inputmode="numeric"]').fill('1000000');
     await page.getByTestId('card-snapshot-form-submit').click();
     await expect(page.getByText('Registro de tarjeta actualizado')).toBeVisible();
     expect(calls[0].method).toBe('PATCH');

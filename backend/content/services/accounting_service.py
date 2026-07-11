@@ -24,6 +24,7 @@ from content.models import (
     AccountingChangeLog,
     AdsSpendRecord,
     CardBalanceSnapshot,
+    CreditCard,
     CreditCardStatement,
     CreditCardTransaction,
     ExpenseRecord,
@@ -49,6 +50,7 @@ ENTITY_MODELS = {
     EntityType.RECURRING: RecurringPayment,
     EntityType.ADS: AdsSpendRecord,
     EntityType.CARD_SNAPSHOT: CardBalanceSnapshot,
+    EntityType.CREDIT_CARD: CreditCard,
     EntityType.STATEMENT: CreditCardStatement,
     EntityType.STATEMENT_TX: CreditCardTransaction,
     EntityType.MERCHANT_ALIAS: MerchantAlias,
@@ -127,6 +129,13 @@ TRACKED_FIELDS = {
         ('debt_amount', 'Deuda'),
         ('notes', 'Notas'),
     ],
+    EntityType.CREDIT_CARD: [
+        ('name', 'Nombre'),
+        ('credit_limit', 'Cupo'),
+        ('is_active', 'Activa'),
+        ('statements_since', 'Extractos desde'),
+        ('notes', 'Notas'),
+    ],
     EntityType.STATEMENT: [
         ('card_name', 'Tarjeta'),
         ('period_date', 'Período'),
@@ -163,6 +172,7 @@ TRACKED_FIELDS = {
         ('notification_recipients', 'Destinatarios de notificación'),
         ('notifications_enabled', 'Notificaciones activas'),
         ('card_reminder_enabled', 'Recordatorio de deuda de tarjetas'),
+        ('statement_reminder_enabled', 'Recordatorio de extractos'),
         ('hosting_expiry_reminder_enabled', 'Avisos de vencimiento de hostings'),
         ('usd_exchange_rate', 'Tasa de cambio USD'),
     ],
@@ -223,6 +233,8 @@ def object_repr(entity_type, instance):
         return f'{instance.get_platform_display()} — {instance.spend_date}'
     if entity_type == EntityType.CARD_SNAPSHOT:
         return f'{instance.card_name} — {instance.snapshot_date}'
+    if entity_type == EntityType.CREDIT_CARD:
+        return instance.name
     if entity_type == EntityType.STATEMENT:
         return f'{instance.card_name} — {month_label(instance.period_date)}'
     if entity_type == EntityType.STATEMENT_TX:

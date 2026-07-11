@@ -143,7 +143,7 @@
       :open="isModalOpen"
       :record="editingRecord"
       :saving="store.isUpdating"
-      :known-cards="knownCards"
+      :cards="activeCatalogCards"
       @close="closeModal"
       @submit="handleSubmit"
     />
@@ -231,6 +231,10 @@ const {
 
 const knownCards = computed(() =>
   [...new Set(store.cardSnapshots.map((r) => r.card_name))].sort(),
+);
+
+const activeCatalogCards = computed(() =>
+  store.creditCards.filter((card) => card.is_active),
 );
 
 const filterFields = computed(() => [
@@ -337,7 +341,10 @@ const columns = [
 ];
 
 async function loadRecords() {
-  await store.fetchRecords('cards');
+  await Promise.all([
+    store.fetchRecords('cards'),
+    store.fetchRecords('creditCards'),
+  ]);
 }
 
 onMounted(loadRecords);

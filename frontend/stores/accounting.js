@@ -20,6 +20,7 @@ const ACCOUNTING_ENTITIES = {
   recurring: { stateKey: 'recurringPayments', path: 'accounting/recurring/' },
   ads: { stateKey: 'adsRecords', path: 'accounting/ads/' },
   cards: { stateKey: 'cardSnapshots', path: 'accounting/card-snapshots/' },
+  creditCards: { stateKey: 'creditCards', path: 'accounting/credit-cards/' },
   statements: { stateKey: 'statements', path: 'accounting/statements/' },
   merchantAliases: { stateKey: 'merchantAliases', path: 'accounting/merchant-aliases/' },
 };
@@ -61,6 +62,7 @@ export const useAccountingStore = defineStore('accounting', {
     recurringPayments: [],
     adsRecords: [],
     cardSnapshots: [],
+    creditCards: [],
     collectionAccounts: [],
     collectionAccountsMeta: {},
     statements: [],
@@ -140,9 +142,9 @@ export const useAccountingStore = defineStore('accounting', {
         const response = await get_request(
           `${config.path}${buildQuery(params)}`,
         );
-        this[config.stateKey] = response.data.results;
+        this[config.stateKey] = response.data.results ?? [];
         this.metas = { ...this.metas, [entity]: response.data.meta || {} };
-        return { success: true, data: response.data.results };
+        return { success: true, data: this[config.stateKey] };
       } catch (error) {
         this.error = 'fetch_failed';
         console.error(`Error fetching accounting ${entity}:`, error);
@@ -291,6 +293,74 @@ export const useAccountingStore = defineStore('accounting', {
       } catch (error) {
         this.error = 'update_failed';
         console.error(`Error reopening statement ${id}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * createStatementTransactions: batch-append lines to a draft statement.
+     */
+    async createStatementTransactions(statementId, transactions) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          `accounting/statements/${statementId}/transactions/batch/`,
+          { transactions },
+        );
+        if (this.statementDetail?.id === statementId) {
+          await this.fetchStatementDetail(statementId);
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'create_failed';
+        console.error(`Error adding transactions to statement ${statementId}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * uploadStatementPdf: attach (or replace) the bank PDF of a statement.
+     */
+    async uploadStatementPdf(statementId, file) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await create_request(
+          `accounting/statements/${statementId}/pdf/upload/`, formData,
+        );
+        this.statementDetail = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'update_failed';
+        console.error(`Error uploading statement PDF ${statementId}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * deleteStatementPdf: remove the attached bank PDF of a statement.
+     */
+    async deleteStatementPdf(statementId) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await delete_request(
+          `accounting/statements/${statementId}/pdf/delete/`,
+        );
+        this.statementDetail = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'delete_failed';
+        console.error(`Error deleting statement PDF ${statementId}:`, error);
         return { success: false, ...normalizeApiError(error) };
       } finally {
         this.isUpdating = false;

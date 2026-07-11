@@ -268,3 +268,62 @@ class TestCardSnapshotAndDashboard:
     def test_dashboard_rejects_invalid_year(self, super_client):
         response = super_client.get('/api/accounting/dashboard/?year=abc')
         assert response.status_code == 400
+
+
+@pytest.mark.django_db
+class TestCreditCardCatalogEndpoints:
+    PAYLOAD = {
+        'name': 'T.C Nueva',
+        'credit_limit': '5000000.00',
+        'statements_since': '2026-06',
+    }
+
+    def test_create_update_and_list(self, super_client):
+        create = super_client.post(
+            '/api/accounting/credit-cards/create/', self.PAYLOAD, format='json',
+        )
+        assert create.status_code == 201, create.data
+        assert create.data['statements_since'] == '2026-06-01'
+
+        update = super_client.patch(
+            f"/api/accounting/credit-cards/{create.data['id']}/update/",
+            {'credit_limit': '9000000.00'},
+            format='json',
+        )
+        assert update.status_code == 200
+        assert update.data['credit_limit'] == '9000000.00'
+
+        listing = super_client.get('/api/accounting/credit-cards/')
+        names = [row['name'] for row in listing.data['results']]
+        assert 'T.C Nueva' in names
+
+    def test_delete_blocked_when_referenced(self, super_client):
+        from content.models import CardBalanceSnapshot, CreditCard
+
+        card = CreditCard.objects.create(
+            name='T.C Referenciada', credit_limit=Decimal('1000000.00'),
+        )
+        CardBalanceSnapshot.objects.create(
+            snapshot_date=date(2026, 7, 1),
+            card_name=card.name,
+            available_amount=Decimal('500000.00'),
+            debt_amount=Decimal('500000.00'),
+        )
+        response = super_client.delete(
+            f'/api/accounting/credit-cards/{card.id}/delete/',
+        )
+        assert response.status_code == 400
+        assert response.data['code'] == 'credit_card_referenced'
+        assert CreditCard.objects.filter(pk=card.pk).exists()
+
+    def test_delete_unreferenced_card(self, super_client):
+        from content.models import CreditCard
+
+        card = CreditCard.objects.create(
+            name='T.C Sin Uso', credit_limit=Decimal('1000000.00'),
+        )
+        response = super_client.delete(
+            f'/api/accounting/credit-cards/{card.id}/delete/',
+        )
+        assert response.status_code == 204
+        assert not CreditCard.objects.filter(pk=card.pk).exists()

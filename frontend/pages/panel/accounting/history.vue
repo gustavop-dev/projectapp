@@ -110,6 +110,7 @@ const entityTypeOptions = [
   { value: 'recurring', label: 'Pago recurrente' },
   { value: 'ads', label: 'Ads' },
   { value: 'card_snapshot', label: 'Saldo tarjeta' },
+  { value: 'credit_card', label: 'Tarjeta de crédito' },
   { value: 'statement', label: 'Extracto de tarjeta' },
   { value: 'statement_tx', label: 'Transacción de extracto' },
   { value: 'merchant_alias', label: 'Alias de comercio' },

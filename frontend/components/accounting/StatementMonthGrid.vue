@@ -10,9 +10,12 @@
         <p class="text-sm font-medium text-text-default capitalize">{{ month.label }}</p>
         <span
           v-if="month.statements.length === 0"
-          class="text-[10px] px-2 py-0.5 rounded-full font-medium bg-surface-raised text-text-subtle"
+          class="text-[10px] px-2 py-0.5 rounded-full font-medium"
+          :class="month.applies === false
+            ? 'bg-surface-raised text-text-subtle/60'
+            : 'bg-surface-raised text-text-subtle'"
         >
-          Pendiente
+          {{ month.applies === false ? 'No aplica' : 'Pendiente' }}
         </span>
       </div>
       <div v-if="month.statements.length" class="space-y-1.5">
@@ -38,6 +41,9 @@
           </span>
         </button>
       </div>
+      <p v-else-if="month.applies === false" class="text-xs text-text-subtle/60">
+        Antes del inicio de extractos.
+      </p>
       <p v-else class="text-xs text-text-subtle">Sin extracto procesado.</p>
     </div>
   </div>

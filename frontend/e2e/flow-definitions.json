@@ -2653,7 +2653,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser configures accounting email notifications at /panel/accounting/settings: recipient list (add/remove emails with validation) and global enable toggle, saved via PATCH /api/accounting/settings/update/ (audited). Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá, re-alert every 2 days until the snapshot is registered), the hosting expiry notices toggle (15/7 days before valid_to, then every 5 days until the cuenta de cobro is sent) and the USD exchange rate used by the recurring USD KPI.",
+      "description": "Superuser configures accounting email notifications at /panel/accounting/settings: recipient list (add/remove emails with validation) and global enable toggle, saved via PATCH /api/accounting/settings/update/ (audited). Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá, re-alert every 2 days until the snapshot is registered), the statement reminder toggle (every 8 days at 9:05 Bogotá while the previous month's statement of an active catalog card is missing, draft or lacks its PDF), the 'Catálogo de tarjetas' section (see admin-accounting-card-catalog), the hosting expiry notices toggle (15/7 days before valid_to, then every 5 days until the cuenta de cobro is sent) and the USD exchange rate used by the recurring USD KPI.",
       "expectedSpecs": 3
     },
     "admin-accounting-ads": {
@@ -2733,7 +2733,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser manages weekly credit-card balance snapshots at /panel/accounting/cards: list with latest-debt-per-card chip, filters (date range, debt range, card multi-select), create via modal (date defaults to today, datalist of known cards), edit prefill and delete with ConfirmModal. Registering a snapshot dated on/after the cycle Friday silences the weekly card-debt email reminder.",
+      "description": "Superuser manages weekly credit-card balance snapshots at /panel/accounting/cards: list with latest-debt-per-card chip, filters (date range, debt range, card multi-select), create via modal (date defaults to today, card picked from a dropdown fed by the CreditCard catalog; the Deuda input is gone — debt is server-computed as cupo − disponible and previewed in the form, which blocks disponible > cupo), edit prefill (legacy names outside the catalog injected as an extra option) and delete with ConfirmModal. Registering a snapshot dated on/after the cycle Friday silences the weekly card-debt email reminder.",
       "expectedSpecs": 3
     },
     "admin-accounting-export": {
@@ -2879,7 +2879,17 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser reviews the monthly credit-card statement ledger at /panel/accounting/statements: year + card filters over a 12-month grid (Procesado/Borrador/Pendiente chips per card), inline statement detail (totals stat cards, category bars, transactions table flagging unidentified lines), finalize with forced-close confirm on total mismatch (POST /api/accounting/statements/:id/finalize/), reopen, delete, per-line edit/delete on drafts, collapsible learned merchant aliases with delete, and a 'Copiar prompt' button for the MCP chat kick-off. Statements are normally created from the claude.ai chat via the accounting MCP connector (create_statement).",
+      "description": "Superuser reviews the monthly credit-card statement ledger at /panel/accounting/statements: backend-driven year options (from the catalog's statements_since; months before it show 'No aplica') + card filters over a 12-month grid (Procesado/Borrador/Pendiente chips per card), inline statement detail (totals stat cards, category bars, transactions table flagging unidentified lines, 'Documento del extracto' PDF block with upload/view/replace/delete), finalize with forced-close confirm on total mismatch (POST /api/accounting/statements/:id/finalize/), reopen, delete, header edit modal and manual add-transaction on drafts, per-line edit/delete on drafts, collapsible learned merchant aliases with delete, and a 'Copiar prompt' button for the MCP chat kick-off. Statements are normally created from the claude.ai chat via the accounting MCP connector (create_statement).",
+      "expectedSpecs": 0
+    },
+    "admin-accounting-card-catalog": {
+      "name": "Admin Accounting — Credit Card Catalog",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser manages the CreditCard catalog from the 'Catálogo de tarjetas' section at /panel/accounting/settings: per-row name, cupo (credit_limit), 'extractos desde' month and active toggle, with per-row save (POST /api/accounting/credit-cards/create/ or PATCH .../update/) and delete with confirm (DELETE .../delete/ returns credit_card_referenced when snapshots/statements reference the name — deactivate instead). The catalog feeds the Tarjetas form dropdown, the server-side debt computation (cupo − disponible) and the Extractos year/month range; changes are audited as the credit_card entity.",
       "expectedSpecs": 0
     },
     "admin-hour-packages-view-modes": {

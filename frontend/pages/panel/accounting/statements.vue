@@ -67,6 +67,10 @@
         @delete="handleDeleteStatement"
         @edit-tx="openTxModal"
         @delete-tx="handleDeleteTx"
+        @edit-header="headerModalOpen = true"
+        @add-tx="openCreateTxModal"
+        @upload-pdf="handleUploadPdf"
+        @delete-pdf="handleDeletePdf"
       />
 
       <!-- Learned merchant aliases -->
@@ -121,10 +125,29 @@
 
     <AccountingErrorState v-else @retry="loadStatus" />
 
-    <!-- Transaction edit modal -->
+    <!-- Statement header edit modal -->
+    <StatementHeaderFormModal
+      :open="headerModalOpen"
+      :statement="detail"
+      :saving="store.isUpdating"
+      @close="headerModalOpen = false"
+      @submit="saveHeader"
+    />
+
+    <!-- Transaction create/edit modal -->
     <BaseModal v-model="txModalOpen" size="md" padding="md">
-      <h3 class="text-base font-medium text-text-default mb-4">Editar transacción</h3>
+      <h3 class="text-base font-medium text-text-default mb-4">
+        {{ txForm.id ? 'Editar transacción' : 'Agregar transacción' }}
+      </h3>
       <div class="space-y-3">
+        <template v-if="!txForm.id">
+          <BaseFormField label="Fecha" required>
+            <BaseInput v-model="txForm.transaction_date" type="date" data-testid="tx-date-input" />
+          </BaseFormField>
+          <BaseFormField label="Descripción del extracto" required>
+            <BaseInput v-model="txForm.raw_description" data-testid="tx-description-input" />
+          </BaseFormField>
+        </template>
         <BaseFormField label="Comercio">
           <BaseInput v-model="txForm.merchant_name" data-testid="tx-merchant-input" />
         </BaseFormField>
@@ -159,6 +182,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import StatementDetail from '~/components/accounting/StatementDetail.vue';
+import StatementHeaderFormModal from '~/components/accounting/StatementHeaderFormModal.vue';
 import StatementMonthGrid from '~/components/accounting/StatementMonthGrid.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseCollapse from '~/components/base/BaseCollapse.vue';
@@ -205,14 +229,24 @@ const selectedStatementId = ref(null);
 const aliasesOpen = ref(false);
 const categoryOptions = CATEGORY_OPTIONS;
 
-const yearOptions = [currentYear - 1, currentYear].map((year) => ({
-  value: year,
-  label: String(year),
-  testId: `statements-year-${year}`,
-}));
-
 const status = computed(() => store.statementStatus);
 const detail = computed(() => store.statementDetail);
+
+// Year range comes from the backend (card catalog `statements_since`);
+// before the first load it falls back to the current year only.
+const yearOptions = computed(() =>
+  (status.value?.year_options || [currentYear]).map((year) => ({
+    value: year,
+    label: String(year),
+    testId: `statements-year-${year}`,
+  })),
+);
+
+watch(yearOptions, (options) => {
+  if (!options.some((option) => option.value === selectedYear.value)) {
+    selectedYear.value = options[options.length - 1].value;
+  }
+});
 
 const cardOptions = computed(() => [
   { value: '', label: 'Todas las tarjetas' },
@@ -316,10 +350,64 @@ function handleDeleteStatement() {
   });
 }
 
+// ── Statement header editing ──
+
+const headerModalOpen = ref(false);
+
+async function saveHeader(payload) {
+  const result = await store.updateRecord('statements', detail.value.id, payload);
+  if (result.success) {
+    headerModalOpen.value = false;
+    notify.success('Encabezado actualizado.');
+    await Promise.all([
+      store.fetchStatementDetail(detail.value.id),
+      loadStatus(),
+    ]);
+  } else {
+    notify.error(result.message || 'No se pudo actualizar el encabezado.');
+  }
+}
+
+// ── Statement PDF ──
+
+async function handleUploadPdf(file) {
+  const result = await store.uploadStatementPdf(detail.value.id, file);
+  if (result.success) {
+    notify.success('PDF del extracto guardado.');
+  } else {
+    notify.error(result.message || 'No se pudo subir el PDF.');
+  }
+}
+
+function handleDeletePdf() {
+  requestConfirm({
+    title: 'Eliminar PDF del extracto',
+    message: '¿Eliminar el PDF adjunto? El archivo se borra del servidor.',
+    variant: 'danger',
+    confirmText: 'Eliminar',
+    onConfirm: async () => {
+      const result = await store.deleteStatementPdf(detail.value.id);
+      if (result.success) {
+        notify.success('PDF eliminado.');
+      } else {
+        notify.error(result.message || 'No se pudo eliminar el PDF.');
+      }
+    },
+  });
+}
+
 // ── Transaction editing ──
 
 const txModalOpen = ref(false);
-const txForm = reactive({ id: null, merchant_name: '', category: 'other', amount: '', notes: '' });
+const txForm = reactive({
+  id: null,
+  transaction_date: '',
+  raw_description: '',
+  merchant_name: '',
+  category: 'other',
+  amount: '',
+  notes: '',
+});
 
 function openTxModal(tx) {
   txForm.id = tx.id;
@@ -327,6 +415,17 @@ function openTxModal(tx) {
   txForm.category = tx.category;
   txForm.amount = tx.amount;
   txForm.notes = tx.notes || '';
+  txModalOpen.value = true;
+}
+
+function openCreateTxModal() {
+  txForm.id = null;
+  txForm.transaction_date = new Date().toISOString().slice(0, 10);
+  txForm.raw_description = '';
+  txForm.merchant_name = '';
+  txForm.category = 'other';
+  txForm.amount = '';
+  txForm.notes = '';
   txModalOpen.value = true;
 }
 
@@ -338,6 +437,24 @@ async function saveTx() {
     notes: txForm.notes,
     is_identified: Boolean(txForm.merchant_name),
   };
+  if (!txForm.id) {
+    if (!txForm.transaction_date || !txForm.raw_description) {
+      notify.error('La fecha y la descripción son obligatorias.');
+      return;
+    }
+    const created = await store.createStatementTransactions(detail.value.id, [{
+      ...payload,
+      transaction_date: txForm.transaction_date,
+      raw_description: txForm.raw_description,
+    }]);
+    if (created.success) {
+      txModalOpen.value = false;
+      notify.success('Transacción agregada.');
+    } else {
+      notify.error(created.message || 'No se pudo agregar la transacción.');
+    }
+    return;
+  }
   const result = await store.updateStatementTransaction(
     detail.value.id, txForm.id, payload,
   );

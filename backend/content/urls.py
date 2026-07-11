@@ -18,6 +18,8 @@ from content.views.accounting import (
     delete_ads_spend_record,
     list_card_snapshots, create_card_snapshot, retrieve_card_snapshot,
     update_card_snapshot, delete_card_snapshot,
+    list_credit_cards, create_credit_card, retrieve_credit_card,
+    update_credit_card, delete_credit_card,
     list_accounting_change_logs,
     get_accounting_settings, update_accounting_settings,
 )
@@ -49,7 +51,7 @@ from content.views.accounting_statement import (
     finalize_statement, list_merchant_aliases, list_statements,
     reopen_statement, resolve_merchant_aliases, retrieve_statement,
     statements_status, update_merchant_alias, update_statement,
-    update_statement_transaction,
+    update_statement_transaction, upload_statement_pdf, delete_statement_pdf,
 )
 from content.views.hour_packages import (
     list_admin_hour_packages, create_hour_package,
@@ -515,6 +517,12 @@ urlpatterns = [
     path('accounting/card-snapshots/<int:record_id>/update/', update_card_snapshot, name='update-card-snapshot'),
     path('accounting/card-snapshots/<int:record_id>/delete/', delete_card_snapshot, name='delete-card-snapshot'),
 
+    path('accounting/credit-cards/', list_credit_cards, name='list-credit-cards'),
+    path('accounting/credit-cards/create/', create_credit_card, name='create-credit-card'),
+    path('accounting/credit-cards/<int:record_id>/', retrieve_credit_card, name='retrieve-credit-card'),
+    path('accounting/credit-cards/<int:record_id>/update/', update_credit_card, name='update-credit-card'),
+    path('accounting/credit-cards/<int:record_id>/delete/', delete_credit_card, name='delete-credit-card'),
+
     path('accounting/statements/', list_statements, name='list-statements'),
     path('accounting/statements/create/', create_statement, name='create-statement'),
     # 'status/' must resolve before '<int:record_id>/'.
@@ -524,6 +532,8 @@ urlpatterns = [
     path('accounting/statements/<int:record_id>/delete/', delete_statement, name='delete-statement'),
     path('accounting/statements/<int:record_id>/finalize/', finalize_statement, name='finalize-statement'),
     path('accounting/statements/<int:record_id>/reopen/', reopen_statement, name='reopen-statement'),
+    path('accounting/statements/<int:record_id>/pdf/upload/', upload_statement_pdf, name='upload-statement-pdf'),
+    path('accounting/statements/<int:record_id>/pdf/delete/', delete_statement_pdf, name='delete-statement-pdf'),
     path('accounting/statements/<int:record_id>/transactions/batch/', batch_create_transactions, name='batch-create-statement-transactions'),
     path('accounting/statements/<int:record_id>/transactions/<int:tx_id>/update/', update_statement_transaction, name='update-statement-transaction'),
     path('accounting/statements/<int:record_id>/transactions/<int:tx_id>/delete/', delete_statement_transaction, name='delete-statement-transaction'),

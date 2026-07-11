@@ -189,7 +189,9 @@ class TestMonthStatus:
         assert june['has_processed'] is True
         july = payload['months'][6]
         assert july['has_draft'] is True
-        assert payload['cards'] == ['Mastercard', 'Visa Bancolombia']
+        # `cards` merges statement names with the active catalog (the
+        # seed migration adds 'T.C 0064').
+        assert {'Mastercard', 'Visa Bancolombia'} <= set(payload['cards'])
 
     def test_category_totals_groups_amounts(self):
         statement = _create(transactions=[
@@ -203,3 +205,49 @@ class TestMonthStatus:
         assert {row['category'] for row in totals} == {'software', 'fuel'}
         software = next(r for r in totals if r['category'] == 'software')
         assert software['total'] == '60000.00'
+
+
+class TestMonthStatusCatalog:
+    """year_options and per-month `applies` follow the card catalog."""
+
+    @pytest.fixture(autouse=True)
+    def _clean_catalog(self):
+        # Migration 0158 seeds 'T.C 0064'; these tests need full control
+        # over which catalog cards exist.
+        from content.models import CreditCard
+
+        CreditCard.objects.all().delete()
+
+    def _catalog_card(self, **overrides):
+        from content.models import CreditCard
+
+        defaults = {
+            'name': 'Visa Bancolombia',
+            'credit_limit': Decimal('8000000.00'),
+            'statements_since': date(2026, 5, 1),
+        }
+        defaults.update(overrides)
+        return CreditCard.objects.create(**defaults)
+
+    def test_year_options_and_applies_follow_statements_since(self):
+        self._catalog_card()
+        payload = accounting_statement_service.statement_month_status(2026)
+        assert payload['year_options'][0] == 2026
+        by_period = {month['period']: month for month in payload['months']}
+        assert by_period['2026-04']['applies'] is False
+        assert by_period['2026-05']['applies'] is True
+        assert 'Visa Bancolombia' in payload['cards']
+
+    def test_inactive_catalog_cards_do_not_shape_the_grid(self):
+        self._catalog_card(is_active=False)
+        payload = accounting_statement_service.statement_month_status(2026)
+        assert all(month['applies'] for month in payload['months'])
+        assert 'Visa Bancolombia' not in payload['cards']
+
+    def test_fallback_uses_earliest_statement_year(self):
+        _create(period_date='2025-11')
+        payload = accounting_statement_service.statement_month_status(2025)
+        assert payload['year_options'][0] == 2025
+        by_period = {month['period']: month for month in payload['months']}
+        # A month with an actual statement always applies.
+        assert by_period['2025-11']['applies'] is True
