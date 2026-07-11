@@ -60,8 +60,17 @@ from content.services.pdf_utils import (  # noqa: F401 — re-exported
     TEXT_AREA_W,
     SIDEBAR_X,
     SIDEBAR_W,
+    # Accent / semantic colours
+    MINT_TEXT,
+    LINK_GREEN,
     # Text utilities
     _strip_emoji,
+    _sanitize_pdf_text,
+    _draw_mixed_string,
+    _string_width_mixed,
+    _measure_inline_width,
+    _wrap_by_width,
+    _fit_text_ellipsis,
     _format_cop,
     _clean_url_display,
     _replace_urls_with_placeholders,
@@ -70,10 +79,13 @@ from content.services.pdf_utils import (  # noqa: F401 — re-exported
     # Pagination helpers
     _new_page,
     _check_y,
+    _check_y_with_redraw,
+    _split_lines_for_page,
     # Drawing helpers
     _draw_header_bar,
     _draw_footer,
     _draw_section_header,
+    _section_header_height,
     _draw_paragraphs,
     _estimate_text_height,
     _draw_bullet_list,
@@ -82,6 +94,13 @@ from content.services.pdf_utils import (  # noqa: F401 — re-exported
     _draw_subtitle,
     _draw_pill,
     _draw_banner_box,
+    _draw_callout_box,
+    _draw_blockquote,
+    _draw_table,
+    _draw_kpi_tile_row,
+    _draw_feature_row,
+    _draw_priority_pill,
+    _REQ_PRIORITY_LABELS,
     _apply_toc_links,
     _draw_toc_page,
     format_date_es,
@@ -784,12 +803,6 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
         ps['_func_req_groups'] = all_groups
 
     return row_y - 8
-
-
-_REQ_PRIORITY_LABELS = {
-    'es': {'critical': 'Crítico', 'high': 'Alta', 'medium': 'Media', 'low': 'Baja'},
-    'en': {'critical': 'Critical', 'high': 'High', 'medium': 'Medium', 'low': 'Low'},
-}
 
 
 def _render_linked_requirements(c, item, ps, row_y):
