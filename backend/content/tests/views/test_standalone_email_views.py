@@ -14,7 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 from freezegun import freeze_time
 
-from content.models import EmailLog
+from content.models import EmailLog, EmailTemplateConfig
 
 pytestmark = pytest.mark.django_db
 
@@ -35,6 +35,80 @@ class TestGetStandaloneEmailDefaults:
         url = reverse('standalone-email-defaults')
         response = api_client.get(url)
         assert response.status_code == 401
+
+    def test_get_includes_config_defaults_and_signers(self, admin_client, settings):
+        url = reverse('standalone-email-defaults')
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        assert set(response.data['config']) == {'greeting', 'footer', 'signer'}
+        assert set(response.data['defaults']) == {'greeting', 'footer', 'signer'}
+        assert response.data['is_customized'] is False
+        signer_keys = {s['key'] for s in response.data['available_signers']}
+        assert signer_keys == set(settings.EMAIL_SIGNATURES)
+        assert 'client_name' in response.data['available_variables']
+
+
+# ── standalone_email_defaults — PUT ───────────────────────────────────────────
+
+class TestPutStandaloneEmailDefaults:
+    def test_returns_401_for_unauthenticated(self, api_client):
+        url = reverse('standalone-email-defaults')
+        response = api_client.put(url, {}, format='json')
+        assert response.status_code == 401
+
+    def test_saves_custom_values_as_overrides(self, admin_client):
+        url = reverse('standalone-email-defaults')
+        payload = {
+            'greeting': 'Buen día {client_name}',
+            'footer': 'Hasta pronto.',
+            'signer': 'carlos',
+        }
+        response = admin_client.put(url, payload, format='json')
+        assert response.status_code == 200
+
+        config = EmailTemplateConfig.objects.get(template_key='branded_email')
+        assert config.content_overrides == {
+            'greeting': 'Buen día {client_name}',
+            'footer': 'Hasta pronto.',
+            'signer': 'carlos',
+        }
+        assert response.data['config']['greeting'] == 'Buen día {client_name}'
+        assert response.data['config']['signer'] == 'carlos'
+        assert response.data['is_customized'] is True
+
+    def test_values_equal_to_defaults_are_not_stored(self, admin_client, settings):
+        EmailTemplateConfig.objects.create(
+            template_key='branded_email',
+            content_overrides={'greeting': 'Custom', 'signer': 'carlos'},
+        )
+        url = reverse('standalone-email-defaults')
+        payload = {
+            'greeting': 'Hola {client_name}',
+            'footer': '',
+            'signer': settings.EMAIL_DEFAULT_SIGNER,
+        }
+        response = admin_client.put(url, payload, format='json')
+        assert response.status_code == 200
+
+        config = EmailTemplateConfig.objects.get(template_key='branded_email')
+        assert config.content_overrides == {}
+        assert response.data['is_customized'] is False
+
+    def test_returns_400_for_unknown_signer(self, admin_client):
+        url = reverse('standalone-email-defaults')
+        response = admin_client.put(url, {'signer': 'nadie'}, format='json')
+        assert response.status_code == 400
+        assert EmailTemplateConfig.objects.filter(template_key='branded_email').count() == 0
+
+    def test_configured_signer_is_used_in_standalone_preview(self, admin_client, settings):
+        EmailTemplateConfig.objects.create(
+            template_key='branded_email',
+            content_overrides={'signer': 'carlos'},
+        )
+        url = reverse('preview-composed-email')
+        response = admin_client.post(url, {'sections': ['contenido']}, format='json')
+        assert response.status_code == 200
+        assert settings.EMAIL_SIGNATURES['carlos']['name'] in response.data['html_preview']
 
 
 # ── list_standalone_emails ────────────────────────────────────────────────────

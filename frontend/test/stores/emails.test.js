@@ -10,9 +10,10 @@ import { useEmailStore } from '../../stores/emails';
 jest.mock('../../stores/services/request_http', () => ({
   get_request: jest.fn(),
   create_request: jest.fn(),
+  put_request: jest.fn(),
 }));
 
-const { get_request, create_request } = require('../../stores/services/request_http');
+const { get_request, create_request, put_request } = require('../../stores/services/request_http');
 
 describe('useEmailStore', () => {
   let store;
@@ -93,6 +94,65 @@ describe('useEmailStore', () => {
       expect(store.error).toBe('fetch_defaults_failed');
       expect(result).toEqual({ success: false });
       expect(store.isLoadingDefaults).toBe(false);
+    });
+  });
+
+  // ── saveDefaults ───────────────────────────────────────────────────────────
+
+  describe('saveDefaults', () => {
+    const payload = { greeting: 'Hola {client_name}', footer: 'Saludos', signer: 'carlos' };
+
+    it('puts payload to emails/defaults/ and updates defaults state', async () => {
+      const mockResponse = {
+        greeting: 'Hola ',
+        footer: 'Saludos',
+        config: { greeting: 'Hola {client_name}', footer: 'Saludos', signer: 'carlos' },
+      };
+      put_request.mockResolvedValue({ data: mockResponse });
+
+      const result = await store.saveDefaults(payload);
+
+      expect(put_request).toHaveBeenCalledWith('emails/defaults/', payload);
+      expect(store.defaults).toEqual(mockResponse);
+      expect(result).toEqual({ success: true, data: mockResponse });
+      expect(store.isSavingDefaults).toBe(false);
+    });
+
+    it('sets isSavingDefaults during request', async () => {
+      let capturedSaving;
+      put_request.mockImplementation(() => {
+        capturedSaving = store.isSavingDefaults;
+        return Promise.resolve({ data: {} });
+      });
+
+      await store.saveDefaults(payload);
+
+      expect(capturedSaving).toBe(true);
+      expect(store.isSavingDefaults).toBe(false);
+    });
+
+    it('handles error with response.data.error', async () => {
+      put_request.mockRejectedValue({
+        response: { data: { error: 'El firmante seleccionado no es válido.' } },
+      });
+
+      const result = await store.saveDefaults({ ...payload, signer: 'nope' });
+
+      expect(store.error).toBe('El firmante seleccionado no es válido.');
+      expect(result).toEqual({
+        success: false,
+        error: 'El firmante seleccionado no es válido.',
+      });
+      expect(store.isSavingDefaults).toBe(false);
+    });
+
+    it('falls back to save_defaults_failed when no response error', async () => {
+      put_request.mockRejectedValue(new Error('Network error'));
+
+      const result = await store.saveDefaults(payload);
+
+      expect(store.error).toBe('save_defaults_failed');
+      expect(result).toEqual({ success: false, error: undefined });
     });
   });
 

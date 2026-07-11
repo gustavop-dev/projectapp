@@ -214,6 +214,7 @@ export const PUBLIC_TERMS_CONDITIONS = ['@flow:public-terms-conditions', '@modul
 
 // ── v2.14.0 Audit flows ──
 export const ADMIN_STANDALONE_EMAIL_COMPOSER = ['@flow:admin-standalone-email-composer', '@module:admin', '@priority:P2'];
+export const ADMIN_STANDALONE_EMAIL_DEFAULTS = ['@flow:admin-standalone-email-defaults', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_ADVANCED_FILTERS = ['@flow:admin-proposal-advanced-filters', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH = ['@flow:admin-proposal-dashboard-auto-refresh', '@module:admin', '@priority:P3'];
 

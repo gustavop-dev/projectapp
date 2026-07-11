@@ -1919,7 +1919,17 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Admin composes and sends branded emails from /panel/emails (not tied to a proposal). Draggable sections with per-section Markdown toggle, file attachments, server-rendered preview of the real branded template (POST /api/emails/preview/, sandboxed iframe), paginated email history. Uses standalone endpoints: emails/send/, emails/preview/, emails/defaults/, emails/history/.",
+      "description": "Admin composes and sends branded emails from /panel/emails (not tied to a proposal). Page-level tabs (Redactar / Historial / Valores por defecto, deep-linked via ?tab=). Redactar: draggable sections with per-section Markdown toggle, file attachments, server-rendered preview of the real branded template (POST /api/emails/preview/, sandboxed iframe). Historial: paginated email history. Uses standalone endpoints: emails/send/, emails/preview/, emails/defaults/, emails/history/.",
+      "expectedSpecs": 1
+    },
+    "admin-standalone-email-defaults": {
+      "name": "Admin Standalone Email Defaults Config",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin configures the standalone email composer defaults from the 'Valores por defecto' tab of /panel/emails (deep-linkable via ?tab=defaults): default greeting (with {client_name}/{title} variables), default footer and default signer. Saved via PUT /api/emails/defaults/ into EmailTemplateConfig('branded_email').content_overrides; 'Restaurar valores originales' submits registry/settings defaults which clears the overrides. The configured signer is used for standalone sends and previews (proposal emails keep their per-proposal signer).",
       "expectedSpecs": 1
     },
     "admin-proposal-advanced-filters": {
