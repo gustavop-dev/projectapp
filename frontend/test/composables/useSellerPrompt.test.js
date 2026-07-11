@@ -252,12 +252,23 @@ describe('useSellerPrompt DEFAULT_PROMPT coherence rules (regression guard)', ()
     expect(DEFAULT_PROMPT).toContain('PROHIBIDO afirmar en un item capacidades')
   })
 
-  it('lists the full 16-module catalog including the newest modules', () => {
-    expect(DEFAULT_PROMPT).toContain('16 módulos opcionales')
+  it('lists the full 17-module catalog including the newest modules', () => {
+    expect(DEFAULT_PROMPT).toContain('17 módulos opcionales')
     expect(DEFAULT_PROMPT).toContain('biometric_verification_module')
+    expect(DEFAULT_PROMPT).toContain('behavior_tracking_module')
     expect(DEFAULT_PROMPT).toContain('qr_generator_module')
     expect(DEFAULT_PROMPT).toContain('content_generator_module')
     expect(DEFAULT_PROMPT).not.toContain('13 módulos')
+    expect(DEFAULT_PROMPT).not.toContain('16 módulos')
+  })
+
+  it('treats ai_automation_module as the 5th base module', () => {
+    expect(DEFAULT_PROMPT).toContain('agrupa los 5 módulos base sin costo extra')
+    expect(DEFAULT_PROMPT).toContain(
+      '["admin_module","analytics_dashboard","kpi_dashboard_module","manual_module","ai_automation_module"]',
+    )
+    expect(DEFAULT_PROMPT).not.toContain('4 módulos base')
+    expect(DEFAULT_PROMPT).not.toContain('7 grupos base')
   })
 
   it('includes the pre-output checklist', () => {

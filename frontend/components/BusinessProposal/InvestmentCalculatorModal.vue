@@ -408,6 +408,7 @@ const groupLabels = {
   corporate_branding_module: { es: '🎨 Identidad Visual e Imagen Corporativa', en: '🎨 Visual Identity & Corporate Branding' },
   ai_module: { es: '🤖 Integración con IA', en: '🤖 AI Integration' },
   biometric_verification_module: { es: '🪪 Verificación y Validación Biométrica (Integración API)', en: '🪪 Biometric Verification & Validation (API Integration)' },
+  behavior_tracking_module: { es: '👣 Rastreo de Comportamiento', en: '👣 Behavior Tracking' },
   reports_alerts_module: { es: '📬 Reportes y Alertas', en: '📬 Reports & Alerts' },
   kpi_dashboard_module: { es: '📊 Dashboard de KPIs', en: '📊 KPI Dashboard' },
   email_marketing_module: { es: '📧 Email Marketing', en: '📧 Email Marketing' },
