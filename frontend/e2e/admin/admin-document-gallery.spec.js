@@ -110,7 +110,8 @@ test.describe('Admin Document Gallery', () => {
     await page.getByTestId('doc-view-grid').click();
     await page.getByRole('button', { name: 'Acciones de Contrato de Servicios' }).click();
 
-    await expect(page.getByRole('button', { name: /Descargar PDF/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Descargar PDF · Amigable/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Descargar PDF · Profesional/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Duplicar/i })).toBeVisible();
   });
 

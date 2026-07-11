@@ -440,3 +440,34 @@ class TestSendStandaloneEmailSuccess:
                 format='json',
             )
         assert response.status_code == 500
+
+    def test_document_attachment_uses_persisted_style_no_override(self, admin_client):
+        """Standalone email attaches document PDFs with no template param —
+        it must rely on DocumentPdfService.generate() defaulting to
+        document.template_style, not pass an explicit override."""
+        from content.models import Document
+        doc = Document.objects.create(
+            title='Adjunto', template_style='friendly',
+            content_json={'meta': {}, 'blocks': [
+                {'type': 'paragraph', 'text': 'Hola'}]},
+        )
+        url = reverse('send-standalone-email')
+        with patch(
+            'content.services.proposal_email_service.ProposalEmailService.send_standalone_branded_email',
+            return_value=True,
+        ), patch(
+            'content.services.document_pdf_service.DocumentPdfService.generate',
+            return_value=b'%PDF-1.4 fake',
+        ) as gen:
+            response = admin_client.post(
+                url,
+                {
+                    'recipient_email': 'client@example.com',
+                    'subject': 'Con adjunto',
+                    'sections': ['Contenido'],
+                    'document_ids': [doc.id],
+                },
+                format='json',
+            )
+        assert response.status_code == 200
+        gen.assert_called_once_with(doc)

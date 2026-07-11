@@ -1582,7 +1582,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "View the list of admin documents with title, status, client association. Per-row actions are collapsed into a single 'Acciones' (kebab) icon that opens the DocumentActionsSheet modal listing each action with its own icon: edit content, rename, move to folder, send by email, download PDF, copy markdown, duplicate, delete. The same single-icon + modal pattern is used on every breakpoint (centered modal on desktop, bottom-sheet on mobile). Navigate to create or edit pages.",
+      "description": "View the list of admin documents with title, status, client association. Per-row actions are collapsed into a single 'Acciones' (kebab) icon that opens the DocumentActionsSheet modal listing each action with its own icon: edit content, rename, move to folder, send by email, download PDF, copy markdown, duplicate, delete. The same single-icon + modal pattern is used on every breakpoint (centered modal on desktop, bottom-sheet on mobile). Navigate to create or edit pages. Each document persists a template style (Amigable/Profesional, field template_style); the DocumentActionsSheet download action is split into two rows, 'Descargar PDF · Amigable' and 'Descargar PDF · Profesional', so either PDF style can be generated without opening the editor.",
       "expectedSpecs": 1
     },
     "admin-document-gallery": {
@@ -1592,7 +1592,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Toggle between list and gallery views on /panel/documents via the 'Lista'/'Galería' segmented control (data-testid doc-view-list / doc-view-grid). Gallery renders one card per document with a sanitized markdown mini-preview (content_excerpt), status badge overlay, client + date, up to 2 tag chips with a +N tooltip, and the same kebab 'Acciones' opening DocumentActionsSheet. Subfolder cards render first with dashed borders and act as drag-and-drop targets. The chosen mode persists in localStorage (projectapp-documents-view-mode); default is 'list'. On mobile the gallery grid is always the view.",
+      "description": "Toggle between list and gallery views on /panel/documents via the 'Lista'/'Galería' segmented control (data-testid doc-view-list / doc-view-grid). Gallery renders one card per document with a sanitized markdown mini-preview (content_excerpt), status badge overlay, client + date, up to 2 tag chips with a +N tooltip, and the same kebab 'Acciones' opening DocumentActionsSheet. Subfolder cards render first with dashed borders and act as drag-and-drop targets. The chosen mode persists in localStorage (projectapp-documents-view-mode); default is 'list'. On mobile the gallery grid is always the view. Same as the list view, the DocumentActionsSheet 'Acciones' modal offers both 'Descargar PDF · Amigable' and 'Descargar PDF · Profesional' rows, matching each document's persisted template style.",
       "expectedSpecs": 1
     },
     "admin-document-create": {
@@ -1612,7 +1612,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Edit an existing admin document, change content, update status, download as PDF, and copy/paste the markdown content via the toolbar buttons above the textarea.",
+      "description": "Edit an existing admin document, change content, update status, download as PDF, and copy/paste the markdown content via the toolbar buttons above the textarea. A 'Amigable'/'Profesional' segmented switch (data-testid doc-style-friendly / doc-style-professional) above the markdown preview selects the document's persisted template_style and re-themes the live preview (class markdown-preview--professional toggles on the preview root). The 'Descargar PDF' split button offers both 'Descargar · Amigable' and 'Descargar · Profesional' so either PDF style can be downloaded regardless of the switch's current position.",
       "expectedSpecs": 1
     },
     "admin-document-folders": {

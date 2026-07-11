@@ -22,7 +22,7 @@ class DocumentListSerializer(serializers.ModelSerializer):
         model = Document
         fields = (
             'id', 'uuid', 'title', 'slug', 'status',
-            'client_name', 'language', 'cover_type',
+            'client_name', 'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada', 'include_contraportada',
             'folder', 'folder_name', 'tag_details', 'content_excerpt',
             'created_at', 'updated_at',
@@ -58,7 +58,7 @@ class DocumentDetailSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'uuid', 'title', 'slug', 'status',
             'content_markdown', 'content_json',
-            'client_name', 'language', 'cover_type',
+            'client_name', 'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada', 'include_contraportada',
             'folder', 'folder_name', 'tag_ids', 'tag_details',
             'created_at', 'updated_at',
@@ -79,7 +79,7 @@ class DocumentCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
         fields = (
-            'title', 'client_name', 'language', 'cover_type',
+            'title', 'client_name', 'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada', 'include_contraportada',
             'status', 'content_markdown', 'content_json',
             'folder_id', 'tag_ids',
@@ -116,6 +116,10 @@ class DocumentFromMarkdownSerializer(serializers.Serializer):
     )
     cover_type = serializers.ChoiceField(
         choices=Document.CoverType.choices, required=False, default='generic',
+    )
+    template_style = serializers.ChoiceField(
+        choices=Document.TemplateStyle.choices, required=False,
+        default='professional',
     )
     include_portada = serializers.BooleanField(required=False, default=True)
     include_subportada = serializers.BooleanField(required=False, default=True)

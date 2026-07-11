@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import axios from 'axios';
 import { get_request, create_request, patch_request, delete_request } from './services/request_http';
 import { normalizeApiError } from './services/normalize_api_error';
 
@@ -280,24 +279,26 @@ export const useDocumentStore = defineStore('documents', {
     },
 
     /**
-     * downloadPdf: Download a document as PDF.
+     * downloadPdf: Download a document as PDF in the chosen template style.
      * @param {number} id - Document ID.
-     * @param {string} title - Filename for the download.
+     * @param {string} title - Filename (without extension).
+     * @param {string|null} template - 'friendly' | 'professional' | null (server default).
      */
-    async downloadPdf(id, title = 'document') {
+    async downloadPdf(id, title = 'document', template = null) {
       try {
-        const response = await axios.get(`/api/documents/${id}/pdf/`, {
-          responseType: 'blob',
-          headers: { 'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '' },
-        });
-        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const valid = template === 'friendly' || template === 'professional';
+        const url = valid
+          ? `documents/${id}/pdf/?template=${template}`
+          : `documents/${id}/pdf/`;
+        const response = await get_request(url, { responseType: 'blob' });
+        const objectUrl = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
-        link.href = url;
+        link.href = objectUrl;
         link.setAttribute('download', `${title}.pdf`);
         document.body.appendChild(link);
         link.click();
         link.remove();
-        window.URL.revokeObjectURL(url);
+        window.URL.revokeObjectURL(objectUrl);
         return { success: true };
       } catch (error) {
         console.error('Error downloading PDF:', error);

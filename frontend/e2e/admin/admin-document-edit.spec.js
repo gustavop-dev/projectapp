@@ -4,7 +4,9 @@
  * @flow:admin-document-edit
  * Covers: edit form pre-filled with existing document data, save updates document,
  *         status change, back link navigation, download PDF action, copy/paste
- *         markdown content toolbar buttons.
+ *         markdown content toolbar buttons, template style switch (Amigable/
+ *         Profesional) toggling the preview theme, and the dual-style PDF
+ *         download dropdown.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -92,6 +94,33 @@ test.describe('Admin Document Edit', () => {
     await expect(page.getByRole('button', { name: /^Copiado$/i })).toBeVisible({ timeout: 5000 });
     const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
     expect(clipboardText).toBe(documentWithMarkdown.content_markdown);
+  });
+
+  test('template style switch toggles the preview and exposes both downloads', {
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin'],
+  }, async ({ page }) => {
+    const documentWithMarkdown = {
+      ...mockDocument,
+      content_markdown: '# Contrato\n\nEste es el contenido del contrato.',
+      template_style: 'friendly',
+    };
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/1/detail/') return { status: 200, contentType: 'application/json', body: JSON.stringify(documentWithMarkdown) };
+      return null;
+    });
+    await page.goto('/panel/documents/1/edit');
+
+    await expect(page.getByTestId('doc-style-professional')).toBeVisible();
+    await page.getByTestId('doc-style-professional').click();
+    await expect(page.locator('.markdown-preview--professional')).toBeVisible();
+
+    await page.getByTestId('doc-style-friendly').click();
+    await expect(page.locator('.markdown-preview--professional')).toHaveCount(0);
+
+    await page.getByRole('button', { name: /Descargar PDF/i }).click();
+    await expect(page.getByText(/Descargar · Amigable/i)).toBeVisible();
+    await expect(page.getByText(/Descargar · Profesional/i)).toBeVisible();
   });
 
   test('pastes clipboard content into the markdown textarea', {

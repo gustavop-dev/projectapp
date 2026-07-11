@@ -407,3 +407,76 @@ class TestDownloadDocumentPdf:
 
         assert response.status_code == 200
         assert response['Content-Disposition'] == 'attachment; filename="document.pdf"'
+
+
+# ── template_style ──
+
+class TestDocumentTemplateStyleApi:
+    def test_detail_includes_template_style(self, admin_client):
+        from content.models import Document
+        doc = Document.objects.create(title='D', template_style='friendly')
+        resp = admin_client.get(f'/api/documents/{doc.id}/detail/')
+        assert resp.status_code == 200
+        assert resp.json()['template_style'] == 'friendly'
+
+    def test_update_sets_template_style(self, admin_client):
+        from content.models import Document
+        doc = Document.objects.create(title='D')
+        resp = admin_client.patch(
+            f'/api/documents/{doc.id}/update/',
+            {'template_style': 'friendly'}, content_type='application/json')
+        assert resp.status_code == 200
+        doc.refresh_from_db()
+        assert doc.template_style == 'friendly'
+
+    def test_update_rejects_bad_template_style(self, admin_client):
+        from content.models import Document
+        doc = Document.objects.create(title='D')
+        resp = admin_client.patch(
+            f'/api/documents/{doc.id}/update/',
+            {'template_style': 'fancy'}, content_type='application/json')
+        assert resp.status_code == 400
+        assert 'template_style' in resp.json()
+
+
+# ── download_document_pdf — ?template= query param ──
+
+class TestDownloadPdfTemplateParam:
+    def _doc(self):
+        from content.models import Document
+        return Document.objects.create(
+            title='D', template_style='professional',
+            content_json={'meta': {}, 'blocks': [
+                {'type': 'paragraph', 'text': 'Hola.'}]})
+
+    def test_param_overrides_to_friendly(self, admin_client):
+        doc = self._doc()
+        with patch('content.services.document_pdf_service.'
+                   'DocumentPdfService.generate') as gen:
+            gen.return_value = b'%PDF-1.4 x'
+            resp = admin_client.get(
+                f'/api/documents/{doc.id}/pdf/?template=friendly')
+        assert resp.status_code == 200
+        assert gen.call_args.kwargs.get('template_style') == 'friendly' \
+            or gen.call_args[0][1:] == ('friendly',)
+
+    def test_invalid_param_falls_back_to_document_style(self, admin_client):
+        doc = self._doc()
+        with patch('content.services.document_pdf_service.'
+                   'DocumentPdfService.generate') as gen:
+            gen.return_value = b'%PDF-1.4 x'
+            resp = admin_client.get(
+                f'/api/documents/{doc.id}/pdf/?template=bogus')
+        assert resp.status_code == 200
+        passed = gen.call_args.kwargs.get('template_style')
+        assert passed in ('professional', None)
+
+    def test_no_param_uses_document_style(self, admin_client):
+        doc = self._doc()
+        doc.template_style = 'friendly'
+        doc.save(update_fields=['template_style'])
+        with patch('content.services.document_pdf_service.'
+                   'DocumentPdfService.generate') as gen:
+            gen.return_value = b'%PDF-1.4 x'
+            resp = admin_client.get(f'/api/documents/{doc.id}/pdf/')
+        assert resp.status_code == 200

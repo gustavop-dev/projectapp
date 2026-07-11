@@ -111,6 +111,24 @@ def test_pdf_other_client_404(api_client, client_headers, other_client):
     assert resp.status_code == 404
 
 
+def test_pdf_uses_document_persisted_style_no_override(
+    api_client, client_user, client_headers, project,
+):
+    """Platform PDF download has no ?template= param — it must rely on
+    DocumentPdfService.generate() defaulting to document.template_style,
+    not pass an explicit override."""
+    doc = _make_document(client_user, project, title='Friendly Doc')
+    doc.template_style = 'friendly'
+    doc.save(update_fields=['template_style'])
+    with patch(
+        'accounts.document_views.DocumentPdfService.generate',
+        return_value=b'%PDF-1.4 fake',
+    ) as gen:
+        resp = api_client.get(f'/api/accounts/documents/{doc.uuid}/pdf/', **client_headers)
+    assert resp.status_code == 200
+    gen.assert_called_once_with(doc)
+
+
 # ---------------------------------------------------------------------------
 # Email validation (OTP)
 # ---------------------------------------------------------------------------

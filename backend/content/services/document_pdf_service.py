@@ -17,6 +17,7 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
+from content.services.pdf_theme import get_theme
 from content.services.pdf_utils import (
     _register_fonts, _font,
     ESMERALD, ESMERALD_DARK, ESMERALD_LIGHT, GREEN_LIGHT, LEMON, BONE,
@@ -26,6 +27,7 @@ from content.services.pdf_utils import (
     _sanitize_pdf_text, _replace_urls_with_placeholders,
     _draw_line_with_links, _draw_mixed_string, _draw_mixed_centred,
     _mixed_string_width,
+    _layout_inline, _draw_fragments_line,
     _new_page, _check_y,
     _draw_header_bar, _draw_footer,
     _draw_section_header, _draw_paragraphs, _draw_bullet_list,
@@ -53,6 +55,7 @@ class DocumentPdfService:
         include_subportada=True,
         include_contraportada=True,
         language='es',
+        template_style='professional',
     ):
         """Render PDF bytes from raw markdown without persisting a Document."""
         from content.models import Document
@@ -78,20 +81,31 @@ class DocumentPdfService:
             content_markdown=markdown_text or '',
             content_json={'meta': meta, 'blocks': blocks},
         )
-        return cls.generate(document)
+        document.template_style = template_style
+        return cls.generate(document, template_style=template_style)
 
     @classmethod
-    def generate(cls, document):
+    def generate(cls, document, template_style=None):
         """Generate PDF bytes from a Document instance.
 
         Args:
             document: Document model instance with content_json populated.
+            template_style: Optional explicit style ('professional' |
+                'friendly'). Falls back to ``document.template_style`` when
+                not given, then defaults to 'professional'.
 
         Returns:
             bytes: PDF content, or None on failure.
         """
         try:
             _register_fonts()
+
+            style = (
+                template_style
+                or getattr(document, 'template_style', None)
+                or 'professional'
+            )
+            theme = get_theme(style)
 
             content_json = document.content_json or {}
             meta = content_json.get('meta', {})
@@ -106,7 +120,7 @@ class DocumentPdfService:
             toc_entries = []
             toc_by_idx = {}
             if has_toc:
-                raw_entries, toc_insert_page = cls._collect_section_pages(document)
+                raw_entries, toc_insert_page = cls._collect_section_pages(document, theme)
                 toc_pages = cls._estimate_toc_pages(raw_entries)
                 for entry in raw_entries:
                     if entry['page'] >= toc_insert_page:
@@ -122,6 +136,7 @@ class DocumentPdfService:
                 'num': 1,
                 'client': meta.get('client_name', document.client_name or ''),
                 'total': None,
+                'theme': theme,
             }
 
             include_portada = document.include_portada
@@ -129,17 +144,17 @@ class DocumentPdfService:
             include_contraportada = document.include_contraportada
 
             # Start first page
-            _draw_header_bar(c)
+            _draw_header_bar(c, theme=theme)
             y = PAGE_H - MARGIN_T
 
             # Render title page (subportada) if requested
             if include_subportada:
-                y = cls._render_title_page(c, document, meta, ps)
+                y = cls._render_title_page(c, document, meta, ps, theme)
                 # Start new page for content
                 _draw_footer(c, ps['num'], client_name=ps['client'])
                 c.showPage()
                 ps['num'] += 1
-                _draw_header_bar(c)
+                _draw_header_bar(c, theme=theme)
                 y = PAGE_H - MARGIN_T
 
             # Render blocks
@@ -154,13 +169,13 @@ class DocumentPdfService:
                             _draw_footer(c, ps['num'], client_name=ps['client'])
                             c.showPage()
                             ps['num'] += 1
-                            _draw_header_bar(c)
+                            _draw_header_bar(c, theme=theme)
                             y = PAGE_H - MARGIN_T
                         y = cls._render_toc(c, y, toc_entries, ps)
                         _draw_footer(c, ps['num'], client_name=ps['client'])
                         c.showPage()
                         ps['num'] += 1
-                        _draw_header_bar(c)
+                        _draw_header_bar(c, theme=theme)
                         y = PAGE_H - MARGIN_T
                         first_block = True
                     continue
@@ -176,23 +191,23 @@ class DocumentPdfService:
                 if block_type == 'heading':
                     if has_toc and idx in toc_by_idx:
                         c.bookmarkPage(toc_by_idx[idx]['key'])
-                    y = cls._render_heading(c, y, block, ps)
+                    y = cls._render_heading(c, y, block, ps, theme)
                 elif block_type == 'paragraph':
-                    y = cls._render_paragraph(c, y, block, ps)
+                    y = cls._render_paragraph(c, y, block, ps, theme)
                 elif block_type == 'table':
-                    y = cls._render_table(c, y, block, ps)
+                    y = cls._render_table(c, y, block, ps, theme)
                 elif block_type == 'list':
-                    y = cls._render_list(c, y, block, ps)
+                    y = cls._render_list(c, y, block, ps, theme)
                 elif block_type == 'blockquote':
-                    y = cls._render_blockquote(c, y, block, ps)
+                    y = cls._render_blockquote(c, y, block, ps, theme)
                 elif block_type == 'code':
-                    y = cls._render_code(c, y, block, ps)
+                    y = cls._render_code(c, y, block, ps, theme)
                 elif block_type == 'separator':
-                    y = cls._render_separator(c, y, block, ps)
+                    y = cls._render_separator(c, y, block, ps, theme)
                 elif block_type == 'section_header':
                     if has_toc and idx in toc_by_idx:
                         c.bookmarkPage(toc_by_idx[idx]['key'])
-                    y = cls._render_section_header(c, y, block, ps)
+                    y = cls._render_section_header(c, y, block, ps, theme)
                 elif block_type == 'sub_section':
                     y = cls._render_sub_section(c, y, block, ps)
                 elif block_type == 'callout':
@@ -225,7 +240,7 @@ class DocumentPdfService:
             return None
 
     @classmethod
-    def _render_title_page(cls, c, document, meta, ps):
+    def _render_title_page(cls, c, document, meta, ps, theme):
         """Render a branded title page with decorative elements."""
         # Decorative circle top-right
         c.saveState()
@@ -253,19 +268,19 @@ class DocumentPdfService:
 
         # Main title
         c.setFont(_font('light'), 36)
-        c.setFillColor(ESMERALD)
+        c.setFillColor(theme.title_color)
         title_lines = textwrap.wrap(title, width=24)
         for line in title_lines:
             _draw_mixed_centred(c, PAGE_W / 2, y, line, _font('light'), 36)
             y -= 44
 
-        # Lemon divider
+        # Divider
         y -= 10
         div_w = 60
-        c.setStrokeColor(LEMON)
+        c.setStrokeColor(theme.section_rule_color)
         c.setLineWidth(2)
         c.line(PAGE_W / 2 - div_w / 2, y, PAGE_W / 2 + div_w / 2, y)
-        c.setFillColor(LEMON)
+        c.setFillColor(theme.section_rule_color)
         c.circle(PAGE_W / 2 - div_w / 2 - 3, y, 3, fill=1, stroke=0)
         c.circle(PAGE_W / 2 + div_w / 2 + 3, y, 3, fill=1, stroke=0)
 
@@ -292,96 +307,101 @@ class DocumentPdfService:
 
     # -- Block renderers -------------------------------------------
 
-    @staticmethod
-    def _render_heading(c, y, block, ps):
+    @classmethod
+    def _render_heading(cls, c, y, block, ps, theme):
         """Render h1/h2/h3 headings."""
         level = block.get('level', 1)
-        text = _sanitize_pdf_text(block.get('text', ''))
+        text = block.get('text', '')
 
         if level == 1:
-            font_size, font_style = 20, 'light'
+            font_size, font_style, color = 20, 'light', theme.h1_color
             y = _check_y(c, y, ps, need=40)
         elif level == 2:
-            font_size, font_style = 16, 'bold'
+            font_size, font_style, color = 16, 'bold', theme.h2_color
             y = _check_y(c, y, ps, need=30)
         else:
-            font_size, font_style = 13, 'bold'
+            font_size, font_style, color = 13, 'bold', theme.h3_color
             y = _check_y(c, y, ps, need=24)
 
-        c.setFont(_font(font_style), font_size)
-        c.setFillColor(ESMERALD)
-
-        max_chars = int(CONTENT_W / (font_size * 0.5))
-        lines = textwrap.wrap(text, width=max_chars) or [text]
-        for line in lines:
-            _draw_mixed_string(c, MARGIN_L, y, line, _font(font_style), font_size)
+        fn = _font(font_style)
+        # Measured layout engine keeps emoji-safe wrapping/drawing.
+        lines = _layout_inline(text, CONTENT_W, fn, font_size)
+        for frags in lines:
+            _draw_fragments_line(c, MARGIN_L, y, frags, color,
+                                 link_color=theme.link_color)
             y -= font_size + 6
 
         if level <= 2:
-            # Accent line for h1/h2
-            c.setStrokeColor(LEMON)
-            c.setLineWidth(2)
-            c.line(MARGIN_L, y + 4, MARGIN_L + 60, y + 4)
+            # Accent line under h1/h2.
+            c.setStrokeColor(theme.heading_rule_color)
+            if theme.heading_rule_full:
+                c.setLineWidth(1)
+                c.line(MARGIN_L, y + 4, MARGIN_L + CONTENT_W, y + 4)
+            else:
+                c.setLineWidth(2)
+                c.line(MARGIN_L, y + 4, MARGIN_L + 60, y + 4)
             y -= 12
 
         return y
 
     @staticmethod
-    def _render_paragraph(c, y, block, ps):
+    def _render_paragraph(c, y, block, ps, theme):
         """Render a paragraph."""
         text = block.get('text', '')
         if not text:
             return y
-        y = _draw_paragraphs(c, y, [text], max_width=CONTENT_W, ps=ps)
+        y = _draw_paragraphs(c, y, [text], max_width=CONTENT_W, ps=ps,
+                              color=theme.body_color, link_color=theme.link_color)
         return y
 
     @staticmethod
-    def _render_table(c, y, block, ps):
+    def _render_table(c, y, block, ps, theme):
         """Render a table."""
         headers = block.get('headers', [])
         rows = block.get('rows', [])
         if not headers:
             return y
-        return _draw_table(c, y, headers, rows, ps=ps)
+        return _draw_table(c, y, headers, rows, ps=ps, theme=theme)
 
     @staticmethod
-    def _render_list(c, y, block, ps):
+    def _render_list(c, y, block, ps, theme):
         """Render ordered or unordered list."""
         items = block.get('items', [])
         ordered = block.get('ordered', False)
         if not items:
             return y
         return _draw_bullet_list(c, y, items, max_width=CONTENT_W, ps=ps,
-                                  numbered=ordered)
+                                  numbered=ordered, color=theme.body_color,
+                                  link_color=theme.link_color)
 
     @staticmethod
-    def _render_blockquote(c, y, block, ps):
+    def _render_blockquote(c, y, block, ps, theme):
         """Render a blockquote."""
         text = block.get('text', '')
         if not text:
             return y
-        return _draw_blockquote(c, y, text, ps=ps)
+        return _draw_blockquote(c, y, text, ps=ps, theme=theme)
 
     @staticmethod
-    def _render_code(c, y, block, ps):
+    def _render_code(c, y, block, ps, theme):
         """Render a code block."""
         content = block.get('content', '')
         language = block.get('language', 'text')
         if not content:
             return y
-        return _draw_code_block(c, y, content, ps=ps, language=language)
+        return _draw_code_block(c, y, content, ps=ps, language=language, theme=theme)
 
     @staticmethod
-    def _render_separator(c, y, block, ps):
+    def _render_separator(c, y, block, ps, theme):
         """Render a horizontal separator."""
-        return _draw_separator(c, y, ps=ps)
+        return _draw_separator(c, y, ps=ps, theme=theme)
 
     @staticmethod
-    def _render_section_header(c, y, block, ps):
+    def _render_section_header(c, y, block, ps, theme):
         """Render a numbered section header."""
         index = block.get('index', '')
         title = block.get('title', '')
-        return _draw_section_header(c, y, index, title, ps=ps)
+        return _draw_section_header(c, y, index, title, ps=ps, theme=theme)
 
     @staticmethod
     def _render_sub_section(c, y, block, ps):
@@ -412,8 +432,11 @@ class DocumentPdfService:
         return _draw_callout_box(c, y, text, style=style, ps=ps)
 
     @classmethod
-    def _collect_section_pages(cls, document):
+    def _collect_section_pages(cls, document, theme):
         """Dry-run render (skipping toc blocks) to find which page each section lands on.
+
+        Uses the SAME theme as the real render pass so pagination (and thus
+        TOC page numbers) can't drift between the two passes.
 
         Returns:
             (entries, toc_insert_page)
@@ -427,17 +450,18 @@ class DocumentPdfService:
 
         buf = io.BytesIO()
         c = canvas.Canvas(buf, pagesize=A4)
-        ps = {'num': 1, 'client': meta.get('client_name', document.client_name or ''), 'total': None}
+        ps = {'num': 1, 'client': meta.get('client_name', document.client_name or ''),
+              'total': None, 'theme': theme}
 
-        _draw_header_bar(c)
+        _draw_header_bar(c, theme=theme)
         y = PAGE_H - MARGIN_T
 
         if document.include_subportada:
-            y = cls._render_title_page(c, document, meta, ps)
+            y = cls._render_title_page(c, document, meta, ps, theme)
             _draw_footer(c, ps['num'], client_name=ps['client'])
             c.showPage()
             ps['num'] += 1
-            _draw_header_bar(c)
+            _draw_header_bar(c, theme=theme)
             y = PAGE_H - MARGIN_T
 
         entries = []
@@ -468,7 +492,7 @@ class DocumentPdfService:
                     'level': 1,
                     'block_idx': idx,
                 })
-                y = cls._render_section_header(c, y, block, ps)
+                y = cls._render_section_header(c, y, block, ps, theme)
             elif block_type == 'heading':
                 level = block.get('level', 1)
                 if level <= 2:
@@ -479,19 +503,19 @@ class DocumentPdfService:
                         'level': level,
                         'block_idx': idx,
                     })
-                y = cls._render_heading(c, y, block, ps)
+                y = cls._render_heading(c, y, block, ps, theme)
             elif block_type == 'paragraph':
-                y = cls._render_paragraph(c, y, block, ps)
+                y = cls._render_paragraph(c, y, block, ps, theme)
             elif block_type == 'table':
-                y = cls._render_table(c, y, block, ps)
+                y = cls._render_table(c, y, block, ps, theme)
             elif block_type == 'list':
-                y = cls._render_list(c, y, block, ps)
+                y = cls._render_list(c, y, block, ps, theme)
             elif block_type == 'blockquote':
-                y = cls._render_blockquote(c, y, block, ps)
+                y = cls._render_blockquote(c, y, block, ps, theme)
             elif block_type == 'code':
-                y = cls._render_code(c, y, block, ps)
+                y = cls._render_code(c, y, block, ps, theme)
             elif block_type == 'separator':
-                y = cls._render_separator(c, y, block, ps)
+                y = cls._render_separator(c, y, block, ps, theme)
             elif block_type == 'sub_section':
                 y = cls._render_sub_section(c, y, block, ps)
             elif block_type == 'callout':
@@ -528,7 +552,7 @@ class DocumentPdfService:
                 _draw_footer(c, ps['num'], client_name=ps.get('client', ''))
                 c.showPage()
                 ps['num'] += 1
-                _draw_header_bar(c)
+                _draw_header_bar(c, theme=ps.get('theme'))
                 y = PAGE_H - MARGIN_T
 
             key = entry['key']
