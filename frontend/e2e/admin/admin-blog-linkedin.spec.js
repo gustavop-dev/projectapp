@@ -239,6 +239,16 @@ test.describe('Admin Blog LinkedIn — Publish', () => {
     await expect(page.getByRole('button', { name: /Publicar en LinkedIn/ })).toBeVisible();
   });
 
+  test('language selector defaults to English', {
+    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin'],
+  }, async ({ page }) => {
+    await setupEditPageMock(page, { linkedinStatus: connectedStatus });
+    await page.goto('/panel/blog/1/edit');
+    await waitForLinkedInSection(page);
+
+    await expect(page.locator('select').filter({ hasText: 'Publish in English' })).toHaveValue('en');
+  });
+
   test('publish button is disabled when summary is empty', {
     tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin'],
   }, async ({ page }) => {
@@ -246,7 +256,7 @@ test.describe('Admin Blog LinkedIn — Publish', () => {
     await page.goto('/panel/blog/1/edit');
     await waitForLinkedInSection(page);
 
-    // Default lang is 'es' and linkedin_summary_es is empty
+    // Default lang is 'en' and linkedin_summary_en is empty
     await expect(page.getByRole('button', { name: /Publicar en LinkedIn/ })).toBeDisabled();
   });
 
@@ -257,7 +267,7 @@ test.describe('Admin Blog LinkedIn — Publish', () => {
     await page.goto('/panel/blog/1/edit');
     await waitForLinkedInSection(page);
 
-    await page.getByPlaceholder(/Resumen para publicar en LinkedIn/).fill('Este artículo habla sobre LinkedIn.');
+    await page.getByPlaceholder(/Summary for LinkedIn post/).fill('This article is about LinkedIn.');
 
     await expect(page.getByRole('button', { name: /Publicar en LinkedIn/ })).toBeEnabled();
   });
@@ -269,7 +279,7 @@ test.describe('Admin Blog LinkedIn — Publish', () => {
     await page.goto('/panel/blog/1/edit');
     await waitForLinkedInSection(page);
 
-    await page.getByPlaceholder(/Resumen para publicar en LinkedIn/).fill('Este artículo habla sobre LinkedIn.');
+    await page.getByPlaceholder(/Summary for LinkedIn post/).fill('This article is about LinkedIn.');
     await page.getByRole('button', { name: /Publicar en LinkedIn/ }).click();
 
     await expect(page.getByText('Publicado en LinkedIn correctamente.')).toBeVisible();
@@ -302,7 +312,7 @@ test.describe('Admin Blog LinkedIn — Publish', () => {
     await page.goto('/panel/blog/1/edit');
     await waitForLinkedInSection(page);
 
-    await page.getByPlaceholder(/Resumen para publicar en LinkedIn/).fill('Resumen de prueba.');
+    await page.getByPlaceholder(/Summary for LinkedIn post/).fill('Test summary.');
     await page.getByRole('button', { name: /Publicar en LinkedIn/ }).click();
 
     await expect(page.getByText(/Error al publicar en LinkedIn|LinkedIn token expired/)).toBeVisible();

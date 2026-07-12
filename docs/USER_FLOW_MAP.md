@@ -3966,8 +3966,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Steps:**
   1. Admin opens `/panel/blog/:id/edit`.
   2. LinkedIn status loads — account is **connected**: green dot + profile name shown.
-  3. Admin fills `linkedin_summary_es` (≤1300 chars) or `linkedin_summary_en` textarea with the post summary.
-  4. Admin selects language from dropdown ("Publicar en Español" / "Publish in English").
+  3. Admin fills `linkedin_summary_en` (≤1300 chars) or `linkedin_summary_es` textarea with the post summary.
+  4. Admin selects language from dropdown ("Publish in English" / "Publicar en Español") — defaults to English (US market focus).
   5. Admin clicks "Publicar en LinkedIn" button (disabled if summary is empty or publish in progress).
   6. API call to `POST /api/blog/admin/:id/publish-linkedin/` with `{ lang }`.
   7. Success: success message "Publicado en LinkedIn correctamente." renders and auto-hides after 5s.
