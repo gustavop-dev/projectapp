@@ -3,10 +3,12 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
+from freezegun import freeze_time
 
 from content.models import (
     AdsSpendRecord,
     CardBalanceSnapshot,
+    CreditCard,
     HostingRecord,
     IncomeRecord,
     PocketMovement,
@@ -204,6 +206,130 @@ class TestMonthlyAndPartners:
         carlos = partners['carlos']
         assert carlos['net'] == Decimal('45.00')
         assert carlos['personal']['liquid'] == Decimal('0')
+
+
+@pytest.mark.django_db
+@freeze_time('2026-07-13 12:00:00')
+class TestExpectedCurrentMonth:
+    def test_sums_only_company_expected_income_of_the_current_month(
+        self, make_income,
+    ):
+        make_income(
+            kind='expected',
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('600.00'),
+        )
+        make_income(
+            kind='expected',
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('400.00'),
+        )
+        # Liquid, another month and a personal ledger must not count.
+        make_income(
+            kind='liquid',
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('900.00'),
+        )
+        make_income(
+            kind='expected',
+            period_date=date(2026, 6, 1),
+            total_amount=Decimal('700.00'),
+        )
+        make_income(
+            kind='expected',
+            period_date=date(2026, 7, 1),
+            ledger=IncomeRecord.Ledger.GUSTAVO,
+            total_amount=Decimal('50.00'),
+            gustavo_amount=Decimal('50.00'),
+            carlos_amount=Decimal('0.00'),
+        )
+
+        current = accounting_service.expected_current_month()
+        assert current['period'] == '2026-07'
+        assert current['label'] == 'Julio 2026'
+        assert current['total'] == Decimal('1000.00')
+
+    def test_ignores_the_dashboard_year_selector(self, make_income):
+        make_income(
+            kind='expected',
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('1000.00'),
+        )
+        summary = accounting_service.dashboard_summary(2025)
+        assert summary['year'] == 2025
+        assert summary['expected_total'] == Decimal('0')
+        assert summary['expected_current_month']['total'] == Decimal('1000.00')
+        assert summary['expected_current_month']['period'] == '2026-07'
+
+    def test_no_expected_income_this_month_is_zero(self, make_income):
+        make_income(
+            kind='expected',
+            period_date=date(2026, 6, 1),
+            total_amount=Decimal('700.00'),
+        )
+        assert accounting_service.expected_current_month()['total'] == Decimal('0')
+
+
+@pytest.mark.django_db
+class TestCardDebtTotal:
+    @pytest.fixture(autouse=True)
+    def empty_catalog(self):
+        """Migration 0158 seeds 'T.C 0064'; each test declares its own cupo."""
+        CreditCard.objects.all().delete()
+
+    def test_sums_latest_snapshot_per_card_and_uses_active_catalog_cupo(self):
+        CreditCard.objects.create(
+            name='T.C 0064', credit_limit=Decimal('8000000.00'), is_active=True,
+        )
+        CreditCard.objects.create(
+            name='T.C 9999', credit_limit=Decimal('2000000.00'), is_active=True,
+        )
+        CreditCard.objects.create(
+            name='T.C Vieja', credit_limit=Decimal('5000000.00'), is_active=False,
+        )
+        # Older snapshot for the same card must be ignored.
+        CardBalanceSnapshot.objects.create(
+            snapshot_date=date(2026, 6, 17), card_name='T.C 0064',
+            available_amount=Decimal('413226.00'),
+            debt_amount=Decimal('7586774.00'),
+        )
+        CardBalanceSnapshot.objects.create(
+            snapshot_date=date(2026, 7, 1), card_name='T.C 0064',
+            available_amount=Decimal('3849046.00'),
+            debt_amount=Decimal('4150954.00'),
+        )
+        CardBalanceSnapshot.objects.create(
+            snapshot_date=date(2026, 7, 2), card_name='T.C 9999',
+            available_amount=Decimal('1150000.00'),
+            debt_amount=Decimal('850000.00'),
+        )
+
+        debt = accounting_service.card_debt_total()
+        assert debt['total'] == Decimal('5000954.00')
+        assert debt['card_count'] == 2
+        # The inactive card's cupo is out: 8.000.000 + 2.000.000.
+        assert debt['credit_limit_total'] == Decimal('10000000.00')
+        assert debt['utilization_pct'] == 50.0
+
+    def test_utilization_is_none_without_an_active_catalog(self):
+        CardBalanceSnapshot.objects.create(
+            snapshot_date=date(2026, 7, 1), card_name='T.C Suelta',
+            available_amount=Decimal('0.00'),
+            debt_amount=Decimal('300000.00'),
+        )
+        debt = accounting_service.card_debt_total()
+        assert debt['total'] == Decimal('300000.00')
+        assert debt['card_count'] == 1
+        assert debt['utilization_pct'] is None
+
+    def test_no_snapshots_is_zero_debt(self):
+        CreditCard.objects.create(
+            name='T.C 0064', credit_limit=Decimal('8000000.00'), is_active=True,
+        )
+        debt = accounting_service.card_debt_total()
+        assert debt['total'] == Decimal('0')
+        assert debt['card_count'] == 0
+        assert debt['utilization_pct'] == 0.0
 
 
 @pytest.mark.django_db

@@ -72,15 +72,22 @@
           style="--enter-delay: 80ms"
         >
           <AccountingStatCard
-            label="Ingresos esperados"
-            :value="money(summary.expected_total)"
+            data-testid="accounting-card-expected-month"
+            :label="`Ingreso esperado · ${expectedMonthLabel}`"
+            :value="money(summary.expected_current_month?.total)"
           />
           <AccountingStatCard
             label="Ingresos líquidos"
             :value="money(summary.liquid_total)"
             :sub="receivedPct"
           />
-          <AccountingStatCard label="Gastos" :value="money(summary.expenses_total)" />
+          <AccountingStatCard
+            data-testid="accounting-card-debt"
+            label="Deuda tarjetas"
+            :value="money(summary.card_debt?.total)"
+            :sub="cardDebtSub"
+            tone="danger"
+          />
           <AccountingStatCard
             label="Bolsillo ProjectApp"
             :value="money(summary.pocket_balance)"
@@ -331,6 +338,18 @@ const receivedPct = computed(() => {
   const liquid = Number(summary.value?.liquid_total);
   if (!expected || expected <= 0) return '';
   return `${Math.round((liquid / expected) * 100)}% recibido`;
+});
+
+const expectedMonthLabel = computed(
+  () => summary.value?.expected_current_month?.label || 'mes en curso',
+);
+
+const cardDebtSub = computed(() => {
+  const debt = summary.value?.card_debt;
+  if (!debt) return '';
+  const cards = `${debt.card_count} ${debt.card_count === 1 ? 'tarjeta' : 'tarjetas'}`;
+  if (debt.utilization_pct === null || debt.utilization_pct === undefined) return cards;
+  return `${cards} · ${debt.utilization_pct}% del cupo`;
 });
 
 const receivedProgress = computed(() => {

@@ -52,6 +52,13 @@ const DASHBOARD_SUMMARY = {
       debt_amount: '4150954.00',
     },
   ],
+  expected_current_month: { period: '2026-07', label: 'Julio 2026', total: '2500000.00' },
+  card_debt: {
+    total: '4150954.00',
+    card_count: 1,
+    credit_limit_total: '8000000.00',
+    utilization_pct: 51.9,
+  },
 };
 
 function buildHandler({ isSuperuser = true } = {}) {
@@ -125,8 +132,16 @@ test.describe('Admin Accounting Dashboard', () => {
     await expect(page.getByTestId('accounting-hero-kpi')).toBeVisible();
     await expect(page.getByTestId('accounting-hero-value')).toBeVisible();
     await expect(page.getByTestId('accounting-hero-utility-chart')).toBeVisible();
-    await expect(page.getByText('Ingresos esperados')).toBeVisible();
-    await expect(page.getByText('$95.238.699 COP')).toBeVisible();
+    const expectedMonth = page.getByTestId('accounting-card-expected-month');
+    await expect(expectedMonth).toContainText('Ingreso esperado · Julio 2026');
+    await expect(expectedMonth).toContainText('$2.500.000 COP');
+
+    const cardDebt = page.getByTestId('accounting-card-debt');
+    await expect(cardDebt).toContainText('Deuda tarjetas');
+    await expect(cardDebt).toContainText('$4.150.954 COP');
+    await expect(cardDebt).toContainText('1 tarjeta · 51.9% del cupo');
+
+    await expect(page.getByText('Ingresos líquidos')).toBeVisible();
     await expect(page.getByText('$59.516.261 COP')).toBeVisible();
     await expect(page.getByText('Bolsillo ProjectApp')).toBeVisible();
     await expect(page.getByText('$1.147.378 COP').first()).toBeVisible();
