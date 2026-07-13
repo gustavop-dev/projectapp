@@ -849,6 +849,56 @@ def latest_card_snapshots():
     return snapshots
 
 
+def expected_current_month():
+    """Expected company income for the real current month.
+
+    Deliberately ignores the dashboard `year` selector: the card always
+    reports the month we are actually living in, like `ads.current_month_total`.
+    """
+    today = today_bogota()
+    month_date = date(today.year, today.month, 1)
+    total = _sum(
+        IncomeRecord.objects.filter(
+            kind=IncomeRecord.Kind.EXPECTED,
+            ledger=Ledger.COMPANY,
+            period_date__year=today.year,
+            period_date__month=today.month,
+        ),
+        'total_amount',
+    )
+    return {
+        'period': month_period(month_date),
+        'label': month_label(month_date),
+        'total': total,
+    }
+
+
+def card_debt_total():
+    """Consolidated debt (latest snapshot per card) + catalog utilization.
+
+    Debt sums every card that has a snapshot, matching the `Deuda total`
+    chip on the cards tab. The cupo only comes from the active catalog, so
+    a snapshot for a card missing from the catalog can push the percentage
+    past 100 — that is real, not a rounding artifact.
+    """
+    snapshots = latest_card_snapshots()
+    total = sum((snapshot['debt_amount'] for snapshot in snapshots), Decimal('0'))
+    credit_limit_total = _sum(
+        CreditCard.objects.filter(is_active=True), 'credit_limit',
+    )
+    utilization_pct = (
+        round(float(total / credit_limit_total * 100), 1)
+        if credit_limit_total > 0
+        else None
+    )
+    return {
+        'total': total,
+        'card_count': len(snapshots),
+        'credit_limit_total': credit_limit_total,
+        'utilization_pct': utilization_pct,
+    }
+
+
 def dashboard_summary(year):
     """Single payload feeding the accounting dashboard."""
     sums = _year_split_sums(year)
@@ -893,6 +943,8 @@ def dashboard_summary(year):
             'total_paid': hostings['total_paid'] or Decimal('0'),
         },
         'latest_card_snapshots': latest_card_snapshots(),
+        'expected_current_month': expected_current_month(),
+        'card_debt': card_debt_total(),
     }
 
 
