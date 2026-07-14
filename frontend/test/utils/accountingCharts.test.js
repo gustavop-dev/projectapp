@@ -1,10 +1,12 @@
 import {
   cardDebtSeries,
   monthlySeries,
+  shortMonthLabels,
   sliceMonthly,
 } from '../../utils/accountingCharts';
 
 const MONTHLY = Array.from({ length: 12 }, (_, index) => ({
+  period: `2026-${String(index + 1).padStart(2, '0')}`,
   label: `Mes ${index + 1}`,
   expected: String((index + 1) * 100),
   liquid: String((index + 1) * 50),
@@ -23,10 +25,27 @@ describe('sliceMonthly', () => {
   });
 });
 
+describe('shortMonthLabels', () => {
+  it('maps period YYYY-MM to the three-letter Spanish month', () => {
+    expect(shortMonthLabels(MONTHLY)).toEqual([
+      'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+    ]);
+  });
+
+  it('falls back to the long label when period is missing or invalid', () => {
+    expect(shortMonthLabels([
+      { label: 'Enero 2026' },
+      { period: '2026-13', label: 'Raro' },
+    ])).toEqual(['Ene', 'Rar']);
+    expect(shortMonthLabels(null)).toEqual([]);
+  });
+});
+
 describe('monthlySeries', () => {
   it('builds the three fixed series with numeric data', () => {
     const { series, categories } = monthlySeries(MONTHLY.slice(0, 2));
-    expect(categories).toEqual(['Mes 1', 'Mes 2']);
+    expect(categories).toEqual(['Ene', 'Feb']);
     expect(series.map((s) => s.name)).toEqual(['Esperado', 'Líquido', 'Gastos']);
     expect(series[0].data).toEqual([100, 200]);
     expect(series[2].data).toEqual([20, 40]);

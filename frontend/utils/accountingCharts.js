@@ -10,11 +10,30 @@ export function sliceMonthly(monthly, fromMonth = 1, toMonth = 12) {
   return rows.slice(from - 1, to);
 }
 
+const SHORT_MONTHS = [
+  'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+  'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+];
+
+/**
+ * Three-letter month ticks ("Ene" … "Dic") for the chart x-axes. The full
+ * "Enero 2026" label is too wide for 12 ticks and makes Apex stack them;
+ * tables and tooltips keep the long label.
+ */
+export function shortMonthLabels(monthly) {
+  const rows = Array.isArray(monthly) ? monthly : [];
+  return rows.map((row) => {
+    const month = Number(String(row.period || '').slice(5, 7));
+    if (month >= 1 && month <= 12) return SHORT_MONTHS[month - 1];
+    return String(row.label || '').slice(0, 3);
+  });
+}
+
 /** Apex series + categories for the expected/liquid/expenses evolution. */
 export function monthlySeries(monthly) {
   const rows = Array.isArray(monthly) ? monthly : [];
   return {
-    categories: rows.map((row) => row.label),
+    categories: shortMonthLabels(rows),
     series: [
       { name: 'Esperado', data: rows.map((row) => Number(row.expected) || 0) },
       { name: 'Líquido', data: rows.map((row) => Number(row.liquid) || 0) },

@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import { useChartTheme } from '~/composables/useChartTheme';
 import { monthlySeries, sliceMonthly } from '~/utils/accountingCharts';
-import { formatMoney } from '~/utils/formatMoney';
+import { formatCompactMoney, formatMoney } from '~/utils/formatMoney';
 
 const props = defineProps({
   /** summary.monthly rows: { label, expected, liquid, expenses }. */
@@ -26,20 +26,28 @@ const isEmpty = computed(() =>
   ),
 );
 
+/** Tooltips keep the full "Enero 2026" title even though ticks are short. */
+function monthLabelAt(index) {
+  return sliced.value[index]?.label || '';
+}
+
 const options = computed(() => ({
   ...baseOptions.value,
   colors: palette.value.measures,
   xaxis: {
+    type: 'category',
     categories: chartData.value.categories,
-    labels: { rotate: -35, hideOverlappingLabels: true },
+    tickPlacement: 'on',
+    labels: { rotate: 0, trim: false, hideOverlappingLabels: true },
     axisBorder: { show: false },
     axisTicks: { show: false },
   },
   yaxis: {
-    labels: { formatter: (value) => formatMoney(Number(value) || 0, 'COP') },
+    labels: { formatter: (value) => formatCompactMoney(Number(value) || 0) },
   },
   tooltip: {
     ...baseOptions.value.tooltip,
+    x: { formatter: (_value, { dataPointIndex }) => monthLabelAt(dataPointIndex) },
     y: { formatter: (value) => formatMoney(Number(value) || 0, 'COP') },
   },
   markers: { size: 0, hover: { size: 5 } },

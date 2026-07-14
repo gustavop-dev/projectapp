@@ -1,7 +1,8 @@
 <script setup>
 import { computed } from 'vue';
 import { useChartTheme } from '~/composables/useChartTheme';
-import { formatMoney } from '~/utils/formatMoney';
+import { shortMonthLabels } from '~/utils/accountingCharts';
+import { formatCompactMoney, formatMoney } from '~/utils/formatMoney';
 
 /**
  * Compact "Utilidad por mes" line for the hero KPI card. No card chrome:
@@ -16,7 +17,7 @@ const props = defineProps({
 
 const { palette, baseOptions } = useChartTheme();
 
-const categories = computed(() => props.monthly.map((month) => month.label));
+const categories = computed(() => shortMonthLabels(props.monthly));
 
 const series = computed(() => [
   {
@@ -25,22 +26,35 @@ const series = computed(() => [
   },
 ]);
 
+/** Tooltips keep the full "Enero 2026" title even though ticks are short. */
+function monthLabelAt(index) {
+  return props.monthly[index]?.label || '';
+}
+
 const options = computed(() => ({
   ...baseOptions.value,
   colors: [palette.value.measures[0]],
   legend: { show: false },
   xaxis: {
+    type: 'category',
     categories: categories.value,
-    labels: { rotate: -35, hideOverlappingLabels: true },
+    tickPlacement: 'on',
+    labels: {
+      rotate: 0,
+      trim: false,
+      hideOverlappingLabels: true,
+      style: { fontSize: '10px' },
+    },
     axisBorder: { show: false },
     axisTicks: { show: false },
   },
   yaxis: {
     tickAmount: 3,
-    labels: { formatter: (value) => formatMoney(Number(value) || 0, 'COP') },
+    labels: { formatter: (value) => formatCompactMoney(Number(value) || 0) },
   },
   tooltip: {
     ...baseOptions.value.tooltip,
+    x: { formatter: (_value, { dataPointIndex }) => monthLabelAt(dataPointIndex) },
     y: { formatter: (value) => formatMoney(Number(value) || 0, 'COP') },
   },
   markers: { size: 0, hover: { size: 5 } },
