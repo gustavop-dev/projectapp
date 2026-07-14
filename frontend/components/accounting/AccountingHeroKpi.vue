@@ -40,7 +40,7 @@
         </div>
         <p v-if="progressLabel" class="text-xs text-text-muted mt-1.5">{{ progressLabel }}</p>
       </div>
-      <div v-if="monthly.length >= 2" class="mt-4 flex-1 min-h-[150px]">
+      <div v-if="monthly.length >= 2" class="mt-4 flex-1 w-full min-w-0 min-h-[150px]">
         <AccountingHeroUtilityChart :monthly="monthly" />
       </div>
       <div
