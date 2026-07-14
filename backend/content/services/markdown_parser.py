@@ -111,10 +111,12 @@ def markdown_to_blocks(text):
             quote_lines = []
             while i < len(lines):
                 s = lines[i].strip()
-                if s.startswith('> '):
-                    quote_lines.append(s[2:])
-                elif s == '>':
+                if s == '>':
                     quote_lines.append('')
+                elif s.startswith('>'):
+                    # Accept '>text' without the space too — otherwise the
+                    # line is never consumed and the loop stops progressing.
+                    quote_lines.append(s[1:].lstrip())
                 else:
                     break
                 i += 1
@@ -220,6 +222,20 @@ def markdown_to_blocks(text):
             i += 1
             continue
 
+        # 9b. Bold numbered stub: **N.N**, **N.N.**, **N.N:** rest — a bold
+        # number without an inline bolded title. Emitted as a sub_section so
+        # it never falls through to the paragraph guard, which refuses to
+        # consume '**N.N'-prefixed lines.
+        stub_match = re.match(r'^\*\*(\d+\.\d+[.:)]?)\*\*\s*(.*)$', stripped)
+        if stub_match:
+            blocks.append({
+                'type': 'sub_section',
+                'index': stub_match.group(1).rstrip('.:)'),
+                'title': stub_match.group(2).strip(),
+            })
+            i += 1
+            continue
+
         # 10. Paragraph (fallback)
         para_lines = []
         while i < len(lines):
@@ -239,11 +255,17 @@ def markdown_to_blocks(text):
                 break
             para_lines.append(s)
             i += 1
-        if para_lines:
-            blocks.append({
-                'type': 'paragraph',
-                'text': ' '.join(para_lines),
-            })
+        if not para_lines:
+            # Forward-progress guarantee: a line that reached the fallback
+            # but matches one of the break prefixes (e.g. '**2.1 —' with no
+            # closing '**') would otherwise loop forever without consuming
+            # anything. Take it as-is so the parser always advances.
+            para_lines.append(stripped)
+            i += 1
+        blocks.append({
+            'type': 'paragraph',
+            'text': ' '.join(para_lines),
+        })
         continue
 
     return blocks

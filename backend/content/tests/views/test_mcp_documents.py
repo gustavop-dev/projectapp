@@ -67,14 +67,14 @@ def _make_doc(doc_type, **kwargs):
 
 @pytest.mark.django_db
 class TestDocumentsMcpToolList:
-    def test_exposes_the_eight_tools(self, api_client, documents_connector):
+    def test_exposes_the_nine_tools(self, api_client, documents_connector):
         _, token = documents_connector
         response = api_client.post(_url(token), _rpc('tools/list'), format='json')
         names = [t['name'] for t in response.data['result']['tools']]
         assert names == [
             'list_folders', 'create_folder', 'rename_folder', 'list_documents',
             'read_document', 'create_document', 'update_document',
-            'delete_document',
+            'append_document', 'delete_document',
         ]
 
     def test_serverinfo_handshake_works_on_shared_endpoint(self, api_client, documents_connector):
@@ -182,6 +182,59 @@ class TestDocumentsMcpCrud:
         response = _call(api_client, token, 'delete_document', {'document_id': doc.id})
         assert response.data['result']['isError'] is True
         assert Document.objects.filter(pk=doc.id).exists()
+
+
+@pytest.mark.django_db
+class TestDocumentsMcpAppend:
+    def test_append_concatenates_and_reparses_full_markdown(self, api_client, documents_connector, markdown_doc_type):
+        doc = _make_doc(markdown_doc_type, title='Largo', content_markdown='# Parte 1\n\nInicio.')
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'append_document', {
+            'document_id': doc.id,
+            'markdown': '## Parte 2\n\nFinal.',
+        })
+
+        assert response.data['result']['isError'] is False
+        doc.refresh_from_db()
+        assert doc.content_markdown == '# Parte 1\n\nInicio.\n\n## Parte 2\n\nFinal.'
+        block_types = [b['type'] for b in doc.content_json['blocks']]
+        assert block_types == ['heading', 'paragraph', 'heading', 'paragraph']
+
+    def test_append_honors_custom_separator(self, api_client, documents_connector, markdown_doc_type):
+        doc = _make_doc(markdown_doc_type, content_markdown='línea uno')
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'append_document', {
+            'document_id': doc.id,
+            'markdown': 'línea dos',
+            'separator': '\n',
+        })
+
+        assert response.data['result']['isError'] is False
+        doc.refresh_from_db()
+        assert doc.content_markdown == 'línea uno\nlínea dos'
+
+    def test_append_requires_markdown(self, api_client, documents_connector, markdown_doc_type):
+        doc = _make_doc(markdown_doc_type)
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'append_document', {
+            'document_id': doc.id,
+            'markdown': '   ',
+        })
+
+        assert response.data['result']['isError'] is True
+
+    def test_append_to_missing_document_is_an_error(self, api_client, documents_connector, markdown_doc_type):
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'append_document', {
+            'document_id': 999999,
+            'markdown': 'contenido',
+        })
+
+        assert response.data['result']['isError'] is True
 
 
 @pytest.mark.django_db
