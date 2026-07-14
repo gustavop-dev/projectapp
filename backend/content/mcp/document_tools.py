@@ -255,6 +255,34 @@ def update_document(arguments):
     return _doc_detail(doc)
 
 
+def append_document(arguments):
+    """Append a markdown chunk to an existing document.
+
+    A single MCP call cannot carry very large documents, so big uploads are
+    done as create_document + N append_document calls. The chunk is joined
+    with a separator (default blank line) and content_json is rebuilt from
+    the full markdown.
+    """
+    doc = _get_markdown_doc_or_error(arguments.get('document_id'))
+
+    markdown_text = arguments.get('markdown')
+    if not isinstance(markdown_text, str) or not markdown_text.strip():
+        raise ToolError('markdown es obligatorio y debe ser texto no vacío.')
+
+    separator = arguments.get('separator')
+    if separator is None:
+        separator = '\n\n'
+    if not isinstance(separator, str):
+        raise ToolError('separator debe ser texto (por ejemplo "\\n\\n" o "\\n").')
+
+    doc.content_markdown = (
+        (doc.content_markdown or '').rstrip('\n') + separator + markdown_text
+    )
+    doc.content_json = _build_content_json(doc, doc.content_markdown)
+    doc.save(update_fields=['content_markdown', 'content_json', 'updated_at'])
+    return _doc_detail(doc)
+
+
 def delete_document(arguments):
     doc = _get_markdown_doc_or_error(arguments.get('document_id'))
     if doc.status == Document.Status.PUBLISHED:
@@ -395,6 +423,35 @@ DOCUMENT_TOOLS = [
             'required': ['document_id'],
         },
         'handler': update_document,
+    },
+    {
+        'name': 'append_document',
+        'description': (
+            'Añade un fragmento de markdown AL FINAL de un documento '
+            'existente, sin reenviar el contenido previo. Úsala para subir '
+            'documentos largos por partes: create_document con el primer '
+            'tramo y append_document con los siguientes. El contenido se '
+            'reprocesa completo para el PDF en cada llamada.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                **_DOCUMENT_ID_PROP,
+                'markdown': {
+                    'type': 'string',
+                    'description': 'Fragmento de Markdown a añadir al final.',
+                },
+                'separator': {
+                    'type': 'string',
+                    'description': (
+                        'Texto entre el contenido existente y el fragmento '
+                        '(default: línea en blanco "\\n\\n").'
+                    ),
+                },
+            },
+            'required': ['document_id', 'markdown'],
+        },
+        'handler': append_document,
     },
     {
         'name': 'delete_document',
