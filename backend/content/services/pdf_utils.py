@@ -1458,6 +1458,82 @@ def _draw_banner_box(c, x, y, width, text, bg_color=BONE,
     return box_y - 6
 
 
+def _draw_badge_panel(c, y, title, items, ps=None):
+    """Draw a branded panel with a title and numbered LEMON chips. Returns y.
+
+    Groups a short highlight list (3-6 items) into one ESMERALD_LIGHT
+    rounded panel so it reads as a unit instead of loose bullets. The
+    panel height is precomputed and the whole block page-breaks together;
+    when the list is too tall for a single page it falls back to a plain
+    subtitle + bullet list, which paginates line by line.
+    """
+    items = [str(it) for it in (items or []) if str(it).strip()]
+    if not items:
+        return y
+
+    font_size = 9
+    leading = 13
+    pad_x = 14
+    pad_y = 12
+    title_h = 16
+    chip_d = 13
+    chip_gap = 8
+    item_gap = 6
+
+    fn = _font('regular')
+    text_x_off = pad_x + chip_d + chip_gap
+    text_w = CONTENT_W - text_x_off - pad_x
+    wrapped = [
+        _wrap_by_width(_clean_inline_bold(_sanitize_pdf_text(it)),
+                       fn, font_size, text_w) or ['']
+        for it in items
+    ]
+    items_h = sum(len(lines) * leading + item_gap for lines in wrapped) - item_gap
+    box_h = pad_y + title_h + 4 + items_h + pad_y
+
+    usable_h = PAGE_H - MARGIN_T - MARGIN_B - 20
+    if box_h > usable_h:
+        y = _draw_subtitle(c, y, title, ps=ps)
+        return _draw_bullet_list(c, y, items, font_size=font_size, ps=ps)
+
+    if ps:
+        y = _check_y(c, y, ps, need=box_h + 12)
+
+    box_y = y - box_h
+    c.setFillColor(ESMERALD_LIGHT)
+    c.roundRect(MARGIN_L, box_y, CONTENT_W, box_h, 8, fill=1, stroke=0)
+
+    c.setFont(_font('bold'), 11)
+    c.setFillColor(ESMERALD)
+    _draw_mixed_string(c, MARGIN_L + pad_x, y - pad_y - 11,
+                       _clean_inline_bold(_sanitize_pdf_text(str(title))),
+                       _font('bold'), 11)
+
+    cursor = y - pad_y - title_h - 4  # top edge of the items area
+    for idx, lines in enumerate(wrapped, start=1):
+        first_baseline = cursor - font_size
+        # Numbered chip, vertically centred on the item's first line.
+        chip_cx = MARGIN_L + pad_x + chip_d / 2
+        chip_cy = first_baseline + font_size / 2 - 1
+        c.setFillColor(LEMON)
+        c.circle(chip_cx, chip_cy, chip_d / 2, fill=1, stroke=0)
+        num = str(idx)
+        c.setFont(_font('bold'), 8)
+        c.setFillColor(ESMERALD)
+        num_w = pdfmetrics.stringWidth(num, _font('bold'), 8)
+        c.drawString(chip_cx - num_w / 2, chip_cy - 3, num)
+
+        ty = first_baseline
+        c.setFont(fn, font_size)
+        c.setFillColor(ESMERALD)
+        for line in lines:
+            _draw_mixed_string(c, MARGIN_L + text_x_off, ty, line, fn, font_size)
+            ty -= leading
+        cursor -= len(lines) * leading + item_gap
+
+    return box_y - 12
+
+
 # ─────────────────────────────────────────────────────────────
 # Composite components: KPI tiles, feature rows, priority pills
 # ─────────────────────────────────────────────────────────────
@@ -1951,8 +2027,9 @@ _CALLOUT_STYLES = {
     'note':      {'label': 'NOTA',       'bg': '#E6EFEF', 'bar': '#002921'},   # ESMERALD_LIGHT / ESMERALD
     'tip':       {'label': 'CONSEJO',    'bg': '#F0FFF4', 'bar': '#809490'},   # green-50 / GREEN_LIGHT
     'important': {'label': 'IMPORTANTE', 'bg': '#EEF2FF', 'bar': '#6366F1'},   # indigo-50 / indigo-500
-    'warning':   {'label': 'AVISO',      'bg': '#FFFBEB', 'bar': '#F0FF3D'},   # amber-50 / LEMON
+    'warning':   {'label': 'AVISO',      'bg': '#FFFBEB', 'bar': '#B45309'},   # amber-50 / PILL_AMBER_FG (LEMON on amber-50 was ~1.1:1, unreadable)
     'caution':   {'label': 'PRECAUCION', 'bg': '#FFF1F2', 'bar': '#F43F5E'},   # rose-50 / rose-500
+    'scope':     {'label': 'ALCANCE',    'bg': '#FAF3E0', 'bar': '#002921'},   # BONE / ESMERALD
 }
 
 
