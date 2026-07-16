@@ -132,9 +132,9 @@
 
 | Suite | Location | Approximate Count | Status |
 |-------|----------|-------------------|--------|
-| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 251 test files (content 181, accounts 66, root/project 4) | Active |
-| Frontend Unit (Jest) | `frontend/test/` | 338 test files | Active |
-| Frontend E2E (Playwright) | `frontend/e2e/` | 207 spec files across admin, auth, blog, layout, proposal, public, platform, visual | Active |
+| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 252 test files (content 182, accounts 66, root/project 4) | Active |
+| Frontend Unit (Jest) | `frontend/test/` | 339 test files | Active |
+| Frontend E2E (Playwright) | `frontend/e2e/` | 208 spec files across admin, auth, blog, layout, proposal, public, platform, visual | Active |
 | Quality Gate | `scripts/test_quality_gate.py` | Re-run to confirm current score | Active |
 
 ---
