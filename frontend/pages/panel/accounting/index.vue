@@ -73,7 +73,7 @@
         >
           <AccountingStatCard
             data-testid="accounting-card-expected-month"
-            :label="`Ingreso esperado · ${expectedMonthLabel}`"
+            :label="`Pendiente por cobrar · ${expectedMonthLabel}`"
             :value="money(summary.expected_current_month?.total)"
           />
           <AccountingStatCard
