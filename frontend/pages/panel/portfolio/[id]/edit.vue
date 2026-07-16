@@ -120,7 +120,7 @@
       <fieldset class="border border-border-default rounded-xl p-5 space-y-3">
         <legend class="text-sm font-medium text-text-default px-2">Publicación</legend>
         <label class="inline-flex items-center cursor-pointer select-none gap-3">
-          <BaseToggle v-model="form.is_published" size="sm" aria-label="Publicado" />
+          <BaseToggle v-model="form.is_published" size="sm" />
           <span class="text-sm text-text-default">Publicado</span>
         </label>
       </fieldset>

@@ -67,7 +67,7 @@
           </div>
           <div class="flex items-end">
             <label class="inline-flex items-center cursor-pointer select-none gap-3">
-              <BaseToggle v-model="form.is_featured" size="sm" aria-label="Destacado" />
+              <BaseToggle v-model="form.is_featured" size="sm" />
               <span class="text-sm text-text-default">Destacado</span>
             </label>
           </div>

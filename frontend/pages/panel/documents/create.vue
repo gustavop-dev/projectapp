@@ -110,7 +110,7 @@
                 :key="option.key"
                 class="flex items-center gap-3 cursor-pointer py-1.5 px-1 select-none"
               >
-                <BaseToggle v-model="form[option.key]" :aria-label="option.label" />
+                <BaseToggle v-model="form[option.key]" />
                 <span class="text-sm font-medium text-text-default">{{ option.label }}</span>
               </label>
             </div>
