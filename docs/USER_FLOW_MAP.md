@@ -628,6 +628,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch B — JSON import] Admin switches to "Importar JSON" tab (see `admin-proposal-create-from-json`).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-create.spec.js`
+- **Known gaps:** Hosting defaults seeding on mount (hosting_percent + hosting_discount_* from GET `proposals/defaults`, 2026-07) is not asserted — the spec's defaults mock only carries `expiration_days`. The JSON-tab `total_investment` now uses `BaseCurrencyInput` (live thousand separators) and its formatting is not asserted.
 
 ### FLOW: `admin-proposal-create-from-json`
 
@@ -714,6 +715,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch C — item traceability] In the Det. técnico tab, each requirement shows "Vincular a ítems comerciales" checkboxes (grouped by functional_requirements card) that write `linked_item_ids`; saving persists them via the section update endpoint. These links power the public nested requirements modal and the commercial PDF sub-rows.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-edit.spec.js` (includes linked_item_ids save test)
+- **Known gaps:** The automations toggle now uses positive polarity (ON = automations running, 2026-07); no E2E asserts knob position / `aria-checked`, and the toggle has no `data-testid` (only `aria-label="Activar automatizaciones"`).
 
 ### FLOW: `admin-proposal-slug-edit`
 
@@ -766,6 +768,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **E2E Spec:** `e2e/admin/admin-proposal-section-form.spec.js`
 - **Unit Tests:** `test/components/SectionEditor.test.js`
 - **Backend Tests:** `content/tests/views/test_section_update_views.py`
+- **Known gaps:** The `commercial_conditions` and `value_added_modules` editors are not exercised by the spec; their money fields (`hourlyRate` base and per-package, `min_price_usd/cop`) now use `BaseCurrencyInput` (2026-07).
 
 ### FLOW: `admin-proposal-section-edit-paste`
 
@@ -1480,6 +1483,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   8. [Optional] When a module minimum is not met, the "Disponible en proyectos desde $X" badge renders; a duration badge renders when `duration_months` is set.
   9. [Optional] Clicking "Términos y condiciones" opens the `ModuleTermsModal` with the module terms, without opening the detail modal.
 - **Coverage:** ✅ Covered — `frontend/e2e/proposal/proposal-value-added-modules.spec.js` (card grid, condition badges, and terms modal)
+- **Known gaps:** The terms modal now renders `**bold**` via `renderInlineBold` (2026-07) but the spec's mock terms carry no `**` markers, so bold output is unasserted. The canonical card order (admin → manual → kpi_dashboard → analytics → ai_automation, 2026-07) is not asserted either.
 
 ### FLOW: `proposal-calculator-modules`
 
@@ -2060,7 +2064,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/hour-packages`
-- **Description:** View the hour-package catalog filtered by nationality tabs (COL/MEX/USA); prices show in the currency derived from the nationality (COL→COP, MEX/USA→USD) with computed effective rate and total.
+- **Description:** View the hour-package catalog filtered by nationality tabs (COL/EXT/USA); prices show in the currency derived from the nationality (COL→COP, EXT/USA→USD) with computed effective rate and total.
 - **Steps:**
   1. Admin navigates to `/panel/hour-packages`.
   2. Packages load from API (`GET /api/hour-packages/admin/?nationality=COL`) — Colombia tab is active by default.
@@ -2096,7 +2100,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Steps:**
   1. Admin switches the page section segmented to "Configuración".
   2. Saving a default view mode PATCHes `/api/hour-packages/admin/settings/update/` and toasts.
-  3. "Restablecer" per nationality opens a ConfirmModal and POSTs `/api/hour-packages/admin/restore-defaults/`; the catalog of that country is replaced with the default ladder (1h/10h/20h/60h/180h).
+  3. "Restablecer" per nationality opens a ConfirmModal and POSTs `/api/hour-packages/admin/restore-defaults/`; the catalog of that country is replaced with the default ladder (1h/20h/60h/180h).
 - **Coverage:** ⚠️ Missing
 - **E2E Spec:** _pending_
 
