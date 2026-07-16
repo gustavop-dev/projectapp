@@ -238,6 +238,157 @@ class TestIncomeExpenseMeta:
         assert meta['received_pct'] is None
         assert meta['top_income'] is None
 
+    def test_income_meta_reports_lost_total_without_touching_the_rest(
+        self, super_client, make_income,
+    ):
+        from content.utils import today_bogota
+
+        month_start = today_bogota().replace(day=1)
+        make_income(
+            kind=IncomeRecord.Kind.EXPECTED, period_date=month_start,
+            total_amount=Decimal('2000.00'),
+        )
+        make_income(
+            concept='Entrega grande', kind=IncomeRecord.Kind.LIQUID,
+            period_date=month_start, total_amount=Decimal('1000.00'),
+        )
+        make_income(
+            concept='Catherine Ruiz Candles', kind=IncomeRecord.Kind.LOST,
+            period_date=month_start, total_amount=Decimal('460000.00'),
+        )
+        meta = super_client.get('/api/accounting/incomes/').data['meta']
+        assert meta['lost_total'] == '460000.00'
+        assert meta['expected_total'] == '2000.00'
+        assert meta['liquid_total'] == '1000.00'
+        assert meta['received_pct'] == 50
+        assert meta['top_income']['concept'] == 'Entrega grande'
+
+    def test_meta_counts_an_expected_once_when_it_has_two_liquid_children(
+        self, super_client, make_income,
+    ):
+        """Regression: the paid_amount annotation must not multiply rows.
+
+        A Sum() over the reverse FK would join one row per child and report
+        expected_total as 4000.00 here.
+        """
+        from content.utils import today_bogota
+
+        month_start = today_bogota().replace(day=1)
+        expected = make_income(
+            kind=IncomeRecord.Kind.EXPECTED, period_date=month_start,
+            total_amount=Decimal('2000.00'),
+        )
+        for amount in ('500.00', '300.00'):
+            make_income(
+                concept='Abono', kind=IncomeRecord.Kind.LIQUID,
+                period_date=month_start, total_amount=Decimal(amount),
+                expected_income=expected,
+            )
+        meta = super_client.get('/api/accounting/incomes/').data['meta']
+        assert meta['expected_total'] == '2000.00'
+        assert meta['liquid_total'] == '800.00'
+
+
+@pytest.mark.django_db
+class TestIncomePaymentState:
+    def test_expected_row_reports_paid_pending_and_status(
+        self, super_client, make_income,
+    ):
+        expected = make_income(
+            kind=IncomeRecord.Kind.EXPECTED,
+            total_amount=Decimal('1000.00'),
+        )
+        make_income(
+            kind=IncomeRecord.Kind.LIQUID, total_amount=Decimal('400.00'),
+            expected_income=expected,
+        )
+        rows = super_client.get('/api/accounting/incomes/').data['results']
+        row = next(r for r in rows if r['id'] == expected.id)
+        assert row['paid_amount'] == '400.00'
+        assert row['pending_amount'] == '600.00'
+        assert row['payment_status'] == 'partial'
+        assert row['payment_status_label'] == 'Parcial'
+
+    def test_liquid_and_lost_rows_carry_no_payment_state(
+        self, super_client, make_income,
+    ):
+        make_income(kind=IncomeRecord.Kind.LIQUID)
+        make_income(kind=IncomeRecord.Kind.LOST)
+        rows = super_client.get('/api/accounting/incomes/').data['results']
+        for row in rows:
+            assert row['paid_amount'] is None
+            assert row['pending_amount'] is None
+            assert row['payment_status'] is None
+            assert row['payment_status_label'] is None
+
+    def test_single_record_endpoint_computes_state_without_the_annotation(
+        self, super_client, make_income,
+    ):
+        """retrieve/create/update serialize a bare instance, not the list qs."""
+        expected = make_income(
+            kind=IncomeRecord.Kind.EXPECTED, total_amount=Decimal('1000.00'),
+        )
+        make_income(
+            kind=IncomeRecord.Kind.LIQUID, total_amount=Decimal('1000.00'),
+            expected_income=expected,
+        )
+        row = super_client.get(f'/api/accounting/incomes/{expected.id}/').data
+        assert row['paid_amount'] == '1000.00'
+        assert row['pending_amount'] == '0.00'
+        assert row['payment_status'] == 'paid'
+
+    def test_a_lost_child_is_not_counted_as_payment(
+        self, super_client, make_income,
+    ):
+        expected = make_income(
+            kind=IncomeRecord.Kind.EXPECTED, total_amount=Decimal('1000.00'),
+        )
+        make_income(
+            kind=IncomeRecord.Kind.LOST, total_amount=Decimal('1000.00'),
+            expected_income=expected,
+        )
+        row = super_client.get(f'/api/accounting/incomes/{expected.id}/').data
+        assert row['paid_amount'] == '0.00'
+        assert row['payment_status'] == 'pending'
+
+    def test_overpaid_row_is_paid_and_never_reports_negative_pending(
+        self, super_client, make_income,
+    ):
+        expected = make_income(
+            kind=IncomeRecord.Kind.EXPECTED, total_amount=Decimal('100.00'),
+        )
+        make_income(
+            kind=IncomeRecord.Kind.LIQUID, total_amount=Decimal('900.00'),
+            expected_income=expected,
+        )
+        row = super_client.get(f'/api/accounting/incomes/{expected.id}/').data
+        assert row['payment_status'] == 'paid'
+        assert row['pending_amount'] == '0.00'
+
+    def test_liquidating_creates_a_linked_liquid_row_and_keeps_the_expected(
+        self, super_client, make_income,
+    ):
+        expected = make_income(
+            kind=IncomeRecord.Kind.EXPECTED, period_date=date(2026, 8, 1),
+            total_amount=Decimal('1000.00'),
+        )
+        response = super_client.post(
+            '/api/accounting/incomes/create/',
+            income_payload(
+                kind='liquid', period_date='2026-11',
+                total_amount='700.00', expected_income=expected.id,
+            ),
+            format='json',
+        )
+        assert response.status_code == 201
+        liquid = IncomeRecord.objects.get(id=response.data['id'])
+        assert liquid.expected_income_id == expected.id
+        assert liquid.period_date == date(2026, 11, 1)
+        assert liquid.pocket_movement is None
+        expected.refresh_from_db()
+        assert expected.kind == IncomeRecord.Kind.EXPECTED
+        assert expected.total_amount == Decimal('1000.00')
+
     def test_expense_meta_totals_split_and_top(self, super_client):
         from content.utils import today_bogota
 

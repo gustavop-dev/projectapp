@@ -12,7 +12,7 @@ from content.models import CreditCardTransaction
 from content.permissions import IsSuperUser
 from content.services import accounting_export_service
 from content.utils import today_bogota
-from content.views.accounting import _ENTITIES, _apply_filters
+from content.views.accounting import _ENTITIES, _apply_filters, base_queryset
 
 XLSX_CONTENT_TYPE = (
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -52,7 +52,7 @@ def export_accounting_records(request):
         )
 
     config = _ENTITIES[section]
-    queryset = config['model'].objects.all()
+    queryset = base_queryset(config)
     try:
         queryset = _apply_filters(queryset, request.query_params, config)
     except ValueError as exc:

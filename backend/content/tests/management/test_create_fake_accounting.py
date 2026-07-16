@@ -27,6 +27,36 @@ class TestCreateFakeAccounting:
             source_ref='fake:accounting',
         ).exists()
 
+    def test_covers_every_income_kind_and_fulfilment_state(self):
+        """The Ingresos tab renders Pagado/Parcial/Pendiente plus Perdido.
+
+        Without a row in each, those UI paths ship unexercised by hand.
+        """
+        call_command('create_fake_accounting', '--count', '12')
+        kinds = set(
+            IncomeRecord.objects.values_list('kind', flat=True).distinct(),
+        )
+        assert kinds == {'expected', 'liquid', 'lost'}
+
+        states = set()
+        for expected in IncomeRecord.objects.filter(kind='expected'):
+            paid = sum(
+                child.total_amount
+                for child in expected.liquid_records.filter(kind='liquid')
+            )
+            if not paid:
+                states.add('pending')
+            elif paid < expected.total_amount:
+                states.add('partial')
+            else:
+                states.add('paid')
+        assert states == {'pending', 'partial', 'paid'}
+
+    def test_written_off_income_never_has_payments(self):
+        call_command('create_fake_accounting', '--count', '12')
+        for lost in IncomeRecord.objects.filter(kind='lost'):
+            assert not lost.liquid_records.exists()
+
     def test_seeds_notification_recipients_when_empty(self):
         call_command('create_fake_accounting', '--count', '2')
         settings_obj = AccountingSettings.load()

@@ -7,16 +7,21 @@ class IncomeRecord(PartnerSplitMixin, AccountingRecordBase):
     """
     Income entry of the accounting module.
 
-    A single model covers both expected income (projection) and liquid
-    income (actually received): both share the same shape and the core
-    dashboard question — expected vs liquid difference — becomes a
-    single-table aggregate. A liquid record may point to the expected
-    record it fulfills via `expected_income`.
+    A single model covers expected income (projection), liquid income
+    (actually received) and lost income (written off): they share the same
+    shape and the core dashboard question — expected vs liquid difference —
+    becomes a single-table aggregate. A liquid record may point to the
+    expected record it fulfills via `expected_income`.
+
+    Every aggregate filters `kind` explicitly, so `LOST` rows drop out of
+    the projection and the utility without any of them having to know the
+    kind exists.
     """
 
     class Kind(models.TextChoices):
         EXPECTED = 'expected', 'Esperado'
         LIQUID = 'liquid', 'Líquido'
+        LOST = 'lost', 'Perdido'
 
     class Destination(models.TextChoices):
         PARTNERS = 'partners', 'Socios'

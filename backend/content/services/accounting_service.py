@@ -16,7 +16,8 @@ from datetime import date
 from decimal import Decimal
 
 from django.db import transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, DecimalField, F, OuterRef, Q, Subquery, Sum, Value
+from django.db.models.functions import Coalesce, Greatest
 
 from content.api_errors import ProposalActionError
 from content.utils import format_cop_email, today_bogota
@@ -662,6 +663,38 @@ def _sum(queryset, field):
     return queryset.aggregate(total=Sum(field))['total'] or Decimal('0')
 
 
+MONEY_FIELD = DecimalField(max_digits=14, decimal_places=2)
+_ZERO_MONEY = Value(Decimal('0.00'), output_field=MONEY_FIELD)
+
+
+def paid_amount_subquery():
+    """Sum of the liquid income already fulfilling each expected record.
+
+    A correlated scalar subquery rather than a Sum over the reverse FK on
+    purpose: a join annotation is an aggregate, which pushes `.aggregate()`
+    calls over the same queryset (`_income_meta`) onto Django's
+    subquery-wrapping path and adds a GROUP BY that `.values()` callers
+    can silently regroup. A Subquery is not an aggregate, so every existing
+    query over an annotated queryset compiles exactly as it does today.
+
+    The `kind=LIQUID` filter is load-bearing, not defensive: `limit_choices_to`
+    constrains the FK's target, not its source, so a lost record may point at
+    an expected parent and must never be counted as payment.
+    """
+    liquid = (
+        IncomeRecord.objects
+        .filter(expected_income=OuterRef('pk'), kind=IncomeRecord.Kind.LIQUID)
+        .values('expected_income')
+        .annotate(total=Sum('total_amount'))
+        .values('total')[:1]
+    )
+    return Coalesce(
+        Subquery(liquid, output_field=MONEY_FIELD),
+        _ZERO_MONEY,
+        output_field=MONEY_FIELD,
+    )
+
+
 def pocket_balance(as_of=None):
     """Current pocket balance: Sum(in) - Sum(out) up to `as_of`."""
     queryset = PocketMovement.objects.all()
@@ -850,22 +883,33 @@ def latest_card_snapshots():
 
 
 def expected_current_month():
-    """Expected company income for the real current month.
+    """Company income still pending to collect for the real current month.
+
+    Nets out the liquid income already linked to each expected record: the
+    card answers "what is left to come in", not "what was projected". The
+    full projection stays in `expected_total` and `monthly_breakdown`, which
+    is what makes the expected-vs-liquid comparison meaningful.
 
     Deliberately ignores the dashboard `year` selector: the card always
     reports the month we are actually living in, like `ads.current_month_total`.
     """
     today = today_bogota()
     month_date = date(today.year, today.month, 1)
-    total = _sum(
-        IncomeRecord.objects.filter(
-            kind=IncomeRecord.Kind.EXPECTED,
-            ledger=Ledger.COMPANY,
-            period_date__year=today.year,
-            period_date__month=today.month,
+    total = IncomeRecord.objects.filter(
+        kind=IncomeRecord.Kind.EXPECTED,
+        ledger=Ledger.COMPANY,
+        period_date__year=today.year,
+        period_date__month=today.month,
+    ).annotate(
+        paid=paid_amount_subquery(),
+    ).annotate(
+        # Clamped per row: without this an overpaid record would cancel out
+        # a genuinely pending sibling and understate the card.
+        pending=Greatest(
+            F('total_amount') - F('paid'), _ZERO_MONEY,
+            output_field=MONEY_FIELD,
         ),
-        'total_amount',
-    )
+    ).aggregate(total=Sum('pending'))['total'] or Decimal('0')
     return {
         'period': month_period(month_date),
         'label': month_label(month_date),

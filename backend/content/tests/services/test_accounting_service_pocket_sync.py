@@ -135,6 +135,56 @@ class TestIncomePocketSync:
         assert income.pocket_movement is None
         assert not PocketMovement.objects.filter(pk=movement_pk).exists()
 
+    def test_writing_off_a_pocket_income_removes_its_movement(self, superuser):
+        """kind=lost drops `wants_movement`, so the pocket side must unlink.
+
+        The destination has to move back to partners in the same PATCH:
+        pocket is liquid-only, which is exactly what the edit modal enforces.
+        """
+        income = create_pocket_income(superuser)
+        movement_pk = income.pocket_movement.pk
+        serializer = make_serializer(
+            IncomeRecordCreateUpdateSerializer,
+            {'kind': 'lost', 'destination': 'partners'},
+            instance=income,
+        )
+        with patch.object(accounting_service, '_notify'):
+            accounting_service.update_record(
+                EntityType.INCOME, income, serializer, superuser,
+            )
+        income.refresh_from_db()
+        assert income.kind == IncomeRecord.Kind.LOST
+        assert income.pocket_movement is None
+        assert not PocketMovement.objects.filter(pk=movement_pk).exists()
+
+    def test_liquidating_an_expected_creates_no_movement_for_partners(
+        self, superuser,
+    ):
+        expected = IncomeRecord.objects.create(
+            concept='Kore - Inicio 40%',
+            kind=IncomeRecord.Kind.EXPECTED,
+            period_date=date(2026, 8, 1),
+            total_amount=Decimal('1000000.00'),
+        )
+        serializer = make_serializer(
+            IncomeRecordCreateUpdateSerializer,
+            {
+                'concept': 'Kore - Inicio 40%',
+                'kind': 'liquid',
+                'destination': 'partners',
+                'period_date': '2026-11',
+                'total_amount': '700000.00',
+                'expected_income': expected.pk,
+            },
+        )
+        with patch.object(accounting_service, '_notify'):
+            liquid = accounting_service.create_record(
+                EntityType.INCOME, serializer, superuser,
+            )
+        assert liquid.expected_income_id == expected.pk
+        assert liquid.pocket_movement is None
+        assert not PocketMovement.objects.exists()
+
     def test_income_delete_removes_linked_movement(self, superuser):
         income = create_pocket_income(superuser)
         movement_pk = income.pocket_movement.pk
