@@ -744,6 +744,25 @@ def _year_split_sums(year):
     }
 
 
+def year_totals(year):
+    """Public seam over the company-ledger year aggregates.
+
+    Other services (e.g. the global panel dashboard) consume this instead
+    of reaching into the private ``_year_split_sums`` helper.
+    """
+    sums = _year_split_sums(year)
+    expected_total = sums['expected']['total']
+    liquid_total = sums['liquid']['total']
+    expenses_total = sums['expenses']['total']
+    return {
+        'expected_total': expected_total,
+        'liquid_total': liquid_total,
+        'expenses_total': expenses_total,
+        'expected_utility': expected_total - expenses_total,
+        'liquid_utility': liquid_total - expenses_total,
+    }
+
+
 def _personal_sums(year):
     """Per-partner totals of their personal-ledger records."""
     result = {}
