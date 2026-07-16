@@ -173,8 +173,8 @@ test.describe('Admin Accounting Filters', () => {
     await openFilterPanel(page);
 
     await filterPanel(page).getByRole('button', { name: /^Total/ }).click();
-    await page.getByPlaceholder('Desde').fill('2000000');
-    await page.getByPlaceholder('Hasta').fill('4000000');
+    await page.getByPlaceholder('Mín').fill('2000000');
+    await page.getByPlaceholder('Máx').fill('4000000');
 
     await expect(visibleRows(page)).toHaveCount(2);
     await expect(page.getByText('Vastago (Fase 1) - Inicio 40%')).toBeVisible();
@@ -278,7 +278,7 @@ test.describe('Admin Accounting Filters', () => {
     await openFilterPanel(page);
 
     await filterPanel(page).getByRole('button', { name: /^Total/ }).click();
-    await page.getByPlaceholder('Desde').pressSequentially('2000000');
+    await page.getByPlaceholder('Mín').pressSequentially('2000000');
 
     // Live (debounced) emission: rows shrink without leaving the input.
     await expect(visibleRows(page)).toHaveCount(2, { timeout: 10_000 });

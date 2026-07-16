@@ -2225,8 +2225,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   5. "Documento del extracto": Subir PDF / Ver PDF / Reemplazar / Eliminar (with confirm) manage the bank PDF kept as documentation; the statement reminder email nags every 8 days until the previous month is processed with its PDF attached.
   6. "Comercios aprendidos" lists merchant aliases with delete.
   7. "Copiar prompt" copies the Spanish kick-off prompt for the claude.ai accounting connector (statements are created from chat via `create_statement`).
-- **Coverage:** ⚠️ Missing
-- **E2E Spec:** _pending_
+- **Coverage:** ✅ Covered (grid year options + "No aplica", detail load, manual tx add, finalize lifecycle, PDF delete with confirm; header-edit modal, forced close, reopen and aliases remain unasserted)
+- **E2E Spec:** `e2e/admin/admin-accounting-statements-card-catalog.spec.js`
 
 ### FLOW: `admin-clients-config-tab`
 
@@ -5811,8 +5811,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   2. "Agregar tarjeta" appends an empty row; per-row Guardar POSTs `/api/accounting/credit-cards/create/` (or PATCHes `.../update/` for existing rows).
   3. Editing the cupo changes future snapshot computations only (historic debts untouched).
   4. Trash icon asks for confirmation; DELETE `.../delete/` returns `credit_card_referenced` (400) when history references the name.
-- **Coverage:** ⚠️ Missing
-- **E2E Spec:** _pending_
+- **Coverage:** ✅ Covered (list, draft-row create, cupo patch, reference-blocked delete with Spanish error)
+- **E2E Spec:** `e2e/admin/admin-accounting-statements-card-catalog.spec.js`
 
 ### FLOW: `admin-accounting-ads`
 
@@ -5913,7 +5913,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-cards` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-cards.spec.js` |
 | `admin-accounting-export` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-export.spec.js` |
 | `admin-accounting-settings` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
-| `admin-accounting-card-catalog` | admin | superuser | P2 | ❌ Missing | — |
+| `admin-accounting-card-catalog` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-statements-card-catalog.spec.js` |
 | `admin-accounting-ads` | admin | superuser | P3 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
 | `admin-accounting-hosting-billing` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js` |
 | `admin-accounting-collections` | admin | superuser | P2 | ❌ Missing | — |
