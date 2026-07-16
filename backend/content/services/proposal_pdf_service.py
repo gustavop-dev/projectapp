@@ -374,63 +374,19 @@ def _render_context_diagnostic(c, data, _proposal, ps=None, y=None):
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
     y -= 8
 
+    y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []), ps=ps)
+    opp = _safe(data, 'opportunity')
+    if opp:
+        y -= 6
+        opp_title = _safe(data, 'opportunityTitle')
+        y = _draw_subtitle(c, y, opp_title or 'La oportunidad', ps=ps)
+        y = _draw_paragraphs(c, y, [opp], ps=ps)
+
     issues = _safe(data, 'issues', [])
-    issues_title = _safe(data, 'issuesTitle', 'Problemas Identificados')
-    content_top = y
-
     if issues:
-        sb_h = _sidebar_box_height(issues)
-        paragraphs = _safe(data, 'paragraphs', [])
-        para_h = _estimate_text_height(paragraphs, TEXT_AREA_W)
-        opp = _safe(data, 'opportunity')
-        opp_title = _safe(data, 'opportunityTitle')
-        full_left_h = para_h
-        if opp:
-            full_left_h += 30 + _estimate_text_height([opp], TEXT_AREA_W)
-        avail = content_top - MARGIN_B
-
-        # Tier 1: full two-column (paragraphs + opportunity alongside sidebar)
-        full_need = max(sb_h, full_left_h) + 20
-        # Tier 2: partial two-column (paragraphs alongside sidebar,
-        #         opportunity rendered below at full width)
-        partial_need = max(sb_h, para_h) + 20
-
-        if avail > full_need:
-            text_w = TEXT_AREA_W
-            y = _draw_paragraphs(c, y, paragraphs, max_width=text_w, ps=ps)
-            if opp:
-                y -= 6
-                y = _draw_subtitle(c, y, opp_title or 'La oportunidad', ps=ps)
-                y = _draw_paragraphs(c, y, [opp], max_width=text_w, ps=ps)
-            sb = _draw_sidebar_box(c, content_top, issues_title, issues)
-            y = min(y, sb - 8)
-        elif avail > partial_need:
-            text_w = TEXT_AREA_W
-            y = _draw_paragraphs(c, y, paragraphs, max_width=text_w, ps=ps)
-            sb = _draw_sidebar_box(c, content_top, issues_title, issues)
-            y = min(y, sb - 8)
-            if opp:
-                y -= 6
-                y = _draw_subtitle(c, y, opp_title or 'La oportunidad', ps=ps)
-                y = _draw_paragraphs(c, y, [opp], ps=ps)
-        else:
-            # Tier 3: linear fallback — everything full-width
-            y = _draw_paragraphs(c, y, paragraphs, ps=ps)
-            if opp:
-                y -= 6
-                y = _draw_subtitle(c, y, opp_title or 'La oportunidad', ps=ps)
-                y = _draw_paragraphs(c, y, [opp], ps=ps)
-            y -= 6
-            y = _draw_subtitle(c, y, issues_title, ps=ps)
-            y = _draw_bullet_list(c, y, issues, ps=ps)
-    else:
-        y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []), ps=ps)
-        opp_title = _safe(data, 'opportunityTitle')
-        opp = _safe(data, 'opportunity')
-        if opp:
-            y -= 6
-            y = _draw_subtitle(c, y, opp_title or 'La oportunidad', ps=ps)
-            y = _draw_paragraphs(c, y, [opp], ps=ps)
+        y -= 8
+        issues_title = _safe(data, 'issuesTitle', 'Problemas Identificados')
+        y = _draw_badge_panel(c, y, issues_title, issues, ps=ps)
     return y
 
 
