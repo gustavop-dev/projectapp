@@ -19,11 +19,12 @@ export const vAutoResize = {
 
     el._autoResizeMinHeight = computeMinHeight();
     el._autoResizeHandler = () => {
+      // Collapse first so scrollHeight reports the content height rather than
+      // the current (possibly larger) box, then always restore a px height —
+      // leaving the element at `height:auto` would clip it to `rows` under the
+      // `overflow:hidden` set above.
       el.style.height = 'auto';
-      const next = Math.max(el.scrollHeight, el._autoResizeMinHeight);
-      if (el._autoResizeLastHeight === next) return;
-      el._autoResizeLastHeight = next;
-      el.style.height = next + 'px';
+      el.style.height = Math.max(el.scrollHeight, el._autoResizeMinHeight) + 'px';
     };
     el.addEventListener('input', el._autoResizeHandler);
     el._autoResizeHandler();

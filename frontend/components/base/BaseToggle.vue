@@ -10,10 +10,12 @@ const props = defineProps({
   // Color shown when modelValue is true. Defaults to brand primary.
   // Use a semantic class like 'bg-warning-strong' to convey state instead of action.
   onClass: { type: String, default: 'bg-primary' },
-  // Color shown when modelValue is false. A brand-tinted border keeps the
-  // (near-white) off track visible on light surfaces — a plain neutral border
-  // is out-competed by the base `border-transparent`, so force it important.
-  offClass: { type: String, default: 'bg-surface-raised !border-primary' },
+  // Color shown when modelValue is false. The thumb is white, so the off track
+  // needs a mid tone to read as a switch rather than a lone floating button.
+  // `text-subtle` is #9CA3AF in both themes and exposes an -rgb triplet, so the
+  // alpha modifier composes correctly — unlike surface-raised/input-border,
+  // whose alpha is baked in and must not take opacity modifiers in dark.
+  offClass: { type: String, default: 'bg-text-subtle/45' },
 })
 
 const emit = defineEmits(['update:modelValue'])

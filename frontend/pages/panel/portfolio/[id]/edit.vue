@@ -119,11 +119,10 @@
       <!-- Publishing -->
       <fieldset class="border border-border-default rounded-xl p-5 space-y-3">
         <legend class="text-sm font-medium text-text-default px-2">Publicación</legend>
-        <label class="relative inline-flex items-center cursor-pointer gap-3">
-          <input v-model="form.is_published" type="checkbox" class="sr-only peer" />
-          <div class="w-9 h-5 bg-surface-raised peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-surface after:border-border-default after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
+        <div class="inline-flex items-center gap-3">
+          <BaseToggle v-model="form.is_published" size="sm" aria-label="Publicado" />
           <span class="text-sm text-text-default">Publicado</span>
-        </label>
+        </div>
       </fieldset>
 
       <!-- Error + actions -->
