@@ -40,18 +40,22 @@
           <div class="mt-3 border-t border-border-default dark:border-white/[0.08] pt-3 space-y-2">
             <p class="text-[11px] text-text-muted uppercase tracking-wider">Condiciones del beneficio</p>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <FieldInput
-                :modelValue="getCond(id, 'min_price_usd')"
-                label="Precio mínimo (USD)"
-                placeholder="0 = sin mínimo"
-                @update:modelValue="setCondNum(id, 'min_price_usd', $event)"
-              />
-              <FieldInput
-                :modelValue="getCond(id, 'min_price_cop')"
-                label="Precio mínimo (COP)"
-                placeholder="0 = sin mínimo"
-                @update:modelValue="setCondNum(id, 'min_price_cop', $event)"
-              />
+              <label class="block">
+                <span class="block text-xs text-text-muted mb-0.5">Precio mínimo (USD)</span>
+                <BaseCurrencyInput
+                  :model-value="getCond(id, 'min_price_usd')"
+                  placeholder="0 = sin mínimo"
+                  @update:model-value="setCondNum(id, 'min_price_usd', $event)"
+                />
+              </label>
+              <label class="block">
+                <span class="block text-xs text-text-muted mb-0.5">Precio mínimo (COP)</span>
+                <BaseCurrencyInput
+                  :model-value="getCond(id, 'min_price_cop')"
+                  placeholder="0 = sin mínimo"
+                  @update:model-value="setCondNum(id, 'min_price_cop', $event)"
+                />
+              </label>
               <FieldInput
                 :modelValue="getCond(id, 'duration_months')"
                 label="Duración (meses)"

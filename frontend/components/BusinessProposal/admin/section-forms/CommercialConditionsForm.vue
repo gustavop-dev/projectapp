@@ -10,12 +10,15 @@
     <FieldTextarea v-model="form.packagesIntro" label="Intro de los paquetes" :rows="2" :isSingle="true" class="mt-2" />
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-      <FieldInput
-        :modelValue="form.hourlyRate"
-        label="Tarifa base por hora"
-        placeholder="90000"
-        @update:modelValue="form.hourlyRate = $event"
-      />
+      <label class="block">
+        <span class="block text-xs text-text-muted mb-0.5">Tarifa base por hora</span>
+        <BaseCurrencyInput
+          :model-value="form.hourlyRate"
+          :decimals="form.currency === 'COP' ? 0 : 2"
+          placeholder="30000"
+          @update:model-value="form.hourlyRate = $event"
+        />
+      </label>
       <label class="block">
         <span class="block text-xs text-text-muted mb-0.5">Moneda</span>
         <select
@@ -60,12 +63,15 @@
             placeholder="0"
             @update:modelValue="pkg.discountPercent = $event"
           />
-          <FieldInput
-            :modelValue="pkg.hourlyRate"
-            label="Tarifa/h (opcional)"
-            placeholder="Usa la tarifa base"
-            @update:modelValue="pkg.hourlyRate = $event"
-          />
+          <label class="block">
+            <span class="block text-xs text-text-muted mb-0.5">Tarifa/h (opcional)</span>
+            <BaseCurrencyInput
+              :model-value="pkg.hourlyRate"
+              :decimals="form.currency === 'COP' ? 0 : 2"
+              placeholder="Usa la tarifa base"
+              @update:model-value="pkg.hourlyRate = $event"
+            />
+          </label>
         </div>
         <FieldInput v-model="pkg.note" label="Nota" placeholder="Ideal para ajustes puntuales." />
       </div>

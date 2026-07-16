@@ -39,9 +39,12 @@
               </span>
             </div>
 
-            <p v-if="terms" class="text-sm text-text-default/80 font-light leading-relaxed whitespace-pre-line">
-              {{ terms }}
-            </p>
+            <!-- eslint-disable-next-line vue/no-v-html — renderInlineBold escapes all HTML first -->
+            <p
+              v-if="terms"
+              class="text-sm text-text-default/80 font-light leading-relaxed whitespace-pre-line [&_strong]:font-semibold [&_strong]:text-text-default"
+              v-html="termsHtml"
+            />
             <p v-else class="text-sm text-text-subtle font-light">
               {{ emptyLabel }}
             </p>
@@ -55,6 +58,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useProposalDarkMode } from '~/composables/useProposalDarkMode';
+import { renderInlineBold } from '~/utils/renderInlineBold';
 
 const { isDark } = useProposalDarkMode();
 
@@ -86,6 +90,8 @@ const props = defineProps({
 });
 
 defineEmits(['close']);
+
+const termsHtml = computed(() => renderInlineBold(props.terms));
 
 const kickerLabel = computed(() => (
   props.language === 'en' ? 'Terms & conditions' : 'Términos y condiciones'

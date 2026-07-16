@@ -1051,6 +1051,7 @@ export const useProposalStore = defineStore('proposals', {
             currency: 'default_currency',
             total_investment: 'default_total_investment',
             hosting_percent: 'hosting_percent',
+            hosting_discount_annual: 'hosting_discount_annual',
             hosting_discount_semiannual: 'hosting_discount_semiannual',
             hosting_discount_quarterly: 'hosting_discount_quarterly',
             expiration_days: 'expiration_days',
