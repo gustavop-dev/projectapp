@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.31.0
-> **Last updated:** 2026-07-07
+> **Version:** 2.32.0
+> **Last updated:** 2026-07-16
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -540,13 +540,71 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/`
-- **Description:** View the admin dashboard with overview of proposals and blog posts.
+- **Description:** View the redesigned global dashboard: pulse KPIs (liquid utility, active pipeline, attention count), cross-module attention radar, and finance / proposals / operations sections fed by one request to `GET /api/panel/dashboard/`.
 - **Steps:**
   1. Authenticated admin navigates to `/panel/`.
-  2. Dashboard renders with summary data.
-  3. Quick links to proposal and blog management are available.
+  2. The page fetches `GET /api/panel/dashboard/` (single consolidated payload) and shows skeletons while loading.
+  3. Pulse tiles, attention radar and the module sections render; section headers deep-link to each module.
+  4. The "+ Crear" dropdown offers quick creation shortcuts (propuesta, documento, tarea, gasto).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
+
+### FLOW: `admin-dashboard-finance-gate`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/`
+- **Description:** Financial KPIs (liquid utility pulse tile and Finanzas section) render only when the backend payload carries finance data; staff non-superusers receive `finance: null` and never see financial figures. The gate is enforced server-side in `panel_dashboard` view.
+- **Steps:**
+  1. Staff (non-superuser) admin opens `/panel/`.
+  2. `GET /api/panel/dashboard/` responds with `finance: null` and no finance-derived attention items.
+  3. The dashboard renders proposals and operations only; no utility tile or Finanzas section.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
+
+### FLOW: `admin-dashboard-attention-radar`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/`
+- **Description:** Cross-module actionable list: overdue collection accounts, failed emails (7d), overdue tasks, proposals sent-unopened >7d and upcoming recurring payments, each with severity accent (danger/warning/info) and a deep-link to its module. Shows a positive state when nothing needs attention.
+- **Steps:**
+  1. Admin opens `/panel/` with pending items in the payload's `attention` list.
+  2. Radar renders one row per item, ordered by severity, with Spanish copy and module label.
+  3. Clicking a row navigates to the owning module (e.g. `/panel/tasks`).
+  4. With an empty list, the radar shows "Nada requiere tu atención".
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
+
+### FLOW: `admin-dashboard-error-retry`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/`
+- **Description:** A failed `GET /api/panel/dashboard/` load replaces the dashboard with a global error state; the Reintentar button refetches and restores the full dashboard once the API recovers.
+- **Steps:**
+  1. Admin opens `/panel/` while the dashboard endpoint fails (5xx).
+  2. The error state renders with a Reintentar button and a panel notification fires.
+  3. Clicking Reintentar refetches; on success the pulse/radar/sections render.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
+
+### FLOW: `admin-dashboard-quick-create`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/`
+- **Description:** The dashboard header "+ Crear" dropdown offers quick navigation to create a proposal, document, task or expense.
+- **Steps:**
+  1. Admin opens `/panel/` and clicks "+ Crear".
+  2. The dropdown lists Propuesta / Documento / Tarea / Gasto.
+  3. Selecting an option navigates to the corresponding module route.
+- **Coverage:** ⚠️ Pending (registered, E2E spec not yet implemented)
+- **E2E Spec:** _suggested:_ `e2e/admin/admin-dashboard.spec.js` (add a quick-create test)
 
 ### FLOW: `admin-proposal-list`
 
@@ -2579,6 +2637,10 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-login` | auth | admin | P1 | ✅ Covered | `e2e/auth/auth-admin-login.spec.js` |
 | `admin-impersonate-user` | admin | admin | P2 | ⚠️ Pending | _suggested:_ `e2e/admin/admin-impersonate-user.spec.js` |
 | `admin-dashboard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
+| `admin-dashboard-finance-gate` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
+| `admin-dashboard-attention-radar` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
+| `admin-dashboard-error-retry` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
+| `admin-dashboard-quick-create` | admin | admin | P3 | ⚠️ Pending | _suggested:_ `e2e/admin/admin-dashboard.spec.js` |
 | `admin-proposal-list` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
 | `admin-proposal-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-proposal-create-from-json` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
@@ -4380,12 +4442,12 @@ No active browser flow is registered for client profile editing at this time.
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/`
-- **Description:** Dashboard shows a dedicated pipeline-value KPI card summarizing the total investment currently active in the sales pipeline.
+- **Description:** Dashboard shows the pipeline pulse tile summarizing the total investment currently active in the sales pipeline, fed by the consolidated `GET /api/panel/dashboard/` payload.
 - **Steps:**
   1. Admin opens the panel dashboard.
-  2. Proposal dashboard data loads from `GET /api/proposals/dashboard/`.
-  3. Pipeline KPI card renders the total active value and proposal count.
-  4. Card is hidden when the backend returns no pipeline value.
+  2. Consolidated data loads from `GET /api/panel/dashboard/`.
+  3. The pipeline pulse tile renders the total active value and proposal count.
+  4. The tile shows a dash when the backend returns no pipeline value.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
 
