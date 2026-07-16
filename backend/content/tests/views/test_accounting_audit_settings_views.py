@@ -54,6 +54,23 @@ class TestChangeLogEndpoint:
         )
         assert response.data['count'] == 1
 
+    def test_filters_by_actor_and_date_range(self, super_client):
+        seed_logs(2)
+        seed_logs(1, actor_username='gustavo', object_repr='Fila de Gustavo')
+        response = super_client.get(
+            '/api/accounting/change-logs/'
+            '?actor=gus&date_from=2020-01-01&date_to=2030-01-01',
+        )
+        assert response.data['count'] == 1
+        assert response.data['results'][0]['object_repr'] == 'Fila de Gustavo'
+
+    def test_invalid_date_filter_returns_400(self, super_client):
+        seed_logs(1)
+        response = super_client.get(
+            '/api/accounting/change-logs/?date_from=notadate',
+        )
+        assert response.status_code == 400
+
     def test_requires_superuser(self, admin_client):
         assert admin_client.get(
             '/api/accounting/change-logs/',
