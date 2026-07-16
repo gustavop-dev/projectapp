@@ -40,13 +40,13 @@
           <div class="mt-3 border-t border-border-default dark:border-white/[0.08] pt-3 space-y-2">
             <p class="text-[11px] text-text-muted uppercase tracking-wider">Condiciones del beneficio</p>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <FieldInput
+              <FieldCurrency
                 :modelValue="getCond(id, 'min_price_usd')"
                 label="Precio mínimo (USD)"
                 placeholder="0 = sin mínimo"
                 @update:modelValue="setCondNum(id, 'min_price_usd', $event)"
               />
-              <FieldInput
+              <FieldCurrency
                 :modelValue="getCond(id, 'min_price_cop')"
                 label="Precio mínimo (COP)"
                 placeholder="0 = sin mínimo"
@@ -86,7 +86,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { FieldInput, FieldTextarea } from './fields.js';
+import { FieldCurrency, FieldInput, FieldTextarea } from './fields.js';
 import { VALUE_ADDED_DEFAULT_MODULE_IDS } from '~/components/BusinessProposal/admin/sectionEditorUtils.js';
 
 const props = defineProps({

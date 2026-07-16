@@ -137,6 +137,24 @@ class TestSeedDefaultTabs:
         assert not SavedFilterTab.objects.filter(user=admin_a).exists()
 
 
+class TestViewMapDefaultRegistry:
+    """The real registry (not the monkeypatched sample) ships view_map tabs."""
+
+    def test_view_map_registry_ships_expected_tabs(self):
+        from accounts.default_filter_tabs import DEFAULT_FILTER_TABS
+
+        assert DEFAULT_FILTER_TABS['view_map'] == [
+            {'name': 'Admin', 'filters': {'audiences': ['admin']}},
+            {'name': 'Público', 'filters': {'audiences': ['public']}},
+            {'name': 'Cliente', 'filters': {'audiences': ['client']}},
+            {'name': 'Dashboards', 'filters': {'viewTypes': ['dashboard']}},
+            {'name': 'Configuración', 'filters': {'viewTypes': ['config']}},
+        ]
+
+    def test_view_map_is_a_valid_saved_filter_tab_view(self):
+        assert 'view_map' in {choice for choice, _ in SavedFilterTab.VIEW_CHOICES}
+
+
 class TestAutoSeedOnGet:
     def test_get_with_view_auto_seeds_and_returns_defaults(
         self, api_client, admin_a, admin_a_headers,

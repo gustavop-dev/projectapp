@@ -95,6 +95,9 @@ export const PROPOSAL_COUNTDOWN_REALTIME = ['@flow:proposal-countdown-realtime',
 export const ADMIN_PROPOSAL_CREATE_AND_SEND = ['@flow:admin-proposal-create-and-send', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_CREATE_PREVIEW = ['@flow:admin-proposal-create-preview', '@module:admin', '@priority:P2'];
 export const ADMIN_DASHBOARD_PIPELINE_VALUE = ['@flow:admin-dashboard-pipeline-value', '@module:admin', '@priority:P2'];
+export const ADMIN_DASHBOARD_FINANCE_GATE = ['@flow:admin-dashboard-finance-gate', '@module:admin', '@priority:P1'];
+export const ADMIN_DASHBOARD_ATTENTION_RADAR = ['@flow:admin-dashboard-attention-radar', '@module:admin', '@priority:P1'];
+export const ADMIN_DASHBOARD_ERROR_RETRY = ['@flow:admin-dashboard-error-retry', '@module:admin', '@priority:P1'];
 export const PROPOSAL_REJECTION_OPTIONAL_REASON = ['@flow:proposal-rejection-optional-reason', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_CALCULATOR_TIMELINE = ['@flow:proposal-calculator-timeline', '@module:proposal', '@priority:P1'];
 export const ADMIN_DISCOUNT_ANALYSIS_ENHANCED = ['@flow:admin-discount-analysis-enhanced', '@module:admin', '@priority:P3'];
@@ -105,6 +108,7 @@ export const PROPOSAL_INVESTMENT_CALCULATOR = ['@flow:proposal-investment-calcul
 export const ADMIN_PROPOSAL_ACTIONS_MODAL = ['@flow:admin-proposal-actions-modal', '@module:admin', '@priority:P1'];
 export const PROPOSAL_COMMENT_FROM_CLOSING = ['@flow:proposal-comment-from-closing', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_REJECTION_SMART_RECOVERY = ['@flow:proposal-rejection-smart-recovery', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_SCHEDULE_FOLLOWUP_REMINDER = ['@flow:proposal-schedule-followup-reminder', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_FUNCTIONAL_REQUIREMENTS_MODAL = ['@flow:proposal-functional-requirements-modal', '@module:proposal', '@priority:P2'];
 export const ADMIN_PROPOSAL_ACTIVITY_LOG = ['@flow:admin-proposal-log-activity', '@module:admin', '@priority:P2'];
 

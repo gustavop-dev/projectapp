@@ -149,6 +149,15 @@ class TestRenderCommercialConditions:
             return orig(c, y, paragraphs, *a, **k)
 
         monkeypatch.setattr(pdf_mod, '_draw_paragraphs', rec)
+
+        # The scope clause renders inside a branded callout box.
+        orig_callout = pdf_mod._draw_callout_box
+
+        def rec_callout(c, y, text, *a, **k):
+            recorded.append(str(text))
+            return orig_callout(c, y, text, *a, **k)
+
+        monkeypatch.setattr(pdf_mod, '_draw_callout_box', rec_callout)
         data = {
             'index': '17', 'title': 'Condiciones comerciales',
             'packagesTitle': 'Paquetes', 'packagesIntro': 'intro-text',

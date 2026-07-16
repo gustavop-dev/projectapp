@@ -18,6 +18,8 @@ fresh defaults, so only the keys that differ need to be listed here.
 - ``accounting_*`` -> each page's ``useAccountingFilters`` defaults in
   ``frontend/pages/panel/accounting/*.vue`` (bool tabs use the strings
   ``'true'``/``'false'`` expected by ``matchBoolean``).
+- ``view_map``  -> ``frontend/composables/useViewMapFilters.js`` (categories,
+  audiences, viewTypes).
 
 Values captured from the production DB on 2026-07-09 (one tab per proposal
 status, mirrored across the client and proposal views). Re-seed with
@@ -73,6 +75,13 @@ DEFAULT_FILTER_TABS = {
         {'name': 'Anuales', 'filters': {'frequency': ['annual'], 'is_active': 'true'}},
         {'name': 'USD', 'filters': {'currency': 'USD'}},
         {'name': 'Variables', 'filters': {'cost_type': 'variable'}},
+    ],
+    'view_map': [
+        {'name': 'Admin', 'filters': {'audiences': ['admin']}},
+        {'name': 'Público', 'filters': {'audiences': ['public']}},
+        {'name': 'Cliente', 'filters': {'audiences': ['client']}},
+        {'name': 'Dashboards', 'filters': {'viewTypes': ['dashboard']}},
+        {'name': 'Configuración', 'filters': {'viewTypes': ['config']}},
     ],
     'accounting_ads': [
         {'name': 'Facebook', 'filters': {'platform': ['facebook']}},

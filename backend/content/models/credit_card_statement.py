@@ -15,13 +15,15 @@ from .accounting_base import AccountingRecordBase
 def normalize_descriptor(raw):
     """Canonical form of a statement descriptor for alias matching.
 
-    Uppercase, collapse whitespace and drop digit-only tokens (auth codes,
-    reference numbers) so 'PAYU*NETFLIX 990011' and 'payu*netflix 123' both
-    normalize to 'PAYU*NETFLIX'. Deterministic on purpose: exact matches
-    only, no fuzzy lookups.
+    Uppercase, collapse whitespace and drop digit-only tokens of 5+ digits
+    (auth codes, reference numbers) so 'PAYU*NETFLIX 990011' normalizes to
+    'PAYU*NETFLIX'. Shorter numbers stay: they are usually part of the
+    merchant's name ('HOSTEL 265', 'STUDIO 54') or a stable store number.
+    Deterministic on purpose: exact matches only, no fuzzy lookups.
     """
     return ' '.join(
-        token for token in str(raw or '').upper().split() if not token.isdigit()
+        token for token in str(raw or '').upper().split()
+        if not (token.isdigit() and len(token) >= 5)
     )
 
 
@@ -95,10 +97,14 @@ class CreditCardStatement(AccountingRecordBase):
 class CreditCardTransaction(AccountingRecordBase):
     """One billed line of a statement.
 
-    ``amount`` is the COP amount billed THIS month (an installment line
-    carries the monthly installment, not the full purchase); negatives are
-    refunds/reversals. ``raw_description`` keeps the statement text exactly
-    as printed — it feeds alias learning.
+    ``amount`` is the COP value the line contributes to the statement's
+    "Compras del mes" figure (a new installment purchase carries the FULL
+    purchase value; the installment plan lives in ``installment_number`` /
+    ``installments_total``). Reversals are negative lines flagged with
+    ``is_reversal``: they neutralize the category breakdown but are excluded
+    from the finalize sum, because the bank books them under payments, not
+    purchases. ``raw_description`` keeps the statement text exactly as
+    printed — it feeds alias learning.
     """
 
     statement = models.ForeignKey(
@@ -122,6 +128,7 @@ class CreditCardTransaction(AccountingRecordBase):
     installment_number = models.PositiveSmallIntegerField(null=True, blank=True)
     installments_total = models.PositiveSmallIntegerField(null=True, blank=True)
     is_identified = models.BooleanField(default=False)
+    is_reversal = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['transaction_date', 'id']
@@ -140,7 +147,10 @@ class MerchantAlias(AccountingRecordBase):
 
     ``match_text`` is ALWAYS stored normalized (see normalize_descriptor);
     resolution is an exact lookup on it. Approved in chat by the owner
-    before being saved — never auto-learned.
+    before being saved — never auto-learned. ``is_gateway`` marks payment
+    processors (EBANX, MERCADOPAGO, DLOCAL...) whose descriptor hides the
+    real merchant: the alias keeps the knowledge but is never auto-applied,
+    it only surfaces as a hint for manual review.
     """
 
     match_text = models.CharField(max_length=255, unique=True)
@@ -150,6 +160,7 @@ class MerchantAlias(AccountingRecordBase):
         choices=TransactionCategory.choices,
         default=TransactionCategory.OTHER,
     )
+    is_gateway = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['match_text']

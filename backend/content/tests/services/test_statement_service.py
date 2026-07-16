@@ -102,10 +102,25 @@ class TestResolveMerchants:
             default_category='software',
         )
         result = accounting_statement_service.resolve_merchants(
-            ['payu*netflix 4411', 'EMPRESA RARA SAS'],
+            ['payu*netflix 441122', 'EMPRESA RARA SAS'],
         )
         assert result['resolved'][0]['merchant_name'] == 'Netflix'
+        assert result['gateway_hints'] == []
         assert result['unresolved'] == ['EMPRESA RARA SAS']
+
+    def test_gateway_alias_returns_hint_not_resolution(self):
+        MerchantAlias.objects.create(
+            match_text='EBANX COLOMBIA SAS269', merchant_name='Hostinger',
+            default_category='software', is_gateway=True,
+        )
+        result = accounting_statement_service.resolve_merchants(
+            ['EBANX COLOMBIA SAS269'],
+        )
+        assert result['resolved'] == []
+        assert result['unresolved'] == []
+        hint = result['gateway_hints'][0]
+        assert hint['last_known_merchant'] == 'Hostinger'
+        assert 'Pasarela' in hint['note']
 
 
 class TestSaveMerchantAliases:
@@ -124,11 +139,54 @@ class TestSaveMerchantAliases:
         )
         assert MerchantAlias.objects.count() == 1
         assert first['updated_transactions'] == 1
-        # Already identified: the second pass touches nothing.
+        assert first['warning'] == ''
+        # Already identified: the second pass touches nothing and says so.
         assert second['updated_transactions'] == 0
+        assert 'ninguno coincidió' in second['warning']
         tx = statement.transactions.get()
         assert tx.merchant_name == 'Netflix'
         assert tx.is_identified is True
+
+    def test_processed_statement_saves_aliases_with_warning(self):
+        statement = _create(transactions=[{**TX, 'amount': '100000.00'}])
+        accounting_statement_service.finalize_statement(statement, None)
+        result = accounting_statement_service.save_merchant_aliases(
+            [{'raw_description': 'PAYU*NETFLIX 990011',
+              'merchant_name': 'Netflix', 'category': 'software'}],
+            None, statement_id=statement.pk,
+        )
+        # The aliases are global: they persist even if nothing applies.
+        assert MerchantAlias.objects.count() == 1
+        assert result['updated_transactions'] == 0
+        assert 'ya está procesado' in result['warning']
+        assert 'reopen_statement' in result['warning']
+
+    def test_missing_statement_saves_aliases_with_warning(self):
+        result = accounting_statement_service.save_merchant_aliases(
+            [{'raw_description': 'PAYU*NETFLIX 990011',
+              'merchant_name': 'Netflix'}],
+            None, statement_id=9999,
+        )
+        assert MerchantAlias.objects.count() == 1
+        assert result['updated_transactions'] == 0
+        assert 'no existe' in result['warning']
+
+    def test_gateway_alias_saves_but_never_applies_to_draft(self):
+        statement = _create(transactions=[{
+            **TX, 'raw_description': 'EBANX COLOMBIA SAS269',
+        }])
+        result = accounting_statement_service.save_merchant_aliases(
+            [{'raw_description': 'EBANX COLOMBIA SAS269',
+              'merchant_name': 'Hostinger', 'category': 'software',
+              'is_gateway': True}],
+            None, statement_id=statement.pk,
+        )
+        alias = MerchantAlias.objects.get()
+        assert alias.is_gateway is True
+        assert result['updated_transactions'] == 0
+        tx = statement.transactions.get()
+        assert tx.is_identified is False
+        assert tx.merchant_name == ''
 
 
 class TestFinalize:
@@ -164,6 +222,21 @@ class TestFinalize:
         accounting_statement_service.reopen_statement(statement, None)
         statement.refresh_from_db()
         assert statement.status == CreditCardStatement.Status.DRAFT
+
+    def test_reversal_lines_are_excluded_from_the_finalize_sum(self):
+        # Charge + same-day reversal: the bank books the reversal under
+        # payments, so purchases_total only carries the charge.
+        statement = _create(
+            purchases_total='100000.00',
+            transactions=[
+                {**TX, 'amount': '100000.00', 'category': 'shopping'},
+                {**TX, 'amount': '-100000.00', 'category': 'shopping',
+                 'is_reversal': True},
+            ],
+        )
+        accounting_statement_service.finalize_statement(statement, None)
+        statement.refresh_from_db()
+        assert statement.status == CreditCardStatement.Status.PROCESSED
 
     def test_processed_statement_rejects_new_transactions(self):
         statement = _create(transactions=[{**TX, 'amount': '100000.00'}])

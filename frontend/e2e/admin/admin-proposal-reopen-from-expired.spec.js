@@ -59,7 +59,12 @@ test.describe('Admin Proposal Reopen From Expired', () => {
         return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
       }
       if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
-        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockExpiredProposal) };
+        // Stateful: once the reopen PUT ran, the backend reports the
+        // reverted status, so any refetch reflects the reopen.
+        const detail = updateCalled
+          ? { ...mockExpiredProposal, status: 'viewed', expires_at: futureDate }
+          : mockExpiredProposal;
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(detail) };
       }
       if (apiPath === `proposals/${PROPOSAL_ID}/update-from-json/` && method === 'PUT') {
         updateCalled = true;
@@ -73,6 +78,10 @@ test.describe('Admin Proposal Reopen From Expired', () => {
     });
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+
+    // The sticky-header status select shows the current status: Expirada.
+    const statusSelect = page.getByLabel('Cambiar estado de la propuesta');
+    await expect(statusSelect).toHaveValue('expired', { timeout: 10000 });
 
     await page.getByRole('tab', { name: 'JSON' }).click();
 
@@ -94,5 +103,9 @@ test.describe('Admin Proposal Reopen From Expired', () => {
 
     expect(updateCalled).toBe(true);
     await expect(page.getByText('Propuesta actualizada desde JSON.')).toBeVisible({ timeout: 5000 });
+
+    // The defining outcome of the flow: the status badge reverts
+    // expired → viewed once the future expires_at is applied.
+    await expect(statusSelect).toHaveValue('viewed', { timeout: 10000 });
   });
 });

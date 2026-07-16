@@ -95,6 +95,7 @@ from content.services.pdf_utils import (  # noqa: F401 — re-exported
     _draw_subtitle,
     _draw_pill,
     _draw_banner_box,
+    _draw_badge_panel,
     _draw_callout_box,
     _draw_blockquote,
     _draw_table,
@@ -484,11 +485,8 @@ def _render_design_ux(c, data, _proposal, ps=None, y=None):
             y = _draw_subtitle(c, y, obj_title or 'Objetivo', ps=ps)
             y = _draw_blockquote(c, y, str(obj), ps=ps)
         y -= 10
-        # Focus items as a full-width branded box below paragraphs
-        if ps:
-            y = _check_y(c, y, ps, need=60)
-        y = _draw_subtitle(c, y, focus_title, ps=ps)
-        y = _draw_bullet_list(c, y, focus_items, ps=ps)
+        # Focus items grouped in a branded panel with numbered chips
+        y = _draw_badge_panel(c, y, focus_title, focus_items, ps=ps)
     else:
         y = _draw_paragraphs(c, y, paragraphs, ps=ps)
         if obj:
@@ -1100,6 +1098,24 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
     return y
 
 
+def _format_currency(n, currency):
+    """Format a money amount for the PDF, mirroring the frontend rules.
+
+    Mirrors frontend/utils/hourPackagePricing.js formatPackageMoney: COP has
+    no cents (es-CO dots); USD keeps cents when fractional (en-US commas) so
+    discounted rates and their totals stay arithmetically consistent.
+    """
+    try:
+        num = round(float(n), 2)
+    except (TypeError, ValueError):
+        return str(n)
+    if currency == 'USD':
+        formatted = f'{int(num):,}' if num == int(num) else f'{num:,.2f}'
+    else:
+        formatted = f'{int(round(num)):,}'.replace(',', '.')
+    return f'${formatted} {currency}'
+
+
 def _tax_suffix(currency):
     """Tax label appended after amounts, by market/currency.
 
@@ -1568,18 +1584,19 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                         y = _draw_paragraphs(c, y, [para], font_size=8,
                                              leading=11, ps=ps)
 
-    # Value reasons
+    # Value reasons \u2014 grouped in a branded panel with numbered chips
     reasons = _safe(data, 'valueReasons', [])
     if reasons:
         y -= 8
-        y = _draw_subtitle(c, y, '\u00bfPor qu\u00e9 esta inversi\u00f3n?',
-                           ps=ps)
+        reasons_title = ('Why this investment?'
+                         if (ps or {}).get('_pdf_lang') == 'en'
+                         else '\u00bfPor qu\u00e9 esta inversi\u00f3n?')
         normalized = [
             r if isinstance(r, str)
             else _safe(r, 'description', _safe(r, 'title'))
             for r in reasons
         ]
-        y = _draw_bullet_list(c, y, normalized, font_size=9, ps=ps)
+        y = _draw_badge_panel(c, y, reasons_title, normalized, ps=ps)
     return y
 
 
@@ -1612,11 +1629,7 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
     effective_total = ps.get('_effective_total') if ps else None
 
     def _cc_money(n):
-        try:
-            num = int(round(float(n)))
-        except (TypeError, ValueError):
-            return str(n)
-        return f"${f'{num:,}'.replace(',', '.')} {currency}".strip()
+        return _format_currency(n, currency)
 
     def _module_condition_lines(mid):
         """Build the condition lines shown under a value-added card.
@@ -1849,28 +1862,16 @@ def _render_final_note(c, data, proposal, ps=None, y=None):
             _draw_mixed_string(c, MARGIN_L, y, pl, _font('italic'), 10)
             y -= 14
 
-    # Validity period — eye-catching banner
-    validity = _safe(data, 'validityMessage') or _safe(
-        data, 'validityPeriod',
-        'Esta propuesta tiene una vigencia de 30 d\u00edas '
-        'calendario a partir de su fecha de env\u00edo.',
-    )
-    # Replace hardcoded days with actual remaining days from expires_at
-    if validity and hasattr(proposal, 'expires_at') and proposal.expires_at:
-        from django.utils import timezone as _tz
-        _now = _tz.now()
-        _remaining = max((proposal.expires_at - _now).days, 0)
-        import re as _re
-        validity = _re.sub(
-            r'\d+\s*(d\u00edas|days|d\u00eda|day)',
-            f'{_remaining} d\u00edas' if _remaining != 1 else '1 d\u00eda',
-            str(validity),
-            count=1,
-        )
+    # Validity — computed once in ProposalService.compute_validity_text and
+    # shared with the proposal serializer, so PDF and web can never drift.
+    # Proposals without an expiry date show no validity badge at all.
+    from content.services.proposal_service import ProposalService
+    validity = ProposalService.compute_validity_text(proposal)
     if validity:
         y -= 12
-        y = _draw_callout_box(c, y, str(validity), style='important',
-                              ps=ps, label='VIGENCIA')
+        lang = (ps or {}).get('_pdf_lang', 'es')
+        y = _draw_callout_box(c, y, validity, style='important', ps=ps,
+                              label='VALIDITY' if lang == 'en' else 'VIGENCIA')
 
     # Client name
     client_name = getattr(proposal, 'client_name', '')
@@ -2110,11 +2111,7 @@ def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
                 or (ps.get('_currency') if ps else '') or 'COP')
 
     def _money(n):
-        try:
-            num = int(round(float(n)))
-        except (TypeError, ValueError):
-            return str(n)
-        return f"${f'{num:,}'.replace(',', '.')} {currency}".strip()
+        return _format_currency(n, currency)
 
     # ── Hour packages ──────────────────────────────────────────
     packages_title = _safe(data, 'packagesTitle')
@@ -2164,8 +2161,15 @@ def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
         ])
     if pkg_rows:
         y -= 2
+        lang = (ps or {}).get('_pdf_lang', 'es')
+        tax = _tax_suffix(currency).strip()
+        headers = (
+            ['Package', 'Hours', 'Disc.', f'Rate/hour ({tax})', f'Total ({tax})']
+            if lang == 'en' else
+            ['Paquete', 'Horas', 'Dcto.', f'Tarifa/hora ({tax})', f'Total ({tax})']
+        )
         y = _draw_table(
-            c, y, ['Paquete', 'Horas', 'Dcto.', 'Tarifa/hora', 'Total'],
+            c, y, headers,
             pkg_rows, ps=ps, col_widths=[0.34, 0.10, 0.10, 0.22, 0.24],
             aligns=['left', 'center', 'center', 'right', 'right'])
 
@@ -2178,14 +2182,16 @@ def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
     # ── Scope-exclusion clause ─────────────────────────────────
     scope_title = _safe(data, 'scopeTitle')
     scope_paras = _safe(data, 'scopeParagraphs', []) or []
-    if scope_title or scope_paras:
+    if scope_paras:
         y -= 12
-        if scope_title:
-            y = _draw_subtitle(c, y, scope_title, ps=ps)
-        if scope_paras:
-            y = _draw_paragraphs(
-                c, y, [str(p) for p in scope_paras], ps=ps, justify=True,
-            )
+        label = _strip_emoji(str(scope_title)).upper() if scope_title else None
+        y = _draw_callout_box(
+            c, y, '\n\n'.join(str(p) for p in scope_paras),
+            style='scope', ps=ps, label=label,
+        )
+    elif scope_title:
+        y -= 12
+        y = _draw_subtitle(c, y, scope_title, ps=ps)
     return y
 
 

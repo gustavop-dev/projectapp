@@ -22,7 +22,7 @@
     <AccountingSubnav active="incomes" />
 
     <!-- KPI cards (year scope, server-computed) -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
       <AccountingStatCard
         label="Total esperado (año)"
         :value="money(incomesMeta.expected_total)"
@@ -42,6 +42,11 @@
         :value="incomesMeta.top_income ? money(incomesMeta.top_income.amount) : '—'"
         :sub="incomesMeta.top_income?.concept || ''"
         tone="brand"
+      />
+      <AccountingStatCard
+        label="Perdido (año)"
+        :value="money(incomesMeta.lost_total)"
+        :tone="Number(incomesMeta.lost_total) > 0 ? 'danger' : 'default'"
       />
     </div>
 
@@ -99,6 +104,13 @@
       >
         Total líquido: {{ formatMoney(totalLiquid) }}
       </span>
+      <span
+        v-if="totalLost > 0"
+        class="text-xs px-2.5 py-1 rounded-full bg-danger-soft text-danger-strong font-medium tabular-nums"
+        data-testid="incomes-total-lost"
+      >
+        Total perdido: {{ formatMoney(totalLost) }}
+      </span>
     </div>
 
     <!-- Error -->
@@ -143,19 +155,65 @@
         :highlight-query="currentFilters.search"
         :sort-key="sortKey"
         :sort-dir="sortDir"
+        :row-tone="incomeRowTone"
         @edit="openEditModal"
         @delete="confirmDeleteRecord"
         @sort="toggleSort"
       >
+        <template #row-actions="{ row }">
+          <template v-if="row.kind === 'expected'">
+            <button
+              type="button"
+              class="p-1.5 rounded-md text-text-muted hover:text-success-strong hover:bg-surface-raised transition-colors"
+              aria-label="Liquidar"
+              title="Liquidar"
+              :data-testid="`income-liquidate-${row.id}`"
+              @click.stop="openLiquidateModal(row)"
+            >
+              <BanknotesIcon class="w-5 h-5" />
+            </button>
+            <button
+              v-if="row.payment_status === 'pending'"
+              type="button"
+              class="p-1.5 rounded-md text-text-muted hover:text-danger-strong hover:bg-surface-raised transition-colors"
+              aria-label="Marcar como perdido"
+              title="Marcar como perdido"
+              :data-testid="`income-write-off-${row.id}`"
+              @click.stop="confirmWriteOff(row)"
+            >
+              <XCircleIcon class="w-5 h-5" />
+            </button>
+          </template>
+        </template>
         <template #cell-kind_label="{ row }">
-          <span
-            class="text-xs px-2.5 py-1 rounded-full font-medium"
-            :class="row.kind === 'liquid'
-              ? 'bg-success-soft text-success-strong'
-              : 'bg-surface-raised text-text-muted'"
+          <div
+            class="flex flex-col items-start gap-1"
+            :data-testid="row.payment_status ? `income-payment-${row.id}` : undefined"
           >
-            {{ row.kind_label }}
-          </span>
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span
+                class="text-xs px-2.5 py-1 rounded-full font-medium"
+                :class="KIND_BADGE_CLASSES[row.kind] || KIND_BADGE_CLASSES.expected"
+              >
+                {{ row.kind_label }}
+              </span>
+              <span
+                v-if="PAYMENT_BADGE_CLASSES[row.payment_status]"
+                class="text-xs px-2.5 py-1 rounded-full font-medium"
+                :class="PAYMENT_BADGE_CLASSES[row.payment_status]"
+              >
+                {{ row.payment_status_label }}
+              </span>
+            </div>
+            <!-- Own line and nowrap: inlining it in the badge stretched the
+                 column until the actions were pushed out of the table. -->
+            <span
+              v-if="row.payment_status === 'partial'"
+              class="text-[11px] text-warning-strong tabular-nums whitespace-nowrap"
+            >
+              faltan {{ formatMoney(Number(row.pending_amount)) }}
+            </span>
+          </div>
         </template>
         <template #cell-ledger_label="{ row }">
           <span
@@ -192,7 +250,16 @@
       @submit="handleSubmit"
     />
 
-    <!-- Confirm modal for delete -->
+    <!-- Liquidate modal: settles an expected income into a linked liquid one -->
+    <IncomeLiquidateModal
+      :open="isLiquidateModalOpen"
+      :record="liquidatingRecord"
+      :saving="store.isUpdating"
+      @close="closeLiquidateModal"
+      @submit="handleLiquidateSubmit"
+    />
+
+    <!-- Confirm modal for delete / write-off -->
     <ConfirmModal
       v-model="confirmState.open"
       :title="confirmState.title"
@@ -209,8 +276,8 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
-import { PlusIcon } from '@heroicons/vue/24/outline';
+import { computed, onMounted, ref } from 'vue';
+import { BanknotesIcon, PlusIcon, XCircleIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
@@ -220,6 +287,7 @@ import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
+import IncomeLiquidateModal from '~/components/accounting/IncomeLiquidateModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
@@ -306,6 +374,7 @@ const filterFields = [
       { value: '', label: 'Todos' },
       { value: 'expected', label: 'Esperado' },
       { value: 'liquid', label: 'Líquido' },
+      { value: 'lost', label: 'Pérdidas' },
     ],
   },
   {
@@ -343,15 +412,29 @@ const EXPORT_MAPPING = {
   search: 'q',
 };
 
-const exportParams = computed(() =>
-  buildExportParams(currentFilters, EXPORT_MAPPING),
-);
+const exportParams = computed(() => {
+  const params = buildExportParams(currentFilters, EXPORT_MAPPING);
+  // Mirror the "Todos" rule: without this the CSV would carry the
+  // written-off rows the table is hiding. The server ORs comma lists.
+  if (!currentFilters.kind) params.kind = 'expected,liquid';
+  return params;
+});
 
 // -------------------------------------------------------------------
 // Data + CRUD controller (modal, delete confirm, pagination)
 // -------------------------------------------------------------------
 
-const filteredRecords = computed(() => applyFilters(store.incomes));
+// Written-off income is money we already know is gone, so it stays out of
+// the working set until asked for by name. This has to happen before
+// applyFilters: that helper skips any matcher still sitting on its default,
+// so a `kind: ''` rule inside it would never run.
+const workingSet = computed(() =>
+  currentFilters.kind
+    ? store.incomes
+    : store.incomes.filter((record) => record.kind !== 'lost'),
+);
+
+const filteredRecords = computed(() => applyFilters(workingSet.value));
 
 const {
   isModalOpen,
@@ -379,8 +462,14 @@ const {
   sortKey,
   sortDir,
   toggleSort,
+  requestConfirm,
+  runMutation,
 } = useAccountingCrudPage({
   entity: 'incomes',
+  // A liquidation creates a CHILD row, so the parent expected row's
+  // payment state is computed server-side from data the response doesn't
+  // carry. Without a refetch its badge and tint stay stale.
+  onAfterMutation: () => store.fetchRecords('incomes'),
   // The month column shows the localized label but sorts by the ISO date.
   sortAccessors: { period_label: 'period_date' },
   sortDefaults: {
@@ -418,6 +507,84 @@ const totalLiquid = computed(() =>
     .filter((r) => r.kind === 'liquid')
     .reduce((sum, r) => sum + (Number(r.total_amount) || 0), 0),
 );
+
+const totalLost = computed(() =>
+  filteredRecords.value
+    .filter((r) => r.kind === 'lost')
+    .reduce((sum, r) => sum + (Number(r.total_amount) || 0), 0),
+);
+
+const KIND_BADGE_CLASSES = {
+  liquid: 'bg-success-soft text-success-strong',
+  lost: 'bg-danger-soft text-danger-strong',
+  expected: 'bg-surface-raised text-text-muted',
+};
+
+const PAYMENT_BADGE_CLASSES = {
+  paid: 'bg-success-soft text-success-strong',
+  partial: 'bg-warning-soft text-warning-strong',
+};
+
+/** Green once collected, amber while partially collected. */
+const incomeRowTone = (row) => {
+  if (row.kind !== 'expected') return null;
+  if (row.payment_status === 'paid') return 'success';
+  if (row.payment_status === 'partial') return 'warning';
+  return null;
+};
+
+// -------------------------------------------------------------------
+// Row actions: liquidate an expected income / write it off
+// -------------------------------------------------------------------
+
+const isLiquidateModalOpen = ref(false);
+const liquidatingRecord = ref(null);
+
+function openLiquidateModal(record) {
+  liquidatingRecord.value = record;
+  isLiquidateModalOpen.value = true;
+}
+
+function closeLiquidateModal() {
+  isLiquidateModalOpen.value = false;
+  liquidatingRecord.value = null;
+}
+
+async function handleLiquidateSubmit(payload) {
+  const result = await runMutation(
+    () => store.createRecord('incomes', payload),
+    {
+      successTitle: 'Ingreso liquidado',
+      errorTitle: 'No se pudo liquidar',
+      // Flash the expected row: it is the one whose state just changed.
+      flashId: liquidatingRecord.value?.id,
+    },
+  );
+  if (result.success) closeLiquidateModal();
+}
+
+function confirmWriteOff(record) {
+  requestConfirm({
+    title: 'Marcar como perdido',
+    message:
+      `"${record.concept}" (${formatMoney(Number(record.total_amount))}) se `
+      + 'contará como pérdida: sale del total esperado y deja de aparecer '
+      + 'en la lista salvo que filtres por Pérdidas. No afecta la utilidad.',
+    variant: 'danger',
+    confirmText: 'Marcar como perdido',
+    cancelText: 'Cancelar',
+    onConfirm: () => runMutation(
+      () => store.updateRecord('incomes', record.id, {
+        kind: 'lost',
+        destination: 'partners',
+      }),
+      {
+        successTitle: 'Ingreso marcado como perdido',
+        errorTitle: 'No se pudo marcar como perdido',
+      },
+    ),
+  });
+}
 
 const columns = [
   { key: 'concept', label: 'Concepto', sortable: true },

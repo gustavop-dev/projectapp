@@ -98,4 +98,46 @@ test.describe('Admin Proposal Quick Send', () => {
 
     await expect(page.getByText('Re-enviar email')).toBeVisible({ timeout: 3000 });
   });
+
+  test('quick-send executes: confirm modal, POST send/ and success toast', {
+    tag: [...ADMIN_PROPOSAL_QUICK_SEND, '@role:admin'],
+  }, async ({ page }) => {
+    let sendCalled = false;
+
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'proposals/') return { status: 200, contentType: 'application/json', body: JSON.stringify([mockDraftProposal]) };
+      if (apiPath === 'proposals/dashboard/') return { status: 200, contentType: 'application/json', body: JSON.stringify({}) };
+      if (apiPath === 'proposals/alerts/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      if (apiPath === 'proposals/1/send/') {
+        sendCalled = true;
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockDraftProposal, status: 'sent', sent_at: '2026-03-02T12:00:00Z' }) };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/proposals');
+    await expect(page.getByText('Test Client')).toBeVisible({ timeout: 10000 });
+
+    // Hide the MetricsManual floating button that intercepts pointer events
+    await page.evaluate(() => {
+      const btn = document.querySelector('button[title="Manual de métricas"]');
+      if (btn) btn.style.display = 'none';
+    });
+
+    // quality: allow-fragile-selector (table actions button has no testid)
+    const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
+    await actionsBtn.click();
+    await page.getByText('Enviar al cliente').click();
+
+    // Confirmation modal gates the actual send.
+    await expect(page.getByText('¿Enviar esta propuesta?')).toBeVisible({ timeout: 3000 });
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes('proposals/1/send/')),
+      page.getByRole('button', { name: 'Sí, enviar' }).click(),
+    ]);
+
+    expect(sendCalled).toBe(true);
+    await expect(page.getByText('Propuesta enviada al cliente')).toBeVisible({ timeout: 5000 });
+  });
 });

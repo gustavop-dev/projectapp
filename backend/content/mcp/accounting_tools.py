@@ -219,7 +219,7 @@ _ENTITY_FIELDS = {
     'income': {
         'props': {
             'concept': {'type': 'string'},
-            'kind': {'type': 'string', 'enum': ['expected', 'liquid']},
+            'kind': {'type': 'string', 'enum': ['expected', 'liquid', 'lost']},
             'period_date': {'type': 'string', 'description': 'Periodo YYYY-MM.'},
             'total_amount': {'type': ['number', 'string']},
             'destination': {'type': 'string', 'enum': ['partners', 'pocket']},

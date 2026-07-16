@@ -16,6 +16,7 @@ const title = computed(() => (isEdit.value ? 'Editar Ingreso' : 'Nuevo Ingreso')
 const kindOptions = [
   { value: 'expected', label: 'Esperado' },
   { value: 'liquid', label: 'Líquido' },
+  { value: 'lost', label: 'Perdido' },
 ]
 
 const destinationOptions = [
@@ -70,26 +71,19 @@ watch(
   { immediate: true },
 )
 
-watch(
-  () => form.value.kind,
-  (kind) => {
-    if (kind === 'expected') form.value.destination = 'partners'
-  },
-)
-
-watch(
-  () => form.value.ledger,
-  (ledger) => {
-    if (ledger !== 'company') form.value.destination = 'partners'
-  },
-)
-
 function onSubmit() {
   const payload = {
     concept: form.value.concept,
     kind: form.value.kind,
     period_date: form.value.period_date,
-    destination: form.value.destination,
+    // Pocket is liquid-and-company-only server-side. Deriving here (the
+    // same condition that shows the Destino field) instead of syncing via
+    // watches keeps the user's pocket choice across a liquid→lost→liquid
+    // round-trip.
+    destination:
+      form.value.kind === 'liquid' && !isPersonal.value
+        ? form.value.destination
+        : 'partners',
     ledger: form.value.ledger,
     total_amount: form.value.total_amount,
   }

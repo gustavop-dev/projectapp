@@ -212,6 +212,78 @@ class TestIncomeRules:
         assert not serializer.is_valid()
         assert 'expected_income' in serializer.errors
 
+    def test_pocket_destination_rejected_for_lost_kind(self):
+        serializer = IncomeRecordCreateUpdateSerializer(
+            data=income_payload(kind='lost', destination='pocket'),
+        )
+        assert not serializer.is_valid()
+        assert 'líquidos' in str(serializer.errors)
+
+    def test_expected_without_payments_can_be_written_off(self, make_income):
+        expected = make_income(kind=IncomeRecord.Kind.EXPECTED)
+        serializer = IncomeRecordCreateUpdateSerializer(
+            expected, data={'kind': 'lost'}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+
+    def test_expected_with_payments_cannot_be_written_off(self, make_income):
+        """Writing it off would strand the liquid child and skew received_pct."""
+        expected = make_income(kind=IncomeRecord.Kind.EXPECTED)
+        make_income(
+            kind=IncomeRecord.Kind.LIQUID,
+            total_amount=Decimal('400000.00'),
+            gustavo_amount=Decimal('200000.00'),
+            carlos_amount=Decimal('200000.00'),
+            expected_income=expected,
+        )
+        serializer = IncomeRecordCreateUpdateSerializer(
+            expected, data={'kind': 'lost'}, partial=True,
+        )
+        assert not serializer.is_valid()
+        assert 'ya tiene liquidaciones' in str(serializer.errors)
+
+    def test_expected_with_only_a_lost_child_can_still_be_written_off(
+        self, make_income,
+    ):
+        expected = make_income(kind=IncomeRecord.Kind.EXPECTED)
+        make_income(kind=IncomeRecord.Kind.LOST, expected_income=expected)
+        serializer = IncomeRecordCreateUpdateSerializer(
+            expected, data={'kind': 'lost'}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+
+
+@pytest.mark.django_db
+class TestIncomePaymentState:
+    def test_payment_state_at_the_three_boundaries(self, make_income):
+        cases = [
+            (Decimal('0.00'), 'pending', '0.00', '1000000.00'),
+            (Decimal('400000.00'), 'partial', '400000.00', '600000.00'),
+            (Decimal('1000000.00'), 'paid', '1000000.00', '0.00'),
+        ]
+        for paid, status, paid_repr, pending_repr in cases:
+            expected = make_income(
+                kind=IncomeRecord.Kind.EXPECTED,
+                total_amount=Decimal('1000000.00'),
+            )
+            if paid:
+                make_income(
+                    kind=IncomeRecord.Kind.LIQUID, total_amount=paid,
+                    gustavo_amount=Decimal('0'), carlos_amount=Decimal('0'),
+                    expected_income=expected,
+                )
+            data = IncomeRecordSerializer(expected).data
+            assert data['payment_status'] == status
+            assert data['paid_amount'] == paid_repr
+            assert data['pending_amount'] == pending_repr
+
+    def test_non_expected_rows_report_no_payment_state(self, make_income):
+        for kind in (IncomeRecord.Kind.LIQUID, IncomeRecord.Kind.LOST):
+            data = IncomeRecordSerializer(make_income(kind=kind)).data
+            assert data['payment_status'] is None
+            assert data['paid_amount'] is None
+            assert data['pending_amount'] is None
+
 
 @pytest.mark.django_db
 class TestEntityDefaults:

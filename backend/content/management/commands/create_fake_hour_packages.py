@@ -12,7 +12,7 @@ from content.services.hour_package_service import DEFAULT_PACKAGES
 class Command(BaseCommand):
     help = (
         'Seed the default hour packages for any nationality whose catalog '
-        'is empty (COL/MEX/USA). Idempotent: non-empty catalogs are kept.'
+        'is empty (COL/EXT/USA). Idempotent: non-empty catalogs are kept.'
     )
 
     def handle(self, *args, **options):

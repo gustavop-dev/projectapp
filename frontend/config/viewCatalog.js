@@ -205,6 +205,7 @@ export const viewCatalogSections = [
         reference: 'vista de mapa de vistas del panel',
         audience: 'admin',
         viewType: 'config',
+        notes: 'Incluye pestaña de Configuración (modo y filtros por defecto).',
       },
       {
         label: 'Listado de propuestas',
@@ -367,7 +368,7 @@ export const viewCatalogSections = [
         url: '/panel/hour-packages',
         group: 'Paquetes de horas',
         file: 'frontend/pages/panel/hour-packages/index.vue',
-        reference: 'catalogo de paquetes de desarrollo por horas por nacionalidad (COL/MEX/USA)',
+        reference: 'catalogo de paquetes de desarrollo por horas por nacionalidad (COL/EXT/USA)',
         audience: 'admin',
         viewType: 'list',
       },

@@ -87,14 +87,14 @@ test.describe('Proposal Respond', () => {
   test('confirming accept calls respond API and shows success state', {
     tag: [...PROPOSAL_RESPOND, '@role:guest'],
   }, async ({ page }) => {
-    let respondCalled = false;
+    let respondPayload = null;
 
-    await mockApi(page, async ({ apiPath }) => {
+    await mockApi(page, async ({ apiPath, route }) => {
       if (apiPath === `proposals/${MOCK_UUID}/`) {
         return { status: 200, contentType: 'application/json', body: JSON.stringify(mockSentProposal) };
       }
       if (apiPath === `proposals/${MOCK_UUID}/respond/`) {
-        respondCalled = true;
+        respondPayload = JSON.parse(route.request().postData() || '{}');
         return { status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'accepted' }) };
       }
       return null;
@@ -106,9 +106,10 @@ test.describe('Proposal Respond', () => {
     await page.getByRole('button', { name: /Acepto la propuesta/i }).click({ force: true });
     await page.getByRole('button', { name: /Confirmar/i }).click();
 
-    // Verify success state appears
+    // Verify success state appears and the POST body carries the action.
     await expect(page.getByText('¡Propuesta aceptada!')).toBeVisible({ timeout: 5000 });
-    expect(respondCalled).toBe(true);
+    expect(respondPayload).not.toBeNull();
+    expect(respondPayload.action).toBe('accepted');
   });
 
   test('reject button opens reject modal', {

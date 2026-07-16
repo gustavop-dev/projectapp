@@ -19,11 +19,12 @@ export const vAutoResize = {
 
     el._autoResizeMinHeight = computeMinHeight();
     el._autoResizeHandler = () => {
+      // Memoize by value, not by height — a height check after the `auto`
+      // collapse would skip the restore and strand the element clipped.
+      if (el._autoResizeLastValue === el.value) return;
+      el._autoResizeLastValue = el.value;
       el.style.height = 'auto';
-      const next = Math.max(el.scrollHeight, el._autoResizeMinHeight);
-      if (el._autoResizeLastHeight === next) return;
-      el._autoResizeLastHeight = next;
-      el.style.height = next + 'px';
+      el.style.height = Math.max(el.scrollHeight, el._autoResizeMinHeight) + 'px';
     };
     el.addEventListener('input', el._autoResizeHandler);
     el._autoResizeHandler();

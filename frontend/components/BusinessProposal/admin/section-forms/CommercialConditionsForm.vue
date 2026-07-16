@@ -10,10 +10,11 @@
     <FieldTextarea v-model="form.packagesIntro" label="Intro de los paquetes" :rows="2" :isSingle="true" class="mt-2" />
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-      <FieldInput
+      <FieldCurrency
         :modelValue="form.hourlyRate"
         label="Tarifa base por hora"
-        placeholder="90000"
+        :decimals="rateDecimals"
+        placeholder="30000"
         @update:modelValue="form.hourlyRate = $event"
       />
       <label class="block">
@@ -60,9 +61,10 @@
             placeholder="0"
             @update:modelValue="pkg.discountPercent = $event"
           />
-          <FieldInput
+          <FieldCurrency
             :modelValue="pkg.hourlyRate"
             label="Tarifa/h (opcional)"
+            :decimals="rateDecimals"
             placeholder="Usa la tarifa base"
             @update:modelValue="pkg.hourlyRate = $event"
           />
@@ -96,12 +98,16 @@
 </template>
 
 <script setup>
-import { FieldInput, FieldTextarea } from './fields.js';
+import { computed } from 'vue';
+import { FieldCurrency, FieldInput, FieldTextarea } from './fields.js';
 
 const props = defineProps({
   form: { type: Object, required: true },
   proposalData: { type: Object, default: () => ({}) },
 });
+
+// COP shows whole pesos; USD keeps cents (mirrors BaseCurrencyInput usage).
+const rateDecimals = computed(() => (props.form.currency === 'COP' ? 0 : 2));
 
 function addPackage() {
   if (!Array.isArray(props.form.packages)) props.form.packages = [];

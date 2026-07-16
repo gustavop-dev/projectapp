@@ -221,7 +221,7 @@
                    focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface text-text-default"
           >
             <option value="COL">Colombia</option>
-            <option value="MEX">México</option>
+            <option value="EXT">Extranjero</option>
             <option value="USA">Estados Unidos</option>
           </select>
           <p class="text-xs text-text-subtle mt-1">Define qué paquetes de horas se siembran en Condiciones comerciales y sugiere la moneda.</p>
@@ -710,12 +710,9 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-medium text-text-muted mb-1">Inversión total</label>
-              <input
-                v-model.number="jsonForm.total_investment"
-                type="number"
-                min="0"
-                step="0.01"
-                class="w-full px-4 py-2.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+              <BaseCurrencyInput
+                v-model="jsonForm.total_investment"
+                :decimals="2"
               />
             </div>
             <div>
@@ -737,7 +734,7 @@
                        focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface text-text-default"
               >
                 <option value="COL">Colombia</option>
-                <option value="MEX">México</option>
+                <option value="EXT">Extranjero</option>
                 <option value="USA">Estados Unidos</option>
               </select>
             </div>
@@ -1197,14 +1194,16 @@ function handleResetCreateTechnicalPrompt() {
   createTechnicalPromptIsEditing.value = false;
 }
 
-async function refreshCreateDefaults() {
+async function refreshCreateDefaults({ seedHosting = false } = {}) {
   loadCreateCommercialPrompt();
   loadCreateTechnicalPrompt();
-  await loadExpirationDefaults(form.language);
+  await applyCreationDefaults(form.language, { seedHosting });
 }
 
-onMounted(refreshCreateDefaults);
-usePanelRefresh(refreshCreateDefaults);
+// Hosting is seeded only on mount: the manual panel-refresh button must not
+// clobber values the user already typed into the form.
+onMounted(() => refreshCreateDefaults({ seedHosting: true }));
+usePanelRefresh(() => refreshCreateDefaults());
 
 // -------------------------------------------------------------------------
 // Shared helpers
@@ -1231,13 +1230,35 @@ const expiryDaysInput = ref(getExpiryDaysFromStr(defaultExpiryStr));
 // Updates both form.expires_at and jsonForm.expires_at regardless of active mode.
 // This cross-mode sync is intentional: only one mode is visible at a time, and
 // keeping both in sync avoids stale expiration dates when the user switches modes.
-async function loadExpirationDefaults(lang = 'es') {
-  const days = await proposalStore.fetchExpirationDays(lang, { force: true });
-  if (!Number.isInteger(days) || days < 1) return;
-  defaultExpirationDays.value = days;
-  const expiryStr = buildDefaultExpiryStr(days);
-  form.expires_at = expiryStr;
-  jsonForm.expires_at = expiryStr;
+// With seedHosting (mount only, before the user touches the form) it also seeds
+// the hosting fields from the admin-editable ProposalDefaultConfig — the
+// constants in the form init are just the offline fallback.
+const HOSTING_DEFAULT_FIELDS = [
+  'hosting_percent',
+  'hosting_discount_annual',
+  'hosting_discount_semiannual',
+  'hosting_discount_quarterly',
+];
+
+async function applyCreationDefaults(lang = 'es', { seedHosting = false } = {}) {
+  const result = await proposalStore.fetchProposalDefaults(lang);
+  if (!result.success || !result.data) return;
+  const days = Number(result.data.expiration_days);
+  if (Number.isInteger(days) && days > 0) {
+    defaultExpirationDays.value = days;
+    const expiryStr = buildDefaultExpiryStr(days);
+    form.expires_at = expiryStr;
+    jsonForm.expires_at = expiryStr;
+  }
+  if (seedHosting) {
+    for (const field of HOSTING_DEFAULT_FIELDS) {
+      const value = Number(result.data[field]);
+      if (Number.isFinite(value) && value >= 0) {
+        form[field] = value;
+        jsonForm[field] = value;
+      }
+    }
+  }
 }
 
 function parseInvestmentString(str) {
@@ -1458,11 +1479,11 @@ watch(
   [() => form.language, () => jsonForm.language],
   ([langA, langB], [prevA, prevB]) => {
     const changed = langA !== prevA ? langA : langB !== prevB ? langB : null;
-    if (changed) loadExpirationDefaults(changed);
+    if (changed) applyCreationDefaults(changed);
   },
 );
 
-// Nationality suggests the currency (COL→COP, MEX/USA→USD); it stays editable.
+// Nationality suggests the currency (COL→COP, EXT/USA→USD); it stays editable.
 watch(() => form.nationality, (nationality) => {
   form.currency = nationality === 'COL' ? 'COP' : 'USD';
 });

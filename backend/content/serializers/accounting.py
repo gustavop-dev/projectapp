@@ -7,6 +7,7 @@ partner amount is supplied on create, and accept month periods as
 import re
 from decimal import Decimal, ROUND_DOWN
 
+from django.db.models import Sum
 from rest_framework import serializers
 
 from content.utils import SPANISH_MONTHS
@@ -33,6 +34,11 @@ PERSONAL_LEDGER_OWNER = {
 MONTH_PERIOD_RE = re.compile(r'^\d{4}-(0[1-9]|1[0-2])$')
 
 TWO_PLACES = Decimal('0.01')
+
+
+def money_str(value):
+    """Canonical API money string: two decimal places, no separators."""
+    return str(Decimal(value).quantize(TWO_PLACES))
 
 
 def month_period(date_value):
@@ -143,6 +149,10 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     company_amount = serializers.DecimalField(
         max_digits=14, decimal_places=2, read_only=True,
     )
+    paid_amount = serializers.SerializerMethodField()
+    pending_amount = serializers.SerializerMethodField()
+    payment_status = serializers.SerializerMethodField()
+    payment_status_label = serializers.SerializerMethodField()
 
     class Meta:
         model = IncomeRecord
@@ -152,8 +162,57 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'destination', 'destination_label', 'ledger', 'ledger_label',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'company_amount',
             'expected_income', 'pocket_movement',
+            'paid_amount', 'pending_amount',
+            'payment_status', 'payment_status_label',
             'notes', 'created_at', 'updated_at',
         )
+
+    PAYMENT_STATUS_LABELS = {
+        'paid': 'Pagado',
+        'partial': 'Parcial',
+        'pending': 'Pendiente',
+    }
+
+    def _paid(self, obj):
+        """Liquid total fulfilling this record; None for non-expected rows.
+
+        `None` (not '0.00') lets the UI tell "not applicable" from
+        "nothing paid yet". The list and export endpoints annotate the
+        queryset; the retrieve/create/update ones serialize a bare
+        instance, so fall back to a per-object aggregate there — memoized
+        on the instance, since all four payment fields call this.
+        """
+        if obj.kind != IncomeRecord.Kind.EXPECTED:
+            return None
+        if not hasattr(obj, '_paid_total'):
+            value = getattr(obj, 'paid_amount', None)
+            if value is None:
+                value = obj.liquid_records.filter(
+                    kind=IncomeRecord.Kind.LIQUID,
+                ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+            obj._paid_total = Decimal(value)
+        return obj._paid_total
+
+    def get_paid_amount(self, obj):
+        paid = self._paid(obj)
+        return None if paid is None else money_str(paid)
+
+    def get_pending_amount(self, obj):
+        paid = self._paid(obj)
+        if paid is None:
+            return None
+        return money_str(max(obj.total_amount - paid, Decimal('0')))
+
+    def get_payment_status(self, obj):
+        paid = self._paid(obj)
+        if paid is None:
+            return None
+        if paid <= 0:
+            return 'pending'
+        return 'paid' if paid >= obj.total_amount else 'partial'
+
+    def get_payment_status_label(self, obj):
+        return self.PAYMENT_STATUS_LABELS.get(self.get_payment_status(obj))
 
 
 class IncomeRecordCreateUpdateSerializer(
@@ -205,6 +264,23 @@ class IncomeRecordCreateUpdateSerializer(
         if expected is not None and expected.ledger != ledger:
             raise serializers.ValidationError(
                 'El ingreso esperado vinculado debe ser de la misma contabilidad.'
+            )
+        # Writing off an expected record that was partially collected would
+        # drop its full amount out of `expected_total` while its liquid
+        # children keep counting (received_pct can then exceed 100%), and it
+        # would leave those children pointing at a non-expected parent, which
+        # `expected_income`'s queryset rejects on any later PATCH.
+        if (
+            kind == IncomeRecord.Kind.LOST
+            and self.instance is not None
+            and self.instance.kind == IncomeRecord.Kind.EXPECTED
+            and self.instance.liquid_records.filter(
+                kind=IncomeRecord.Kind.LIQUID,
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                'Este ingreso esperado ya tiene liquidaciones. Reduce su monto '
+                'y registra la diferencia como un ingreso perdido aparte.'
             )
         return data
 

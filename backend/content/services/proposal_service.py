@@ -349,7 +349,7 @@ DEFAULT_SECTIONS = [
                 'entregable debería venir con las herramientas mínimas para operarlo, '
                 'medirlo y entenderlo desde el día uno.'
             ),
-            'module_ids': ['admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module', 'ai_automation_module'],
+            'module_ids': ['admin_module', 'manual_module', 'kpi_dashboard_module', 'analytics_dashboard', 'ai_automation_module'],
             'justifications': {
                 'admin_module': 'Para que no dependas de un desarrollador cada vez que necesites cambiar contenido.',
                 'analytics_dashboard': 'Para que sepas cómo se comporta tu audiencia sin contratar herramientas externas.',
@@ -368,11 +368,12 @@ DEFAULT_SECTIONS = [
                     'duration_months': None,
                     'discretionary_note': 'Se implementa si la lógica de negocio permite y tiene sentido definir y medir KPIs.',
                     'terms': (
-                        'El Dashboard de KPIs y Métricas se incluye sin costo adicional para proyectos cuya '
-                        'inversión total supere los 1.500 USD (o su equivalente en COP). Su implementación queda '
-                        'sujeta a que el negocio tenga indicadores clave que tenga sentido medir; de no existir '
-                        'métricas relevantes, este beneficio no aplica. El beneficio cubre hasta 8 KPIs, '
-                        '4 gráficos y 5 alertas; indicadores adicionales se cotizan por separado.'
+                        'El Dashboard de KPIs y Métricas se incluye sin costo adicional en proyectos cuya '
+                        'inversión total supere los **1.500 USD** (o su equivalente en COP). Su implementación '
+                        'está sujeta a que el negocio cuente con indicadores clave que tenga sentido medir; '
+                        'si no existen métricas relevantes, este beneficio no aplica. **Importante:** el '
+                        'beneficio cubre hasta **8 KPIs, 4 gráficos y 5 alertas**; indicadores adicionales '
+                        'se cotizan por separado.'
                     ),
                 },
                 'analytics_dashboard': {
@@ -381,11 +382,11 @@ DEFAULT_SECTIONS = [
                     'duration_months': None,
                     'discretionary_note': 'Se implementa si la lógica de negocio permite y tiene sentido recolectar y analizar datos de uso.',
                     'terms': (
-                        'El Módulo de Analítica se incluye sin costo adicional para proyectos cuya inversión total '
-                        'supere los 1.800 USD (o su equivalente en COP). Su implementación queda sujeta a que exista '
-                        'tráfico o comportamiento de usuarios que tenga sentido analizar. El beneficio cubre hasta '
-                        '6 reportes estándar con datos de los últimos 12 meses; reportes personalizados adicionales '
-                        'se cotizan por separado.'
+                        'El Módulo de Analítica se incluye sin costo adicional en proyectos cuya inversión total '
+                        'supere los **1.800 USD** (o su equivalente en COP). Su implementación está sujeta a que '
+                        'exista tráfico o comportamiento de usuarios que tenga sentido analizar. **Importante:** '
+                        'el beneficio cubre hasta **6 reportes estándar** con datos de los últimos 12 meses; '
+                        'reportes personalizados adicionales se cotizan por separado.'
                     ),
                 },
                 'admin_module': {
@@ -417,16 +418,16 @@ DEFAULT_SECTIONS = [
                     'duration_months': 6,
                     'discretionary_note': 'Se implementa si la lógica de negocio permite y tiene sentido automatizar el proceso conectándolo a un asistente de IA.',
                     'terms': (
-                        'La Automatización con Asistente de IA se incluye sin costo adicional para proyectos cuya '
-                        'inversión total supere los 2.900 USD (o su equivalente en COP), y está disponible por un '
-                        'periodo de 6 meses. Consiste en integrar un proceso que hoy se realiza de forma manual con '
-                        'un asistente de IA (Claude o ChatGPT), de modo que pueda controlarse desde el chat y '
-                        'automatizarse mediante tareas programadas dentro del propio asistente. '
-                        'Cubre un (1) proceso de negocio; procesos adicionales se cotizan por separado. '
-                        'IMPORTANTE: esta integración depende de que el asistente de IA (Claude o ChatGPT) ofrezca '
-                        'y mantenga disponible dicha capacidad de integración. Si el proveedor del asistente deja de '
-                        'ofrecer o soportar esta funcionalidad, la automatización podría dejar de estar disponible, '
-                        'situación que escapa a nuestro control y de la cual no somos responsables.'
+                        'La Automatización con Asistente de IA se incluye sin costo adicional en proyectos cuya '
+                        'inversión total supere los **2.900 USD** (o su equivalente en COP), y está disponible por '
+                        'un periodo de **6 meses**. Consiste en integrar un proceso que hoy se realiza de forma '
+                        'manual con un asistente de IA (Claude o ChatGPT), de modo que pueda controlarse desde el '
+                        'chat y ejecutarse solo mediante tareas programadas dentro del propio asistente. '
+                        'Cubre **un (1) proceso de negocio**; procesos adicionales se cotizan por separado. '
+                        '**Importante:** esta integración depende de que el proveedor del asistente de IA '
+                        '(Claude o ChatGPT) ofrezca y mantenga disponible dicha capacidad de integración; si deja '
+                        'de soportarla, la automatización podría dejar de estar disponible, situación que escapa '
+                        'a nuestro control y de la cual no somos responsables.'
                     ),
                 },
             },
@@ -1266,7 +1267,7 @@ DEFAULT_SECTIONS = [
                 },
             ],
             'validityMessage': (
-                'Esta propuesta es válida por 30 días a partir de la fecha de emisión. '
+                'Esta propuesta tiene una vigencia limitada a partir de su fecha de envío. '
                 'Los precios y condiciones pueden estar sujetos a cambios después de este período.'
             ),
             'thankYouMessage': (
@@ -1281,7 +1282,7 @@ DEFAULT_SECTIONS = [
         'order': 15,
         'is_wide_panel': False,
         'content_json': {
-            'index': '13',
+            'index': '14',
             'title': 'Próximos pasos',
             'introMessage': (
                 'Estamos listos para comenzar este viaje juntos. '
@@ -1334,7 +1335,7 @@ DEFAULT_SECTIONS = [
                 },
             ],
             'validityMessage': (
-                'Esta propuesta es válida por 30 días a partir de la fecha de emisión. '
+                'Esta propuesta tiene una vigencia limitada a partir de su fecha de envío. '
                 'Los precios y condiciones pueden estar sujetos a cambios después de este período.'
             ),
             'thankYouMessage': (
@@ -1366,11 +1367,10 @@ DEFAULT_SECTIONS = [
                 'ofrecemos bolsas de horas con tarifa preferencial. A mayor paquete, menor '
                 'es el costo por hora.'
             ),
-            'hourlyRate': 40000,
+            'hourlyRate': 30000,
             'currency': 'COP',
             'packages': [
                 {'name': 'Hora Puntual', 'hours': 1, 'discountPercent': 0, 'note': 'Para un ajuste express.'},
-                {'name': 'Paquete Inicial', 'hours': 10, 'discountPercent': 5, 'note': 'Para ajustes puntuales.'},
                 {'name': 'Paquete Ágil', 'hours': 20, 'discountPercent': 10, 'note': 'Para iteraciones cortas.'},
                 {'name': 'Paquete Pro', 'hours': 60, 'discountPercent': 20, 'note': 'Para mejoras continuas.'},
                 {'name': 'Paquete Premium', 'hours': 180, 'discountPercent': 30, 'note': 'Para la evolución sostenida del producto.'},
@@ -1383,8 +1383,8 @@ DEFAULT_SECTIONS = [
             'scopeParagraphs': [
                 'El trabajo aprobado y cotizado corresponde únicamente a lo descrito dentro del '
                 'alcance de esta propuesta comercial y de su detalle técnico. Cualquier conversación, '
-                'mensaje, reunión, idea, recurso, archivo, referencia o solicitud que surja durante '
-                'el proyecto y que no esté explícitamente descrita dentro de dicho alcance no '
+                'mensaje, reunión, idea, recurso, archivo, referencia o solicitud que surja antes '
+                'o durante el proyecto y que no esté explícitamente descrita dentro de dicho alcance no '
                 'constituye, por sí sola, un compromiso de implementación ni hace parte del trabajo '
                 'contratado.',
                 'Lo anterior no limita la comunicación: podemos conversar y explorar ideas libremente. '
@@ -1726,7 +1726,7 @@ DEFAULT_SECTIONS_EN = [
                 'every deliverable should ship with the minimum tools to operate, measure and '
                 'understand it from day one.'
             ),
-            'module_ids': ['admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module', 'ai_automation_module'],
+            'module_ids': ['admin_module', 'manual_module', 'kpi_dashboard_module', 'analytics_dashboard', 'ai_automation_module'],
             'justifications': {
                 'admin_module': 'So you don\'t depend on a developer every time you need to change content.',
                 'analytics_dashboard': 'So you know how your audience behaves without paying for external tools.',
@@ -1741,10 +1741,11 @@ DEFAULT_SECTIONS_EN = [
                     'duration_months': None,
                     'discretionary_note': 'Implemented if the business logic allows and it makes sense to define and measure KPIs.',
                     'terms': (
-                        'The KPIs & Metrics Dashboard is included at no extra cost for projects whose total '
-                        'investment exceeds 1,500 USD (or the COP equivalent). Its implementation is subject to '
-                        'the business having key indicators worth measuring. The benefit covers up to 8 KPIs, '
-                        '4 charts and 5 alerts; additional indicators are quoted separately.'
+                        'The KPIs & Metrics Dashboard is included at no extra cost in projects whose total '
+                        'investment exceeds **1,500 USD** (or the COP equivalent). Its implementation is subject '
+                        'to the business having key indicators worth measuring; if no relevant metrics exist, '
+                        'this benefit does not apply. **Important:** the benefit covers up to **8 KPIs, 4 charts '
+                        'and 5 alerts**; additional indicators are quoted separately.'
                     ),
                 },
                 'analytics_dashboard': {
@@ -1753,10 +1754,11 @@ DEFAULT_SECTIONS_EN = [
                     'duration_months': None,
                     'discretionary_note': 'Implemented if the business logic allows and it makes sense to collect and analyze usage data.',
                     'terms': (
-                        'The Analytics Module is included at no extra cost for projects whose total investment '
-                        'exceeds 1,800 USD (or the COP equivalent). Its implementation is subject to there being '
-                        'traffic or user behavior worth analyzing. The benefit covers up to 6 standard reports '
-                        'with data from the last 12 months; additional custom reports are quoted separately.'
+                        'The Analytics Module is included at no extra cost in projects whose total investment '
+                        'exceeds **1,800 USD** (or the COP equivalent). Its implementation is subject to there '
+                        'being traffic or user behavior worth analyzing. **Important:** the benefit covers up to '
+                        '**6 standard reports** with data from the last 12 months; additional custom reports are '
+                        'quoted separately.'
                     ),
                 },
                 'admin_module': {
@@ -1788,15 +1790,15 @@ DEFAULT_SECTIONS_EN = [
                     'duration_months': 6,
                     'discretionary_note': 'Implemented if the business logic allows and it makes sense to automate the process by connecting it to an AI assistant.',
                     'terms': (
-                        'AI Assistant Automation is included at no extra cost for projects whose total investment '
-                        'exceeds 2,900 USD (or the COP equivalent), and is available for a period of 6 months. It '
-                        'connects a currently manual process to an AI assistant (Claude or ChatGPT), so it can be '
-                        'controlled from the chat and automated via scheduled tasks inside the assistant itself. '
-                        'It covers one (1) business process; additional processes are quoted separately. '
-                        'IMPORTANT: this integration depends on the AI assistant (Claude or ChatGPT) offering and '
-                        'keeping that integration capability available. If the assistant provider stops offering or '
-                        'supporting this feature, the automation may become unavailable — a situation beyond our '
-                        'control and for which we are not responsible.'
+                        'AI Assistant Automation is included at no extra cost in projects whose total investment '
+                        'exceeds **2,900 USD** (or the COP equivalent), and is available for a period of '
+                        '**6 months**. It connects a currently manual process to an AI assistant (Claude or '
+                        'ChatGPT), so it can be controlled from the chat and run on its own via scheduled tasks '
+                        'inside the assistant itself. It covers **one (1) business process**; additional '
+                        'processes are quoted separately. **Important:** this integration depends on the AI '
+                        'assistant provider (Claude or ChatGPT) offering and keeping that integration capability '
+                        'available; if the provider stops supporting it, the automation may become unavailable — '
+                        'a situation beyond our control and for which we are not responsible.'
                     ),
                 },
             },
@@ -2629,7 +2631,7 @@ DEFAULT_SECTIONS_EN = [
                 },
             ],
             'validityMessage': (
-                'This proposal is valid for 30 days from the date of issue. '
+                'This proposal is valid for a limited period from its send date. '
                 'Prices and conditions may be subject to changes after this period.'
             ),
             'thankYouMessage': (
@@ -2644,7 +2646,7 @@ DEFAULT_SECTIONS_EN = [
         'order': 15,
         'is_wide_panel': False,
         'content_json': {
-            'index': '13',
+            'index': '14',
             'title': 'Closing & Next Steps',
             'introMessage': (
                 'We are ready to start this journey together. '
@@ -2727,11 +2729,10 @@ DEFAULT_SECTIONS_EN = [
                 'For low or medium-low effort requirements after delivery, we offer hour '
                 'banks at a preferential rate. The larger the package, the lower the cost per hour.'
             ),
-            'hourlyRate': 40000,
+            'hourlyRate': 30000,
             'currency': 'COP',
             'packages': [
                 {'name': 'Single Hour', 'hours': 1, 'discountPercent': 0, 'note': 'For a quick one-off tweak.'},
-                {'name': 'Starter Pack', 'hours': 10, 'discountPercent': 5, 'note': 'For one-off adjustments.'},
                 {'name': 'Agile Pack', 'hours': 20, 'discountPercent': 10, 'note': 'For short iterations.'},
                 {'name': 'Pro Pack', 'hours': 60, 'discountPercent': 20, 'note': 'For continuous improvements.'},
                 {'name': 'Premium Pack', 'hours': 180, 'discountPercent': 30, 'note': 'For sustained product evolution.'},
@@ -2744,7 +2745,7 @@ DEFAULT_SECTIONS_EN = [
             'scopeParagraphs': [
                 'The approved and quoted work corresponds solely to what is described within the scope '
                 'of this commercial proposal and its technical detail. Any conversation, message, '
-                'meeting, idea, resource, file, reference or request that arises during the project and '
+                'meeting, idea, resource, file, reference or request that arises before or during the project and '
                 'is not explicitly described within that scope does not, by itself, constitute a '
                 'commitment to implement it, nor is it part of the contracted work.',
                 'This does not limit communication: we can talk and explore ideas freely. However, for '
@@ -3044,6 +3045,86 @@ class ProposalService:
         return timezone.now() + timedelta(
             days=ProposalService.get_default_expiration_days(language),
         )
+
+    _MONTHS_ES = ('enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre',
+                  'diciembre')
+
+    @staticmethod
+    def compute_validity_text(proposal):
+        """Return the client-facing validity sentence for *proposal*.
+
+        Single source of truth shared by the PDF (_render_final_note) and
+        the proposal serializer (public web view), so the two surfaces can
+        never drift. States the total window from the send date (or issue
+        date for unsent drafts) to ``expires_at`` plus the absolute
+        deadline — never a countdown. Returns None without an expiry date.
+        """
+        from django.utils import timezone
+
+        expires_at = getattr(proposal, 'expires_at', None)
+        if not expires_at:
+            return None
+        lang = 'en' if getattr(proposal, 'language', 'es') == 'en' else 'es'
+        expiry_local = timezone.localtime(expires_at)
+        sent_at = getattr(proposal, 'sent_at', None)
+        ref = sent_at or getattr(proposal, 'created_at', None)
+        n_days = ((expiry_local.date() - timezone.localtime(ref).date()).days
+                  if ref else 0)
+        if lang == 'en':
+            expiry_txt = (f'{expiry_local.strftime("%B")} '
+                          f'{expiry_local.day}, {expiry_local.year}')
+            if n_days <= 0:
+                return f'This proposal is valid until {expiry_txt}.'
+            unit = 'calendar day' if n_days == 1 else 'calendar days'
+            since = 'its send date' if sent_at else 'its issue date'
+            return (f'This proposal is valid for {n_days} {unit} '
+                    f'from {since} (valid until {expiry_txt}).')
+        month = ProposalService._MONTHS_ES[expiry_local.month - 1]
+        expiry_txt = f'{expiry_local.day} de {month} de {expiry_local.year}'
+        if n_days <= 0:
+            return f'Esta propuesta es válida hasta el {expiry_txt}.'
+        unit = 'día calendario' if n_days == 1 else 'días calendario'
+        since = 'su fecha de envío' if sent_at else 'su fecha de emisión'
+        return (f'Esta propuesta tiene una vigencia de {n_days} {unit} '
+                f'a partir de {since} (válida hasta el {expiry_txt}).')
+
+    # Hosting fields whose creation defaults are admin-editable in
+    # ProposalDefaultConfig. Shared by the panel form and the JSON/MCP
+    # creation paths so a payload that omits them gets the configured
+    # value instead of the model default.
+    HOSTING_CONFIG_FIELDS = (
+        'hosting_percent',
+        'hosting_discount_annual',
+        'hosting_discount_semiannual',
+        'hosting_discount_quarterly',
+    )
+
+    @staticmethod
+    def apply_hosting_defaults(proposal, provided_fields):
+        """Fill hosting fields from ProposalDefaultConfig when not provided.
+
+        ``provided_fields`` is the set of keys present in the creation
+        payload; only absent fields are overwritten. No-op when no config
+        row exists for the proposal's language.
+        """
+        from content.models import ProposalDefaultConfig
+
+        config = ProposalDefaultConfig.objects.filter(
+            language=proposal.language,
+        ).first()
+        if not config:
+            return
+        updates = [
+            field for field in ProposalService.HOSTING_CONFIG_FIELDS
+            if field not in provided_fields
+            and getattr(config, field, None) is not None
+        ]
+        if not updates:
+            return
+        for field in updates:
+            setattr(proposal, field, getattr(config, field))
+        proposal.save(update_fields=updates)
 
     @staticmethod
     def send_proposal(proposal):
@@ -3498,6 +3579,8 @@ def build_proposal_from_json(validated_data):
         client=client_profile,
     )
     proposal_client_service.sync_snapshot(proposal)
+    # Hosting defaults are admin-editable; explicit payload values win.
+    ProposalService.apply_hosting_defaults(proposal, set(data))
 
     default_sections = ProposalService.get_default_sections(proposal.language)
     resolved_sections = []

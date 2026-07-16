@@ -788,16 +788,8 @@ def build_proposal_analytics(proposal):
     }
 
 
-def build_dashboard():
-    """
-    Build aggregated KPIs across all proposals for the admin dashboard.
-
-    Includes: total counts by status, conversion rate, avg time metrics,
-    avg proposal value by status, top rejection reasons, monthly trend.
-    """
-    from django.db.models import Avg, Count, Q, Sum
-    from django.db.models.functions import TruncMonth
-
+def _dashboard_core_inputs():
+    """Shared heavy inputs for the dashboard core and its extended metrics."""
     all_proposals = BusinessProposal.objects.all()
     totals_input = list(
         all_proposals.only(
@@ -805,6 +797,23 @@ def build_dashboard():
         )
     )
     effective_totals = build_effective_totals_map(totals_input)
+    return all_proposals, totals_input, effective_totals
+
+
+def build_dashboard_core(*, include_recent=True, _inputs=None):
+    """
+    Cheap dashboard subset: status counts, pipeline, conversion, monthly
+    trend and recent proposals. Feeds the global panel dashboard; the full
+    proposal deep-dive extends it via ``build_dashboard``.
+    """
+    from datetime import timedelta
+
+    from django.db.models import Count, Q
+    from django.db.models.functions import TruncMonth
+
+    all_proposals, totals_input, effective_totals = (
+        _inputs if _inputs is not None else _dashboard_core_inputs()
+    )
     total = len(totals_input)
 
     # Pipeline value: sum of effective investment for active sent + viewed proposals
@@ -836,6 +845,64 @@ def build_dashboard():
     conversion_rate = round(
         (won_count / terminal * 100) if terminal > 0 else 0, 1
     )
+
+    # Monthly trend (last 6 months)
+    six_months_ago = timezone.now() - timedelta(days=180)
+    monthly_qs = (
+        all_proposals
+        .filter(created_at__gte=six_months_ago)
+        .annotate(month=TruncMonth('created_at'))
+        .values('month')
+        .annotate(
+            created=Count('id'),
+            sent=Count('id', filter=Q(status__in=['sent', 'viewed', 'accepted', 'finished', 'rejected', 'expired'])),
+            accepted=Count('id', filter=Q(status__in=['accepted', 'finished'])),
+            finished=Count('id', filter=Q(status='finished')),
+            rejected=Count('id', filter=Q(status='rejected')),
+        )
+        .order_by('month')
+    )
+    monthly_trend = [
+        {
+            'month': row['month'].isoformat() if row['month'] else '',
+            'created': row['created'],
+            'sent': row['sent'],
+            'accepted': row['accepted'],
+            'finished': row['finished'],
+            'rejected': row['rejected'],
+        }
+        for row in monthly_qs
+    ]
+
+    payload = {
+        'total_proposals': total,
+        'by_status': by_status,
+        'conversion_rate': conversion_rate,
+        'pipeline_value': pipeline_value,
+        'pipeline_count': pipeline_count,
+        'monthly_trend': monthly_trend,
+    }
+    if include_recent:
+        payload['recent'] = list(
+            all_proposals.order_by('-created_at')
+            .values('id', 'title', 'client_name', 'status')[:5]
+        )
+    return payload
+
+
+def build_dashboard():
+    """
+    Build aggregated KPIs across all proposals for the admin dashboard.
+
+    Includes: total counts by status, conversion rate, avg time metrics,
+    avg proposal value by status, top rejection reasons, monthly trend.
+    """
+    from django.db.models import Avg, Count, Q, Sum
+
+    inputs = _dashboard_core_inputs()
+    all_proposals, totals_input, effective_totals = inputs
+    core = build_dashboard_core(include_recent=False, _inputs=inputs)
+    by_status = core['by_status']
 
     # Avg time-to-first-view (hours) — only proposals that have both timestamps
     ttfv_qs = all_proposals.filter(
@@ -881,35 +948,6 @@ def build_dashboard():
         .annotate(count=Count('id'))
         .order_by('-count')[:10]
     )
-
-    # Monthly trend (last 6 months)
-    from datetime import timedelta
-    six_months_ago = timezone.now() - timedelta(days=180)
-    monthly_qs = (
-        all_proposals
-        .filter(created_at__gte=six_months_ago)
-        .annotate(month=TruncMonth('created_at'))
-        .values('month')
-        .annotate(
-            created=Count('id'),
-            sent=Count('id', filter=Q(status__in=['sent', 'viewed', 'accepted', 'finished', 'rejected', 'expired'])),
-            accepted=Count('id', filter=Q(status__in=['accepted', 'finished'])),
-            finished=Count('id', filter=Q(status='finished')),
-            rejected=Count('id', filter=Q(status='rejected')),
-        )
-        .order_by('month')
-    )
-    monthly_trend = [
-        {
-            'month': row['month'].isoformat() if row['month'] else '',
-            'created': row['created'],
-            'sent': row['sent'],
-            'accepted': row['accepted'],
-            'finished': row['finished'],
-            'rejected': row['rejected'],
-        }
-        for row in monthly_qs
-    ]
 
     # --- New metrics ---
 
@@ -1165,16 +1203,11 @@ def build_dashboard():
         }
 
     return {
-        'total_proposals': total,
-        'by_status': by_status,
-        'conversion_rate': conversion_rate,
-        'pipeline_value': pipeline_value,
-        'pipeline_count': pipeline_count,
+        **core,
         'avg_time_to_first_view_hours': avg_ttfv,
         'avg_time_to_response_hours': avg_ttr,
         'avg_value_by_status': avg_value_by_status,
         'top_rejection_reasons': list(rejection_reasons),
-        'monthly_trend': monthly_trend,
         'pct_reaching_investment': pct_reaching_investment,
         'pct_revisit': pct_revisit,
         'discount_close_rate': discount_close_rate,

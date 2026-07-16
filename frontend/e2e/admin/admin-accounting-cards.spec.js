@@ -26,7 +26,17 @@ function snapshotRow(overrides = {}) {
   };
 }
 
-function buildHandler({ rows, calls }) {
+const DEFAULT_CATALOG = [
+  {
+    id: 1,
+    name: 'T.C 0064',
+    credit_limit: '8000000.00',
+    is_active: true,
+    statements_since: '2026-05-01',
+  },
+];
+
+function buildHandler({ rows, calls, catalog = DEFAULT_CATALOG, savedTabs = [] }) {
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
       return {
@@ -48,18 +58,7 @@ function buildHandler({ rows, calls }) {
       return {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({
-          results: [
-            {
-              id: 1,
-              name: 'T.C 0064',
-              credit_limit: '8000000.00',
-              is_active: true,
-              statements_since: '2026-05-01',
-            },
-          ],
-          meta: {},
-        }),
+        body: JSON.stringify({ results: catalog, meta: {} }),
       };
     }
     if (apiPath === 'accounting/card-snapshots/create/' && method === 'POST') {
@@ -85,7 +84,11 @@ function buildHandler({ rows, calls }) {
       return { status: 204, contentType: 'application/json', body: '' };
     }
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {
-      return { status: 200, contentType: 'application/json', body: '[]' };
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(savedTabs),
+      };
     }
     return null;
   };
@@ -106,23 +109,92 @@ test.describe('Admin Accounting Cards', () => {
     });
   });
 
-  test('renders snapshots with the latest-debt chip', {
+  test('defaults the card filter to the registered catalog cards', {
     tag: [...ADMIN_ACCOUNTING_CARDS, '@role:admin'],
   }, async ({ page }) => {
-    const calls = [];
+    // T.C 0655 exists only in old snapshots — not in the catalog.
     await mockApi(page, buildHandler({
       rows: [
         snapshotRow(),
         snapshotRow({ id: 2, snapshot_date: '2026-07-01', debt_amount: '4150954.00' }),
         snapshotRow({ id: 3, card_name: 'T.C 0655', snapshot_date: '2026-06-20', debt_amount: '1000000.00' }),
       ],
-      calls,
+      calls: [],
     }));
     await gotoCards(page);
 
+    // Default view: only the registered card's snapshots, with the filter
+    // visible as a removable chip (not a silent cut).
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-2')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-3')).toHaveCount(0);
+    await expect(page.getByTestId('accounting-filter-chip')).toHaveText(/T\.C 0064/);
+    await expect(page.getByTestId('cards-total-debt')).toContainText('4.150.954');
+
+    // Clearing the filter surfaces the historical card again.
+    await page.getByTestId('accounting-filter-reset').click();
+    await expect(page.getByTestId('accounting-row-3')).toBeVisible();
     // Latest per card: 4.150.954 (T.C 0064, jul 1) + 1.000.000 (T.C 0655).
     await expect(page.getByTestId('cards-total-debt')).toContainText('5.150.954');
+  });
+
+  test('card filter options combine the catalog and historical names', {
+    tag: [...ADMIN_ACCOUNTING_CARDS, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [snapshotRow({ card_name: 'T.C 0655' })],
+      calls: [],
+      catalog: [
+        ...DEFAULT_CATALOG,
+        // Registered but with no snapshots yet: filterable anyway.
+        {
+          id: 2,
+          name: 'T.C 9999',
+          credit_limit: '2000000.00',
+          is_active: true,
+          statements_since: null,
+        },
+      ],
+    }));
+    await gotoCards(page);
+
+    await page.getByRole('button', { name: /Filtros/ }).click();
+    // ^ anchor: the preselection chips are named "Quitar filtro Tarjeta: …"
+    // and would otherwise match too.
+    await page
+      .getByTestId('accounting-filter-panel')
+      .getByRole('button', { name: /^Tarjeta/ })
+      .click();
+
+    await expect(page.getByRole('checkbox', { name: 'T.C 0064' })).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: 'T.C 9999' })).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: 'T.C 0655' })).toBeVisible();
+  });
+
+  test('a saved tab in the URL wins over the default card filter', {
+    tag: [...ADMIN_ACCOUNTING_CARDS, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [
+        snapshotRow(),
+        snapshotRow({ id: 3, card_name: 'T.C 0655', snapshot_date: '2026-06-20', debt_amount: '1000000.00' }),
+      ],
+      calls: [],
+      savedTabs: [{ id: 7, name: 'Deudas altas', filters: { debtMin: '900000' } }],
+    }));
+    await page.goto('/panel/accounting/cards?accounting_cardsTab=7', {
+      waitUntil: 'domcontentloaded',
+    });
+    await expect(
+      page.getByRole('heading', { name: 'Tarjetas', exact: true }),
+    ).toBeVisible({ timeout: 25_000 });
+
+    // The tab's own filters apply; the catalog preselection must not
+    // overwrite them, so the unregistered card's row stays visible.
+    await expect(page.getByTestId('accounting-row-3')).toBeVisible();
+    await expect(
+      page.getByTestId('accounting-filter-chip').filter({ hasText: 'T.C 0064' }),
+    ).toHaveCount(0);
   });
 
   test('creates a snapshot with today as the default date', {

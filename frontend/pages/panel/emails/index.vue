@@ -76,8 +76,7 @@
                   <span class="text-[10px] text-text-muted uppercase tracking-wide">Sección {{ idx + 1 }}</span>
                   <span class="ml-auto flex items-center gap-1.5">
                     <span class="text-[10px] font-medium text-text-muted uppercase tracking-wide">Markdown</span>
-                    <BaseToggle v-model="section.markdown" size="sm" aria-label="Activar Markdown en esta sección"
-                      off-class="bg-surface !border-primary" />
+                    <BaseToggle v-model="section.markdown" size="sm" aria-label="Activar Markdown en esta sección" />
                   </span>
                   <button v-if="sections.length > 1" type="button" @click="removeSection(idx)"
                     class="text-text-subtle hover:text-danger-strong transition-colors p-0.5">

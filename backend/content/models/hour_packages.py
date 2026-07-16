@@ -3,15 +3,15 @@ from django.db import models
 
 class Nationality(models.TextChoices):
     COL = 'COL', 'Colombia'
-    MEX = 'MEX', 'México'
+    EXT = 'EXT', 'Extranjero'
     USA = 'USA', 'Estados Unidos'
 
 
-# Pricing currency implied by each nationality. MEX quotes in USD by
-# commercial decision (no MXN support in the proposal currency enum).
+# Pricing currency implied by each nationality. EXT covers any country other
+# than Colombia and USA and always quotes in USD by commercial decision.
 CURRENCY_BY_NATIONALITY = {
     Nationality.COL: 'COP',
-    Nationality.MEX: 'USD',
+    Nationality.EXT: 'USD',
     Nationality.USA: 'USD',
 }
 
@@ -20,8 +20,8 @@ class HourPackage(models.Model):
     """
     Catalog entry for a post-delivery development hour package.
 
-    Each package belongs to one nationality (COL/MEX/USA); the pricing
-    currency is derived from it (COL→COP, MEX/USA→USD). Active packages
+    Each package belongs to one nationality (COL/EXT/USA); the pricing
+    currency is derived from it (COL→COP, EXT/USA→USD). Active packages
     seed the ``commercial_conditions`` section of newly created proposals
     matching the proposal's nationality; when the catalog is empty for a
     nationality, proposal creation falls back to the hardcoded defaults.

@@ -8,20 +8,13 @@
  *   <p v-html="linkify(text)" />
  */
 
+import { escapeHtml } from '~/utils/escapeHtml';
+
 // Full URLs: https://example.com/path
 const FULL_URL_RE = /https?:\/\/[^\s),]+/g;
 
 // Bare domains: example.com, example.co/path (must have known TLD)
 const BARE_DOMAIN_RE = /(?<![\/\w@])([a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.(?:com|co|net|org|io|dev|app|at|de|es|fr|uk|us|me|info|biz|tv|cc)(?:\/[^\s),]*)?)(?![\/\w])/g;
-
-function escapeHtml(s) {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 /**
  * Replace URLs in text with anchor tags that open in a new tab.

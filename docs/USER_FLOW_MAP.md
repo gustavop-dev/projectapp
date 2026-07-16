@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.31.0
-> **Last updated:** 2026-07-07
+> **Version:** 2.32.0
+> **Last updated:** 2026-07-16
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -540,13 +540,71 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/`
-- **Description:** View the admin dashboard with overview of proposals and blog posts.
+- **Description:** View the redesigned global dashboard: pulse KPIs (liquid utility, active pipeline, attention count), cross-module attention radar, and finance / proposals / operations sections fed by one request to `GET /api/panel/dashboard/`.
 - **Steps:**
   1. Authenticated admin navigates to `/panel/`.
-  2. Dashboard renders with summary data.
-  3. Quick links to proposal and blog management are available.
+  2. The page fetches `GET /api/panel/dashboard/` (single consolidated payload) and shows skeletons while loading.
+  3. Pulse tiles, attention radar and the module sections render; section headers deep-link to each module.
+  4. The "+ Crear" dropdown offers quick creation shortcuts (propuesta, documento, tarea, gasto).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
+
+### FLOW: `admin-dashboard-finance-gate`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/`
+- **Description:** Financial KPIs (liquid utility pulse tile and Finanzas section) render only when the backend payload carries finance data; staff non-superusers receive `finance: null` and never see financial figures. The gate is enforced server-side in `panel_dashboard` view.
+- **Steps:**
+  1. Staff (non-superuser) admin opens `/panel/`.
+  2. `GET /api/panel/dashboard/` responds with `finance: null` and no finance-derived attention items.
+  3. The dashboard renders proposals and operations only; no utility tile or Finanzas section.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
+
+### FLOW: `admin-dashboard-attention-radar`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/`
+- **Description:** Cross-module actionable list: overdue collection accounts, failed emails (7d), overdue tasks, proposals sent-unopened >7d and upcoming recurring payments, each with severity accent (danger/warning/info) and a deep-link to its module. Shows a positive state when nothing needs attention.
+- **Steps:**
+  1. Admin opens `/panel/` with pending items in the payload's `attention` list.
+  2. Radar renders one row per item, ordered by severity, with Spanish copy and module label.
+  3. Clicking a row navigates to the owning module (e.g. `/panel/tasks`).
+  4. With an empty list, the radar shows "Nada requiere tu atención".
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
+
+### FLOW: `admin-dashboard-error-retry`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/`
+- **Description:** A failed `GET /api/panel/dashboard/` load replaces the dashboard with a global error state; the Reintentar button refetches and restores the full dashboard once the API recovers.
+- **Steps:**
+  1. Admin opens `/panel/` while the dashboard endpoint fails (5xx).
+  2. The error state renders with a Reintentar button and a panel notification fires.
+  3. Clicking Reintentar refetches; on success the pulse/radar/sections render.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
+
+### FLOW: `admin-dashboard-quick-create`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/`
+- **Description:** The dashboard header "+ Crear" dropdown offers quick navigation to create a proposal, document, task or expense.
+- **Steps:**
+  1. Admin opens `/panel/` and clicks "+ Crear".
+  2. The dropdown lists Propuesta / Documento / Tarea / Gasto.
+  3. Selecting an option navigates to the corresponding module route.
+- **Coverage:** ⚠️ Pending (registered, E2E spec not yet implemented)
+- **E2E Spec:** _suggested:_ `e2e/admin/admin-dashboard.spec.js` (add a quick-create test)
 
 ### FLOW: `admin-proposal-list`
 
@@ -628,6 +686,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch B — JSON import] Admin switches to "Importar JSON" tab (see `admin-proposal-create-from-json`).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-create.spec.js`
+- **Known gaps:** Hosting defaults seeding on mount (hosting_percent + hosting_discount_* from GET `proposals/defaults`, 2026-07) is not asserted — the spec's defaults mock only carries `expiration_days`. The JSON-tab `total_investment` now uses `BaseCurrencyInput` (live thousand separators) and its formatting is not asserted.
 
 ### FLOW: `admin-proposal-create-from-json`
 
@@ -714,6 +773,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch C — item traceability] In the Det. técnico tab, each requirement shows "Vincular a ítems comerciales" checkboxes (grouped by functional_requirements card) that write `linked_item_ids`; saving persists them via the section update endpoint. These links power the public nested requirements modal and the commercial PDF sub-rows.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-edit.spec.js` (includes linked_item_ids save test)
+- **Known gaps:** The automations toggle now uses positive polarity (ON = automations running, 2026-07); no E2E asserts knob position / `aria-checked`, and the toggle has no `data-testid` (only `aria-label="Activar automatizaciones"`).
 
 ### FLOW: `admin-proposal-slug-edit`
 
@@ -766,6 +826,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **E2E Spec:** `e2e/admin/admin-proposal-section-form.spec.js`
 - **Unit Tests:** `test/components/SectionEditor.test.js`
 - **Backend Tests:** `content/tests/views/test_section_update_views.py`
+- **Known gaps:** The `commercial_conditions` and `value_added_modules` editors are not exercised by the spec; their money fields (`hourlyRate` base and per-package, `min_price_usd/cop`) now use `BaseCurrencyInput` (2026-07).
 
 ### FLOW: `admin-proposal-section-edit-paste`
 
@@ -1219,7 +1280,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   6. Admin clicks the send button → `POST /api/proposals/:id/send-multi/` with `proposal_ids`.
   7. Backend validates same-client, ≥2 proposals, ≤10 proposals, applies side effects, sends one email with N PDF attachments, returns the proposal payload + `email_delivery` + `transitions` map.
   8. Modal closes; success toast "Correo enviado al cliente con N propuestas." renders. Page data refreshes so updated statuses/expires_at show.
-- **Coverage:** ❌ Missing — feature is brand new; no spec exercises the modal, the backend call, the same-client validation, the ≥2/≤10 guards, or the success toast.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-multi-send.spec.js`
 - **E2E Spec (suggested):** `e2e/admin/admin-proposal-multi-send.spec.js`. Mock `GET /api/proposals/?client_id=` to return ≥2 proposals across at least two of the status groups, click through the modal, mock `POST /api/proposals/:id/send-multi/` with `email_delivery.ok=true`, and assert the success toast.
 
 ### FLOW: `admin-proposal-resend`
@@ -1236,7 +1298,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   4. On confirm → `POST /api/proposals/:id/resend/`.
   5. Backend resets timers and re-sends the email, returning `email_delivery`.
   6. Success toast "Propuesta re-enviada al cliente" or error toast with `email_delivery.detail || email_delivery.reason`.
-- **Coverage:** ❌ Missing — only button visibility is asserted in `admin-proposal-send.spec.js`; the end-to-end resend execution path and the toast feedback have no dedicated spec.
+- **Coverage:** 🟡 Partial
+- **E2E Spec:** `e2e/admin/admin-proposal-resend.spec.js`
+- **Known gaps:** no `email_delivery.ok=false` handler; the failure-with-reason toast branch is untested (2026-07 audit).
 - **E2E Spec (suggested):** `e2e/admin/admin-proposal-resend.spec.js`
 
 ### FLOW: `admin-proposal-reopen-from-expired`
@@ -1257,7 +1321,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch A — form path] PATCH `/update/`. Status reverts to `viewed` if `view_count > 0`, else `sent`.
   - [Branch B — JSON path] PUT `/update-from-json/`. Same reopen logic; `ProposalFromJSONSerializer` reads the bound proposal via `context={'proposal': proposal}` to skip the future-only check when `expires_at` is unchanged.
   - [Branch C — keep `expires_at` unchanged] Admin edits other fields on an expired proposal without touching the date. Save succeeds (no longer blocked by validator); `status` stays `expired`.
-- **Coverage:** ❌ Missing — backend pytest covers the behavior (`test_update_reopens_status_when_expires_at_moved_to_future_no_views`, `test_update_reopens_to_viewed_when_proposal_was_visited`, `test_update_from_json_reopens_status_when_expires_at_moved_to_future`, plus the unchanged-date variants), but no Playwright spec exercises the UI path.
+- **Coverage:** 🟡 Partial
+- **E2E Spec:** `e2e/admin/admin-proposal-reopen-from-expired.spec.js`
+- **Known gaps:** the General-tab PATCH `/update/` reopen path is still unasserted; the JSON path now covers the PUT, toast and the expired→viewed status badge revert (2026-07).
 - **E2E Spec (suggested):** `e2e/admin/admin-proposal-reopen-from-expired.spec.js`
 
 ### FLOW: `admin-proposal-update-from-json`
@@ -1278,7 +1344,35 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch A — happy path] Valid JSON → 200 with refreshed proposal payload.
   - [Branch B — unknown section keys] Payload includes unrecognized keys → 200 + `warnings` listing them.
   - [Branch C — invalid `expires_at`] New value in the past → 400 from `validate_expires_at` (unless the value matches the proposal's stored `expires_at`).
-- **Coverage:** ❌ Missing — backend pytest covers the round-trip and warnings cases (`TestUpdateProposalFromJSON`), but no Playwright spec exercises the UI re-import path.
+- **Coverage:** 🟡 Partial
+- **E2E Spec:** `e2e/admin/admin-proposal-update-from-json.spec.js`
+- **Known gaps:** happy path only; unknown-key warnings surfacing and the keep-expires_at-on-expired branch are unasserted (2026-07 audit).
+
+### FLOW: `admin-proposal-prompt`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/proposals/:id/edit` (Prompt tab)
+- **Description:** Admin copies, edits, downloads and resets the commercial and technical proposal-generation prompts from the Prompt tab (`ProposalPromptTab.vue`, localStorage-persisted via `useSellerPrompt`/`useTechnicalPrompt`). Parallel of `admin-diagnostic-prompt`.
+- **Steps:**
+  1. Admin opens a proposal's edit page and switches to the Prompt tab.
+  2. Admin copies, edits, downloads or resets either prompt.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (suggested: `e2e/admin/admin-proposal-prompt.spec.js`)
+
+### FLOW: `admin-proposal-dev-checklist`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/proposals/:id/edit` (Desarrollo tab, accepted proposals only)
+- **Description:** Admin generates, copies and downloads a Markdown developer checklist from the Desarrollo tab (`DevChecklistTab.vue`, client-side `buildDevChecklistMarkdown`). The tab only appears when the proposal status is `accepted`.
+- **Steps:**
+  1. Admin opens an accepted proposal's edit page; the Desarrollo tab is visible.
+  2. Admin refreshes, copies or downloads the checklist markdown.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (suggested: `e2e/admin/admin-proposal-dev-checklist.spec.js`)
 - **E2E Spec (suggested):** `e2e/admin/admin-proposal-update-from-json.spec.js`
 
 ### FLOW: `admin-proposal-manual-alerts`
@@ -1480,6 +1574,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   8. [Optional] When a module minimum is not met, the "Disponible en proyectos desde $X" badge renders; a duration badge renders when `duration_months` is set.
   9. [Optional] Clicking "Términos y condiciones" opens the `ModuleTermsModal` with the module terms, without opening the detail modal.
 - **Coverage:** ✅ Covered — `frontend/e2e/proposal/proposal-value-added-modules.spec.js` (card grid, condition badges, and terms modal)
+- **Known gaps:** The terms modal now renders `**bold**` via `renderInlineBold` (2026-07) but the spec's mock terms carry no `**` markers, so bold output is unasserted. The canonical card order (admin → manual → kpi_dashboard → analytics → ai_automation, 2026-07) is not asserted either.
 
 ### FLOW: `proposal-calculator-modules`
 
@@ -1536,7 +1631,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Post-rejection revisit] If the proposal was rejected and the client revisits, a `post_rejection_revisit` alert is also created.
 - **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/proposal/proposal-view.spec.js` (Branch A — Proposal expired)
+- **E2E Spec:** `e2e/proposal/proposal-expired-graceful.spec.js` (410 fallback + 200 expired_meta banner)
 - **Known gaps:** When the full proposal still renders with the persistent expired banner (`pages/proposal/[uuid]/index.vue` `isExpired`), the top-left index toggle must drop below the banner (`ProposalIndex` `bannerActive` → `top-28 sm:top-20`) so the two don't overlap. No E2E asserts this no-overlap; only a unit test (`test/components/ProposalIndex.test.js`) covers the offset class.
 
 ### FLOW: `proposal-magic-link-request`
@@ -1622,6 +1717,21 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-rejection-recovery.spec.js`
 
+### FLOW: `proposal-schedule-followup-reminder`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** After rejecting with reason "not the right time", the client clicks the "🔔 remind me later" CTA in the recovery card (`ProposalClosing.vue` `scheduleReminder`), which POSTs `proposals/:uuid/schedule-followup/` and flips the button to a scheduled-confirmation state. The only recovery CTA that mutates server state.
+- **Steps:**
+  1. Client rejects the proposal choosing "not the right time".
+  2. Recovery card renders with the reminder CTA.
+  3. Client clicks it → `POST /api/proposals/:uuid/schedule-followup/`.
+  4. Button flips to the scheduled ✅ state.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-rejection-recovery.spec.js` (schedule-followup test)
+
 ### FLOW: `proposal-functional-requirements-modal`
 
 - **Module:** proposal
@@ -1653,7 +1763,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   5. Backend sets `automations_paused = True` and status to `negotiating`.
   6. Success message displays with WhatsApp CTA for further discussion.
 - **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/proposal/proposal-respond.spec.js`
+- **E2E Spec:** `e2e/proposal/proposal-negotiate.spec.js`
 
 ### FLOW: `admin-proposal-quick-send`
 
@@ -2060,7 +2170,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/hour-packages`
-- **Description:** View the hour-package catalog filtered by nationality tabs (COL/MEX/USA); prices show in the currency derived from the nationality (COL→COP, MEX/USA→USD) with computed effective rate and total.
+- **Description:** View the hour-package catalog filtered by nationality tabs (COL/EXT/USA); prices show in the currency derived from the nationality (COL→COP, EXT/USA→USD) with computed effective rate and total.
 - **Steps:**
   1. Admin navigates to `/panel/hour-packages`.
   2. Packages load from API (`GET /api/hour-packages/admin/?nationality=COL`) — Colombia tab is active by default.
@@ -2068,7 +2178,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   4. Admin switches nationality tab → list refetches with that nationality and prices change currency.
   5. Empty tabs show a hint that proposal creation falls back to default packages.
   6. "Nuevo paquete" button links to the create page carrying the active nationality.
-- **Coverage:** ✅ Covered
+- **Coverage:** 🟡 Partial (pagination and mobile card variant not asserted; view modes tracked in `admin-hour-packages-view-modes`; 2026-07-16 audit)
 - **E2E Spec:** `e2e/admin/admin-hour-packages-list.spec.js`
 
 ### FLOW: `admin-hour-packages-view-modes`
@@ -2096,7 +2206,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Steps:**
   1. Admin switches the page section segmented to "Configuración".
   2. Saving a default view mode PATCHes `/api/hour-packages/admin/settings/update/` and toasts.
-  3. "Restablecer" per nationality opens a ConfirmModal and POSTs `/api/hour-packages/admin/restore-defaults/`; the catalog of that country is replaced with the default ladder (1h/10h/20h/60h/180h).
+  3. "Restablecer" per nationality opens a ConfirmModal and POSTs `/api/hour-packages/admin/restore-defaults/`; the catalog of that country is replaced with the default ladder (1h/20h/60h/180h).
 - **Coverage:** ⚠️ Missing
 - **E2E Spec:** _pending_
 
@@ -2527,6 +2637,10 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-login` | auth | admin | P1 | ✅ Covered | `e2e/auth/auth-admin-login.spec.js` |
 | `admin-impersonate-user` | admin | admin | P2 | ⚠️ Pending | _suggested:_ `e2e/admin/admin-impersonate-user.spec.js` |
 | `admin-dashboard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
+| `admin-dashboard-finance-gate` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
+| `admin-dashboard-attention-radar` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
+| `admin-dashboard-error-retry` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
+| `admin-dashboard-quick-create` | admin | admin | P3 | ⚠️ Pending | _suggested:_ `e2e/admin/admin-dashboard.spec.js` |
 | `admin-proposal-list` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
 | `admin-proposal-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-proposal-create-from-json` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
@@ -2554,8 +2668,10 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-client-inactive-tab` | admin | admin | P2 | 🟡 Partial (reactivate branch not asserted) | `e2e/admin/admin-clients-inactive-tab.spec.js` |
 | `admin-client-drag-reassign` | admin | admin | P2 | 🟡 Partial (undo action not asserted) | `e2e/admin/admin-clients-drag-reassign.spec.js` |
 | `admin-proposal-send` | admin | admin | P1 | 🟡 Partial (email_intro editing, PDF attachment, failure-feedback toast not asserted) | `e2e/admin/admin-proposal-send.spec.js` |
-| `admin-proposal-multi-send` | admin | admin | P1 | ❌ Missing | `e2e/admin/admin-proposal-multi-send.spec.js` |
-| `admin-proposal-resend` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-proposal-resend.spec.js` |
+| `admin-proposal-multi-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-multi-send.spec.js` |
+| `admin-proposal-resend` | admin | admin | P2 | 🟡 Partial | `e2e/admin/admin-proposal-resend.spec.js` |
+| `admin-proposal-prompt` | admin | admin | P3 | ❌ Missing | — |
+| `admin-proposal-dev-checklist` | admin | admin | P3 | ❌ Missing | — |
 | `admin-blog-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-list.spec.js` |
 | `admin-blog-calendar` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-calendar.spec.js` |
 | `admin-blog-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-create.spec.js` |
@@ -2588,14 +2704,14 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-calculator-modules` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-calculator-modules.spec.js` |
 | `proposal-calculator-selected-first` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-modules.spec.js` |
 | `proposal-calculator-integrations` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-integrations.spec.js` |
-| `proposal-expired-graceful` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view.spec.js` |
+| `proposal-expired-graceful` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-expired-graceful.spec.js` |
 | `proposal-magic-link-request` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-magic-link-request.spec.js` |
 | `proposal-calculator-abandonment-tracking` | proposal | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
 | `admin-proposal-batch-actions` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
 | `admin-proposal-engagement-decay-alert` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
 | `admin-proposal-post-rejection-revisit` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
 | `admin-proposal-json-import-warnings` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
-| `proposal-negotiate` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-respond.spec.js` |
+| `proposal-negotiate` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-negotiate.spec.js` |
 | `admin-proposal-quick-send` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
 | `admin-proposal-quick-log` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-quick-log.spec.js` |
 | `proposal-calculator-timeline` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-calculator-timeline.spec.js` |
@@ -2625,10 +2741,17 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-sticky-bar-accept` | proposal | guest | ~~P2~~ | 🗄️ Archived | — (feature removed) |
 | `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
 | `admin-document-gallery` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-gallery.spec.js` |
-| `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
+| `admin-document-create` | admin | admin | P2 | 🟡 Partial (paste mode only; upload mode + cover toggles not asserted) | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
 | `admin-document-move-folder` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-move-folder.spec.js` |
+| `admin-document-send-email` | admin | admin | P1 | ❌ Missing | — (spec not yet written) |
+| `admin-document-rename` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-delete` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-folder-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-tags-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
+| `admin-document-drag-organize` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
 | `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
 | `admin-email-deliverability` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-email-deliverability.spec.js` |
@@ -2667,6 +2790,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-actions-modal` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-actions-modal.spec.js` |
 | `proposal-comment-from-closing` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-comment-flow.spec.js` |
 | `proposal-rejection-smart-recovery` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-rejection-recovery.spec.js` |
+| `proposal-schedule-followup-reminder` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-rejection-recovery.spec.js` |
 | `proposal-functional-requirements-modal` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-requirements-modal.spec.js` |
 | `platform-access-view` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-access.spec.js` |
 
@@ -3504,7 +3628,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Validation error] Missing required fields → inline errors displayed.
   - [Branch B — Preview toggle] Admin clicks preview button → split-pane preview shown alongside editor.
-- **Coverage:** ✅ Covered
+- **Coverage:** 🟡 Partial (paste mode only — "Cargar Archivo" upload mode, cover toggles and template-style selection not exercised; 2026-07-16 audit)
 - **E2E Spec:** `e2e/admin/admin-document-create.spec.js`
 
 #### FLOW: `admin-document-edit`
@@ -3617,6 +3741,92 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-move-folder.spec.js`
 
+
+#### FLOW: `admin-document-send-email`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/documents`
+- **API:** `POST /api/emails/send/` (multipart, `document_ids`)
+- **Description:** Admin sends a branded email with document PDFs attached from the documents list. The actions sheet's "Enviar por correo" opens `SendDocumentEmailModal` with recipient, subject, greeting, ordered sections (add/remove/move), footer and a picker to attach other documents as PDFs; Edit/Preview tabs mirror the standalone composer. Functional successor of the superseded `admin-proposal-documents-send` flow.
+- **Steps:**
+  1. Admin loads `/panel/documents` and opens the actions sheet of a document.
+  2. Admin clicks "Enviar por correo" → `SendDocumentEmailModal` opens with the document preselected.
+  3. Admin fills recipient, subject and section content; optionally attaches more documents.
+  4. Admin clicks send → `POST /api/emails/send/` with `document_ids` → success message with the recipient.
+- **Branches:**
+  - [Branch A — Rate limited] Backend responds 429 → rate-limited message shown.
+  - [Branch B — Send error] Other failures render an inline error and keep the modal open.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+
+#### FLOW: `admin-document-rename`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **API:** `PATCH /api/documents/<id>/update/`
+- **Description:** Admin renames a document from the actions sheet via `RenameDocumentModal`: the input opens prefilled with the current title; saving PATCHes the document and the list shows the new title.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+
+#### FLOW: `admin-document-delete`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **API:** `DELETE /api/documents/<id>/delete/`
+- **Description:** Admin deletes a document from the actions sheet: "Eliminar" opens a ConfirmModal; confirming deletes and removes the row/card, cancelling keeps it. The list spec only asserts the button is visible.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+
+#### FLOW: `admin-document-folder-manage`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **API:** `POST /api/document-folders/create/`, `PATCH /api/document-folders/<id>/update/`, `DELETE /api/document-folders/<id>/delete/`, `POST /api/document-folders/reorder/`
+- **Description:** Admin manages folders in `FolderManagerModal`: create with parent selector, inline rename, delete with confirmation and drag-reorder. `admin-document-folders` only covers parent pre-selection on create.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+
+#### FLOW: `admin-document-tags-manage`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **API:** `POST /api/document-tags/create/`, `PATCH /api/document-tags/<id>/update/`, `DELETE /api/document-tags/<id>/delete/`
+- **Description:** Admin manages tags in `TagManagerModal`: create tag with name and color, rename, delete with confirm. Tag chip filtering is covered by `admin-document-folders`; tag CRUD is not.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+
+#### FLOW: `admin-document-duplicate`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/documents`
+- **API:** `POST /api/documents/<id>/duplicate/`
+- **Description:** Admin duplicates a document from the actions sheet; the copy appears in the list.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+
+#### FLOW: `admin-document-drag-organize`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/documents`
+- **API:** `PATCH /api/documents/<id>/update/` (folder_id), `PATCH /api/document-folders/<id>/update/` (parent)
+- **Description:** Admin organizes by drag-and-drop: dragging a document onto a sidebar folder moves it, and dragging a folder onto another folder (or breadcrumb) re-parents it. The modal-based move path is covered by `admin-document-move-folder`; the drag path is not.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit; DnD needs dispatchEvent-based simulation)
+
 ### 9.2 Admin User Management
 
 #### FLOW: `admin-admin-management`
@@ -3705,12 +3915,19 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 |---------|--------|------|----------|--------|------|
 | `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
 | `admin-document-gallery` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-gallery.spec.js` |
-| `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
+| `admin-document-create` | admin | admin | P2 | 🟡 Partial (paste mode only; upload mode + cover toggles not asserted) | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-folders` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folders.spec.js` |
 | `admin-document-folder-hierarchy` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-hierarchy.spec.js` |
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
 | `admin-document-move-folder` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-move-folder.spec.js` |
+| `admin-document-send-email` | admin | admin | P1 | ❌ Missing | — (spec not yet written) |
+| `admin-document-rename` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-delete` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-folder-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-tags-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
+| `admin-document-drag-organize` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
 | `admin-diagnostic-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-create.spec.js` |
 | `admin-diagnostic-send-initial` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` |
@@ -3882,7 +4099,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Empty recipient] Send button disabled when recipient email is empty.
   - [Branch B — File limits] Attachment validation enforces type and size limits.
-- **Coverage:** ✅ Covered
+- **Coverage:** 🟡 Partial (section add/remove/drag-reorder, send-error path, history expand and "Cargar más" pagination not exercised; attachments split to `admin-standalone-email-attachments`; 2026-07-16 audit)
 - **E2E Spec:** `e2e/admin/admin-standalone-email-composer.spec.js`
 
 #### FLOW: `admin-standalone-email-defaults`
@@ -3901,8 +4118,24 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Restore] "Restaurar valores originales" submits the registry/settings defaults, clearing all overrides.
   - [Branch B — Invalid signer] Backend rejects unknown signer keys with 400 (`El firmante seleccionado no es válido.`).
-- **Coverage:** ✅ Covered
+- **Coverage:** 🟡 Partial (Branch A restore-defaults and Branch B invalid-signer 400 not exercised; 2026-07-16 audit)
 - **E2E Spec:** `e2e/admin/admin-standalone-email-composer.spec.js`
+
+#### FLOW: `admin-standalone-email-attachments`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/emails`
+- **API:** `POST /api/emails/send/` (multipart with attachments)
+- **Description:** Admin attaches files to a standalone email: multiple file input (`.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg`), client-side type/size validation via `validateEmailAttachments` (`~/utils/emailAttachments`), per-file remove button, and multipart send including the attachments. Split out of `admin-standalone-email-composer` (its documented Branch B) because no test exercises it.
+- **Steps:**
+  1. Admin fills the composer on `/panel/emails`.
+  2. Admin selects one or more files with the "Adjuntar archivos" input.
+  3. Invalid type/size files are rejected with a validation message; valid ones list with a remove button.
+  4. Admin sends → multipart `POST /api/emails/send/` includes the attachments.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
 
 ---
 
@@ -3917,8 +4150,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-documents-send` | admin | admin | P1 | ⚠️ Superseded | replaced by `admin-proposal-attach-from-documents` (Apr 22, 2026) |
 | `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `admin-send-proposal-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
-| `admin-standalone-email-composer` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-standalone-email-composer.spec.js` |
-| `admin-standalone-email-defaults` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-standalone-email-composer.spec.js` |
+| `admin-standalone-email-composer` | admin | admin | P2 | 🟡 Partial (sections mgmt, error path, history pagination not asserted) | `e2e/admin/admin-standalone-email-composer.spec.js` |
+| `admin-standalone-email-defaults` | admin | admin | P2 | 🟡 Partial (restore + invalid-signer branches not asserted) | `e2e/admin/admin-standalone-email-composer.spec.js` |
+| `admin-standalone-email-attachments` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
 
 ---
 
@@ -4208,12 +4442,12 @@ No active browser flow is registered for client profile editing at this time.
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/`
-- **Description:** Dashboard shows a dedicated pipeline-value KPI card summarizing the total investment currently active in the sales pipeline.
+- **Description:** Dashboard shows the pipeline pulse tile summarizing the total investment currently active in the sales pipeline, fed by the consolidated `GET /api/panel/dashboard/` payload.
 - **Steps:**
   1. Admin opens the panel dashboard.
-  2. Proposal dashboard data loads from `GET /api/proposals/dashboard/`.
-  3. Pipeline KPI card renders the total active value and proposal count.
-  4. Card is hidden when the backend returns no pipeline value.
+  2. Consolidated data loads from `GET /api/panel/dashboard/`.
+  3. The pipeline pulse tile renders the total active value and proposal count.
+  4. The tile shows a dash when the backend returns no pipeline value.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
 
@@ -4329,16 +4563,18 @@ No active browser flow is registered for client profile editing at this time.
 - **Role:** admin
 - **Priority:** P4
 - **Routes:** `/panel/views`
-- **Description:** Admin opens the panel route inventory page, searches grouped browser views by name/URL/file, and copies route references for QA or support communication. A second interactive "Mapa" mode shows module cards with stats and drills down into curated sub-modules, with deep-linking via `?viewMode=map&module=<id>`.
+- **Description:** Admin opens the panel route inventory page, searches grouped browser views by name/URL/file, and copies route references for QA or support communication. A second interactive "Mapa" mode shows module cards with stats and drills down into curated sub-modules, with deep-linking via `?viewMode=map&module=<id>`. Seeded filter tabs (Admin, Público, Cliente, Dashboards, Configuración) narrow the catalog by audience/view type, and a "Configuración" section persists the default view mode and default filters in the `ViewMapSettings` backend singleton; `?viewMode=` overrides the configured default (the last-used mode is no longer persisted in localStorage).
 - **Steps:**
-  1. Admin opens `/panel/views` from the Reference section in the panel sidebar.
-  2. Grouped route catalog renders with section totals and a proposal reference guide.
-  3. Admin searches for a route, view name, or file path to narrow the catalog.
+  1. Admin opens `/panel/views` from the Reference section in the panel sidebar; the configured default view mode and default filters apply when no `?viewMode=`/`?viewTab=` deep-link is present.
+  2. Grouped route catalog renders with section totals, seeded filter tabs and a proposal reference guide.
+  3. Admin selects a seeded filter tab (e.g. Dashboards) or searches for a route, view name, or file path to narrow the catalog.
   4. Admin clicks the copy button on a view row and sees copied feedback.
   5. Admin toggles to "Mapa" mode: module cards render with view counts, sub-module counts and a viewType distribution bar.
   6. Admin clicks a module card, drills into its sub-modules (badges, open-view links, copy reference), and returns via the breadcrumb; the URL reflects the state for deep-linking.
+  7. Admin switches to the "Configuración" section, changes the default view mode (immediate save + toast) or the default filters (debounced autosave + toast).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-view-map.spec.js`
+- **Known gaps:** default-filters autosave from the Configuración section and default-filters application on open are unit-covered only; saved-tab CRUD (create/rename/delete) is unasserted on this view (shared `ProposalFilterTabs` component, exercised in proposals specs).
 
 #### FLOW: `admin-kanban-tasks`
 
@@ -5455,10 +5691,16 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   3. Submit POSTs `/api/accounting/incomes/create/` → success toast + audit + email.
   4. Row edit prefills the modal and PATCHes `.../update/`.
   5. Row delete asks for confirmation and DELETEs `.../delete/`.
+  6. An expected row shows its fulfilment state, computed from the liquid records linked to it: Pagado (light-green row), Parcial (amber row + outstanding amount) or Pendiente (untinted).
+  7. "Liquidar" on an expected row opens a modal prefilled with the pending amount and the real payment month; submitting POSTs a liquid record with `expected_income` set. The expected row is kept, so the projection and partial payments both survive.
+  8. "Marcar como perdido" writes the row off (PATCH `kind=lost`) after a ConfirmModal.
 - **Branches:**
   - [Branch A] Manual split: turning off the 50/50 toggle allows custom per-partner amounts (sum must not exceed the total; backend validates too).
   - [Branch B] Backend 400 → error toast with the Spanish backend message; modal stays open.
   - [Branch C] Personal ledger: selecting "Personal Gustavo/Carlos" hides the partner split and the pocket destination, shows a single "Valor" field, and the backend normalizes the split to the owner (pocket destination rejected).
+  - [Branch D] Partial payment: liquidating for less than the pending amount leaves the expected row Parcial; liquidating again accumulates against the same parent.
+  - [Branch E] Write-off is not offered once a row has liquidations — the backend rejects it, because it would drop the full expected amount while its liquid children keep counting. The remainder is registered as a separate lost record instead.
+  - [Branch F] Written-off rows are excluded from the "Todos" working set and from the export, and drop out of the expected projection and the utility; they surface via the "Pérdidas" filter, the "Total perdido" chip and the "Perdido (año)" KPI.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 
@@ -5528,9 +5770,9 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/cards`
-- **Description:** Weekly credit-card balance snapshots (CardBalanceSnapshot): list with a latest-debt-per-card chip, filters (date range, debt range, card multi-select) and search; modal create (snapshot date defaults to today, card selected from a dropdown fed by the CreditCard catalog — see `admin-accounting-card-catalog`), edit prefill and ConfirmModal delete. Since Jul 2026 the Deuda input is gone: debt is server-computed as cupo − disponible for catalog cards (the form previews it and blocks disponible > cupo); legacy card names outside the catalog stay editable and keep their stored debt. Registering a snapshot dated on/after the cycle Friday silences the weekly card-debt reminder email.
+- **Description:** Weekly credit-card balance snapshots (CardBalanceSnapshot): list with a latest-debt-per-card chip, filters (date range, debt range, card multi-select) and search; modal create (snapshot date defaults to today, card selected from a dropdown fed by the CreditCard catalog — see `admin-accounting-card-catalog`), edit prefill and ConfirmModal delete. Since Jul 2026 the Deuda input is gone: debt is server-computed as cupo − disponible for catalog cards (the form previews it and blocks disponible > cupo); legacy card names outside the catalog stay editable and keep their stored debt. Registering a snapshot dated on/after the cycle Friday silences the weekly card-debt reminder email. The card filter opens preselected with the active catalog cards (removable chips — clearing them surfaces historical card names again), and its options are the union of catalog names and names used by snapshots, so a registered card is filterable before its first snapshot. A saved tab in the URL wins over the preselection.
 - **Steps:**
-  1. Superuser opens `/panel/accounting/cards` (subnav "Tarjetas" or the dashboard "Ver historial de tarjetas" link).
+  1. Superuser opens `/panel/accounting/cards` (subnav "Tarjetas" or the dashboard "Ver historial de tarjetas" link). The card filter arrives preselected with the registered (active catalog) cards, shown as removable chips with the filter count at 1; the latest-debt chip covers only those cards.
   2. "Nuevo registro" opens the modal with today's date preselected; superuser picks the card from the catalog dropdown and fills the available amount — the computed debt (cupo − disponible) previews below the input.
   3. Submit POSTs `/api/accounting/card-snapshots/create/` without `debt_amount` (server computes it) → success toast + audit + email.
   4. Row edit prefills the modal (a legacy card name not in the catalog is injected as an extra option) and PATCHes `.../update/`; delete asks for confirmation.

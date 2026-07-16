@@ -59,7 +59,10 @@
     <main
       :class="[
         'relative z-10 transition-all duration-300 ease-in-out',
-        'px-4 py-6 sm:px-6 lg:px-8',
+        // pb clears the fixed refresh button (48px + bottom-6): without it
+        // the last row of a table that just overflows the viewport ends up
+        // under the FAB, which swallows its action clicks.
+        'px-4 pt-6 pb-24 sm:px-6 lg:px-8',
         isCollapsed ? 'md:ml-[64px]' : 'md:ml-[240px]',
         'text-text-default',
       ]"

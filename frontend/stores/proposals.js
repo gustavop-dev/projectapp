@@ -21,7 +21,6 @@ export const useProposalStore = defineStore('proposals', {
     isLoading: false,
     isUpdating: false,
     error: null,
-    _expirationDaysCache: {},
   }),
 
   getters: {
@@ -1004,33 +1003,6 @@ export const useProposalStore = defineStore('proposals', {
     },
 
     /**
-     * Clear the expiration-days cache (for test isolation).
-     */
-    _clearExpirationCache() {
-      this._expirationDaysCache = {};
-    },
-
-    /**
-     * fetchExpirationDays: Return cached expiration_days for a language,
-     * fetching from the API only on cache miss. Avoids a full defaults
-     * round-trip when only the expiration value is needed.
-     * @param {string} lang - 'es' or 'en'.
-     * @returns {Promise<number|null>} expiration_days or null on failure.
-     */
-    async fetchExpirationDays(lang = 'es', { force = false } = {}) {
-      if (!force && this._expirationDaysCache[lang] != null) {
-        return this._expirationDaysCache[lang];
-      }
-      const result = await this.fetchProposalDefaults(lang);
-      if (!result.success || !result.data) return null;
-      const days = Number(result.data.expiration_days);
-      if (Number.isInteger(days) && days > 0) {
-        this._expirationDaysCache[lang] = days;
-      }
-      return Number.isInteger(days) && days > 0 ? days : null;
-    },
-
-    /**
      * saveProposalDefaults: Save (create or update) default section config.
      * @param {string} lang - 'es' or 'en'.
      * @param {Array|null} sectionsJson - Full array of section dicts.
@@ -1051,6 +1023,7 @@ export const useProposalStore = defineStore('proposals', {
             currency: 'default_currency',
             total_investment: 'default_total_investment',
             hosting_percent: 'hosting_percent',
+            hosting_discount_annual: 'hosting_discount_annual',
             hosting_discount_semiannual: 'hosting_discount_semiannual',
             hosting_discount_quarterly: 'hosting_discount_quarterly',
             expiration_days: 'expiration_days',
@@ -1069,7 +1042,6 @@ export const useProposalStore = defineStore('proposals', {
         const response = await put_request('proposals/defaults/', {
           ...payload,
         });
-        delete this._expirationDaysCache[lang];
         return { success: true, data: response.data };
       } catch (error) {
         this.error = 'save_defaults_failed';
@@ -1090,7 +1062,6 @@ export const useProposalStore = defineStore('proposals', {
       this.error = null;
       try {
         const response = await create_request('proposals/defaults/reset/', { language: lang });
-        delete this._expirationDaysCache[lang];
         return { success: true, data: response.data };
       } catch (error) {
         this.error = 'reset_defaults_failed';

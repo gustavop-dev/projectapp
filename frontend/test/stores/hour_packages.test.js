@@ -64,8 +64,8 @@ describe('useHourPackagesStore', () => {
 
     it('passes the nationality filter in the URL', async () => {
       get_request.mockResolvedValue({ data: [] });
-      await store.fetchAdminPackages('MEX');
-      expect(get_request).toHaveBeenCalledWith('hour-packages/admin/?nationality=MEX');
+      await store.fetchAdminPackages('EXT');
+      expect(get_request).toHaveBeenCalledWith('hour-packages/admin/?nationality=EXT');
     });
 
     it('sets error on failure', async () => {

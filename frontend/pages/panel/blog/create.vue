@@ -79,9 +79,8 @@
           <input id="read_time_minutes" v-model.number="form.read_time_minutes" type="number" min="0" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" />
         </div>
         <div class="flex items-end">
-          <label class="relative inline-flex items-center cursor-pointer gap-3">
-            <input v-model="form.is_featured" type="checkbox" class="sr-only peer" />
-            <div class="w-9 h-5 bg-surface-raised peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-surface after:border-border-default after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
+          <label class="inline-flex items-center cursor-pointer select-none gap-3">
+            <BaseToggle v-model="form.is_featured" size="sm" />
             <span class="text-sm text-text-default">Destacado</span>
           </label>
         </div>
@@ -211,9 +210,8 @@
               <input v-model.number="jsonMeta.read_time_minutes" type="number" min="0" class="bg-input-bg w-full px-4 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none" />
             </div>
             <div class="flex items-end">
-              <label class="relative inline-flex items-center cursor-pointer gap-3">
-                <input v-model="jsonMeta.is_featured" type="checkbox" class="sr-only peer" />
-                <div class="w-9 h-5 bg-surface-raised rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-surface after:border-border-default after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary" />
+              <label class="inline-flex items-center cursor-pointer select-none gap-3">
+                <BaseToggle v-model="jsonMeta.is_featured" size="sm" />
                 <span class="text-xs text-text-default">Destacado</span>
               </label>
             </div>

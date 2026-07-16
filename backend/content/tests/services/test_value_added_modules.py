@@ -33,7 +33,7 @@ class TestValueAddedModulesSection:
         assert section['title']
         cj = section['content_json']
         assert cj['module_ids'] == [
-            'admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module',
+            'admin_module', 'manual_module', 'kpi_dashboard_module', 'analytics_dashboard',
             'ai_automation_module',
         ]
         assert set(cj['justifications'].keys()) == set(cj['module_ids'])

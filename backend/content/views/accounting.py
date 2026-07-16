@@ -33,6 +33,7 @@ from content.models import (
 from content.permissions import IsSuperUser
 from content.serializers.accounting import (
     TWO_PLACES,
+    money_str,
     AccountingChangeLogSerializer,
     AccountingSettingsSerializer,
     AdsSpendRecordCreateUpdateSerializer,
@@ -80,8 +81,8 @@ def _parse_decimal(value, param):
         raise ValueError(f"El parámetro '{param}' debe ser un número.")
 
 
-def _money(value):
-    return str(Decimal(value).quantize(TWO_PLACES))
+# The serializers module owns the canonical money-string format.
+_money = money_str
 
 
 def _top_record(queryset, concept_field='concept'):
@@ -104,6 +105,7 @@ def _income_meta(queryset, params):
     totals = year_qs.aggregate(
         expected_total=Sum('total_amount', filter=Q(kind='expected')),
         liquid_total=Sum('total_amount', filter=Q(kind='liquid')),
+        lost_total=Sum('total_amount', filter=Q(kind='lost')),
         month_liquid=Sum(
             'total_amount',
             filter=Q(kind='liquid', period_date__month=today.month),
@@ -115,6 +117,7 @@ def _income_meta(queryset, params):
     return {
         'expected_total': _money(expected),
         'liquid_total': _money(liquid),
+        'lost_total': _money(totals['lost_total'] or 0),
         'received_pct': received_pct,
         'current_month_liquid': _money(totals['month_liquid'] or 0),
         'top_income': _top_record(year_qs.filter(kind='liquid')),
@@ -215,6 +218,11 @@ _ENTITIES = {
         'has_split': True,
         'pocket_filter': Q(destination=IncomeRecord.Destination.POCKET),
         'meta': _income_meta,
+        # Safe to share across requests: annotate() resolves a copy of the
+        # expression, never the expression itself.
+        'annotations': {
+            'paid_amount': accounting_service.paid_amount_subquery(),
+        },
     },
     'expense': {
         'entity_type': EntityType.EXPENSE,
@@ -320,6 +328,19 @@ _ENTITIES = {
 }
 
 
+def base_queryset(config):
+    """Entity queryset with its read annotations applied.
+
+    Shared with the export views so a column computed for the table can
+    never go missing from the CSV.
+    """
+    queryset = config['model'].objects.all()
+    annotations = config.get('annotations')
+    if annotations:
+        queryset = queryset.annotate(**annotations)
+    return queryset
+
+
 def _apply_filters(queryset, params, config):
     date_field = config['date_field']
     if date_field:
@@ -406,7 +427,7 @@ def _apply_filters(queryset, params, config):
 
 def _list_records(request, key):
     config = _ENTITIES[key]
-    queryset = config['model'].objects.all()
+    queryset = base_queryset(config)
     if config.get('select_related'):
         queryset = queryset.select_related(*config['select_related'])
     try:

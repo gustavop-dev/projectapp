@@ -52,6 +52,7 @@ beforeEach(() => {
   mockRoute.query = {};
   mockReplace.mockClear();
   tabsStub.saveTab.mockClear();
+  tabsStub.updateTabFilters.mockClear();
 });
 
 const sections = () => [
@@ -135,6 +136,57 @@ describe('resetFilters + selectTab', () => {
     selectTab(2);
     expect(activeTabId.value).toBe(2);
     expect(currentFilters.audiences).toEqual(['client']);
+  });
+});
+
+describe('applyDefaultFilters', () => {
+  it('merges configured defaults over fresh filters and opens the panel', () => {
+    const { currentFilters, isFilterPanelOpen, applyDefaultFilters } = useViewMapFilters();
+    currentFilters.categories = ['panel'];
+
+    applyDefaultFilters({ audiences: ['admin'], viewTypes: ['config'] });
+
+    expect(currentFilters.categories).toEqual([]);
+    expect(currentFilters.audiences).toEqual(['admin']);
+    expect(currentFilters.viewTypes).toEqual(['config']);
+    expect(isFilterPanelOpen.value).toBe(true);
+  });
+
+  it('does not apply when a saved tab is active', () => {
+    const { currentFilters, activeTabId, applyDefaultFilters } = useViewMapFilters();
+    activeTabId.value = 4;
+
+    applyDefaultFilters({ audiences: ['admin'] });
+
+    expect(currentFilters.audiences).toEqual([]);
+  });
+
+  it('does not apply when the URL already carries a ?viewTab', () => {
+    mockRoute.query = { viewTab: '9' };
+    const { currentFilters, applyDefaultFilters } = useViewMapFilters();
+
+    applyDefaultFilters({ audiences: ['admin'] });
+
+    expect(currentFilters.audiences).toEqual([]);
+  });
+
+  it('ignores unknown keys and non-array values', () => {
+    const { currentFilters, isFilterPanelOpen, applyDefaultFilters } = useViewMapFilters();
+
+    applyDefaultFilters({ statuses: ['draft'], audiences: 'admin' });
+
+    expect(currentFilters).toMatchObject({ categories: [], audiences: [], viewTypes: [] });
+    expect(currentFilters.statuses).toBeUndefined();
+    expect(isFilterPanelOpen.value).toBe(false);
+  });
+
+  it('does not trigger a saved-tab autosave PATCH', async () => {
+    const { applyDefaultFilters } = useViewMapFilters();
+
+    applyDefaultFilters({ audiences: ['admin'] });
+    await nextTick();
+
+    expect(tabsStub.updateTabFilters).not.toHaveBeenCalled();
   });
 });
 

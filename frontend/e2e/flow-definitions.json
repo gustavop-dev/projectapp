@@ -1,6 +1,6 @@
 {
-  "version": "2.43.0",
-  "lastUpdated": "2026-07-11",
+  "version": "2.44.0",
+  "lastUpdated": "2026-07-16",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -173,7 +173,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "View the admin dashboard with overview of proposals and blog posts.",
+      "description": "View the redesigned global admin dashboard: pulse KPIs (liquid utility, active pipeline, attention count), attention radar, and finance / proposals / operations sections fed by GET /api/panel/dashboard/.",
       "expectedSpecs": 1
     },
     "admin-styleguide": {
@@ -204,7 +204,11 @@
       ],
       "priority": "P1",
       "description": "Create a new business proposal with sections and requirements.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Hosting defaults seeding on mount (hosting_percent + hosting_discount_* from GET proposals/defaults, 2026-07) is not asserted.",
+        "JSON-tab total_investment now uses BaseCurrencyInput (live thousand separators); formatting behavior not asserted."
+      ]
     },
     "admin-proposal-edit": {
       "name": "Admin Proposal Edit",
@@ -214,7 +218,10 @@
       ],
       "priority": "P1",
       "description": "Edit an existing business proposal. Includes the Det. técnico tab where each requirement can be linked to commercial items (linked_item_ids checkboxes) for item-requirement traceability.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Automations toggle switched to positive polarity (ON = automations running, 2026-07); knob position/aria-checked not asserted and the toggle lacks a data-testid."
+      ]
     },
     "admin-proposal-delete": {
       "name": "Admin Proposal Delete",
@@ -266,7 +273,10 @@
       ],
       "priority": "P2",
       "description": "Resend an already-sent proposal via 'Re-enviar' from the actions modal. Confirmation dialog → POST /proposals/:id/resend/ keeps existing expires_at, resets sent_at and reminder timers, and returns email_delivery. The panel toast surfaces success or failure with the reason.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "No email_delivery.ok=false handler; failure-with-reason toast branch untested (2026-07 audit)."
+      ]
     },
     "admin-proposal-reopen-from-expired": {
       "name": "Admin Proposal Reopen From Expired",
@@ -276,7 +286,10 @@
       ],
       "priority": "P1",
       "description": "Recover an expired proposal by extending expires_at to a future date from /panel/proposals/:id/edit (General tab) or via the JSON re-import panel. The serializer no longer blocks re-saving when expires_at is unchanged, and ProposalService.reopen_if_unexpired auto-reverts status from 'expired' to 'viewed' (when view_count > 0) or 'sent', logging an 'Auto-reopened from expired…' entry in ProposalChangeLog. Covers both PATCH /proposals/:id/update/ and PUT /proposals/:id/update-from-json/ paths.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "The General-tab PATCH /update/ reopen path is still unasserted (JSON path covered incl. status badge revert, 2026-07)."
+      ]
     },
     "admin-proposal-update-from-json": {
       "name": "Admin Proposal Update From JSON",
@@ -286,7 +299,10 @@
       ],
       "priority": "P2",
       "description": "Re-import a complete JSON payload over an existing proposal from /panel/proposals/:id/edit. Pastes/uploads JSON → PUT /proposals/:id/update-from-json/ replaces metadata and section content_json. Different from admin-proposal-create-from-json (creation): targets an existing proposal id, supports keeping expires_at unchanged on expired proposals, and surfaces unknown-key warnings.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Happy path only; unknown-key warnings surfacing and keep-expires_at-on-expired branch unasserted (2026-07 audit)."
+      ]
     },
     "admin-blog-list": {
       "name": "Admin Blog List",
@@ -336,7 +352,10 @@
       ],
       "priority": "P1",
       "description": "Edit proposal sections using structured form fields for each of the 12 section types.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "commercial_conditions and value_added_modules section editors are not exercised; their money fields (hourlyRate, min_price_usd/cop) now use BaseCurrencyInput (2026-07)."
+      ]
     },
     "admin-proposal-section-edit-paste": {
       "name": "Admin Proposal Section Edit (Paste Content)",
@@ -396,7 +415,10 @@
       ],
       "priority": "P2",
       "description": "Client shares the proposal with a stakeholder via tracked share link.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Only asserts button visibility + modal open; tracked share-link creation POST/copied URL unasserted (2026-07 audit)."
+      ]
     },
     "proposal-engagement-tracking": {
       "name": "Proposal Engagement Tracking",
@@ -406,7 +428,10 @@
       ],
       "priority": "P2",
       "description": "Automatic section-level engagement tracking with stakeholder detection and follow-up alerts.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Only nav button visibility; the section engagement POST is never asserted (2026-07 audit)."
+      ]
     },
     "admin-proposal-duplicate": {
       "name": "Admin Proposal Duplicate",
@@ -505,8 +530,9 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "View the hour-package catalog filtered by nationality tabs (COL/MEX/USA) with derived currency and computed totals.",
-      "expectedSpecs": 1
+      "description": "View the hour-package catalog filtered by nationality tabs (COL/EXT/USA) with derived currency and computed totals.",
+      "expectedSpecs": 1,
+      "knownGaps": "Spec does not assert view-mode toggle (tracked in admin-hour-packages-view-modes), pagination, or the mobile card variant (2026-07-16 audit)."
     },
     "admin-hour-packages-create": {
       "name": "Admin Hour Packages Create",
@@ -737,8 +763,48 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Pipeline Value KPI card showing sum of total_investment for active sent+viewed proposals.",
+      "description": "Pipeline pulse tile on /panel showing the active pipeline value and count from the consolidated panel/dashboard/ payload; shows a dash when null.",
+      "expectedSpecs": 2
+    },
+    "admin-dashboard-finance-gate": {
+      "name": "Admin Dashboard Finance Gate",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Finance pulse tile and section render only when the payload carries finance data (superuser); staff receive finance: null and see no financial KPIs.",
       "expectedSpecs": 1
+    },
+    "admin-dashboard-attention-radar": {
+      "name": "Admin Dashboard Attention Radar",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Cross-module attention radar on /panel: overdue collection accounts, failed emails, overdue tasks, stale proposals and upcoming recurring payments with severity accents and deep-links; positive empty state when clear.",
+      "expectedSpecs": 2
+    },
+    "admin-dashboard-error-retry": {
+      "name": "Admin Dashboard Error Retry",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "A failed panel/dashboard/ load shows the global error state; the Reintentar button refetches and restores the dashboard.",
+      "expectedSpecs": 1
+    },
+    "admin-dashboard-quick-create": {
+      "name": "Admin Dashboard Quick Create",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Dashboard header \"+ Crear\" dropdown navigates to create a proposal, document, task or expense.",
+      "expectedSpecs": 0
     },
     "proposal-rejection-optional-reason": {
       "name": "Proposal Rejection Optional Reason",
@@ -868,10 +934,7 @@
       ],
       "priority": "P2",
       "description": "Send or re-send a proposal directly from the proposals list without entering edit page.",
-      "expectedSpecs": 1,
-      "knownGaps": [
-        "Covered within admin-proposal-list.spec.js"
-      ]
+      "expectedSpecs": 1
     },
     "admin-proposal-quick-log": {
       "name": "Admin Proposal Quick Log Activity",
@@ -1063,7 +1126,10 @@
       ],
       "priority": "P2",
       "description": "Change proposal status directly from the proposals table via inline dropdown. The draft→sent transition is delegated to ProposalService.send_proposal so the client email is dispatched and Huey reminders are scheduled (defense-in-depth — same behavior as the dedicated 'Enviar al Cliente' button). Response includes email_delivery and the panel toast surfaces failures with the reason.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "No /send/ handler: draft->sent delegation and email_delivery.ok=false failure toast unasserted (2026-07 audit)."
+      ]
     },
     "admin-proposal-defaults-config": {
       "name": "Admin Proposal Defaults Config",
@@ -1103,7 +1169,10 @@
       ],
       "priority": "P3",
       "description": "Progress bar showing percentage of enabled sections with content in the edit view.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Both tests assert only the label; percentage value and color-coding never asserted (2026-07 audit)."
+      ]
     },
     "admin-daily-pipeline-digest": {
       "name": "Admin Daily Pipeline Digest",
@@ -1613,7 +1682,8 @@
       ],
       "priority": "P2",
       "description": "Create a new admin document via Markdown paste mode or file upload mode, with title, optional client association, and live preview.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": "Spec covers paste mode only; \"Cargar Archivo\" upload mode (POST /api/documents/upload-markdown/), cover toggles and template-style selection untested (2026-07-16 audit)."
     },
     "admin-document-edit": {
       "name": "Admin Document Edit",
@@ -1672,8 +1742,12 @@
         "admin"
       ],
       "priority": "P4",
-      "description": "Open the panel route inventory, filter grouped views, and copy route references for support and QA communication. Includes the interactive map mode: Lista/Mapa toggle, module cards with stats, drill-down into curated sub-modules, and deep-linking via ?viewMode=map&module=<id>.",
-      "expectedSpecs": 1
+      "description": "Open the panel route inventory, filter grouped views, and copy route references for support and QA communication. Includes the interactive map mode: Lista/Mapa toggle, module cards with stats, drill-down into curated sub-modules, and deep-linking via ?viewMode=map&module=<id>. Ships seeded filter tabs (Admin, Público, Cliente, Dashboards, Configuración) and a Configuración section that persists the default view mode and default filters in the ViewMapSettings backend singleton; ?viewMode= overrides the configured default and localStorage no longer persists the last-used mode.",
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Configuración default-filters autosave (debounced PATCH + toast) and default-filters application on open are unit-covered only (2026-07 audit).",
+        "Saved-tab CRUD (create/rename/delete) unasserted on view_map; shared ProposalFilterTabs component is exercised in proposals specs (2026-07 audit)."
+      ]
     },
     "public-landing-software": {
       "name": "Landing Software Development",
@@ -1930,7 +2004,8 @@
       ],
       "priority": "P2",
       "description": "Admin composes and sends branded emails from /panel/emails (not tied to a proposal). Page-level tabs (Redactar / Historial / Valores por defecto, deep-linked via ?tab=). Redactar: draggable sections with per-section Markdown toggle, file attachments, server-rendered preview of the real branded template (POST /api/emails/preview/, sandboxed iframe). Historial: paginated email history. Uses standalone endpoints: emails/send/, emails/preview/, emails/defaults/, emails/history/.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": "Spec does not exercise: add/remove/drag-reorder sections, send-error path, history entry expand/collapse, \"Cargar más\" pagination. Attachments split out to admin-standalone-email-attachments (2026-07-16 audit)."
     },
     "admin-standalone-email-defaults": {
       "name": "Admin Standalone Email Defaults Config",
@@ -1940,7 +2015,19 @@
       ],
       "priority": "P2",
       "description": "Admin configures the standalone email composer defaults from the 'Valores por defecto' tab of /panel/emails (deep-linkable via ?tab=defaults): default greeting (with {client_name}/{title} variables), default footer and default signer. Saved via PUT /api/emails/defaults/ into EmailTemplateConfig('branded_email').content_overrides; 'Restaurar valores originales' submits registry/settings defaults which clears the overrides. The configured signer is used for standalone sends and previews (proposal emails keep their per-proposal signer).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": "Spec does not exercise Branch A (\"Restaurar valores originales\") nor Branch B (invalid signer 400) (2026-07-16 audit)."
+    },
+    "admin-standalone-email-attachments": {
+      "name": "Admin Standalone Email Attachments",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin attaches files to a standalone email from /panel/emails: multiple file input (.pdf/.doc/.docx/.xls/.xlsx/.png/.jpg), client-side type and size validation via validateEmailAttachments (~/utils/emailAttachments), per-file remove button, and multipart POST /api/emails/send/ including the attachments. Documented as Branch B of admin-standalone-email-composer but never exercised by its spec.",
+      "expectedSpecs": 0,
+      "knownGaps": "No E2E spec: upload, validation-rejection and remove paths untested. Registered 2026-07-16 audit."
     },
     "admin-proposal-advanced-filters": {
       "name": "Admin Proposal Advanced Filters",
@@ -2074,6 +2161,83 @@
       "priority": "P1",
       "description": "Admin moves a document to a different folder (or removes it from any folder) via MoveFolderModal from the documents page. PATCHes documents/{id}/update/ with folder_id.",
       "expectedSpecs": 3
+    },
+    "admin-document-send-email": {
+      "name": "Admin Document Send Email",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Admin sends a branded email with document PDFs attached from the documents list: actions sheet -> 'Enviar por correo' opens SendDocumentEmailModal (recipient, subject, greeting, ordered sections, footer, extra document PDFs picker, Edit/Preview tabs) -> POST /api/emails/send/ with document_ids. Functional successor of the superseded admin-proposal-documents-send flow.",
+      "expectedSpecs": 0,
+      "knownGaps": "UI and endpoint exist (SendDocumentEmailModal.vue, stores/documents.js sendDocumentEmail); no E2E spec yet. Registered 2026-07-16 audit."
+    },
+    "admin-document-rename": {
+      "name": "Admin Document Rename",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin renames a document from the actions sheet: 'Renombrar' opens RenameDocumentModal with the current title, saving sends PATCH /api/documents/:id/update/ and the list refreshes with the new title.",
+      "expectedSpecs": 0,
+      "knownGaps": "No E2E spec yet. Registered 2026-07-16 audit."
+    },
+    "admin-document-delete": {
+      "name": "Admin Document Delete",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin deletes a document from the actions sheet: 'Eliminar' opens ConfirmModal; confirming sends DELETE /api/documents/:id/delete/ and removes the row/card; cancelling keeps it. Current list spec only asserts the button is visible.",
+      "expectedSpecs": 0,
+      "knownGaps": "Only button visibility asserted in admin-document-list.spec.js; confirm/cancel paths untested. Registered 2026-07-16 audit."
+    },
+    "admin-document-folder-manage": {
+      "name": "Admin Document Folder Management",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin manages folders in FolderManagerModal: create folder with parent selector (POST /api/document-folders/create/), inline rename (PATCH /api/document-folders/:id/update/), delete with confirmation (DELETE /api/document-folders/:id/delete/) and drag-reorder (POST /api/document-folders/reorder/). Existing admin-document-folders spec only covers parent pre-selection on create.",
+      "expectedSpecs": 0,
+      "knownGaps": "Rename, delete and reorder inside the manager modal untested. Registered 2026-07-16 audit."
+    },
+    "admin-document-tags-manage": {
+      "name": "Admin Document Tags Management",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin manages tags in TagManagerModal: create tag with name and color (POST /api/document-tags/create/), rename (PATCH /api/document-tags/:id/update/), delete with confirm (DELETE /api/document-tags/:id/delete/). Tag chip filtering is covered by admin-document-folders; tag CRUD is not.",
+      "expectedSpecs": 0,
+      "knownGaps": "No E2E spec for tag CRUD. Registered 2026-07-16 audit."
+    },
+    "admin-document-duplicate": {
+      "name": "Admin Document Duplicate",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Admin duplicates a document from the actions sheet: 'Duplicar' sends POST /api/documents/:id/duplicate/ and the copy appears in the list.",
+      "expectedSpecs": 0,
+      "knownGaps": "No E2E spec yet. Registered 2026-07-16 audit."
+    },
+    "admin-document-drag-organize": {
+      "name": "Admin Document Drag Organize",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Admin organizes by drag-and-drop: dragging a document card/row onto a sidebar folder moves it (PATCH /api/documents/:id/update/ folder_id), and dragging a folder onto a breadcrumb/sidebar folder re-parents it (PATCH /api/document-folders/:id/update/). The modal-based move path is covered by admin-document-move-folder; the drag path is not.",
+      "expectedSpecs": 0,
+      "knownGaps": "Drag interactions untested (fragile in Playwright; needs dispatchEvent-based DnD). Registered 2026-07-16 audit."
     },
     "admin-document-pdf-download": {
       "name": "Admin Document PDF Download",
@@ -2398,7 +2562,11 @@
       ],
       "priority": "P2",
       "description": "Public proposal section (section_type value_added_modules) renders a card grid of included-free modules resolved from the proposal's functional_requirements groups. Each card shows title, icon, justification text, and a 'Gratis' badge. An optional footer_note is displayed below the grid. Falls back to 'Incluido sin costo adicional' when no title is provided in content_json. Clicking a card opens the shared requirements modal, including the nested linked-requirements link when technical requirements reference the module item ids. Per-module conditions gate benefits: when the effective total is below the module minimum a 'Disponible en proyectos desde $X' badge is shown (condicionado; never hidden), plus optional duration and discretionary-note badges. A 'Términos y condiciones' button opens a per-module ModuleTermsModal without triggering the card detail modal.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Terms modal now renders **bold** via renderInlineBold (2026-07); bold output not asserted (mock terms carry no ** markers).",
+        "Canonical card order admin>manual>kpi_dashboard>analytics>ai_automation (2026-07) not asserted."
+      ]
     },
     "admin-diagnostic-list": {
       "name": "Admin Diagnostic List",
@@ -2504,7 +2672,10 @@
       ],
       "priority": "P2",
       "description": "Admin toggles section visibility (is_enabled) from the Secciones tab of the proposal edit page. Each section row has an enable/disable toggle; disabled sections are greyed out in the admin list and excluded from the public proposal view. PATCH /api/proposals/sections/:id/update/ with { is_enabled: false }. Complements admin-proposal-section-reorder — both operations can be combined in sequence.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Admin side covered; no assertion that a disabled section disappears from the public view (2026-07 audit)."
+      ]
     },
     "admin-proposal-section-sync": {
       "name": "Admin Proposal Section Sync (Preview & Apply)",
@@ -2583,8 +2754,8 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Superuser manages income records at /panel/accounting/incomes: create via modal with automatic 50/50 partner split (editable), ledger selector (Contabilidad: Empresa / Personal Gustavo / Personal Carlos — personal hides the split and pocket destination and uses a single Valor field), edit with prefill (PATCH /api/accounting/incomes/:id/update/), delete with ConfirmModal (DELETE .../delete/), HTML5 required validation and backend error toasts via usePanelNotify. Each list also exposes column sorting (asc/desc/off) on key columns.",
-      "expectedSpecs": 8
+      "description": "Superuser manages income records at /panel/accounting/incomes: create via modal with automatic 50/50 partner split (editable), ledger selector (Contabilidad: Empresa / Personal Gustavo / Personal Carlos — personal hides the split and pocket destination and uses a single Valor field), edit with prefill (PATCH /api/accounting/incomes/:id/update/), delete with ConfirmModal (DELETE .../delete/), HTML5 required validation and backend error toasts via usePanelNotify. Each list also exposes column sorting (asc/desc/off) on key columns. Expected rows carry a fulfilment state computed from their linked liquid records (Pagado green tint / Parcial amber tint with the outstanding amount / Pendiente untinted) and two extra row actions: 'Liquidar', which opens a modal prefilled with the pending amount and POSTs a liquid record linked via expected_income (the expected row survives, so partial payments accumulate), and 'Marcar como perdido', offered only on rows with no payments yet, which PATCHes kind=lost. Written-off income is a third kind, hidden under the 'Todos' filter and reachable via the 'Pérdidas' segment, with its own total chip and a 'Perdido (año)' KPI.",
+      "expectedSpecs": 14
     },
     "admin-accounting-filters": {
       "name": "Admin Accounting Filters",
@@ -2624,7 +2795,7 @@
       ],
       "priority": "P2",
       "description": "Superuser manages the ProjectApp pocket ledger at /panel/accounting/pocket: balance card from list meta, running-balance column (default view newest-first). The pocket is the money entry point: creating a movement also creates its linked income (IN) or expense (OUT) with the ledger chosen in the modal's Contabilidad segmented (Empresa/Personal Gustavo/Personal Carlos; IN is company-only). Linked movements open the edit modal with the direction locked and ledger prefilled; edits mirror into the linked record and deletes cascade both ways (confirm warns about the cascade). Unlinked historical movements keep plain CRUD.",
-      "expectedSpecs": 5
+      "expectedSpecs": 4
     },
     "admin-accounting-recurring": {
       "name": "Admin Accounting Recurring Payments",
@@ -2733,8 +2904,8 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser manages weekly credit-card balance snapshots at /panel/accounting/cards: list with latest-debt-per-card chip, filters (date range, debt range, card multi-select), create via modal (date defaults to today, card picked from a dropdown fed by the CreditCard catalog; the Deuda input is gone — debt is server-computed as cupo − disponible and previewed in the form, which blocks disponible > cupo), edit prefill (legacy names outside the catalog injected as an extra option) and delete with ConfirmModal. Registering a snapshot dated on/after the cycle Friday silences the weekly card-debt email reminder.",
-      "expectedSpecs": 3
+      "description": "Superuser manages weekly credit-card balance snapshots at /panel/accounting/cards: list with latest-debt-per-card chip, filters (date range, debt range, card multi-select), create via modal (date defaults to today, card picked from a dropdown fed by the CreditCard catalog; the Deuda input is gone — debt is server-computed as cupo − disponible and previewed in the form, which blocks disponible > cupo), edit prefill (legacy names outside the catalog injected as an extra option) and delete with ConfirmModal. Registering a snapshot dated on/after the cycle Friday silences the weekly card-debt email reminder. The card filter defaults to the active catalog cards as removable chips (clearing them surfaces historical names); its options are the union of catalog and snapshot names, and a saved tab in the URL wins over the preselection.",
+      "expectedSpecs": 5
     },
     "admin-accounting-export": {
       "name": "Admin Accounting Export",
@@ -2764,7 +2935,7 @@
       ],
       "priority": "P4",
       "description": "With zero records, accounting lists render BaseEmptyState with a primary 'Nuevo <entidad>' action that opens the create modal; with active filters and zero matches the action becomes 'Limpiar filtros' and resets the filter panel.",
-      "expectedSpecs": 1
+      "expectedSpecs": 2
     },
     "admin-proposal-discount-offer-send": {
       "name": "Admin Proposal Discount Offer Send",
@@ -2931,6 +3102,42 @@
       "priority": "P3",
       "description": "Admin activates the fixed trailing 'Configuraciones' tab of the proposals filter-tab bar (right-aligned on desktop, select option on mobile): the list swaps to the shared ViewSettingsPanel with the proposal saved-filter-tabs reset (view=proposal) and a link to /panel/proposals/defaults. Selecting any filter tab closes the panel.",
       "expectedSpecs": 0
+    },
+    "proposal-schedule-followup-reminder": {
+      "name": "Proposal Schedule Follow-up Reminder",
+      "module": "proposal",
+      "roles": [
+        "guest"
+      ],
+      "priority": "P2",
+      "description": "After rejecting with \"not the right time\", the client clicks the reminder CTA which POSTs proposals/:uuid/schedule-followup/ and flips to a scheduled-confirmation state.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-prompt": {
+      "name": "Admin Proposal Prompt Tab",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Admin copies, edits, downloads and resets the commercial and technical proposal-generation prompts from the Prompt tab (localStorage-persisted; parallel of admin-diagnostic-prompt).",
+      "expectedSpecs": 0,
+      "knownGaps": [
+        "No spec yet (2026-07 audit): copy/download/reset actions for both prompts are untested."
+      ]
+    },
+    "admin-proposal-dev-checklist": {
+      "name": "Admin Proposal Dev Checklist Tab",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Admin generates, copies and downloads the Markdown developer checklist from the Desarrollo tab of an accepted proposal (client-side markdown build).",
+      "expectedSpecs": 0,
+      "knownGaps": [
+        "No spec yet (2026-07 audit): tab only appears for accepted proposals; refresh/copy/download untested."
+      ]
     }
   }
 }

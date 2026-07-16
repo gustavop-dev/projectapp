@@ -133,7 +133,7 @@ test.describe('Admin Accounting Dashboard', () => {
     await expect(page.getByTestId('accounting-hero-value')).toBeVisible();
     await expect(page.getByTestId('accounting-hero-utility-chart')).toBeVisible();
     const expectedMonth = page.getByTestId('accounting-card-expected-month');
-    await expect(expectedMonth).toContainText('Ingreso esperado · Julio 2026');
+    await expect(expectedMonth).toContainText('Pendiente por cobrar · Julio 2026');
     await expect(expectedMonth).toContainText('$2.500.000 COP');
 
     const cardDebt = page.getByTestId('accounting-card-debt');

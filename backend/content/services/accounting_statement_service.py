@@ -67,11 +67,16 @@ def _ensure_draft(statement):
 
 
 def _apply_alias(tx):
-    """Fill merchant/category from a learned alias when the row has none."""
+    """Fill merchant/category from a learned alias when the row has none.
+
+    Gateway aliases never auto-apply: the descriptor hides the real
+    merchant, so the mapping is only a hint for manual review.
+    """
     if tx.merchant_name:
         return
     alias = MerchantAlias.objects.filter(
         match_text=normalize_descriptor(tx.raw_description),
+        is_gateway=False,
     ).first()
     if alias is not None:
         tx.merchant_name = alias.merchant_name
@@ -182,10 +187,16 @@ def delete_transaction(tx, user):
 
 
 def finalize_statement(statement, user, force=False):
-    """Validate Σ transactions vs purchases_total and mark PROCESSED."""
+    """Validate Σ transactions vs purchases_total and mark PROCESSED.
+
+    Reversal lines are excluded: the bank books them under payments, so
+    they never count toward the statement's purchases figure.
+    """
     if statement.status == Status.PROCESSED:
         raise ValueError('El extracto ya está procesado.')
-    total = statement.transactions.aggregate(total=Sum('amount'))['total']
+    total = statement.transactions.filter(
+        is_reversal=False,
+    ).aggregate(total=Sum('amount'))['total']
     total = total if total is not None else Decimal('0')
     difference = total - statement.purchases_total
     if abs(difference) > STATEMENT_TOTAL_TOLERANCE and not force:
@@ -264,32 +275,54 @@ def remove_statement_pdf(statement, user):
 # ── Merchant aliases ──
 
 def resolve_merchants(raw_descriptions):
-    """Split descriptors into alias-resolved and unresolved lists."""
-    resolved, unresolved = [], []
+    """Split descriptors into resolved, gateway-hint and unresolved lists.
+
+    Gateway aliases are never returned as resolved: the last known
+    merchant is only a starting point for manual verification.
+    """
+    resolved, gateway_hints, unresolved = [], [], []
     for raw in raw_descriptions:
         alias = MerchantAlias.objects.filter(
             match_text=normalize_descriptor(raw),
         ).first()
-        if alias is not None:
+        if alias is None:
+            unresolved.append(raw)
+        elif alias.is_gateway:
+            gateway_hints.append({
+                'raw_description': raw,
+                'last_known_merchant': alias.merchant_name,
+                'category': alias.default_category,
+                'alias_id': alias.pk,
+                'note': (
+                    'Pasarela de pago: el comercio real puede variar. '
+                    'Verifica (recibo, correo) antes de asignar.'
+                ),
+            })
+        else:
             resolved.append({
                 'raw_description': raw,
                 'merchant_name': alias.merchant_name,
                 'category': alias.default_category,
                 'alias_id': alias.pk,
             })
-        else:
-            unresolved.append(raw)
-    return {'resolved': resolved, 'unresolved': unresolved}
+    return {
+        'resolved': resolved,
+        'gateway_hints': gateway_hints,
+        'unresolved': unresolved,
+    }
 
 
 @transaction.atomic
 def save_merchant_aliases(aliases_data, user, statement_id=None):
     """Upsert owner-approved aliases; optionally apply them to a draft.
 
-    Each item: {'raw_description', 'merchant_name', 'category'}. Upserts by
-    normalized match_text (re-approving is idempotent). With statement_id,
-    matching transactions of that DRAFT statement get merchant/category and
-    is_identified=True. All audit rows are silent.
+    Each item: {'raw_description', 'merchant_name', 'category', 'is_gateway'}.
+    Upserts by normalized match_text (re-approving is idempotent). Aliases
+    are GLOBAL: they save regardless of any statement's state. With
+    statement_id, matching transactions of that DRAFT statement get
+    merchant/category and is_identified=True; if the statement is missing
+    or already processed the aliases still save and a ``warning`` explains
+    why nothing was applied. All audit rows are silent.
     """
     saved = []
     for data in aliases_data:
@@ -305,6 +338,7 @@ def save_merchant_aliases(aliases_data, user, statement_id=None):
                 'default_category': (
                     data.get('category') or TransactionCategory.OTHER
                 ),
+                'is_gateway': bool(data.get('is_gateway', False)),
                 'created_by': (
                     user if getattr(user, 'is_authenticated', False) else None
                 ),
@@ -322,31 +356,61 @@ def save_merchant_aliases(aliases_data, user, statement_id=None):
         saved.append(alias)
 
     updated_transactions = 0
+    warning = ''
     if statement_id is not None:
-        statement = CreditCardStatement.objects.get(pk=statement_id)
-        _ensure_draft(statement)
-        by_match = {alias.match_text: alias for alias in saved}
-        for tx in statement.transactions.filter(is_identified=False):
-            alias = by_match.get(normalize_descriptor(tx.raw_description))
-            if alias is None:
-                continue
-            old_values = snapshot_values(tx, EntityType.STATEMENT_TX)
-            tx.merchant_name = alias.merchant_name
-            tx.category = alias.default_category
-            tx.is_identified = True
-            tx.save(update_fields=[
-                'merchant_name', 'category', 'is_identified', 'updated_at',
-            ])
-            _log_silent(
-                EntityType.STATEMENT_TX, tx, Action.UPDATED,
-                compute_changes(
-                    EntityType.STATEMENT_TX, old_values,
-                    snapshot_values(tx, EntityType.STATEMENT_TX),
-                ),
-                user,
+        statement = CreditCardStatement.objects.filter(pk=statement_id).first()
+        if statement is None:
+            warning = (
+                f'Los alias se guardaron, pero no se aplicaron: no existe '
+                f'un extracto con id={statement_id}.'
             )
-            updated_transactions += 1
-    return {'aliases': saved, 'updated_transactions': updated_transactions}
+        elif statement.status != Status.DRAFT:
+            warning = (
+                'Los alias se guardaron, pero no se aplicaron: el extracto '
+                'ya está procesado. Usa reopen_statement si necesitas '
+                'aplicarlos a sus transacciones.'
+            )
+        else:
+            updated_transactions = _apply_saved_aliases(saved, statement, user)
+            if updated_transactions == 0:
+                warning = (
+                    'Los alias se guardaron, pero ninguno coincidió con '
+                    'transacciones sin identificar del extracto.'
+                )
+    return {
+        'aliases': saved,
+        'updated_transactions': updated_transactions,
+        'warning': warning,
+    }
+
+
+def _apply_saved_aliases(saved, statement, user):
+    """Apply freshly saved non-gateway aliases to a draft's unidentified rows."""
+    updated_transactions = 0
+    by_match = {
+        alias.match_text: alias for alias in saved if not alias.is_gateway
+    }
+    for tx in statement.transactions.filter(is_identified=False):
+        alias = by_match.get(normalize_descriptor(tx.raw_description))
+        if alias is None:
+            continue
+        old_values = snapshot_values(tx, EntityType.STATEMENT_TX)
+        tx.merchant_name = alias.merchant_name
+        tx.category = alias.default_category
+        tx.is_identified = True
+        tx.save(update_fields=[
+            'merchant_name', 'category', 'is_identified', 'updated_at',
+        ])
+        _log_silent(
+            EntityType.STATEMENT_TX, tx, Action.UPDATED,
+            compute_changes(
+                EntityType.STATEMENT_TX, old_values,
+                snapshot_values(tx, EntityType.STATEMENT_TX),
+            ),
+            user,
+        )
+        updated_transactions += 1
+    return updated_transactions
 
 
 def delete_merchant_alias(alias, user):

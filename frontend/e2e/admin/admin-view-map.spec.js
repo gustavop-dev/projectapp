@@ -1,7 +1,8 @@
 /**
  * E2E tests for the admin view-map reference page.
  *
- * Covers: page render, search filtering, reset behavior, and copy reference feedback.
+ * Covers: page render, search filtering, reset behavior, copy reference feedback,
+ * seeded filter tabs, configured default view mode, and the Configuración tab.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -13,6 +14,27 @@ const authCheck = {
   contentType: 'application/json',
   body: JSON.stringify({ user: { username: 'admin', is_staff: true } }),
 };
+
+const seededTabs = [
+  { id: 1, view: 'view_map', name: 'Admin', filters: { audiences: ['admin'] }, order: 0 },
+  { id: 2, view: 'view_map', name: 'Público', filters: { audiences: ['public'] }, order: 1 },
+  { id: 3, view: 'view_map', name: 'Cliente', filters: { audiences: ['client'] }, order: 2 },
+  { id: 4, view: 'view_map', name: 'Dashboards', filters: { viewTypes: ['dashboard'] }, order: 3 },
+  { id: 5, view: 'view_map', name: 'Configuración', filters: { viewTypes: ['config'] }, order: 4 },
+];
+
+function jsonResponse(body) {
+  return { status: 200, contentType: 'application/json', body: JSON.stringify(body) };
+}
+
+function viewMapSettings(overrides = {}) {
+  return jsonResponse({
+    default_view_mode: 'list',
+    default_filters: {},
+    updated_at: '2026-07-16T10:00:00Z',
+    ...overrides,
+  });
+}
 
 test.describe('Admin View Map', () => {
   test.describe.configure({ mode: 'serial' });
@@ -119,5 +141,85 @@ test.describe('Admin View Map', () => {
     await copyButton.click();
 
     await expect(viewCard.getByTitle('Copiado!')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('seeded filter tabs render and selecting Dashboards filters the catalog', {
+    tag: [...ADMIN_VIEW_MAP, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'accounts/saved-filter-tabs/') return jsonResponse(seededTabs);
+      if (apiPath === 'view-map/admin/settings/') return viewMapSettings();
+      return null;
+    });
+
+    await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Mapa de vistas', level: 1 })).toBeVisible({ timeout: 30_000 });
+
+    for (const tab of seededTabs) {
+      await expect(page.getByTestId(`filter-tabs-tab-${tab.id}`)).toBeVisible();
+    }
+
+    await page.getByTestId('filter-tabs-tab-4').click();
+
+    await expect(page.getByRole('heading', { name: 'Dashboard del panel', level: 3 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Mapa de vistas', level: 3 })).not.toBeVisible();
+  });
+
+  test('configured default view mode opens the page in map mode', {
+    tag: [...ADMIN_VIEW_MAP, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'view-map/admin/settings/') return viewMapSettings({ default_view_mode: 'map' });
+      return null;
+    });
+
+    await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByTestId('view-module-grid')).toBeVisible({ timeout: 30_000 });
+    await expect(page).toHaveURL(/viewMode=map/);
+  });
+
+  test('?viewMode=list wins over the configured map default', {
+    tag: [...ADMIN_VIEW_MAP, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'view-map/admin/settings/') return viewMapSettings({ default_view_mode: 'map' });
+      return null;
+    });
+
+    await page.goto('/panel/views?viewMode=list', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByRole('heading', { name: 'Inicio', level: 3 })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('view-module-grid')).not.toBeVisible();
+  });
+
+  test('config tab saves the default view mode and shows a toast', {
+    tag: [...ADMIN_VIEW_MAP, '@role:admin'],
+  }, async ({ page }) => {
+    let patchBody = null;
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'view-map/admin/settings/') return viewMapSettings();
+      if (apiPath === 'view-map/admin/settings/update/' && method === 'PATCH') {
+        patchBody = route.request().postDataJSON();
+        return viewMapSettings({ default_view_mode: 'map' });
+      }
+      return null;
+    });
+
+    await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Mapa de vistas', level: 1 })).toBeVisible({ timeout: 30_000 });
+
+    await page.getByTestId('view-map-section-config').click();
+    await expect(page.getByText('Vista por defecto')).toBeVisible();
+    await expect(page.getByText('Filtros por defecto')).toBeVisible();
+
+    await page.getByTestId('view-map-default-mode').getByTestId('view-mode-map').click();
+
+    await expect(page.getByText('Vista por defecto guardada.')).toBeVisible({ timeout: 5000 });
+    expect(patchBody).toEqual({ default_view_mode: 'map' });
   });
 });

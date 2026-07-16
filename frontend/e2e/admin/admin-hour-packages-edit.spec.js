@@ -13,10 +13,10 @@ const authCheck = { status: 200, contentType: 'application/json', body: JSON.str
 
 const packageDetail = {
   id: 3,
-  nationality: 'MEX',
+  nationality: 'EXT',
   currency: 'USD',
-  name_es: 'Paquete Ágil MX',
-  name_en: 'Agile Pack MX',
+  name_es: 'Paquete Ágil EXT',
+  name_en: 'Agile Pack EXT',
   note_es: 'Nota ES',
   note_en: 'Note EN',
   hours: 20,
@@ -64,8 +64,8 @@ test.describe('Admin Hour Packages Edit', () => {
     setupMock(page);
     await page.goto('/panel/hour-packages/3/edit');
 
-    await expect(page.getByLabel('Nombre (ES)')).toHaveValue('Paquete Ágil MX');
-    await expect(page.getByLabel('Nacionalidad')).toHaveValue('MEX');
+    await expect(page.getByLabel('Nombre (ES)')).toHaveValue('Paquete Ágil EXT');
+    await expect(page.getByLabel('Nacionalidad')).toHaveValue('EXT');
     await expect(page.getByLabel('Horas')).toHaveValue('20');
     await expect(page.getByLabel(/Tarifa por hora/)).toHaveValue('45');
     await expect(page.getByText('USD (derivada de la nacionalidad)')).toBeVisible();

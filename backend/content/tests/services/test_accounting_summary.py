@@ -269,6 +269,120 @@ class TestExpectedCurrentMonth:
         )
         assert accounting_service.expected_current_month()['total'] == Decimal('0')
 
+    def test_fully_paid_expected_income_no_longer_counts_as_pending(
+        self, make_income,
+    ):
+        expected = make_income(
+            kind='expected',
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('1000.00'),
+        )
+        make_income(
+            kind='liquid',
+            period_date=date(2026, 9, 1),
+            total_amount=Decimal('1000.00'),
+            expected_income=expected,
+        )
+        assert accounting_service.expected_current_month()['total'] == Decimal('0')
+
+    def test_partially_paid_expected_income_counts_only_the_remainder(
+        self, make_income,
+    ):
+        expected = make_income(
+            kind='expected',
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('1000.00'),
+        )
+        make_income(
+            kind='liquid',
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('400.00'),
+            expected_income=expected,
+        )
+        assert accounting_service.expected_current_month()['total'] == Decimal(
+            '600.00',
+        )
+
+    def test_overpaid_record_clamps_to_zero_without_eating_a_pending_sibling(
+        self, make_income,
+    ):
+        """Per-row clamping: a naive Sum(total - paid) would report 200.00."""
+        overpaid = make_income(
+            kind='expected',
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('100.00'),
+        )
+        make_income(
+            kind='liquid',
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('900.00'),
+            expected_income=overpaid,
+        )
+        make_income(
+            kind='expected',
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('1000.00'),
+        )
+        assert accounting_service.expected_current_month()['total'] == Decimal(
+            '1000.00',
+        )
+
+    def test_a_lost_child_does_not_count_as_payment(self, make_income):
+        expected = make_income(
+            kind='expected',
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('1000.00'),
+        )
+        make_income(
+            kind='lost',
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('1000.00'),
+            expected_income=expected,
+        )
+        assert accounting_service.expected_current_month()['total'] == Decimal(
+            '1000.00',
+        )
+
+    def test_paid_income_leaves_the_projection_totals_untouched(
+        self, make_income,
+    ):
+        """Only the current-month card nets out payments.
+
+        `expected_total`, `difference` and the monthly breakdown keep the
+        full projection — that is what makes expected-vs-liquid meaningful.
+        """
+        expected = make_income(
+            kind='expected',
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('1000.00'),
+        )
+        make_income(
+            kind='liquid',
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('1000.00'),
+            expected_income=expected,
+        )
+        summary = accounting_service.dashboard_summary(2026)
+        assert summary['expected_total'] == Decimal('1000.00')
+        assert summary['liquid_total'] == Decimal('1000.00')
+        assert summary['difference'] == Decimal('0')
+        july = summary['monthly'][6]
+        assert july['expected'] == Decimal('1000.00')
+        assert summary['expected_current_month']['total'] == Decimal('0')
+
+    def test_lost_income_stays_out_of_every_dashboard_total(self, make_income):
+        make_income(
+            kind='lost',
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('460000.00'),
+        )
+        summary = accounting_service.dashboard_summary(2026)
+        assert summary['expected_total'] == Decimal('0')
+        assert summary['liquid_total'] == Decimal('0')
+        assert summary['expected_utility'] == Decimal('0')
+        assert summary['liquid_utility'] == Decimal('0')
+        assert summary['monthly'][6]['expected'] == Decimal('0')
+
 
 @pytest.mark.django_db
 class TestCardDebtTotal:

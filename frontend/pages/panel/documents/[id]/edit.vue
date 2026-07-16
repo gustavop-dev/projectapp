@@ -170,11 +170,7 @@
                 :key="option.key"
                 class="flex items-center gap-3 cursor-pointer py-1.5 px-1 select-none"
               >
-                <span class="relative flex-shrink-0">
-                  <input v-model="form[option.key]" type="checkbox" class="sr-only peer" />
-                  <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-surface-raised peer-checked:bg-primary"></span>
-                  <span class="absolute top-1 left-1 w-4 h-4 bg-surface rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
-                </span>
+                <BaseToggle v-model="form[option.key]" />
                 <span class="text-sm font-medium text-text-default">{{ option.label }}</span>
               </label>
             </div>

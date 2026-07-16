@@ -1,8 +1,10 @@
 /**
  * E2E tests for the pre-send scorecard.
  *
- * Covers: scorecard endpoint returns checks with pass/fail status,
- * blockers prevent sending, and the scorecard modal renders in the edit page.
+ * Covers: the scorecard modal fetches proposals/:id/scorecard/ and renders
+ * the score badge + check list, a passing scorecard enables the confirm
+ * button, and blockers (can_send: false) disable it with the "bloqueante"
+ * tag visible.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -38,10 +40,6 @@ const mockScorecardPass = {
     { key: 'total_investment', label: 'Inversión total > $0', passed: true, blocker: true },
     { key: 'expires_at', label: 'Fecha de expiración futura', passed: true, blocker: true },
     { key: 'enabled_sections', label: 'Al menos 1 sección habilitada', passed: true, blocker: true },
-    { key: 'title', label: 'Título de la propuesta', passed: true, blocker: false },
-    { key: 'sections_content', label: 'Secciones con contenido (2/2)', passed: true, blocker: false },
-    { key: 'discount_review', label: 'Descuento revisado', passed: true, blocker: false },
-    { key: 'payment_options', label: 'Opciones de pago definidas', passed: true, blocker: false },
     { key: 'estimated_weeks', label: 'Tiempo estimado definido', passed: false, blocker: false },
   ],
 };
@@ -52,71 +50,80 @@ const mockScorecardFail = {
   total_checks: 10,
   passed_checks: 3,
   blockers: [
-    { key: 'client_email', label: 'Email del cliente', passed: false, blocker: true },
+    { key: 'total_investment', label: 'Inversión total > $0', passed: false, blocker: true },
   ],
   checks: [
-    { key: 'client_email', label: 'Email del cliente', passed: false, blocker: true },
+    { key: 'client_email', label: 'Email del cliente', passed: true, blocker: true },
     { key: 'client_name', label: 'Nombre del cliente', passed: true, blocker: true },
     { key: 'total_investment', label: 'Inversión total > $0', passed: false, blocker: true },
-    { key: 'expires_at', label: 'Fecha de expiración futura', passed: true, blocker: true },
+    { key: 'expires_at', label: 'Fecha de expiración futura', passed: false, blocker: true },
     { key: 'enabled_sections', label: 'Al menos 1 sección habilitada', passed: false, blocker: true },
   ],
 };
 
+function buildHandler({ scorecard }) {
+  return async ({ apiPath }) => {
+    if (apiPath === 'auth/check/') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+    }
+    if (apiPath === 'proposals/1/detail/') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
+    }
+    if (apiPath === 'proposals/1/scorecard/') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(scorecard) };
+    }
+    return null;
+  };
+}
+
 test.describe('Admin Proposal Scorecard', () => {
+  test.describe.configure({ timeout: 60_000 });
+
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, { token: 'e2e-token', userAuth: { id: 8000, role: 'admin', is_staff: true } });
   });
 
-  test('edit page loads proposal and scorecard endpoint is accessible', {
+  test('passing scorecard renders score badge, checks, and enables the confirm button', {
     tag: [...ADMIN_PROPOSAL_SCORECARD, '@role:admin'],
   }, async ({ page }) => {
-    let _scorecardCalled = false;
+    await mockApi(page, buildHandler({ scorecard: mockScorecardPass }));
 
-    await mockApi(page, async ({ apiPath }) => {
-      if (apiPath === 'auth/check/') {
-        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
-      }
-      if (apiPath === 'proposals/1/detail/') {
-        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
-      }
-      if (apiPath === 'proposals/1/scorecard/') {
-        _scorecardCalled = true;
-        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockScorecardPass) };
-      }
-      return null;
-    });
+    await page.goto('/panel/proposals/1/edit', { waitUntil: 'domcontentloaded' });
 
-    await page.goto('/panel/proposals/1/edit');
-    await page.waitForResponse(resp => resp.url().includes('/detail/') && resp.status() === 200);
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('proposals/1/scorecard/')),
+      page.getByRole('button', { name: 'Enviar al Cliente' }).first().click(),
+    ]);
+
+    const modal = page.getByLabel('Scorecard pre-envío');
+    await expect(modal).toBeVisible();
+    await expect(modal.getByText('9/10')).toBeVisible();
+    await expect(modal.getByText('Email del cliente')).toBeVisible();
+    // Failed non-blocker shows without the "bloqueante" tag.
+    await expect(modal.getByText('Tiempo estimado definido')).toBeVisible();
+    await expect(modal.getByText('bloqueante')).not.toBeVisible();
+    // A passing scorecard (can_send: true) keeps the confirm button enabled.
+    await expect(modal.getByRole('button', { name: 'Enviar al Cliente' })).toBeEnabled();
   });
 
-  test('scorecard with blockers prevents sending', {
+  test('scorecard with blockers disables sending and tags the blockers', {
     tag: [...ADMIN_PROPOSAL_SCORECARD, '@role:admin'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ apiPath }) => {
-      if (apiPath === 'auth/check/') {
-        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
-      }
-      if (apiPath === 'proposals/1/detail/') {
-        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockProposal, client_email: '' }) };
-      }
-      if (apiPath === 'proposals/1/scorecard/') {
-        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockScorecardFail) };
-      }
-      return null;
-    });
+    await mockApi(page, buildHandler({ scorecard: mockScorecardFail }));
 
-    await page.goto('/panel/proposals/1/edit');
-    await page.waitForResponse(resp => resp.url().includes('/detail/') && resp.status() === 200);
+    await page.goto('/panel/proposals/1/edit', { waitUntil: 'domcontentloaded' });
 
-    // Try to find send button — it should be disabled or show blocker info
-    const sendBtn = page.getByRole('button', { name: /Enviar al Cliente/i });
-    if (await sendBtn.isVisible().catch(() => false)) {
-      await sendBtn.click();
-      // The scorecard modal should show blockers
-      const blockerText = page.getByText('Email del cliente');
-      await expect(blockerText).toBeVisible({ timeout: 5000 });
-    }
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('proposals/1/scorecard/')),
+      page.getByRole('button', { name: 'Enviar al Cliente' }).first().click(),
+    ]);
+
+    const modal = page.getByLabel('Scorecard pre-envío');
+    await expect(modal).toBeVisible();
+    await expect(modal.getByText('3/10')).toBeVisible();
+    await expect(modal.getByText('Inversión total > $0')).toBeVisible();
+    await expect(modal.getByText('bloqueante').first()).toBeVisible();
+    // can_send: false must disable the modal's confirm button.
+    await expect(modal.getByRole('button', { name: 'Enviar al Cliente' })).toBeDisabled();
   });
 });

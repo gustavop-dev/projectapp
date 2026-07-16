@@ -10,7 +10,7 @@ import { setAuthLocalStorage } from '../helpers/auth.js';
 import { ADMIN_HOUR_PACKAGES_CREATE } from '../helpers/flow-tags.js';
 
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
-const createdPackage = { id: 10, nationality: 'MEX', currency: 'USD', name_es: 'Paquete Pro MX', name_en: 'Pro Pack MX', hours: 60, hourly_rate: '40.00', discount_percent: 10, is_active: true, order: 2 };
+const createdPackage = { id: 10, nationality: 'EXT', currency: 'USD', name_es: 'Paquete Pro EXT', name_en: 'Pro Pack EXT', hours: 60, hourly_rate: '40.00', discount_percent: 10, is_active: true, order: 2 };
 
 function setupMock(page, { createStatus = 201, createBody = createdPackage } = {}) {
   return mockApi(page, async ({ apiPath, route }) => {
@@ -36,9 +36,9 @@ test.describe('Admin Hour Packages Create', () => {
     tag: [...ADMIN_HOUR_PACKAGES_CREATE, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/panel/hour-packages/create?nationality=MEX');
+    await page.goto('/panel/hour-packages/create?nationality=EXT');
 
-    await expect(page.getByLabel('Nacionalidad')).toHaveValue('MEX');
+    await expect(page.getByLabel('Nacionalidad')).toHaveValue('EXT');
     await expect(page.getByText('USD (derivada de la nacionalidad)')).toBeVisible();
   });
 
@@ -46,10 +46,10 @@ test.describe('Admin Hour Packages Create', () => {
     tag: [...ADMIN_HOUR_PACKAGES_CREATE, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/panel/hour-packages/create?nationality=MEX');
+    await page.goto('/panel/hour-packages/create?nationality=EXT');
 
-    await page.getByLabel('Nombre (ES)').fill('Paquete Pro MX');
-    await page.getByLabel('Name (EN)').fill('Pro Pack MX');
+    await page.getByLabel('Nombre (ES)').fill('Paquete Pro EXT');
+    await page.getByLabel('Name (EN)').fill('Pro Pack EXT');
     await page.getByLabel('Horas').fill('60');
     await page.getByLabel(/Tarifa por hora/).fill('40');
     await page.getByLabel('Descuento (%)').fill('10');

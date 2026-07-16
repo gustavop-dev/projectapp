@@ -24,8 +24,10 @@ const HIGHLIGHT_MS = 2500;
  *       deleteTitle, deleteMessage(record) }
  *     `saveErrorTitle` may be a string or `(editing) => string` for pages
  *     whose create/update error titles differ.
- * - onAfterMutation(record, payload, action)  optional async hook awaited
- *     after a successful create/update/delete (e.g. refetch server meta).
+ * - onAfterMutation()  optional async hook awaited after any successful
+ *     mutation (e.g. refetch server meta). Pages whose rows carry
+ *     server-computed state derived from OTHER rows must use it: mutating
+ *     one row can go stale on its siblings.
  * - beforeEdit(record) / beforeDelete(record)  optional guards; returning
  *     false aborts opening the edit modal / the delete confirm.
  * - sortAccessors / sortDefaults  forwarded to useTableSort (per-column
@@ -139,22 +141,37 @@ export function useAccountingCrudPage({
       : labels.saveErrorTitle;
   }
 
+  /**
+   * Shared mutation flow: run the store call, then notify + row-flash +
+   * onAfterMutation on success, or an error toast with the backend message.
+   * Also the escape hatch for page-specific actions (liquidate, write-off)
+   * so they don't re-implement this dance.
+   */
+  async function runMutation(action, { successTitle, errorTitle, flashId } = {}) {
+    const result = await action();
+    if (result.success) {
+      notify.success({ title: successTitle });
+      markMutated(flashId ?? result.data?.id);
+      if (onAfterMutation) await onAfterMutation();
+    } else {
+      notify.error({ title: errorTitle, detail: result.message || '' });
+    }
+    return result;
+  }
+
   async function handleSubmit(payload) {
     const editing = editingRecord.value;
-    const result = editing
-      ? await store.updateRecord(entity, editing.id, payload)
-      : await store.createRecord(entity, payload);
-
-    if (result.success) {
-      notify.success({ title: editing ? labels.updated : labels.created });
-      markMutated(result.data?.id ?? editing?.id);
-      closeModal();
-      if (onAfterMutation) {
-        await onAfterMutation(editing, payload, editing ? 'update' : 'create');
-      }
-    } else {
-      notify.error({ title: saveErrorTitle(editing), detail: result.message || '' });
-    }
+    const result = await runMutation(
+      () => (editing
+        ? store.updateRecord(entity, editing.id, payload)
+        : store.createRecord(entity, payload)),
+      {
+        successTitle: editing ? labels.updated : labels.created,
+        errorTitle: saveErrorTitle(editing),
+        flashId: editing?.id,
+      },
+    );
+    if (result.success) closeModal();
   }
 
   // -----------------------------------------------------------------
@@ -169,15 +186,10 @@ export function useAccountingCrudPage({
       variant: 'danger',
       confirmText: 'Eliminar',
       cancelText: 'Cancelar',
-      onConfirm: async () => {
-        const result = await store.deleteRecord(entity, record.id);
-        if (result.success) {
-          notify.success({ title: labels.deleted });
-          if (onAfterMutation) await onAfterMutation(record, null, 'delete');
-        } else {
-          notify.error({ title: labels.deleteErrorTitle, detail: result.message || '' });
-        }
-      },
+      onConfirm: () => runMutation(
+        () => store.deleteRecord(entity, record.id),
+        { successTitle: labels.deleted, errorTitle: labels.deleteErrorTitle },
+      ),
     });
   }
 
@@ -196,6 +208,10 @@ export function useAccountingCrudPage({
     confirmState,
     handleConfirmed,
     handleCancelled,
+    // escape hatches for page-specific row actions, so they reuse this
+    // controller's ConfirmModal and mutation flow (notify + flash + hook)
+    requestConfirm,
+    runMutation,
     // sorting
     sortKey,
     sortDir,

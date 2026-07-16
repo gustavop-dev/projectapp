@@ -36,6 +36,7 @@ from content.views.collection_accounts_panel import (
     send_hosting_collection_account,
 )
 from content.views.contact import contact_list, new_contact
+from content.views.panel_dashboard import panel_dashboard
 from content.views.portfolio_works import (
     list_portfolio_works, retrieve_portfolio_work,
     portfolio_sitemap_data,
@@ -58,6 +59,9 @@ from content.views.hour_packages import (
     retrieve_admin_hour_package, update_hour_package,
     delete_hour_package, get_hour_package_settings,
     update_hour_package_settings, restore_default_hour_packages,
+)
+from content.views.view_map import (
+    get_view_map_settings, update_view_map_settings,
 )
 from content.views.proposal import (
     retrieve_public_proposal, retrieve_public_proposal_by_slug,
@@ -194,6 +198,9 @@ urlpatterns = [
 
     # Proposals — admin auth check
     path('auth/check/', check_admin_auth, name='check-admin-auth'),
+
+    # Panel — global dashboard
+    path('panel/dashboard/', panel_dashboard, name='panel-dashboard'),
 
     # Proposals — admin CRUD
     path('proposals/', list_proposals, name='list-proposals'),
@@ -450,6 +457,10 @@ urlpatterns = [
     path('hour-packages/admin/settings/', get_hour_package_settings, name='hour-package-settings'),
     path('hour-packages/admin/settings/update/', update_hour_package_settings, name='update-hour-package-settings'),
     path('hour-packages/admin/restore-defaults/', restore_default_hour_packages, name='restore-default-hour-packages'),
+
+    # View map — admin panel settings (singleton)
+    path('view-map/admin/settings/', get_view_map_settings, name='view-map-settings'),
+    path('view-map/admin/settings/update/', update_view_map_settings, name='update-view-map-settings'),
     path('portfolio/admin/<int:work_id>/upload-cover/', upload_portfolio_cover_image, name='upload-portfolio-cover-image'),
 
     # Portfolio — public

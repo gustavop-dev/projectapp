@@ -100,7 +100,7 @@ class TestMerchantAliasWriteSerializer:
             match_text='PAYU*NETFLIX', merchant_name='Netflix',
         )
         serializer = MerchantAliasWriteSerializer(
-            data={'match_text': 'payu*netflix 123', 'merchant_name': 'Otro'},
+            data={'match_text': 'payu*netflix 990011', 'merchant_name': 'Otro'},
         )
         assert not serializer.is_valid()
         assert 'Ya existe un alias' in str(serializer.errors)

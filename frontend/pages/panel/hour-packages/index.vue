@@ -173,8 +173,8 @@
           <h2 class="text-sm font-medium text-text-default mb-1">Restablecer paquetes por defecto</h2>
           <p class="text-xs text-text-subtle mb-4">
             Reemplaza el catálogo del país elegido con la escalera por defecto:
-            1&nbsp;h, 10&nbsp;h (-5%), 20&nbsp;h (-10%), 60&nbsp;h (-20%) y 180&nbsp;h (-30%)
-            sobre la tarifa base (COL $40.000&nbsp;COP/h · MEX $20&nbsp;USD/h · USA $35&nbsp;USD/h).
+            1&nbsp;h, 20&nbsp;h (-10%), 60&nbsp;h (-20%) y 180&nbsp;h (-30%)
+            sobre la tarifa base (COL $30.000&nbsp;COP/h · EXT $18&nbsp;USD/h · USA $30&nbsp;USD/h).
             Los paquetes actuales de ese país se eliminan.
           </p>
           <div class="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -212,11 +212,11 @@ const localePath = useLocalePath();
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
-const CURRENCY_BY_NATIONALITY = { COL: 'COP', MEX: 'USD', USA: 'USD' };
+const CURRENCY_BY_NATIONALITY = { COL: 'COP', EXT: 'USD', USA: 'USD' };
 
 const nationalityOptions = [
   { value: 'COL', label: 'Colombia (COP)', testId: 'hour-packages-tab-col' },
-  { value: 'MEX', label: 'México (USD)', testId: 'hour-packages-tab-mex' },
+  { value: 'EXT', label: 'Extranjero (USD)', testId: 'hour-packages-tab-ext' },
   { value: 'USA', label: 'USA (USD)', testId: 'hour-packages-tab-usa' },
 ];
 
@@ -243,7 +243,7 @@ const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useCo
 const defaultViewMode = computed(() => hourPackagesStore.settings?.default_view_mode ?? 'table');
 
 const nationalityLabel = computed(() =>
-  ({ COL: 'de Colombia', MEX: 'de México', USA: 'de Estados Unidos' }[selectedNationality.value]));
+  ({ COL: 'de Colombia', EXT: 'del extranjero', USA: 'de Estados Unidos' }[selectedNationality.value]));
 const currentCurrency = computed(() => CURRENCY_BY_NATIONALITY[selectedNationality.value]);
 
 const {
@@ -284,7 +284,7 @@ async function saveDefaultViewMode(mode) {
 }
 
 function confirmRestore() {
-  const label = { COL: 'Colombia', MEX: 'México', USA: 'Estados Unidos' }[restoreNationality.value];
+  const label = { COL: 'Colombia', EXT: 'Extranjero', USA: 'Estados Unidos' }[restoreNationality.value];
   requestConfirm({
     title: 'Restablecer paquetes',
     message: `¿Reemplazar el catálogo de ${label} con los paquetes por defecto? Los paquetes actuales de ese país se eliminan.`,

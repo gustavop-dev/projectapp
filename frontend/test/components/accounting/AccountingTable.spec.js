@@ -178,4 +178,46 @@ describe('AccountingTable', () => {
     expect(wrapper.find('[data-testid="accounting-row-1"]').classes())
       .not.toContain('accounting-row-flash');
   });
+
+  describe('rowTone', () => {
+    it('defaults every row to bg-surface when no tone is given', () => {
+      const wrapper = mountTable();
+
+      expect(wrapper.find('[data-testid="accounting-row-1"]').classes())
+        .toContain('bg-surface');
+    });
+
+    it('replaces bg-surface with the tone class rather than stacking it', () => {
+      // Two background utilities of equal specificity would be resolved by
+      // stylesheet order, so the tone has to win by being the only one.
+      const wrapper = mountTable({
+        rowTone: (row) => (row.id === 1 ? 'success' : 'warning'),
+      });
+
+      const first = wrapper.find('[data-testid="accounting-row-1"]').classes();
+      expect(first).toContain('bg-success-soft');
+      expect(first).not.toContain('bg-surface');
+
+      const second = wrapper.find('[data-testid="accounting-row-2"]').classes();
+      expect(second).toContain('bg-warning-soft');
+      expect(second).not.toContain('bg-surface');
+    });
+
+    it('falls back to bg-surface for rows the tone returns null for', () => {
+      const wrapper = mountTable({
+        rowTone: (row) => (row.id === 1 ? 'success' : null),
+      });
+
+      expect(wrapper.find('[data-testid="accounting-row-2"]').classes())
+        .toContain('bg-surface');
+    });
+
+    it('keeps the flash alongside a toned row', () => {
+      const wrapper = mountTable({ rowTone: () => 'success', highlightId: 1 });
+
+      const classes = wrapper.find('[data-testid="accounting-row-1"]').classes();
+      expect(classes).toContain('bg-success-soft');
+      expect(classes).toContain('accounting-row-flash');
+    });
+  });
 });

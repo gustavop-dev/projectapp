@@ -9,12 +9,14 @@ describe('BaseToggle', () => {
     expect(btn.attributes('aria-checked')).toBe('true')
   })
 
-  it('shows primary background when on, raised surface when off', () => {
+  it('shows primary background when on, a mid-tone track when off', () => {
     const on = mount(BaseToggle, { props: { modelValue: true } })
     expect(on.find('button').classes()).toContain('bg-primary')
 
+    // The thumb is white, so the off track must keep a mid tone to stay
+    // distinguishable from the surface behind it.
     const off = mount(BaseToggle, { props: { modelValue: false } })
-    expect(off.find('button').classes()).toContain('bg-surface-raised')
+    expect(off.find('button').classes()).toContain('bg-text-subtle/45')
   })
 
   it('emits update:modelValue with the inverted value on click', async () => {

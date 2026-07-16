@@ -163,12 +163,12 @@
               </BaseTooltip>
             </div>
             <div class="flex items-center gap-2 mt-1">
+              <!-- ON = automations running (knob right, like "Estado activo");
+                   the stored field is the negation (automations_paused). -->
               <BaseToggle
-                :model-value="form.automations_paused"
+                :model-value="!form.automations_paused"
                 size="sm"
-                on-class="bg-warning-strong"
-                off-class="bg-primary"
-                aria-label="Pausar automatizaciones"
+                aria-label="Activar automatizaciones"
                 @update:model-value="emit('toggle-automations')"
               />
               <span class="text-xs" :class="form.automations_paused ? 'text-warning-strong' : 'text-primary'">

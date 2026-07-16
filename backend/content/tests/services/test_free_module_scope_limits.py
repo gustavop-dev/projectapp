@@ -71,10 +71,10 @@ class TestFreeModuleScopeLimits:
         assert phrase in group['description']
 
     @pytest.mark.parametrize('lang,module_id,phrase', [
-        ('es', 'analytics_dashboard', 'hasta 6 reportes estándar'),
-        ('en', 'analytics_dashboard', 'up to 6 standard reports'),
-        ('es', 'kpi_dashboard_module', 'hasta 8 KPIs'),
-        ('en', 'kpi_dashboard_module', 'up to 8 KPIs'),
+        ('es', 'analytics_dashboard', 'hasta **6 reportes estándar**'),
+        ('en', 'analytics_dashboard', 'up to **6 standard reports**'),
+        ('es', 'kpi_dashboard_module', 'hasta **8 KPIs, 4 gráficos y 5 alertas**'),
+        ('en', 'kpi_dashboard_module', 'up to **8 KPIs, 4 charts and 5 alerts**'),
         ('es', 'manual_module', 'hasta 15 artículos'),
         ('en', 'manual_module', 'up to 15 articles'),
         ('es', 'admin_module', 'gestores de contenido listados'),

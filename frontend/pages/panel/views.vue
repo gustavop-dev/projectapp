@@ -12,25 +12,58 @@
       </div>
 
       <div class="flex items-end gap-3">
-        <BaseSegmented
-          v-model="viewMode"
-          size="sm"
-          :options="[
-            { value: 'list', label: 'Lista', testId: 'view-mode-list' },
-            { value: 'map', label: 'Mapa', testId: 'view-mode-map' },
-          ]"
-        />
-        <div class="rounded-xl border border-border-muted bg-surface px-4 py-3 text-sm shadow-sm">
-          <span class="block text-xs text-text-subtle">Total</span>
-          <div class="flex items-baseline gap-1">
-            <strong class="text-2xl font-light text-text-brand">{{ filteredViewCount }}</strong>
-            <span v-if="isFiltering" class="text-sm text-text-subtle">/ {{ totalViews }}</span>
-            <span class="ml-1 text-text-muted">vistas</span>
+        <BaseSegmented v-model="activeSection" size="sm" :options="sectionOptions" />
+        <template v-if="activeSection === 'catalog'">
+          <BaseSegmented
+            v-model="viewMode"
+            size="sm"
+            :options="viewModeOptions"
+          />
+          <div class="rounded-xl border border-border-muted bg-surface px-4 py-3 text-sm shadow-sm">
+            <span class="block text-xs text-text-subtle">Total</span>
+            <div class="flex items-baseline gap-1">
+              <strong class="text-2xl font-light text-text-brand">{{ filteredViewCount }}</strong>
+              <span v-if="isFiltering" class="text-sm text-text-subtle">/ {{ totalViews }}</span>
+              <span class="ml-1 text-text-muted">vistas</span>
+            </div>
           </div>
-        </div>
+        </template>
       </div>
     </div>
 
+    <!-- ══════════════ Configuración ══════════════ -->
+    <div v-if="activeSection === 'config'" class="space-y-6 max-w-2xl">
+      <section class="bg-surface rounded-xl shadow-sm border border-border-muted p-6">
+        <h2 class="text-sm font-medium text-text-default mb-1">Vista por defecto</h2>
+        <p class="text-xs text-text-subtle mb-4">
+          Modo con el que abre el mapa de vistas al entrar a esta página.
+        </p>
+        <BaseSegmented
+          :model-value="defaultViewMode"
+          :options="viewModeOptions"
+          data-testid="view-map-default-mode"
+          @update:model-value="saveDefaultViewMode"
+        />
+      </section>
+
+      <section class="bg-surface rounded-xl shadow-sm border border-border-muted p-6">
+        <h2 class="text-sm font-medium text-text-default mb-1">Filtros por defecto</h2>
+        <p class="text-xs text-text-subtle mb-4">
+          Filtros que se aplican al abrir esta vista con la pestaña "Todas" activa.
+          Se guardan automáticamente al cambiarlos.
+        </p>
+        <ViewMapFilterPanel
+          :model-value="configFilters"
+          :is-open="true"
+          :filter-count="configFilterCount"
+          @update:model-value="Object.assign(configFilters, $event)"
+          @reset="resetConfigFilters"
+        />
+      </section>
+    </div>
+
+    <!-- ══════════════ Catálogo ══════════════ -->
+    <template v-else>
     <!-- Filter tabs -->
     <ProposalFilterTabs
       :tabs="savedTabs"
@@ -198,17 +231,20 @@
         Limpiar filtros y busqueda
       </button>
     </div>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import {
   countCatalogViews,
   getViewCopyReference,
   proposalViewReferenceGuide,
   viewCatalogSections,
 } from '~/config/viewCatalog'
+import { useViewMapStore } from '~/stores/view_map'
+import { usePanelNotify } from '~/composables/usePanelNotify'
 import { useViewMapFilters } from '~/composables/useViewMapFilters'
 import { useViewMapMode } from '~/composables/useViewMapMode'
 import ViewMapFilterPanel from '~/components/views/ViewMapFilterPanel.vue'
@@ -233,6 +269,7 @@ const {
   activeFilterCount,
   hasActiveFilters,
   isTabLimitReached,
+  applyDefaultFilters,
   applyFilters,
   resetFilters,
   selectTab,
@@ -241,10 +278,73 @@ const {
   renameTab,
 } = useViewMapFilters()
 
-const { viewMode, selectedModuleId, selectModule, clearModule } = useViewMapMode()
+const { viewMode, selectedModuleId, applyDefaultMode, selectModule, clearModule } = useViewMapMode()
+
+const viewMapStore = useViewMapStore()
+const notify = usePanelNotify()
+
+const sectionOptions = [
+  { value: 'catalog', label: 'Catálogo', testId: 'view-map-section-catalog' },
+  { value: 'config', label: 'Configuración', testId: 'view-map-section-config' },
+]
+
+const viewModeOptions = [
+  { value: 'list', label: 'Lista', testId: 'view-mode-list' },
+  { value: 'map', label: 'Mapa', testId: 'view-mode-map' },
+]
+
+const activeSection = ref('catalog')
 
 const search = ref('')
 const copiedKey = ref(null)
+
+// ── Configuración: defaults persistidos en ViewMapSettings ──
+const configFilters = reactive({ categories: [], audiences: [], viewTypes: [] })
+let configHydrated = false
+let configSaveTimer = null
+
+const defaultViewMode = computed(() => viewMapStore.settings?.default_view_mode ?? 'list')
+
+const configFilterCount = computed(() =>
+  [configFilters.categories, configFilters.audiences, configFilters.viewTypes]
+    .filter((values) => values.length > 0).length,
+)
+
+onMounted(async () => {
+  const result = await viewMapStore.fetchSettings()
+  if (!result.success) return
+  applyDefaultMode(result.data.default_view_mode)
+  applyDefaultFilters(result.data.default_filters)
+  Object.assign(configFilters, { categories: [], audiences: [], viewTypes: [] }, result.data.default_filters || {})
+  await nextTick()
+  configHydrated = true
+})
+
+async function saveDefaultViewMode(mode) {
+  const result = await viewMapStore.updateSettings({ default_view_mode: mode })
+  if (result.success) {
+    notify.success('Vista por defecto guardada.')
+  } else {
+    notify.error('No se pudo guardar la vista por defecto.')
+  }
+}
+
+watch(configFilters, () => {
+  if (!configHydrated) return
+  clearTimeout(configSaveTimer)
+  configSaveTimer = setTimeout(async () => {
+    const result = await viewMapStore.updateSettings({ default_filters: { ...configFilters } })
+    if (result.success) {
+      notify.success('Filtros por defecto guardados.')
+    } else {
+      notify.error('No se pudieron guardar los filtros por defecto.')
+    }
+  }, 600)
+}, { deep: true })
+
+function resetConfigFilters() {
+  Object.assign(configFilters, { categories: [], audiences: [], viewTypes: [] })
+}
 
 const filteredSections = computed(() => {
   let result = applyFilters(sections)

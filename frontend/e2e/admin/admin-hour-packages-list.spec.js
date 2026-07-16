@@ -16,17 +16,17 @@ const colPackages = [
   { id: 2, nationality: 'COL', currency: 'COP', name_es: 'Paquete Pro', name_en: 'Pro Pack', hours: 60, hourly_rate: '90000.00', discount_percent: 10, is_active: true, order: 2, updated_at: '2026-07-01T10:00:00Z' },
 ];
 
-const mexPackages = [
-  { id: 3, nationality: 'MEX', currency: 'USD', name_es: 'Paquete Ágil MX', name_en: 'Agile Pack MX', hours: 20, hourly_rate: '45.00', discount_percent: 0, is_active: true, order: 1, updated_at: '2026-07-01T10:00:00Z' },
+const extPackages = [
+  { id: 3, nationality: 'EXT', currency: 'USD', name_es: 'Paquete Ágil EXT', name_en: 'Agile Pack EXT', hours: 20, hourly_rate: '45.00', discount_percent: 0, is_active: true, order: 1, updated_at: '2026-07-01T10:00:00Z' },
 ];
 
-function setupMock(page, { col = colPackages, mex = mexPackages } = {}) {
+function setupMock(page, { col = colPackages, ext = extPackages } = {}) {
   return mockApi(page, async ({ apiPath, route }) => {
     if (apiPath === 'auth/check/') return authCheck;
     if (apiPath === 'hour-packages/admin/' && route.request().method() === 'GET') {
       const url = new URL(route.request().url());
       const nationality = url.searchParams.get('nationality');
-      const body = nationality === 'MEX' ? mex : nationality === 'USA' ? [] : col;
+      const body = nationality === 'EXT' ? ext : nationality === 'USA' ? [] : col;
       return { status: 200, contentType: 'application/json', body: JSON.stringify(body) };
     }
     return null;
@@ -53,7 +53,7 @@ test.describe('Admin Hour Packages List', () => {
     await expect(page.getByText('se cotizan en COP')).toBeVisible();
   });
 
-  test('switching to the MEX tab shows USD prices for that country', {
+  test('switching to the EXT tab shows USD prices for that country', {
     tag: [...ADMIN_HOUR_PACKAGES_LIST, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
@@ -62,9 +62,9 @@ test.describe('Admin Hour Packages List', () => {
     const table = page.locator('table');
     await expect(table.getByRole('link', { name: 'Paquete Ágil', exact: true })).toBeVisible();
 
-    await page.getByTestId('hour-packages-tab-mex').click();
+    await page.getByTestId('hour-packages-tab-ext').click();
 
-    await expect(table.getByRole('link', { name: 'Paquete Ágil MX' })).toBeVisible();
+    await expect(table.getByRole('link', { name: 'Paquete Ágil EXT' })).toBeVisible();
     await expect(table.getByText('$45 USD').first()).toBeVisible();
     await expect(page.getByText('se cotizan en USD')).toBeVisible();
     await expect(table.getByRole('link', { name: 'Paquete Pro', exact: true })).toBeHidden();

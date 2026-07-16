@@ -73,7 +73,7 @@
         >
           <AccountingStatCard
             data-testid="accounting-card-expected-month"
-            :label="`Ingreso esperado · ${expectedMonthLabel}`"
+            :label="`Pendiente por cobrar · ${expectedMonthLabel}`"
             :value="money(summary.expected_current_month?.total)"
           />
           <AccountingStatCard
@@ -121,14 +121,6 @@
             <div class="flex items-center justify-between">
               <dt class="text-text-muted">Gastos</dt>
               <dd class="tabular-nums text-text-default">{{ money(partner.data.expenses) }}</dd>
-            </div>
-            <div
-              v-if="hasPersonalActivity(partner.data)"
-              class="text-xs text-text-subtle pt-1"
-            >
-              Participación empresa: {{ money(partner.data.participation?.liquid) }} líquido ·
-              Personal: {{ money(partner.data.personal?.liquid) }} líquido /
-              {{ money(partner.data.personal?.expenses) }} gastos
             </div>
             <div class="flex items-center justify-between pt-1.5 border-t border-border-muted">
               <dt class="font-medium text-text-default">Neto</dt>
@@ -402,13 +394,6 @@ const partnerCards = computed(() => {
     { key: 'company', label: 'ProjectApp (Empresa)', data: partners.company || empty },
   ];
 });
-
-function hasPersonalActivity(data) {
-  const personal = data?.personal;
-  if (!personal) return false;
-  return Number(personal.liquid) !== 0 || Number(personal.expenses) !== 0
-    || Number(personal.expected) !== 0;
-}
 
 async function loadSummary(year) {
   const result = await store.fetchSummary(year || store.selectedYear);

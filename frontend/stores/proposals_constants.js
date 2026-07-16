@@ -1,7 +1,9 @@
-// Default percentage of the total investment charged for annual hosting.
-// Single source of truth for the frontend; mirrors the backend model default
-// (BusinessProposal.hosting_percent / ProposalDefaultConfig.hosting_percent).
-export const DEFAULT_HOSTING_PERCENT = 80;
+// Offline fallback for the hosting percentage of the total investment.
+// The real default is admin-editable (ProposalDefaultConfig.hosting_percent)
+// and is fetched on the create page; this constant only covers the moment
+// before that fetch resolves (or its failure) and mirrors the backend model
+// default (BusinessProposal.hosting_percent).
+export const DEFAULT_HOSTING_PERCENT = 60;
 
 // Default hosting payment-frequency tiers, ordered best-discount first. Single
 // source of truth shared by the public Investment view and the admin editor so

@@ -758,7 +758,7 @@ const form = reactive({
   reminder_days: 10,
   urgency_reminder_days: 15,
   discount_percent: 0,
-  automations_paused: true,
+  automations_paused: false,
   email_intro: '',
   email_features: [],
   email_method_phases: [],
@@ -1031,7 +1031,8 @@ function hydrateFormFromProposal() {
     reminder_days: proposal.value.reminder_days,
     urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
     discount_percent: proposal.value.discount_percent ?? 0,
-    automations_paused: proposal.value.automations_paused ?? true,
+    // Backend default is False (automations enabled) — keep the fallback aligned.
+    automations_paused: proposal.value.automations_paused ?? false,
     email_intro: proposal.value.email_intro || '',
     email_features: Array.isArray(proposal.value.email_features) ? [...proposal.value.email_features] : [],
     email_method_phases: Array.isArray(proposal.value.email_method_phases) && proposal.value.email_method_phases.length

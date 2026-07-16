@@ -29,11 +29,18 @@ class TestNormalizeDescriptor:
     def test_uppercases_and_collapses_whitespace(self):
         assert normalize_descriptor('  payu*Netflix   co ') == 'PAYU*NETFLIX CO'
 
-    def test_drops_digit_only_tokens(self):
+    def test_drops_long_digit_only_tokens(self):
         assert normalize_descriptor('PRIMAX 990011 MEDELLIN') == 'PRIMAX MEDELLIN'
+        assert normalize_descriptor('LIDL 218620') == 'LIDL'
+
+    def test_keeps_short_digit_tokens_that_are_part_of_the_name(self):
+        assert normalize_descriptor('HOSTEL 265') == 'HOSTEL 265'
+        assert normalize_descriptor('Hotel 1926') == 'HOTEL 1926'
+        assert normalize_descriptor('8229 OKAY DIRECT') == '8229 OKAY DIRECT'
+        assert normalize_descriptor('UBER B2B 44') == 'UBER B2B 44'
 
     def test_keeps_mixed_alphanumeric_tokens(self):
-        assert normalize_descriptor('UBER B2B 44') == 'UBER B2B'
+        assert normalize_descriptor('EASYJET AKCN435H') == 'EASYJET AKCN435H'
 
     def test_empty_and_none_are_empty(self):
         assert normalize_descriptor('') == ''

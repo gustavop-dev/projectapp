@@ -21,13 +21,13 @@ from content.services.hour_package_service import restore_default_packages
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def list_admin_hour_packages(request):
-    """List hour packages, optionally filtered by ?nationality=COL|MEX|USA."""
+    """List hour packages, optionally filtered by ?nationality=COL|EXT|USA."""
     qs = HourPackage.objects.all()
     nationality = request.query_params.get('nationality')
     if nationality:
         if nationality not in Nationality.values:
             return Response(
-                {'nationality': ['Nacionalidad inválida. Usa COL, MEX o USA.']},
+                {'nationality': ['Nacionalidad inválida. Usa COL, EXT o USA.']},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         qs = qs.filter(nationality=nationality)
@@ -108,7 +108,7 @@ def restore_default_hour_packages(request):
     nationality = request.data.get('nationality')
     if nationality not in Nationality.values:
         return Response(
-            {'nationality': ['Nacionalidad inválida. Usa COL, MEX o USA.']},
+            {'nationality': ['Nacionalidad inválida. Usa COL, EXT o USA.']},
             status=status.HTTP_400_BAD_REQUEST,
         )
     restore_default_packages(nationality)
