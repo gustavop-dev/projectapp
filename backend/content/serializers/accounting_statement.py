@@ -26,7 +26,8 @@ class CreditCardTransactionSerializer(serializers.ModelSerializer):
             'merchant_name', 'category', 'category_label', 'amount',
             'original_amount', 'original_currency',
             'installment_number', 'installments_total', 'installment_label',
-            'is_identified', 'notes', 'created_at', 'updated_at',
+            'is_identified', 'is_reversal', 'notes', 'created_at',
+            'updated_at',
         )
 
     def get_installment_label(self, obj):
@@ -43,7 +44,7 @@ class CreditCardTransactionWriteSerializer(serializers.ModelSerializer):
             'transaction_date', 'raw_description', 'merchant_name',
             'category', 'amount', 'original_amount', 'original_currency',
             'installment_number', 'installments_total', 'is_identified',
-            'notes',
+            'is_reversal', 'notes',
         )
         extra_kwargs = {
             'merchant_name': {'required': False},
@@ -53,6 +54,7 @@ class CreditCardTransactionWriteSerializer(serializers.ModelSerializer):
             'installment_number': {'required': False},
             'installments_total': {'required': False},
             'is_identified': {'required': False},
+            'is_reversal': {'required': False},
             'notes': {'required': False},
         }
 
@@ -171,7 +173,8 @@ class MerchantAliasSerializer(serializers.ModelSerializer):
         model = MerchantAlias
         fields = (
             'id', 'match_text', 'merchant_name', 'default_category',
-            'default_category_label', 'notes', 'created_at', 'updated_at',
+            'default_category_label', 'is_gateway', 'notes', 'created_at',
+            'updated_at',
         )
 
 
@@ -182,9 +185,13 @@ class MerchantAliasWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MerchantAlias
-        fields = ('match_text', 'merchant_name', 'default_category', 'notes')
+        fields = (
+            'match_text', 'merchant_name', 'default_category', 'is_gateway',
+            'notes',
+        )
         extra_kwargs = {
             'default_category': {'required': False},
+            'is_gateway': {'required': False},
             'notes': {'required': False},
         }
 

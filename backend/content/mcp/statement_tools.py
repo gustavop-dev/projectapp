@@ -30,7 +30,7 @@ from content.serializers.accounting_statement import (
 from content.services import accounting_statement_service
 from content.utils import today_bogota
 
-WORKFLOW_VERSION = 2
+WORKFLOW_VERSION = 3
 
 _INSTRUCTIONS = """\
 Flujo para procesar un extracto de tarjeta de crédito. Sigue las fases EN ORDEN.
@@ -54,20 +54,39 @@ totales del extracto (compras, pagos/abonos, intereses y comisiones, saldo
 anterior, saldo de cierre, pago mínimo, fecha límite) y cada línea de
 consumo: fecha, DESCRIPCIÓN CRUDA EXACTA como aparece impresa, y valor COP
 facturado. Reglas:
-- Cuotas: usa `installment_number`/`installments_total`; `amount` es la
-  cuota facturada ESTE mes, no el total de la compra.
+- `amount` es el valor con el que el movimiento aparece y SUMA en "Compras
+  del mes" del extracto. Para compras nuevas en cuotas eso es el valor
+  TOTAL de la compra (así lo suma el banco);
+  `installment_number`/`installments_total` registran el plan de cuotas
+  como dato informativo. NUNCA uses el valor de la cuota mensual como
+  `amount`: la validación de cierre cuadra contra "Compras del mes".
 - Compras internacionales: `amount` es el COP facturado;
   `original_amount`/`original_currency` guardan la referencia (p. ej. USD).
-- Reversiones/devoluciones: montos negativos.
+- Reversiones/devoluciones: el banco las clasifica como ABONOS, no como
+  compras negativas. Registra el cargo original normal y la reversión como
+  una transacción de monto NEGATIVO, misma categoría del cargo y
+  `is_reversal=true`. Así el breakdown por categoría se neutraliza, la
+  reversión no entra en la suma de cierre, y `payments_total` se registra
+  tal como lo imprime el banco (incluyendo la reversión).
 - NO incluyas pagos/abonos ni intereses/comisiones como transacciones: van
   en `payments_total` / `interest_and_fees` del encabezado.
 
 FASE 3 — RESOLVER COMERCIOS: llama `resolve_merchants` con TODAS las
 descripciones crudas. Las resueltas ya tienen comercio y categoría
-aprendidos. Para las NO resueltas cuyo nombre sea opaco (razones sociales,
-holdings, códigos), investiga con búsqueda web a qué comercio corresponden.
+aprendidos. Las `gateway_hints` son pasarelas de pago conocidas (EBANX,
+MERCADOPAGO, DLOCAL...): el comercio real puede variar entre compras, así
+que verifica cada una (recibo, correo del comercio) partiendo del
+`last_known_merchant` sugerido. Para las NO resueltas cuyo nombre sea opaco
+(razones sociales, holdings, códigos), investiga con búsqueda web a qué
+comercio corresponden.
 Presenta al usuario una tabla descripción → comercio propuesto + categoría y
 ESPERA SU APROBACIÓN EXPLÍCITA. NUNCA guardes alias sin aprobación.
+Al proponer el texto del alias, quita códigos de reserva/transacción
+alfanuméricos del descriptor (p. ej. de "EASYJET AKCN435H" el alias es
+"EASYJET"): un alias con código de un solo uso nunca vuelve a matchear.
+Si el descriptor es una pasarela de pago, guarda el alias con
+`is_gateway=true`: el conocimiento queda para el próximo mes como pista,
+sin auto-clasificar compras futuras que pueden ser de otro comercio.
 
 FASE 4 — GUARDAR: llama `create_statement` UNA sola vez con el encabezado y
 todas las transacciones. Las dudosas van con `is_identified=false` y
@@ -76,7 +95,9 @@ categoría `other`; las resueltas por alias se completan solas.
 FASE 5 — APRENDER: tras la aprobación del usuario, llama
 `save_merchant_aliases` con los mapeos aprobados y el `statement_id` para
 que se apliquen al borrador. Los alias quedan guardados para los próximos
-extractos.
+extractos. Hazlo ANTES de consolidar: sobre un extracto ya procesado los
+alias se guardan igual pero no se aplican (revisa el campo `warning` de la
+respuesta).
 
 FASE 6 — CONSOLIDAR: llama `finalize_statement`. Si la suma no cuadra con
 `purchases_total`, muestra la diferencia al usuario, corrige con
@@ -208,15 +229,12 @@ def save_merchant_aliases(arguments):
         result = accounting_statement_service.save_merchant_aliases(
             aliases, mcp_actor(), statement_id=arguments.get('statement_id'),
         )
-    except CreditCardStatement.DoesNotExist:
-        raise ToolError(
-            f"No existe un extracto con id={arguments.get('statement_id')}."
-        )
     except ValueError as exc:
         raise ToolError(str(exc))
     return {
         'aliases': MerchantAliasSerializer(result['aliases'], many=True).data,
         'updated_transactions': result['updated_transactions'],
+        'warning': result['warning'],
     }
 
 
@@ -383,13 +401,23 @@ _TX_PROPS = {
     'category': _CATEGORY_ENUM,
     'amount': {
         'type': 'number',
-        'description': 'COP facturado este mes; negativo = reversión.',
+        'description': (
+            'Valor COP con el que la línea suma en "Compras del mes" '
+            '(compra nueva en cuotas: el valor TOTAL, no la cuota).'
+        ),
     },
     'original_amount': {'type': 'number'},
     'original_currency': {'type': 'string', 'description': "P. ej. 'USD'."},
     'installment_number': {'type': 'integer'},
     'installments_total': {'type': 'integer'},
     'is_identified': {'type': 'boolean'},
+    'is_reversal': {
+        'type': 'boolean',
+        'description': (
+            'Reversión/devolución: monto negativo, misma categoría del '
+            'cargo. No suma al cierre contra purchases_total.'
+        ),
+    },
     'notes': {'type': 'string'},
 }
 
@@ -481,8 +509,10 @@ STATEMENT_TOOLS = [
         'name': 'resolve_merchants',
         'description': (
             'Busca descripciones crudas del extracto en los alias '
-            'aprendidos. Devuelve resueltas (comercio + categoría) y no '
-            'resueltas (para investigar y proponer al usuario).'
+            'aprendidos. Devuelve resueltas (comercio + categoría), '
+            'gateway_hints (pasarelas conocidas: verificar comercio real '
+            'antes de asignar) y no resueltas (para investigar y proponer '
+            'al usuario).'
         ),
         'input_schema': {
             'type': 'object',
@@ -499,9 +529,12 @@ STATEMENT_TOOLS = [
         'name': 'save_merchant_aliases',
         'description': (
             'Guarda alias de comercio APROBADOS EXPLÍCITAMENTE por el '
-            'usuario en el chat (nunca los guardes sin aprobación). Con '
-            'statement_id, además aplica los alias a las transacciones no '
-            'identificadas de ese borrador.'
+            'usuario en el chat (nunca los guardes sin aprobación). Los '
+            'alias son globales y se guardan siempre. Con statement_id, '
+            'además los aplica a las transacciones no identificadas de ese '
+            'borrador; si no se aplicó nada (extracto procesado, '
+            'inexistente o sin coincidencias) la respuesta lo explica en '
+            "'warning'."
         ),
         'input_schema': {
             'type': 'object',
@@ -514,6 +547,14 @@ STATEMENT_TOOLS = [
                             'raw_description': {'type': 'string'},
                             'merchant_name': {'type': 'string'},
                             'category': _CATEGORY_ENUM,
+                            'is_gateway': {
+                                'type': 'boolean',
+                                'description': (
+                                    'Pasarela de pago (EBANX, MERCADOPAGO, '
+                                    'DLOCAL...): nunca se auto-aplica, solo '
+                                    'aparece como pista a verificar.'
+                                ),
+                            },
                         },
                         'required': ['raw_description', 'merchant_name'],
                     },
@@ -632,7 +673,11 @@ STATEMENT_TOOLS = [
     },
     {
         'name': 'update_merchant_alias',
-        'description': 'Corrige un alias aprendido (comercio, categoría, texto).',
+        'description': (
+            'Corrige un alias aprendido (comercio, categoría, texto, flag '
+            'de pasarela). El texto se normaliza al guardar (mayúsculas, '
+            'espacios colapsados, se eliminan tokens de 5+ dígitos).'
+        ),
         'input_schema': {
             'type': 'object',
             'properties': {
@@ -640,6 +685,7 @@ STATEMENT_TOOLS = [
                 'match_text': {'type': 'string'},
                 'merchant_name': {'type': 'string'},
                 'default_category': _CATEGORY_ENUM,
+                'is_gateway': {'type': 'boolean'},
                 'notes': {'type': 'string'},
             },
             'required': ['alias_id'],

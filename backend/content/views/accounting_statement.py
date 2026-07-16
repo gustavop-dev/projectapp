@@ -271,6 +271,9 @@ def create_merchant_alias(request):
                 'match_text': serializer.validated_data['match_text'],
                 'merchant_name': serializer.validated_data['merchant_name'],
                 'category': serializer.validated_data.get('default_category'),
+                'is_gateway': serializer.validated_data.get(
+                    'is_gateway', False,
+                ),
             }],
             request.user,
         )

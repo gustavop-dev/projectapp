@@ -176,6 +176,48 @@ class TestResolveAndLearnFlow:
         })
         assert response.data['result']['isError'] is True
 
+    def test_save_on_processed_statement_saves_and_warns(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        _call(api_client, token, 'create_statement', CREATE_ARGS)
+        statement = CreditCardStatement.objects.get()
+        _call(api_client, token, 'finalize_statement', {
+            'statement_id': statement.pk,
+        })
+        response = _call(api_client, token, 'save_merchant_aliases', {
+            'aliases': [{
+                'raw_description': 'PAYU*NETFLIX 990011',
+                'merchant_name': 'Netflix', 'category': 'software',
+            }],
+            'statement_id': statement.pk,
+        })
+        assert response.data['result'].get('isError') is not True
+        payload = _payload(response)
+        assert payload['updated_transactions'] == 0
+        assert 'ya está procesado' in payload['warning']
+        assert MerchantAlias.objects.count() == 1
+
+    def test_update_alias_normalizes_but_keeps_short_numbers(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        alias = MerchantAlias.objects.create(
+            match_text='HOSTEL', merchant_name='Hostel 265',
+            default_category='travel',
+        )
+        response = _call(api_client, token, 'update_merchant_alias', {
+            'alias_id': alias.pk,
+            'match_text': 'HOSTEL 265',
+            'is_gateway': False,
+        })
+        payload = _payload(response)
+        # Short numbers are part of the name; long codes still normalize.
+        assert payload['match_text'] == 'HOSTEL 265'
+        alias.refresh_from_db()
+        assert alias.match_text == 'HOSTEL 265'
+        assert alias.is_gateway is False
+
 
 class TestLifecycleGuards:
     def test_finalize_mismatch_reports_difference(
