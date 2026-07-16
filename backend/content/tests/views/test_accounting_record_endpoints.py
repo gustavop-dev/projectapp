@@ -13,6 +13,7 @@ import pytest
 from content.models import (
     AdsSpendRecord,
     CardBalanceSnapshot,
+    CreditCard,
     ExpenseRecord,
     HostingRecord,
     PocketMovement,
@@ -238,3 +239,98 @@ class TestListFilterBranches:
         assert response.status_code == 200
         concepts = [row['concept'] for row in response.data['results']]
         assert concepts == ['Con remanente']
+
+    def test_invalid_amount_min_returns_400(self, super_client):
+        response = super_client.get('/api/accounting/expenses/?amount_min=abc')
+        assert response.status_code == 400
+        assert 'amount_min' in str(response.data)
+
+    def test_year_filter_limits_the_results(self, super_client):
+        make_expense(concept='Este año')
+        make_expense(concept='Año pasado', period_date=date(2025, 3, 1))
+        response = super_client.get('/api/accounting/expenses/?year=2026')
+        concepts = [row['concept'] for row in response.data['results']]
+        assert concepts == ['Este año']
+
+    def test_multi_value_category_filters_as_or(self, super_client):
+        make_expense(concept='Negocio')
+        make_expense(concept='Personal', category='personal')
+        response = super_client.get(
+            '/api/accounting/expenses/?category=business,personal',
+        )
+        assert len(response.data['results']) == 2
+
+    def test_bool_filter_keeps_only_active_recurring(self, super_client):
+        make_recurring(name='Activa')
+        make_recurring(name='Inactiva', is_active=False)
+        response = super_client.get('/api/accounting/recurring/?is_active=true')
+        names = [row['name'] for row in response.data['results']]
+        assert names == ['Activa']
+
+    def test_partner_carlos_filters_by_his_amount(self, super_client):
+        make_expense(
+            concept='De Carlos',
+            gustavo_amount=Decimal('0.00'),
+            carlos_amount=Decimal('100.00'),
+        )
+        make_expense(
+            concept='De Gustavo',
+            gustavo_amount=Decimal('100.00'),
+            carlos_amount=Decimal('0.00'),
+        )
+        response = super_client.get('/api/accounting/expenses/?partner=carlos')
+        concepts = [row['concept'] for row in response.data['results']]
+        assert concepts == ['De Carlos']
+
+    def test_pocket_meta_balance_respects_date_to(self, super_client):
+        make_pocket(amount=Decimal('100.00'), movement_date=date(2026, 2, 10))
+        make_pocket(amount=Decimal('50.00'), movement_date=date(2026, 5, 10))
+        response = super_client.get('/api/accounting/pocket/?date_to=2026-03-31')
+        assert response.data['meta']['balance'] == '100.00'
+
+
+@pytest.mark.django_db
+class TestRecurringAndCatalogEndpoints:
+    def test_create_recurring_payment_returns_201(self, super_client):
+        response = super_client.post(
+            '/api/accounting/recurring/create/',
+            {'name': 'Notion', 'price': '30000.00'},
+            format='json',
+        )
+        assert response.status_code == 201, response.data
+        assert response.data['name'] == 'Notion'
+
+    def test_delete_recurring_payment_removes_the_row(self, super_client):
+        record = make_recurring()
+        response = super_client.delete(
+            f'/api/accounting/recurring/{record.pk}/delete/',
+        )
+        assert response.status_code == 204
+        assert RecurringPayment.objects.count() == 0
+
+    def test_retrieve_credit_card_returns_the_record(self, super_client):
+        card = CreditCard.objects.create(
+            name='T.C QA Cycle', credit_limit=Decimal('10000000.00'),
+        )
+        response = super_client.get(f'/api/accounting/credit-cards/{card.pk}/')
+        assert response.status_code == 200
+        assert response.data['name'] == 'T.C QA Cycle'
+
+    def test_update_card_snapshot_applies_the_patch(self, super_client):
+        record = make_snapshot()
+        response = super_client.patch(
+            f'/api/accounting/card-snapshots/{record.pk}/update/',
+            {'available_amount': '900000.00'},
+            format='json',
+        )
+        assert response.status_code == 200, response.data
+        assert response.data['available_amount'] == '900000.00'
+
+    def test_update_with_an_invalid_payload_returns_400(self, super_client):
+        record = make_hosting()
+        response = super_client.patch(
+            f'/api/accounting/hostings/{record.pk}/update/',
+            {'monthly_value': 'abc'},
+            format='json',
+        )
+        assert response.status_code == 400

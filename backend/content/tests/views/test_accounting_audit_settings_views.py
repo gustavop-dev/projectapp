@@ -71,6 +71,11 @@ class TestChangeLogEndpoint:
         )
         assert response.status_code == 400
 
+    def test_invalid_page_param_defaults_to_the_first_page(self, super_client):
+        seed_logs(3)
+        response = super_client.get('/api/accounting/change-logs/?page=abc')
+        assert response.data['page'] == 1
+
     def test_requires_superuser(self, admin_client):
         assert admin_client.get(
             '/api/accounting/change-logs/',
