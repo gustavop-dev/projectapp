@@ -32,6 +32,10 @@ function incomeRow(overrides = {}) {
     company_amount: '0.00',
     expected_income: null,
     pocket_movement: null,
+    paid_amount: '0.00',
+    pending_amount: '1160000.00',
+    payment_status: 'pending',
+    payment_status_label: 'Pendiente',
     notes: '',
     created_at: '2026-02-01T10:00:00Z',
     updated_at: '2026-02-01T10:00:00Z',
@@ -39,7 +43,9 @@ function incomeRow(overrides = {}) {
   };
 }
 
-function buildHandler({ rows, calls, createStatus = 201 }) {
+function buildHandler({
+  rows, calls, createStatus = 201, meta = {}, listFetches = { count: 0 },
+}) {
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
       return {
@@ -51,10 +57,11 @@ function buildHandler({ rows, calls, createStatus = 201 }) {
       };
     }
     if (apiPath === 'accounting/incomes/' && method === 'GET') {
+      listFetches.count += 1;
       return {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ results: rows, meta: {} }),
+        body: JSON.stringify({ results: rows, meta }),
       };
     }
     if (apiPath === 'accounting/incomes/create/' && method === 'POST') {
@@ -84,6 +91,12 @@ function buildHandler({ rows, calls, createStatus = 201 }) {
     }
     if (/^accounting\/incomes\/\d+\/delete\/$/.test(apiPath) && method === 'DELETE') {
       calls.push({ method, apiPath });
+      // The page refetches after every mutation (a row's payment state is
+      // computed from other rows), so the mock has to drop it like the
+      // server would, or the refetch would resurrect it.
+      const id = Number(apiPath.split('/')[2]);
+      const index = rows.findIndex((row) => row.id === id);
+      if (index !== -1) rows.splice(index, 1);
       return { status: 204, contentType: 'application/json', body: '' };
     }
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {
@@ -91,6 +104,16 @@ function buildHandler({ rows, calls, createStatus = 201 }) {
     }
     return null;
   };
+}
+
+async function openFilterPanel(page) {
+  // The toggle carries an active-filter count, so match loosely.
+  await page.getByRole('button', { name: /Filtros/ }).click();
+}
+
+// Column headers share names with filter options, so scope to the panel.
+function filterPanel(page) {
+  return page.getByTestId('accounting-filter-panel');
 }
 
 async function gotoIncomes(page) {
@@ -254,5 +277,164 @@ test.describe('Admin Accounting Incomes CRUD', () => {
 
     await expect(page.getByText('No se pudo guardar')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Nuevo ingreso' })).toBeVisible();
+  });
+});
+
+test.describe('Admin Accounting Incomes: liquidation, write-off and paid state', () => {
+  const paidRow = () => incomeRow({
+    id: 10,
+    concept: 'Kore - Pagado',
+    paid_amount: '1160000.00',
+    pending_amount: '0.00',
+    payment_status: 'paid',
+    payment_status_label: 'Pagado',
+  });
+
+  const partialRow = () => incomeRow({
+    id: 11,
+    concept: 'Kore - Parcial',
+    total_amount: '1000000.00',
+    paid_amount: '400000.00',
+    pending_amount: '600000.00',
+    payment_status: 'partial',
+    payment_status_label: 'Parcial',
+  });
+
+  const lostRow = () => incomeRow({
+    id: 12,
+    concept: 'Catherine Ruiz Candles',
+    kind: 'lost',
+    kind_label: 'Perdido',
+    total_amount: '460000.00',
+    paid_amount: null,
+    pending_amount: null,
+    payment_status: null,
+    payment_status_label: null,
+  });
+
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-token',
+      userAuth: { id: 9001, role: 'admin', is_staff: true },
+    });
+  });
+
+  test('tints paid and partial rows and shows what is still missing', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [incomeRow(), paidRow(), partialRow()],
+      calls: [],
+    }));
+    await gotoIncomes(page);
+
+    await expect(page.getByTestId('accounting-row-10')).toHaveClass(/bg-success-soft/);
+    await expect(page.getByTestId('accounting-row-11')).toHaveClass(/bg-warning-soft/);
+    // Pending rows stay neutral.
+    await expect(page.getByTestId('accounting-row-1')).toHaveClass(/bg-surface/);
+
+    await expect(page.getByTestId('income-payment-10')).toContainText('Pagado');
+    await expect(page.getByTestId('income-payment-11')).toContainText('Parcial');
+    await expect(page.getByTestId('income-payment-11')).toContainText('600.000');
+  });
+
+  test('hides written-off income until the Pérdidas filter is used', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [incomeRow(), lostRow()],
+      calls: [],
+      meta: { lost_total: '460000.00' },
+    }));
+    await gotoIncomes(page);
+
+    // "Todos" is the working set: the lost row is out.
+    await expect(page.getByTestId('accounting-row-1')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-12')).toHaveCount(0);
+
+    await openFilterPanel(page);
+    await filterPanel(page).getByRole('tab', { name: 'Pérdidas' }).click();
+
+    await expect(page.getByTestId('accounting-row-12')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
+    await expect(page.getByTestId('incomes-total-lost')).toContainText('460.000');
+  });
+
+  test('liquidating prefills the pending amount and keeps the expected row', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+  }, async ({ page }) => {
+    const calls = [];
+    const listFetches = { count: 0 };
+    await mockApi(page, buildHandler({
+      rows: [partialRow()], calls, listFetches,
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-liquidate-11').click();
+    await expect(
+      page.getByRole('heading', { name: 'Liquidar ingreso esperado' }),
+    ).toBeVisible();
+    // Defaults to what is still owed, not the full projection.
+    await expect(page.getByTestId('partner-split-total')).toHaveValue('600.000');
+
+    await page.getByTestId('income-liquidate-period').fill('2026-11');
+    await page.getByTestId('income-liquidate-submit').click();
+
+    await expect.poll(() => calls.filter((c) => c.method === 'POST').length)
+      .toBe(1);
+    const body = calls.find((c) => c.method === 'POST').body;
+    expect(body.kind).toBe('liquid');
+    expect(body.expected_income).toBe(11);
+    expect(body.period_date).toBe('2026-11');
+
+    // The parent's paid state is server-computed, so the list must refetch.
+    await expect.poll(() => listFetches.count).toBeGreaterThan(1);
+    await expect(page.getByTestId('accounting-row-11')).toBeVisible();
+  });
+
+  test('writes off a pending expected income', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [incomeRow()], calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-write-off-1').click();
+    await page.getByRole('button', { name: 'Marcar como perdido' }).last().click();
+
+    await expect.poll(() => calls.filter((c) => c.method === 'PATCH').length)
+      .toBe(1);
+    const body = calls.find((c) => c.method === 'PATCH').body;
+    expect(body.kind).toBe('lost');
+    expect(body.destination).toBe('partners');
+  });
+
+  test('offers no write-off on an already collected income', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+  }, async ({ page }) => {
+    // The server rejects writing off a row with liquidations, so the
+    // action must not be offered for paid or partial rows.
+    await mockApi(page, buildHandler({
+      rows: [paidRow(), partialRow()], calls: [],
+    }));
+    await gotoIncomes(page);
+
+    await expect(page.getByTestId('income-liquidate-10')).toBeVisible();
+    await expect(page.getByTestId('income-write-off-10')).toHaveCount(0);
+    await expect(page.getByTestId('income-write-off-11')).toHaveCount(0);
+  });
+
+  test('shows no row actions on a written-off income', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({ rows: [lostRow()], calls: [] }));
+    await gotoIncomes(page);
+
+    await openFilterPanel(page);
+    await filterPanel(page).getByRole('tab', { name: 'Pérdidas' }).click();
+
+    await expect(page.getByTestId('accounting-row-12')).toBeVisible();
+    await expect(page.getByTestId('income-liquidate-12')).toHaveCount(0);
+    await expect(page.getByTestId('income-write-off-12')).toHaveCount(0);
   });
 });

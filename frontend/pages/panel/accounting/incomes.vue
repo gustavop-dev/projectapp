@@ -186,21 +186,32 @@
           </template>
         </template>
         <template #cell-kind_label="{ row }">
-          <div class="flex flex-wrap items-center gap-1.5">
+          <div
+            class="flex flex-col items-start gap-1"
+            :data-testid="row.payment_status ? `income-payment-${row.id}` : undefined"
+          >
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span
+                class="text-xs px-2.5 py-1 rounded-full font-medium"
+                :class="KIND_BADGE_CLASSES[row.kind] || KIND_BADGE_CLASSES.expected"
+              >
+                {{ row.kind_label }}
+              </span>
+              <span
+                v-if="PAYMENT_BADGE_CLASSES[row.payment_status]"
+                class="text-xs px-2.5 py-1 rounded-full font-medium"
+                :class="PAYMENT_BADGE_CLASSES[row.payment_status]"
+              >
+                {{ row.payment_status_label }}
+              </span>
+            </div>
+            <!-- Own line and nowrap: inlining it in the badge stretched the
+                 column until the actions were pushed out of the table. -->
             <span
-              class="text-xs px-2.5 py-1 rounded-full font-medium"
-              :class="KIND_BADGE_CLASSES[row.kind] || KIND_BADGE_CLASSES.expected"
+              v-if="row.payment_status === 'partial'"
+              class="text-[11px] text-warning-strong tabular-nums whitespace-nowrap"
             >
-              {{ row.kind_label }}
-            </span>
-            <span
-              v-if="PAYMENT_BADGE_CLASSES[row.payment_status]"
-              class="text-xs px-2.5 py-1 rounded-full font-medium tabular-nums"
-              :class="PAYMENT_BADGE_CLASSES[row.payment_status]"
-              :data-testid="`income-payment-${row.id}`"
-            >
-              {{ row.payment_status_label }}<template v-if="row.payment_status === 'partial'">
-                · faltan {{ formatMoney(Number(row.pending_amount)) }}</template>
+              faltan {{ formatMoney(Number(row.pending_amount)) }}
             </span>
           </div>
         </template>
@@ -305,14 +316,6 @@ function money(value) {
 // Filters
 // -------------------------------------------------------------------
 
-// "Todos" means the working set: written-off income is money we already
-// know is gone, so it only shows when explicitly asked for.
-const matchKind = (record, value) => {
-  if (!value) return record.kind !== 'lost';
-  return record.kind === value;
-};
-matchKind.keys = ['kind'];
-
 const matchPartner = (record, value) => {
   if (!value) return true;
   if (value === 'gustavo') return Number(record.gustavo_amount) > 0;
@@ -353,7 +356,7 @@ const {
   matchers: {
     period: matchDateRange('period_date', 'periodAfter', 'periodBefore'),
     amount: matchNumberRange('total_amount', 'amountMin', 'amountMax'),
-    kind: matchKind,
+    kind: matchEquals('kind', 'kind'),
     partner: matchPartner,
     ledger: matchEquals('ledger', 'ledger'),
   },
@@ -421,7 +424,17 @@ const exportParams = computed(() => {
 // Data + CRUD controller (modal, delete confirm, pagination)
 // -------------------------------------------------------------------
 
-const filteredRecords = computed(() => applyFilters(store.incomes));
+// Written-off income is money we already know is gone, so it stays out of
+// the working set until asked for by name. This has to happen before
+// applyFilters: that helper skips any matcher still sitting on its default,
+// so a `kind: ''` rule inside it would never run.
+const workingSet = computed(() =>
+  currentFilters.kind
+    ? store.incomes
+    : store.incomes.filter((record) => record.kind !== 'lost'),
+);
+
+const filteredRecords = computed(() => applyFilters(workingSet.value));
 
 const {
   isModalOpen,
