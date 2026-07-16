@@ -881,10 +881,10 @@ describe('buildFormFromJson', () => {
       expect(form.hostingPlan.hostingPercent).toBe(30);
     });
 
-    it('defaults hostingPercent to 80 when missing', () => {
+    it('defaults hostingPercent to 60 when missing', () => {
       const json = { ...investmentJson, hostingPlan: { title: 'Hosting' } };
       const form = buildFormFromJson(json, 'investment');
-      expect(form.hostingPlan.hostingPercent).toBe(80);
+      expect(form.hostingPlan.hostingPercent).toBe(60);
     });
 
     it('reads billingTiers from hostingPlan', () => {
@@ -1096,10 +1096,10 @@ describe('formToJson', () => {
       expect(json.hostingPlan).not.toHaveProperty('annualLabel');
     });
 
-    it('defaults hostingPercent to 80 during serialization when missing', () => {
+    it('defaults hostingPercent to 60 during serialization when missing', () => {
       const form = buildFormFromJson({ hostingPlan: { title: 'H' } }, 'investment');
       const json = formToJson(form, 'investment');
-      expect(json.hostingPlan.hostingPercent).toBe(80);
+      expect(json.hostingPlan.hostingPercent).toBe(60);
     });
   });
 

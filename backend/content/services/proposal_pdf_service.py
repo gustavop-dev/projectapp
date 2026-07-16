@@ -1098,6 +1098,24 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
     return y
 
 
+def _format_currency(n, currency):
+    """Format a money amount for the PDF, mirroring the frontend rules.
+
+    Mirrors frontend/utils/hourPackagePricing.js formatPackageMoney: COP has
+    no cents (es-CO dots); USD keeps cents when fractional (en-US commas) so
+    discounted rates and their totals stay arithmetically consistent.
+    """
+    try:
+        num = round(float(n), 2)
+    except (TypeError, ValueError):
+        return str(n)
+    if currency == 'USD':
+        formatted = f'{int(num):,}' if num == int(num) else f'{num:,.2f}'
+    else:
+        formatted = f'{int(round(num)):,}'.replace(',', '.')
+    return f'${formatted} {currency}'
+
+
 def _tax_suffix(currency):
     """Tax label appended after amounts, by market/currency.
 
@@ -1611,11 +1629,7 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
     effective_total = ps.get('_effective_total') if ps else None
 
     def _cc_money(n):
-        try:
-            num = int(round(float(n)))
-        except (TypeError, ValueError):
-            return str(n)
-        return f"${f'{num:,}'.replace(',', '.')} {currency}".strip()
+        return _format_currency(n, currency)
 
     def _module_condition_lines(mid):
         """Build the condition lines shown under a value-added card.
@@ -1848,41 +1862,14 @@ def _render_final_note(c, data, proposal, ps=None, y=None):
             _draw_mixed_string(c, MARGIN_L, y, pl, _font('italic'), 10)
             y -= 14
 
-    # Validity period — computed from proposal data (send date →
-    # expires_at) so the badge can never drift from the stored expiry.
-    # Proposals without an expiry date show no validity badge at all
-    # (the old fallback printed a hardcoded, possibly false "30 días").
-    expires_at = getattr(proposal, 'expires_at', None)
-    if expires_at:
-        from django.utils import timezone as _tz
-        lang = (ps or {}).get('_pdf_lang', 'es')
-        expiry_local = _tz.localtime(expires_at)
-        sent_at = getattr(proposal, 'sent_at', None)
-        ref = sent_at or getattr(proposal, 'created_at', None)
-        n_days = ((expiry_local.date() - _tz.localtime(ref).date()).days
-                  if ref else 0)
-        if lang == 'en':
-            expiry_txt = (f'{expiry_local.strftime("%B")} '
-                          f'{expiry_local.day}, {expiry_local.year}')
-            if n_days > 0:
-                unit = 'calendar day' if n_days == 1 else 'calendar days'
-                since = 'its send date' if sent_at else 'its issue date'
-                validity = (f'This proposal is valid for {n_days} {unit} '
-                            f'from {since} (valid until {expiry_txt}).')
-            else:
-                validity = f'This proposal is valid until {expiry_txt}.'
-        else:
-            expiry_txt = format_date_es(expiry_local)
-            if n_days > 0:
-                unit = 'día calendario' if n_days == 1 else 'días calendario'
-                since = ('su fecha de envío' if sent_at
-                         else 'su fecha de emisión')
-                validity = (f'Esta propuesta tiene una vigencia de {n_days} '
-                            f'{unit} a partir de {since} '
-                            f'(válida hasta el {expiry_txt}).')
-            else:
-                validity = f'Esta propuesta es válida hasta el {expiry_txt}.'
+    # Validity — computed once in ProposalService.compute_validity_text and
+    # shared with the proposal serializer, so PDF and web can never drift.
+    # Proposals without an expiry date show no validity badge at all.
+    from content.services.proposal_service import ProposalService
+    validity = ProposalService.compute_validity_text(proposal)
+    if validity:
         y -= 12
+        lang = (ps or {}).get('_pdf_lang', 'es')
         y = _draw_callout_box(c, y, validity, style='important', ps=ps,
                               label='VALIDITY' if lang == 'en' else 'VIGENCIA')
 
@@ -2124,18 +2111,7 @@ def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
                 or (ps.get('_currency') if ps else '') or 'COP')
 
     def _money(n):
-        # Mirrors frontend/utils/hourPackagePricing.js formatPackageMoney:
-        # COP has no cents (es-CO dots); USD keeps cents when fractional
-        # (en-US commas) so discounted rates and totals stay consistent.
-        try:
-            num = round(float(n), 2)
-        except (TypeError, ValueError):
-            return str(n)
-        if currency == 'USD':
-            formatted = f'{int(num):,}' if num == int(num) else f'{num:,.2f}'
-        else:
-            formatted = f'{int(round(num)):,}'.replace(',', '.')
-        return f'${formatted} {currency}'.strip()
+        return _format_currency(n, currency)
 
     # ── Hour packages ──────────────────────────────────────────
     packages_title = _safe(data, 'packagesTitle')

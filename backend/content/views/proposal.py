@@ -631,7 +631,7 @@ def get_proposal_json_template(request):
             'language': 'es | en',
             'total_investment': 0,
             'currency': 'COP | USD',
-            'nationality': 'COL | MEX | USA',
+            'nationality': 'COL | EXT | USA',
         },
     }
 

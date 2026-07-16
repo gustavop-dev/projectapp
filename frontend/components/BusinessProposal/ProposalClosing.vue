@@ -382,9 +382,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, toRef, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
-import { useExpirationTimer } from '~/composables/useExpirationTimer';
 import confetti from 'canvas-confetti';
 
 const sectionRef = ref(null);
@@ -580,14 +579,13 @@ const i18nStrings = {
 
 const t = computed(() => i18nStrings[props.language] || i18nStrings.es);
 
-const { daysRemaining } = useExpirationTimer(toRef(props, 'expiresAt'));
-
-const displayedValidity = computed(() => {
-  if (!props.validityMessage) return '';
-  if (daysRemaining.value === null) return props.validityMessage;
-  const dayWord = props.language === 'en' ? 'days' : 'días';
-  return props.validityMessage.replace(/\d+\s*(días|days)/, `${daysRemaining.value} ${dayWord}`);
-});
+// The validity sentence is computed once on the backend
+// (ProposalService.compute_validity_text — same source the PDF prints), so
+// web and PDF can never drift. Proposals without an expiry fall back to the
+// (number-free) seeded/custom message.
+const displayedValidity = computed(() => (
+  props.proposal?.validity_text || props.validityMessage || ''
+));
 
 onMounted(() => {
   setTimeout(() => {

@@ -1194,14 +1194,16 @@ function handleResetCreateTechnicalPrompt() {
   createTechnicalPromptIsEditing.value = false;
 }
 
-async function refreshCreateDefaults() {
+async function refreshCreateDefaults({ seedHosting = false } = {}) {
   loadCreateCommercialPrompt();
   loadCreateTechnicalPrompt();
-  await loadExpirationDefaults(form.language, { seedHosting: true });
+  await applyCreationDefaults(form.language, { seedHosting });
 }
 
-onMounted(refreshCreateDefaults);
-usePanelRefresh(refreshCreateDefaults);
+// Hosting is seeded only on mount: the manual panel-refresh button must not
+// clobber values the user already typed into the form.
+onMounted(() => refreshCreateDefaults({ seedHosting: true }));
+usePanelRefresh(() => refreshCreateDefaults());
 
 // -------------------------------------------------------------------------
 // Shared helpers
@@ -1238,7 +1240,7 @@ const HOSTING_DEFAULT_FIELDS = [
   'hosting_discount_quarterly',
 ];
 
-async function loadExpirationDefaults(lang = 'es', { seedHosting = false } = {}) {
+async function applyCreationDefaults(lang = 'es', { seedHosting = false } = {}) {
   const result = await proposalStore.fetchProposalDefaults(lang);
   if (!result.success || !result.data) return;
   const days = Number(result.data.expiration_days);
@@ -1477,7 +1479,7 @@ watch(
   [() => form.language, () => jsonForm.language],
   ([langA, langB], [prevA, prevB]) => {
     const changed = langA !== prevA ? langA : langB !== prevB ? langB : null;
-    if (changed) loadExpirationDefaults(changed);
+    if (changed) applyCreationDefaults(changed);
   },
 );
 

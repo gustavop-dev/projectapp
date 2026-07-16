@@ -173,6 +173,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
     project_stages = serializers.SerializerMethodField()
     days_remaining = serializers.SerializerMethodField()
     is_expired = serializers.SerializerMethodField()
+    validity_text = serializers.SerializerMethodField()
     public_url = serializers.SerializerMethodField()
     discounted_investment = serializers.SerializerMethodField()
     effective_total_investment = serializers.SerializerMethodField()
@@ -202,7 +203,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
             'email_intro', 'email_features', 'email_method_phases', 'email_signed_by',
             'sections', 'requirement_groups', 'project_stages', 'change_logs',
-            'days_remaining', 'is_expired', 'public_url',
+            'days_remaining', 'is_expired', 'validity_text', 'public_url',
             'discounted_investment', 'effective_total_investment',
             'selected_modules', 'has_confirmed_module_selection',
             'contract_params', 'available_transitions', 'proposal_documents',
@@ -232,6 +233,11 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         if not is_admin:
             sections = [s for s in sections if s.is_enabled]
         return ProposalSectionDetailSerializer(sections, many=True).data
+
+    def get_validity_text(self, obj):
+        """Server-computed validity sentence shared verbatim with the PDF."""
+        from content.services.proposal_service import ProposalService
+        return ProposalService.compute_validity_text(obj)
 
     def get_days_remaining(self, obj):
         return obj.days_remaining

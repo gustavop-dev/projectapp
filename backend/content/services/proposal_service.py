@@ -1267,7 +1267,7 @@ DEFAULT_SECTIONS = [
                 },
             ],
             'validityMessage': (
-                'Esta propuesta es válida por 30 días a partir de la fecha de emisión. '
+                'Esta propuesta tiene una vigencia limitada a partir de su fecha de envío. '
                 'Los precios y condiciones pueden estar sujetos a cambios después de este período.'
             ),
             'thankYouMessage': (
@@ -1282,7 +1282,7 @@ DEFAULT_SECTIONS = [
         'order': 15,
         'is_wide_panel': False,
         'content_json': {
-            'index': '13',
+            'index': '14',
             'title': 'Próximos pasos',
             'introMessage': (
                 'Estamos listos para comenzar este viaje juntos. '
@@ -1335,7 +1335,7 @@ DEFAULT_SECTIONS = [
                 },
             ],
             'validityMessage': (
-                'Esta propuesta es válida por 30 días a partir de la fecha de emisión. '
+                'Esta propuesta tiene una vigencia limitada a partir de su fecha de envío. '
                 'Los precios y condiciones pueden estar sujetos a cambios después de este período.'
             ),
             'thankYouMessage': (
@@ -2631,7 +2631,7 @@ DEFAULT_SECTIONS_EN = [
                 },
             ],
             'validityMessage': (
-                'This proposal is valid for 30 days from the date of issue. '
+                'This proposal is valid for a limited period from its send date. '
                 'Prices and conditions may be subject to changes after this period.'
             ),
             'thankYouMessage': (
@@ -2646,7 +2646,7 @@ DEFAULT_SECTIONS_EN = [
         'order': 15,
         'is_wide_panel': False,
         'content_json': {
-            'index': '13',
+            'index': '14',
             'title': 'Closing & Next Steps',
             'introMessage': (
                 'We are ready to start this journey together. '
@@ -3045,6 +3045,49 @@ class ProposalService:
         return timezone.now() + timedelta(
             days=ProposalService.get_default_expiration_days(language),
         )
+
+    _MONTHS_ES = ('enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre',
+                  'diciembre')
+
+    @staticmethod
+    def compute_validity_text(proposal):
+        """Return the client-facing validity sentence for *proposal*.
+
+        Single source of truth shared by the PDF (_render_final_note) and
+        the proposal serializer (public web view), so the two surfaces can
+        never drift. States the total window from the send date (or issue
+        date for unsent drafts) to ``expires_at`` plus the absolute
+        deadline — never a countdown. Returns None without an expiry date.
+        """
+        from django.utils import timezone
+
+        expires_at = getattr(proposal, 'expires_at', None)
+        if not expires_at:
+            return None
+        lang = 'en' if getattr(proposal, 'language', 'es') == 'en' else 'es'
+        expiry_local = timezone.localtime(expires_at)
+        sent_at = getattr(proposal, 'sent_at', None)
+        ref = sent_at or getattr(proposal, 'created_at', None)
+        n_days = ((expiry_local.date() - timezone.localtime(ref).date()).days
+                  if ref else 0)
+        if lang == 'en':
+            expiry_txt = (f'{expiry_local.strftime("%B")} '
+                          f'{expiry_local.day}, {expiry_local.year}')
+            if n_days <= 0:
+                return f'This proposal is valid until {expiry_txt}.'
+            unit = 'calendar day' if n_days == 1 else 'calendar days'
+            since = 'its send date' if sent_at else 'its issue date'
+            return (f'This proposal is valid for {n_days} {unit} '
+                    f'from {since} (valid until {expiry_txt}).')
+        month = ProposalService._MONTHS_ES[expiry_local.month - 1]
+        expiry_txt = f'{expiry_local.day} de {month} de {expiry_local.year}'
+        if n_days <= 0:
+            return f'Esta propuesta es válida hasta el {expiry_txt}.'
+        unit = 'día calendario' if n_days == 1 else 'días calendario'
+        since = 'su fecha de envío' if sent_at else 'su fecha de emisión'
+        return (f'Esta propuesta tiene una vigencia de {n_days} {unit} '
+                f'a partir de {since} (válida hasta el {expiry_txt}).')
 
     # Hosting fields whose creation defaults are admin-editable in
     # ProposalDefaultConfig. Shared by the panel form and the JSON/MCP

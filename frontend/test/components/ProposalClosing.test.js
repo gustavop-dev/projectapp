@@ -4,12 +4,6 @@ jest.mock('../../composables/useSectionAnimations', () => ({
   useSectionAnimations: jest.fn(),
 }));
 
-jest.mock('../../composables/useExpirationTimer', () => ({
-  useExpirationTimer: jest.fn(() => ({
-    daysRemaining: require('vue').ref(30),
-  })),
-}));
-
 jest.mock('canvas-confetti', () => jest.fn());
 
 global.useProposalStore = jest.fn(() => ({
@@ -58,6 +52,23 @@ describe('ProposalClosing', () => {
     const wrapper = mountProposalClosing({ validityMessage: 'Esta propuesta es válida por 30 días.' });
 
     expect(wrapper.text()).toContain('Esta propuesta es válida por 30 días.');
+  });
+
+  it('prefers the server-computed validity_text over validityMessage', () => {
+    const wrapper = mountProposalClosing({
+      proposal: {
+        ...sentProposal,
+        validity_text:
+          'Esta propuesta tiene una vigencia de 21 días calendario a partir '
+          + 'de su fecha de envío (válida hasta el 6 de agosto de 2026).',
+      },
+      validityMessage: 'mensaje legacy que no debe mostrarse',
+    });
+
+    const text = wrapper.text();
+    expect(text).toContain('vigencia de 21 días calendario');
+    expect(text).toContain('válida hasta el 6 de agosto de 2026');
+    expect(text).not.toContain('mensaje legacy');
   });
 
   it('renders the thank you message when provided', () => {
