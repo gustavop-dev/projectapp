@@ -109,6 +109,20 @@ export function useViewMapFilters() {
       .filter((s) => s.views.length > 0);
   }
 
+  function applyDefaultFilters(filters) {
+    if (activeTabId.value !== 'all' || route.query.viewTab) return;
+    const sanitized = {};
+    for (const key of Object.keys(DEFAULT_FILTERS)) {
+      if (Array.isArray(filters?.[key])) {
+        sanitized[key] = [...filters[key]];
+      }
+    }
+    Object.assign(currentFilters, freshFilters(), sanitized);
+    if (activeFilterCount.value > 0) {
+      isFilterPanelOpen.value = true;
+    }
+  }
+
   function resetFilters() {
     Object.assign(currentFilters, freshFilters());
     activeTabId.value = 'all';
@@ -154,6 +168,7 @@ export function useViewMapFilters() {
     hasActiveFilters,
     activeFilterCount,
     isTabLimitReached,
+    applyDefaultFilters,
     applyFilters,
     resetFilters,
     selectTab,

@@ -1,19 +1,21 @@
 import { ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import { usePersistedRef } from '~/composables/usePersistedRef';
-
-const STORAGE_KEY = 'projectapp-view-map-mode';
+// Legacy key from when the last-used mode was persisted locally; the default
+// mode now lives in the backend ViewMapSettings singleton.
+const LEGACY_STORAGE_KEY = 'projectapp-view-map-mode';
 const MODES = ['list', 'map'];
 
 export function useViewMapMode() {
   const route = useRoute();
   const router = useRouter();
 
-  const persisted = usePersistedRef(STORAGE_KEY, 'list');
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+  }
 
   const queryMode = MODES.includes(route.query.viewMode) ? route.query.viewMode : null;
-  const initialMode = queryMode || (MODES.includes(persisted.ref.value) ? persisted.ref.value : 'list');
+  const initialMode = queryMode || 'list';
 
   const viewMode = ref(initialMode);
   const selectedModuleId = ref(
@@ -36,7 +38,6 @@ export function useViewMapMode() {
   }
 
   watch(viewMode, (mode) => {
-    persisted.write(mode);
     if (mode !== 'map') {
       selectedModuleId.value = null;
     }
@@ -44,6 +45,12 @@ export function useViewMapMode() {
   });
 
   watch(selectedModuleId, syncQuery);
+
+  function applyDefaultMode(mode) {
+    if (queryMode || !MODES.includes(mode)) return;
+    if (viewMode.value !== initialMode) return;
+    viewMode.value = mode;
+  }
 
   function selectModule(moduleId) {
     selectedModuleId.value = moduleId;
@@ -56,6 +63,7 @@ export function useViewMapMode() {
   return {
     viewMode,
     selectedModuleId,
+    applyDefaultMode,
     selectModule,
     clearModule,
   };

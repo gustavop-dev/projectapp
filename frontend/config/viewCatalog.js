@@ -205,6 +205,7 @@ export const viewCatalogSections = [
         reference: 'vista de mapa de vistas del panel',
         audience: 'admin',
         viewType: 'config',
+        notes: 'Incluye pestaña de Configuración (modo y filtros por defecto).',
       },
       {
         label: 'Listado de propuestas',

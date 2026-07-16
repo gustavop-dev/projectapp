@@ -1684,8 +1684,12 @@
         "admin"
       ],
       "priority": "P4",
-      "description": "Open the panel route inventory, filter grouped views, and copy route references for support and QA communication. Includes the interactive map mode: Lista/Mapa toggle, module cards with stats, drill-down into curated sub-modules, and deep-linking via ?viewMode=map&module=<id>.",
-      "expectedSpecs": 1
+      "description": "Open the panel route inventory, filter grouped views, and copy route references for support and QA communication. Includes the interactive map mode: Lista/Mapa toggle, module cards with stats, drill-down into curated sub-modules, and deep-linking via ?viewMode=map&module=<id>. Ships seeded filter tabs (Admin, Público, Cliente, Dashboards, Configuración) and a Configuración section that persists the default view mode and default filters in the ViewMapSettings backend singleton; ?viewMode= overrides the configured default and localStorage no longer persists the last-used mode.",
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Configuración default-filters autosave (debounced PATCH + toast) and default-filters application on open are unit-covered only (2026-07 audit).",
+        "Saved-tab CRUD (create/rename/delete) unasserted on view_map; shared ProposalFilterTabs component is exercised in proposals specs (2026-07 audit)."
+      ]
     },
     "public-landing-software": {
       "name": "Landing Software Development",
