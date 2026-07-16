@@ -2733,8 +2733,8 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser manages weekly credit-card balance snapshots at /panel/accounting/cards: list with latest-debt-per-card chip, filters (date range, debt range, card multi-select), create via modal (date defaults to today, card picked from a dropdown fed by the CreditCard catalog; the Deuda input is gone — debt is server-computed as cupo − disponible and previewed in the form, which blocks disponible > cupo), edit prefill (legacy names outside the catalog injected as an extra option) and delete with ConfirmModal. Registering a snapshot dated on/after the cycle Friday silences the weekly card-debt email reminder.",
-      "expectedSpecs": 3
+      "description": "Superuser manages weekly credit-card balance snapshots at /panel/accounting/cards: list with latest-debt-per-card chip, filters (date range, debt range, card multi-select), create via modal (date defaults to today, card picked from a dropdown fed by the CreditCard catalog; the Deuda input is gone — debt is server-computed as cupo − disponible and previewed in the form, which blocks disponible > cupo), edit prefill (legacy names outside the catalog injected as an extra option) and delete with ConfirmModal. Registering a snapshot dated on/after the cycle Friday silences the weekly card-debt email reminder. The card filter defaults to the active catalog cards as removable chips (clearing them surfaces historical names); its options are the union of catalog and snapshot names, and a saved tab in the URL wins over the preselection.",
+      "expectedSpecs": 6
     },
     "admin-accounting-export": {
       "name": "Admin Accounting Export",
