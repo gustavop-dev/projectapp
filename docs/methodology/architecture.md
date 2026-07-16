@@ -358,7 +358,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph Stores["Pinia Stores (Options API) — 31 total"]
+    subgraph Stores["Pinia Stores (Options API) — 35 total"]
         ProposalStore["proposals.js"]
         ProposalClientsStore["proposalClients.js"]
         DiagnosticsStore["diagnostics.js"]
