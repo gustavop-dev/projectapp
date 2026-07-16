@@ -229,8 +229,15 @@ const {
   searchFields: ['card_name', 'notes'],
 });
 
+// Filter options: catalog cards (so a registered card is filterable before
+// its first snapshot) plus names already used by snapshots (so historical
+// cards no longer in the catalog stay reachable — card_name is free text
+// with no FK on purpose).
 const knownCards = computed(() =>
-  [...new Set(store.cardSnapshots.map((r) => r.card_name))].sort(),
+  [...new Set([
+    ...store.creditCards.map((card) => card.name),
+    ...store.cardSnapshots.map((r) => r.card_name),
+  ])].sort(),
 );
 
 const activeCatalogCards = computed(() =>
@@ -347,6 +354,25 @@ async function loadRecords() {
   ]);
 }
 
-onMounted(loadRecords);
+// Default view: the registered (active catalog) cards, shown as removable
+// filter chips rather than a silent cut — historical card names reappear by
+// clearing the filter. Applied once per visit, only from onMounted (never on
+// a panel refresh, which must not undo the user clearing the filter), and
+// never over a saved tab restored from the URL or filters already touched.
+// It cannot go in `defaults:` — a filter sitting on its default is inactive.
+function applyDefaultCardFilter() {
+  if (
+    filterTabId.value === 'all'
+    && currentFilters.cardName.length === 0
+    && activeCatalogCards.value.length > 0
+  ) {
+    currentFilters.cardName = activeCatalogCards.value.map((card) => card.name);
+  }
+}
+
+onMounted(async () => {
+  await loadRecords();
+  applyDefaultCardFilter();
+});
 usePanelRefresh(loadRecords);
 </script>
