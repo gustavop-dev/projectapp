@@ -222,6 +222,30 @@ describe('IncomeFormModal', () => {
     expect(payload.ledger).toBe('company');
   });
 
+  it('offers Perdido as a kind', () => {
+    const wrapper = mountModal();
+
+    expect(segmentedButton(wrapper, 'Perdido')).toBeTruthy();
+  });
+
+  it('drops a pocket destination when switching to Perdido', async () => {
+    // Pocket is liquid-only server-side: a stale destination would 400.
+    const wrapper = mountModal();
+
+    await segmentedButton(wrapper, 'Líquido').trigger('click');
+    await segmentedButton(wrapper, 'Bolsillo ProjectApp').trigger('click');
+    await segmentedButton(wrapper, 'Perdido').trigger('click');
+    expect(wrapper.text()).not.toContain('Destino');
+
+    await wrapper.find('input[type="text"]').setValue('Catherine Ruiz Candles');
+    await wrapper.find('input[type="month"]').setValue('2026-07');
+    await wrapper.find('form').trigger('submit');
+
+    const payload = wrapper.emitted('submit')[0][0];
+    expect(payload.kind).toBe('lost');
+    expect(payload.destination).toBe('partners');
+  });
+
   it('emits close when Cancelar is clicked', async () => {
     const wrapper = mountModal();
 

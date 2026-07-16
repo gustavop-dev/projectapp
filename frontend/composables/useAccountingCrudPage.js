@@ -26,6 +26,8 @@ const HIGHLIGHT_MS = 2500;
  *     whose create/update error titles differ.
  * - onAfterMutation(record, payload, action)  optional async hook awaited
  *     after a successful create/update/delete (e.g. refetch server meta).
+ *     Pages whose rows carry server-computed state derived from OTHER rows
+ *     must use it: mutating one row can go stale on its siblings.
  * - beforeEdit(record) / beforeDelete(record)  optional guards; returning
  *     false aborts opening the edit modal / the delete confirm.
  * - sortAccessors / sortDefaults  forwarded to useTableSort (per-column
@@ -196,6 +198,11 @@ export function useAccountingCrudPage({
     confirmState,
     handleConfirmed,
     handleCancelled,
+    // escape hatches for page-specific row actions, so they reuse this
+    // controller's ConfirmModal, notifications and row-flash feedback
+    requestConfirm,
+    notify,
+    markMutated,
     // sorting
     sortKey,
     sortDir,

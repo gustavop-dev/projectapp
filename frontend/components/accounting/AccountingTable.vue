@@ -70,8 +70,11 @@
           v-for="row in loading ? [] : rows"
           :key="row[rowKey]"
           :data-testid="`accounting-row-${row[rowKey]}`"
-          class="hover:bg-surface-raised transition-colors bg-surface"
-          :class="row[rowKey] === highlightId ? 'accounting-row-flash' : ''"
+          class="hover:bg-surface-raised transition-colors"
+          :class="[
+            rowBgClass(row),
+            row[rowKey] === highlightId ? 'accounting-row-flash' : '',
+          ]"
         >
           <td
             v-for="col in columns"
@@ -158,7 +161,23 @@ const props = defineProps({
   skeletonRows: { type: Number, default: 5 },
   /** Row key of the last created/edited record: flashes that row. */
   highlightId: { type: [String, Number], default: null },
+  /**
+   * Optional (row) => 'success'|'warning'|null, tinting the row background.
+   * The tone REPLACES `bg-surface` rather than stacking on it: two
+   * background utilities of equal specificity would be decided by
+   * stylesheet order, not by this binding.
+   */
+  rowTone: { type: Function, default: null },
 });
+
+const ROW_TONE_CLASSES = {
+  success: 'bg-success-soft',
+  warning: 'bg-warning-soft',
+};
+
+function rowBgClass(row) {
+  return ROW_TONE_CLASSES[props.rowTone?.(row)] || 'bg-surface';
+}
 
 const emit = defineEmits(['edit', 'delete', 'sort']);
 
@@ -170,6 +189,7 @@ function ariaSort(col) {
 
 const TONE_CLASSES = {
   success: 'bg-success-soft text-success-strong',
+  warning: 'bg-warning-soft text-warning-strong',
   danger: 'bg-danger-soft text-danger-strong',
   info: 'bg-primary-soft text-text-brand',
   neutral: 'bg-surface-raised text-text-muted',

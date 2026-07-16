@@ -16,6 +16,7 @@ const title = computed(() => (isEdit.value ? 'Editar Ingreso' : 'Nuevo Ingreso')
 const kindOptions = [
   { value: 'expected', label: 'Esperado' },
   { value: 'liquid', label: 'Líquido' },
+  { value: 'lost', label: 'Perdido' },
 ]
 
 const destinationOptions = [
@@ -73,7 +74,9 @@ watch(
 watch(
   () => form.value.kind,
   (kind) => {
-    if (kind === 'expected') form.value.destination = 'partners'
+    // Pocket is liquid-only server-side, so anything else must drop it or
+    // the stale destination makes the save fail.
+    if (kind !== 'liquid') form.value.destination = 'partners'
   },
 )
 
