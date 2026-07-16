@@ -173,7 +173,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "View the admin dashboard with overview of proposals and blog posts.",
+      "description": "View the redesigned global admin dashboard: pulse KPIs (liquid utility, active pipeline, attention count), attention radar, and finance / proposals / operations sections fed by GET /api/panel/dashboard/.",
       "expectedSpecs": 1
     },
     "admin-styleguide": {
@@ -763,7 +763,37 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Pipeline Value KPI card showing sum of total_investment for active sent+viewed proposals.",
+      "description": "Pipeline pulse tile on /panel showing the active pipeline value and count from the consolidated panel/dashboard/ payload; shows a dash when null.",
+      "expectedSpecs": 2
+    },
+    "admin-dashboard-finance-gate": {
+      "name": "Admin Dashboard Finance Gate",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Finance pulse tile and section render only when the payload carries finance data (superuser); staff receive finance: null and see no financial KPIs.",
+      "expectedSpecs": 1
+    },
+    "admin-dashboard-attention-radar": {
+      "name": "Admin Dashboard Attention Radar",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Cross-module attention radar on /panel: overdue collection accounts, failed emails, overdue tasks, stale proposals and upcoming recurring payments with severity accents and deep-links; positive empty state when clear.",
+      "expectedSpecs": 2
+    },
+    "admin-dashboard-error-retry": {
+      "name": "Admin Dashboard Error Retry",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "A failed panel/dashboard/ load shows the global error state; the Reintentar button refetches and restores the dashboard.",
       "expectedSpecs": 1
     },
     "proposal-rejection-optional-reason": {

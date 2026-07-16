@@ -9,7 +9,13 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_DASHBOARD, ADMIN_DASHBOARD_PIPELINE_VALUE } from '../helpers/flow-tags.js';
+import {
+  ADMIN_DASHBOARD,
+  ADMIN_DASHBOARD_ATTENTION_RADAR,
+  ADMIN_DASHBOARD_ERROR_RETRY,
+  ADMIN_DASHBOARD_FINANCE_GATE,
+  ADMIN_DASHBOARD_PIPELINE_VALUE,
+} from '../helpers/flow-tags.js';
 
 test.setTimeout(60_000);
 
@@ -131,7 +137,7 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('hides the finance section for staff without finance data', {
-    tag: ['@flow:admin-dashboard-finance-gate', '@module:admin', '@priority:P1', '@role:admin'],
+    tag: [...ADMIN_DASHBOARD_FINANCE_GATE, '@role:admin'],
   }, async ({ page }) => {
     const staffAuth = {
       status: 200,
@@ -153,7 +159,7 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('attention radar lists items with severity copy and deep-links', {
-    tag: ['@flow:admin-dashboard-attention-radar', '@module:admin', '@priority:P1', '@role:admin'],
+    tag: [...ADMIN_DASHBOARD_ATTENTION_RADAR, '@role:admin'],
   }, async ({ page }) => {
     await mockDashboard(page, summaryFixture);
     await page.goto('/panel', { waitUntil: 'domcontentloaded' });
@@ -168,7 +174,7 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('shows the positive empty radar when nothing needs attention', {
-    tag: ['@flow:admin-dashboard-attention-radar', '@module:admin', '@priority:P2', '@role:admin'],
+    tag: [...ADMIN_DASHBOARD_ATTENTION_RADAR, '@role:admin'],
   }, async ({ page }) => {
     await mockDashboard(page, { ...summaryFixture, attention: [] });
     await page.goto('/panel', { waitUntil: 'domcontentloaded' });
@@ -179,7 +185,7 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('recovers from a failed load with the retry button', {
-    tag: ['@flow:admin-dashboard-error-retry', '@module:admin', '@priority:P1', '@role:admin'],
+    tag: [...ADMIN_DASHBOARD_ERROR_RETRY, '@role:admin'],
   }, async ({ page }) => {
     let calls = 0;
     await mockApi(page, async ({ apiPath }) => {
