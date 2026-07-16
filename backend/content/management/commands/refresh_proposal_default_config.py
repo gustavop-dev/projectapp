@@ -16,6 +16,7 @@ cares about, copying their current values from code:
     reports, KPI dashboard 8 KPIs / 4 charts / 5 alerts, manual 15 articles + 1
     update, admin listed managers only, AI automation one (1) process)
   - value_added_modules.conditions                         (per-module terms with caps)
+  - value_added_modules.module_ids                         (display order)
 
 Everything else in sections_json is left untouched.
 
@@ -124,6 +125,16 @@ def _patch(sections, code):
             if conds.get(mid) != code_cond:
                 conds[mid] = copy.deepcopy(code_cond)
                 changes.append(f'conditions.{mid} -> code')
+
+    # --- value_added_modules display order ---
+    va_cj = (va or {}).get('content_json') if va else None
+    code_va_cj = (code_va or {}).get('content_json') if code_va else None
+    if isinstance(va_cj, dict) and isinstance(code_va_cj, dict):
+        code_ids = code_va_cj.get('module_ids')
+        if code_ids and va_cj.get('module_ids') != code_ids:
+            old_ids = va_cj.get('module_ids')
+            va_cj['module_ids'] = copy.deepcopy(code_ids)
+            changes.append(f'module_ids {old_ids} -> {code_ids}')
     return changes
 
 

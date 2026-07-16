@@ -101,7 +101,7 @@ class BusinessProposal(models.Model):
         help_text='Drives hour-package catalog seeding and suggested currency.',
     )
     hosting_percent = models.PositiveIntegerField(
-        default=80,
+        default=60,
         help_text='Percentage of total investment charged for annual hosting.',
     )
     hosting_discount_annual = models.PositiveIntegerField(

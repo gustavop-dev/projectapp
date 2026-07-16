@@ -543,6 +543,9 @@ def create_proposal(request):
             proposal.expires_at = ProposalService.compute_default_expires_at(proposal.language)
             proposal.save(update_fields=['expires_at'])
 
+        # Hosting defaults are admin-editable; payload values win.
+        ProposalService.apply_hosting_defaults(proposal, set(request.data))
+
         # Log creation
         log_proposal_change(
             proposal,
@@ -3229,18 +3232,21 @@ def proposal_defaults(request):
         if config:
             serializer = ProposalDefaultConfigSerializer(config)
             return Response(serializer.data)
-        # Return hardcoded defaults wrapped in the same shape
+        # Return hardcoded defaults wrapped in the same shape. Hosting
+        # values come from the model field defaults so they cannot drift
+        # from what a freshly created config row would hold.
         hardcoded = ProposalService.get_hardcoded_defaults(lang)
+        blank = ProposalDefaultConfig(language=lang)
         return Response({
             'id': None,
             'language': lang,
             'sections_json': hardcoded,
             'default_currency': ProposalDefaultConfig.Currency.COP,
             'default_total_investment': '0.00',
-            'hosting_percent': 80,
-            'hosting_discount_annual': 40,
-            'hosting_discount_semiannual': 20,
-            'hosting_discount_quarterly': 10,
+            'hosting_percent': blank.hosting_percent,
+            'hosting_discount_annual': blank.hosting_discount_annual,
+            'hosting_discount_semiannual': blank.hosting_discount_semiannual,
+            'hosting_discount_quarterly': blank.hosting_discount_quarterly,
             'expiration_days': ProposalService.DEFAULT_EXPIRATION_DAYS,
             'reminder_days': 3,
             'urgency_reminder_days': 7,
