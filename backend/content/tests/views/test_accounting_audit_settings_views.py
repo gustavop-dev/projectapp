@@ -86,6 +86,7 @@ class TestSettingsEndpoints:
         assert response.data['notifications_enabled'] is True
 
     def test_update_recipients_and_audit_it(self, super_client):
+        """PATCH persists the recipients and writes a settings audit row."""
         response = super_client.patch(
             '/api/accounting/settings/update/',
             {
@@ -125,6 +126,7 @@ class TestSettingsEndpoints:
         assert response.data['usd_exchange_rate'] == '4000.00'
 
     def test_usd_exchange_rate_roundtrip_and_min(self, super_client):
+        """The USD rate persists on PATCH and rejects values below 1."""
         response = super_client.patch(
             '/api/accounting/settings/update/',
             {'usd_exchange_rate': '4350.50'},

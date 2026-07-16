@@ -225,6 +225,7 @@ class TestListFilterBranches:
     def test_partner_projectapp_filters_unassigned_remainder(
         self, super_client,
     ):
+        """partner=projectapp keeps only rows whose split leaves a remainder."""
         make_expense(
             concept='Con remanente',
             gustavo_amount=Decimal('30.00'),
