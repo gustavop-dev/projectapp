@@ -137,6 +137,26 @@ describe('AccountingTable', () => {
     expect(wrapper.find('th[aria-sort]').attributes('aria-sort')).toBe('none');
   });
 
+  it('non-sorted sortable columns show the neutral sortable hint icon', () => {
+    const wrapper = mountTable({
+      columns: [
+        { key: 'concept', label: 'Concepto', sortable: true },
+        { key: 'amount', label: 'Valor', format: 'money' },
+      ],
+      sortKey: '',
+    });
+    expect(wrapper.findAll('[data-testid="sortable-hint"]')).toHaveLength(1);
+  });
+
+  it('active sorted column swaps the hint for the direction chevron', () => {
+    const wrapper = mountTable({
+      columns: [{ key: 'concept', label: 'Concepto', sortable: true }],
+      sortKey: 'concept',
+      sortDir: 'asc',
+    });
+    expect(wrapper.find('[data-testid="sortable-hint"]').exists()).toBe(false);
+  });
+
   it('renders skeleton rows and aria-busy while loading', () => {
     const wrapper = mountTable({ loading: true, skeletonRows: 4 });
 

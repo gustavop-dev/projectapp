@@ -82,7 +82,7 @@ DRAFT → SENT → VIEWED → ACCEPTED
 
 #### Admin Panel — Proposals
 
-- **Dashboard** (`/panel/`): total proposals, status counts, heat scores, recent proposals, alerts
+- **Dashboard** (`/panel/`): multi-module command center (redesigned 2026-07-16, #110) — one consolidated endpoint aggregates proposal KPIs/heat scores/alerts, accounting year totals, tasks, diagnostics, and module shortcuts
 - **Proposals list** (`/panel/proposals/`): table with title, client, status badge, investment, expiry, views, bulk actions
 - **Create** (`/panel/proposals/create`): form with all metadata + JSON import option. Client identity is selected via `<ClientAutocomplete>` (searchable dropdown over `accounts.UserProfile` with `role='client'`); typing a brand-new name + email auto-creates a real `UserProfile` row, and an empty email gets a placeholder `cliente_<id>@temp.example.com` that pauses every email automation for that proposal.
 - **Edit** (`/panel/proposals/{id}/edit`): Tabs depending on proposal status:
@@ -250,6 +250,9 @@ Internal double-ledger bookkeeping at `/panel/accounting/*`, restricted to super
 - **Sub-ledgers**: incomes, expenses, hosting, recurring payments, ads spend, pocket movements, and weekly card-balance snapshots — each with server-side + client-side filters and modal CRUD.
 - **Dashboard & charts** per year; **exports** to CSV/XLSX per section and a full-year multi-sheet workbook.
 - **Card-debt reminder**: a weekly Huey task emails the partners every Friday cycle until a card snapshot dated on/after that Friday is registered (re-alerts every 2 days).
+- **Income lifecycle** (2026-07-16, #110): incomes carry a kind — *expected* (projection), *liquid* (actually received; a liquidation modal links the settled record to the projection it fulfills via an `expected_income` FK), or *lost* (write-off excluded from projections). The incomes view reports received-% and lost totals; expenses expose a paid/pending state.
+- **Pocket as entry point** (#103): pocket movements sync bidirectionally with income/expense records.
+- **Credit-card catalog & statements** (#105/#106): registered cards with quota (debt computed server-side as quota − available), monthly statements with editable transactions + PDF and an 8-day reminder, plus summary cards for card debt and current-month expected income.
 - **Audit trail** (`AccountingChangeLog`) + notification-recipient settings.
 
 ### 3.15 MCP Connectors (claude.ai)

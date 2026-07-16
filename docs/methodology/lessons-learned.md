@@ -446,7 +446,7 @@ Don't forget to `prefetch_related('project_stages')` in the admin queryset, othe
 - When file counts drift by >10% from documented values
 - After methodology rule updates from upstream template
 
-**Last full refresh: 2026-07-04.** Drift had far exceeded the >10% trigger (e.g. migrations documented at `0087` vs actual `0137`; test files 124/77/131 vs 199/290/191) because the Accounting, MCP-connector, and client-signing waves shipped without a memory-bank pass. Lesson: run `/methodology-setup` at the end of a feature *wave*, not just per-feature — the >10% rule only helps if something actually checks it.
+**Last full refresh: 2026-07-16** (previous: 2026-07-04). The 2026-07-04 pass had found drift far exceeding the >10% trigger (migrations documented at `0087` vs actual `0137`; test files 124/77/131 vs 199/290/191) because the Accounting, MCP-connector, and client-signing waves shipped without a memory-bank pass. The 2026-07-16 pass caught another 12-day wave (accounting statements/cards/pocket-sync/income-liquidation, proposal + document PDF redesign, panel dashboard command center): migrations 0137 → 0163, test files 199/290/191 → 250/334/206. Lesson: run `/methodology-setup` at the end of a feature *wave*, not just per-feature — the >10% rule only helps if something actually checks it.
 
 ---
 

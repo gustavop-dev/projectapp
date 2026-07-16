@@ -156,7 +156,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await page.getByTestId('incomes-new-button').click();
     await expect(page.getByRole('heading', { name: 'Nuevo ingreso' })).toBeVisible();
 
-    await page.locator('form input[type="text"]').first().fill('Vastago (Fase 1) - Inicio 40%');
+    await page.getByTestId('income-form-concept').fill('Vastago (Fase 1) - Inicio 40%');
     await page.locator('form input[type="month"]').fill('2026-04');
     await page.getByTestId('partner-split-total').fill('2123000');
     await page.getByTestId('income-form-submit').click();
@@ -178,7 +178,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await page.getByTestId('incomes-new-button').click();
     await expect(page.getByRole('heading', { name: 'Nuevo ingreso' })).toBeVisible();
 
-    await page.locator('form input[type="text"]').first().fill('Universidad Nacional');
+    await page.getByTestId('income-form-concept').fill('Universidad Nacional');
     await page.locator('form input[type="month"]').fill('2026-02');
     await page.getByRole('tab', { name: 'Personal Gustavo' }).click();
 
@@ -220,7 +220,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
 
     await page.getByTestId('accounting-edit-1').click();
     await expect(page.getByRole('heading', { name: 'Editar ingreso' })).toBeVisible();
-    await expect(page.locator('form input[type="text"]').first()).toHaveValue('Kore - Inicio 40%');
+    await expect(page.getByTestId('income-form-concept')).toHaveValue('Kore - Inicio 40%');
 
     await page.getByTestId('partner-split-total').fill('2000000');
     await page.getByTestId('income-form-submit').click();
@@ -270,7 +270,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await gotoIncomes(page);
 
     await page.getByTestId('incomes-new-button').click();
-    await page.locator('form input[type="text"]').first().fill('Ingreso inválido');
+    await page.getByTestId('income-form-concept').fill('Ingreso inválido');
     await page.locator('form input[type="month"]').fill('2026-04');
     await page.getByTestId('partner-split-total').fill('100');
     await page.getByTestId('income-form-submit').click();

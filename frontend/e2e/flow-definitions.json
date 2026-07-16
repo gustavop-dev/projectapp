@@ -1,5 +1,5 @@
 {
-  "version": "2.44.0",
+  "version": "2.45.0",
   "lastUpdated": "2026-07-16",
   "flows": {
     "layout-navbar-navigation": {
@@ -2845,7 +2845,7 @@
       ],
       "priority": "P1",
       "description": "Superuser sends a client the cuenta de cobro from a hosting row at /panel/accounting/hostings: the paper-plane action (disabled without client email) opens a ConfirmModal previewing amount/recipient, POSTs /api/accounting/hostings/:id/send-collection-account/ which issues the Document (public number, one line item for the next modality period, issuer default payment methods), emails the client the branded message with the PDF attached and stamps billing_requested_at (pauses the expiry notices; a 'Cobro enviado' badge appears). Partial failure (email down) keeps the document issued and warns to re-send from Cobros.",
-      "expectedSpecs": 0
+      "expectedSpecs": 3
     },
     "admin-accounting-collections": {
       "name": "Admin Accounting Cobros Monitor",
@@ -2865,7 +2865,7 @@
       ],
       "priority": "P2",
       "description": "Superuser registers hosting cycle payments from the clock action at /panel/accounting/hostings: the modal shows the cycle history (modality + amount snapshotted per paid period, consolidated 'histórico' backfill rows flagged) and a register form prefilled from the contract (amount = payment_per_cycle, modality, paid_at = today) with an 'Extender vigencia' toggle (on by default: valid_to advances one modality period, re-arming the expiry notices). total_paid/cycles_count recompute from the history; deleting a cycle recalculates but never rolls back valid_to.",
-      "expectedSpecs": 0
+      "expectedSpecs": 3
     },
     "admin-accounting-hosting-inline-edit": {
       "name": "Admin Accounting Hosting Inline Edit",

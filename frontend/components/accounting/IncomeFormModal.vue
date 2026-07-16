@@ -103,7 +103,7 @@ function onSubmit() {
     </div>
     <form class="px-6 py-4 space-y-4" @submit.prevent="onSubmit">
       <BaseFormField label="Concepto" required>
-        <BaseInput v-model="form.concept" required />
+        <BaseInput v-model="form.concept" data-testid="income-form-concept" required />
       </BaseFormField>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

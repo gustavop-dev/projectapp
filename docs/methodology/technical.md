@@ -188,8 +188,8 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - **Pinia Options API** — all stores use Options API (state, getters, actions), not Composition API
 - **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place by index (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
-- **Composables** — 53 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, `useProposalFilters`, `useClientFilters`, `useSeoJsonLd`, `useIncludeArchivedQuery`, `useStageStatus`, etc.)
-- **Component architecture** — 226 Vue component/source files under `frontend/components/`; 50 files under `components/BusinessProposal/`; admin-only proposal components live under `components/BusinessProposal/admin/` (e.g., `ProjectScheduleEditor.vue`, `ProposalEmailsTab.vue`, `ProposalDocumentsTab.vue`); quick-access micro-components under `components/platform/access/` (`CopyField.vue`, `UrlRow.vue`)
+- **Composables** — 59 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, `useProposalFilters`, `useClientFilters`, `useSeoJsonLd`, `useIncludeArchivedQuery`, `useStageStatus`, etc.)
+- **Component architecture** — 286 Vue component/source files under `frontend/components/`; 50 files under `components/BusinessProposal/`; admin-only proposal components live under `components/BusinessProposal/admin/` (e.g., `ProjectScheduleEditor.vue`, `ProposalEmailsTab.vue`, `ProposalDocumentsTab.vue`); quick-access micro-components under `components/platform/access/` (`CopyField.vue`, `UrlRow.vue`)
 - **GSAP animations** — horizontal scroll with ScrollTrigger for proposal client view, reveal animations for marketing pages
 - **Layouts** — `default.vue` (public pages with navbar), `admin.vue` (admin panel with sidebar), `platform.vue` (platform with sidebar + theme)
 - **Middleware** — `admin-auth.js` route guard for `/panel/**` routes, `platform-auth.js` route guard for `/platform/**` routes
@@ -202,17 +202,17 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `backend/content/tests/`, `backend/accounts/tests/`, `backend/tests/`
 - Structure: `models/`, `serializers/`, `views/`, `services/`, `tasks/`, `utils/`, `management/`
-- Test files: **199 total** (content 130, accounts 65, root/project 4)
+- Test files: **250 total** (content 180, accounts 66, root/project 4)
 - Fixtures: `conftest.py` at root and `content/tests/conftest.py` (provides `proposal`, `accepted_proposal`, `admin_user`, `admin_client`, etc.)
 - Coverage: custom terminal report with per-file bars and Top-N focus
 - Config: `backend/pytest.ini`
-- Run: `source .venv/bin/activate && cd backend && pytest path/to/test_file.py -v --no-cov`
+- Run: `cd backend && source venv/bin/activate && pytest path/to/test_file.py -v --no-cov` (the venv lives at `backend/venv`, not repo-root `.venv`)
 
 ### Frontend Unit (Jest)
 
 - Location: `frontend/test/`
 - Structure: `components/`, `composables/`, `stores/` (incl. services), `utils/`
-- Test files: **290 total**
+- Test files: **334 total**
 - Config: `frontend/jest.config.cjs`
 - Run: `npm test -- test/<specific_file>.test.js`
 
@@ -220,7 +220,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `frontend/e2e/`
 - Structure: `admin/`, `auth/`, `blog/`, `layout/`, `platform/`, `proposal/`, `public/`, `visual/`
-- Spec files: **191 total**
+- Spec files: **206 total**
 - Flow definitions: `frontend/e2e/flow-definitions.json` (must be updated for every new flow)
 - Flow tags: `frontend/e2e/helpers/flow-tags.js` (constants imported by spec files)
 - Config: `frontend/playwright.config.js`
@@ -274,7 +274,7 @@ projectapp/
 │   │   ├── services/            # 30 service/support modules (proposal_*, contract_pdf_service, document_pdf_service, markdown_parser, linkedin_service, collection_account*, technical_document*, document_type_*, platform_onboarding_pdf, diagnostic_* (service/email/pdf/documents), accounting_* (service/export/email/card_reminder))
 │   │   ├── tasks.py             # Huey async tasks (incl. notify_proposal_stage_deadlines daily 13:30 UTC = 08:30 Bogotá; send_card_debt_reminder Fridays)
 │   │   ├── templates/emails/    # 73 content email templates (37 HTML + 36 TXT)
-│   │   ├── migrations/          # 136 migrations (latest: 0137_alter_businessproposal_automations_paused.py)
+│   │   ├── migrations/          # 162 migrations (latest: 0163_viewmapsettings.py)
 │   │   ├── management/commands/ # 21 management commands
 │   │   ├── tests/               # 130 test files (models, serializers, views, services, tasks, utils)
 │   │   └── urls.py              # 229 URL patterns
@@ -283,7 +283,7 @@ projectapp/
 │   ├── static/                  # Static files (Nuxt build output in prod)
 │   └── media/                   # User uploads
 ├── frontend/
-│   ├── pages/                   # Nuxt file-based routing (90 pages)
+│   ├── pages/                   # Nuxt file-based routing (96 pages)
 │   │   ├── panel/               # Admin pages (proposals, diagnostics, blog, portfolio, clients, documents, admins, tasks, accounting/*, mcps, defaults, styleguide, views). Proposal edit page has Cronograma tab; `/panel/tasks` is the internal Kanban board; `/panel/accounting/*` and `/panel/mcps` are superuser-gated.
 │   │   ├── platform/            # Platform pages (login/verify/complete-profile, projects/*, board, bugs, changes, deliverables, collection-accounts, data-model, payments, notifications, clients, profile, documents — client document-signing portal)
 │   │   ├── blog/                # Blog listing + detail
@@ -294,9 +294,9 @@ projectapp/
 │   │   ├── platform/access/     # CopyField.vue, UrlRow.vue — quick-access micro-components
 │   │   └── Tasks/               # TaskCard.vue, TaskColumn.vue (vuedraggable), TaskFormModal.vue — internal Kanban board
 │   ├── stores/                  # 31 Pinia stores (proposals, diagnostics, blog, portfolio_works, contacts, language, documents, document_folders, document_tags, tasks, emails, accounting, mcps, panel_admins, proposalClients, platform-auth, platform-clients, platform-projects, platform-requirements, platform-bug-reports, platform-change-requests, platform-deliverables, platform-notifications, platform-payments, platform-collection-accounts, platform-data-model, platform-documents)
-│   ├── composables/             # 53 composables (incl. useStageStatus.js)
-│   ├── e2e/                     # Playwright E2E tests (191 spec files)
-│   ├── test/                    # Jest unit tests (290 test files)
+│   ├── composables/             # 59 composables (incl. useStageStatus.js)
+│   ├── e2e/                     # Playwright E2E tests (206 spec files)
+│   ├── test/                    # Jest unit tests (334 test files)
 │   ├── layouts/                 # default.vue, admin.vue, platform.vue
 │   ├── middleware/              # admin-auth.js, platform-auth.js
 │   ├── plugins/                 # 4 plugins (gsap, geo-locale, language-sync, cal-booking)

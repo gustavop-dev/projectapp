@@ -33,6 +33,9 @@
                 v-else-if="sortKey === col.key && sortDir === 'desc'"
                 class="w-3 h-3"
               />
+              <span v-else data-testid="sortable-hint" aria-hidden="true">
+                <ChevronUpDownIcon class="w-3 h-3 text-text-subtle" />
+              </span>
             </button>
             <template v-else>{{ col.label }}</template>
           </th>
@@ -134,6 +137,7 @@
 import { computed } from 'vue';
 import {
   ChevronDownIcon,
+  ChevronUpDownIcon,
   ChevronUpIcon,
   PencilSquareIcon,
   TrashIcon,

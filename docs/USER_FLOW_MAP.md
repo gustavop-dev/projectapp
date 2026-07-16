@@ -5835,8 +5835,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   1. Superuser opens `/panel/accounting/hostings` and clicks the paper-plane action on a row with client email.
   2. ConfirmModal previews `payment_per_cycle` and the recipient; confirm fires the POST.
   3. Success toast (with "Ver en Cobros" action) and the row shows the "Cobro enviado" badge.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+- **Coverage:** ✅ Covered (email gate, confirm + POST + badge, email-failure warning)
+- **E2E Spec:** `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js`
 
 ### FLOW: `admin-accounting-collections`
 
@@ -5855,8 +5855,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Priority:** P2
 - **Routes:** `/panel/accounting/hostings`
 - **Description:** Cycle payment history per hosting (clock row action → `HostingCyclesModal`): history table (modality + amount snapshotted per paid period; consolidated "histórico" backfill rows flagged with their `cycles_represented`) plus a register form prefilled from the contract (amount = `payment_per_cycle`, current modality, paid_at = today) with an "Extender vigencia" toggle (on by default: `valid_to` advances one modality period, which re-arms the expiry notices). `total_paid`/`cycles_count` recompute from the history; deleting a cycle (ConfirmModal) recalculates but never rolls back `valid_to`.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+- **Coverage:** ✅ Covered (backfill badge history, register payment with advance_validity, delete with confirm)
+- **E2E Spec:** `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js`
 
 ### FLOW: `admin-accounting-hosting-inline-edit`
 
@@ -5915,9 +5915,9 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-settings` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
 | `admin-accounting-card-catalog` | admin | superuser | P2 | ❌ Missing | — |
 | `admin-accounting-ads` | admin | superuser | P3 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
-| `admin-accounting-hosting-billing` | admin | superuser | P1 | ❌ Missing | — |
+| `admin-accounting-hosting-billing` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js` |
 | `admin-accounting-collections` | admin | superuser | P2 | ❌ Missing | — |
-| `admin-accounting-hosting-cycles` | admin | superuser | P2 | ❌ Missing | — |
+| `admin-accounting-hosting-cycles` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js` |
 | `admin-accounting-hosting-inline-edit` | admin | superuser | P3 | ❌ Missing | — |
 | `admin-accounting-settings-reset-tabs` | admin | superuser | P3 | ❌ Missing | — |
 | `admin-accounting-list-error-retry` | admin | superuser | P3 | ❌ Missing | — |
