@@ -21,22 +21,6 @@
 
     <div class="grid gap-4 lg:grid-cols-2">
       <div class="flex flex-col gap-4">
-        <div
-          class="bg-primary-soft border border-primary/20 rounded-xl shadow-card p-5"
-          data-testid="dashboard-pipeline-card"
-        >
-          <p class="text-xs text-text-brand uppercase tracking-wider font-medium mb-1">
-            Pipeline activo
-          </p>
-          <p class="text-3xl font-light text-text-brand tabular-nums">
-            {{ pipelineValue }}
-          </p>
-          <p class="text-xs text-text-brand/80 mt-1">
-            {{ proposals.pipeline_count }}
-            propuesta{{ proposals.pipeline_count === 1 ? '' : 's' }} en curso (enviadas + vistas)
-          </p>
-        </div>
-
         <div class="grid grid-cols-2 gap-4">
           <DashboardStatTile
             label="Tasa de cierre"
@@ -120,7 +104,6 @@ import { computed } from 'vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import DashboardStatTile from '~/components/panel/dashboard/DashboardStatTile.vue';
 import DashboardTrendChart from '~/components/panel/dashboard/DashboardTrendChart.vue';
-import { formatMoney } from '~/utils/formatMoney';
 
 /** Curated commercial summary; the deep-dive lives in /panel/proposals. */
 const props = defineProps({
@@ -128,12 +111,6 @@ const props = defineProps({
 });
 
 const localePath = useLocalePath();
-
-const pipelineValue = computed(() =>
-  props.proposals?.pipeline_value != null
-    ? formatMoney(props.proposals.pipeline_value)
-    : '—',
-);
 
 const recent = computed(() => props.proposals?.recent || []);
 

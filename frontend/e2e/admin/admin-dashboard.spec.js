@@ -1,73 +1,205 @@
 /**
- * E2E tests for admin dashboard.
+ * E2E tests for the redesigned global admin dashboard (/panel).
  *
- * Covers: dashboard render, Pipeline Value KPI card.
+ * The page consumes the consolidated GET /api/panel/dashboard/ payload:
+ * pulse tiles (finance/pipeline/attention), the attention radar, and the
+ * finance / proposals / operations sections. Finance renders only when
+ * the payload carries it (superuser); staff receive finance: null.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import { ADMIN_DASHBOARD, ADMIN_DASHBOARD_PIPELINE_VALUE } from '../helpers/flow-tags.js';
 
-const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+test.setTimeout(60_000);
 
-const mockDashboardWithPipeline = {
-  total: 10,
-  conversion_rate: 40,
-  avg_time_to_first_view_hours: 12,
-  avg_time_to_response_hours: 48,
-  pipeline_value: 45000000,
-  pipeline_count: 3,
-  by_status: { draft: 2, sent: 3, viewed: 2, accepted: 2, rejected: 1 },
+const authCheck = {
+  status: 200,
+  contentType: 'application/json',
+  body: JSON.stringify({ user: { username: 'admin', is_staff: true, is_superuser: true } }),
 };
+
+const financeBlock = {
+  year: 2026,
+  expected_total: 150000000,
+  liquid_total: 120000000,
+  expenses_total: 40000000,
+  expected_utility: 110000000,
+  liquid_utility: 80000000,
+  pocket_balance: 12000000,
+  expected_current_month: { period: '2026-07', label: 'Julio 2026', total: 9000000 },
+  card_debt: { total: 3000000, card_count: 2, credit_limit_total: 10000000, utilization_pct: 30 },
+  recurring_monthly_cost: 2500000,
+  hostings: { active_count: 14, monthly_income: 1200000, total_paid: 34000000 },
+  monthly: [],
+};
+
+const summaryFixture = {
+  generated_at: '2026-07-16T10:00:00-05:00',
+  finance: financeBlock,
+  proposals: {
+    total_proposals: 10,
+    by_status: { draft: 2, sent: 3, viewed: 2, accepted: 2, finished: 0, rejected: 1, expired: 0 },
+    conversion_rate: 40,
+    pipeline_value: 45000000,
+    pipeline_count: 3,
+    monthly_trend: [],
+    recent: [{ id: 1, title: 'Sitio ACME', client_name: 'ACME Corp', status: 'sent' }],
+  },
+  operations: {
+    tasks: { open: 5, overdue: 2, overdue_high: 1, blocked: 0, high_priority_open: 2 },
+    documents: {
+      by_status: { draft: 1, published: 3, archived: 0 },
+      collection_accounts: { issued_count: 3, overdue_issued: 1, outstanding_total: 5000000 },
+    },
+    diagnostics: { by_status: {}, active_pipeline: 2, accepted_value: 8000000 },
+    emails: {
+      total_30d: 42,
+      sent_count: 40,
+      failed_count: 2,
+      success_rate: 95.2,
+      daily_trend: [
+        { date: '2026-07-15', total: 3, failed: 0 },
+        { date: '2026-07-16', total: 2, failed: 1 },
+      ],
+    },
+    hour_packages: { active_count: 6 },
+  },
+  attention: [
+    { type: 'documents_overdue', severity: 'danger', count: 1, meta: {} },
+    { type: 'tasks_overdue', severity: 'danger', count: 2, meta: { high_priority: 1 } },
+  ],
+};
+
+function jsonResponse(body) {
+  return { status: 200, contentType: 'application/json', body: JSON.stringify(body) };
+}
+
+async function mockDashboard(page, summary, { authBody = authCheck } = {}) {
+  await mockApi(page, async ({ apiPath }) => {
+    if (apiPath === 'auth/check/') return authBody;
+    if (apiPath === 'panel/dashboard/') return jsonResponse(summary);
+    return null;
+  });
+}
 
 test.describe('Admin Dashboard', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, { token: 'e2e-token', userAuth: { id: 8400, role: 'admin', is_staff: true } });
   });
 
-  test('renders dashboard page', {
+  test('renders pulse, radar and module sections for a superuser payload', {
     tag: [...ADMIN_DASHBOARD, '@role:admin'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ apiPath }) => {
-      if (apiPath === 'auth/check/') return authCheck;
-      if (apiPath === 'proposals/') return { status: 200, contentType: 'application/json', body: '[]' };
-      if (apiPath === 'blog/admin/') return { status: 200, contentType: 'application/json', body: '[]' };
-      return null;
-    });
-    await page.goto('/panel');
+    await mockDashboard(page, summaryFixture);
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+    await page.waitForResponse((res) => res.url().includes('/api/panel/dashboard/'));
+
+    await expect(page.getByTestId('dashboard-pulse')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Utilidad líquida 2026').first()).toBeVisible();
+    await expect(page.getByTestId('attention-radar-list')).toBeVisible();
+    await expect(page.getByTestId('dashboard-finance-section')).toBeVisible();
+    await expect(page.getByTestId('dashboard-proposals-section')).toBeVisible();
+    await expect(page.getByTestId('dashboard-operations-section')).toBeVisible();
   });
 
-  test('renders Pipeline Value KPI card with value and count', {
+  test('renders the pipeline pulse tile with value and count', {
     tag: [...ADMIN_DASHBOARD_PIPELINE_VALUE, '@role:admin'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ apiPath }) => {
-      if (apiPath === 'auth/check/') return authCheck;
-      if (apiPath === 'proposals/') return { status: 200, contentType: 'application/json', body: '[]' };
-      if (apiPath === 'proposals/dashboard/') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDashboardWithPipeline) };
-      if (apiPath === 'blog/admin/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ results: [], count: 0, page: 1, page_size: 10, total_pages: 1 }) };
-      return null;
-    });
-    await page.goto('/panel');
-    await page.waitForResponse(res => res.url().includes('/api/proposals/dashboard/'));
+    await mockDashboard(page, summaryFixture);
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+    await page.waitForResponse((res) => res.url().includes('/api/panel/dashboard/'));
 
     await expect(page.getByText('Pipeline activo')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/3 propuestas en curso/)).toBeVisible();
   });
 
-  test('Pipeline Value card is hidden when pipeline_value is null', {
+  test('pipeline tile shows a dash when pipeline_value is null', {
     tag: [...ADMIN_DASHBOARD_PIPELINE_VALUE, '@role:admin'],
   }, async ({ page }) => {
-    const noPipeline = { ...mockDashboardWithPipeline, pipeline_value: null };
+    const noPipeline = {
+      ...summaryFixture,
+      proposals: { ...summaryFixture.proposals, pipeline_value: null, pipeline_count: 0 },
+    };
+    await mockDashboard(page, noPipeline);
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+    await page.waitForResponse((res) => res.url().includes('/api/panel/dashboard/'));
+
+    const pipelineTile = page.getByTestId('dashboard-pipeline-tile');
+    await expect(pipelineTile).toBeVisible({ timeout: 10000 });
+    await expect(pipelineTile.getByTestId('dashboard-stat-value')).toHaveText('—');
+  });
+
+  test('hides the finance section for staff without finance data', {
+    tag: ['@flow:admin-dashboard-finance-gate', '@module:admin', '@priority:P1', '@role:admin'],
+  }, async ({ page }) => {
+    const staffAuth = {
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ user: { username: 'staff', is_staff: true, is_superuser: false } }),
+    };
+    const staffSummary = {
+      ...summaryFixture,
+      finance: null,
+      attention: summaryFixture.attention.filter((item) => item.type !== 'recurring_due'),
+    };
+    await mockDashboard(page, staffSummary, { authBody: staffAuth });
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+    await page.waitForResponse((res) => res.url().includes('/api/panel/dashboard/'));
+
+    await expect(page.getByTestId('dashboard-proposals-section')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('dashboard-finance-section')).not.toBeVisible();
+    await expect(page.getByText('Utilidad líquida 2026')).not.toBeVisible();
+  });
+
+  test('attention radar lists items with severity copy and deep-links', {
+    tag: ['@flow:admin-dashboard-attention-radar', '@module:admin', '@priority:P1', '@role:admin'],
+  }, async ({ page }) => {
+    await mockDashboard(page, summaryFixture);
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+    await page.waitForResponse((res) => res.url().includes('/api/panel/dashboard/'));
+
+    const docsItem = page.getByTestId('attention-item-documents_overdue');
+    await expect(docsItem).toBeVisible({ timeout: 10000 });
+    await expect(docsItem).toContainText('1 cuenta de cobro vencida');
+    const tasksItem = page.getByTestId('attention-item-tasks_overdue');
+    await expect(tasksItem).toContainText('2 tareas vencidas');
+    await expect(tasksItem).toHaveAttribute('href', /\/panel\/tasks/);
+  });
+
+  test('shows the positive empty radar when nothing needs attention', {
+    tag: ['@flow:admin-dashboard-attention-radar', '@module:admin', '@priority:P2', '@role:admin'],
+  }, async ({ page }) => {
+    await mockDashboard(page, { ...summaryFixture, attention: [] });
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+    await page.waitForResponse((res) => res.url().includes('/api/panel/dashboard/'));
+
+    await expect(page.getByTestId('attention-radar-empty')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Nada requiere tu atención. Todo al día.')).toBeVisible();
+  });
+
+  test('recovers from a failed load with the retry button', {
+    tag: ['@flow:admin-dashboard-error-retry', '@module:admin', '@priority:P1', '@role:admin'],
+  }, async ({ page }) => {
+    let calls = 0;
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
-      if (apiPath === 'proposals/') return { status: 200, contentType: 'application/json', body: '[]' };
-      if (apiPath === 'proposals/dashboard/') return { status: 200, contentType: 'application/json', body: JSON.stringify(noPipeline) };
-      if (apiPath === 'blog/admin/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ results: [], count: 0, page: 1, page_size: 10, total_pages: 1 }) };
+      if (apiPath === 'panel/dashboard/') {
+        calls += 1;
+        if (calls === 1) {
+          return { status: 500, contentType: 'application/json', body: JSON.stringify({ detail: 'boom' }) };
+        }
+        return jsonResponse(summaryFixture);
+      }
       return null;
     });
-    await page.goto('/panel');
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByText('Tasa de cierre')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('Pipeline activo')).not.toBeVisible();
+    const errorState = page.getByTestId('dashboard-error');
+    await expect(errorState).toBeVisible({ timeout: 10000 });
+    await errorState.getByRole('button', { name: 'Reintentar' }).click();
+
+    await expect(page.getByTestId('dashboard-pulse')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('dashboard-error')).not.toBeVisible();
   });
 });

@@ -2,18 +2,21 @@
   <component
     :is="rootTag"
     :to="to || undefined"
-    class="block bg-surface rounded-xl border border-border-muted shadow-card p-4"
-    :class="to
-      ? 'transition-shadow duration-base motion-reduce:transition-none hover:shadow-raised hover:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring'
-      : ''"
+    class="block bg-surface rounded-xl border border-border-muted shadow-card"
+    :class="[
+      size === 'lg' ? 'p-5 sm:p-6' : 'p-4',
+      to
+        ? 'transition-shadow duration-base motion-reduce:transition-none hover:shadow-raised hover:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring'
+        : '',
+    ]"
     data-testid="dashboard-stat-tile"
   >
     <p class="text-xs text-text-muted uppercase tracking-wider leading-tight mb-1">
       {{ label }}
     </p>
     <p
-      class="text-2xl font-light tabular-nums"
-      :class="toneClass"
+      class="font-light tabular-nums"
+      :class="[toneClass, size === 'lg' ? 'text-3xl sm:text-4xl' : 'text-2xl']"
       data-testid="dashboard-stat-value"
     >
       {{ displayValue }}
@@ -61,6 +64,12 @@ const props = defineProps({
   /** Chronological numeric series; hidden below 2 points. */
   sparkline: { type: Array, default: () => [] },
   sparklineLabel: { type: String, default: '' },
+  /** lg renders the hero "pulse" variant with a larger figure. */
+  size: {
+    type: String,
+    default: 'md',
+    validator: (v) => ['md', 'lg'].includes(v),
+  },
 });
 
 const rootTag = computed(() => (props.to ? 'NuxtLink' : 'div'));
