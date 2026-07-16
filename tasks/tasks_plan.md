@@ -110,6 +110,9 @@
 | Accounting — Income Liquidation (expected → liquid / lost) | ✅ Done | 2026-07-16 (#110). `IncomeRecord.Kind` expected/liquid/lost with `expected_income` FK linking a settlement to its projection; `IncomeLiquidateModal.vue` + liquidate actions on `/panel/accounting/incomes`; `lost` tab, `lost_total` + `received_pct` aggregates; expense paid/pending via `paid_amount` subquery. |
 | Panel Dashboard — Multi-Module Command Center | ✅ Done | 2026-07-16 (#110). Consolidated dashboard endpoint (`build_dashboard_core` + accounting `year_totals`, `panel_dashboard_service.py`); `/panel/` page rebuilt with dashboard store + components; flows registered in flow-tags/definitions/USER_FLOW_MAP. |
 | View Map — Default Filter Tabs + Settings | ✅ Done | 2026-07-16 (#110). `ViewMapSettings` (migration `0163`); default mode/filters + Configuración tab on `/panel/views`; Tarjetas filter defaults to catalog cards. |
+| Accounting — Sortable Hint Icon on Table Columns | ✅ Done | 2026-07-16 (#111). `AccountingTable.vue` always renders a hint icon on sortable columns (chevron replaces it once actively sorted); 2 unit tests cover aria-sort + emit. |
+| Proposal PDF — Identified Challenges Badge Panel | ✅ Done | 2026-07-16 (#112). Hand-drawn challenges box in `proposal_pdf_service.py` replaced with the branded badge-panel primitive + tier logic (11+/55−). Shipped without dedicated tests — covered by QA cycle #2 (see Testing Status). |
+| QA Cycle #1 (methodology + coverage + gate + E2E) | ✅ Done | 2026-07-16 (#111). Memory bank refresh; accounting record-endpoint/hosting-cycle/change-log backend tests (views 85.7→95.2%); 4 dashboard section component specs (~36→99%); stable locators in incomes E2E; `admin-accounting-hosting-billing` (P1) + `admin-accounting-hosting-cycles` (P2) E2E flows covered. |
 
 ---
 
@@ -129,9 +132,9 @@
 
 | Suite | Location | Approximate Count | Status |
 |-------|----------|-------------------|--------|
-| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 250 test files (content 180, accounts 66, root/project 4) | Active |
-| Frontend Unit (Jest) | `frontend/test/` | 334 test files | Active |
-| Frontend E2E (Playwright) | `frontend/e2e/` | 206 spec files across admin, auth, blog, layout, proposal, public, platform, visual | Active |
+| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 251 test files (content 181, accounts 66, root/project 4) | Active |
+| Frontend Unit (Jest) | `frontend/test/` | 338 test files | Active |
+| Frontend E2E (Playwright) | `frontend/e2e/` | 207 spec files across admin, auth, blog, layout, proposal, public, platform, visual | Active |
 | Quality Gate | `scripts/test_quality_gate.py` | Re-run to confirm current score | Active |
 
 ---
