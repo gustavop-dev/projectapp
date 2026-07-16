@@ -5455,10 +5455,16 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   3. Submit POSTs `/api/accounting/incomes/create/` → success toast + audit + email.
   4. Row edit prefills the modal and PATCHes `.../update/`.
   5. Row delete asks for confirmation and DELETEs `.../delete/`.
+  6. An expected row shows its fulfilment state, computed from the liquid records linked to it: Pagado (light-green row), Parcial (amber row + outstanding amount) or Pendiente (untinted).
+  7. "Liquidar" on an expected row opens a modal prefilled with the pending amount and the real payment month; submitting POSTs a liquid record with `expected_income` set. The expected row is kept, so the projection and partial payments both survive.
+  8. "Marcar como perdido" writes the row off (PATCH `kind=lost`) after a ConfirmModal.
 - **Branches:**
   - [Branch A] Manual split: turning off the 50/50 toggle allows custom per-partner amounts (sum must not exceed the total; backend validates too).
   - [Branch B] Backend 400 → error toast with the Spanish backend message; modal stays open.
   - [Branch C] Personal ledger: selecting "Personal Gustavo/Carlos" hides the partner split and the pocket destination, shows a single "Valor" field, and the backend normalizes the split to the owner (pocket destination rejected).
+  - [Branch D] Partial payment: liquidating for less than the pending amount leaves the expected row Parcial; liquidating again accumulates against the same parent.
+  - [Branch E] Write-off is not offered once a row has liquidations — the backend rejects it, because it would drop the full expected amount while its liquid children keep counting. The remainder is registered as a separate lost record instead.
+  - [Branch F] Written-off rows are excluded from the "Todos" working set and from the export, and drop out of the expected projection and the utility; they surface via the "Pérdidas" filter, the "Total perdido" chip and the "Perdido (año)" KPI.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 

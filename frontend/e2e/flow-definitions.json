@@ -2583,8 +2583,8 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Superuser manages income records at /panel/accounting/incomes: create via modal with automatic 50/50 partner split (editable), ledger selector (Contabilidad: Empresa / Personal Gustavo / Personal Carlos — personal hides the split and pocket destination and uses a single Valor field), edit with prefill (PATCH /api/accounting/incomes/:id/update/), delete with ConfirmModal (DELETE .../delete/), HTML5 required validation and backend error toasts via usePanelNotify. Each list also exposes column sorting (asc/desc/off) on key columns.",
-      "expectedSpecs": 8
+      "description": "Superuser manages income records at /panel/accounting/incomes: create via modal with automatic 50/50 partner split (editable), ledger selector (Contabilidad: Empresa / Personal Gustavo / Personal Carlos — personal hides the split and pocket destination and uses a single Valor field), edit with prefill (PATCH /api/accounting/incomes/:id/update/), delete with ConfirmModal (DELETE .../delete/), HTML5 required validation and backend error toasts via usePanelNotify. Each list also exposes column sorting (asc/desc/off) on key columns. Expected rows carry a fulfilment state computed from their linked liquid records (Pagado green tint / Parcial amber tint with the outstanding amount / Pendiente untinted) and two extra row actions: 'Liquidar', which opens a modal prefilled with the pending amount and POSTs a liquid record linked via expected_income (the expected row survives, so partial payments accumulate), and 'Marcar como perdido', offered only on rows with no payments yet, which PATCHes kind=lost. Written-off income is a third kind, hidden under the 'Todos' filter and reachable via the 'Pérdidas' segment, with its own total chip and a 'Perdido (año)' KPI.",
+      "expectedSpecs": 14
     },
     "admin-accounting-filters": {
       "name": "Admin Accounting Filters",
