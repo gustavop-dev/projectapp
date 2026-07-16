@@ -1,6 +1,6 @@
 {
-  "version": "2.43.0",
-  "lastUpdated": "2026-07-11",
+  "version": "2.44.0",
+  "lastUpdated": "2026-07-16",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -516,7 +516,8 @@
       ],
       "priority": "P2",
       "description": "View the hour-package catalog filtered by nationality tabs (COL/EXT/USA) with derived currency and computed totals.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": "Spec does not assert view-mode toggle (tracked in admin-hour-packages-view-modes), pagination, or the mobile card variant (2026-07-16 audit)."
     },
     "admin-hour-packages-create": {
       "name": "Admin Hour Packages Create",
@@ -1623,7 +1624,8 @@
       ],
       "priority": "P2",
       "description": "Create a new admin document via Markdown paste mode or file upload mode, with title, optional client association, and live preview.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": "Spec covers paste mode only; \"Cargar Archivo\" upload mode (POST /api/documents/upload-markdown/), cover toggles and template-style selection untested (2026-07-16 audit)."
     },
     "admin-document-edit": {
       "name": "Admin Document Edit",
@@ -1940,7 +1942,8 @@
       ],
       "priority": "P2",
       "description": "Admin composes and sends branded emails from /panel/emails (not tied to a proposal). Page-level tabs (Redactar / Historial / Valores por defecto, deep-linked via ?tab=). Redactar: draggable sections with per-section Markdown toggle, file attachments, server-rendered preview of the real branded template (POST /api/emails/preview/, sandboxed iframe). Historial: paginated email history. Uses standalone endpoints: emails/send/, emails/preview/, emails/defaults/, emails/history/.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": "Spec does not exercise: add/remove/drag-reorder sections, send-error path, history entry expand/collapse, \"Cargar más\" pagination. Attachments split out to admin-standalone-email-attachments (2026-07-16 audit)."
     },
     "admin-standalone-email-defaults": {
       "name": "Admin Standalone Email Defaults Config",
@@ -1950,7 +1953,19 @@
       ],
       "priority": "P2",
       "description": "Admin configures the standalone email composer defaults from the 'Valores por defecto' tab of /panel/emails (deep-linkable via ?tab=defaults): default greeting (with {client_name}/{title} variables), default footer and default signer. Saved via PUT /api/emails/defaults/ into EmailTemplateConfig('branded_email').content_overrides; 'Restaurar valores originales' submits registry/settings defaults which clears the overrides. The configured signer is used for standalone sends and previews (proposal emails keep their per-proposal signer).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": "Spec does not exercise Branch A (\"Restaurar valores originales\") nor Branch B (invalid signer 400) (2026-07-16 audit)."
+    },
+    "admin-standalone-email-attachments": {
+      "name": "Admin Standalone Email Attachments",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin attaches files to a standalone email from /panel/emails: multiple file input (.pdf/.doc/.docx/.xls/.xlsx/.png/.jpg), client-side type and size validation via validateEmailAttachments (~/utils/emailAttachments), per-file remove button, and multipart POST /api/emails/send/ including the attachments. Documented as Branch B of admin-standalone-email-composer but never exercised by its spec.",
+      "expectedSpecs": 0,
+      "knownGaps": "No E2E spec: upload, validation-rejection and remove paths untested. Registered 2026-07-16 audit."
     },
     "admin-proposal-advanced-filters": {
       "name": "Admin Proposal Advanced Filters",
@@ -2084,6 +2099,83 @@
       "priority": "P1",
       "description": "Admin moves a document to a different folder (or removes it from any folder) via MoveFolderModal from the documents page. PATCHes documents/{id}/update/ with folder_id.",
       "expectedSpecs": 3
+    },
+    "admin-document-send-email": {
+      "name": "Admin Document Send Email",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Admin sends a branded email with document PDFs attached from the documents list: actions sheet -> 'Enviar por correo' opens SendDocumentEmailModal (recipient, subject, greeting, ordered sections, footer, extra document PDFs picker, Edit/Preview tabs) -> POST /api/emails/send/ with document_ids. Functional successor of the superseded admin-proposal-documents-send flow.",
+      "expectedSpecs": 0,
+      "knownGaps": "UI and endpoint exist (SendDocumentEmailModal.vue, stores/documents.js sendDocumentEmail); no E2E spec yet. Registered 2026-07-16 audit."
+    },
+    "admin-document-rename": {
+      "name": "Admin Document Rename",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin renames a document from the actions sheet: 'Renombrar' opens RenameDocumentModal with the current title, saving sends PATCH /api/documents/:id/update/ and the list refreshes with the new title.",
+      "expectedSpecs": 0,
+      "knownGaps": "No E2E spec yet. Registered 2026-07-16 audit."
+    },
+    "admin-document-delete": {
+      "name": "Admin Document Delete",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin deletes a document from the actions sheet: 'Eliminar' opens ConfirmModal; confirming sends DELETE /api/documents/:id/delete/ and removes the row/card; cancelling keeps it. Current list spec only asserts the button is visible.",
+      "expectedSpecs": 0,
+      "knownGaps": "Only button visibility asserted in admin-document-list.spec.js; confirm/cancel paths untested. Registered 2026-07-16 audit."
+    },
+    "admin-document-folder-manage": {
+      "name": "Admin Document Folder Management",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin manages folders in FolderManagerModal: create folder with parent selector (POST /api/document-folders/create/), inline rename (PATCH /api/document-folders/:id/update/), delete with confirmation (DELETE /api/document-folders/:id/delete/) and drag-reorder (POST /api/document-folders/reorder/). Existing admin-document-folders spec only covers parent pre-selection on create.",
+      "expectedSpecs": 0,
+      "knownGaps": "Rename, delete and reorder inside the manager modal untested. Registered 2026-07-16 audit."
+    },
+    "admin-document-tags-manage": {
+      "name": "Admin Document Tags Management",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin manages tags in TagManagerModal: create tag with name and color (POST /api/document-tags/create/), rename (PATCH /api/document-tags/:id/update/), delete with confirm (DELETE /api/document-tags/:id/delete/). Tag chip filtering is covered by admin-document-folders; tag CRUD is not.",
+      "expectedSpecs": 0,
+      "knownGaps": "No E2E spec for tag CRUD. Registered 2026-07-16 audit."
+    },
+    "admin-document-duplicate": {
+      "name": "Admin Document Duplicate",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Admin duplicates a document from the actions sheet: 'Duplicar' sends POST /api/documents/:id/duplicate/ and the copy appears in the list.",
+      "expectedSpecs": 0,
+      "knownGaps": "No E2E spec yet. Registered 2026-07-16 audit."
+    },
+    "admin-document-drag-organize": {
+      "name": "Admin Document Drag Organize",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Admin organizes by drag-and-drop: dragging a document card/row onto a sidebar folder moves it (PATCH /api/documents/:id/update/ folder_id), and dragging a folder onto a breadcrumb/sidebar folder re-parents it (PATCH /api/document-folders/:id/update/). The modal-based move path is covered by admin-document-move-folder; the drag path is not.",
+      "expectedSpecs": 0,
+      "knownGaps": "Drag interactions untested (fragile in Playwright; needs dispatchEvent-based DnD). Registered 2026-07-16 audit."
     },
     "admin-document-pdf-download": {
       "name": "Admin Document PDF Download",
@@ -2638,7 +2730,7 @@
       ],
       "priority": "P2",
       "description": "Superuser manages the ProjectApp pocket ledger at /panel/accounting/pocket: balance card from list meta, running-balance column (default view newest-first). The pocket is the money entry point: creating a movement also creates its linked income (IN) or expense (OUT) with the ledger chosen in the modal's Contabilidad segmented (Empresa/Personal Gustavo/Personal Carlos; IN is company-only). Linked movements open the edit modal with the direction locked and ledger prefilled; edits mirror into the linked record and deletes cascade both ways (confirm warns about the cascade). Unlinked historical movements keep plain CRUD.",
-      "expectedSpecs": 5
+      "expectedSpecs": 4
     },
     "admin-accounting-recurring": {
       "name": "Admin Accounting Recurring Payments",
@@ -2748,7 +2840,7 @@
       ],
       "priority": "P2",
       "description": "Superuser manages weekly credit-card balance snapshots at /panel/accounting/cards: list with latest-debt-per-card chip, filters (date range, debt range, card multi-select), create via modal (date defaults to today, card picked from a dropdown fed by the CreditCard catalog; the Deuda input is gone — debt is server-computed as cupo − disponible and previewed in the form, which blocks disponible > cupo), edit prefill (legacy names outside the catalog injected as an extra option) and delete with ConfirmModal. Registering a snapshot dated on/after the cycle Friday silences the weekly card-debt email reminder. The card filter defaults to the active catalog cards as removable chips (clearing them surfaces historical names); its options are the union of catalog and snapshot names, and a saved tab in the URL wins over the preselection.",
-      "expectedSpecs": 6
+      "expectedSpecs": 5
     },
     "admin-accounting-export": {
       "name": "Admin Accounting Export",
@@ -2778,7 +2870,7 @@
       ],
       "priority": "P4",
       "description": "With zero records, accounting lists render BaseEmptyState with a primary 'Nuevo <entidad>' action that opens the create modal; with active filters and zero matches the action becomes 'Limpiar filtros' and resets the filter panel.",
-      "expectedSpecs": 1
+      "expectedSpecs": 2
     },
     "admin-proposal-discount-offer-send": {
       "name": "Admin Proposal Discount Offer Send",

@@ -2072,7 +2072,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   4. Admin switches nationality tab → list refetches with that nationality and prices change currency.
   5. Empty tabs show a hint that proposal creation falls back to default packages.
   6. "Nuevo paquete" button links to the create page carrying the active nationality.
-- **Coverage:** ✅ Covered
+- **Coverage:** 🟡 Partial (pagination and mobile card variant not asserted; view modes tracked in `admin-hour-packages-view-modes`; 2026-07-16 audit)
 - **E2E Spec:** `e2e/admin/admin-hour-packages-list.spec.js`
 
 ### FLOW: `admin-hour-packages-view-modes`
@@ -2629,10 +2629,17 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-sticky-bar-accept` | proposal | guest | ~~P2~~ | 🗄️ Archived | — (feature removed) |
 | `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
 | `admin-document-gallery` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-gallery.spec.js` |
-| `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
+| `admin-document-create` | admin | admin | P2 | 🟡 Partial (paste mode only; upload mode + cover toggles not asserted) | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
 | `admin-document-move-folder` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-move-folder.spec.js` |
+| `admin-document-send-email` | admin | admin | P1 | ❌ Missing | — (spec not yet written) |
+| `admin-document-rename` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-delete` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-folder-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-tags-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
+| `admin-document-drag-organize` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
 | `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
 | `admin-email-deliverability` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-email-deliverability.spec.js` |
@@ -3508,7 +3515,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Validation error] Missing required fields → inline errors displayed.
   - [Branch B — Preview toggle] Admin clicks preview button → split-pane preview shown alongside editor.
-- **Coverage:** ✅ Covered
+- **Coverage:** 🟡 Partial (paste mode only — "Cargar Archivo" upload mode, cover toggles and template-style selection not exercised; 2026-07-16 audit)
 - **E2E Spec:** `e2e/admin/admin-document-create.spec.js`
 
 #### FLOW: `admin-document-edit`
@@ -3621,6 +3628,92 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-move-folder.spec.js`
 
+
+#### FLOW: `admin-document-send-email`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/documents`
+- **API:** `POST /api/emails/send/` (multipart, `document_ids`)
+- **Description:** Admin sends a branded email with document PDFs attached from the documents list. The actions sheet's "Enviar por correo" opens `SendDocumentEmailModal` with recipient, subject, greeting, ordered sections (add/remove/move), footer and a picker to attach other documents as PDFs; Edit/Preview tabs mirror the standalone composer. Functional successor of the superseded `admin-proposal-documents-send` flow.
+- **Steps:**
+  1. Admin loads `/panel/documents` and opens the actions sheet of a document.
+  2. Admin clicks "Enviar por correo" → `SendDocumentEmailModal` opens with the document preselected.
+  3. Admin fills recipient, subject and section content; optionally attaches more documents.
+  4. Admin clicks send → `POST /api/emails/send/` with `document_ids` → success message with the recipient.
+- **Branches:**
+  - [Branch A — Rate limited] Backend responds 429 → rate-limited message shown.
+  - [Branch B — Send error] Other failures render an inline error and keep the modal open.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+
+#### FLOW: `admin-document-rename`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **API:** `PATCH /api/documents/<id>/update/`
+- **Description:** Admin renames a document from the actions sheet via `RenameDocumentModal`: the input opens prefilled with the current title; saving PATCHes the document and the list shows the new title.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+
+#### FLOW: `admin-document-delete`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **API:** `DELETE /api/documents/<id>/delete/`
+- **Description:** Admin deletes a document from the actions sheet: "Eliminar" opens a ConfirmModal; confirming deletes and removes the row/card, cancelling keeps it. The list spec only asserts the button is visible.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+
+#### FLOW: `admin-document-folder-manage`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **API:** `POST /api/document-folders/create/`, `PATCH /api/document-folders/<id>/update/`, `DELETE /api/document-folders/<id>/delete/`, `POST /api/document-folders/reorder/`
+- **Description:** Admin manages folders in `FolderManagerModal`: create with parent selector, inline rename, delete with confirmation and drag-reorder. `admin-document-folders` only covers parent pre-selection on create.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+
+#### FLOW: `admin-document-tags-manage`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **API:** `POST /api/document-tags/create/`, `PATCH /api/document-tags/<id>/update/`, `DELETE /api/document-tags/<id>/delete/`
+- **Description:** Admin manages tags in `TagManagerModal`: create tag with name and color, rename, delete with confirm. Tag chip filtering is covered by `admin-document-folders`; tag CRUD is not.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+
+#### FLOW: `admin-document-duplicate`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/documents`
+- **API:** `POST /api/documents/<id>/duplicate/`
+- **Description:** Admin duplicates a document from the actions sheet; the copy appears in the list.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+
+#### FLOW: `admin-document-drag-organize`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/documents`
+- **API:** `PATCH /api/documents/<id>/update/` (folder_id), `PATCH /api/document-folders/<id>/update/` (parent)
+- **Description:** Admin organizes by drag-and-drop: dragging a document onto a sidebar folder moves it, and dragging a folder onto another folder (or breadcrumb) re-parents it. The modal-based move path is covered by `admin-document-move-folder`; the drag path is not.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit; DnD needs dispatchEvent-based simulation)
+
 ### 9.2 Admin User Management
 
 #### FLOW: `admin-admin-management`
@@ -3709,12 +3802,19 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 |---------|--------|------|----------|--------|------|
 | `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
 | `admin-document-gallery` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-gallery.spec.js` |
-| `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
+| `admin-document-create` | admin | admin | P2 | 🟡 Partial (paste mode only; upload mode + cover toggles not asserted) | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-folders` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folders.spec.js` |
 | `admin-document-folder-hierarchy` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-hierarchy.spec.js` |
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
 | `admin-document-move-folder` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-move-folder.spec.js` |
+| `admin-document-send-email` | admin | admin | P1 | ❌ Missing | — (spec not yet written) |
+| `admin-document-rename` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-delete` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-folder-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-tags-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
+| `admin-document-drag-organize` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
 | `admin-diagnostic-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-create.spec.js` |
 | `admin-diagnostic-send-initial` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` |
@@ -3886,7 +3986,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Empty recipient] Send button disabled when recipient email is empty.
   - [Branch B — File limits] Attachment validation enforces type and size limits.
-- **Coverage:** ✅ Covered
+- **Coverage:** 🟡 Partial (section add/remove/drag-reorder, send-error path, history expand and "Cargar más" pagination not exercised; attachments split to `admin-standalone-email-attachments`; 2026-07-16 audit)
 - **E2E Spec:** `e2e/admin/admin-standalone-email-composer.spec.js`
 
 #### FLOW: `admin-standalone-email-defaults`
@@ -3905,8 +4005,24 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Restore] "Restaurar valores originales" submits the registry/settings defaults, clearing all overrides.
   - [Branch B — Invalid signer] Backend rejects unknown signer keys with 400 (`El firmante seleccionado no es válido.`).
-- **Coverage:** ✅ Covered
+- **Coverage:** 🟡 Partial (Branch A restore-defaults and Branch B invalid-signer 400 not exercised; 2026-07-16 audit)
 - **E2E Spec:** `e2e/admin/admin-standalone-email-composer.spec.js`
+
+#### FLOW: `admin-standalone-email-attachments`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/emails`
+- **API:** `POST /api/emails/send/` (multipart with attachments)
+- **Description:** Admin attaches files to a standalone email: multiple file input (`.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg`), client-side type/size validation via `validateEmailAttachments` (`~/utils/emailAttachments`), per-file remove button, and multipart send including the attachments. Split out of `admin-standalone-email-composer` (its documented Branch B) because no test exercises it.
+- **Steps:**
+  1. Admin fills the composer on `/panel/emails`.
+  2. Admin selects one or more files with the "Adjuntar archivos" input.
+  3. Invalid type/size files are rejected with a validation message; valid ones list with a remove button.
+  4. Admin sends → multipart `POST /api/emails/send/` includes the attachments.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
 
 ---
 
@@ -3921,8 +4037,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-documents-send` | admin | admin | P1 | ⚠️ Superseded | replaced by `admin-proposal-attach-from-documents` (Apr 22, 2026) |
 | `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `admin-send-proposal-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
-| `admin-standalone-email-composer` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-standalone-email-composer.spec.js` |
-| `admin-standalone-email-defaults` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-standalone-email-composer.spec.js` |
+| `admin-standalone-email-composer` | admin | admin | P2 | 🟡 Partial (sections mgmt, error path, history pagination not asserted) | `e2e/admin/admin-standalone-email-composer.spec.js` |
+| `admin-standalone-email-defaults` | admin | admin | P2 | 🟡 Partial (restore + invalid-signer branches not asserted) | `e2e/admin/admin-standalone-email-composer.spec.js` |
+| `admin-standalone-email-attachments` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
 
 ---
 
