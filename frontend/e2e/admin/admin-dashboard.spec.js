@@ -158,7 +158,7 @@ test.describe('Admin Dashboard', () => {
     await expect(page.getByText('Utilidad líquida 2026')).not.toBeVisible();
   });
 
-  test('attention radar lists items with severity copy and deep-links', {
+  test('attention radar lists items with severity copy and module links', {
     tag: [...ADMIN_DASHBOARD_ATTENTION_RADAR, '@role:admin'],
   }, async ({ page }) => {
     await mockDashboard(page, summaryFixture);

@@ -45,7 +45,7 @@ describe('DashboardAttentionRadar', () => {
     expect(wrapper.text()).toContain('1 email fallido');
   });
 
-  it('deep-links each item to its module route', () => {
+  it('links each item to its module route', () => {
     const wrapper = mountRadar([
       { type: 'proposals_stale', severity: 'warning', count: 1, meta: { days: 7 } },
       { type: 'recurring_due', severity: 'info', count: 2, meta: { next_days: 0 } },

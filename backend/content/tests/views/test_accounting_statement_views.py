@@ -188,7 +188,7 @@ class TestMerchantAliasEndpoints:
         )
         response = super_client.post(
             '/api/accounting/merchant-aliases/resolve/',
-            {'raw_descriptions': ['payu*netflix 12', 'RARO SAS']},
+            {'raw_descriptions': ['payu*netflix 990011', 'RARO SAS']},
             format='json',
         )
         assert response.status_code == 200
@@ -198,7 +198,7 @@ class TestMerchantAliasEndpoints:
     def test_create_alias_normalizes_match_text(self, super_client):
         response = super_client.post(
             '/api/accounting/merchant-aliases/create/',
-            {'match_text': 'primax 8811', 'merchant_name': 'Primax',
+            {'match_text': 'primax 881100', 'merchant_name': 'Primax',
              'default_category': 'fuel'},
             format='json',
         )

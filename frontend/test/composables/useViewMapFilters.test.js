@@ -161,7 +161,7 @@ describe('applyDefaultFilters', () => {
     expect(currentFilters.audiences).toEqual([]);
   });
 
-  it('does not apply when the URL deep-links a ?viewTab', () => {
+  it('does not apply when the URL already carries a ?viewTab', () => {
     mockRoute.query = { viewTab: '9' };
     const { currentFilters, applyDefaultFilters } = useViewMapFilters();
 

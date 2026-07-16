@@ -221,6 +221,46 @@
             </div>
           </div>
 
+          <!-- Discount vs no-discount close rate -->
+          <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4" data-testid="discount-analysis-card">
+            <div class="flex items-center gap-1.5 mb-4">
+              <h3 class="text-sm font-medium text-text-default">Cierre con vs sin descuento</h3>
+            </div>
+            <div class="flex items-end gap-6">
+              <div class="flex-1 text-center">
+                <div class="text-3xl font-light mb-1" :class="discountDelta > 0 ? 'text-text-brand' : 'text-text-default'">
+                  {{ data.discount_close_rate != null ? data.discount_close_rate + '%' : '—' }}
+                </div>
+                <p class="text-xs text-text-muted">Con descuento</p>
+                <p v-if="data.discount_analysis" class="text-[10px] text-text-subtle mt-0.5">n={{ data.discount_analysis.with_discount_count }}</p>
+              </div>
+              <div class="text-text-subtle/40 text-2xl font-light pb-4">vs</div>
+              <div class="flex-1 text-center">
+                <div class="text-3xl font-light mb-1 text-text-default">
+                  {{ data.no_discount_close_rate != null ? data.no_discount_close_rate + '%' : '—' }}
+                </div>
+                <p class="text-xs text-text-muted">Sin descuento</p>
+                <p v-if="data.discount_analysis" class="text-[10px] text-text-subtle mt-0.5">n={{ data.discount_analysis.without_discount_count }}</p>
+              </div>
+            </div>
+            <div v-if="discountDelta !== null" class="mt-3 text-center">
+              <span
+                class="inline-flex items-center gap-1 text-xs font-medium px-3 py-1 rounded-full"
+                :class="discountDelta > 0 ? 'bg-primary-soft text-text-brand' : discountDelta < 0 ? 'bg-danger-soft text-danger-strong' : 'bg-surface-raised text-text-muted'"
+              >
+                {{ discountDelta > 0 ? '▲' : discountDelta < 0 ? '▼' : '=' }}
+                {{ Math.abs(discountDelta) }}pp {{ discountDelta > 0 ? 'más con descuento' : discountDelta < 0 ? 'menos con descuento' : 'igual' }}
+              </span>
+            </div>
+            <div v-if="data.discount_analysis?.avg_discount_percent" class="mt-3 text-center text-xs text-text-muted">
+              Descuento promedio: <strong>{{ data.discount_analysis.avg_discount_percent }}%</strong>
+              <span v-if="data.discount_analysis.avg_discount_accepted"> · En aceptadas: <strong>{{ data.discount_analysis.avg_discount_accepted }}%</strong></span>
+            </div>
+            <div v-if="discountDelta !== null && discountDelta <= 0" class="mt-2 text-center">
+              <span class="text-[10px] text-warning-strong font-medium">⚠️ El descuento no está mejorando el cierre — evalúa si estás regalando margen</span>
+            </div>
+          </div>
+
           <!-- Win rate by project type + market type -->
           <div v-if="data.win_rate_by_project_type?.length || data.win_rate_by_market_type?.length" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div v-if="data.win_rate_by_project_type?.length" class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
@@ -531,6 +571,13 @@ function viewModeDashboardLabel(mode) {
   const map = { executive: 'Ejecutiva', detailed: 'Completa', technical: 'Técnica' };
   return map[mode] || mode;
 }
+
+const discountDelta = computed(() => {
+  const withDiscount = data.value?.discount_close_rate;
+  const without = data.value?.no_discount_close_rate;
+  if (withDiscount == null || without == null) return null;
+  return Math.round((withDiscount - without) * 10) / 10;
+});
 
 const bestProjectWinRate = computed(() => {
   const rates = (data.value?.win_rate_by_project_type || []).map(i => i.win_rate);
