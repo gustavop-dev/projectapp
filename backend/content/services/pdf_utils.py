@@ -1510,18 +1510,16 @@ def _draw_badge_panel(c, y, title, items, ps=None):
                        _font('bold'), 11)
 
     cursor = y - pad_y - title_h - 4  # top edge of the items area
+    chip_cx = MARGIN_L + pad_x + chip_d / 2
     for idx, lines in enumerate(wrapped, start=1):
         first_baseline = cursor - font_size
         # Numbered chip, vertically centred on the item's first line.
-        chip_cx = MARGIN_L + pad_x + chip_d / 2
         chip_cy = first_baseline + font_size / 2 - 1
         c.setFillColor(LEMON)
         c.circle(chip_cx, chip_cy, chip_d / 2, fill=1, stroke=0)
-        num = str(idx)
         c.setFont(_font('bold'), 8)
         c.setFillColor(ESMERALD)
-        num_w = pdfmetrics.stringWidth(num, _font('bold'), 8)
-        c.drawString(chip_cx - num_w / 2, chip_cy - 3, num)
+        c.drawCentredString(chip_cx, chip_cy - 3, str(idx))
 
         ty = first_baseline
         c.setFont(fn, font_size)
