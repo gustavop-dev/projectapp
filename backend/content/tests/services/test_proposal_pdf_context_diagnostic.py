@@ -79,9 +79,13 @@ class TestContextDiagnosticBadgePanel:
         with patch(
             'content.services.proposal_pdf_service._draw_badge_panel',
         ) as badge:
-            _render_context_diagnostic(pdf_canvas, data, None, ps=PS, y=START_Y)
+            result = _render_context_diagnostic(
+                pdf_canvas, data, None, ps=PS, y=START_Y,
+            )
 
         badge.assert_not_called()
+        assert badge.call_count == 0
+        assert result <= START_Y
 
 
 class TestContextDiagnosticOpportunity:
@@ -105,9 +109,13 @@ class TestContextDiagnosticOpportunity:
         with patch(
             'content.services.proposal_pdf_service._draw_subtitle',
         ) as subtitle:
-            _render_context_diagnostic(pdf_canvas, data, None, ps=PS, y=START_Y)
+            result = _render_context_diagnostic(
+                pdf_canvas, data, None, ps=PS, y=START_Y,
+            )
 
         subtitle.assert_not_called()
+        assert subtitle.call_count == 0
+        assert result <= START_Y
 
 
 class TestContextDiagnosticLinearFlow:

@@ -158,9 +158,8 @@ test.describe('Admin Accounting Filters', () => {
     await openFilterPanel(page);
 
     await filterPanel(page).getByRole('button', { name: /^Mes/ }).click();
-    const dateInputs = page.locator('input[type="date"]');
-    await dateInputs.first().fill('2026-04-01');
-    await dateInputs.nth(1).fill('2026-05-31');
+    await page.getByPlaceholder('Desde').fill('2026-04-01');
+    await page.getByPlaceholder('Hasta').fill('2026-05-31');
 
     await expect(visibleRows(page)).toHaveCount(2);
     await expect(page.getByText('G&M Entrega No. 1 (Mayo)')).toBeVisible();
@@ -174,9 +173,8 @@ test.describe('Admin Accounting Filters', () => {
     await openFilterPanel(page);
 
     await filterPanel(page).getByRole('button', { name: /^Total/ }).click();
-    const numberInputs = page.locator('input[inputmode="numeric"]');
-    await numberInputs.first().fill('2000000');
-    await numberInputs.nth(1).fill('4000000');
+    await page.getByPlaceholder('Desde').fill('2000000');
+    await page.getByPlaceholder('Hasta').fill('4000000');
 
     await expect(visibleRows(page)).toHaveCount(2);
     await expect(page.getByText('Vastago (Fase 1) - Inicio 40%')).toBeVisible();
@@ -241,8 +239,7 @@ test.describe('Admin Accounting Filters', () => {
     await page.getByTestId('incomes-search-input').fill('inicio');
     await expect(visibleRows(page)).toHaveCount(2, { timeout: 10_000 });
     const marks = page.locator('mark');
-    await expect(marks).toHaveCount(2);
-    await expect(marks.first()).toHaveText('Inicio');
+    await expect(marks).toHaveText(['Inicio', 'Inicio']);
   });
 
   test('shows the filtered results count', {
@@ -281,8 +278,7 @@ test.describe('Admin Accounting Filters', () => {
     await openFilterPanel(page);
 
     await filterPanel(page).getByRole('button', { name: /^Total/ }).click();
-    const minInput = page.locator('input[inputmode="numeric"]').first();
-    await minInput.pressSequentially('2000000');
+    await page.getByPlaceholder('Desde').pressSequentially('2000000');
 
     // Live (debounced) emission: rows shrink without leaving the input.
     await expect(visibleRows(page)).toHaveCount(2, { timeout: 10_000 });
