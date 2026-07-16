@@ -463,8 +463,7 @@ const {
   sortDir,
   toggleSort,
   requestConfirm,
-  notify,
-  markMutated,
+  runMutation,
 } = useAccountingCrudPage({
   entity: 'incomes',
   // A liquidation creates a CHILD row, so the parent expected row's
@@ -552,20 +551,16 @@ function closeLiquidateModal() {
 }
 
 async function handleLiquidateSubmit(payload) {
-  const expected = liquidatingRecord.value;
-  const result = await store.createRecord('incomes', payload);
-  if (!result.success) {
-    notify.error({
-      title: 'No se pudo liquidar',
-      detail: result.message || '',
-    });
-    return;
-  }
-  notify.success({ title: 'Ingreso liquidado' });
-  closeLiquidateModal();
-  // Flash the expected row: it is the one whose state just changed.
-  markMutated(expected?.id);
-  await store.fetchRecords('incomes');
+  const result = await runMutation(
+    () => store.createRecord('incomes', payload),
+    {
+      successTitle: 'Ingreso liquidado',
+      errorTitle: 'No se pudo liquidar',
+      // Flash the expected row: it is the one whose state just changed.
+      flashId: liquidatingRecord.value?.id,
+    },
+  );
+  if (result.success) closeLiquidateModal();
 }
 
 function confirmWriteOff(record) {
@@ -578,21 +573,16 @@ function confirmWriteOff(record) {
     variant: 'danger',
     confirmText: 'Marcar como perdido',
     cancelText: 'Cancelar',
-    onConfirm: async () => {
-      const result = await store.updateRecord('incomes', record.id, {
+    onConfirm: () => runMutation(
+      () => store.updateRecord('incomes', record.id, {
         kind: 'lost',
         destination: 'partners',
-      });
-      if (result.success) {
-        notify.success({ title: 'Ingreso marcado como perdido' });
-        await store.fetchRecords('incomes');
-      } else {
-        notify.error({
-          title: 'No se pudo marcar como perdido',
-          detail: result.message || '',
-        });
-      }
-    },
+      }),
+      {
+        successTitle: 'Ingreso marcado como perdido',
+        errorTitle: 'No se pudo marcar como perdido',
+      },
+    ),
   });
 }
 

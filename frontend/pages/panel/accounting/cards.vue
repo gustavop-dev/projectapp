@@ -361,11 +361,7 @@ async function loadRecords() {
 // never over a saved tab restored from the URL or filters already touched.
 // It cannot go in `defaults:` — a filter sitting on its default is inactive.
 function applyDefaultCardFilter() {
-  if (
-    filterTabId.value === 'all'
-    && currentFilters.cardName.length === 0
-    && activeCatalogCards.value.length > 0
-  ) {
+  if (filterTabId.value === 'all' && currentFilters.cardName.length === 0) {
     currentFilters.cardName = activeCatalogCards.value.map((card) => card.name);
   }
 }

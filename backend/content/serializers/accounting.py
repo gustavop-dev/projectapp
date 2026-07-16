@@ -36,6 +36,11 @@ MONTH_PERIOD_RE = re.compile(r'^\d{4}-(0[1-9]|1[0-2])$')
 TWO_PLACES = Decimal('0.01')
 
 
+def money_str(value):
+    """Canonical API money string: two decimal places, no separators."""
+    return str(Decimal(value).quantize(TWO_PLACES))
+
+
 def month_period(date_value):
     """Return the 'YYYY-MM' representation of a date."""
     return date_value.strftime('%Y-%m') if date_value else None
@@ -162,8 +167,6 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'notes', 'created_at', 'updated_at',
         )
 
-    # Only expected records carry a fulfilment state. `None` (not '0.00')
-    # lets the UI tell "not applicable" from "nothing paid yet".
     PAYMENT_STATUS_LABELS = {
         'paid': 'Pagado',
         'partial': 'Parcial',
@@ -171,28 +174,34 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     }
 
     def _paid(self, obj):
+        """Liquid total fulfilling this record; None for non-expected rows.
+
+        `None` (not '0.00') lets the UI tell "not applicable" from
+        "nothing paid yet". The list and export endpoints annotate the
+        queryset; the retrieve/create/update ones serialize a bare
+        instance, so fall back to a per-object aggregate there — memoized
+        on the instance, since all four payment fields call this.
+        """
         if obj.kind != IncomeRecord.Kind.EXPECTED:
             return None
-        # The list and export endpoints annotate the queryset; the
-        # retrieve/create/update ones serialize a bare instance, so fall
-        # back to a per-object aggregate there.
-        value = getattr(obj, 'paid_amount', None)
-        if value is None:
-            value = obj.liquid_records.filter(
-                kind=IncomeRecord.Kind.LIQUID,
-            ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
-        return Decimal(value)
+        if not hasattr(obj, '_paid_total'):
+            value = getattr(obj, 'paid_amount', None)
+            if value is None:
+                value = obj.liquid_records.filter(
+                    kind=IncomeRecord.Kind.LIQUID,
+                ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+            obj._paid_total = Decimal(value)
+        return obj._paid_total
 
     def get_paid_amount(self, obj):
         paid = self._paid(obj)
-        return None if paid is None else str(paid.quantize(TWO_PLACES))
+        return None if paid is None else money_str(paid)
 
     def get_pending_amount(self, obj):
         paid = self._paid(obj)
         if paid is None:
             return None
-        pending = max(obj.total_amount - paid, Decimal('0'))
-        return str(pending.quantize(TWO_PLACES))
+        return money_str(max(obj.total_amount - paid, Decimal('0')))
 
     def get_payment_status(self, obj):
         paid = self._paid(obj)

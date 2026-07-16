@@ -663,8 +663,8 @@ def _sum(queryset, field):
     return queryset.aggregate(total=Sum(field))['total'] or Decimal('0')
 
 
-MONEY_FIELD = DecimalField(max_digits=14, decimal_places=2)
-_ZERO_MONEY = Value(Decimal('0.00'), output_field=MONEY_FIELD)
+_MONEY_FIELD = DecimalField(max_digits=14, decimal_places=2)
+_ZERO_MONEY = Value(Decimal('0.00'), output_field=_MONEY_FIELD)
 
 
 def paid_amount_subquery():
@@ -689,9 +689,9 @@ def paid_amount_subquery():
         .values('total')[:1]
     )
     return Coalesce(
-        Subquery(liquid, output_field=MONEY_FIELD),
+        Subquery(liquid, output_field=_MONEY_FIELD),
         _ZERO_MONEY,
-        output_field=MONEY_FIELD,
+        output_field=_MONEY_FIELD,
     )
 
 
@@ -900,16 +900,14 @@ def expected_current_month():
         ledger=Ledger.COMPANY,
         period_date__year=today.year,
         period_date__month=today.month,
-    ).annotate(
-        paid=paid_amount_subquery(),
-    ).annotate(
+    ).aggregate(
         # Clamped per row: without this an overpaid record would cancel out
         # a genuinely pending sibling and understate the card.
-        pending=Greatest(
-            F('total_amount') - F('paid'), _ZERO_MONEY,
-            output_field=MONEY_FIELD,
-        ),
-    ).aggregate(total=Sum('pending'))['total'] or Decimal('0')
+        total=Sum(Greatest(
+            F('total_amount') - paid_amount_subquery(), _ZERO_MONEY,
+            output_field=_MONEY_FIELD,
+        )),
+    )['total'] or Decimal('0')
     return {
         'period': month_period(month_date),
         'label': month_label(month_date),

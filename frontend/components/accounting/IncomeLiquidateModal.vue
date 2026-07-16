@@ -41,18 +41,14 @@ watch(
   () => [props.open, props.record],
   () => {
     if (!props.open || !props.record) return
-    // Default to what is still owed, not the full projection: the whole
-    // point of liquidating is that they often pay late and short.
-    const amount = props.record.pending_amount ?? props.record.total_amount
-    const half = (Number(amount) / 2).toFixed(2)
     form.value = {
+      ...defaultForm(),
       concept: props.record.concept ?? '',
-      period_date: '',
-      destination: 'partners',
-      total_amount: amount,
-      gustavo_amount: isPersonal.value ? '' : half,
-      carlos_amount: isPersonal.value ? '' : (Number(amount) - Number(half)).toFixed(2),
-      notes: '',
+      // Default to what is still owed, not the full projection: the whole
+      // point of liquidating is that they often pay late and short. The
+      // partner split stays empty on purpose — when neither amount is
+      // sent, the server applies its canonical 50/50 (split_half).
+      total_amount: props.record.pending_amount ?? props.record.total_amount,
     }
   },
   { immediate: true },
@@ -68,9 +64,10 @@ function onSubmit() {
     total_amount: form.value.total_amount,
     expected_income: props.record.id,
   }
-  if (!isPersonal.value) {
-    payload.gustavo_amount = form.value.gustavo_amount
-    payload.carlos_amount = form.value.carlos_amount
+  const { gustavo_amount, carlos_amount } = form.value
+  if (!isPersonal.value && gustavo_amount !== '' && carlos_amount !== '') {
+    payload.gustavo_amount = gustavo_amount
+    payload.carlos_amount = carlos_amount
   }
   payload.notes = form.value.notes
   emit('submit', payload)

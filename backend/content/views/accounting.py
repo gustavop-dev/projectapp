@@ -33,6 +33,7 @@ from content.models import (
 from content.permissions import IsSuperUser
 from content.serializers.accounting import (
     TWO_PLACES,
+    money_str,
     AccountingChangeLogSerializer,
     AccountingSettingsSerializer,
     AdsSpendRecordCreateUpdateSerializer,
@@ -80,8 +81,8 @@ def _parse_decimal(value, param):
         raise ValueError(f"El parámetro '{param}' debe ser un número.")
 
 
-def _money(value):
-    return str(Decimal(value).quantize(TWO_PLACES))
+# The serializers module owns the canonical money-string format.
+_money = money_str
 
 
 def _top_record(queryset, concept_field='concept'):
@@ -217,8 +218,9 @@ _ENTITIES = {
         'has_split': True,
         'pocket_filter': Q(destination=IncomeRecord.Destination.POCKET),
         'meta': _income_meta,
-        # Lazy so the Subquery is built per request, not at import time.
-        'annotations': lambda: {
+        # Safe to share across requests: annotate() resolves a copy of the
+        # expression, never the expression itself.
+        'annotations': {
             'paid_amount': accounting_service.paid_amount_subquery(),
         },
     },
@@ -335,7 +337,7 @@ def base_queryset(config):
     queryset = config['model'].objects.all()
     annotations = config.get('annotations')
     if annotations:
-        queryset = queryset.annotate(**annotations())
+        queryset = queryset.annotate(**annotations)
     return queryset
 
 

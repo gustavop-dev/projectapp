@@ -121,6 +121,23 @@ describe('IncomeLiquidateModal', () => {
     expect(payload.period_date).toBe('2026-11');
     expect(payload.total_amount).toBe('600000.00');
     expect(payload.ledger).toBe('company');
+    // Untouched split is omitted so the server applies its canonical
+    // 50/50 (split_half) — the client never re-implements the rounding.
+    expect(payload.gustavo_amount).toBeUndefined();
+    expect(payload.carlos_amount).toBeUndefined();
+  });
+
+  it('sends the split when the user fills it', async () => {
+    const wrapper = mountModal();
+
+    await wrapper.find('[data-testid="split-gustavo"]').setValue('400000');
+    await wrapper.find('[data-testid="split-carlos"]').setValue('200000');
+    await wrapper.find('input[type="month"]').setValue('2026-11');
+    await wrapper.find('form').trigger('submit');
+
+    const payload = wrapper.emitted('submit')[0][0];
+    expect(payload.gustavo_amount).toBe('400000');
+    expect(payload.carlos_amount).toBe('200000');
   });
 
   it('allows overriding the amount for a partial payment', async () => {

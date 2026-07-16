@@ -28,6 +28,7 @@ from content.models import (
     PocketMovement,
     RecurringPayment,
 )
+from content.serializers.accounting import split_half
 
 FAKE_REF = 'fake:accounting'
 
@@ -74,12 +75,12 @@ class Command(BaseCommand):
         for index in range(count):
             period = _month_start(rng.randrange(0, 12))
             total = Decimal(rng.randrange(400_000, 4_000_000, 10_000))
-            half = (total / 2).quantize(Decimal('0.01'))
+            gustavo, carlos = split_half(total)
             concept = rng.choice(INCOME_CONCEPTS)
             # Written off: money we already know will never arrive. It stays
             # out of the expected projection, so it never gets a liquid row.
             is_lost = index % 8 == 3
-            expected = IncomeRecord.objects.create(
+            income = IncomeRecord.objects.create(
                 concept=concept,
                 kind=(
                     IncomeRecord.Kind.LOST if is_lost
@@ -87,55 +88,54 @@ class Command(BaseCommand):
                 ),
                 period_date=period,
                 total_amount=total,
-                gustavo_amount=half,
-                carlos_amount=total - half,
+                gustavo_amount=gustavo,
+                carlos_amount=carlos,
                 source_ref=FAKE_REF,
             )
             created += 1
             if is_lost:
                 continue
-            # Roughly half of the expected incomes got paid in full (liquid
-            # row), a third of those into the company pocket; a quarter got
-            # a partial payment. That covers the three fulfilment states the
-            # Ingresos tab renders: Pagado, Parcial and Pendiente.
-            is_partial = index % 4 == 1
-            if index % 2 == 0 or is_partial:
-                paid = (
-                    (total * Decimal('0.4')).quantize(Decimal('0.01'))
-                    if is_partial else total
-                )
-                paid_half = (paid / 2).quantize(Decimal('0.01'))
-                # index % 6 == 0 is always even, so a partial row never
-                # lands in the pocket branch.
-                to_pocket = index % 6 == 0
-                movement = None
-                if to_pocket:
-                    movement = PocketMovement.objects.create(
-                        concept=f'Ingreso: {concept}',
-                        movement_date=period,
-                        direction=PocketMovement.Direction.IN,
-                        amount=paid,
-                        source_ref=FAKE_REF,
-                    )
-                    created += 1
-                IncomeRecord.objects.create(
-                    concept=concept,
-                    kind=IncomeRecord.Kind.LIQUID,
-                    period_date=period,
-                    destination=(
-                        IncomeRecord.Destination.POCKET
-                        if to_pocket else IncomeRecord.Destination.PARTNERS
-                    ),
-                    total_amount=paid,
-                    gustavo_amount=Decimal('0') if to_pocket else paid_half,
-                    carlos_amount=(
-                        Decimal('0') if to_pocket else paid - paid_half
-                    ),
-                    expected_income=expected,
-                    pocket_movement=movement,
+            # Fulfilment mix covering the three states the Ingresos tab
+            # renders: a 40% partial for a quarter of the rows, a full
+            # payment for the (remaining) even rows — a third of those into
+            # the company pocket — and nothing for the rest.
+            if index % 4 == 1:
+                paid_fraction = Decimal('0.4')
+            elif index % 2 == 0:
+                paid_fraction = Decimal('1')
+            else:
+                continue
+            paid = (total * paid_fraction).quantize(Decimal('0.01'))
+            paid_gustavo, paid_carlos = split_half(paid)
+            # index % 6 == 0 is always even, so a partial row never lands
+            # in the pocket branch.
+            to_pocket = index % 6 == 0
+            movement = None
+            if to_pocket:
+                movement = PocketMovement.objects.create(
+                    concept=f'Ingreso: {concept}',
+                    movement_date=period,
+                    direction=PocketMovement.Direction.IN,
+                    amount=paid,
                     source_ref=FAKE_REF,
                 )
                 created += 1
+            IncomeRecord.objects.create(
+                concept=concept,
+                kind=IncomeRecord.Kind.LIQUID,
+                period_date=period,
+                destination=(
+                    IncomeRecord.Destination.POCKET
+                    if to_pocket else IncomeRecord.Destination.PARTNERS
+                ),
+                total_amount=paid,
+                gustavo_amount=Decimal('0') if to_pocket else paid_gustavo,
+                carlos_amount=Decimal('0') if to_pocket else paid_carlos,
+                expected_income=income,
+                pocket_movement=movement,
+                source_ref=FAKE_REF,
+            )
+            created += 1
 
         for index in range(count):
             concept, category = EXPENSE_CONCEPTS[index % len(EXPENSE_CONCEPTS)]

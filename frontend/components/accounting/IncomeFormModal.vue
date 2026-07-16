@@ -71,28 +71,19 @@ watch(
   { immediate: true },
 )
 
-watch(
-  () => form.value.kind,
-  (kind) => {
-    // Pocket is liquid-only server-side, so anything else must drop it or
-    // the stale destination makes the save fail.
-    if (kind !== 'liquid') form.value.destination = 'partners'
-  },
-)
-
-watch(
-  () => form.value.ledger,
-  (ledger) => {
-    if (ledger !== 'company') form.value.destination = 'partners'
-  },
-)
-
 function onSubmit() {
   const payload = {
     concept: form.value.concept,
     kind: form.value.kind,
     period_date: form.value.period_date,
-    destination: form.value.destination,
+    // Pocket is liquid-and-company-only server-side. Deriving here (the
+    // same condition that shows the Destino field) instead of syncing via
+    // watches keeps the user's pocket choice across a liquid→lost→liquid
+    // round-trip.
+    destination:
+      form.value.kind === 'liquid' && !isPersonal.value
+        ? form.value.destination
+        : 'partners',
     ledger: form.value.ledger,
     total_amount: form.value.total_amount,
   }
