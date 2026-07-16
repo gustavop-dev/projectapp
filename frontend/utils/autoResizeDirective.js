@@ -19,10 +19,15 @@ export const vAutoResize = {
 
     el._autoResizeMinHeight = computeMinHeight();
     el._autoResizeHandler = () => {
+      // `updated` fires on every re-render of the host component, so bail on
+      // unchanged content BEFORE touching style — some views mount 15+ of
+      // these and each resize forces a layout. Memoize by value, never by
+      // height: a height memo that returns after `height:auto` strands the
+      // element collapsed under the `overflow:hidden` set above.
+      if (el._autoResizeLastValue === el.value) return;
+      el._autoResizeLastValue = el.value;
       // Collapse first so scrollHeight reports the content height rather than
-      // the current (possibly larger) box, then always restore a px height —
-      // leaving the element at `height:auto` would clip it to `rows` under the
-      // `overflow:hidden` set above.
+      // the current (possibly larger) box, then restore a px height.
       el.style.height = 'auto';
       el.style.height = Math.max(el.scrollHeight, el._autoResizeMinHeight) + 'px';
     };

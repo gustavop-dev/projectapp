@@ -79,10 +79,10 @@
           <input id="read_time_minutes" v-model.number="form.read_time_minutes" type="number" min="0" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" />
         </div>
         <div class="flex items-end">
-          <div class="inline-flex items-center gap-3">
+          <label class="inline-flex items-center cursor-pointer select-none gap-3">
             <BaseToggle v-model="form.is_featured" size="sm" aria-label="Destacado" />
             <span class="text-sm text-text-default">Destacado</span>
-          </div>
+          </label>
         </div>
       </div>
 
@@ -210,10 +210,10 @@
               <input v-model.number="jsonMeta.read_time_minutes" type="number" min="0" class="bg-input-bg w-full px-4 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none" />
             </div>
             <div class="flex items-end">
-              <div class="inline-flex items-center gap-3">
+              <label class="inline-flex items-center cursor-pointer select-none gap-3">
                 <BaseToggle v-model="jsonMeta.is_featured" size="sm" aria-label="Destacado" />
                 <span class="text-xs text-text-default">Destacado</span>
-              </div>
+              </label>
             </div>
           </div>
 

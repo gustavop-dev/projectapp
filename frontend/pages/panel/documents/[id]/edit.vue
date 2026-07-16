@@ -165,14 +165,14 @@
               </select>
             </div>
             <div class="space-y-1">
-              <div
+              <label
                 v-for="option in coverOptions"
                 :key="option.key"
-                class="flex items-center gap-3 py-1.5 px-1 select-none"
+                class="flex items-center gap-3 cursor-pointer py-1.5 px-1 select-none"
               >
                 <BaseToggle v-model="form[option.key]" :aria-label="option.label" />
                 <span class="text-sm font-medium text-text-default">{{ option.label }}</span>
-              </div>
+              </label>
             </div>
           </div>
         </div>
