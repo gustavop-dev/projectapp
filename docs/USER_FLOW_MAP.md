@@ -1222,7 +1222,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   6. Admin clicks the send button → `POST /api/proposals/:id/send-multi/` with `proposal_ids`.
   7. Backend validates same-client, ≥2 proposals, ≤10 proposals, applies side effects, sends one email with N PDF attachments, returns the proposal payload + `email_delivery` + `transitions` map.
   8. Modal closes; success toast "Correo enviado al cliente con N propuestas." renders. Page data refreshes so updated statuses/expires_at show.
-- **Coverage:** ❌ Missing — feature is brand new; no spec exercises the modal, the backend call, the same-client validation, the ≥2/≤10 guards, or the success toast.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-multi-send.spec.js`
 - **E2E Spec (suggested):** `e2e/admin/admin-proposal-multi-send.spec.js`. Mock `GET /api/proposals/?client_id=` to return ≥2 proposals across at least two of the status groups, click through the modal, mock `POST /api/proposals/:id/send-multi/` with `email_delivery.ok=true`, and assert the success toast.
 
 ### FLOW: `admin-proposal-resend`
@@ -1239,7 +1240,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   4. On confirm → `POST /api/proposals/:id/resend/`.
   5. Backend resets timers and re-sends the email, returning `email_delivery`.
   6. Success toast "Propuesta re-enviada al cliente" or error toast with `email_delivery.detail || email_delivery.reason`.
-- **Coverage:** ❌ Missing — only button visibility is asserted in `admin-proposal-send.spec.js`; the end-to-end resend execution path and the toast feedback have no dedicated spec.
+- **Coverage:** 🟡 Partial
+- **E2E Spec:** `e2e/admin/admin-proposal-resend.spec.js`
+- **Known gaps:** no `email_delivery.ok=false` handler; the failure-with-reason toast branch is untested (2026-07 audit).
 - **E2E Spec (suggested):** `e2e/admin/admin-proposal-resend.spec.js`
 
 ### FLOW: `admin-proposal-reopen-from-expired`
@@ -1260,7 +1263,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch A — form path] PATCH `/update/`. Status reverts to `viewed` if `view_count > 0`, else `sent`.
   - [Branch B — JSON path] PUT `/update-from-json/`. Same reopen logic; `ProposalFromJSONSerializer` reads the bound proposal via `context={'proposal': proposal}` to skip the future-only check when `expires_at` is unchanged.
   - [Branch C — keep `expires_at` unchanged] Admin edits other fields on an expired proposal without touching the date. Save succeeds (no longer blocked by validator); `status` stays `expired`.
-- **Coverage:** ❌ Missing — backend pytest covers the behavior (`test_update_reopens_status_when_expires_at_moved_to_future_no_views`, `test_update_reopens_to_viewed_when_proposal_was_visited`, `test_update_from_json_reopens_status_when_expires_at_moved_to_future`, plus the unchanged-date variants), but no Playwright spec exercises the UI path.
+- **Coverage:** 🟡 Partial
+- **E2E Spec:** `e2e/admin/admin-proposal-reopen-from-expired.spec.js`
+- **Known gaps:** the General-tab PATCH `/update/` reopen path is still unasserted; the JSON path now covers the PUT, toast and the expired→viewed status badge revert (2026-07).
 - **E2E Spec (suggested):** `e2e/admin/admin-proposal-reopen-from-expired.spec.js`
 
 ### FLOW: `admin-proposal-update-from-json`
@@ -1281,7 +1286,35 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch A — happy path] Valid JSON → 200 with refreshed proposal payload.
   - [Branch B — unknown section keys] Payload includes unrecognized keys → 200 + `warnings` listing them.
   - [Branch C — invalid `expires_at`] New value in the past → 400 from `validate_expires_at` (unless the value matches the proposal's stored `expires_at`).
-- **Coverage:** ❌ Missing — backend pytest covers the round-trip and warnings cases (`TestUpdateProposalFromJSON`), but no Playwright spec exercises the UI re-import path.
+- **Coverage:** 🟡 Partial
+- **E2E Spec:** `e2e/admin/admin-proposal-update-from-json.spec.js`
+- **Known gaps:** happy path only; unknown-key warnings surfacing and the keep-expires_at-on-expired branch are unasserted (2026-07 audit).
+
+### FLOW: `admin-proposal-prompt`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/proposals/:id/edit` (Prompt tab)
+- **Description:** Admin copies, edits, downloads and resets the commercial and technical proposal-generation prompts from the Prompt tab (`ProposalPromptTab.vue`, localStorage-persisted via `useSellerPrompt`/`useTechnicalPrompt`). Parallel of `admin-diagnostic-prompt`.
+- **Steps:**
+  1. Admin opens a proposal's edit page and switches to the Prompt tab.
+  2. Admin copies, edits, downloads or resets either prompt.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (suggested: `e2e/admin/admin-proposal-prompt.spec.js`)
+
+### FLOW: `admin-proposal-dev-checklist`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/proposals/:id/edit` (Desarrollo tab, accepted proposals only)
+- **Description:** Admin generates, copies and downloads a Markdown developer checklist from the Desarrollo tab (`DevChecklistTab.vue`, client-side `buildDevChecklistMarkdown`). The tab only appears when the proposal status is `accepted`.
+- **Steps:**
+  1. Admin opens an accepted proposal's edit page; the Desarrollo tab is visible.
+  2. Admin refreshes, copies or downloads the checklist markdown.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** — (suggested: `e2e/admin/admin-proposal-dev-checklist.spec.js`)
 - **E2E Spec (suggested):** `e2e/admin/admin-proposal-update-from-json.spec.js`
 
 ### FLOW: `admin-proposal-manual-alerts`
@@ -1540,7 +1573,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Post-rejection revisit] If the proposal was rejected and the client revisits, a `post_rejection_revisit` alert is also created.
 - **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/proposal/proposal-view.spec.js` (Branch A — Proposal expired)
+- **E2E Spec:** `e2e/proposal/proposal-expired-graceful.spec.js` (410 fallback + 200 expired_meta banner)
 - **Known gaps:** When the full proposal still renders with the persistent expired banner (`pages/proposal/[uuid]/index.vue` `isExpired`), the top-left index toggle must drop below the banner (`ProposalIndex` `bannerActive` → `top-28 sm:top-20`) so the two don't overlap. No E2E asserts this no-overlap; only a unit test (`test/components/ProposalIndex.test.js`) covers the offset class.
 
 ### FLOW: `proposal-magic-link-request`
@@ -1626,6 +1659,21 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-rejection-recovery.spec.js`
 
+### FLOW: `proposal-schedule-followup-reminder`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** After rejecting with reason "not the right time", the client clicks the "🔔 remind me later" CTA in the recovery card (`ProposalClosing.vue` `scheduleReminder`), which POSTs `proposals/:uuid/schedule-followup/` and flips the button to a scheduled-confirmation state. The only recovery CTA that mutates server state.
+- **Steps:**
+  1. Client rejects the proposal choosing "not the right time".
+  2. Recovery card renders with the reminder CTA.
+  3. Client clicks it → `POST /api/proposals/:uuid/schedule-followup/`.
+  4. Button flips to the scheduled ✅ state.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-rejection-recovery.spec.js` (schedule-followup test)
+
 ### FLOW: `proposal-functional-requirements-modal`
 
 - **Module:** proposal
@@ -1657,7 +1705,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   5. Backend sets `automations_paused = True` and status to `negotiating`.
   6. Success message displays with WhatsApp CTA for further discussion.
 - **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/proposal/proposal-respond.spec.js`
+- **E2E Spec:** `e2e/proposal/proposal-negotiate.spec.js`
 
 ### FLOW: `admin-proposal-quick-send`
 
@@ -2558,8 +2606,10 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-client-inactive-tab` | admin | admin | P2 | 🟡 Partial (reactivate branch not asserted) | `e2e/admin/admin-clients-inactive-tab.spec.js` |
 | `admin-client-drag-reassign` | admin | admin | P2 | 🟡 Partial (undo action not asserted) | `e2e/admin/admin-clients-drag-reassign.spec.js` |
 | `admin-proposal-send` | admin | admin | P1 | 🟡 Partial (email_intro editing, PDF attachment, failure-feedback toast not asserted) | `e2e/admin/admin-proposal-send.spec.js` |
-| `admin-proposal-multi-send` | admin | admin | P1 | ❌ Missing | `e2e/admin/admin-proposal-multi-send.spec.js` |
-| `admin-proposal-resend` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-proposal-resend.spec.js` |
+| `admin-proposal-multi-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-multi-send.spec.js` |
+| `admin-proposal-resend` | admin | admin | P2 | 🟡 Partial | `e2e/admin/admin-proposal-resend.spec.js` |
+| `admin-proposal-prompt` | admin | admin | P3 | ❌ Missing | — |
+| `admin-proposal-dev-checklist` | admin | admin | P3 | ❌ Missing | — |
 | `admin-blog-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-list.spec.js` |
 | `admin-blog-calendar` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-calendar.spec.js` |
 | `admin-blog-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-create.spec.js` |
@@ -2592,14 +2642,14 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-calculator-modules` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-calculator-modules.spec.js` |
 | `proposal-calculator-selected-first` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-modules.spec.js` |
 | `proposal-calculator-integrations` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-integrations.spec.js` |
-| `proposal-expired-graceful` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view.spec.js` |
+| `proposal-expired-graceful` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-expired-graceful.spec.js` |
 | `proposal-magic-link-request` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-magic-link-request.spec.js` |
 | `proposal-calculator-abandonment-tracking` | proposal | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
 | `admin-proposal-batch-actions` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
 | `admin-proposal-engagement-decay-alert` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
 | `admin-proposal-post-rejection-revisit` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
 | `admin-proposal-json-import-warnings` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
-| `proposal-negotiate` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-respond.spec.js` |
+| `proposal-negotiate` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-negotiate.spec.js` |
 | `admin-proposal-quick-send` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
 | `admin-proposal-quick-log` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-quick-log.spec.js` |
 | `proposal-calculator-timeline` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-calculator-timeline.spec.js` |
@@ -2678,6 +2728,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-actions-modal` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-actions-modal.spec.js` |
 | `proposal-comment-from-closing` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-comment-flow.spec.js` |
 | `proposal-rejection-smart-recovery` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-rejection-recovery.spec.js` |
+| `proposal-schedule-followup-reminder` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-rejection-recovery.spec.js` |
 | `proposal-functional-requirements-modal` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-requirements-modal.spec.js` |
 | `platform-access-view` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-access.spec.js` |
 

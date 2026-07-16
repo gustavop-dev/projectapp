@@ -105,6 +105,7 @@ export const PROPOSAL_INVESTMENT_CALCULATOR = ['@flow:proposal-investment-calcul
 export const ADMIN_PROPOSAL_ACTIONS_MODAL = ['@flow:admin-proposal-actions-modal', '@module:admin', '@priority:P1'];
 export const PROPOSAL_COMMENT_FROM_CLOSING = ['@flow:proposal-comment-from-closing', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_REJECTION_SMART_RECOVERY = ['@flow:proposal-rejection-smart-recovery', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_SCHEDULE_FOLLOWUP_REMINDER = ['@flow:proposal-schedule-followup-reminder', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_FUNCTIONAL_REQUIREMENTS_MODAL = ['@flow:proposal-functional-requirements-modal', '@module:proposal', '@priority:P2'];
 export const ADMIN_PROPOSAL_ACTIVITY_LOG = ['@flow:admin-proposal-log-activity', '@module:admin', '@priority:P2'];
 

@@ -1,7 +1,8 @@
 /**
  * E2E tests for calculator micro-feedback badge.
  *
- * Covers: toggling a calculator module shows a transient +/- price badge.
+ * Covers: toggling a calculator module shows the transient +/- price badge
+ * next to the module price (green + on select, red - on deselect).
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -17,12 +18,13 @@ const mockProposal = {
   status: 'sent',
   language: 'es',
   total_investment: '10000000',
+  effective_total_investment: 10000000,
   currency: 'COP',
   sections: [
     {
       id: 1,
       section_type: 'greeting',
-      title: '👋 Bienvenido',
+      title: 'Bienvenido',
       order: 0,
       is_enabled: true,
       content_json: { clientName: 'Test Client', inspirationalQuote: '' },
@@ -30,39 +32,69 @@ const mockProposal = {
     {
       id: 2,
       section_type: 'investment',
-      title: '💰 Inversión',
+      title: 'Inversión',
       order: 1,
       is_enabled: true,
       content_json: {
-        totalInvestment: 10000000,
+        index: '2',
+        title: 'Inversión',
+        introText: 'Tu inversión incluye:',
+        totalInvestment: '$10.000.000',
         currency: 'COP',
-        estimatedWeeks: 12,
-        calculatorModules: [
-          { id: 'pwa', name: 'PWA', percent: 40, selected: false, description: 'Progressive Web App' },
-          { id: 'reports', name: 'Reportes y Alertas', percent: 20, selected: true, description: 'Reports' },
+        whatsIncluded: [{ icon: '🎨', title: 'Diseño', description: 'UX/UI' }],
+        paymentOptions: [{ label: 'Pago único', description: '$10.000.000' }],
+        valueReasons: [],
+      },
+    },
+    {
+      id: 3,
+      section_type: 'functional_requirements',
+      title: 'Requerimientos',
+      order: 2,
+      is_enabled: true,
+      content_json: {
+        index: '3',
+        title: 'Requerimientos Funcionales',
+        intro: 'Detalle.',
+        groups: [
+          {
+            id: 'views',
+            icon: '👁️',
+            title: 'Vistas',
+            is_visible: true,
+            description: 'Pantallas.',
+            items: [{ icon: '🏠', name: 'Home', description: 'Landing.' }],
+          },
+          {
+            id: 'pwa_module',
+            icon: '📱',
+            title: 'Progressive Web App (PWA)',
+            is_visible: true,
+            description: 'App instalable.',
+            is_calculator_module: true,
+            default_selected: false,
+            price_percent: 40,
+            items: [{ icon: '📲', name: 'Instalación', description: 'Como app.' }],
+          },
         ],
+        additionalModules: [],
       },
     },
   ],
   requirement_groups: [],
 };
 
-async function openInvestmentSection(page) {
-  await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-  const nextBtn = page.getByTestId('nav-next');
-  await expect(nextBtn).toBeVisible({ timeout: 15000 });
-  await nextBtn.click();
-  await expect(page.getByRole('heading', { name: /Inversi[oó]n y Formas de Pago/i })).toBeVisible({ timeout: 5000 });
-}
-
 test.describe('Proposal Calculator Micro-Feedback', () => {
+  test.describe.configure({ timeout: 60_000 });
+
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
+      localStorage.setItem(`investment_onboarding_seen_${_uuid}`, 'true');
     }, MOCK_UUID);
   });
 
-  test('toggling a calculator module shows price feedback badge', {
+  test('toggling a calculator module shows the transient +/- price badge', {
     tag: [...PROPOSAL_CALCULATOR_MICRO_FEEDBACK, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
@@ -72,21 +104,32 @@ test.describe('Proposal Calculator Micro-Feedback', () => {
       return null;
     });
 
-    await openInvestmentSection(page);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
+    const nextBtn = page.getByTestId('nav-next');
+    await expect(nextBtn).toBeVisible({ timeout: 15000 });
+    await nextBtn.click();
+    await expect(page.getByText(/inversi[oó]n/i).first()).toBeVisible({ timeout: 10000 });
 
-    // Open calculator modal
-    const calcBtn = page.getByRole('button', { name: /Personalizar/i });
-    if (await calcBtn.isVisible().catch(() => false)) {
-      await calcBtn.click();
+    const customizeBtn = page.getByRole('button', { name: /Personalizar/i });
+    await expect(customizeBtn).toBeVisible({ timeout: 10000 });
+    await customizeBtn.scrollIntoViewIfNeeded();
+    await customizeBtn.click();
+    await expect(page.getByText(/Selecciona los módulos/i)).toBeVisible({ timeout: 10000 });
 
-      // Find a module toggle and click it
-      const moduleToggle = page.locator('[data-testid="calc-module-toggle"]').first();
-      if (await moduleToggle.isVisible().catch(() => false)) {
-        await moduleToggle.click();
-        // The micro-feedback badge should appear briefly
-        const feedback = page.locator('[class*="micro-feedback"], [data-testid="price-feedback"]');
-        await expect(feedback).toBeVisible({ timeout: 3000 });
-      }
-    }
+    // Selecting PWA (40% of $10M): the price span gains a "+" AND the
+    // transient micro-feedback badge flashes the same amount — two matches.
+    // The row's border class flips border → border-2 on select, so the
+    // locator anchors on the unconditional rounded-xl + transition-all pair.
+    const pwaRow = page.locator('div.rounded-xl.transition-all').filter({ hasText: /Progressive Web App/ });
+    const pwaTitle = pwaRow.getByText('Progressive Web App (PWA)');
+    await pwaTitle.click();
+    await expect(pwaRow.getByText('+$4.000.000')).toHaveCount(2, { timeout: 1400 });
+
+    // The badge expires after ~1.5s, leaving only the price span.
+    await expect(pwaRow.getByText('+$4.000.000')).toHaveCount(1, { timeout: 3000 });
+
+    // Deselecting flashes the negative badge (unique — the price loses its +).
+    await pwaTitle.click();
+    await expect(pwaRow.getByText('-$4.000.000')).toBeVisible({ timeout: 1400 });
   });
 });

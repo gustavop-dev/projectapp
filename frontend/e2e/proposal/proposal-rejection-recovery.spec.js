@@ -6,7 +6,7 @@
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
-import { PROPOSAL_REJECTION_SMART_RECOVERY } from '../helpers/flow-tags.js';
+import { PROPOSAL_REJECTION_SMART_RECOVERY, PROPOSAL_SCHEDULE_FOLLOWUP_REMINDER } from '../helpers/flow-tags.js';
 
 const MOCK_UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 
@@ -116,6 +116,41 @@ test.describe('Proposal Rejection Smart Recovery', () => {
 
     await expect(page.getByText(/recordamos más adelante/i)).toBeVisible({ timeout: 5000 });
     await expect(page.getByRole('button', { name: /Recordármelo en 3 meses/i })).toBeVisible();
+  });
+
+  test('reminder CTA POSTs schedule-followup and flips to the scheduled state', {
+    tag: [...PROPOSAL_SCHEDULE_FOLLOWUP_REMINDER, '@role:guest'],
+  }, async ({ page }) => {
+    let followupCalled = false;
+
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === `proposals/${MOCK_UUID}/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockSentProposal) };
+      }
+      if (apiPath === `proposals/${MOCK_UUID}/respond/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'rejected' }) };
+      }
+      if (apiPath === `proposals/${MOCK_UUID}/schedule-followup/`) {
+        followupCalled = true;
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ scheduled: true }) };
+      }
+      return null;
+    });
+
+    await openClosingPanel(page);
+    await rejectWithReason(page, 'No es el momento');
+
+    const reminderBtn = page.getByRole('button', { name: /Recordármelo en 3 meses/i });
+    await expect(reminderBtn).toBeVisible({ timeout: 5000 });
+
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes(`proposals/${MOCK_UUID}/schedule-followup/`)),
+      reminderBtn.click(),
+    ]);
+
+    expect(followupCalled).toBe(true);
+    await expect(page.getByText('Listo, te recordaremos en 3 meses.')).toBeVisible({ timeout: 5000 });
+    await expect(reminderBtn).not.toBeVisible();
   });
 
   test('rejecting with "Encontré otra opción" shows farewell card', {

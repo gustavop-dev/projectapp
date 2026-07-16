@@ -161,5 +161,11 @@ test.describe('Proposal Structured Negotiation Modal', () => {
 
     // Verify success state
     await expect(page.getByText(/¡Solicitud recibida!/i)).toBeVisible({ timeout: 5000 });
+
+    // The POST body must carry the negotiating action and both selected
+    // reasons (bracketed list inside `comment`, built by confirmNegotiate).
+    expect(_respondPayload.action).toBe('negotiating');
+    expect(_respondPayload.comment).toContain('Los tiempos de entrega no me funcionan');
+    expect(_respondPayload.comment).toContain('El presupuesto es alto para este momento');
   });
 });

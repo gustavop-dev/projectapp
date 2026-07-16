@@ -273,7 +273,10 @@
       ],
       "priority": "P2",
       "description": "Resend an already-sent proposal via 'Re-enviar' from the actions modal. Confirmation dialog → POST /proposals/:id/resend/ keeps existing expires_at, resets sent_at and reminder timers, and returns email_delivery. The panel toast surfaces success or failure with the reason.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "No email_delivery.ok=false handler; failure-with-reason toast branch untested (2026-07 audit)."
+      ]
     },
     "admin-proposal-reopen-from-expired": {
       "name": "Admin Proposal Reopen From Expired",
@@ -283,7 +286,10 @@
       ],
       "priority": "P1",
       "description": "Recover an expired proposal by extending expires_at to a future date from /panel/proposals/:id/edit (General tab) or via the JSON re-import panel. The serializer no longer blocks re-saving when expires_at is unchanged, and ProposalService.reopen_if_unexpired auto-reverts status from 'expired' to 'viewed' (when view_count > 0) or 'sent', logging an 'Auto-reopened from expired…' entry in ProposalChangeLog. Covers both PATCH /proposals/:id/update/ and PUT /proposals/:id/update-from-json/ paths.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "The General-tab PATCH /update/ reopen path is still unasserted (JSON path covered incl. status badge revert, 2026-07)."
+      ]
     },
     "admin-proposal-update-from-json": {
       "name": "Admin Proposal Update From JSON",
@@ -293,7 +299,10 @@
       ],
       "priority": "P2",
       "description": "Re-import a complete JSON payload over an existing proposal from /panel/proposals/:id/edit. Pastes/uploads JSON → PUT /proposals/:id/update-from-json/ replaces metadata and section content_json. Different from admin-proposal-create-from-json (creation): targets an existing proposal id, supports keeping expires_at unchanged on expired proposals, and surfaces unknown-key warnings.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Happy path only; unknown-key warnings surfacing and keep-expires_at-on-expired branch unasserted (2026-07 audit)."
+      ]
     },
     "admin-blog-list": {
       "name": "Admin Blog List",
@@ -406,7 +415,10 @@
       ],
       "priority": "P2",
       "description": "Client shares the proposal with a stakeholder via tracked share link.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Only asserts button visibility + modal open; tracked share-link creation POST/copied URL unasserted (2026-07 audit)."
+      ]
     },
     "proposal-engagement-tracking": {
       "name": "Proposal Engagement Tracking",
@@ -416,7 +428,10 @@
       ],
       "priority": "P2",
       "description": "Automatic section-level engagement tracking with stakeholder detection and follow-up alerts.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Only nav button visibility; the section engagement POST is never asserted (2026-07 audit)."
+      ]
     },
     "admin-proposal-duplicate": {
       "name": "Admin Proposal Duplicate",
@@ -879,10 +894,7 @@
       ],
       "priority": "P2",
       "description": "Send or re-send a proposal directly from the proposals list without entering edit page.",
-      "expectedSpecs": 1,
-      "knownGaps": [
-        "Covered within admin-proposal-list.spec.js"
-      ]
+      "expectedSpecs": 1
     },
     "admin-proposal-quick-log": {
       "name": "Admin Proposal Quick Log Activity",
@@ -1074,7 +1086,10 @@
       ],
       "priority": "P2",
       "description": "Change proposal status directly from the proposals table via inline dropdown. The draft→sent transition is delegated to ProposalService.send_proposal so the client email is dispatched and Huey reminders are scheduled (defense-in-depth — same behavior as the dedicated 'Enviar al Cliente' button). Response includes email_delivery and the panel toast surfaces failures with the reason.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "No /send/ handler: draft->sent delegation and email_delivery.ok=false failure toast unasserted (2026-07 audit)."
+      ]
     },
     "admin-proposal-defaults-config": {
       "name": "Admin Proposal Defaults Config",
@@ -1114,7 +1129,10 @@
       ],
       "priority": "P3",
       "description": "Progress bar showing percentage of enabled sections with content in the edit view.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Both tests assert only the label; percentage value and color-coding never asserted (2026-07 audit)."
+      ]
     },
     "admin-daily-pipeline-digest": {
       "name": "Admin Daily Pipeline Digest",
@@ -2614,7 +2632,10 @@
       ],
       "priority": "P2",
       "description": "Admin toggles section visibility (is_enabled) from the Secciones tab of the proposal edit page. Each section row has an enable/disable toggle; disabled sections are greyed out in the admin list and excluded from the public proposal view. PATCH /api/proposals/sections/:id/update/ with { is_enabled: false }. Complements admin-proposal-section-reorder — both operations can be combined in sequence.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Admin side covered; no assertion that a disabled section disappears from the public view (2026-07 audit)."
+      ]
     },
     "admin-proposal-section-sync": {
       "name": "Admin Proposal Section Sync (Preview & Apply)",
@@ -3041,6 +3062,42 @@
       "priority": "P3",
       "description": "Admin activates the fixed trailing 'Configuraciones' tab of the proposals filter-tab bar (right-aligned on desktop, select option on mobile): the list swaps to the shared ViewSettingsPanel with the proposal saved-filter-tabs reset (view=proposal) and a link to /panel/proposals/defaults. Selecting any filter tab closes the panel.",
       "expectedSpecs": 0
+    },
+    "proposal-schedule-followup-reminder": {
+      "name": "Proposal Schedule Follow-up Reminder",
+      "module": "proposal",
+      "roles": [
+        "guest"
+      ],
+      "priority": "P2",
+      "description": "After rejecting with \"not the right time\", the client clicks the reminder CTA which POSTs proposals/:uuid/schedule-followup/ and flips to a scheduled-confirmation state.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-prompt": {
+      "name": "Admin Proposal Prompt Tab",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Admin copies, edits, downloads and resets the commercial and technical proposal-generation prompts from the Prompt tab (localStorage-persisted; parallel of admin-diagnostic-prompt).",
+      "expectedSpecs": 0,
+      "knownGaps": [
+        "No spec yet (2026-07 audit): copy/download/reset actions for both prompts are untested."
+      ]
+    },
+    "admin-proposal-dev-checklist": {
+      "name": "Admin Proposal Dev Checklist Tab",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P3",
+      "description": "Admin generates, copies and downloads the Markdown developer checklist from the Desarrollo tab of an accepted proposal (client-side markdown build).",
+      "expectedSpecs": 0,
+      "knownGaps": [
+        "No spec yet (2026-07 audit): tab only appears for accepted proposals; refresh/copy/download untested."
+      ]
     }
   }
 }
