@@ -25,7 +25,7 @@
           <label for="hp-nationality" class="block text-sm font-medium text-text-default mb-1">Nacionalidad</label>
           <select id="hp-nationality" v-model="form.nationality" class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-input-text text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all">
             <option value="COL">Colombia</option>
-            <option value="MEX">México</option>
+            <option value="EXT">Extranjero</option>
             <option value="USA">Estados Unidos</option>
           </select>
           <p v-if="fieldErrors.nationality" class="text-xs text-danger-strong mt-1">{{ fieldErrors.nationality }}</p>
@@ -125,7 +125,7 @@ const router = useRouter();
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
-const CURRENCY_BY_NATIONALITY = { COL: 'COP', MEX: 'USD', USA: 'USD' };
+const CURRENCY_BY_NATIONALITY = { COL: 'COP', EXT: 'USD', USA: 'USD' };
 
 const hourPackagesStore = useHourPackagesStore();
 const notify = usePanelNotify();

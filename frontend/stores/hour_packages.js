@@ -32,7 +32,7 @@ export const useHourPackagesStore = defineStore('hour_packages', {
   actions: {
     /**
      * fetchAdminPackages: List hour packages, optionally filtered by nationality.
-     * @param {string|null} nationality - 'COL' | 'MEX' | 'USA' or null for all.
+     * @param {string|null} nationality - 'COL' | 'EXT' | 'USA' or null for all.
      */
     async fetchAdminPackages(nationality = null) {
       this.isLoading = true;
@@ -154,7 +154,7 @@ export const useHourPackagesStore = defineStore('hour_packages', {
     /**
      * restoreDefaults: Replace one nationality's catalog with the canonical
      * defaults. The backend returns the fresh list for that nationality.
-     * @param {string} nationality - 'COL' | 'MEX' | 'USA'.
+     * @param {string} nationality - 'COL' | 'EXT' | 'USA'.
      */
     async restoreDefaults(nationality) {
       this.isUpdating = true;

@@ -159,7 +159,7 @@ class Command(BaseCommand):
                 'currency': currency,
                 'nationality': (
                     'COL' if currency == 'COP'
-                    else random.choice(['MEX', 'USA'])
+                    else random.choice(['EXT', 'USA'])
                 ),
                 'status': status,
                 'discount_percent': discount,
