@@ -38,7 +38,7 @@ describe('useAccountingStore — operations', () => {
   })
 
   describe('statement transactions', () => {
-    it('createStatementTransactions posts the batch and refreshes the open detail', async () => {
+    it('createStatementTransactions posts the lines and refreshes the open detail', async () => {
       store.statementDetail = { id: 5, transactions: [] }
       create_request.mockResolvedValue({ data: { created: 2 } })
       get_request.mockResolvedValue({ data: { id: 5, transactions: [{ id: 1 }] } })
