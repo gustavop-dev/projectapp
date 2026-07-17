@@ -13,17 +13,19 @@ const props = defineProps({
 const emit = defineEmits(['close', 'submit'])
 
 const destinationOptions = [
-  { value: 'partners', label: 'Socios' },
   { value: 'pocket', label: 'Bolsillo ProjectApp' },
+  { value: 'partners', label: 'Socios' },
 ]
 
 const form = ref(defaultForm())
+// Month is enough by default; the toggle records the exact payment day.
+const exactDate = ref(false)
 
 function defaultForm() {
   return {
     concept: '',
     period_date: '',
-    destination: 'partners',
+    destination: 'pocket',
     total_amount: '',
     gustavo_amount: '',
     carlos_amount: '',
@@ -41,6 +43,7 @@ watch(
   () => [props.open, props.record],
   () => {
     if (!props.open || !props.record) return
+    exactDate.value = false
     form.value = {
       ...defaultForm(),
       concept: props.record.concept ?? '',
@@ -53,6 +56,13 @@ watch(
   },
   { immediate: true },
 )
+
+// Keep whatever was typed when flipping modes: 'YYYY-MM' ⇄ 'YYYY-MM-DD'.
+watch(exactDate, (exact) => {
+  const value = form.value.period_date
+  if (!value) return
+  form.value.period_date = exact ? `${value.slice(0, 7)}-01` : value.slice(0, 7)
+})
 
 function onSubmit() {
   const payload = {
@@ -109,13 +119,24 @@ function onSubmit() {
         <BaseInput v-model="form.concept" required />
       </BaseFormField>
 
-      <BaseFormField label="Mes en que se pagó" required>
+      <BaseFormField
+        :label="exactDate ? 'Fecha en que se pagó' : 'Mes en que se pagó'"
+        required
+      >
         <BaseInput
           v-model="form.period_date"
-          type="month"
+          :type="exactDate ? 'date' : 'month'"
           required
           data-testid="income-liquidate-period"
         />
+        <label class="flex items-center gap-2 mt-2 text-xs text-text-subtle">
+          <BaseToggle
+            v-model="exactDate"
+            aria-label="Registrar el día exacto de pago"
+            data-testid="income-liquidate-exact-date"
+          />
+          Registrar el día exacto de pago
+        </label>
       </BaseFormField>
 
       <BaseFormField v-if="!isPersonal" label="Destino">

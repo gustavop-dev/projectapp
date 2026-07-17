@@ -191,9 +191,11 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
       modal.getByText('Los ingresos al bolsillo siempre son de la empresa.'),
     ).toBeVisible();
     await modal.getByRole('tab', { name: 'Egreso', exact: true }).click();
-    await modal.getByRole('tab', { name: 'Personal Gustavo', exact: true }).click();
+    // For egresos the selector attributes the draw to a partner.
+    await expect(modal.getByText('Atribuir a')).toBeVisible();
+    await modal.getByRole('tab', { name: 'Gustavo', exact: true }).click();
     await expect(
-      modal.getByRole('tab', { name: 'Personal Gustavo', exact: true }),
+      modal.getByRole('tab', { name: 'Gustavo', exact: true }),
     ).toHaveAttribute('aria-selected', 'true');
   });
 

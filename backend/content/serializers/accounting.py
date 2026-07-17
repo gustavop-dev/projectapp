@@ -47,10 +47,17 @@ def month_period(date_value):
 
 
 def month_label(date_value):
-    """Return the Spanish 'Mes YYYY' label of a date."""
+    """Return the Spanish 'Mes YYYY' label of a date.
+
+    A day other than 1 marks an exact payment date (see
+    FlexiblePeriodField) and is included: '17 Julio 2026'.
+    """
     if not date_value:
         return ''
-    return f'{SPANISH_MONTHS[date_value.month].capitalize()} {date_value.year}'
+    month_year = f'{SPANISH_MONTHS[date_value.month].capitalize()} {date_value.year}'
+    if date_value.day != 1:
+        return f'{date_value.day} {month_year}'
+    return month_year
 
 
 def split_half(total):
@@ -67,6 +74,20 @@ class MonthPeriodField(serializers.DateField):
             value = f'{value.strip()}-01'
         date_value = super().to_internal_value(value)
         return date_value.replace(day=1)
+
+
+class FlexiblePeriodField(serializers.DateField):
+    """DateField accepting 'YYYY-MM' (→ day 1) or a full date (keeps the day).
+
+    Income/expense periods are month-grained by default, but a full date
+    records the exact payment day when it is known. Statements keep the
+    strict MonthPeriodField: they are matched by exact day-1 equality.
+    """
+
+    def to_internal_value(self, value):
+        if isinstance(value, str) and MONTH_PERIOD_RE.match(value.strip()):
+            value = f'{value.strip()}-01'
+        return super().to_internal_value(value)
 
 
 class PeriodReadMixin(serializers.Serializer):
@@ -218,7 +239,7 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
 class IncomeRecordCreateUpdateSerializer(
     PartnerSplitWriteMixin, serializers.ModelSerializer,
 ):
-    period_date = MonthPeriodField()
+    period_date = FlexiblePeriodField()
     expected_income = serializers.PrimaryKeyRelatedField(
         queryset=IncomeRecord.objects.filter(kind=IncomeRecord.Kind.EXPECTED),
         required=False,
@@ -314,7 +335,7 @@ class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
 class ExpenseRecordCreateUpdateSerializer(
     PartnerSplitWriteMixin, serializers.ModelSerializer,
 ):
-    period_date = MonthPeriodField()
+    period_date = FlexiblePeriodField()
     # Not a model field: the service pops it. Checked by default — unchecked
     # covers paper adjustments and personal expenses that never touched the
     # company pocket. On update it can also link/unlink the mirror movement.
@@ -329,6 +350,38 @@ class ExpenseRecordCreateUpdateSerializer(
             'total_amount', 'gustavo_amount', 'carlos_amount', 'notes',
             'register_in_pocket',
         )
+
+    def validate(self, data):
+        data = super().validate(data)
+
+        def effective(field, default=None):
+            if field in data:
+                return data[field]
+            if self.instance is not None:
+                return getattr(self.instance, field)
+            return default
+
+        ledger = effective('ledger', Ledger.COMPANY)
+        if ledger not in PERSONAL_LEDGER_OWNER:
+            return data
+        wants_pocket = data.get('register_in_pocket')
+        if wants_pocket is None:
+            wants_pocket = (
+                self.instance is not None
+                and self.instance.pocket_movement_id is not None
+            )
+        total = effective('total_amount')
+        if not wants_pocket or total is None:
+            return data
+        # A personal expense paid from the pocket is a partner draw:
+        # company money fully assigned to that partner. Keeping it on the
+        # personal ledger would drain the pocket without reducing the
+        # company utility (pocket == liquid income − expenses).
+        owner_field, other_field = PERSONAL_LEDGER_OWNER[ledger]
+        data['ledger'] = Ledger.COMPANY
+        data[owner_field] = total
+        data[other_field] = Decimal('0')
+        return data
 
 
 # ── Hosting ──
@@ -476,6 +529,15 @@ class PocketMovementSerializer(serializers.ModelSerializer):
         return expense.pk if expense else None
 
     def get_linked_ledger(self, obj):
+        """Attribution shown by the pocket modal's Contabilidad control.
+
+        Draws are stored as company-ledger expenses fully assigned to one
+        partner, so the expense side reports its `partner_attribution`.
+        Incomes report the plain ledger: pocket IN is always company.
+        """
+        expense = getattr(obj, 'expense_record', None)
+        if expense is not None:
+            return expense.partner_attribution
         linked = obj.linked_record
         return linked.ledger if linked else None
 

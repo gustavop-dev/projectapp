@@ -41,12 +41,18 @@ class TestPeriodHandling:
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data['period_date'] == date(2026, 1, 1)
 
-    def test_full_date_is_normalized_to_day_one(self):
+    def test_full_date_keeps_the_exact_payment_day(self):
         serializer = IncomeRecordCreateUpdateSerializer(
             data=income_payload(period_date='2026-03-15'),
         )
         assert serializer.is_valid(), serializer.errors
-        assert serializer.validated_data['period_date'] == date(2026, 3, 1)
+        assert serializer.validated_data['period_date'] == date(2026, 3, 15)
+
+    def test_exact_day_shows_up_in_the_period_label(self, make_income):
+        income = make_income(period_date=date(2026, 7, 17))
+        data = IncomeRecordSerializer(income).data
+        assert data['period'] == '2026-07'
+        assert data['period_label'] == '17 Julio 2026'
 
     def test_invalid_month_is_rejected(self):
         serializer = IncomeRecordCreateUpdateSerializer(
@@ -157,6 +163,35 @@ class TestPersonalLedger:
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data['carlos_amount'] == Decimal('250.00')
         assert serializer.validated_data['gustavo_amount'] == Decimal('0')
+
+    def test_personal_expense_from_pocket_becomes_company_draw(self):
+        # Money that leaves the pocket is company money: a personal
+        # expense with the pocket toggle on converts into a company
+        # expense fully assigned to its owner, so it reduces the company
+        # utility instead of silently draining the pocket.
+        serializer = ExpenseRecordCreateUpdateSerializer(data={
+            'concept': 'Gasolina Carronis',
+            'period_date': '2026-07',
+            'ledger': 'gustavo',
+            'total_amount': '200000.00',
+            'register_in_pocket': True,
+        })
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['ledger'] == 'company'
+        assert serializer.validated_data['gustavo_amount'] == Decimal('200000.00')
+        assert serializer.validated_data['carlos_amount'] == Decimal('0')
+
+    def test_personal_expense_outside_pocket_stays_personal(self):
+        serializer = ExpenseRecordCreateUpdateSerializer(data={
+            'concept': 'Mercado',
+            'period_date': '2026-07',
+            'ledger': 'gustavo',
+            'total_amount': '90000.00',
+            'register_in_pocket': False,
+        })
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['ledger'] == 'gustavo'
+        assert serializer.validated_data['gustavo_amount'] == Decimal('90000.00')
 
     def test_personal_income_cannot_target_pocket(self):
         serializer = IncomeRecordCreateUpdateSerializer(

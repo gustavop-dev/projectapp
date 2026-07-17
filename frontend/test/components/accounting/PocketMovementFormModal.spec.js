@@ -96,7 +96,7 @@ describe('PocketMovementFormModal', () => {
     );
 
     await segmentedButton(wrapper, 'Egreso').trigger('click');
-    await segmentedButton(wrapper, 'Personal Carlos').trigger('click');
+    await segmentedButton(wrapper, 'Carlos').trigger('click');
     await segmentedButton(wrapper, 'Ingreso').trigger('click');
 
     // Flipping back to IN resets the ledger to company.
@@ -105,7 +105,19 @@ describe('PocketMovementFormModal', () => {
     ).toBe('true');
   });
 
-  it('locks the direction and prefills the ledger on linked records', () => {
+  it('relabels the selector as attribution for egresos', async () => {
+    const wrapper = mountModal();
+
+    await segmentedButton(wrapper, 'Egreso').trigger('click');
+
+    // A pocket egreso always counts against company utility; the partner
+    // options attribute the draw instead of picking a personal ledger.
+    expect(wrapper.text()).toContain('Atribuir a');
+    expect(segmentedButton(wrapper, 'Gustavo')).toBeTruthy();
+    expect(wrapper.text()).toContain('resta a la utilidad de la empresa');
+  });
+
+  it('locks the direction and prefills the attribution on linked records', () => {
     const wrapper = mountModal({ record: LINKED_RECORD });
 
     expect(wrapper.text()).toContain(
@@ -114,7 +126,7 @@ describe('PocketMovementFormModal', () => {
     expect(segmentedButton(wrapper, 'Egreso').attributes('disabled'))
       .toBeDefined();
     expect(
-      segmentedButton(wrapper, 'Personal Gustavo').attributes('aria-selected'),
+      segmentedButton(wrapper, 'Gustavo').attributes('aria-selected'),
     ).toBe('true');
   });
 
@@ -124,6 +136,7 @@ describe('PocketMovementFormModal', () => {
     });
 
     expect(wrapper.text()).not.toContain('Contabilidad');
+    expect(wrapper.text()).not.toContain('Atribuir a');
   });
 
   it('includes the ledger in the submitted payload for egresos', async () => {
@@ -132,7 +145,7 @@ describe('PocketMovementFormModal', () => {
     await wrapper.find('input[type="text"]').setValue('Pago hosting');
     await wrapper.find('input[type="date"]').setValue('2026-05-02');
     await segmentedButton(wrapper, 'Egreso').trigger('click');
-    await segmentedButton(wrapper, 'Personal Carlos').trigger('click');
+    await segmentedButton(wrapper, 'Carlos').trigger('click');
     await wrapper.find('input[inputmode="numeric"]').setValue('90000');
     await wrapper.find('form').trigger('submit');
 

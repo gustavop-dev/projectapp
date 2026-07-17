@@ -18,7 +18,8 @@ class ExpenseRecord(PartnerSplitMixin, AccountingRecordBase):
         PERSONAL = 'personal', 'Personal'
 
     concept = models.CharField(max_length=255)
-    # Month granularity: always normalized to day 1 (serializer accepts "YYYY-MM").
+    # Month granularity by default (serializer accepts "YYYY-MM" → day 1);
+    # a day other than 1 records the exact payment date when it is known.
     period_date = models.DateField()
     category = models.CharField(
         max_length=10,

@@ -521,11 +521,11 @@ def _sync_movement(record, *, wants_movement, direction, source_ref, user):
         movement.delete()
 
 
-def _default_split(ledger, total):
+def _default_split(attribution, total):
     """Partner split applied to records mirrored from the pocket side."""
-    if ledger == Ledger.GUSTAVO:
+    if attribution == Ledger.GUSTAVO:
         return total, Decimal('0')
-    if ledger == Ledger.CARLOS:
+    if attribution == Ledger.CARLOS:
         return Decimal('0'), total
     return split_half(total)
 
@@ -547,12 +547,17 @@ def _sync_from_pocket(movement, mirror_ledger, user, *, is_create):
         if not is_create:
             # Historical movement created before the linkage existed.
             return
-        ledger = mirror_ledger or Ledger.COMPANY
-        gustavo, carlos = _default_split(ledger, movement.amount)
+        # Pocket money is company money: mirrored records always live on
+        # the company ledger so they count toward company utility. A
+        # personal attribution means a partner draw — a company expense
+        # fully assigned to that partner — never a personal-ledger record
+        # (those would drain the pocket without touching the utility).
+        attribution = mirror_ledger or Ledger.COMPANY
+        gustavo, carlos = _default_split(attribution, movement.amount)
         common = {
             'concept': movement.concept,
             'period_date': movement.movement_date.replace(day=1),
-            'ledger': ledger,
+            'ledger': Ledger.COMPANY,
             'total_amount': movement.amount,
             'gustavo_amount': gustavo,
             'carlos_amount': carlos,
@@ -574,7 +579,7 @@ def _sync_from_pocket(movement, mirror_ledger, user, *, is_create):
             record = ExpenseRecord.objects.create(
                 category=(
                     ExpenseRecord.Category.BUSINESS
-                    if ledger == Ledger.COMPANY
+                    if attribution == Ledger.COMPANY
                     else ExpenseRecord.Category.PERSONAL
                 ),
                 **common,
@@ -604,19 +609,38 @@ def _sync_from_pocket(movement, mirror_ledger, user, *, is_create):
     ):
         linked.period_date = movement.movement_date.replace(day=1)
         update_fields.append('period_date')
-    ledger = mirror_ledger or linked.ledger
-    if movement.amount != linked.total_amount or ledger != linked.ledger:
-        # The pocket modal has no split editor: amount/ledger edits from
-        # the pocket side reset the split to the ledger default. Custom
-        # splits are edited from the Ingresos/Gastos tabs.
-        gustavo, carlos = _default_split(ledger, movement.amount)
-        linked.ledger = ledger
+    if record_type == EntityType.EXPENSE:
+        current_attribution = linked.partner_attribution
+    else:
+        # Pocket IN mirrors are always company-ledger incomes; deriving an
+        # attribution from a custom split would feed a personal value back
+        # into the IN modal, which the serializer rejects.
+        current_attribution = linked.ledger
+    attribution = mirror_ledger or current_attribution
+    if (
+        movement.amount != linked.total_amount
+        or attribution != current_attribution
+        or linked.ledger != Ledger.COMPANY
+    ):
+        # The pocket modal has no split editor: amount/attribution edits
+        # from the pocket side reset the split to the attribution default.
+        # Custom splits are edited from the Ingresos/Gastos tabs. Legacy
+        # personal-ledger mirrors are normalized to company on any edit.
+        gustavo, carlos = _default_split(attribution, movement.amount)
+        linked.ledger = Ledger.COMPANY
         linked.total_amount = movement.amount
         linked.gustavo_amount = gustavo
         linked.carlos_amount = carlos
         update_fields += [
             'ledger', 'total_amount', 'gustavo_amount', 'carlos_amount',
         ]
+        if record_type == EntityType.EXPENSE:
+            linked.category = (
+                ExpenseRecord.Category.BUSINESS
+                if attribution == Ledger.COMPANY
+                else ExpenseRecord.Category.PERSONAL
+            )
+            update_fields.append('category')
     linked.save(update_fields=update_fields)
     changes = compute_changes(
         record_type, old_values, snapshot_values(linked, record_type),

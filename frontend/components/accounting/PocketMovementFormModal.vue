@@ -19,11 +19,26 @@ const directionOptions = [
   { value: 'out', label: 'Egreso' },
 ]
 
-const ledgerOptions = [
-  { value: 'company', label: 'Empresa' },
-  { value: 'gustavo', label: 'Personal Gustavo' },
-  { value: 'carlos', label: 'Personal Carlos' },
-]
+// For egresos the selector attributes the draw: pocket money is company
+// money, so a partner option creates a company expense fully assigned to
+// that partner (it always counts against the company utility).
+const ledgerOptions = computed(() =>
+  form.value.direction === 'out'
+    ? [
+        { value: 'company', label: 'Empresa' },
+        { value: 'gustavo', label: 'Gustavo' },
+        { value: 'carlos', label: 'Carlos' },
+      ]
+    : [
+        { value: 'company', label: 'Empresa' },
+        { value: 'gustavo', label: 'Personal Gustavo' },
+        { value: 'carlos', label: 'Personal Carlos' },
+      ],
+)
+
+const ledgerLabel = computed(() =>
+  form.value.direction === 'out' ? 'Atribuir a' : 'Contabilidad',
+)
 
 function defaultForm() {
   return {
@@ -111,7 +126,7 @@ function onSubmit() {
         </BaseFormField>
       </div>
 
-      <BaseFormField v-if="showLedger" label="Contabilidad" required>
+      <BaseFormField v-if="showLedger" :label="ledgerLabel" required>
         <BaseSegmented
           v-model="form.ledger"
           :options="ledgerOptions"
@@ -121,6 +136,10 @@ function onSubmit() {
         />
         <p v-if="form.direction === 'in'" class="text-xs text-text-subtle mt-1">
           Los ingresos al bolsillo siempre son de la empresa.
+        </p>
+        <p v-else class="text-xs text-text-subtle mt-1">
+          El egreso resta a la utilidad de la empresa: Empresa lo reparte
+          50/50; Gustavo o Carlos lo registra como retiro de ese socio.
         </p>
       </BaseFormField>
 

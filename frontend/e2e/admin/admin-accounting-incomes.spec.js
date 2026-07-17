@@ -386,6 +386,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     expect(body.kind).toBe('liquid');
     expect(body.expected_income).toBe(11);
     expect(body.period_date).toBe('2026-11');
+    // Liquidated money defaults into the pocket.
+    expect(body.destination).toBe('pocket');
 
     // The parent's paid state is server-computed, so the list must refetch.
     await expect.poll(() => listFetches.count).toBeGreaterThan(1);

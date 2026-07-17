@@ -147,6 +147,28 @@ describe('ExpenseFormModal', () => {
     expect(payload).not.toHaveProperty('carlos_amount');
   });
 
+  it('warns that a personal expense from the pocket becomes a company draw', async () => {
+    const wrapper = mountModal();
+
+    expect(
+      wrapper.find('[data-testid="expense-pocket-draw-hint"]').exists(),
+    ).toBe(false);
+
+    await segmentedButton(wrapper, 'Personal Gustavo').trigger('click');
+
+    // Pocket toggle is on by default: the server will store this as a
+    // company expense fully assigned to the partner.
+    expect(
+      wrapper.find('[data-testid="expense-pocket-draw-hint"]').exists(),
+    ).toBe(true);
+
+    await wrapper.find('[data-testid="expense-register-in-pocket"]').trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="expense-pocket-draw-hint"]').exists(),
+    ).toBe(false);
+  });
+
   it('prefills the ledger from the record in edit mode', () => {
     const wrapper = mountModal({
       record: {
