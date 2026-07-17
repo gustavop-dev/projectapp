@@ -1,5 +1,5 @@
 {
-  "version": "2.46.0",
+  "version": "2.47.0",
   "lastUpdated": "2026-07-16",
   "flows": {
     "layout-navbar-navigation": {
@@ -804,7 +804,7 @@
       ],
       "priority": "P3",
       "description": "Dashboard header \"+ Crear\" dropdown navigates to create a proposal, document, task or expense.",
-      "expectedSpecs": 0
+      "expectedSpecs": 2
     },
     "proposal-rejection-optional-reason": {
       "name": "Proposal Rejection Optional Reason",
@@ -2855,7 +2855,7 @@
       ],
       "priority": "P2",
       "description": "Superuser monitors all cuentas de cobro at /panel/accounting/collections: status counters (emitidas/pagadas/vencidas/anuladas with totals), segmented status filter, table with número/origen/cliente/total/emisión/vence/estado (Vencida tint via is_overdue) and row actions: download PDF, resend to client, mark paid, cancel (cancelling a hosting-linked account resumes its expiry notices).",
-      "expectedSpecs": 0
+      "expectedSpecs": 5
     },
     "admin-accounting-hosting-cycles": {
       "name": "Admin Accounting Hosting Cycle Payments",

@@ -603,8 +603,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   1. Admin opens `/panel/` and clicks "+ Crear".
   2. The dropdown lists Propuesta / Documento / Tarea / Gasto.
   3. Selecting an option navigates to the corresponding module route.
-- **Coverage:** ⚠️ Pending (registered, E2E spec not yet implemented)
-- **E2E Spec:** _suggested:_ `e2e/admin/admin-dashboard.spec.js` (add a quick-create test)
+- **Coverage:** ✅ Covered (menu destinations + real navigation to expenses). Covering this flow surfaced and fixed a real bug: `BaseDropdown` rendered `to` items through `<component :is="'NuxtLink'">`, which cannot resolve Nuxt auto-imported components — the menu items were dead `<nuxtlink>` elements with no href (fixed with `resolveComponent`).
+- **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
 
 ### FLOW: `admin-proposal-list`
 
@@ -2640,7 +2640,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-dashboard-finance-gate` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
 | `admin-dashboard-attention-radar` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
 | `admin-dashboard-error-retry` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
-| `admin-dashboard-quick-create` | admin | admin | P3 | ⚠️ Pending | _suggested:_ `e2e/admin/admin-dashboard.spec.js` |
+| `admin-dashboard-quick-create` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
 | `admin-proposal-list` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
 | `admin-proposal-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-proposal-create-from-json` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
@@ -5845,8 +5845,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Priority:** P2
 - **Routes:** `/panel/accounting/collections`
 - **Description:** Cobros monitor: status counters (emitidas/pagadas/vencidas/anuladas with money totals from list meta), segmented status filter (Todas/Emitidas/Vencidas/Pagadas/Anuladas), table with número/origen/cliente/total/emisión/vence/estado (badge shows "Vencida" via `is_overdue`) and row actions: download PDF (`GET .../pdf/` blob), resend to client, mark paid and cancel (both behind ConfirmModal; cancelling a hosting-linked account clears `billing_requested_at` so the expiry notices resume).
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+- **Coverage:** ✅ Covered (counters + meta, Vencidas filter/badge, mark-paid + cancel with confirm, resend; PDF download not asserted)
+- **E2E Spec:** `e2e/admin/admin-accounting-collections.spec.js`
 
 ### FLOW: `admin-accounting-hosting-cycles`
 
@@ -5916,7 +5916,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-card-catalog` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-statements-card-catalog.spec.js` |
 | `admin-accounting-ads` | admin | superuser | P3 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
 | `admin-accounting-hosting-billing` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js` |
-| `admin-accounting-collections` | admin | superuser | P2 | ❌ Missing | — |
+| `admin-accounting-collections` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-collections.spec.js` |
 | `admin-accounting-hosting-cycles` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js` |
 | `admin-accounting-hosting-inline-edit` | admin | superuser | P3 | ❌ Missing | — |
 | `admin-accounting-settings-reset-tabs` | admin | superuser | P3 | ❌ Missing | — |
