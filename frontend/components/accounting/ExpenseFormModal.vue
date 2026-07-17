@@ -123,6 +123,14 @@ function onSubmit() {
           <p class="text-xs text-text-subtle">
             Desactívalo para ajustes contables o gastos que no salieron del bolsillo.
           </p>
+          <p
+            v-if="isPersonal && form.register_in_pocket"
+            class="text-xs text-warning-strong mt-1"
+            data-testid="expense-pocket-draw-hint"
+          >
+            Al salir del bolsillo se registrará como retiro de la empresa
+            asignado 100% al socio.
+          </p>
         </div>
         <BaseToggle
           v-model="form.register_in_pocket"

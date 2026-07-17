@@ -137,6 +137,40 @@ class TestMonthlyAndPartners:
         assert partners['company']['expenses'] == Decimal('20.00')
         assert partners['company']['net'] == Decimal('80.00')
 
+    def test_pocket_draw_counts_against_company_utility(
+        self, superuser, make_income,
+    ):
+        # A pocket egreso attributed to a partner is a company draw: it
+        # must reduce liquid_utility and the partner's participation —
+        # never land on his personal ledger (that would drain the pocket
+        # while the utility stays intact).
+        from unittest.mock import patch
+
+        from content.models import AccountingChangeLog
+        from content.serializers.accounting import (
+            PocketMovementCreateUpdateSerializer,
+        )
+
+        make_income(kind='liquid', total_amount=Decimal('1000.00'))
+        serializer = PocketMovementCreateUpdateSerializer(data={
+            'concept': 'Gasolina', 'movement_date': '2026-07-17',
+            'direction': 'out', 'amount': '200.00', 'ledger': 'gustavo',
+        })
+        assert serializer.is_valid(), serializer.errors
+        with patch.object(accounting_service, '_notify'):
+            accounting_service.create_record(
+                AccountingChangeLog.EntityType.POCKET, serializer, superuser,
+            )
+
+        summary = accounting_service.dashboard_summary(2026)
+        assert summary['expenses_total'] == Decimal('200.00')
+        assert summary['liquid_utility'] == Decimal('800.00')
+        assert summary['partners']['gustavo']['expenses'] == Decimal('200.00')
+        assert summary['partners']['gustavo']['personal']['expenses'] == (
+            Decimal('0')
+        )
+        assert accounting_service.pocket_balance() == Decimal('-200.00')
+
     def test_personal_records_excluded_from_company_totals(
         self, make_income, make_expense,
     ):

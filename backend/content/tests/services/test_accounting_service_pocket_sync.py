@@ -352,16 +352,21 @@ class TestPocketToRecordSync:
         })
         assert not serializer.is_valid()
 
-    def test_pocket_out_with_gustavo_ledger_creates_personal_expense(
+    def test_pocket_out_with_gustavo_attribution_creates_company_draw(
         self, superuser,
     ):
+        # Pocket money is company money: a draw attributed to a partner is
+        # a company expense fully assigned to him, so it reduces both the
+        # liquid utility and his participation — never a personal-ledger
+        # record (those would drain the pocket without touching utility).
         movement = create_movement(superuser, ledger='gustavo')
         expense = movement.expense_record
         assert expense is not None
-        assert expense.ledger == 'gustavo'
+        assert expense.ledger == 'company'
         assert expense.category == ExpenseRecord.Category.PERSONAL
         assert expense.gustavo_amount == Decimal('150000.00')
         assert expense.carlos_amount == Decimal('0')
+        assert expense.partner_attribution == 'gustavo'
 
     def test_pocket_out_default_ledger_creates_business_expense(
         self, superuser,
@@ -388,14 +393,25 @@ class TestPocketToRecordSync:
         # Same month: period stays normalized to day 1.
         assert expense.period_date == date(2026, 4, 1)
 
-    def test_pocket_ledger_edit_resets_split(self, superuser):
+    def test_pocket_attribution_edit_resets_split(self, superuser):
         movement = create_movement(superuser)
         update_movement(superuser, movement, ledger='carlos')
         expense = movement.expense_record
         expense.refresh_from_db()
-        assert expense.ledger == 'carlos'
+        assert expense.ledger == 'company'
+        assert expense.category == ExpenseRecord.Category.PERSONAL
         assert expense.gustavo_amount == Decimal('0')
         assert expense.carlos_amount == Decimal('150000.00')
+
+    def test_pocket_draw_back_to_company_restores_half_split(self, superuser):
+        movement = create_movement(superuser, ledger='carlos')
+        update_movement(superuser, movement, ledger='company')
+        expense = movement.expense_record
+        expense.refresh_from_db()
+        assert expense.ledger == 'company'
+        assert expense.category == ExpenseRecord.Category.BUSINESS
+        assert expense.gustavo_amount == Decimal('75000.00')
+        assert expense.carlos_amount == Decimal('75000.00')
 
     def test_pocket_direction_change_on_linked_is_rejected(self, superuser):
         movement = create_movement(superuser)

@@ -80,6 +80,23 @@ class PartnerSplitMixin(models.Model):
     def company_amount(self):
         return self.total_amount - self.gustavo_amount - self.carlos_amount
 
+    @property
+    def partner_attribution(self):
+        """Which party this record is effectively assigned to.
+
+        Company-ledger records fully assigned to one partner are partner
+        draws (money taken from the pocket for that partner); the pocket
+        modal round-trips this value through its "Atribuir a" control.
+        """
+        if self.ledger in (Ledger.GUSTAVO, Ledger.CARLOS):
+            return self.ledger
+        if self.total_amount:
+            if self.gustavo_amount == self.total_amount:
+                return Ledger.GUSTAVO
+            if self.carlos_amount == self.total_amount:
+                return Ledger.CARLOS
+        return Ledger.COMPANY
+
     def clean(self):
         super().clean()
         for field in ('total_amount', 'gustavo_amount', 'carlos_amount'):

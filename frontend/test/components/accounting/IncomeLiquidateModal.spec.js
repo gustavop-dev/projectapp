@@ -78,6 +78,12 @@ function mountModal(props = {}) {
           template:
             '<button :type="type || \'button\'" :disabled="disabled" @click="$emit(\'click\', $event)"><slot /></button>',
         },
+        BaseToggle: {
+          props: ['modelValue'],
+          emits: ['update:modelValue'],
+          template:
+            '<input type="checkbox" :checked="modelValue" @change="$emit(\'update:modelValue\', $event.target.checked)" />',
+        },
         PartnerSplitInput: PartnerSplitInputStub,
       },
     },
@@ -109,6 +115,24 @@ describe('IncomeLiquidateModal', () => {
     expect(wrapper.find('input[type="month"]').element.value).toBe('');
   });
 
+  it('switches to an exact payment date when the toggle is enabled', async () => {
+    const wrapper = mountModal();
+
+    await wrapper.find('input[type="month"]').setValue('2026-11');
+    await wrapper
+      .find('[data-testid="income-liquidate-exact-date"]')
+      .setValue(true);
+
+    // The typed month is kept, upgraded to a full date the user can fix.
+    const dateInput = wrapper.find('input[type="date"]');
+    expect(dateInput.element.value).toBe('2026-11-01');
+
+    await dateInput.setValue('2026-11-17');
+    await wrapper.find('form').trigger('submit');
+
+    expect(wrapper.emitted('submit')[0][0].period_date).toBe('2026-11-17');
+  });
+
   it('submits a liquid record linked to the expected one', async () => {
     const wrapper = mountModal();
 
@@ -121,6 +145,9 @@ describe('IncomeLiquidateModal', () => {
     expect(payload.period_date).toBe('2026-11');
     expect(payload.total_amount).toBe('600000.00');
     expect(payload.ledger).toBe('company');
+    // Money defaults into the pocket; distributing to the partners is the
+    // explicit choice.
+    expect(payload.destination).toBe('pocket');
     // Untouched split is omitted so the server applies its canonical
     // 50/50 (split_half) — the client never re-implements the rounding.
     expect(payload.gustavo_amount).toBeUndefined();
