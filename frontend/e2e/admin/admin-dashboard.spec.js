@@ -15,6 +15,7 @@ import {
   ADMIN_DASHBOARD_ERROR_RETRY,
   ADMIN_DASHBOARD_FINANCE_GATE,
   ADMIN_DASHBOARD_PIPELINE_VALUE,
+  ADMIN_DASHBOARD_QUICK_CREATE,
 } from '../helpers/flow-tags.js';
 
 test.setTimeout(60_000);
@@ -207,5 +208,55 @@ test.describe('Admin Dashboard', () => {
 
     await expect(page.getByTestId('dashboard-pulse')).toBeVisible({ timeout: 10000 });
     await expect(page.getByTestId('dashboard-error')).not.toBeVisible();
+  });
+
+  test('the quick-create menu lists the four destinations', {
+    tag: [...ADMIN_DASHBOARD_QUICK_CREATE, '@role:admin'],
+  }, async ({ page }) => {
+    await mockDashboard(page, summaryFixture);
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('dashboard-pulse')).toBeVisible({ timeout: 10000 });
+
+    await page.getByRole('button', { name: 'Crear' }).click();
+
+    const menu = page.getByRole('menu');
+    await expect(menu.getByRole('menuitem', { name: 'Propuesta' })).toHaveAttribute(
+      'href', /\/panel\/proposals\/create/,
+    );
+    await expect(menu.getByRole('menuitem', { name: 'Documento' })).toHaveAttribute(
+      'href', /\/panel\/documents/,
+    );
+    await expect(menu.getByRole('menuitem', { name: 'Tarea' })).toHaveAttribute(
+      'href', /\/panel\/tasks/,
+    );
+    await expect(menu.getByRole('menuitem', { name: 'Gasto' })).toHaveAttribute(
+      'href', /\/panel\/accounting\/expenses/,
+    );
+  });
+
+  test('choosing Gasto navigates to the accounting expenses page', {
+    tag: [...ADMIN_DASHBOARD_QUICK_CREATE, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'panel/dashboard/') return jsonResponse(summaryFixture);
+      if (apiPath === 'accounting/expenses/') {
+        return jsonResponse({ results: [], meta: {} });
+      }
+      if (apiPath.startsWith('accounts/saved-filter-tabs')) {
+        return { status: 200, contentType: 'application/json', body: '[]' };
+      }
+      return null;
+    });
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('dashboard-pulse')).toBeVisible({ timeout: 10000 });
+
+    await page.getByRole('button', { name: 'Crear' }).click();
+    await page.getByRole('menuitem', { name: 'Gasto' }).click();
+
+    await expect(page).toHaveURL(/\/panel\/accounting\/expenses/);
+    await expect(
+      page.getByRole('heading', { name: 'Gastos', exact: true }),
+    ).toBeVisible({ timeout: 15_000 });
   });
 });

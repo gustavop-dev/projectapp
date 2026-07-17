@@ -172,3 +172,72 @@ class TestLinkedMovementEditing:
                 EntityType.POCKET, movement, superuser,
             )
         assert not IncomeRecord.objects.filter(pk=income_pk).exists()
+
+
+@pytest.mark.django_db
+class TestObjectReprStatementEntities:
+    def _statement(self):
+        from datetime import date
+
+        from content.models import CreditCardStatement
+
+        return CreditCardStatement.objects.create(
+            card_name='T.C 0064',
+            period_date=date(2026, 5, 1),
+            purchases_total=Decimal('100000.00'),
+        )
+
+    def test_statement_label_combines_card_and_month(self):
+        statement = self._statement()
+
+        label = accounting_service.object_repr(EntityType.STATEMENT, statement)
+
+        assert label == 'T.C 0064 — Mayo 2026'
+
+    def test_transaction_label_prefers_the_merchant_name(self):
+        from datetime import date
+
+        from content.models import CreditCardTransaction
+
+        tx = CreditCardTransaction.objects.create(
+            statement=self._statement(),
+            transaction_date=date(2026, 5, 10),
+            raw_description='PAYU*NETFLIX 990011',
+            merchant_name='Netflix',
+            amount=Decimal('26900.00'),
+        )
+
+        label = accounting_service.object_repr(EntityType.STATEMENT_TX, tx)
+
+        assert label == 'Netflix'
+
+    def test_transaction_label_falls_back_to_the_raw_description(self):
+        from datetime import date
+
+        from content.models import CreditCardTransaction
+
+        tx = CreditCardTransaction.objects.create(
+            statement=self._statement(),
+            transaction_date=date(2026, 5, 11),
+            raw_description='RARO SAS BOGOTA',
+            amount=Decimal('50000.00'),
+        )
+
+        label = accounting_service.object_repr(EntityType.STATEMENT_TX, tx)
+
+        assert label == 'RARO SAS BOGOTA'
+
+    def test_merchant_alias_label_uses_the_match_text(self):
+        from content.models import MerchantAlias
+
+        alias = MerchantAlias.objects.create(
+            match_text='PAYU*NETFLIX',
+            merchant_name='Netflix',
+            default_category='software',
+        )
+
+        label = accounting_service.object_repr(
+            EntityType.MERCHANT_ALIAS, alias,
+        )
+
+        assert label == 'PAYU*NETFLIX'

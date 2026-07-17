@@ -439,3 +439,14 @@ class TestPocketToRecordSync:
             action=Action.DELETED,
         ).exists()
         notify.assert_called_once()
+
+    def test_moving_the_movement_month_moves_the_linked_period(
+        self, superuser,
+    ):
+        movement = create_movement(superuser)
+        expense_pk = movement.expense_record.pk
+
+        update_movement(superuser, movement, movement_date='2026-06-09')
+
+        expense = ExpenseRecord.objects.get(pk=expense_pk)
+        assert expense.period_date == date(2026, 6, 1)

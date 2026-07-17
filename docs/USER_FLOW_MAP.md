@@ -603,8 +603,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   1. Admin opens `/panel/` and clicks "+ Crear".
   2. The dropdown lists Propuesta / Documento / Tarea / Gasto.
   3. Selecting an option navigates to the corresponding module route.
-- **Coverage:** ⚠️ Pending (registered, E2E spec not yet implemented)
-- **E2E Spec:** _suggested:_ `e2e/admin/admin-dashboard.spec.js` (add a quick-create test)
+- **Coverage:** ✅ Covered (menu destinations + real navigation to expenses). Covering this flow surfaced and fixed a real bug: `BaseDropdown` rendered `to` items through `<component :is="'NuxtLink'">`, which cannot resolve Nuxt auto-imported components — the menu items were dead `<nuxtlink>` elements with no href (fixed with `resolveComponent`).
+- **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
 
 ### FLOW: `admin-proposal-list`
 
@@ -2225,8 +2225,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   5. "Documento del extracto": Subir PDF / Ver PDF / Reemplazar / Eliminar (with confirm) manage the bank PDF kept as documentation; the statement reminder email nags every 8 days until the previous month is processed with its PDF attached.
   6. "Comercios aprendidos" lists merchant aliases with delete.
   7. "Copiar prompt" copies the Spanish kick-off prompt for the claude.ai accounting connector (statements are created from chat via `create_statement`).
-- **Coverage:** ⚠️ Missing
-- **E2E Spec:** _pending_
+- **Coverage:** ✅ Covered (grid year options + "No aplica", detail load, manual tx add, finalize lifecycle, PDF delete with confirm; header-edit modal, forced close, reopen and aliases remain unasserted)
+- **E2E Spec:** `e2e/admin/admin-accounting-statements-card-catalog.spec.js`
 
 ### FLOW: `admin-clients-config-tab`
 
@@ -2640,7 +2640,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-dashboard-finance-gate` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
 | `admin-dashboard-attention-radar` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
 | `admin-dashboard-error-retry` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
-| `admin-dashboard-quick-create` | admin | admin | P3 | ⚠️ Pending | _suggested:_ `e2e/admin/admin-dashboard.spec.js` |
+| `admin-dashboard-quick-create` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
 | `admin-proposal-list` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
 | `admin-proposal-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-proposal-create-from-json` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
@@ -5811,8 +5811,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   2. "Agregar tarjeta" appends an empty row; per-row Guardar POSTs `/api/accounting/credit-cards/create/` (or PATCHes `.../update/` for existing rows).
   3. Editing the cupo changes future snapshot computations only (historic debts untouched).
   4. Trash icon asks for confirmation; DELETE `.../delete/` returns `credit_card_referenced` (400) when history references the name.
-- **Coverage:** ⚠️ Missing
-- **E2E Spec:** _pending_
+- **Coverage:** ✅ Covered (list, draft-row create, cupo patch, reference-blocked delete with Spanish error)
+- **E2E Spec:** `e2e/admin/admin-accounting-statements-card-catalog.spec.js`
 
 ### FLOW: `admin-accounting-ads`
 
@@ -5845,8 +5845,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Priority:** P2
 - **Routes:** `/panel/accounting/collections`
 - **Description:** Cobros monitor: status counters (emitidas/pagadas/vencidas/anuladas with money totals from list meta), segmented status filter (Todas/Emitidas/Vencidas/Pagadas/Anuladas), table with número/origen/cliente/total/emisión/vence/estado (badge shows "Vencida" via `is_overdue`) and row actions: download PDF (`GET .../pdf/` blob), resend to client, mark paid and cancel (both behind ConfirmModal; cancelling a hosting-linked account clears `billing_requested_at` so the expiry notices resume).
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+- **Coverage:** ✅ Covered (counters + meta, Vencidas filter/badge, mark-paid + cancel with confirm, resend; PDF download not asserted)
+- **E2E Spec:** `e2e/admin/admin-accounting-collections.spec.js`
 
 ### FLOW: `admin-accounting-hosting-cycles`
 
@@ -5913,10 +5913,10 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-cards` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-cards.spec.js` |
 | `admin-accounting-export` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-export.spec.js` |
 | `admin-accounting-settings` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
-| `admin-accounting-card-catalog` | admin | superuser | P2 | ❌ Missing | — |
+| `admin-accounting-card-catalog` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-statements-card-catalog.spec.js` |
 | `admin-accounting-ads` | admin | superuser | P3 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
 | `admin-accounting-hosting-billing` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js` |
-| `admin-accounting-collections` | admin | superuser | P2 | ❌ Missing | — |
+| `admin-accounting-collections` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-collections.spec.js` |
 | `admin-accounting-hosting-cycles` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js` |
 | `admin-accounting-hosting-inline-edit` | admin | superuser | P3 | ❌ Missing | — |
 | `admin-accounting-settings-reset-tabs` | admin | superuser | P3 | ❌ Missing | — |

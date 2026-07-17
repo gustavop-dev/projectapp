@@ -3,8 +3,13 @@
 // `var _vue` from the last path segment of `@headlessui/vue`, which collides
 // with the `var _vue = require("vue")` injected by the compiled template
 // render function. The collision leaves $setup.Menu et al as undefined.
+import { resolveComponent } from 'vue'
 import * as HeadlessUI from '@headlessui/vue'
 const { Menu, MenuButton, MenuItems, MenuItem } = HeadlessUI
+
+// String names in <component :is> can't resolve Nuxt auto-imported
+// components, so `to` items rendered a dead <nuxtlink> element.
+const NuxtLinkComponent = resolveComponent('NuxtLink')
 
 defineProps({
   // Items: [{ label, onClick?, to?, icon?, disabled?, danger?, divider? }]
@@ -44,7 +49,7 @@ function itemColorClass(danger, active) {
           <div v-if="item.divider" class="my-1 border-t border-border-muted" />
           <MenuItem v-else v-slot="{ active, disabled }" :disabled="item.disabled">
             <component
-              :is="item.to ? 'NuxtLink' : 'button'"
+              :is="item.to ? NuxtLinkComponent : 'button'"
               :to="item.to"
               :type="item.to ? undefined : 'button'"
               :disabled="disabled"

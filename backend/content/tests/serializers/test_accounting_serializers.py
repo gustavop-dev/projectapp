@@ -14,7 +14,13 @@ from content.serializers.accounting import (
     IncomeRecordSerializer,
     PocketMovementCreateUpdateSerializer,
     RecurringPaymentCreateUpdateSerializer,
+    month_label,
 )
+
+
+class TestMonthLabel:
+    def test_empty_date_returns_a_blank_label(self):
+        assert month_label(None) == ''
 
 
 def income_payload(**overrides):

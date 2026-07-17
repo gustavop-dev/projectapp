@@ -1,5 +1,5 @@
 {
-  "version": "2.45.0",
+  "version": "2.47.0",
   "lastUpdated": "2026-07-16",
   "flows": {
     "layout-navbar-navigation": {
@@ -804,7 +804,7 @@
       ],
       "priority": "P3",
       "description": "Dashboard header \"+ Crear\" dropdown navigates to create a proposal, document, task or expense.",
-      "expectedSpecs": 0
+      "expectedSpecs": 2
     },
     "proposal-rejection-optional-reason": {
       "name": "Proposal Rejection Optional Reason",
@@ -2855,7 +2855,7 @@
       ],
       "priority": "P2",
       "description": "Superuser monitors all cuentas de cobro at /panel/accounting/collections: status counters (emitidas/pagadas/vencidas/anuladas with totals), segmented status filter, table with número/origen/cliente/total/emisión/vence/estado (Vencida tint via is_overdue) and row actions: download PDF, resend to client, mark paid, cancel (cancelling a hosting-linked account resumes its expiry notices).",
-      "expectedSpecs": 0
+      "expectedSpecs": 5
     },
     "admin-accounting-hosting-cycles": {
       "name": "Admin Accounting Hosting Cycle Payments",
@@ -3051,7 +3051,7 @@
       ],
       "priority": "P2",
       "description": "Superuser reviews the monthly credit-card statement ledger at /panel/accounting/statements: backend-driven year options (from the catalog's statements_since; months before it show 'No aplica') + card filters over a 12-month grid (Procesado/Borrador/Pendiente chips per card), inline statement detail (totals stat cards, category bars, transactions table flagging unidentified lines, 'Documento del extracto' PDF block with upload/view/replace/delete), finalize with forced-close confirm on total mismatch (POST /api/accounting/statements/:id/finalize/), reopen, delete, header edit modal and manual add-transaction on drafts, per-line edit/delete on drafts, collapsible learned merchant aliases with delete, and a 'Copiar prompt' button for the MCP chat kick-off. Statements are normally created from the claude.ai chat via the accounting MCP connector (create_statement).",
-      "expectedSpecs": 0
+      "expectedSpecs": 5
     },
     "admin-accounting-card-catalog": {
       "name": "Admin Accounting — Credit Card Catalog",
@@ -3061,7 +3061,7 @@
       ],
       "priority": "P2",
       "description": "Superuser manages the CreditCard catalog from the 'Catálogo de tarjetas' section at /panel/accounting/settings: per-row name, cupo (credit_limit), 'extractos desde' month and active toggle, with per-row save (POST /api/accounting/credit-cards/create/ or PATCH .../update/) and delete with confirm (DELETE .../delete/ returns credit_card_referenced when snapshots/statements reference the name — deactivate instead). The catalog feeds the Tarjetas form dropdown, the server-side debt computation (cupo − disponible) and the Extractos year/month range; changes are audited as the credit_card entity.",
-      "expectedSpecs": 0
+      "expectedSpecs": 4
     },
     "admin-hour-packages-view-modes": {
       "name": "Admin Hour Packages — View Modes",
