@@ -205,6 +205,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Test files: **254 total** (content 184, accounts 66, root/project 4)
 - Fixtures: `conftest.py` at root and `content/tests/conftest.py` (provides `proposal`, `accepted_proposal`, `admin_user`, `admin_client`, etc.)
 - Coverage: custom terminal report with per-file bars and Top-N focus
+- Coverage floor: CI enforces `--cov-fail-under=92.5` on the full-suite run (ci.yml); local slices keep using `--no-cov`, unaffected. Raise the floor as coverage grows, never lower it.
 - Config: `backend/pytest.ini`
 - Run: `cd backend && source venv/bin/activate && pytest path/to/test_file.py -v --no-cov` (the venv lives at `backend/venv`, not repo-root `.venv`)
 
@@ -212,15 +213,16 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `frontend/test/`
 - Structure: `components/`, `composables/`, `stores/` (incl. services), `utils/`
-- Test files: **360 total** (267 `.test.js` + 93 `.spec.js`)
+- Test files: **364 total** (267 `.test.js` + 97 `.spec.js`)
 - Config: `frontend/jest.config.cjs`
+- Coverage floors: enforced by the ci.yml "Enforce frontend coverage floors" step (statements ≥85%, branches ≥81% over `coverage-summary.json`) — NOT via jest `coverageThreshold`, because the CI jest step swallows exit codes with `|| true`.
 - Run: `npm test -- test/<specific_file>.test.js`
 
 ### Frontend E2E (Playwright)
 
 - Location: `frontend/e2e/`
 - Structure: `admin/`, `auth/`, `blog/`, `layout/`, `platform/`, `proposal/`, `public/`, `visual/`
-- Spec files: **213 total**
+- Spec files: **215 total**
 - Flow definitions: `frontend/e2e/flow-definitions.json` (must be updated for every new flow)
 - Flow tags: `frontend/e2e/helpers/flow-tags.js` (constants imported by spec files)
 - Config: `frontend/playwright.config.js`
@@ -295,8 +297,8 @@ projectapp/
 │   │   └── Tasks/               # TaskCard.vue, TaskColumn.vue (vuedraggable), TaskFormModal.vue — internal Kanban board
 │   ├── stores/                  # 35 store files: 33 Pinia stores + 2 constants modules (proposals, proposal_clients, diagnostics, blog, portfolio_works, contacts, language, linkedin, documents, document_folders, document_tags, tasks, emails, hour_packages, accounting, mcps, panel_admins, panel_dashboard, panel_refresh, view_map, platform-auth, platform-clients, platform-projects, platform-requirements, platform-scope-items, platform-bug-reports, platform-change-requests, platform-deliverables, platform-notifications, platform-payments, platform-collection-accounts, platform-data-model, platform-documents + diagnostics_constants, proposals_constants)
 │   ├── composables/             # 59 composables (incl. useStageStatus.js)
-│   ├── e2e/                     # Playwright E2E tests (213 spec files)
-│   ├── test/                    # Jest unit tests (360 test files)
+│   ├── e2e/                     # Playwright E2E tests (215 spec files)
+│   ├── test/                    # Jest unit tests (364 test files)
 │   ├── layouts/                 # default.vue, admin.vue, platform.vue
 │   ├── middleware/              # admin-auth.js, platform-auth.js
 │   ├── plugins/                 # 4 plugins (gsap, geo-locale, language-sync, cal-booking)
