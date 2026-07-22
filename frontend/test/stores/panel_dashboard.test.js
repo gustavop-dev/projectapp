@@ -41,7 +41,7 @@ describe('usePanelDashboardStore', () => {
     expect(store.hasFinance).toBe(false)
   })
 
-  it('fetchSummary fills summary and getters on success', async () => {
+  it('fetchSummary stores the payload on success', async () => {
     get_request.mockResolvedValue({ data: SUMMARY })
 
     const result = await store.fetchSummary()
@@ -49,11 +49,18 @@ describe('usePanelDashboardStore', () => {
     expect(get_request).toHaveBeenCalledWith('panel/dashboard/')
     expect(result.success).toBe(true)
     expect(store.summary).toEqual(SUMMARY)
+    expect(store.error).toBe(false)
+    expect(store.loading).toBe(false)
+  })
+
+  it('fetchSummary exposes the finance getters on success', async () => {
+    get_request.mockResolvedValue({ data: SUMMARY })
+
+    await store.fetchSummary()
+
     expect(store.finance.year).toBe(2026)
     expect(store.attention).toHaveLength(1)
     expect(store.hasFinance).toBe(true)
-    expect(store.error).toBe(false)
-    expect(store.loading).toBe(false)
   })
 
   it('fetchSummary flags error and keeps summary null on failure', async () => {

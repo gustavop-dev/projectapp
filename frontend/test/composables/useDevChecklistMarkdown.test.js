@@ -212,16 +212,12 @@ describe('buildDevChecklistMarkdown', () => {
       ],
     });
     const md = buildDevChecklistMarkdown(proposal);
-    expect(md).toContain('## 🎯 Objetivo');
-    expect(md).not.toContain('## 🧩');
-    expect(md).not.toContain('## ➕');
-    expect(md).not.toContain('## 🎁');
-    expect(md).not.toContain('## 💰');
-    expect(md).not.toContain('## 🗄️');
-    expect(md).not.toContain('## 🏗️');
-    expect(md).not.toContain('## 🔌');
-    expect(md).not.toContain('## 🔗');
-    expect(md).not.toContain('## 🌱');
+    // The heading set collapses to the objective alone — every other block
+    // (components, extras, pricing, data, infra, integrations, seeds…)
+    // must vanish with its missing source section.
+    const headings = md.match(/^## .+$/gm) || [];
+    expect(headings).toHaveLength(1);
+    expect(headings[0]).toContain('🎯 Objetivo');
   });
 
   it('returns empty string for falsy proposal', () => {

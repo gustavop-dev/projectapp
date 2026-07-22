@@ -1,5 +1,5 @@
 {
-  "version": "2.55.0",
+  "version": "2.56.0",
   "lastUpdated": "2026-07-22",
   "flows": {
     "layout-navbar-navigation": {
@@ -1987,11 +1987,9 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "From the blog edit page, admin selects how the post should be published via three radio options: 'Borrador' (draft), 'Publicar ahora' (immediate), or 'Programar' (scheduled). Selecting 'Programar' reveals a datetime input for publish_scheduled_for. If the chosen datetime is in the past, an amber overdue banner ([data-test='scheduled-overdue-banner']) warns that the safety-net Huey task will publish on the next run. The mode is computed by frontend/utils/blogPublishMode.js (resolveBlogPublishMode → { mode, scheduledIso, overdue }) and submitted to the blog update endpoint.",
-      "expectedSpecs": 0,
-      "knownGaps": [
-        "Publish-mode radio + scheduled-overdue-banner shipped 2026-04-25 (commit 4862b149). Unit-tested via frontend/test/utils/blogPublishMode.test.js, but no E2E spec covers the admin UI yet."
-      ]
+      "description": "From the blog edit page, admin selects how the post should be published via three radio options: 'Borrador' (draft), 'Publicar ahora' (immediate), or 'Programar' (scheduled). Selecting 'Programar' reveals a datetime input for publish_scheduled_for. If the STORED schedule (published_at at hydration time) is in the past, an amber overdue banner ([data-test='scheduled-overdue-banner']) warns that the safety-net Huey task will publish on the next run; the banner is not live input validation. The mode is computed by frontend/utils/blogPublishMode.js (resolveBlogPublishMode → { mode, scheduledIso, overdue }) and submitted to the blog update endpoint.",
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 4): draft/schedule reveal, past-date overdue banner, scheduled hydration and the publish-now PATCH payload over mocked API."
     },
     "admin-blog-overdue-detection": {
       "name": "Admin Blog Overdue Schedule Safety-Net",

@@ -145,6 +145,15 @@ describe('IncomeLiquidateModal', () => {
     expect(payload.period_date).toBe('2026-11');
     expect(payload.total_amount).toBe('600000.00');
     expect(payload.ledger).toBe('company');
+  });
+
+  it('defaults the destination to pocket and omits the untouched split', async () => {
+    const wrapper = mountModal();
+
+    await wrapper.find('input[type="month"]').setValue('2026-11');
+    await wrapper.find('form').trigger('submit');
+
+    const payload = wrapper.emitted('submit')[0][0];
     // Money defaults into the pocket; distributing to the partners is the
     // explicit choice.
     expect(payload.destination).toBe('pocket');

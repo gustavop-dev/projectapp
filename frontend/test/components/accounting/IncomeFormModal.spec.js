@@ -87,24 +87,29 @@ describe('IncomeFormModal', () => {
     expect(wrapper.find('[data-testid="income-form-submit"]').exists()).toBe(true);
   });
 
+  const EDIT_RECORD = {
+    concept: 'Página web Acme',
+    kind: 'liquid',
+    period: '2026-05',
+    destination: 'pocket',
+    total_amount: '1000000',
+    gustavo_amount: '600000',
+    carlos_amount: '400000',
+    notes: 'Pago parcial',
+  };
+
   it('prefills the form from record in edit mode', () => {
-    const wrapper = mountModal({
-      record: {
-        concept: 'Página web Acme',
-        kind: 'liquid',
-        period: '2026-05',
-        destination: 'pocket',
-        total_amount: '1000000',
-        gustavo_amount: '600000',
-        carlos_amount: '400000',
-        notes: 'Pago parcial',
-      },
-    });
+    const wrapper = mountModal({ record: { ...EDIT_RECORD } });
 
     expect(wrapper.text()).toContain('Editar Ingreso');
     expect(wrapper.find('input[type="text"]').element.value).toBe('Página web Acme');
     expect(wrapper.find('input[type="month"]').element.value).toBe('2026-05');
     expect(wrapper.find('textarea').element.value).toBe('Pago parcial');
+  });
+
+  it('prefills the split amounts and pocket destination in edit mode', () => {
+    const wrapper = mountModal({ record: { ...EDIT_RECORD } });
+
     expect(wrapper.find('[data-testid="split-total"]').element.value).toBe('1000000');
     expect(wrapper.find('[data-testid="split-gustavo"]').element.value).toBe('600000');
     expect(wrapper.find('[data-testid="split-carlos"]').element.value).toBe('400000');
@@ -141,7 +146,7 @@ describe('IncomeFormModal', () => {
     });
   });
 
-  it('personal ledger hides split and destination and omits split amounts', async () => {
+  it('personal ledger hides the split and destination controls', async () => {
     const wrapper = mountModal();
 
     expect(wrapper.find('[data-testid="partner-split-stub"]').exists()).toBe(true);
@@ -152,7 +157,13 @@ describe('IncomeFormModal', () => {
     expect(wrapper.find('[data-testid="partner-split-stub"]').exists()).toBe(false);
     expect(wrapper.text()).not.toContain('Destino');
     expect(wrapper.text()).toContain('Valor');
+  });
 
+  it('personal ledger submit omits the split amounts', async () => {
+    const wrapper = mountModal();
+
+    await segmentedButton(wrapper, 'Líquido').trigger('click');
+    await segmentedButton(wrapper, 'Personal Gustavo').trigger('click');
     await wrapper.find('input[type="text"]').setValue('Ingreso personal');
     await wrapper.find('input[type="month"]').setValue('2026-06');
     await wrapper.find('input[inputmode="numeric"]').setValue('54099');
