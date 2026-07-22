@@ -272,6 +272,7 @@ def _notify_phase_onboarded(phase, sub, prorated_payment, new_amount):
     """Tell the client (and project admins) a phase joined the hosting billing."""
     from accounts.models import Notification
     from accounts.services.notifications import notify, notify_project_admins
+    from content.utils import format_cop_email
 
     project = sub.project
     title = phase.business_proposal.title
@@ -281,7 +282,7 @@ def _notify_phase_onboarded(phase, sub, prorated_payment, new_amount):
 
     if prorated_payment is not None:
         charge_line = (
-            f' Se aplicó un cobro prorrateado de ${prorated_payment.amount:,.0f} COP '
+            f' Se aplicó un cobro prorrateado de ${format_cop_email(prorated_payment.amount)} COP '
             f'por los días restantes del ciclo actual.'
         )
     else:
@@ -295,7 +296,7 @@ def _notify_phase_onboarded(phase, sub, prorated_payment, new_amount):
             message=(
                 f'La fase "{title}" se incorporó a tu hosting.{charge_line} '
                 f'Desde la próxima renovación tu hosting será de '
-                f'${new_amount:,.0f} COP / {period}.'
+                f'${format_cop_email(new_amount)} COP / {period}.'
             ),
             project=project,
             related_object_type=related_type,
@@ -306,7 +307,7 @@ def _notify_phase_onboarded(phase, sub, prorated_payment, new_amount):
             f'Fase incorporada al hosting: {project.name}',
             message=(
                 f'La fase "{title}" entró a la facturación de "{project.name}". '
-                f'Nuevo cobro recurrente: ${new_amount:,.0f} COP / {period}.'
+                f'Nuevo cobro recurrente: ${format_cop_email(new_amount)} COP / {period}.'
             ),
             related_object_type=related_type,
             related_object_id=related_id,

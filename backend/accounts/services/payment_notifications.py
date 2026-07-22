@@ -78,10 +78,12 @@ def send_payment_status_team_email(payment_id, to_status, source=''):
         logger.warning('Payment %s not found for team status email', payment_id)
         return False
 
+    from content.utils import format_cop_email
+
     context = build_payment_status_context(payment, to_status, source)
     subject = (
         f'{context["status_label"]} · {context["project_name"]} · '
-        f'${context["amount"]:,.0f} COP'
+        f'${format_cop_email(context["amount"])} COP'
     )
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'team@projectapp.co')
 

@@ -1,10 +1,10 @@
-{{ status_label }} — {{ project_name }}
+{% load date_filters money_filters %}{% autoescape off %}{{ status_label }} — {{ project_name }}
 
 Cliente:    {{ client_name }}{% if client_email %} <{{ client_email }}>{% endif %}
 Proyecto:   {{ project_name }} (#{{ project_id }})
-Monto:      ${{ amount }} {{ currency }}
-Periodo:    {{ billing_period_start }} — {{ billing_period_end }}
-Vence:      {{ due_date }}
+Monto:      ${{ amount|cop }} {{ currency }}
+Periodo:    {{ billing_period_start|bogota_date }} — {{ billing_period_end|bogota_date }}
+Vence:      {{ due_date|bogota_date }}
 Estado:     {{ status_label }}
 {% if transaction_id %}Transacción Wompi: {{ transaction_id }}
 {% endif %}{% if source %}Origen: {{ source }}
@@ -12,4 +12,4 @@ Estado:     {{ status_label }}
 {% endif %}
 —
 Notificación automática de pagos · ProjectApp.
-Pago #{{ payment_id }}
+Pago #{{ payment_id }}{% endautoescape %}
