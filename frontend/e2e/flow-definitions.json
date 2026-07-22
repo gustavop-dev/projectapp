@@ -1,5 +1,5 @@
 {
-  "version": "2.52.0",
+  "version": "2.53.0",
   "lastUpdated": "2026-07-22",
   "flows": {
     "layout-navbar-navigation": {
@@ -2213,8 +2213,8 @@
       ],
       "priority": "P2",
       "description": "Admin manages folders in FolderManagerModal: create folder with parent selector (POST /api/document-folders/create/), inline rename (PATCH /api/document-folders/:id/update/), delete with confirmation (DELETE /api/document-folders/:id/delete/) and drag-reorder (POST /api/document-folders/reorder/). Existing admin-document-folders spec only covers parent pre-selection on create.",
-      "expectedSpecs": 0,
-      "knownGaps": "Rename, delete and reorder inside the manager modal untested. Registered 2026-07-16 audit."
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): create/rename/delete + documents-blocking branch over mocked API. Drag-reorder intentionally not asserted (flaky in CI)."
     },
     "admin-document-tags-manage": {
       "name": "Admin Document Tags Management",

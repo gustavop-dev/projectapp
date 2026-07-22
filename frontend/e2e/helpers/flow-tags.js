@@ -186,6 +186,7 @@ export const ADMIN_DOCUMENT_LIST = ['@flow:admin-document-list', '@module:admin'
 export const ADMIN_DOCUMENT_SEND_EMAIL = ['@flow:admin-document-send-email', '@module:admin', '@priority:P1'];
 export const ADMIN_DOCUMENT_RENAME = ['@flow:admin-document-rename', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_DELETE = ['@flow:admin-document-delete', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_FOLDER_MANAGE = ['@flow:admin-document-folder-manage', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_GALLERY = ['@flow:admin-document-gallery', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_CREATE = ['@flow:admin-document-create', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_EDIT = ['@flow:admin-document-edit', '@module:admin', '@priority:P2'];

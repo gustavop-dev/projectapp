@@ -2764,7 +2764,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-send-email` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-send-email.spec.js` |
 | `admin-document-rename` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-rename.spec.js` |
 | `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
-| `admin-document-folder-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-folder-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-manage.spec.js` |
 | `admin-document-tags-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
 | `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-document-drag-organize` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
@@ -3807,8 +3807,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Routes:** `/panel/documents`
 - **API:** `POST /api/document-folders/create/`, `PATCH /api/document-folders/<id>/update/`, `DELETE /api/document-folders/<id>/delete/`, `POST /api/document-folders/reorder/`
 - **Description:** Admin manages folders in `FolderManagerModal`: create with parent selector, inline rename, delete with confirmation and drag-reorder. `admin-document-folders` only covers parent pre-selection on create.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+- **Coverage:** ✅ Covered (create/rename/delete + blocking branch; drag-reorder not asserted — flaky in CI)
+- **E2E Spec:** `e2e/admin/admin-document-folder-manage.spec.js` (added 2026-07-22)
 
 #### FLOW: `admin-document-tags-manage`
 
@@ -3940,7 +3940,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-send-email` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-send-email.spec.js` |
 | `admin-document-rename` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-rename.spec.js` |
 | `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
-| `admin-document-folder-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-folder-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-manage.spec.js` |
 | `admin-document-tags-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
 | `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-document-drag-organize` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
