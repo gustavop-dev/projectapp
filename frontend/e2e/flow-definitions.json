@@ -1,5 +1,5 @@
 {
-  "version": "2.54.0",
+  "version": "2.55.0",
   "lastUpdated": "2026-07-22",
   "flows": {
     "layout-navbar-navigation": {
@@ -2036,8 +2036,8 @@
       ],
       "priority": "P2",
       "description": "Admin attaches files to a standalone email from /panel/emails: multiple file input (.pdf/.doc/.docx/.xls/.xlsx/.png/.jpg), client-side type and size validation via validateEmailAttachments (~/utils/emailAttachments), per-file remove button, and multipart POST /api/emails/send/ including the attachments. Documented as Branch B of admin-standalone-email-composer but never exercised by its spec.",
-      "expectedSpecs": 0,
-      "knownGaps": "No E2E spec: upload, validation-rejection and remove paths untested. Registered 2026-07-16 audit."
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 3): valid upload sent in multipart POST, type-validation rejection and per-file remove over mocked API."
     },
     "admin-proposal-advanced-filters": {
       "name": "Admin Proposal Advanced Filters",

@@ -4150,8 +4150,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   2. Admin selects one or more files with the "Adjuntar archivos" input.
   3. Invalid type/size files are rejected with a validation message; valid ones list with a remove button.
   4. Admin sends → multipart `POST /api/emails/send/` includes the attachments.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-standalone-email-attachments.spec.js` (upload + multipart send, validation rejection, remove; added 2026-07-22)
 
 ---
 
@@ -4168,7 +4168,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-send-proposal-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `admin-standalone-email-composer` | admin | admin | P2 | 🟡 Partial (sections mgmt, error path, history pagination not asserted) | `e2e/admin/admin-standalone-email-composer.spec.js` |
 | `admin-standalone-email-defaults` | admin | admin | P2 | 🟡 Partial (restore + invalid-signer branches not asserted) | `e2e/admin/admin-standalone-email-composer.spec.js` |
-| `admin-standalone-email-attachments` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-standalone-email-attachments` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-standalone-email-attachments.spec.js` |
 
 ---
 
