@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
+from freezegun import freeze_time
 
 from content.models import LinkedInPost, McpConnector
 
@@ -73,6 +74,7 @@ class TestLinkedInMcpTools:
         assert payload['count'] == 1
         assert payload['posts'][0]['status'] == 'draft'
 
+    @freeze_time('2026-01-15 12:00:00')
     @patch(ETA_SVC)
     def test_create_scheduled_enqueues_eta(self, mock_eta, api_client, linkedin_connector):
         _, token = linkedin_connector
@@ -85,6 +87,7 @@ class TestLinkedInMcpTools:
         assert _content(created)['status'] == 'scheduled'
         mock_eta.assert_called_once()
 
+    @freeze_time('2026-01-15 12:00:00')
     def test_create_with_past_schedule_is_error(self, api_client, linkedin_connector):
         _, token = linkedin_connector
         eta = (timezone.now() - timedelta(hours=1)).isoformat()
@@ -133,9 +136,10 @@ class TestLinkedInMcpTools:
         assert _content(deleted)['deleted'] is True
         assert not LinkedInPost.objects.filter(pk=post.id).exists()
 
+    @freeze_time('2026-01-15 12:00:00')
     @patch(STATUS_SVC, return_value={
         'connected': True, 'profile_name': 'Gustavo',
-        'expires_at': (timezone.now() + timedelta(days=3)).isoformat(),
+        'expires_at': '2026-01-18T12:00:00+00:00',
     })
     def test_connection_status_warns_near_expiry(self, mock_status, api_client, linkedin_connector):
         _, token = linkedin_connector

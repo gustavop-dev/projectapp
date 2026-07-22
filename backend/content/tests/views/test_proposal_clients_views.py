@@ -9,6 +9,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+from freezegun import freeze_time
 from accounts.models import Project, UserProfile
 from accounts.services import proposal_client_service
 from django.contrib.auth import get_user_model
@@ -397,6 +398,7 @@ class TestUpdateProposalClient:
 # ---------------------------------------------------------------------------
 
 class TestInactiveClients:
+    @freeze_time('2026-01-15 12:00:00')
     def test_default_list_excludes_deactivated_client(
         self, admin_client, real_client_with_proposal, orphan_client,
     ):
@@ -411,6 +413,7 @@ class TestInactiveClients:
         assert real_client_with_proposal.pk in ids
         assert orphan_client.pk not in ids
 
+    @freeze_time('2026-01-15 12:00:00')
     def test_inactive_true_returns_only_deactivated_clients(
         self, admin_client, real_client_with_proposal, orphan_client,
     ):
@@ -441,6 +444,7 @@ class TestInactiveClients:
         orphan_client.refresh_from_db()
         assert orphan_client.deactivated_at is not None
 
+    @freeze_time('2026-01-15 12:00:00')
     def test_patch_is_inactive_false_clears_deactivated_at(
         self, admin_client, orphan_client,
     ):

@@ -1,5 +1,5 @@
 {
-  "version": "2.50.0",
+  "version": "2.51.0",
   "lastUpdated": "2026-07-22",
   "flows": {
     "layout-navbar-navigation": {
@@ -2180,8 +2180,8 @@
       ],
       "priority": "P1",
       "description": "Admin sends a branded email with document PDFs attached from the documents list: actions sheet -> 'Enviar por correo' opens SendDocumentEmailModal (recipient, subject, greeting, ordered sections, footer, extra document PDFs picker, Edit/Preview tabs) -> POST /api/emails/send/ with document_ids. Functional successor of the superseded admin-proposal-documents-send flow.",
-      "expectedSpecs": 0,
-      "knownGaps": "UI and endpoint exist (SendDocumentEmailModal.vue, stores/documents.js sendDocumentEmail); no E2E spec yet. Registered 2026-07-16 audit."
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-22 (QA campaign): happy path, 429 rate-limited and generic-error branches over mocked API."
     },
     "admin-document-rename": {
       "name": "Admin Document Rename",

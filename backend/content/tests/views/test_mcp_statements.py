@@ -267,3 +267,230 @@ class TestLifecycleGuards:
         # `cards` merges statement names with the active catalog (the
         # seed migration adds 'T.C 0064').
         assert 'Visa Bancolombia' in payload['cards']
+
+
+class TestStatementCrudTools:
+    def test_status_tool_rejects_invalid_year(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        response = _call(api_client, token, 'get_statement_status', {
+            'year': 'no-año',
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_create_requires_transactions_list(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        response = _call(api_client, token, 'create_statement', {
+            **{k: v for k, v in CREATE_ARGS.items() if k != 'transactions'},
+            'transactions': [],
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_create_rejects_invalid_header(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        args = {k: v for k, v in CREATE_ARGS.items() if k != 'card_name'}
+        response = _call(api_client, token, 'create_statement', args)
+        result = response.data['result']
+        assert result['isError'] is True
+        assert 'Datos inválidos' in result['content'][0]['text']
+
+    def test_create_rejects_invalid_transaction_rows(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        response = _call(api_client, token, 'create_statement', {
+            **CREATE_ARGS,
+            'transactions': [{'raw_description': 'SIN FECHA NI MONTO'}],
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_resolve_requires_list(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        response = _call(api_client, token, 'resolve_merchants', {
+            'raw_descriptions': 'PAYU*NETFLIX',
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_save_aliases_requires_list(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        response = _call(api_client, token, 'save_merchant_aliases', {
+            'aliases': {},
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_update_statement_edits_notes(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        _call(api_client, token, 'create_statement', CREATE_ARGS)
+        statement = CreditCardStatement.objects.get()
+        response = _call(api_client, token, 'update_statement', {
+            'statement_id': statement.pk, 'notes': 'Revisado vía MCP',
+        })
+        assert response.data['result']['isError'] is False
+        statement.refresh_from_db()
+        assert statement.notes == 'Revisado vía MCP'
+
+    def test_update_statement_unknown_id_errors(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        response = _call(api_client, token, 'update_statement', {
+            'statement_id': 999999, 'notes': 'X',
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_update_statement_invalid_payload_errors(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        _call(api_client, token, 'create_statement', CREATE_ARGS)
+        statement = CreditCardStatement.objects.get()
+        response = _call(api_client, token, 'update_statement', {
+            'statement_id': statement.pk, 'purchases_total': 'no-numero',
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_update_transaction_edits_category(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        _call(api_client, token, 'create_statement', CREATE_ARGS)
+        tx = CreditCardTransaction.objects.order_by('pk').first()
+        response = _call(api_client, token, 'update_statement_transaction', {
+            'transaction_id': tx.pk, 'category': 'fuel',
+        })
+        assert _payload(response)['category'] == 'fuel'
+        tx.refresh_from_db()
+        assert tx.category == 'fuel'
+
+    def test_update_transaction_unknown_id_errors(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        response = _call(api_client, token, 'update_statement_transaction', {
+            'transaction_id': 999999, 'category': 'fuel',
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_update_transaction_invalid_payload_errors(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        _call(api_client, token, 'create_statement', CREATE_ARGS)
+        tx = CreditCardTransaction.objects.order_by('pk').first()
+        response = _call(api_client, token, 'update_statement_transaction', {
+            'transaction_id': tx.pk, 'amount': 'no-numero',
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_reopen_processed_statement_returns_draft(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        _call(api_client, token, 'create_statement', CREATE_ARGS)
+        statement = CreditCardStatement.objects.get()
+        _call(api_client, token, 'finalize_statement', {
+            'statement_id': statement.pk, 'force': True,
+        })
+        response = _call(api_client, token, 'reopen_statement', {
+            'statement_id': statement.pk,
+        })
+        assert _payload(response)['status'] == 'draft'
+
+    def test_reopen_draft_statement_errors(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        _call(api_client, token, 'create_statement', CREATE_ARGS)
+        statement = CreditCardStatement.objects.get()
+        response = _call(api_client, token, 'reopen_statement', {
+            'statement_id': statement.pk,
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_list_statements_filters_by_year_card_and_status(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        _call(api_client, token, 'create_statement', CREATE_ARGS)
+        response = _call(api_client, token, 'list_statements', {
+            'year': 2026,
+            'card_name': 'Visa Bancolombia',
+            'status': 'draft',
+        })
+        assert _payload(response)['count'] == 1
+
+    def test_list_statements_rejects_invalid_year(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        response = _call(api_client, token, 'list_statements', {
+            'year': 'no-año',
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_get_statement_returns_detail(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        _call(api_client, token, 'create_statement', CREATE_ARGS)
+        statement = CreditCardStatement.objects.get()
+        response = _call(api_client, token, 'get_statement', {
+            'statement_id': statement.pk,
+        })
+        payload = _payload(response)
+        assert payload['id'] == statement.pk
+        assert len(payload['transactions']) == 2
+
+    def test_delete_draft_statement_deletes(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+        _call(api_client, token, 'create_statement', CREATE_ARGS)
+        statement = CreditCardStatement.objects.get()
+        response = _call(api_client, token, 'delete_statement', {
+            'statement_id': statement.pk,
+        })
+        assert _payload(response)['deleted'] is True
+        assert CreditCardStatement.objects.count() == 0
+
+    def test_list_merchant_aliases_filters_by_term(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        MerchantAlias.objects.create(
+            match_text='NETFLIX', merchant_name='Netflix',
+            default_category='software',
+        )
+        MerchantAlias.objects.create(
+            match_text='PRIMAX', merchant_name='Primax',
+            default_category='fuel',
+        )
+        _, token = accounting_connector
+        response = _call(api_client, token, 'list_merchant_aliases', {
+            'q': 'netflix',
+        })
+        assert _payload(response)['count'] == 1
+
+    def test_delete_merchant_alias_removes_row(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        alias = MerchantAlias.objects.create(
+            match_text='NETFLIX', merchant_name='Netflix',
+            default_category='software',
+        )
+        _, token = accounting_connector
+        response = _call(api_client, token, 'delete_merchant_alias', {
+            'alias_id': alias.pk,
+        })
+        assert _payload(response)['deleted'] is True
+        assert MerchantAlias.objects.count() == 0

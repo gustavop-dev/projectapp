@@ -25,6 +25,7 @@ from content.models import (
     HostingCycle,
     HostingRecord,
     IncomeRecord,
+    Ledger,
     PocketMovement,
     RecurringPayment,
 )
@@ -114,7 +115,7 @@ class Command(BaseCommand):
             if to_pocket:
                 movement = PocketMovement.objects.create(
                     concept=f'Ingreso: {concept}',
-                    movement_date=period,
+                    movement_date=period + timedelta(days=14),
                     direction=PocketMovement.Direction.IN,
                     amount=paid,
                     source_ref=FAKE_REF,
@@ -123,7 +124,11 @@ class Command(BaseCommand):
             IncomeRecord.objects.create(
                 concept=concept,
                 kind=IncomeRecord.Kind.LIQUID,
-                period_date=period,
+                # Pocket liquidations record the exact payment day, the
+                # liquidate modal's optional toggle; the rest stay monthly.
+                period_date=(
+                    period + timedelta(days=14) if to_pocket else period
+                ),
                 destination=(
                     IncomeRecord.Destination.POCKET
                     if to_pocket else IncomeRecord.Destination.PARTNERS
@@ -181,17 +186,60 @@ class Command(BaseCommand):
                 created += 1
             created += 1
 
+        # Pocket egresos follow the operating model: every draw is a
+        # company-ledger expense (a partner attribution assigns it 100%
+        # to that partner, category personal), mirroring _sync_from_pocket.
+        # A third of the rows stay unlinked to represent historical
+        # movements created before the linkage existed (no backfill).
         for index in range(count):
-            PocketMovement.objects.create(
-                concept=rng.choice(['Trans. Gustavo', 'Trans. Carlos', 'Pago T.C']),
-                movement_date=_month_start(rng.randrange(0, 6)) + timedelta(
-                    days=rng.randrange(0, 28),
-                ),
-                direction=rng.choice(list(PocketMovement.Direction)),
-                amount=Decimal(rng.randrange(50_000, 900_000, 1_000)),
+            movement_date = _month_start(rng.randrange(0, 6)) + timedelta(
+                days=rng.randrange(0, 28),
+            )
+            amount = Decimal(rng.randrange(50_000, 900_000, 1_000))
+            shape = index % 3
+            if shape == 2:
+                PocketMovement.objects.create(
+                    concept=rng.choice(['Trans. histórica', 'Ajuste inicial']),
+                    movement_date=movement_date,
+                    direction=rng.choice(list(PocketMovement.Direction)),
+                    amount=amount,
+                    source_ref=FAKE_REF,
+                )
+                created += 1
+                continue
+            if shape == 0:
+                attribution = rng.choice([Ledger.GUSTAVO, Ledger.CARLOS])
+                concept = f'Retiro {attribution.label}'
+                category = ExpenseRecord.Category.PERSONAL
+            else:
+                attribution = Ledger.COMPANY
+                concept = 'Pago T.C'
+                category = ExpenseRecord.Category.BUSINESS
+            if attribution == Ledger.GUSTAVO:
+                gustavo, carlos = amount, Decimal('0')
+            elif attribution == Ledger.CARLOS:
+                gustavo, carlos = Decimal('0'), amount
+            else:
+                gustavo, carlos = split_half(amount)
+            movement = PocketMovement.objects.create(
+                concept=concept,
+                movement_date=movement_date,
+                direction=PocketMovement.Direction.OUT,
+                amount=amount,
                 source_ref=FAKE_REF,
             )
-            created += 1
+            ExpenseRecord.objects.create(
+                concept=concept,
+                period_date=movement_date.replace(day=1),
+                ledger=Ledger.COMPANY,
+                category=category,
+                total_amount=amount,
+                gustavo_amount=gustavo,
+                carlos_amount=carlos,
+                pocket_movement=movement,
+                source_ref=FAKE_REF,
+            )
+            created += 2
 
         for name, price, currency, cop in [
             ('Claude Code 20x', '200.00', 'USD', '800000.00'),

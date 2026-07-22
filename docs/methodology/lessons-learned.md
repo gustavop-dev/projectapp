@@ -664,3 +664,15 @@ A build step that prerenders pages by fetching the app's **own public API** is, 
 ### E2E flow tags must be array literals, not bare constants
 - The flow-definitions sync checker (`scripts/lib/e2e-flow-refs.mjs`) only detects `@flow:` references inside `tag: [ ... ]` **array literals**. A spec that applies `{ tag: PLATFORM_PASSWORD_RESET }` (bare imported constant) is invisible to it — its coverage silently doesn't count. Always spread: `{ tag: [...PLATFORM_PASSWORD_RESET] }` / `{ tag: [...CONST, '@role:client'] }`. This stayed hidden until the flow was registered in `flow-definitions.json` (an unregistered flow trips neither the "unknown-in-specs" nor the "required-but-unreferenced" check).
 - **Verify at the served-HTML layer, not just HTTP 200.** A Nuxt SPA shell returns 200 with no article content. Confirm `<article>` + per-post `og:title` + JSON-LD are present in `curl` output, and spot-check a real browser render.
+
+---
+
+## 21. Test Quality Gate: CI runs DEFAULT mode — `--strict` SUPPRESSES semantic rules
+
+The gate has two semantic-rules modes and they are **not** a superset relationship. The CI job (`.github/workflows/test-quality-gate.yml`) invokes `scripts/test_quality_gate.py` **without** `--semantic-rules strict` — i.e. DEFAULT mode. DEFAULT enables rules that strict mode suppresses: PR #113 went red in CI on the `forbidden_token` rule (the word "batch" in a test name) and the `no_assertions` rule, even though a local `--semantic-rules strict` run was clean.
+
+### Rules of thumb
+- **Validate pre-push in DEFAULT mode** — the exact CI invocation is `python3 scripts/test_quality_gate.py --repo-root . --report-path <out>.json --frontend-unit-dir test --verbose`. Do not add `--strict`/`--semantic-rules strict` when the goal is predicting CI.
+- **Any ERROR fails the gate** regardless of the overall score; warnings/info only lower the score (score ≥80 green, ≥60 yellow).
+- **File-scoped runs** use `--include-file <path>` — cheap way to gate only the specs touched in a batch.
+- Watch for `forbidden_token` in test **names** (not just bodies) and `no_assertions` on tests whose assertion lives inside a helper — use plain asserts in the test body.
