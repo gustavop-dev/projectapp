@@ -339,6 +339,7 @@ export const ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS = ['@flow:admin-diagnostic-a
 export const ADMIN_ACCOUNTING_DASHBOARD     = ['@flow:admin-accounting-dashboard',     '@module:admin', '@priority:P1'];
 export const ADMIN_ACCOUNTING_EXPECTED_DETAIL = ['@flow:admin-accounting-expected-detail', '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_STATS_MODALS  = ['@flow:admin-accounting-stats-modals',  '@module:admin', '@priority:P2'];
+export const ADMIN_DASHBOARD_STATS_MODALS   = ['@flow:admin-dashboard-stats-modals',   '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_INCOME_CRUD   = ['@flow:admin-accounting-income-crud',   '@module:admin', '@priority:P1'];
 export const ADMIN_ACCOUNTING_FILTERS       = ['@flow:admin-accounting-filters',       '@module:admin', '@priority:P1'];
 export const ADMIN_ACCOUNTING_EXPENSES_CRUD = ['@flow:admin-accounting-expenses-crud', '@module:admin', '@priority:P2'];

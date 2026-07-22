@@ -70,6 +70,9 @@
           format="currency"
           :tone="Number(finance.liquid_utility) >= 0 ? 'success' : 'danger'"
           sub="ingresos líquidos − gastos"
+          clickable
+          data-testid="dashboard-finance-tile"
+          @click="showFinanceStats = true"
         />
         <DashboardStatTile
           size="lg"
@@ -78,7 +81,9 @@
           format="currency"
           tone="brand"
           :sub="pipelineSub"
+          clickable
           data-testid="dashboard-pipeline-tile"
+          @click="showProposalsStats = true"
         />
         <DashboardStatTile
           size="lg"
@@ -110,18 +115,32 @@
         class="mb-4 dash-reveal"
         style="animation-delay: 240ms"
       />
+
+      <!-- Stats modals -->
+      <FinanceStatsModal
+        v-if="hasFinance"
+        :open="showFinanceStats"
+        :finance="finance"
+        @close="showFinanceStats = false"
+      />
+      <ProposalsStatsModal
+        :open="showProposalsStats"
+        @close="showProposalsStats = false"
+      />
     </template>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import DashboardAttentionRadar from '~/components/panel/dashboard/DashboardAttentionRadar.vue';
 import DashboardFinanceSection from '~/components/panel/dashboard/DashboardFinanceSection.vue';
 import DashboardOperationsSection from '~/components/panel/dashboard/DashboardOperationsSection.vue';
 import DashboardProposalsSection from '~/components/panel/dashboard/DashboardProposalsSection.vue';
 import DashboardStatTile from '~/components/panel/dashboard/DashboardStatTile.vue';
+import FinanceStatsModal from '~/components/panel/dashboard/FinanceStatsModal.vue';
+import ProposalsStatsModal from '~/components/panel/dashboard/ProposalsStatsModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelDashboardStore } from '~/stores/panel_dashboard';
@@ -151,6 +170,9 @@ const pipelineSub = computed(() => {
   const count = proposals.value?.pipeline_count ?? 0;
   return `${count} propuesta${count === 1 ? '' : 's'} en curso (enviadas + vistas)`;
 });
+
+const showFinanceStats = ref(false);
+const showProposalsStats = ref(false);
 
 const attentionTone = computed(() => {
   if (!attention.value.length) return 'success';

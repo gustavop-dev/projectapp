@@ -16,6 +16,7 @@ import {
   ADMIN_DASHBOARD_FINANCE_GATE,
   ADMIN_DASHBOARD_PIPELINE_VALUE,
   ADMIN_DASHBOARD_QUICK_CREATE,
+  ADMIN_DASHBOARD_STATS_MODALS,
 } from '../helpers/flow-tags.js';
 
 test.setTimeout(60_000);
@@ -78,6 +79,19 @@ const summaryFixture = {
   ],
 };
 
+const proposalsDashboardFixture = {
+  total_proposals: 10,
+  by_status: { draft: 2, sent: 3, viewed: 2, negotiating: 0, accepted: 2, finished: 0, rejected: 1, expired: 0 },
+  conversion_rate: 40,
+  pipeline_value: 45000000,
+  pipeline_count: 3,
+  monthly_trend: [
+    { month: '2026-05-01', created: 4, sent: 3, accepted: 1, finished: 0, rejected: 1 },
+    { month: '2026-06-01', created: 3, sent: 2, accepted: 1, finished: 0, rejected: 0 },
+  ],
+  avg_value_by_status: { accepted: 12000000, rejected: 6000000, sent: 8000000, viewed: 0, finished: 0, expired: 0 },
+};
+
 function jsonResponse(body) {
   return { status: 200, contentType: 'application/json', body: JSON.stringify(body) };
 }
@@ -108,6 +122,48 @@ test.describe('Admin Dashboard', () => {
     await expect(page.getByTestId('dashboard-finance-section')).toBeVisible();
     await expect(page.getByTestId('dashboard-proposals-section')).toBeVisible();
     await expect(page.getByTestId('dashboard-operations-section')).toBeVisible();
+  });
+
+  test('pulse tiles open the finance and proposals stats modals', {
+    tag: [...ADMIN_DASHBOARD_STATS_MODALS, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'panel/dashboard/') return jsonResponse(summaryFixture);
+      if (apiPath === 'proposals/dashboard/') return jsonResponse(proposalsDashboardFixture);
+      return null;
+    });
+    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+    await page.waitForResponse((res) => res.url().includes('/api/panel/dashboard/'));
+
+    // Proposals modal: lazy proposals/dashboard/ fetch on first open.
+    await page.getByTestId('dashboard-pipeline-tile').click();
+    await expect(page.getByTestId('stats-modal')).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.getByRole('heading', { name: 'Estadísticas de propuestas' }),
+    ).toBeVisible();
+    await expect(page.getByText('3 en curso')).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Embudo' }).click();
+    await expect(
+      page.getByTestId('stats-bar-chart').locator('.apexcharts-canvas'),
+    ).toBeVisible({ timeout: 15000 });
+
+    await page.getByRole('button', { name: 'Cerrar' }).click();
+    await expect(page.getByTestId('stats-modal')).toHaveCount(0);
+
+    // Finance modal (superuser-gated tile).
+    await page.getByTestId('dashboard-finance-tile').click();
+    await expect(
+      page.getByRole('heading', { name: 'Estadísticas financieras 2026' }),
+    ).toBeVisible();
+    await page.getByRole('tab', { name: 'Deuda y compromisos' }).click();
+    await expect(
+      page.getByTestId('stats-summary-strip').getByText('Por cobrar este mes'),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId('stats-radial-chart').locator('.apexcharts-canvas'),
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test('renders the pipeline pulse tile with value and count', {

@@ -1,5 +1,5 @@
 {
-  "version": "2.49.0",
+  "version": "2.50.0",
   "lastUpdated": "2026-07-22",
   "flows": {
     "layout-navbar-navigation": {
@@ -805,6 +805,16 @@
       "priority": "P3",
       "description": "Dashboard header \"+ Crear\" dropdown navigates to create a proposal, document, task or expense.",
       "expectedSpecs": 2
+    },
+    "admin-dashboard-stats-modals": {
+      "name": "Admin Dashboard Stats Modals",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin clicks the pulse tiles on /panel to open descriptive-statistics modals. The Pipeline activo tile opens the proposals modal, which lazily fetches GET /api/proposals/dashboard/ once per modal lifetime (heavy endpoint, cached in a local ref, never fetched on dashboard load) and offers tabs Tendencia (stacked trend chart), Embudo (horizontal funnel by status), Valor por etapa (avg value per stage) and Conversión (monthly conversion line + radial close rate). The superuser-gated Utilidad líquida tile opens the finance modal computed client-side from the finance block: Evolución (expected/liquid/expenses area), Utilidad (monthly utility bars + margin strip) and Deuda y compromisos (credit utilization radial + debt/pocket/recurring strip).",
+      "expectedSpecs": 1
     },
     "proposal-rejection-optional-reason": {
       "name": "Proposal Rejection Optional Reason",
