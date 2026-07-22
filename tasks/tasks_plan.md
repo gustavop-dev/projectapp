@@ -113,6 +113,10 @@
 | Accounting — Sortable Hint Icon on Table Columns | ✅ Done | 2026-07-16 (#111). `AccountingTable.vue` always renders a hint icon on sortable columns (chevron replaces it once actively sorted); 2 unit tests cover aria-sort + emit. |
 | Proposal PDF — Identified Challenges Badge Panel | ✅ Done | 2026-07-16 (#112). Hand-drawn challenges box in `proposal_pdf_service.py` replaced with the branded badge-panel primitive + tier logic (11+/55−). Shipped without dedicated tests — covered by QA cycle #2 (see Testing Status). |
 | QA Cycle #1 (methodology + coverage + gate + E2E) | ✅ Done | 2026-07-16 (#111). Memory bank refresh; accounting record-endpoint/hosting-cycle/change-log backend tests (views 85.7→95.2%); 4 dashboard section component specs (~36→99%); stable locators in incomes E2E; `admin-accounting-hosting-billing` (P1) + `admin-accounting-hosting-cycles` (P2) E2E flows covered. |
+| QA Cycles #2–#3 (PDF challenges, accounting carry-over, statements/collections E2E) | ✅ Done | 2026-07-17 (#113). PDF challenges badge-panel coverage + remaining accounting filter branches; accounting store statement/collection/cycle operations + error paths + pocket tiebreak; statement/transaction/alias audit labels; statement-ledger + card-catalog + collections + quick-create E2E; `BaseDropdown` NuxtLink `to`-items fix; gate fixes (plain asserts for no-assertion rule, forbidden-token rename — the CI gate runs DEFAULT semantic-rules mode). |
+| Accounting — Pocket Draws Against Company Utility + Liquidate Defaults | ✅ Done | 2026-07-17 (#114). Pocket egresos attributed to a partner now mirror a company-ledger expense 100% assigned to that partner (category personal), reducing liquid utility and the partner's participation (migration `0164` normalizes existing rows; expense form converts personal+pocket submissions with a warning hint; pocket modal OUT selector relabeled "Atribuir a" with prefilled attribution). Liquidate modal defaults destination to Bolsillo ProjectApp + "Registrar el día exacto de pago" toggle; income/expense `period_date` accepts full dates (YYYY-MM normalized to day 1); statements stay month-only. |
+| Accounting — Stats Modals, COP Email Formatting & Weekday Date Standard | ✅ Done | 2026-07-22 (#115). `cop` template filter (`format_cop_email`) + `bogota_date` in card-reminder/hosting-expiry emails (autoescape off in TXT for the millions apostrophe); `format_bogota_date`/`format_bogota_datetime` now emit the "Jue, 16 jul 2026" weekday standard across proposal/diagnostic/accounting emails; new central `frontend/utils/formatDate.js` (formatDate/formatDateTime/formatDayMonth, Bogotá TZ via Intl, literal date-only parsing); `AccountingStatCard` clickable prop + `ExpectedIncomeDetailModal` (read-only month detail of expected company incomes). |
+| Accounting — COP Formatting & Weekday Dates in Payment Notifications | ✅ Done | 2026-07-22 (#116). Phase-onboarding notifications + team payment-status email switched from en-US comma grouping and raw ISO dates to `format_cop_email` (subject + bodies) and `bogota_date` billing dates; plain-text body wrapped in autoescape off. |
 
 ---
 
@@ -132,9 +136,9 @@
 
 | Suite | Location | Approximate Count | Status |
 |-------|----------|-------------------|--------|
-| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 252 test files (content 182, accounts 66, root/project 4) | Active |
-| Frontend Unit (Jest) | `frontend/test/` | 339 test files | Active |
-| Frontend E2E (Playwright) | `frontend/e2e/` | 208 spec files across admin, auth, blog, layout, proposal, public, platform, visual | Active |
+| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 254 test files (content 184, accounts 66, root/project 4) | Active |
+| Frontend Unit (Jest) | `frontend/test/` | 346 test files | Active |
+| Frontend E2E (Playwright) | `frontend/e2e/` | 209 spec files across admin, auth, blog, layout, proposal, public, platform, visual | Active |
 | Quality Gate | `scripts/test_quality_gate.py` | Re-run to confirm current score | Active |
 
 ---

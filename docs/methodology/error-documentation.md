@@ -24,7 +24,7 @@ This file tracks known errors, their context, and resolutions. When a reusable f
 
 ## Known Issues
 
-_Reviewed 2026-07-04 during the methodology refresh: no new production incidents from the Accounting / MCP-connector / client-signing wave. KNOWN-001 and KNOWN-002 remain open (not re-verified this pass). The E2E flow-tag pitfall found in this session is a workflow lesson, captured in `lessons-learned.md` §20, not a runtime incident._
+_Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new production incidents from the accounting-correctness / display-standards wave (#113–#116). KNOWN-001 and KNOWN-002 remain open (not re-verified this pass). The quality-gate DEFAULT-vs-strict mode pitfall surfaced by PR #113's red CI is a workflow lesson, captured in `lessons-learned.md` §21, not a runtime incident. Previous review: 2026-07-04._
 
 ### [KNOWN-001] kore_project Next.js server occupies port 3000
 - **Date**: 2025-07-07

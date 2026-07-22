@@ -93,8 +93,8 @@ flowchart TD
     URLRouter -->|/api/health/| HealthCheck
     URLRouter -->|/admin/| DjangoAdmin
 
-    URLRouter -->|/api/*| ContentURLs["content.urls (229 patterns)"]
-    URLRouter -->|/api/auth/*<br>/api/platform/*| AccountsURLs["accounts.urls (93 patterns)"]
+    URLRouter -->|/api/*| ContentURLs["content.urls (284 patterns)"]
+    URLRouter -->|/api/auth/*<br>/api/platform/*| AccountsURLs["accounts.urls (94 patterns)"]
     URLRouter -->|/sitemap.xml| Sitemap
     URLRouter -->|/*| ServeNuxt["serve_nuxt (catch-all)"]
 
