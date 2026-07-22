@@ -111,7 +111,9 @@ jobs:
         run: python manage.py migrate --no-input
 
       - name: Run pytest with coverage
-        run: pytest -v --tb=short --junitxml=pytest-results.xml --cov=content --cov=accounts --cov=projectapp --cov-branch --cov-config=coverage.ini --cov-report=json:coverage-backend.json --cov-report=xml:coverage-backend.xml
+        # --cov-fail-under is the backend coverage floor (QA campaigns 1-3
+        # left the suite at ~93%); raise it as coverage grows, never lower it.
+        run: pytest -v --tb=short --junitxml=pytest-results.xml --cov=content --cov=accounts --cov=projectapp --cov-branch --cov-config=coverage.ini --cov-report=json:coverage-backend.json --cov-report=xml:coverage-backend.xml --cov-fail-under=92.5
 
       - name: Backend coverage summary
         if: always()
@@ -162,6 +164,22 @@ jobs:
       - name: Copy test results alongside coverage
         if: always()
         run: cp jest-results.json coverage/ 2>/dev/null || true
+
+      - name: Enforce frontend coverage floors
+        # The jest step swallows exit codes (|| true), so a jest
+        # coverageThreshold would never fail CI — enforce the floors here
+        # instead (QA campaigns 1-3 left the suite at ~85.5% / ~82%);
+        # raise them as coverage grows, never lower them.
+        run: |
+          node --input-type=commonjs -e "
+            const total = require('./coverage/coverage-summary.json').total;
+            const floors = { statements: 85, branches: 81 };
+            const below = Object.entries(floors)
+              .filter(([metric, min]) => total[metric].pct < min)
+              .map(([metric, min]) => metric + ' ' + total[metric].pct + '% < ' + min + '%');
+            if (below.length) { console.error('Coverage below floor: ' + below.join(', ')); process.exit(1); }
+            console.log('Coverage floors OK: statements ' + total.statements.pct + '% >= 85%, branches ' + total.branches.pct + '% >= 81%');
+          "
 
       - name: Frontend unit coverage summary
         if: always()
