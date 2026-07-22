@@ -10,18 +10,33 @@
       <div class="h-8 w-full rounded bg-surface-raised motion-safe:animate-pulse mt-auto" />
     </template>
     <template v-else>
-      <div class="min-w-0">
-        <p class="text-xs text-text-muted uppercase tracking-wider leading-tight mb-1">
-          {{ label }}
-        </p>
-        <p
-          class="text-4xl sm:text-5xl font-semibold tabular-nums"
-          :class="toneClass"
-          data-testid="accounting-hero-value"
+      <div class="min-w-0 flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-xs text-text-muted uppercase tracking-wider leading-tight mb-1">
+            {{ label }}
+          </p>
+          <p
+            class="text-4xl sm:text-5xl font-semibold tabular-nums"
+            :class="toneClass"
+            data-testid="accounting-hero-value"
+          >
+            {{ formattedValue }}
+          </p>
+          <p v-if="sub" class="text-xs text-text-muted mt-2">{{ sub }}</p>
+        </div>
+        <BaseButton
+          v-if="statsButton"
+          type="button"
+          variant="ghost"
+          size="sm"
+          class="shrink-0"
+          data-testid="accounting-hero-stats-button"
+          aria-label="Ver estadísticas de utilidad"
+          @click="emit('open-stats')"
         >
-          {{ formattedValue }}
-        </p>
-        <p v-if="sub" class="text-xs text-text-muted mt-2">{{ sub }}</p>
+          <ChartBarIcon class="w-4 h-4" aria-hidden="true" />
+          <span class="hidden sm:inline">Estadísticas</span>
+        </BaseButton>
       </div>
       <div v-if="progress !== null" class="mt-5">
         <div
@@ -66,7 +81,9 @@
 
 <script setup>
 import { computed, toRef } from 'vue';
+import { ChartBarIcon } from '@heroicons/vue/24/outline';
 import AccountingHeroUtilityChart from '~/components/accounting/charts/AccountingHeroUtilityChart.vue';
+import BaseButton from '~/components/base/BaseButton.vue';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import { formatMoney } from '~/utils/formatMoney';
 
@@ -93,7 +110,11 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
   /** Mini-stats footer pinned to the card bottom: [{ label, value, tone? }]. */
   stats: { type: Array, default: () => [] },
+  /** Shows the "Estadísticas" header button; emits open-stats on click. */
+  statsButton: { type: Boolean, default: false },
 });
+
+const emit = defineEmits(['open-stats']);
 
 const TONE_CLASSES = {
   neutral: 'text-text-default',

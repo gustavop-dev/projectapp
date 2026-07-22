@@ -35,9 +35,9 @@ describe('TaskCard', () => {
     expect(wrapper.find('p').exists()).toBe(false)
   })
 
-  it('formatDate converts ISO date to locale "Mon D" format', () => {
+  it('formatDayMonth converts ISO date to locale "D mon" format', () => {
     const wrapper = mountCard({ due_date: '2026-05-15' })
-    expect(wrapper.text()).toContain('May 15')
+    expect(wrapper.text()).toContain('15 may')
   })
 
   it('priorityLabel maps "low" to "Low"', () => {
@@ -81,13 +81,13 @@ describe('TaskCard', () => {
 
   it('applies overdue date styling when is_overdue is true', () => {
     const wrapper = mountCard({ due_date: '2026-01-01', is_overdue: true })
-    const dateSpan = wrapper.findAll('span').find((s) => s.text().includes('Jan'))
+    const dateSpan = wrapper.findAll('span').find((s) => s.text().includes('ene'))
     expect(dateSpan.classes()).toContain('text-danger-strong')
   })
 
   it('does not apply overdue styling when is_overdue is false', () => {
     const wrapper = mountCard({ due_date: '2026-12-31', is_overdue: false })
-    const dateSpan = wrapper.findAll('span').find((s) => s.text().includes('Dec'))
+    const dateSpan = wrapper.findAll('span').find((s) => s.text().includes('dic'))
     expect(dateSpan.classes()).not.toContain('text-danger-strong')
   })
 

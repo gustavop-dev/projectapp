@@ -43,4 +43,22 @@ describe('AccountingStatCard', () => {
       expectedClass,
     );
   });
+
+  it('stays a plain div when not clickable', () => {
+    const wrapper = mountCard();
+
+    expect(wrapper.element.tagName).toBe('DIV');
+    expect(wrapper.find('button').exists()).toBe(false);
+  });
+
+  it('renders a button that emits click when clickable', async () => {
+    const wrapper = mountCard({ clickable: true });
+
+    expect(wrapper.element.tagName).toBe('BUTTON');
+    expect(wrapper.attributes('type')).toBe('button');
+    expect(wrapper.attributes('aria-label')).toBe('Ver estadísticas de Ingresos del mes');
+
+    await wrapper.trigger('click');
+    expect(wrapper.emitted('click')).toHaveLength(1);
+  });
 });

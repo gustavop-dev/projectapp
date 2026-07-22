@@ -12,7 +12,7 @@ const entries = [
     action_label: 'Actualizado',
     changes: [{ field: 'amount', label: 'Valor', old: '100000', new: '200000' }],
     actor_username: 'gustavo',
-    created_at: '2026-06-15T14:30:00',
+    created_at: '2026-06-15T14:30:00-05:00',
   },
   {
     id: 2,
@@ -24,7 +24,7 @@ const entries = [
     action_label: 'Creado',
     changes: [{ field: 'concept', label: 'Concepto', old: null, new: 'Dominio .com' }],
     actor_username: null,
-    created_at: '2026-06-16T09:05:00',
+    created_at: '2026-06-16T09:05:00-05:00',
   },
   {
     id: 3,
@@ -36,7 +36,7 @@ const entries = [
     action_label: 'Eliminado',
     changes: [{ field: 'status', label: 'Estado', old: 'active', new: null }],
     actor_username: 'carlos',
-    created_at: '2026-06-17T18:00:00',
+    created_at: '2026-06-17T18:00:00-05:00',
   },
 ];
 
@@ -50,7 +50,7 @@ describe('ChangelogTable', () => {
 
     const row = wrapper.find('[data-testid="changelog-row-1"]');
     expect(row.exists()).toBe(true);
-    expect(row.text()).toContain('15/06/2026 14:30');
+    expect(row.text()).toContain('Lun, 15 jun 2026, 14:30');
     expect(row.text()).toContain('gustavo');
     expect(row.text()).toContain('Ingreso');
     expect(row.text()).toContain('Página web Acme');

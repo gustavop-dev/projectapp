@@ -1,6 +1,6 @@
 {
-  "version": "2.47.0",
-  "lastUpdated": "2026-07-16",
+  "version": "2.50.0",
+  "lastUpdated": "2026-07-22",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -805,6 +805,16 @@
       "priority": "P3",
       "description": "Dashboard header \"+ Crear\" dropdown navigates to create a proposal, document, task or expense.",
       "expectedSpecs": 2
+    },
+    "admin-dashboard-stats-modals": {
+      "name": "Admin Dashboard Stats Modals",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin clicks the pulse tiles on /panel to open descriptive-statistics modals. The Pipeline activo tile opens the proposals modal, which lazily fetches GET /api/proposals/dashboard/ once per modal lifetime (heavy endpoint, cached in a local ref, never fetched on dashboard load) and offers tabs Tendencia (stacked trend chart), Embudo (horizontal funnel by status), Valor por etapa (avg value per stage) and Conversión (monthly conversion line + radial close rate). The superuser-gated Utilidad líquida tile opens the finance modal computed client-side from the finance block: Evolución (expected/liquid/expenses area), Utilidad (monthly utility bars + margin strip) and Deuda y compromisos (credit utilization radial + debt/pocket/recurring strip).",
+      "expectedSpecs": 1
     },
     "proposal-rejection-optional-reason": {
       "name": "Proposal Rejection Optional Reason",
@@ -2746,6 +2756,26 @@
       "priority": "P1",
       "description": "Superuser opens /panel/accounting and sees the financial overview fed by GET /api/accounting/dashboard/?year=: expected vs liquid income, expenses, utilities and monthly breakdown computed from the company ledger only (personal-ledger records excluded), pocket balance, per-partner cards (Gustavo/Carlos combine company participation + personal ledger; ProjectApp (Empresa) shows the full company ledger totals), operative cost cards and latest card snapshots. The hero Utilidad líquida card embeds a full-width 'Utilidad por mes' ApexCharts line with axes and money tooltips (replaced the corner sparkline). The subnav orders Bolsillo second, after Resumen. Includes the superuser gate: staff non-superusers are redirected to /panel and the Accounting sidebar section is hidden. Includes the Evolución section: two ApexCharts (expected vs liquid vs expenses per month, and card-debt evolution from snapshots) driven by the year selector plus a client-side month-range filter, a link to the cards history and the year persisted as a query param.",
       "expectedSpecs": 7
+    },
+    "admin-accounting-expected-detail": {
+      "name": "Admin Accounting Expected Income Detail",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser clicks the 'Pendiente por cobrar · {mes}' stat card on /panel/accounting and a read-only modal opens with the company expected incomes of the real current month (GET /api/accounting/incomes/?kind=expected&ledger=company&date_from&date_to derived from expected_current_month.period, not the year selector). The table lists concepto, período, total, abonado (paid_amount), pendiente (pending_amount, per-row clamped) and payment status pill, with a footer whose Pendiente sum equals the card total. Cerrar closes the modal; no actions on rows.",
+      "expectedSpecs": 1
+    },
+    "admin-accounting-stats-modals": {
+      "name": "Admin Accounting Stats Modals",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser opens descriptive-statistics modals from the accounting Resumen: the Ingresos líquidos, Gastos {year} and Deuda tarjetas stat cards are clickable buttons and the hero Utilidad card exposes an Estadísticas button. Each modal is a StatsModal (BaseModal 5xl + BaseTabs) with tabbed ApexCharts views: Ingresos (evolución esperado vs líquido, % de cobro radial+mensual, top conceptos), Gastos (evolución con promedio, distribución Negocio/Personal, recurrente vs variable, top conceptos), Utilidad (evolución, márgenes, socios) and Tarjetas (evolución de deuda, uso del cupo por tarjeta, histórico de cortes). Income/expense tabs feed from GET /api/accounting/stats/?year= (lazy, cached per year in the accounting store, reset on year change); utility/cards tabs compute client-side from the dashboard summary and card snapshots.",
+      "expectedSpecs": 1
     },
     "admin-accounting-income-crud": {
       "name": "Admin Accounting Income CRUD",

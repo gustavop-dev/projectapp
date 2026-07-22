@@ -64,6 +64,13 @@ _SPANISH_MONTHS = {
 # Public alias: single owner of the Spanish month-name table (1-12, lowercase).
 SPANISH_MONTHS = _SPANISH_MONTHS
 
+# Índice = date.weekday() (lunes=0).
+_SPANISH_WEEKDAYS_ABBR = ('Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom')
+_SPANISH_MONTHS_ABBR = (
+    'ene', 'feb', 'mar', 'abr', 'may', 'jun',
+    'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+)
+
 
 _dns_resolver = dns.resolver.Resolver()
 _dns_resolver.lifetime = 2.0
@@ -143,7 +150,7 @@ def format_cop_email(value):
 
 
 def format_bogota_date(dt) -> str:
-    """Return '8 de abril, 2026' in Bogotá timezone (America/Bogota).
+    """Return 'Jue, 16 jul 2026' in Bogotá timezone (America/Bogota).
 
     Accepts both datetime and date instances. Plain date instances are
     formatted directly (no timezone conversion needed).
@@ -156,20 +163,20 @@ def format_bogota_date(dt) -> str:
         dt = dt.astimezone(_BOGOTA_TZ)
     elif not isinstance(dt, date):
         return ''
-    return f'{dt.day} de {_SPANISH_MONTHS[dt.month]}, {dt.year}'
+    return (
+        f'{_SPANISH_WEEKDAYS_ABBR[dt.weekday()]}, '
+        f'{dt.day} {_SPANISH_MONTHS_ABBR[dt.month - 1]} {dt.year}'
+    )
 
 
 def format_bogota_datetime(dt) -> str:
-    """Return '8 de abril, 2026 — 14:30' in Bogotá timezone (America/Bogota)."""
+    """Return 'Lun, 3 ago 2026, 15:20' in Bogotá timezone (America/Bogota)."""
     if not dt:
         return ''
     if dj_timezone.is_naive(dt):
         dt = dj_timezone.make_aware(dt)
     bogota = dt.astimezone(_BOGOTA_TZ)
-    return (
-        f'{bogota.day} de {_SPANISH_MONTHS[bogota.month]}, {bogota.year}'
-        f' — {bogota.strftime("%H:%M")}'
-    )
+    return f'{format_bogota_date(bogota)}, {bogota.strftime("%H:%M")}'
 
 def send_whatsapp_notification(message, phone=None):
     """

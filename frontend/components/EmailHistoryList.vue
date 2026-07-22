@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import { formatDateTime } from '~/utils/formatDate';
 import BaseCollapse from '~/components/base/BaseCollapse.vue';
 
 /**
@@ -23,10 +24,7 @@ const STATUS_LABELS = { sent: 'Enviado', delivered: 'Entregado', bounced: 'Rebot
 function statusLabel(s) { return STATUS_LABELS[s] || s }
 
 function formatDate(isoString) {
-  if (!isoString) return ''
-  return new Date(isoString).toLocaleDateString('es-CO', {
-    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
+  return formatDateTime(isoString, { fallback: '' })
 }
 
 // metadata.sections stores legacy plain strings and new {text, markdown} dicts.

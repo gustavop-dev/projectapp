@@ -201,6 +201,7 @@
 <script setup>
 import { ref } from 'vue'
 import { usePlatformDocumentsStore } from '~/stores/platform-documents'
+import { formatDateTime } from '~/utils/formatDate'
 
 definePageMeta({
   layout: 'platform',
@@ -222,14 +223,7 @@ const accepted = ref(false)
 await store.fetchDocuments()
 
 function formatDate(value) {
-  if (!value) return ''
-  try {
-    return new Date(value).toLocaleString('es-CO', {
-      day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-    })
-  } catch {
-    return value
-  }
+  return formatDateTime(value, { fallback: '' })
 }
 
 async function sendCode() {

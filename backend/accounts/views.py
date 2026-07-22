@@ -3171,12 +3171,13 @@ def _handle_payment_approved(payment, payment_history_source=''):
     try:
         from accounts.models import Notification
         from accounts.services.notifications import notify, notify_project_admins
+        from content.utils import format_bogota_date, format_cop_email
         project = sub.project
         notify(
             user=project.client,
             type=Notification.TYPE_GENERAL,
             title='Pago confirmado',
-            message=f'Tu pago de ${payment.amount:,.0f} COP para "{project.name}" fue procesado exitosamente. Próxima renovación: {sub.next_billing_date}.',
+            message=f'Tu pago de ${format_cop_email(payment.amount)} COP para "{project.name}" fue procesado exitosamente. Próxima renovación: {format_bogota_date(sub.next_billing_date)}.',
             project=project,
             related_object_type='payment',
             related_object_id=payment.id,
@@ -3184,7 +3185,7 @@ def _handle_payment_approved(payment, payment_history_source=''):
         notify_project_admins(
             project, Notification.TYPE_GENERAL,
             f'Pago recibido: {project.name}',
-            message=f'{project.client.first_name} pagó ${payment.amount:,.0f} COP del hosting de "{project.name}".',
+            message=f'{project.client.first_name} pagó ${format_cop_email(payment.amount)} COP del hosting de "{project.name}".',
             related_object_type='payment', related_object_id=payment.id,
         )
     except Exception:

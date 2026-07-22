@@ -610,6 +610,6 @@ describe('ProposalAnalytics lastVisitedAt', () => {
       },
     });
     await flushPromises();
-    expect(wrapper.text()).toContain('marzo');
+    expect(wrapper.text()).toContain('Dom, 1 mar 2026');
   });
 });

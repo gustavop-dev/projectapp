@@ -155,6 +155,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { formatDateTime } from '~/utils/formatDate';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -170,9 +171,7 @@ const maxDailyTotal = computed(() => {
 });
 
 function formatDate(isoStr) {
-  if (!isoStr) return '';
-  const d = new Date(isoStr);
-  return d.toLocaleDateString('es-CO', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return formatDateTime(isoStr, { fallback: '' });
 }
 
 async function loadStats() {

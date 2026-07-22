@@ -195,6 +195,7 @@ import { useDiagnosticsStore } from '~/stores/diagnostics';
 import { useMarkdownPreview } from '~/composables/useMarkdownPreview';
 import { get_request } from '~/stores/services/request_http';
 import { canPreviewFile, isPdfUrl, isImageUrl } from '~/utils/filePreview';
+import { formatDateTime } from '~/utils/formatDate';
 
 const { parseMarkdown } = useMarkdownPreview();
 
@@ -320,15 +321,7 @@ function formatBytes(bytes) {
 }
 
 function formatDate(value) {
-  if (!value) return '';
-  try {
-    return new Date(value).toLocaleString('es-CO', {
-      year: 'numeric', month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    });
-  } catch (e) {
-    return value;
-  }
+  return formatDateTime(value, { fallback: '' });
 }
 
 // ── Uploader ──

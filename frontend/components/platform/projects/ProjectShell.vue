@@ -24,6 +24,7 @@
 <script setup>
 import { computed, onMounted, watch } from 'vue'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
+import { formatDate as formatDateUtil } from '~/utils/formatDate'
 import ProjectBreadcrumb from '~/components/platform/projects/ProjectBreadcrumb.vue'
 import ProjectSecondarySidebar from '~/components/platform/projects/ProjectSecondarySidebar.vue'
 
@@ -47,7 +48,6 @@ function statusChipClass(s) {
   return `${base} ${map[s] || map.archived}`
 }
 function formatDate(iso) {
-  if (!iso) return ''
-  return new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+  return formatDateUtil(iso, { fallback: '' })
 }
 </script>

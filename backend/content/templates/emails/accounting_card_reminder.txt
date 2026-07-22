@@ -1,12 +1,12 @@
-{% load date_filters %}[Contabilidad] Recordatorio: registra la deuda de tarjetas{% if not is_first %} (recordatorio #{{ reminder_number }}){% endif %}
+{% load date_filters money_filters %}{% autoescape off %}[Contabilidad] Recordatorio: registra la deuda de tarjetas{% if not is_first %} (recordatorio #{{ reminder_number }}){% endif %}
 
-{% if is_first %}Hoy es viernes: recuerda ingresar al sistema y registrar el valor actualizado de la deuda de las tarjetas de crédito.{% else %}Hace {{ days_since }} día{{ days_since|pluralize }} (desde el viernes {{ cycle_friday|bogota_date }}) no se registra la actualización semanal de la deuda de tarjetas. Este recordatorio se repetirá cada 2 días hasta que se registre.{% endif %}
+{% if is_first %}Hoy es viernes: recuerda ingresar al sistema y registrar el valor actualizado de la deuda de las tarjetas de crédito.{% else %}Hace {{ days_since }} día{{ days_since|pluralize }} (desde el {{ cycle_friday|bogota_date }}) no se registra la actualización semanal de la deuda de tarjetas. Este recordatorio se repetirá cada 2 días hasta que se registre.{% endif %}
 {% if snapshots %}
 Últimos registros por tarjeta:
-{% for snapshot in snapshots %}- {{ snapshot.card_name }} — {{ snapshot.snapshot_date }} — deuda ${{ snapshot.debt_amount }}
+{% for snapshot in snapshots %}- {{ snapshot.card_name }} — {{ snapshot.snapshot_date|bogota_date }} — deuda ${{ snapshot.debt_amount|cop }}
 {% endfor %}{% endif %}
 Registrar deuda de tarjetas: {{ panel_url }}
 
 —
 Recordatorio automático del módulo contable · ProjectApp. Se apaga al
-registrar un snapshot con fecha del viernes en curso o posterior.
+registrar un snapshot con fecha del viernes en curso o posterior.{% endautoescape %}

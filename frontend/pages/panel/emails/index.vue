@@ -310,6 +310,7 @@ import { validateEmailAttachments } from '~/utils/emailAttachments';
 import { vAutoResize } from '~/utils/autoResizeDirective';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { formatDateTime } from '~/utils/formatDate';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -519,10 +520,7 @@ function statusLabel(s) {
 }
 
 function formatDate(isoString) {
-  if (!isoString) return '';
-  return new Date(isoString).toLocaleDateString('es-CO', {
-    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  });
+  return formatDateTime(isoString, { fallback: '' });
 }
 
 function refreshEmails() {

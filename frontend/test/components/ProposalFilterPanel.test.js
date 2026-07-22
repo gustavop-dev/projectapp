@@ -181,8 +181,8 @@ describe('ProposalFilterPanel', () => {
       }),
     });
 
-    expect(wrapper.text()).toContain('Creación: 2026-01-01 → 2026-01-31');
-    expect(wrapper.text()).toContain('Actividad: 2026-02-01 → 2026-02-28');
+    expect(wrapper.text()).toContain('Creación: Jue, 1 ene 2026 → Sáb, 31 ene 2026');
+    expect(wrapper.text()).toContain('Actividad: Dom, 1 feb 2026 → Sáb, 28 feb 2026');
     expect(wrapper.text()).toContain('Solo activas');
     expect(wrapper.text()).toContain('Det. técnico visto');
   });
@@ -214,8 +214,8 @@ describe('ProposalFilterPanel', () => {
 
     expect(wrapper.text()).toContain('Inversión: ≥ 1000');
     expect(wrapper.text()).toContain('Heat Score: ≤ 8 / 10');
-    expect(wrapper.text()).toContain('Creación: desde 2026-04-01');
-    expect(wrapper.text()).toContain('Actividad: hasta 2026-04-30');
+    expect(wrapper.text()).toContain('Creación: desde Mié, 1 abr 2026');
+    expect(wrapper.text()).toContain('Actividad: hasta Jue, 30 abr 2026');
     expect(wrapper.text()).toContain('Solo inactivas');
   });
 

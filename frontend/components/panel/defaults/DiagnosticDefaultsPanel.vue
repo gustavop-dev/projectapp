@@ -278,6 +278,7 @@ import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 import { toSlug } from '~/utils/slugify';
+import { formatDateTime } from '~/utils/formatDate';
 
 const localePath = useLocalePath();
 const route = useRoute();
@@ -342,8 +343,7 @@ const rawConfigPretty = computed(() => {
 });
 
 function formatDate(iso) {
-  if (!iso) return '';
-  return new Date(iso).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+  return formatDateTime(iso, { fallback: '' });
 }
 
 function applyConfig(data) {

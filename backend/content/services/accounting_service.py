@@ -16,7 +16,9 @@ from datetime import date
 from decimal import Decimal
 
 from django.db import transaction
-from django.db.models import Count, DecimalField, F, OuterRef, Q, Subquery, Sum, Value
+from django.db.models import (
+    Avg, Count, DecimalField, F, Max, Min, OuterRef, Q, Subquery, Sum, Value,
+)
 from django.db.models.functions import Coalesce, Greatest
 
 from content.api_errors import ProposalActionError
@@ -1030,6 +1032,91 @@ def dashboard_summary(year):
         'latest_card_snapshots': latest_card_snapshots(),
         'expected_current_month': expected_current_month(),
         'card_debt': card_debt_total(),
+    }
+
+
+def _describe(queryset):
+    """count/total/avg/min/max of total_amount for a record set."""
+    agg = queryset.aggregate(
+        count=Count('id'),
+        total=Sum('total_amount'),
+        avg=Avg('total_amount'),
+        min=Min('total_amount'),
+        max=Max('total_amount'),
+    )
+    return {
+        'count': agg['count'] or 0,
+        'total': agg['total'] or Decimal('0'),
+        'avg': agg['avg'] or Decimal('0'),
+        'min': agg['min'] or Decimal('0'),
+        'max': agg['max'] or Decimal('0'),
+    }
+
+
+def _top_concepts(queryset, limit=8):
+    """Concepts ranked by summed amount (exact concept grouping)."""
+    rows = (
+        queryset.order_by()
+        .values('concept')
+        .annotate(total=Sum('total_amount'), count=Count('id'))
+        .order_by('-total')[:limit]
+    )
+    return [
+        {'concept': row['concept'], 'total': row['total'], 'count': row['count']}
+        for row in rows
+    ]
+
+
+def year_descriptive_stats(year):
+    """Descriptive statistics feeding the income/expense analytics modals.
+
+    Only aggregations the dashboard summary cannot answer live here (per
+    record descriptives, concept rankings, category distribution); the
+    monthly evolution series stay client-side on top of `monthly_breakdown`.
+    Company ledger only, matching the dashboard's expected/liquid totals.
+    """
+    liquid = IncomeRecord.objects.filter(
+        kind=IncomeRecord.Kind.LIQUID, ledger=Ledger.COMPANY,
+        period_date__year=year,
+    )
+    expected = IncomeRecord.objects.filter(
+        kind=IncomeRecord.Kind.EXPECTED, ledger=Ledger.COMPANY,
+        period_date__year=year,
+    )
+    lost = IncomeRecord.objects.filter(
+        kind=IncomeRecord.Kind.LOST, ledger=Ledger.COMPANY,
+        period_date__year=year,
+    )
+    expenses = ExpenseRecord.objects.filter(
+        ledger=Ledger.COMPANY, period_date__year=year,
+    )
+    category_labels = dict(ExpenseRecord.Category.choices)
+    by_category = [
+        {
+            'category': row['category'],
+            'label': category_labels.get(row['category'], row['category']),
+            'total': row['total'],
+            'count': row['count'],
+        }
+        for row in expenses.order_by()
+        .values('category')
+        .annotate(total=Sum('total_amount'), count=Count('id'))
+        .order_by('-total')
+    ]
+    return {
+        'year': year,
+        'income': {
+            'liquid': _describe(liquid),
+            'expected': _describe(expected),
+            'lost_total': _sum(lost, 'total_amount'),
+            'top_concepts': _top_concepts(liquid),
+        },
+        'expenses': {
+            'summary': _describe(expenses),
+            'by_category': by_category,
+            'top_concepts': _top_concepts(expenses),
+            'recurring_monthly_cost': recurring_monthly_cost(),
+        },
     }
 
 

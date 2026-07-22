@@ -115,6 +115,7 @@ import {
   projectTypeLabelMap,
   marketTypeLabelMap,
 } from '~/constants/filterOptions.js';
+import { formatDate } from '~/utils/formatDate';
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
@@ -132,9 +133,10 @@ function formatRange(min, max) {
 }
 
 function formatDateRange(after, before) {
-  if (after && before) return `${after} → ${before}`;
-  if (after) return `desde ${after}`;
-  if (before) return `hasta ${before}`;
+  const fmt = (value) => formatDate(value, { fallback: value });
+  if (after && before) return `${fmt(after)} → ${fmt(before)}`;
+  if (after) return `desde ${fmt(after)}`;
+  if (before) return `hasta ${fmt(before)}`;
   return '';
 }
 

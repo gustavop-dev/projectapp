@@ -222,6 +222,7 @@ import { computed, ref } from 'vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import { formatMoney } from '~/utils/formatMoney';
+import { formatDate as formatDateBase } from '~/utils/formatDate';
 
 const props = defineProps({
   statement: { type: Object, required: true },
@@ -257,7 +258,6 @@ function money(value) {
 }
 
 function formatDate(iso) {
-  if (!iso) return '';
-  return new Date(iso).toLocaleDateString('es-CO', { dateStyle: 'medium' });
+  return formatDateBase(iso, { fallback: '' });
 }
 </script>

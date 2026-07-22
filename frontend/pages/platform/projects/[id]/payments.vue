@@ -162,11 +162,11 @@
       <template v-else>
         <div
           v-if="sub.is_archived && authStore.isAdmin"
-          class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-500/20 bg-gray-500/5 px-4 py-3"
+          class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border-muted bg-surface-muted px-4 py-3"
           data-enter
         >
           <div class="flex items-center gap-2 text-xs text-green-light">
-            <span class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">Suscripción archivada</span>
+            <span class="rounded-full bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">Suscripción archivada</span>
             <span v-if="sub.archived_at">desde {{ formatDate(sub.archived_at) }}</span>
           </div>
           <button
@@ -718,6 +718,7 @@ import { usePlatformApi } from '~/composables/usePlatformApi'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformPaymentsStore } from '~/stores/platform-payments'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
+import { formatDate } from '~/utils/formatDate'
 import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
@@ -920,7 +921,7 @@ function subStatusClass(s) {
     active: 'bg-emerald-500/15 text-text-brand',
     pending: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     suspended: 'bg-red-500/15 text-red-600 dark:text-red-400',
-    cancelled: 'bg-gray-500/15 text-text-muted',
+    cancelled: 'bg-surface-raised text-text-muted',
   }
   return map[s] || map.pending
 }
@@ -941,7 +942,7 @@ function paymentIconBg(s) {
     pending: 'bg-amber-500/10', overdue: 'bg-red-500/10',
     paid: 'bg-emerald-500/10', processing: 'bg-blue-500/10', failed: 'bg-red-500/10',
   }
-  return map[s] || 'bg-gray-500/10'
+  return map[s] || 'bg-surface-raised'
 }
 
 function paymentIcon(s) {
@@ -968,11 +969,6 @@ function paymentStatusLabel(s) {
 function formatMoney(val) {
   if (!val) return '0'
   return Number(val).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace(/,/g, '.')
-}
-
-function formatDate(val) {
-  if (!val) return '—'
-  return new Date(val).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 function formatCardNumber(event) {

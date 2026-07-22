@@ -878,6 +878,7 @@ import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { toSlug } from '~/utils/slugify';
+import { formatDateTime } from '~/utils/formatDate';
 
 
 const proposalStore = useProposalStore();
@@ -915,9 +916,7 @@ function showFeedback(msg, type = 'success') {
 }
 
 function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+  return formatDateTime(dateStr, { fallback: '' });
 }
 
 // ── Vista General ──

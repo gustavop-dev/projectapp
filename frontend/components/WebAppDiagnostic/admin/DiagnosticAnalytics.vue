@@ -473,6 +473,7 @@ import BaseSkeleton from '~/components/base/BaseSkeleton.vue';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import { useChartTheme } from '~/composables/useChartTheme';
 import { DIAGNOSTIC_ANALYTICS_THRESHOLDS as T } from '~/stores/diagnostics_constants';
+import { formatDateTime as formatDate } from '~/utils/formatDate';
 
 const { analytics: tt } = useTooltipTexts();
 
@@ -767,14 +768,6 @@ function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = Math.round(seconds % 60);
   return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
-}
-
-function formatDate(isoStr) {
-  if (!isoStr) return '—';
-  return new Date(isoStr).toLocaleString('es-CO', {
-    day: 'numeric', month: 'long', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
 }
 
 function barWidth(avgSeconds) {

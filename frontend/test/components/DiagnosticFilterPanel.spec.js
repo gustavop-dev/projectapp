@@ -138,7 +138,7 @@ describe('DiagnosticFilterPanel', () => {
     });
 
     expect(wrapper.text()).toContain('Creado:');
-    expect(wrapper.text()).toContain('desde 2025-01-01');
+    expect(wrapper.text()).toContain('desde Mié, 1 ene 2025');
   });
 
   it('renders a created-date chip with arrow format when both dates are set', () => {
@@ -147,7 +147,7 @@ describe('DiagnosticFilterPanel', () => {
       modelValue: { ...emptyFilter(), createdAfter: '2025-01-01', createdBefore: '2025-12-31' },
     });
 
-    expect(wrapper.text()).toContain('2025-01-01 → 2025-12-31');
+    expect(wrapper.text()).toContain('Mié, 1 ene 2025 → Mié, 31 dic 2025');
   });
 
   // ── clearChip ──────────────────────────────────────────────────────────────

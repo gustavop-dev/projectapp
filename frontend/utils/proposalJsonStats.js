@@ -5,6 +5,7 @@
  * ProposalJsonTab (export JSON view) so the stats math stays in one place.
  */
 import { computed } from 'vue';
+import { formatDateTime } from './formatDate';
 
 export const JSON_TEXTAREA_ROWS = 18;
 
@@ -24,11 +25,6 @@ function formatJsonSize(raw) {
   if (bytes < 1024) return `${bytes} B`;
   const kilobytes = bytes / 1024;
   return `${kilobytes >= 10 ? kilobytes.toFixed(0) : kilobytes.toFixed(1)} KB`;
-}
-
-function formatDateTime(value) {
-  if (!value) return '—';
-  return new Date(value).toLocaleString();
 }
 
 export function makeJsonStats({ sourceRef, rawStringRef, expectedKeys, updatedAtRef }) {

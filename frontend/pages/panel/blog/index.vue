@@ -181,6 +181,7 @@ import { useBlogStore } from '~/stores/blog';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import BasePagination from '~/components/base/BasePagination.vue';
+import { formatDate } from '~/utils/formatDate';
 
 const localePath = useLocalePath();
 
@@ -224,16 +225,6 @@ onMounted(() => {
 });
 
 usePanelRefresh(refreshAdminPosts);
-
-function formatDate(dateStr) {
-  if (!dateStr) return '—';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('es-CO', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
 
 function isScheduled(post) {
   return !post.is_published && post.published_at && new Date(post.published_at) > new Date();
