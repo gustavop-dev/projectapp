@@ -104,6 +104,7 @@ import { computed } from 'vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import DashboardStatTile from '~/components/panel/dashboard/DashboardStatTile.vue';
 import DashboardTrendChart from '~/components/panel/dashboard/DashboardTrendChart.vue';
+import { statusLabel, pillClass } from '~/utils/proposalStatus';
 
 /** Curated commercial summary; the deep-dive lives in /panel/proposals. */
 const props = defineProps({
@@ -121,33 +122,4 @@ const statusesWithCount = computed(() => {
   );
 });
 
-const STATUS_LABELS = {
-  draft: 'Borrador',
-  sent: 'Enviada',
-  viewed: 'Vista',
-  negotiating: 'Negociando',
-  accepted: 'Aceptada',
-  finished: 'Finalizada',
-  rejected: 'Rechazada',
-  expired: 'Expirada',
-};
-
-const PILL_CLASSES = {
-  draft: 'bg-surface-raised text-text-muted',
-  sent: 'bg-info-soft text-info-strong',
-  viewed: 'bg-success-soft text-success-strong',
-  negotiating: 'bg-warning-soft text-warning-strong',
-  accepted: 'bg-primary-soft text-text-brand',
-  finished: 'bg-primary-soft text-text-brand',
-  rejected: 'bg-danger-soft text-danger-strong',
-  expired: 'bg-warning-soft text-warning-strong',
-};
-
-function statusLabel(status) {
-  return STATUS_LABELS[status] || status;
-}
-
-function pillClass(status) {
-  return PILL_CLASSES[status] || 'bg-surface-raised text-text-muted';
-}
 </script>

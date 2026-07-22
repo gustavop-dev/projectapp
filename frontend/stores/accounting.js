@@ -71,6 +71,8 @@ export const useAccountingStore = defineStore('accounting', {
     statementDetail: null,
     metas: {},
     summary: null,
+    stats: null,
+    statsYear: null,
     changelog: { results: [], count: 0, page: 1, numPages: 1 },
     settings: null,
     selectedYear: new Date().getFullYear(),
@@ -444,6 +446,27 @@ export const useAccountingStore = defineStore('accounting', {
         return { success: false, ...normalizeApiError(error) };
       } finally {
         this.isLoading = false;
+      }
+    },
+
+    /**
+     * fetchStats: Descriptive statistics for the analytics modals
+     * (top concepts, category distribution, per-record describes).
+     * Cached per year; callers pass force to refetch.
+     */
+    async fetchStats(year, { force = false } = {}) {
+      const targetYear = year || this.selectedYear;
+      if (!force && this.stats && this.statsYear === targetYear) {
+        return { success: true, data: this.stats };
+      }
+      try {
+        const response = await get_request(`accounting/stats/?year=${targetYear}`);
+        this.stats = response.data;
+        this.statsYear = targetYear;
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching accounting stats:', error);
+        return { success: false, ...normalizeApiError(error) };
       }
     },
 

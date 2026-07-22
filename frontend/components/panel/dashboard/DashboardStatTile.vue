@@ -2,14 +2,18 @@
   <component
     :is="rootTag"
     :to="to || undefined"
+    :type="isButton ? 'button' : undefined"
     class="block bg-surface rounded-xl border border-border-muted shadow-card"
     :class="[
       size === 'lg' ? 'p-5 sm:p-6' : 'p-4',
-      to
+      to || isButton
         ? 'transition-shadow duration-base motion-reduce:transition-none hover:shadow-raised hover:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring'
         : '',
+      isButton ? 'w-full text-left cursor-pointer' : '',
     ]"
+    :aria-label="isButton ? `Ver estadísticas de ${label}` : undefined"
     data-testid="dashboard-stat-tile"
+    @click="isButton && emit('click')"
   >
     <p class="text-xs text-text-muted uppercase tracking-wider leading-tight mb-1">
       {{ label }}
@@ -61,6 +65,8 @@ const props = defineProps({
   },
   /** Route the tile deep-links to; omit for a static tile. */
   to: { type: [String, Object], default: null },
+  /** Renders a button that emits `click` (a stats affordance); `to` wins. */
+  clickable: { type: Boolean, default: false },
   /** Chronological numeric series; hidden below 2 points. */
   sparkline: { type: Array, default: () => [] },
   sparklineLabel: { type: String, default: '' },
@@ -72,7 +78,12 @@ const props = defineProps({
   },
 });
 
-const rootTag = computed(() => (props.to ? 'NuxtLink' : 'div'));
+const emit = defineEmits(['click']);
+
+const rootTag = computed(() =>
+  props.to ? 'NuxtLink' : props.clickable ? 'button' : 'div',
+);
+const isButton = computed(() => !props.to && props.clickable);
 
 const TONE_CLASSES = {
   default: 'text-text-default',

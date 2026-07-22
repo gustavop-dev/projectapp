@@ -49,6 +49,25 @@ describe('DashboardStatTile', () => {
     expect(wrapper.find('a').exists()).toBe(false);
   });
 
+  it('renders a button that emits click when clickable', async () => {
+    const wrapper = mountTile({ value: 3, clickable: true });
+
+    const button = wrapper.find('button');
+    expect(button.exists()).toBe(true);
+    expect(button.attributes('type')).toBe('button');
+    expect(button.attributes('aria-label')).toBe('Ver estadísticas de Métrica');
+
+    await button.trigger('click');
+    expect(wrapper.emitted('click')).toHaveLength(1);
+  });
+
+  it('prefers the link when both "to" and clickable are set', () => {
+    const wrapper = mountTile({ value: 3, to: '/panel/tasks', clickable: true });
+
+    expect(wrapper.find('a').exists()).toBe(true);
+    expect(wrapper.find('button').exists()).toBe(false);
+  });
+
   it('hides the sparkline below two points and shows it with enough data', () => {
     const single = mountTile({ value: 1, sparkline: [5] });
     const full = mountTile({ value: 1, sparkline: [5, 8, 3] });
