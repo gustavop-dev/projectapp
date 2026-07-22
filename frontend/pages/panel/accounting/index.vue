@@ -75,6 +75,8 @@
             data-testid="accounting-card-expected-month"
             :label="`Pendiente por cobrar · ${expectedMonthLabel}`"
             :value="money(summary.expected_current_month?.total)"
+            clickable
+            @click="showExpectedDetail = true"
           />
           <AccountingStatCard
             label="Ingresos líquidos"
@@ -275,6 +277,15 @@
       @close="showIncomeModal = false"
       @submit="submitIncome"
     />
+
+    <!-- Expected income detail modal -->
+    <ExpectedIncomeDetailModal
+      :open="showExpectedDetail"
+      :period="summary?.expected_current_month?.period || ''"
+      :period-label="expectedMonthLabel"
+      :total="summary?.expected_current_month?.total ?? 0"
+      @close="showExpectedDetail = false"
+    />
   </div>
 </template>
 
@@ -289,6 +300,7 @@ import AccountingMonthlyTable from '~/components/accounting/AccountingMonthlyTab
 import AccountingMonthlyChart from '~/components/accounting/charts/AccountingMonthlyChart.vue';
 import CardDebtChart from '~/components/accounting/charts/CardDebtChart.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
+import ExpectedIncomeDetailModal from '~/components/accounting/ExpectedIncomeDetailModal.vue';
 import BaseSelect from '~/components/base/BaseSelect.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -478,6 +490,7 @@ async function exportWorkbook() {
 // -------------------------------------------------------------------
 
 const showIncomeModal = ref(false);
+const showExpectedDetail = ref(false);
 
 function openIncomeModal() {
   showIncomeModal.value = true;
