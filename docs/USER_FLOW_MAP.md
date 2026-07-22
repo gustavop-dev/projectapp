@@ -1276,8 +1276,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   6. Admin clicks "Enviar al Cliente" in modal → API call to `POST /api/proposals/:id/send/`.
   7. Backend changes status to `sent`, generates the commercial PDF, attaches it, sends the email, and returns the proposal payload with `email_delivery`. `EmailLog.metadata.pdf_attached` records whether the attachment succeeded.
   8. If `email_delivery.ok === true`, success toast "Propuesta enviada al cliente". If `false`, error toast surfacing `email_delivery.detail || email_delivery.reason` with a hint to verify client email and use "Re-enviar".
-- **Coverage:** 🟡 Partial — happy path covered; **email_delivery failure-feedback toast, `email_intro` editing, and PDF-attached metadata are not asserted in E2E**.
-- **E2E Spec:** `e2e/admin/admin-proposal-send.spec.js` (extend with: edit `email_intro` and assert it appears in the request payload; mocked `email_delivery.ok=false` cases for `placeholder_email`, `template_disabled`, `send_failed`).
+- **Coverage:** ✅ Covered — checklist modal + send, distinct toasts for `email_delivery.ok` true/false, and `email_intro` asserted in the update PATCH payload (reconciled 2026-07-22: the spec already covered what this entry listed as pending). PDF-attached metadata (`EmailLog.metadata.pdf_attached`) and the per-reason variants (`placeholder_email`, `template_disabled`, `send_failed`) are pytest-covered; the list-page red toast lives under `admin-proposal-inline-status-change`/`admin-proposal-resend` (still partial).
+- **E2E Spec:** `e2e/admin/admin-proposal-send.spec.js`
 
 ### FLOW: `admin-proposal-multi-send`
 
@@ -2683,7 +2683,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-client-delete-protected` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-client-inactive-tab` | admin | admin | P2 | 🟡 Partial (reactivate branch not asserted) | `e2e/admin/admin-clients-inactive-tab.spec.js` |
 | `admin-client-drag-reassign` | admin | admin | P2 | 🟡 Partial (undo action not asserted) | `e2e/admin/admin-clients-drag-reassign.spec.js` |
-| `admin-proposal-send` | admin | admin | P1 | 🟡 Partial (email_intro editing, PDF attachment, failure-feedback toast not asserted) | `e2e/admin/admin-proposal-send.spec.js` |
+| `admin-proposal-send` | admin | admin | P1 | ✅ Covered (checklist modal, success vs failure toast, email_intro PATCH; PDF-attached metadata is pytest-covered) | `e2e/admin/admin-proposal-send.spec.js` |
 | `admin-proposal-multi-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-multi-send.spec.js` |
 | `admin-proposal-resend` | admin | admin | P2 | 🟡 Partial | `e2e/admin/admin-proposal-resend.spec.js` |
 | `admin-proposal-prompt` | admin | admin | P3 | ❌ Missing | — |
