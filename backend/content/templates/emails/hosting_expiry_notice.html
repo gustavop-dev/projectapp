@@ -1,4 +1,4 @@
-{% load date_filters %}{% autoescape on %}
+{% load date_filters money_filters %}{% autoescape on %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -33,7 +33,7 @@
                 </tr>
                 <tr>
                   <td style="padding:6px 8px; color:#6b7280;">Vigencia</td>
-                  <td style="padding:6px 8px;">{{ record.valid_from|default:'—' }} → <strong>{{ record.valid_to }}</strong></td>
+                  <td style="padding:6px 8px;">{{ record.valid_from|bogota_date|default:'—' }} → <strong>{{ record.valid_to|bogota_date }}</strong></td>
                 </tr>
                 <tr style="background-color:#f9fafb;">
                   <td style="padding:6px 8px; color:#6b7280;">Modalidad</td>
@@ -41,7 +41,7 @@
                 </tr>
                 <tr>
                   <td style="padding:6px 8px; color:#6b7280;">Pago por ciclo</td>
-                  <td style="padding:6px 8px; font-weight:600;">${{ record.payment_per_cycle }}</td>
+                  <td style="padding:6px 8px; font-weight:600;">${{ record.payment_per_cycle|cop }}</td>
                 </tr>
                 <tr style="background-color:#f9fafb;">
                   <td style="padding:6px 8px; color:#6b7280;">Estado</td>

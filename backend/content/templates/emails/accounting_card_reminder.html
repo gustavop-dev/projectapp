@@ -1,4 +1,4 @@
-{% load date_filters %}{% autoescape on %}
+{% load date_filters money_filters %}{% autoescape on %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -44,8 +44,8 @@
                 {% for snapshot in snapshots %}
                 <tr>
                   <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{{ snapshot.card_name }}</td>
-                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{{ snapshot.snapshot_date }}</td>
-                  <td align="right" style="padding:8px; border-bottom:1px solid #f3f4f6; color:#b91c1c;">${{ snapshot.debt_amount }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{{ snapshot.snapshot_date|bogota_date }}</td>
+                  <td align="right" style="padding:8px; border-bottom:1px solid #f3f4f6; color:#b91c1c;">${{ snapshot.debt_amount|cop }}</td>
                 </tr>
                 {% endfor %}
               </table>
