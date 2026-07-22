@@ -639,6 +639,7 @@ import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { getDiagnosticNextAction } from '~/utils/diagnosticNextAction';
 import { toSlug } from '~/utils/slugify';
+import { formatDateTime } from '~/utils/formatDate';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -650,7 +651,6 @@ const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useCo
 const notify = usePanelNotify();
 
 const moneyFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
-const dateTimeFormatter = new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
 
 function formatMoney(amount) {
   const n = Number(amount);
@@ -663,8 +663,7 @@ function formatInvestment(value, currency = 'COP') {
   return '$' + num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' ' + currency;
 }
 function formatDate(iso) {
-  if (!iso) return '';
-  return dateTimeFormatter.format(new Date(iso));
+  return formatDateTime(iso, { fallback: '' });
 }
 
 const id = computed(() => Number(route.params.id));

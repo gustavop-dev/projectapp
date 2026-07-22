@@ -771,6 +771,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { formatDateTime as formatDate } from '~/utils/formatDate';
 
 const { analytics: tt } = useTooltipTexts();
 const notify = usePanelNotify();
@@ -969,14 +970,6 @@ function formatTime(seconds, { compact = false } = {}) {
   return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
 }
 
-function formatDate(isoStr) {
-  if (!isoStr) return '—';
-  return new Date(isoStr).toLocaleString('es-CO', {
-    day: 'numeric', month: 'long', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
-}
-
 function barWidth(avgSeconds) {
   return Math.min(100, (avgSeconds / 180) * 100);
 }
@@ -1123,9 +1116,7 @@ function formatTimelineDescription(event) {
     const isDate = ['expires_at', 'followup_scheduled_at'].includes(event.field_name);
     const fmtDate = (val) => {
       if (!val) return '(vacío)';
-      const d = new Date(val);
-      if (isNaN(d.getTime())) return escapeHtml(val);
-      return escapeHtml(d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
+      return escapeHtml(formatDate(val, { fallback: val }));
     };
     const oldDisplay = isCurrency ? formatCurrencyValue(event.old_value) : isDate ? fmtDate(event.old_value) : escapeHtml(event.old_value || '(vacío)');
     const newDisplay = isCurrency ? formatCurrencyValue(event.new_value) : isDate ? `<strong>${fmtDate(event.new_value)}</strong>` : `<strong>${escapeHtml(event.new_value || '(vacío)')}</strong>`;

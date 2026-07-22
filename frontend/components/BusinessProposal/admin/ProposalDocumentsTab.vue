@@ -193,6 +193,7 @@ import { usePanelNotify } from '~/composables/usePanelNotify';
 import { CONTRACT_LOCKED_STATUSES } from '~/stores/proposals_constants';
 import { isPdfUrl, isImageUrl, canPreviewFile } from '~/utils/filePreview';
 import MarkdownPreviewModal from '~/components/panel/documents/MarkdownPreviewModal.vue';
+import { formatDateTime } from '~/utils/formatDate';
 
 const notify = usePanelNotify();
 
@@ -317,10 +318,7 @@ onBeforeUnmount(() => {
 });
 
 function formatDate(isoString) {
-  if (!isoString) return '';
-  return new Date(isoString).toLocaleDateString('es-CO', {
-    day: 'numeric', month: 'long', year: 'numeric',
-  });
+  return formatDateTime(isoString, { fallback: '' });
 }
 
 async function handleUpload() {

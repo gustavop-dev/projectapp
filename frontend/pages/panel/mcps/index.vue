@@ -280,6 +280,7 @@ import BaseToggle from '~/components/base/BaseToggle.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useMcpsStore } from '~/stores/mcps';
+import { formatDateTime as formatDate } from '~/utils/formatDate';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
@@ -356,10 +357,6 @@ onMounted(() => {
 });
 
 usePanelRefresh(() => store.fetchConnectors());
-
-function formatDate(iso) {
-  return new Date(iso).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
-}
 
 async function onToggle(connector, value) {
   const result = await store.toggleConnector(connector.slug, value);

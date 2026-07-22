@@ -266,6 +266,7 @@ import { useBlogStore } from '~/stores/blog';
 import { fadeUp } from '~/animations';
 import { usePageEntrance } from '~/composables/usePageEntrance';
 import { useBlogPostJsonLd } from '~/composables/useSeoJsonLd';
+import { formatDate as formatDateBase } from '~/utils/formatDate';
 
 usePageEntrance();
 
@@ -451,13 +452,7 @@ watch(() => route.params.slug, (newSlug) => {
 });
 
 function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString(isEnglish.value ? 'en-US' : 'es-CO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  return formatDateBase(dateStr, { locale: isEnglish.value ? 'en' : 'es', fallback: '' });
 }
 
 function handleShare() {

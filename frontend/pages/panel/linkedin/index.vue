@@ -296,6 +296,7 @@ import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
+import { formatDate, formatDateTime } from '~/utils/formatDate';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -355,10 +356,7 @@ async function connectLinkedIn() {
 
 // ── Expiry helpers ──
 
-const expiryDate = computed(() => {
-  if (!connection.value.expires_at) return '';
-  return new Date(connection.value.expires_at).toLocaleDateString();
-});
+const expiryDate = computed(() => formatDate(connection.value.expires_at, { fallback: '' }));
 
 const expiresSoon = computed(() => {
   if (!connection.value.expires_at) return false;
@@ -518,10 +516,6 @@ function statusClass(status) {
     published: 'bg-primary-soft text-text-brand',
     failed: 'bg-danger-soft text-danger-strong',
   }[status] || 'bg-surface-muted text-text-muted';
-}
-
-function formatDateTime(iso) {
-  return new Date(iso).toLocaleString();
 }
 
 function linkedinPostUrl(post) {

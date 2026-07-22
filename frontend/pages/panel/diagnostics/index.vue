@@ -426,6 +426,7 @@ import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useDiagnosticFilters } from '~/composables/useDiagnosticFilters';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { formatDateTime } from '~/utils/formatDate';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -442,7 +443,6 @@ const SortIcon = {
 };
 
 const moneyFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
-const dateTimeFormatter = new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
 
 const localePath = useLocalePath();
 const router = useRouter();
@@ -678,8 +678,7 @@ function formatMoney(amount) {
 }
 
 function formatDate(iso) {
-  if (!iso) return '';
-  return dateTimeFormatter.format(new Date(iso));
+  return formatDateTime(iso, { fallback: '' });
 }
 
 async function loadDiagnostics() {

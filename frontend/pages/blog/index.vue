@@ -336,6 +336,7 @@ import { useBlogStore } from '~/stores/blog';
 import { fadeUp, staggerFadeUp } from '~/animations';
 import { usePageEntrance } from '~/composables/usePageEntrance';
 import { useBlogListJsonLd } from '~/composables/useSeoJsonLd';
+import { formatDate as formatDateBase, formatDayMonth } from '~/utils/formatDate';
 
 usePageEntrance();
 
@@ -510,22 +511,11 @@ onMounted(() => {
 watch(posts, () => { runPostAnimations(); });
 
 function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString(isEnglish.value ? 'en-US' : 'es-CO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  return formatDateBase(dateStr, { locale: isEnglish.value ? 'en' : 'es', fallback: '' });
 }
 
 function formatDateShort(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString(isEnglish.value ? 'en-US' : 'es-CO', {
-    month: 'short',
-    day: 'numeric',
-  });
+  return formatDayMonth(dateStr, { locale: isEnglish.value ? 'en' : 'es' });
 }
 </script>
 

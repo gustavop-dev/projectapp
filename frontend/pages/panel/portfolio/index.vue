@@ -119,6 +119,7 @@ import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { usePagination } from '~/composables/usePagination';
+import { formatDate } from '~/utils/formatDate';
 
 const localePath = useLocalePath();
 
@@ -142,11 +143,6 @@ const {
 
 onMounted(() => { portfolioStore.fetchAdminWorks(); });
 usePanelRefresh(() => portfolioStore.fetchAdminWorks());
-
-function formatDate(dateStr) {
-  if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' });
-}
 
 function statusLabel(work) {
   return work.is_published ? 'Publicado' : 'Borrador';
