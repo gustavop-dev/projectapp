@@ -212,7 +212,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `frontend/test/`
 - Structure: `components/`, `composables/`, `stores/` (incl. services), `utils/`
-- Test files: **346 total** (261 `.test.js` + 85 `.spec.js`)
+- Test files: **352 total** (267 `.test.js` + 85 `.spec.js`)
 - Config: `frontend/jest.config.cjs`
 - Run: `npm test -- test/<specific_file>.test.js`
 
@@ -220,7 +220,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `frontend/e2e/`
 - Structure: `admin/`, `auth/`, `blog/`, `layout/`, `platform/`, `proposal/`, `public/`, `visual/`
-- Spec files: **209 total**
+- Spec files: **210 total**
 - Flow definitions: `frontend/e2e/flow-definitions.json` (must be updated for every new flow)
 - Flow tags: `frontend/e2e/helpers/flow-tags.js` (constants imported by spec files)
 - Config: `frontend/playwright.config.js`
@@ -295,8 +295,8 @@ projectapp/
 │   │   └── Tasks/               # TaskCard.vue, TaskColumn.vue (vuedraggable), TaskFormModal.vue — internal Kanban board
 │   ├── stores/                  # 35 store files: 33 Pinia stores + 2 constants modules (proposals, proposal_clients, diagnostics, blog, portfolio_works, contacts, language, linkedin, documents, document_folders, document_tags, tasks, emails, hour_packages, accounting, mcps, panel_admins, panel_dashboard, panel_refresh, view_map, platform-auth, platform-clients, platform-projects, platform-requirements, platform-scope-items, platform-bug-reports, platform-change-requests, platform-deliverables, platform-notifications, platform-payments, platform-collection-accounts, platform-data-model, platform-documents + diagnostics_constants, proposals_constants)
 │   ├── composables/             # 59 composables (incl. useStageStatus.js)
-│   ├── e2e/                     # Playwright E2E tests (209 spec files)
-│   ├── test/                    # Jest unit tests (346 test files)
+│   ├── e2e/                     # Playwright E2E tests (210 spec files)
+│   ├── test/                    # Jest unit tests (352 test files)
 │   ├── layouts/                 # default.vue, admin.vue, platform.vue
 │   ├── middleware/              # admin-auth.js, platform-auth.js
 │   ├── plugins/                 # 4 plugins (gsap, geo-locale, language-sync, cal-booking)
