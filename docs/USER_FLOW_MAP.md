@@ -2761,7 +2761,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
 | `admin-document-move-folder` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-move-folder.spec.js` |
-| `admin-document-send-email` | admin | admin | P1 | ❌ Missing | — (spec not yet written) |
+| `admin-document-send-email` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-send-email.spec.js` |
 | `admin-document-rename` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
 | `admin-document-delete` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
 | `admin-document-folder-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
@@ -3774,8 +3774,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Rate limited] Backend responds 429 → rate-limited message shown.
   - [Branch B — Send error] Other failures render an inline error and keep the modal open.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-document-send-email.spec.js` (happy path + 429 rate-limited + generic error; added 2026-07-22)
 
 #### FLOW: `admin-document-rename`
 
@@ -3937,7 +3937,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-folder-hierarchy` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-hierarchy.spec.js` |
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
 | `admin-document-move-folder` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-move-folder.spec.js` |
-| `admin-document-send-email` | admin | admin | P1 | ❌ Missing | — (spec not yet written) |
+| `admin-document-send-email` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-send-email.spec.js` |
 | `admin-document-rename` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
 | `admin-document-delete` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
 | `admin-document-folder-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
