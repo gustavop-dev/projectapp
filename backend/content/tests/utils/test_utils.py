@@ -99,10 +99,10 @@ class TestBogotaDateHelpers:
             datetime(2026, 4, 10, 2, 30, tzinfo=dt_timezone.utc),
         )
 
-        assert result == '9 de abril, 2026'
+        assert result == 'Jue, 9 abr 2026'
 
     def test_format_bogota_date_formats_plain_date(self):
-        assert format_bogota_date(date(2026, 4, 8)) == '8 de abril, 2026'
+        assert format_bogota_date(date(2026, 4, 8)) == 'Mié, 8 abr 2026'
 
     def test_format_bogota_date_returns_empty_string_for_invalid_type(self):
         assert format_bogota_date('2026-04-08') == ''
@@ -116,7 +116,7 @@ class TestBogotaDateHelpers:
 
         result = format_bogota_date(datetime(2026, 4, 8, 5, 30))
 
-        assert result == '8 de abril, 2026'
+        assert result == 'Mié, 8 abr 2026'
 
     @patch('content.utils.dj_timezone.make_aware')
     def test_format_bogota_datetime_formats_naive_datetime_in_bogota(self, mock_make_aware):
@@ -124,10 +124,17 @@ class TestBogotaDateHelpers:
 
         result = format_bogota_datetime(datetime(2026, 4, 8, 19, 30))
 
-        assert result == '8 de abril, 2026 — 14:30'
+        assert result == 'Mié, 8 abr 2026, 14:30'
 
     def test_format_bogota_datetime_returns_empty_string_for_falsy_value(self):
         assert format_bogota_datetime(None) == ''
+
+    def test_format_bogota_datetime_crosses_month_boundary_in_bogota(self):
+        result = format_bogota_datetime(
+            datetime(2026, 8, 1, 2, 30, tzinfo=dt_timezone.utc),
+        )
+
+        assert result == 'Vie, 31 jul 2026, 21:30'
 
 
 class TestCheckDomainMx:

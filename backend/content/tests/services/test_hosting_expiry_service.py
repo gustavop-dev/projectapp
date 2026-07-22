@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
+from django.core import mail
 
 from content.models import AccountingSettings, EmailLog, HostingRecord
 from content.services.hosting_expiry_service import (
@@ -150,3 +151,11 @@ class TestStopsAndRearm:
         assert log.metadata['hosting_id'] == record.pk
         assert log.metadata['days_left'] == 7
         assert log.metadata['notice_number'] == 1
+
+    def test_body_formats_payment_and_validity_dates(self):
+        make_hosting(days_left=15)
+        assert run_hosting_expiry_notices(TODAY) == 1
+        body = mail.outbox[0].body
+        assert 'Pago por ciclo: $550.002' in body
+        assert 'Dom, 11 ene 2026 → Sáb, 25 jul 2026' in body
+        assert '550002.00' not in body

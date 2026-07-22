@@ -1494,7 +1494,7 @@ class TestSendDailyPipelineDigestTask:
 
         mock_send.assert_called_once()
         digest = mock_send.call_args[0][0]
-        assert digest['date'] == '10 de marzo, 2026'
+        assert digest['date'] == 'Mar, 10 mar 2026'
         assert digest['total_active'] >= 1
         assert len(digest['viewed_yesterday']) == 1
         assert digest['viewed_yesterday'][0]['client_name'] == 'Client'

@@ -57,6 +57,19 @@ class TestRunCardReminder:
             template_key='accounting_card_reminder', status=EmailLog.Status.SENT,
         ).count() == 2
 
+    def test_body_formats_debt_and_snapshot_date(self, reminder_settings):
+        CardBalanceSnapshot.objects.create(
+            snapshot_date=date(2026, 6, 26), card_name='T.C 0064',
+            available_amount=Decimal('100.00'),
+            debt_amount=Decimal('6476857.00'),
+        )
+        mail.outbox = []
+        assert run_card_reminder(today=FRIDAY) is True
+        body = mail.outbox[0].body
+        assert "deuda $6'476.857" in body
+        assert 'Vie, 26 jun 2026' in body
+        assert '6476857.00' not in body
+
     def test_snapshot_on_or_after_friday_suppresses(self, reminder_settings):
         snapshot(FRIDAY)
         assert run_card_reminder(today=FRIDAY) is False
