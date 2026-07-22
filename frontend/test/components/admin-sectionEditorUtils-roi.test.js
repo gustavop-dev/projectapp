@@ -36,17 +36,25 @@ const SAMPLE_JSON = {
 
 
 describe('sectionEditorUtils — roi_projection', () => {
-  it('buildFormFromJson exposes all fields with safe defaults', () => {
+  it('buildFormFromJson exposes the header fields', () => {
     const form = buildFormFromJson(SAMPLE_JSON, 'roi_projection');
     expect(form.index).toBe('4');
     expect(form.title).toBe('📈 Proyección de retorno');
     expect(form.subtitle).toBe('Lo que esta inversión genera.');
     expect(form.methodology).toContain('Partimos del tráfico');
+  });
+
+  it('buildFormFromJson maps the KPI rows', () => {
+    const form = buildFormFromJson(SAMPLE_JSON, 'roi_projection');
     expect(form.kpis).toHaveLength(2);
     expect(form.kpis[0]).toEqual({
       icon: '👁️', value: '90K', label: 'Visualizaciones',
       sublabel: 'mes 6', source: 'Benchmark',
     });
+  });
+
+  it('buildFormFromJson maps the scenario rows with metric bases', () => {
+    const form = buildFormFromJson(SAMPLE_JSON, 'roi_projection');
     expect(form.scenarios).toHaveLength(1);
     expect(form.scenarios[0].assumptions).toEqual([
       'Tráfico orgánico del mercado local', '3 de cada 100 visitas agendan',
@@ -118,13 +126,18 @@ describe('sectionEditorUtils — roi_projection', () => {
     expect(back.scenarios[0].metrics[1].basis).toBe('≈ 6.500 clientes × $43.000 ticket promedio');
   });
 
-  it('formToReadableText produces a structured paste-mode summary', () => {
+  it('formToReadableText includes the header and KPI lines', () => {
     const form = buildFormFromJson(SAMPLE_JSON, 'roi_projection');
     const text = formToReadableText(form, 'roi_projection');
     expect(text).toContain('Lo que esta inversión genera.');
     expect(text).toContain('Cómo calculamos esto:');
     expect(text).toContain('KPIs:');
     expect(text).toContain('90K — Visualizaciones');
+  });
+
+  it('formToReadableText includes the scenario lines and the cta note', () => {
+    const form = buildFormFromJson(SAMPLE_JSON, 'roi_projection');
+    const text = formToReadableText(form, 'roi_projection');
     expect(text).toContain('Realista');
     expect(text).toContain('- 3 de cada 100 visitas agendan');
     expect(text).toContain('Total año 1: $280M (≈ 6.500 clientes × $43.000 ticket promedio)');

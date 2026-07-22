@@ -47,6 +47,7 @@ def _fonts():
 
 
 @pytest.mark.django_db
+# quality: disable test_too_long (overflow fixture needs the full extreme-content section inline; splitting would duplicate the 8-spec payload)
 def test_investment_extreme_content_generates():
     """8 long specs, 3 tiers with 9-digit prices, long notes/options."""
     p = _make_proposal()
