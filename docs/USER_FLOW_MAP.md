@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.32.0
-> **Last updated:** 2026-07-16
+> **Version:** 2.33.0
+> **Last updated:** 2026-07-22
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -604,6 +604,21 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   2. The dropdown lists Propuesta / Documento / Tarea / Gasto.
   3. Selecting an option navigates to the corresponding module route.
 - **Coverage:** ✅ Covered (menu destinations + real navigation to expenses). Covering this flow surfaced and fixed a real bug: `BaseDropdown` rendered `to` items through `<component :is="'NuxtLink'">`, which cannot resolve Nuxt auto-imported components — the menu items were dead `<nuxtlink>` elements with no href (fixed with `resolveComponent`).
+- **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
+
+### FLOW: `admin-dashboard-stats-modals`
+
+- **Module:** admin
+- **Role:** admin (finance modal: superuser only)
+- **Priority:** P2
+- **Routes:** `/panel/`
+- **Description:** The pulse tiles open descriptive-statistics modals (StatsModal: BaseModal 5xl + BaseTabs + ApexCharts). The "Pipeline activo" tile opens the proposals modal — tabs Tendencia (stacked trend), Embudo (horizontal funnel by status), Valor por etapa (avg value per stage) and Conversión (monthly conversion line + radial close rate) — which lazily fetches `GET /api/proposals/dashboard/` once per modal lifetime (heavy endpoint, cached in a local ref, never fetched on dashboard load). The superuser-gated "Utilidad líquida" tile opens the finance modal computed client-side from the finance block: Evolución (expected/liquid/expenses area), Utilidad (monthly utility bars + margin strip) and Deuda y compromisos (credit utilization radial + debt/pocket/recurring strip).
+- **Steps:**
+  1. Admin opens `/panel/` and clicks the "Pipeline activo" tile (button with hover/focus affordance).
+  2. The proposals modal opens, fetches the proposals dashboard once and renders the Tendencia tab.
+  3. Switching tabs (v-if panels) renders the funnel/value/conversion charts.
+  4. Superuser clicks "Utilidad líquida" → finance modal renders from data already loaded.
+- **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
 
 ### FLOW: `admin-proposal-list`
@@ -2641,6 +2656,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-dashboard-attention-radar` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
 | `admin-dashboard-error-retry` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
 | `admin-dashboard-quick-create` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
+| `admin-dashboard-stats-modals` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
 | `admin-proposal-list` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
 | `admin-proposal-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-proposal-create-from-json` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
@@ -5678,6 +5694,35 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-dashboard.spec.js`
 
+### FLOW: `admin-accounting-expected-detail`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting`
+- **Description:** The "Pendiente por cobrar · {mes}" stat card is a clickable button that opens a read-only modal with the company expected incomes of the real current month (`GET /api/accounting/incomes/?kind=expected&ledger=company&date_from&date_to`, range derived from `expected_current_month.period` — not the year selector). Table: concepto, período, total, abonado, pendiente (per-row clamped) and payment-status pill; the footer's Pendiente sum equals the card total. No row actions.
+- **Steps:**
+  1. Superuser clicks the expected-month card on the Resumen.
+  2. The modal fetches the month's expected incomes and renders the detail table with loading/empty/error states.
+  3. "Cerrar" dismisses the modal.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-dashboard.spec.js`
+
+### FLOW: `admin-accounting-stats-modals`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting`
+- **Description:** Descriptive-statistics modals on the Resumen. Triggers: "Ingresos líquidos", "Gastos {year}" (relabeled from "Costo operativo mensual"; now shows `expenses_total` with the recurring cost as sub) and "Deuda tarjetas" cards are clickable buttons, and the hero Utilidad card exposes an "Estadísticas" button. Modals (StatsModal + StatsSummaryStrip + chart primitives over useChartTheme): Ingresos (evolución esperado vs líquido área, % de cobro radial + mensual, top conceptos), Gastos (evolución con promedio anotado, donut Negocio/Personal, recurrente vs variable, top conceptos), Utilidad (evolución, márgenes, donut + detalle por socio) and Tarjetas (evolución de deuda por tarjeta, uso del cupo contra el catálogo, histórico de cortes). Income/expense tabs feed from `GET /api/accounting/stats/?year=` (lazy, cached per year in the store, reset on year change); utility/cards tabs compute client-side.
+- **Steps:**
+  1. Superuser clicks a stat card (or the hero "Estadísticas" button) on the Resumen.
+  2. The modal opens; income/expense modals fetch `accounting/stats/` once per year (loading skeleton meanwhile).
+  3. Tabs switch between chart views (v-if panels so ApexCharts mounts visible).
+  4. Changing the page year drops the cached stats and the next open refetches.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-dashboard.spec.js`
+
 ### FLOW: `admin-accounting-income-crud`
 
 - **Module:** admin
@@ -5903,6 +5948,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
 | `admin-accounting-dashboard` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-dashboard.spec.js` |
+| `admin-accounting-expected-detail` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-dashboard.spec.js` |
+| `admin-accounting-stats-modals` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-dashboard.spec.js` |
 | `admin-accounting-income-crud` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-incomes.spec.js` |
 | `admin-accounting-filters` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-filters.spec.js` |
 | `admin-accounting-expenses-crud` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-expenses-hostings.spec.js` |
