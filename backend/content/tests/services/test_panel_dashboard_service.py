@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
+from freezegun import freeze_time
 from django.utils import timezone
 
 from accounts.services import proposal_client_service
@@ -196,6 +197,7 @@ class TestDiagnosticsSummary:
 # ── attention: stale proposals ──
 
 class TestStaleProposals:
+    @freeze_time('2026-01-15 12:00:00')
     def test_sent_unviewed_over_seven_days_alerts(self):
         stale = BusinessProposal.objects.create(
             title='Olvidada', client_name='Cliente', status='sent',

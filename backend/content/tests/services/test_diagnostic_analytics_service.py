@@ -7,6 +7,7 @@ helpers directly: the engagement score weights and the N+1-free title resolver.
 from datetime import timedelta
 
 import pytest
+from freezegun import freeze_time
 from django.utils import timezone
 
 from content.models import (
@@ -39,6 +40,7 @@ def _track(diagnostic, session_id, *, section_type='purpose',
     return event
 
 
+@freeze_time('2026-01-15 12:00:00')
 def test_section_engagement_uses_latest_title_in_one_pass(diagnostic):
     now = timezone.now()
     _track(diagnostic, 's1', section_title='Título viejo',
@@ -66,6 +68,7 @@ def test_section_engagement_reach_flag_adds_reached_sessions(diagnostic):
     assert purpose['visit_count'] == 3
 
 
+@freeze_time('2026-01-15 12:00:00')
 def test_engagement_score_rewards_cost_time_ip_and_recency(diagnostic):
     diagnostic.status = WebAppDiagnostic.Status.SENT
     diagnostic.save(update_fields=['status'])

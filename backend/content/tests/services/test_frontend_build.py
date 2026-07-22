@@ -114,6 +114,7 @@ class TestRunFrontendRebuild:
         assert result['status'] == 'failed'
         assert 'boom' in result['detail']
         assert not marker_path.exists()
+        mock_run.assert_called_once()
 
     @patch.object(frontend_build.subprocess, 'run')
     def test_build_timeout_reports_failure(
@@ -177,6 +178,7 @@ class TestFailureAlert:
         # force: the success above wrote the marker, which would otherwise skip
         self._run_failing(settings, force=True)
         assert len(mail.outbox) == 2
+        mock_collectstatic.assert_called_once()
 
     def test_no_staff_recipients_sends_nothing(
         self, published_post, settings, marker_path,

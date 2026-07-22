@@ -3,6 +3,8 @@ from datetime import date
 from decimal import Decimal
 from unittest.mock import patch
 
+import re
+
 import pytest
 from django.core import mail
 
@@ -89,7 +91,7 @@ class TestSendFlow:
         document = Document.objects.get(pk=result['document'].pk)
         assert result['email_sent'] is True
         assert document.commercial_status == Document.CommercialStatus.ISSUED
-        assert document.public_number
+        assert re.fullmatch(r'[A-Z]+-\d{4}-\d{4}', document.public_number)
         ext = document.collection_account
         assert ext.customer_name == 'German - Kore'
         assert ext.customer_email == 'german@korehealths.com'

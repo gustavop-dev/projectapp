@@ -79,3 +79,4 @@ def test_api_error_returns_failure_dict(mock_tok, mock_urn, mock_post):
     result = publish_post_to_linkedin('Hola')
     assert result['success'] is False
     assert '422' in result['message']
+    mock_post.assert_called_once()

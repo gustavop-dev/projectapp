@@ -603,6 +603,7 @@ class TestBulkDiagnosticAction:
 # ---------------------------------------------------------------------------
 
 class TestDiagnosticExpiration:
+    @freeze_time('2026-01-15 12:00:00')
     def test_initial_send_stamps_expires_at(self, admin_client, diagnostic):
         assert diagnostic.expires_at is None
         resp = admin_client.post(f'/api/diagnostics/{diagnostic.id}/send-initial/')

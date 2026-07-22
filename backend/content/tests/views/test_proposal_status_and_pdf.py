@@ -2,6 +2,7 @@
 from unittest.mock import patch
 
 import pytest
+from freezegun import freeze_time
 from django.urls import reverse
 
 from content.models import ProposalChangeLog, ProposalDocument
@@ -102,6 +103,7 @@ class TestUpdateProposalStatusAccepted:
         # its own acceptance email.
         assert mock_task.call_args.kwargs.get('send_email') is False
 
+    @freeze_time('2026-01-15 12:00:00')
     def test_accepted_transition_skips_onboarding_when_already_completed(
         self, admin_client, negotiating_proposal,
     ):

@@ -14,6 +14,7 @@ import io
 from decimal import Decimal
 
 import pytest
+from freezegun import freeze_time
 from django.utils import timezone
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -264,6 +265,7 @@ class TestValueAddedGating:
 # ---------------------------------------------------------------------------
 
 class TestGenerateSmoke:
+    @freeze_time('2026-01-15 12:00:00')
     def test_generate_with_new_sections(self):
         proposal = BusinessProposal.objects.create(
             title='Smoke', client_name='Cliente', client_email='s@example.com',
@@ -308,6 +310,7 @@ class TestGenerateSmoke:
         assert len(result) > 1000
 
     @pytest.mark.parametrize('lang', ['es', 'en'])
+    @freeze_time('2026-01-15 12:00:00')
     def test_generate_from_real_defaults(self, lang):
         # Faithful end-to-end: seed the proposal from the REAL default sections
         # (which now include ai_automation_module + commercial_conditions) and
