@@ -437,6 +437,7 @@ import { usePlatformProjectsStore } from '~/stores/platform-projects'
 import { usePlatformRequirementsStore } from '~/stores/platform-requirements'
 import { usePlatformScopeItemsStore } from '~/stores/platform-scope-items'
 import { usePlatformApi } from '~/composables/usePlatformApi'
+import { formatDate } from '~/utils/formatDate'
 import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({
@@ -571,11 +572,6 @@ const scopeFilterOptions = computed(() => {
 function statusLabel(s) {
   const map = { backlog: 'Backlog', todo: 'Por hacer', in_progress: 'En progreso', in_review: 'En revisión', approval: 'Aprobación', done: 'Aprobado' }
   return map[s] || s
-}
-
-function formatDate(value) {
-  if (!value) return '—'
-  return new Date(value).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
 }
 
 function downloadJsonExample() {

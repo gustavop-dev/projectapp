@@ -260,6 +260,7 @@ import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 import { usePlatformClientsStore } from '~/stores/platform-clients'
 import { usePlatformPaymentsStore } from '~/stores/platform-payments'
+import { formatDate as formatDateUtil } from '~/utils/formatDate'
 import ProjectsTable from '~/components/platform/projects/ProjectsTable.vue'
 
 definePageMeta({
@@ -377,8 +378,7 @@ function clientInitials(project) {
 }
 
 function formatDate(value) {
-  if (!value) return 'Sin fecha'
-  return new Date(value).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+  return formatDateUtil(value, { fallback: 'Sin fecha' })
 }
 
 function handleFilterChange(value) {

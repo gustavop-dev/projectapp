@@ -595,6 +595,7 @@ import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformBugReportsStore } from '~/stores/platform-bug-reports'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 import { usePlatformRequirementsStore } from '~/stores/platform-requirements'
+import { formatDate } from '~/utils/formatDate'
 import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
@@ -715,11 +716,6 @@ function severityLabel(sev) {
 function envLabel(env) {
   const map = { production: 'Producción', staging: 'Staging', dev: 'Desarrollo' }
   return map[env] || env
-}
-
-function formatDate(value) {
-  if (!value) return '—'
-  return new Date(value).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
 }
 
 function openCreateModal() {

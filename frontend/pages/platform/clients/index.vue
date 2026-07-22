@@ -262,6 +262,7 @@ import { useIsMobile } from '~/composables/useIsMobile'
 const localePath = useLocalePath()
 import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformClientsStore } from '~/stores/platform-clients'
+import { formatDate } from '~/utils/formatDate'
 
 definePageMeta({
   layout: 'platform',
@@ -329,15 +330,6 @@ function closeInviteModal() {
   inviteError.value = ''
   isInviteModalOpen.value = false
   resetInviteForm()
-}
-
-function formatDate(value) {
-  if (!value) return '—'
-  return new Date(value).toLocaleDateString('es-CO', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
 }
 
 function initials(client) {

@@ -32,7 +32,7 @@
         v-if="task.due_date"
         :class="task.is_overdue ? 'text-danger-strong font-semibold' : ''"
       >
-        📅 {{ formatDate(task.due_date) }}
+        📅 {{ formatDayMonth(task.due_date) }}
       </span>
     </div>
   </div>
@@ -40,6 +40,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { formatDayMonth } from '~/utils/formatDate';
 
 const props = defineProps({
   task: { type: Object, required: true },
@@ -58,10 +59,4 @@ const priorityBadgeClass = computed(() => {
   };
   return map[props.task.priority] || map.medium;
 });
-
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(`${dateStr}T00:00:00`);
-  return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-}
 </script>

@@ -718,6 +718,7 @@ import { usePlatformApi } from '~/composables/usePlatformApi'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformPaymentsStore } from '~/stores/platform-payments'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
+import { formatDate } from '~/utils/formatDate'
 import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
@@ -968,11 +969,6 @@ function paymentStatusLabel(s) {
 function formatMoney(val) {
   if (!val) return '0'
   return Number(val).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace(/,/g, '.')
-}
-
-function formatDate(val) {
-  if (!val) return '—'
-  return new Date(val).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 function formatCardNumber(event) {

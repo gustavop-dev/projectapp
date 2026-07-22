@@ -587,6 +587,7 @@ import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformChangeRequestsStore } from '~/stores/platform-change-requests'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 import { usePlatformRequirementsStore } from '~/stores/platform-requirements'
+import { formatDate } from '~/utils/formatDate'
 import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({
@@ -714,11 +715,6 @@ function priorityBadgeClass(p) {
 function priorityLabel(p) {
   const map = { critical: 'Crítica', high: 'Alta', medium: 'Media', low: 'Baja' }
   return map[p] || p
-}
-
-function formatDate(value) {
-  if (!value) return '—'
-  return new Date(value).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
 }
 
 function openCreateModal() {

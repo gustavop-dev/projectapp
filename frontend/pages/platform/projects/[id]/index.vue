@@ -146,6 +146,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
+import { formatDate as formatDateUtil } from '~/utils/formatDate'
 import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 import PhaseList from '~/components/platform/projects/PhaseList.vue'
 import PhaseSelectorModal from '~/components/platform/projects/PhaseSelectorModal.vue'
@@ -183,8 +184,7 @@ async function onPhasesAdded() {
 }
 
 function formatDate(iso) {
-  if (!iso) return ''
-  return new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+  return formatDateUtil(iso, { fallback: '' })
 }
 
 function formatCurrency(value) {

@@ -357,6 +357,7 @@ import { useIsMobile } from '~/composables/useIsMobile'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformDeliverablesStore } from '~/stores/platform-deliverables'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
+import { formatDate } from '~/utils/formatDate'
 import ProjectShell from '~/components/platform/projects/ProjectShell.vue'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
@@ -461,10 +462,6 @@ function categoryBadgeClass(cat) {
     other: 'bg-gray-500/15 text-text-muted',
   }
   return map[cat] || map.other
-}
-function formatDate(value) {
-  if (!value) return '—'
-  return new Date(value).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
 }
 function formatBytes(bytes) {
   if (!bytes || bytes <= 0) return '—'

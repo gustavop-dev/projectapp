@@ -182,6 +182,7 @@ import ConfirmModal from '~/components/ConfirmModal.vue'
 import { useConfirmModal } from '~/composables/useConfirmModal'
 import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformClientsStore } from '~/stores/platform-clients'
+import { formatDate } from '~/utils/formatDate'
 
 definePageMeta({
   layout: 'platform',
@@ -224,15 +225,6 @@ function statusClass(client) {
   if (!client?.is_active) return 'bg-white/10 text-green-light/60'
   if (!client?.is_onboarded) return 'bg-amber-100 text-amber-700 dark:bg-lemon/10 dark:text-accent'
   return 'bg-emerald-500/15 text-emerald-400'
-}
-
-function formatDate(value) {
-  if (!value) return '—'
-  return new Date(value).toLocaleDateString('es-CO', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
 }
 
 function syncFormFromClient() {

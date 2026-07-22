@@ -21,6 +21,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { formatDateTime } from '~/utils/formatDate'
 
 const props = defineProps({
   payment: {
@@ -62,16 +63,5 @@ function statusLabel(s) {
 function sourceLabel(s) {
   if (!s) return ''
   return SOURCE_LABELS[s] || s
-}
-
-function formatDateTime(val) {
-  if (!val) return '—'
-  return new Date(val).toLocaleString('es-CO', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 </script>
