@@ -202,7 +202,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `backend/content/tests/`, `backend/accounts/tests/`, `backend/tests/`
 - Structure: `models/`, `serializers/`, `views/`, `services/`, `tasks/`, `utils/`, `management/`
-- Test files: **254 total** (content 184, accounts 66, root/project 4)
+- Test files: **255 total** (content 184, accounts 67, root/project 4)
 - Fixtures: `conftest.py` at root and `content/tests/conftest.py` (provides `proposal`, `accepted_proposal`, `admin_user`, `admin_client`, etc.)
 - Coverage: custom terminal report with per-file bars and Top-N focus
 - Coverage floor: CI enforces `--cov-fail-under=92.5` on the full-suite run (ci.yml); local slices keep using `--no-cov`, unaffected. Raise the floor as coverage grows, never lower it.
@@ -213,7 +213,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `frontend/test/`
 - Structure: `components/`, `composables/`, `stores/` (incl. services), `utils/`
-- Test files: **364 total** (267 `.test.js` + 97 `.spec.js`)
+- Test files: **368 total** (267 `.test.js` + 101 `.spec.js`)
 - Config: `frontend/jest.config.cjs`
 - Coverage floors: enforced by the ci.yml "Enforce frontend coverage floors" step (statements ≥85%, branches ≥81% over `coverage-summary.json`) — NOT via jest `coverageThreshold`, because the CI jest step swallows exit codes with `|| true`.
 - Run: `npm test -- test/<specific_file>.test.js`
@@ -222,7 +222,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `frontend/e2e/`
 - Structure: `admin/`, `auth/`, `blog/`, `layout/`, `platform/`, `proposal/`, `public/`, `visual/`
-- Spec files: **215 total**
+- Spec files: **216 total**
 - Flow definitions: `frontend/e2e/flow-definitions.json` (must be updated for every new flow)
 - Flow tags: `frontend/e2e/helpers/flow-tags.js` (constants imported by spec files)
 - Config: `frontend/playwright.config.js`
@@ -266,7 +266,7 @@ projectapp/
 │   │   ├── services/            # 19 service modules (archive, client_flow_notifications, credential_cipher, hosting_billing, image_utils, impersonation, notifications, onboarding, password_reset, payment_history, payment_notifications, project_phases, proposal_client_service, proposal_platform_onboarding, technical_requirements_sync, tokens, verification, wompi)
 │   │   ├── management/commands/ # 6 commands (create_platform_admin, seed_demo_clients, seed_platform_data, seed_mihuella, …)
 │   │   ├── document_views.py    # Client document portal (list/retrieve/pdf/sign) + email OTP verify (request/confirm)
-│   │   ├── tests/               # 66 test files
+│   │   ├── tests/               # 67 test files
 │   │   └── urls.py              # 94 URL patterns
 │   ├── content/                 # Main Django app
 │   │   ├── models/              # 56 model files (business_proposal, proposal_section, blog, portfolio, contact, document, email, diagnostic, accounting_base/income_record/expense_record/credit_card/credit_card_statement/…, task, mcp_connector, mcp_request_log, linkedin_token, etc.)
@@ -297,8 +297,8 @@ projectapp/
 │   │   └── Tasks/               # TaskCard.vue, TaskColumn.vue (vuedraggable), TaskFormModal.vue — internal Kanban board
 │   ├── stores/                  # 35 store files: 33 Pinia stores + 2 constants modules (proposals, proposal_clients, diagnostics, blog, portfolio_works, contacts, language, linkedin, documents, document_folders, document_tags, tasks, emails, hour_packages, accounting, mcps, panel_admins, panel_dashboard, panel_refresh, view_map, platform-auth, platform-clients, platform-projects, platform-requirements, platform-scope-items, platform-bug-reports, platform-change-requests, platform-deliverables, platform-notifications, platform-payments, platform-collection-accounts, platform-data-model, platform-documents + diagnostics_constants, proposals_constants)
 │   ├── composables/             # 59 composables (incl. useStageStatus.js)
-│   ├── e2e/                     # Playwright E2E tests (215 spec files)
-│   ├── test/                    # Jest unit tests (364 test files)
+│   ├── e2e/                     # Playwright E2E tests (216 spec files)
+│   ├── test/                    # Jest unit tests (368 test files)
 │   ├── layouts/                 # default.vue, admin.vue, platform.vue
 │   ├── middleware/              # admin-auth.js, platform-auth.js
 │   ├── plugins/                 # 4 plugins (gsap, geo-locale, language-sync, cal-booking)
