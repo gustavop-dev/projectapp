@@ -153,3 +153,71 @@ class TestLinkedInMcpTools:
             _url('not-the-token'), _rpc('tools/list'), format='json',
         )
         assert response.status_code == 404
+
+
+@pytest.mark.django_db
+class TestLinkedInMcpHandlerBranches:
+    def test_get_post_returns_detail(self, api_client, linkedin_connector):
+        post = LinkedInPost.objects.create(commentary='Visible')
+        _, token = linkedin_connector
+        response = _call(api_client, token, 'get_post', {'post_id': post.id})
+        assert _content(response)['commentary'] == 'Visible'
+
+    def test_get_unknown_post_errors(self, api_client, linkedin_connector):
+        _, token = linkedin_connector
+        response = _call(api_client, token, 'get_post', {'post_id': 999999})
+        assert response.data['result']['isError'] is True
+
+    @patch(
+        'content.mcp.linkedin_tools.get_connection_status',
+        return_value={'connected': False},
+    )
+    def test_connection_status_warns_when_disconnected(
+        self, _mock_status, api_client, linkedin_connector,  # noqa: PT019
+    ):
+        _, token = linkedin_connector
+        response = _call(api_client, token, 'get_connection_status', {})
+        payload = _content(response)
+        assert payload['connected'] is False
+        assert 'no está conectado' in payload['warning']
+
+    def test_list_posts_invalid_status_errors(self, api_client, linkedin_connector):
+        _, token = linkedin_connector
+        response = _call(api_client, token, 'list_posts', {'status': 'limbo'})
+        assert response.data['result']['isError'] is True
+
+    def test_list_posts_filters_by_status(self, api_client, linkedin_connector):
+        LinkedInPost.objects.create(commentary='Borrador')
+        LinkedInPost.objects.create(
+            commentary='Publicado', status=LinkedInPost.STATUS_PUBLISHED,
+        )
+        _, token = linkedin_connector
+        response = _call(api_client, token, 'list_posts', {'status': 'published'})
+        assert _content(response)['count'] == 1
+
+    def test_update_without_fields_errors(self, api_client, linkedin_connector):
+        post = LinkedInPost.objects.create(commentary='Quieto')
+        _, token = linkedin_connector
+        response = _call(api_client, token, 'update_post', {'post_id': post.id})
+        result = response.data['result']
+        assert result['isError'] is True
+        assert 'Nada que actualizar' in result['content'][0]['text']
+
+    def test_update_draft_commentary(self, api_client, linkedin_connector):
+        post = LinkedInPost.objects.create(commentary='Antes')
+        _, token = linkedin_connector
+        response = _call(api_client, token, 'update_post', {
+            'post_id': post.id, 'commentary': 'Después',
+        })
+        assert response.data['result']['isError'] is False
+        post.refresh_from_db()
+        assert post.commentary == 'Después'
+
+    def test_delete_post_removes_local_record(self, api_client, linkedin_connector):
+        post = LinkedInPost.objects.create(commentary='Borrable')
+        _, token = linkedin_connector
+        response = _call(api_client, token, 'delete_post', {'post_id': post.id})
+        payload = _content(response)
+        assert payload['deleted'] is True
+        assert 'nada cambió en LinkedIn' in payload['note']
+        assert not LinkedInPost.objects.filter(pk=post.pk).exists()
