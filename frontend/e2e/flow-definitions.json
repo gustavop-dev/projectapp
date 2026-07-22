@@ -1,5 +1,5 @@
 {
-  "version": "2.53.0",
+  "version": "2.55.0",
   "lastUpdated": "2026-07-22",
   "flows": {
     "layout-navbar-navigation": {
@@ -2036,8 +2036,8 @@
       ],
       "priority": "P2",
       "description": "Admin attaches files to a standalone email from /panel/emails: multiple file input (.pdf/.doc/.docx/.xls/.xlsx/.png/.jpg), client-side type and size validation via validateEmailAttachments (~/utils/emailAttachments), per-file remove button, and multipart POST /api/emails/send/ including the attachments. Documented as Branch B of admin-standalone-email-composer but never exercised by its spec.",
-      "expectedSpecs": 0,
-      "knownGaps": "No E2E spec: upload, validation-rejection and remove paths untested. Registered 2026-07-16 audit."
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 3): valid upload sent in multipart POST, type-validation rejection and per-file remove over mocked API."
     },
     "admin-proposal-advanced-filters": {
       "name": "Admin Proposal Advanced Filters",
@@ -2224,8 +2224,8 @@
       ],
       "priority": "P2",
       "description": "Admin manages tags in TagManagerModal: create tag with name and color (POST /api/document-tags/create/), rename (PATCH /api/document-tags/:id/update/), delete with confirm (DELETE /api/document-tags/:id/delete/). Tag chip filtering is covered by admin-document-folders; tag CRUD is not.",
-      "expectedSpecs": 0,
-      "knownGaps": "No E2E spec for tag CRUD. Registered 2026-07-16 audit."
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 3): create with color, inline rename, delete behind native confirm + dismissed branch over mocked API."
     },
     "admin-document-duplicate": {
       "name": "Admin Document Duplicate",

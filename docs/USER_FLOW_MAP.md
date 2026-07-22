@@ -2765,7 +2765,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-rename` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-rename.spec.js` |
 | `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
 | `admin-document-folder-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-manage.spec.js` |
-| `admin-document-tags-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-tags-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-tags-manage.spec.js` |
 | `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-document-drag-organize` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
@@ -3818,8 +3818,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Routes:** `/panel/documents`
 - **API:** `POST /api/document-tags/create/`, `PATCH /api/document-tags/<id>/update/`, `DELETE /api/document-tags/<id>/delete/`
 - **Description:** Admin manages tags in `TagManagerModal`: create tag with name and color, rename, delete with confirm. Tag chip filtering is covered by `admin-document-folders`; tag CRUD is not.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-document-tags-manage.spec.js` (create + rename + delete confirm/dismiss; added 2026-07-22)
 
 #### FLOW: `admin-document-duplicate`
 
@@ -3941,7 +3941,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-rename` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-rename.spec.js` |
 | `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
 | `admin-document-folder-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-manage.spec.js` |
-| `admin-document-tags-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-tags-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-tags-manage.spec.js` |
 | `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-document-drag-organize` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
@@ -4150,8 +4150,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   2. Admin selects one or more files with the "Adjuntar archivos" input.
   3. Invalid type/size files are rejected with a validation message; valid ones list with a remove button.
   4. Admin sends → multipart `POST /api/emails/send/` includes the attachments.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-standalone-email-attachments.spec.js` (upload + multipart send, validation rejection, remove; added 2026-07-22)
 
 ---
 
@@ -4168,7 +4168,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-send-proposal-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `admin-standalone-email-composer` | admin | admin | P2 | 🟡 Partial (sections mgmt, error path, history pagination not asserted) | `e2e/admin/admin-standalone-email-composer.spec.js` |
 | `admin-standalone-email-defaults` | admin | admin | P2 | 🟡 Partial (restore + invalid-signer branches not asserted) | `e2e/admin/admin-standalone-email-composer.spec.js` |
-| `admin-standalone-email-attachments` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-standalone-email-attachments` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-standalone-email-attachments.spec.js` |
 
 ---
 

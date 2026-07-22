@@ -202,9 +202,7 @@ class TestMonthlyAndPartners:
         assert march['expenses'] == Decimal('0')
         assert summary['partners']['company']['net'] == Decimal('100.00')
 
-    def test_partner_net_combines_participation_and_personal(
-        self, make_income, make_expense,
-    ):
+    def _seed_partner_mix(self, make_income, make_expense):
         make_income(
             kind='liquid',
             total_amount=Decimal('100.00'),
@@ -229,15 +227,24 @@ class TestMonthlyAndPartners:
             gustavo_amount=Decimal('5.00'),
             carlos_amount=Decimal('5.00'),
         )
-        partners = accounting_service.partner_totals(2026)
-        gustavo = partners['gustavo']
+
+    def test_partner_net_combines_participation_and_personal(
+        self, make_income, make_expense,
+    ):
+        self._seed_partner_mix(make_income, make_expense)
+        gustavo = accounting_service.partner_totals(2026)['gustavo']
         assert gustavo['liquid'] == Decimal('90.00')
         assert gustavo['expenses'] == Decimal('30.00')
         assert gustavo['net'] == Decimal('60.00')
         assert gustavo['participation']['liquid'] == Decimal('50.00')
         assert gustavo['personal']['liquid'] == Decimal('40.00')
         assert gustavo['personal']['expenses'] == Decimal('25.00')
-        carlos = partners['carlos']
+
+    def test_partner_net_without_personal_records_uses_participation_only(
+        self, make_income, make_expense,
+    ):
+        self._seed_partner_mix(make_income, make_expense)
+        carlos = accounting_service.partner_totals(2026)['carlos']
         assert carlos['net'] == Decimal('45.00')
         assert carlos['personal']['liquid'] == Decimal('0')
 

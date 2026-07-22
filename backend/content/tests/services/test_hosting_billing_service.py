@@ -69,34 +69,50 @@ class TestCreateDraft:
         assert period_from == date(2026, 7, 2)
         assert period_to == date(2027, 1, 2)
 
-    def test_draft_shape(self):
+    def test_draft_document_links_hosting(self):
         hosting = make_hosting()
         document = create_hosting_collection_account(hosting)
         assert document.commercial_status == Document.CommercialStatus.DRAFT
         assert document.hosting_record_id == hosting.pk
+
+    def test_draft_item_prices_the_billing_period(self):
+        hosting = make_hosting()
+        document = create_hosting_collection_account(hosting)
         item = document.items.get()
         assert item.unit_price == Decimal('550002.00')
         assert item.period_start == date(2026, 7, 2)
         assert item.period_end == date(2027, 1, 2)
         assert 'korehealths.com' in item.description
+
+    def test_draft_seeds_payment_methods(self):
+        hosting = make_hosting()
+        document = create_hosting_collection_account(hosting)
         methods = list(document.payment_methods.all())
         assert len(methods) == 2
         assert methods[0].is_primary and methods[0].bank_name == 'Bancolombia'
 
 
 class TestSendFlow:
-    def test_issues_with_hosting_customer_and_emails_pdf(self):
+    def test_issues_document_with_public_number_and_total(self):
         hosting = make_hosting()
         result = send_hosting_collection_account(hosting)
         document = Document.objects.get(pk=result['document'].pk)
         assert result['email_sent'] is True
         assert document.commercial_status == Document.CommercialStatus.ISSUED
         assert re.fullmatch(r'[A-Z]+-\d{4}-\d{4}', document.public_number)
-        ext = document.collection_account
-        assert ext.customer_name == 'German - Kore'
-        assert ext.customer_email == 'german@korehealths.com'
         assert document.total == Decimal('550002.00')
 
+    def test_issue_snapshots_hosting_customer(self):
+        hosting = make_hosting()
+        result = send_hosting_collection_account(hosting)
+        ext = Document.objects.get(pk=result['document'].pk).collection_account
+        assert ext.customer_name == 'German - Kore'
+        assert ext.customer_email == 'german@korehealths.com'
+
+    def test_issue_emails_the_pdf_to_the_customer(self):
+        hosting = make_hosting()
+        result = send_hosting_collection_account(hosting)
+        document = Document.objects.get(pk=result['document'].pk)
         assert len(mail.outbox) == 1
         sent = mail.outbox[0]
         assert sent.to == ['german@korehealths.com']
@@ -104,6 +120,9 @@ class TestSendFlow:
         assert sent.attachments[0][0] == f'{document.public_number}.pdf'
         assert sent.attachments[0][2] == 'application/pdf'
 
+    def test_issue_stamps_hosting_and_logs_the_email(self):
+        hosting = make_hosting()
+        send_hosting_collection_account(hosting)
         hosting.refresh_from_db()
         assert hosting.billing_requested_at is not None
         assert hosting.expiry_notice_target == hosting.valid_to

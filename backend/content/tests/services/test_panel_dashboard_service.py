@@ -56,15 +56,19 @@ def _make_collection_account(doc_type, *, due_date, total):
 # ── build_panel_dashboard: shape ──
 
 class TestPayloadShape:
-    def test_empty_db_returns_all_blocks_with_zeros(self):
+    def test_empty_db_skips_finance_and_attention(self):
         payload = build_panel_dashboard(include_finance=False)
-
         assert payload['finance'] is None
         assert payload['attention'] == []
+
+    def test_empty_db_zeroes_the_proposals_block(self):
+        payload = build_panel_dashboard(include_finance=False)
         assert payload['proposals']['total_proposals'] == 0
         assert payload['proposals']['pipeline_count'] == 0
         assert payload['proposals']['recent'] == []
-        ops = payload['operations']
+
+    def test_empty_db_zeroes_the_operations_block(self):
+        ops = build_panel_dashboard(include_finance=False)['operations']
         assert ops['tasks']['open'] == 0
         assert ops['tasks']['overdue'] == 0
         assert ops['documents']['collection_accounts']['issued_count'] == 0
