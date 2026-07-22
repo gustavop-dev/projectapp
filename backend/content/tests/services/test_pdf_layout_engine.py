@@ -74,7 +74,7 @@ def test_wrap_by_width_every_line_fits():
         for width in WIDTHS:
             for size in (8, 10):
                 lines = _wrap_by_width(text, fn, size, width)
-                assert lines, text
+                assert len(lines) >= 1, text
                 for line in lines:
                     measured = _measure_inline_width(line, fn, size)
                     assert measured <= width + 0.5, (

@@ -117,6 +117,7 @@
 | Accounting — Pocket Draws Against Company Utility + Liquidate Defaults | ✅ Done | 2026-07-17 (#114). Pocket egresos attributed to a partner now mirror a company-ledger expense 100% assigned to that partner (category personal), reducing liquid utility and the partner's participation (migration `0164` normalizes existing rows; expense form converts personal+pocket submissions with a warning hint; pocket modal OUT selector relabeled "Atribuir a" with prefilled attribution). Liquidate modal defaults destination to Bolsillo ProjectApp + "Registrar el día exacto de pago" toggle; income/expense `period_date` accepts full dates (YYYY-MM normalized to day 1); statements stay month-only. |
 | Accounting — Stats Modals, COP Email Formatting & Weekday Date Standard | ✅ Done | 2026-07-22 (#115). `cop` template filter (`format_cop_email`) + `bogota_date` in card-reminder/hosting-expiry emails (autoescape off in TXT for the millions apostrophe); `format_bogota_date`/`format_bogota_datetime` now emit the "Jue, 16 jul 2026" weekday standard across proposal/diagnostic/accounting emails; new central `frontend/utils/formatDate.js` (formatDate/formatDateTime/formatDayMonth, Bogotá TZ via Intl, literal date-only parsing); `AccountingStatCard` clickable prop + `ExpectedIncomeDetailModal` (read-only month detail of expected company incomes). |
 | Accounting — COP Formatting & Weekday Dates in Payment Notifications | ✅ Done | 2026-07-22 (#116). Phase-onboarding notifications + team payment-status email switched from en-US comma grouping and raw ISO dates to `format_cop_email` (subject + bodies) and `bogota_date` billing dates; plain-text body wrapped in autoescape off. |
+| QA Campaign Round 1 (seven-skill phased cycle) | ✅ Done | 2026-07-22 (#117). Memory bank refresh post-#116; fake accounting data models the #114 pocket-draw rule (partner draws mirror company expenses, exact-date liquidations, 3 invariant tests); MCP `diagnostic_tools` 29→92% + `statement_tools` 50→92% (40 tests); six 0% shared frontend files → 100% (42 tests: diagnosticNextAction, proposalJsonStats, hourPackagePricing, proposalModuleSelectionStorage, downloadFile, usePanelRefresh); gate warnings 50→32 via `freeze_time` in 18 nondeterministic tests; E2E P1 gap `admin-document-send-email` closed (3 tests, flow-definitions 2.51.0) + `admin-proposal-send` map reconciled to Covered. Carry-over: MCP proposal/accounting/task tools, 0% components (WebAppDiagnostic/documents/views clusters), 32 gate warnings, P2 documents E2E cluster. |
 
 ---
 
@@ -137,8 +138,8 @@
 | Suite | Location | Approximate Count | Status |
 |-------|----------|-------------------|--------|
 | Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 254 test files (content 184, accounts 66, root/project 4) | Active |
-| Frontend Unit (Jest) | `frontend/test/` | 346 test files | Active |
-| Frontend E2E (Playwright) | `frontend/e2e/` | 209 spec files across admin, auth, blog, layout, proposal, public, platform, visual | Active |
+| Frontend Unit (Jest) | `frontend/test/` | 352 test files | Active |
+| Frontend E2E (Playwright) | `frontend/e2e/` | 210 spec files across admin, auth, blog, layout, proposal, public, platform, visual | Active |
 | Quality Gate | `scripts/test_quality_gate.py` | Re-run to confirm current score | Active |
 
 ---

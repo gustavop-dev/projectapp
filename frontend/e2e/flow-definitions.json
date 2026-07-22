@@ -1,5 +1,5 @@
 {
-  "version": "2.51.0",
+  "version": "2.53.0",
   "lastUpdated": "2026-07-22",
   "flows": {
     "layout-navbar-navigation": {
@@ -2191,8 +2191,8 @@
       ],
       "priority": "P2",
       "description": "Admin renames a document from the actions sheet: 'Renombrar' opens RenameDocumentModal with the current title, saving sends PATCH /api/documents/:id/update/ and the list refreshes with the new title.",
-      "expectedSpecs": 0,
-      "knownGaps": "No E2E spec yet. Registered 2026-07-16 audit."
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): happy path + cancel/error branches over mocked API."
     },
     "admin-document-delete": {
       "name": "Admin Document Delete",
@@ -2202,8 +2202,8 @@
       ],
       "priority": "P2",
       "description": "Admin deletes a document from the actions sheet: 'Eliminar' opens ConfirmModal; confirming sends DELETE /api/documents/:id/delete/ and removes the row/card; cancelling keeps it. Current list spec only asserts the button is visible.",
-      "expectedSpecs": 0,
-      "knownGaps": "Only button visibility asserted in admin-document-list.spec.js; confirm/cancel paths untested. Registered 2026-07-16 audit."
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): happy path + cancel/error branches over mocked API."
     },
     "admin-document-folder-manage": {
       "name": "Admin Document Folder Management",
@@ -2213,8 +2213,8 @@
       ],
       "priority": "P2",
       "description": "Admin manages folders in FolderManagerModal: create folder with parent selector (POST /api/document-folders/create/), inline rename (PATCH /api/document-folders/:id/update/), delete with confirmation (DELETE /api/document-folders/:id/delete/) and drag-reorder (POST /api/document-folders/reorder/). Existing admin-document-folders spec only covers parent pre-selection on create.",
-      "expectedSpecs": 0,
-      "knownGaps": "Rename, delete and reorder inside the manager modal untested. Registered 2026-07-16 audit."
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): create/rename/delete + documents-blocking branch over mocked API. Drag-reorder intentionally not asserted (flaky in CI)."
     },
     "admin-document-tags-manage": {
       "name": "Admin Document Tags Management",

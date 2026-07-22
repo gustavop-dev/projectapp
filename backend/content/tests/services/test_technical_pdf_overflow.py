@@ -9,6 +9,7 @@ import io
 from decimal import Decimal
 
 import pytest
+from freezegun import freeze_time
 from django.utils import timezone
 from pypdf import PdfReader
 
@@ -23,6 +24,7 @@ def _fonts():
 
 
 @pytest.mark.django_db
+@freeze_time('2026-01-15 12:00:00')
 def test_technical_epic_table_header_repeats():
     p = BusinessProposal.objects.create(
         title='Tech Overflow', client_name='Cliente Técnico',
@@ -69,6 +71,7 @@ def test_technical_epic_table_header_repeats():
 
 
 @pytest.mark.django_db
+@freeze_time('2026-01-15 12:00:00')
 def test_technical_recovered_columns_and_priority_render():
     """The recovered integration/environment/quality columns and the
     semantic priority pills generate without error."""

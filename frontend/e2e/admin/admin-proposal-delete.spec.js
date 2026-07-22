@@ -105,7 +105,8 @@ test.describe('Admin Proposal Delete', () => {
     ]);
 
     await expect(page.getByText('La propuesta está vinculada a un proyecto lanzado.')).toBeVisible();
-    // Delete failed → list not refreshed, the row remains.
-    await expect(page.getByText('Delete Client')).toBeVisible();
+    // Delete failed → list not refreshed, the row remains. Scoped to the
+    // table: the fading confirm-modal message also contains the client name.
+    await expect(page.locator('table').getByText('Delete Client')).toBeVisible();
   });
 });
