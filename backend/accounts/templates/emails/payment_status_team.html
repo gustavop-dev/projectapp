@@ -1,4 +1,4 @@
-<!doctype html>
+{% load date_filters money_filters %}<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
@@ -20,7 +20,7 @@ a{text-decoration:none}
 </style>
 </head>
 <body style="margin:0;padding:0;background:#0a0f0d;font-family:Ubuntu,Helvetica,Arial,sans-serif;">
-<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#0a0f0d;opacity:0;">{{ status_label }} de {{ client_name }} por ${{ amount }} {{ currency }}.</div>
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#0a0f0d;opacity:0;">{{ status_label }} de {{ client_name }} por ${{ amount|cop }} {{ currency }}.</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0a0f0d;">
 <tr><td align="center" style="padding:32px 16px 48px 16px;">
 <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#0d1411;border:1px solid #18221e;border-radius:20px;overflow:hidden;">
@@ -36,15 +36,15 @@ a{text-decoration:none}
 <tr><td class="px-40" style="padding:40px 40px 8px 40px;">
 <div style="font-weight:500;font-size:11px;line-height:14px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:20px;color:{% if is_paid %}#F0FF3D{% elif is_failed %}#ff6b6b{% else %}#809490{% endif %};">◆ &nbsp;{{ status_label }}</div>
 <div style="font-weight:300;font-size:34px;line-height:40px;letter-spacing:-0.6px;color:#ffffff;">{{ project_name }}<span style="color:#F0FF3D;">.</span></div>
-<div style="margin-top:10px;font-weight:300;font-size:30px;line-height:34px;color:#ffffff;">${{ amount }} <span style="font-size:16px;color:#809490;">{{ currency }}</span></div>
+<div style="margin-top:10px;font-weight:300;font-size:30px;line-height:34px;color:#ffffff;">${{ amount|cop }} <span style="font-size:16px;color:#809490;">{{ currency }}</span></div>
 </td></tr>
 
 <tr><td class="px-40" style="padding:28px 40px 8px 40px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#001713;border:1px solid #18221e;border-radius:14px;">
 <tr><td style="padding:18px 22px;font-size:14px;line-height:22px;color:#a8b8b4;">
 <strong style="color:#e6efef;font-weight:500;">Cliente:</strong> {{ client_name }}{% if client_email %} &lt;{{ client_email }}&gt;{% endif %}<br>
-<strong style="color:#e6efef;font-weight:500;">Periodo:</strong> {{ billing_period_start }} — {{ billing_period_end }}<br>
-<strong style="color:#e6efef;font-weight:500;">Vence:</strong> {{ due_date }}<br>
+<strong style="color:#e6efef;font-weight:500;">Periodo:</strong> {{ billing_period_start|bogota_date }} — {{ billing_period_end|bogota_date }}<br>
+<strong style="color:#e6efef;font-weight:500;">Vence:</strong> {{ due_date|bogota_date }}<br>
 {% if transaction_id %}<strong style="color:#e6efef;font-weight:500;">Transacción Wompi:</strong> {{ transaction_id }}<br>{% endif %}
 {% if source %}<strong style="color:#e6efef;font-weight:500;">Origen:</strong> {{ source }}<br>{% endif %}
 {% if is_failed and last_charge_error %}<strong style="color:#ff6b6b;font-weight:500;">Error:</strong> {{ last_charge_error }}<br>{% endif %}

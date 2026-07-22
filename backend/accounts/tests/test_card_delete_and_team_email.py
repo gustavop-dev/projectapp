@@ -191,3 +191,13 @@ class TestTeamPaymentEmailSend:
         send_payment_status_team_email(payment.id, Payment.STATUS_FAILED, 'webhook')
         assert len(mail.outbox) == 1
         assert 'Pago fallido' in mail.outbox[0].subject
+
+    def test_email_formats_amount_and_dates(self, payment, team_email):
+        from accounts.services.payment_notifications import send_payment_status_team_email
+
+        mail.outbox = []
+        send_payment_status_team_email(payment.id, Payment.STATUS_PAID, 'webhook')
+        msg = mail.outbox[0]
+        assert '$900.000 COP' in msg.subject
+        assert '$900.000 COP' in msg.body
+        assert 'Mié, 1 abr 2026 — Mar, 30 jun 2026' in msg.body
