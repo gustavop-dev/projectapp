@@ -65,6 +65,8 @@
           :progress="receivedProgress"
           :progress-label="receivedProgressLabel"
           :monthly="summary.monthly || []"
+          stats-button
+          @open-stats="showUtilityStats = true"
         />
         <div
           class="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:content-start"
@@ -79,9 +81,12 @@
             @click="showExpectedDetail = true"
           />
           <AccountingStatCard
+            data-testid="accounting-card-liquid-income"
             label="Ingresos líquidos"
             :value="money(summary.liquid_total)"
             :sub="receivedPct"
+            clickable
+            @click="openIncomeStats"
           />
           <AccountingStatCard
             data-testid="accounting-card-debt"
@@ -89,6 +94,8 @@
             :value="money(summary.card_debt?.total)"
             :sub="cardDebtSub"
             tone="danger"
+            clickable
+            @click="openCardsStats"
           />
           <AccountingStatCard
             label="Bolsillo ProjectApp"
@@ -191,9 +198,12 @@
         style="--enter-delay: 320ms"
       >
         <AccountingStatCard
-          label="Costo operativo mensual"
-          :value="money(summary.recurring_monthly_cost)"
-          sub="Pagos recurrentes activos"
+          data-testid="accounting-card-expenses"
+          :label="`Gastos ${summary.year}`"
+          :value="money(summary.expenses_total)"
+          :sub="`Recurrentes/mes: ${money(summary.recurring_monthly_cost)}`"
+          clickable
+          @click="openExpenseStats"
         />
         <AccountingStatCard
           label="Ads del año"
@@ -286,6 +296,39 @@
       :total="summary?.expected_current_month?.total ?? 0"
       @close="showExpectedDetail = false"
     />
+
+    <!-- Stats modals -->
+    <IncomeStatsModal
+      :open="showIncomeStats"
+      :monthly="summary?.monthly || []"
+      :summary="summary"
+      :stats="store.stats"
+      :loading="statsLoading"
+      @close="showIncomeStats = false"
+    />
+    <ExpenseStatsModal
+      :open="showExpenseStats"
+      :monthly="summary?.monthly || []"
+      :summary="summary"
+      :stats="store.stats"
+      :loading="statsLoading"
+      @close="showExpenseStats = false"
+    />
+    <UtilityStatsModal
+      :open="showUtilityStats"
+      :monthly="summary?.monthly || []"
+      :summary="summary"
+      :partners="summary?.partners || {}"
+      @close="showUtilityStats = false"
+    />
+    <CardsStatsModal
+      :open="showCardsStats"
+      :snapshots="store.cardSnapshots"
+      :card-debt="summary?.card_debt || null"
+      :credit-cards="store.creditCards"
+      :loading="cardsStatsLoading"
+      @close="showCardsStats = false"
+    />
   </div>
 </template>
 
@@ -301,6 +344,10 @@ import AccountingMonthlyChart from '~/components/accounting/charts/AccountingMon
 import CardDebtChart from '~/components/accounting/charts/CardDebtChart.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
 import ExpectedIncomeDetailModal from '~/components/accounting/ExpectedIncomeDetailModal.vue';
+import IncomeStatsModal from '~/components/accounting/stats/IncomeStatsModal.vue';
+import ExpenseStatsModal from '~/components/accounting/stats/ExpenseStatsModal.vue';
+import UtilityStatsModal from '~/components/accounting/stats/UtilityStatsModal.vue';
+import CardsStatsModal from '~/components/accounting/stats/CardsStatsModal.vue';
 import BaseSelect from '~/components/base/BaseSelect.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -427,6 +474,9 @@ function onYearChange(value) {
   loadSummary(Number(value)).then(() => {
     syncYearQueryParam();
     loadCardSnapshots();
+    // Stats are cached per year; drop them so the modals refetch.
+    store.stats = null;
+    store.statsYear = null;
   });
 }
 
@@ -491,6 +541,45 @@ async function exportWorkbook() {
 
 const showIncomeModal = ref(false);
 const showExpectedDetail = ref(false);
+
+// -------------------------------------------------------------------
+// Stats modals: lazy accounting/stats/ fetch cached per year
+// -------------------------------------------------------------------
+
+const showIncomeStats = ref(false);
+const showExpenseStats = ref(false);
+const showUtilityStats = ref(false);
+const showCardsStats = ref(false);
+const statsLoading = ref(false);
+const cardsStatsLoading = ref(false);
+
+async function ensureStats() {
+  statsLoading.value = true;
+  const result = await store.fetchStats(store.selectedYear);
+  statsLoading.value = false;
+  if (!result.success) {
+    notify.error({ title: 'No se pudieron cargar las estadísticas', detail: result.message });
+  }
+}
+
+function openIncomeStats() {
+  showIncomeStats.value = true;
+  ensureStats();
+}
+
+function openExpenseStats() {
+  showExpenseStats.value = true;
+  ensureStats();
+}
+
+async function openCardsStats() {
+  showCardsStats.value = true;
+  if (!store.creditCards.length) {
+    cardsStatsLoading.value = true;
+    await store.fetchRecords('creditCards');
+    cardsStatsLoading.value = false;
+  }
+}
 
 function openIncomeModal() {
   showIncomeModal.value = true;

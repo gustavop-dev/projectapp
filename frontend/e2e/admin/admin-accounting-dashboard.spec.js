@@ -12,6 +12,7 @@ import { setAuthLocalStorage } from '../helpers/auth.js';
 import {
   ADMIN_ACCOUNTING_DASHBOARD,
   ADMIN_ACCOUNTING_EXPECTED_DETAIL,
+  ADMIN_ACCOUNTING_STATS_MODALS,
 } from '../helpers/flow-tags.js';
 
 test.setTimeout(60_000);
@@ -87,6 +88,39 @@ const EXPECTED_MONTH_ROWS = [
   },
 ];
 
+const STATS_PAYLOAD = {
+  year: 2026,
+  income: {
+    liquid: {
+      count: 12, total: '59516261.00', avg: '4959688.42',
+      min: '288356.00', max: '9000000.00',
+    },
+    expected: {
+      count: 15, total: '95238699.00', avg: '6349246.60',
+      min: '500000.00', max: '12000000.00',
+    },
+    lost_total: '1200000.00',
+    top_concepts: [
+      { concept: 'Kore v2 (Fase 1)', total: '18000000.00', count: 3 },
+      { concept: 'Hosting anual Acme', total: '9000000.00', count: 2 },
+    ],
+  },
+  expenses: {
+    summary: {
+      count: 40, total: '62628212.00', avg: '1565705.30',
+      min: '25000.00', max: '8000000.00',
+    },
+    by_category: [
+      { category: 'business', label: 'Negocio', total: '50000000.00', count: 30 },
+      { category: 'personal', label: 'Personal', total: '12628212.00', count: 10 },
+    ],
+    top_concepts: [
+      { concept: 'Claude Code 20x', total: '9600000.00', count: 12 },
+    ],
+    recurring_monthly_cost: '3016059.00',
+  },
+};
+
 function buildHandler({ isSuperuser = true } = {}) {
   return ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
@@ -96,6 +130,13 @@ function buildHandler({ isSuperuser = true } = {}) {
         body: JSON.stringify({
           user: { username: 'admin', is_staff: true, is_superuser: isSuperuser },
         }),
+      };
+    }
+    if (apiPath.startsWith('accounting/stats/') && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(STATS_PAYLOAD),
       };
     }
     if (apiPath.startsWith('accounting/dashboard/') && method === 'GET') {
@@ -204,6 +245,35 @@ test.describe('Admin Accounting Dashboard', () => {
 
     await page.getByRole('button', { name: 'Cerrar' }).click();
     await expect(page.getByTestId('expected-income-detail-modal')).toHaveCount(0);
+  });
+
+  test('liquid-income card opens the stats modal with tabbed charts', {
+    tag: [...ADMIN_ACCOUNTING_STATS_MODALS, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler());
+    await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
+
+    const card = page.getByTestId('accounting-card-liquid-income');
+    await expect(card).toBeVisible({ timeout: 25_000 });
+    await card.click();
+
+    await expect(page.getByTestId('stats-modal')).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Estadísticas de ingresos 2026' }),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId('stats-line-chart').locator('.apexcharts-canvas'),
+    ).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole('tab', { name: 'Top conceptos' }).click();
+    await expect(page.getByText('Ticket promedio')).toBeVisible();
+    await expect(page.getByText('Kore v2 (Fase 1)').first()).toBeVisible();
+    await expect(
+      page.getByTestId('stats-bar-chart').locator('.apexcharts-canvas'),
+    ).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole('button', { name: 'Cerrar' }).click();
+    await expect(page.getByTestId('stats-modal')).toHaveCount(0);
   });
 
   test('renders the 12-month breakdown with a totals row', {

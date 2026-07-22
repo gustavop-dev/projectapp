@@ -1,5 +1,5 @@
 {
-  "version": "2.48.0",
+  "version": "2.49.0",
   "lastUpdated": "2026-07-22",
   "flows": {
     "layout-navbar-navigation": {
@@ -2755,6 +2755,16 @@
       ],
       "priority": "P2",
       "description": "Superuser clicks the 'Pendiente por cobrar · {mes}' stat card on /panel/accounting and a read-only modal opens with the company expected incomes of the real current month (GET /api/accounting/incomes/?kind=expected&ledger=company&date_from&date_to derived from expected_current_month.period, not the year selector). The table lists concepto, período, total, abonado (paid_amount), pendiente (pending_amount, per-row clamped) and payment status pill, with a footer whose Pendiente sum equals the card total. Cerrar closes the modal; no actions on rows.",
+      "expectedSpecs": 1
+    },
+    "admin-accounting-stats-modals": {
+      "name": "Admin Accounting Stats Modals",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser opens descriptive-statistics modals from the accounting Resumen: the Ingresos líquidos, Gastos {year} and Deuda tarjetas stat cards are clickable buttons and the hero Utilidad card exposes an Estadísticas button. Each modal is a StatsModal (BaseModal 5xl + BaseTabs) with tabbed ApexCharts views: Ingresos (evolución esperado vs líquido, % de cobro radial+mensual, top conceptos), Gastos (evolución con promedio, distribución Negocio/Personal, recurrente vs variable, top conceptos), Utilidad (evolución, márgenes, socios) and Tarjetas (evolución de deuda, uso del cupo por tarjeta, histórico de cortes). Income/expense tabs feed from GET /api/accounting/stats/?year= (lazy, cached per year in the accounting store, reset on year change); utility/cards tabs compute client-side from the dashboard summary and card snapshots.",
       "expectedSpecs": 1
     },
     "admin-accounting-income-crud": {
