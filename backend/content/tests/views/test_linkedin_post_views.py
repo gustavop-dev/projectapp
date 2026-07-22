@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 from django.urls import reverse
 from django.utils import timezone
+from freezegun import freeze_time
 
 from content.models import LinkedInPost
 
@@ -25,6 +26,7 @@ def test_create_draft(admin_client):
     assert resp.data['status'] == 'draft'
 
 
+@freeze_time('2026-01-15 12:00:00')
 @patch('content.services.linkedin_post_service.schedule_linkedin_post_eta')
 def test_create_with_future_schedule_sets_scheduled(mock_eta, admin_client):
     eta = (timezone.now() + timedelta(hours=2)).isoformat()
@@ -36,6 +38,7 @@ def test_create_with_future_schedule_sets_scheduled(mock_eta, admin_client):
     mock_eta.assert_called_once()
 
 
+@freeze_time('2026-01-15 12:00:00')
 def test_create_with_past_schedule_rejected(admin_client):
     eta = (timezone.now() - timedelta(hours=1)).isoformat()
     resp = admin_client.post(
@@ -54,6 +57,7 @@ def test_update_published_post_conflict(admin_client):
     assert resp.status_code == 409
 
 
+@freeze_time('2026-01-15 12:00:00')
 def test_update_clearing_schedule_reverts_to_draft(admin_client):
     post = LinkedInPost.objects.create(
         commentary='prog', status=LinkedInPost.STATUS_SCHEDULED,

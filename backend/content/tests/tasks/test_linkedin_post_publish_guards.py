@@ -8,6 +8,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from freezegun import freeze_time
 from django.utils import timezone
 
 from content.models import LinkedInPost
@@ -27,6 +28,7 @@ def _run_periodic():
     tasks_module.publish_scheduled_linkedin_posts.call_local()
 
 
+@freeze_time('2026-01-15 12:00:00')
 @patch(SVC)
 def test_eta_task_skips_future_schedule(mock_pub):
     post = LinkedInPost.objects.create(
@@ -39,6 +41,7 @@ def test_eta_task_skips_future_schedule(mock_pub):
     assert post.status == LinkedInPost.STATUS_SCHEDULED
 
 
+@freeze_time('2026-01-15 12:00:00')
 @patch(SVC)
 def test_eta_task_noop_when_already_published(mock_pub):
     post = LinkedInPost.objects.create(
@@ -51,6 +54,7 @@ def test_eta_task_noop_when_already_published(mock_pub):
     assert post.status == LinkedInPost.STATUS_PUBLISHED
 
 
+@freeze_time('2026-01-15 12:00:00')
 @patch(SVC, return_value={'success': True, 'post_id': 'urn:li:share:7', 'message': 'ok'})
 def test_eta_task_publishes_due_post(mock_pub):
     post = LinkedInPost.objects.create(
@@ -63,6 +67,7 @@ def test_eta_task_publishes_due_post(mock_pub):
     assert post.linkedin_post_id == 'urn:li:share:7'
 
 
+@freeze_time('2026-01-15 12:00:00')
 @patch(SVC, return_value={'success': True, 'post_id': 'urn:li:share:8', 'message': 'ok'})
 def test_sweep_publishes_due_and_skips_drafts(mock_pub):
     due = LinkedInPost.objects.create(
@@ -78,6 +83,7 @@ def test_sweep_publishes_due_and_skips_drafts(mock_pub):
     assert mock_pub.call_count == 1
 
 
+@freeze_time('2026-01-15 12:00:00')
 @patch(SVC, return_value={'success': False, 'post_id': '', 'message': 'err 500'})
 def test_failed_publish_marks_failed_and_sweep_does_not_retry(mock_pub):
     post = LinkedInPost.objects.create(
