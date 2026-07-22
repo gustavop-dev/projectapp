@@ -116,7 +116,7 @@
                   <div class="flex flex-wrap items-center gap-1.5">
                     <p class="truncate font-medium text-text-default">{{ bug.title }}</p>
                     <span v-if="bug.is_recurring" class="rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-purple-600 dark:text-purple-400">Recurrente</span>
-                    <span v-if="bug.is_archived" class="rounded-full bg-gray-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivado</span>
+                    <span v-if="bug.is_archived" class="rounded-full bg-surface-raised px-1.5 py-0.5 text-[9px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivado</span>
                     <svg v-if="bug.screenshot_url" class="h-3 w-3 shrink-0 text-green-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                   </div>
                   <p v-if="bug.source_requirement" class="mt-0.5 line-clamp-1 text-[10px] text-teal-600 dark:text-teal-300">
@@ -178,7 +178,7 @@
               <div class="flex flex-wrap items-center gap-1.5">
                 <p class="font-medium text-text-default">{{ bug.title }}</p>
                 <span v-if="bug.is_recurring" class="rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-purple-600 dark:text-purple-400">Recurrente</span>
-                <span v-if="bug.is_archived" class="rounded-full bg-gray-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivado</span>
+                <span v-if="bug.is_archived" class="rounded-full bg-surface-raised px-1.5 py-0.5 text-[9px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivado</span>
                 <svg v-if="bug.screenshot_url" class="h-3 w-3 shrink-0 text-green-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
               </div>
               <p v-if="bug.source_requirement" class="mt-0.5 line-clamp-1 text-[10px] text-teal-600 dark:text-teal-300">Sobre: {{ bug.source_requirement.title }}</p>
@@ -404,7 +404,7 @@
                   <div class="mb-2 flex flex-wrap items-center gap-2">
                     <span class="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase" :class="statusBadgeClass(detailBug.status)">{{ statusLabel(detailBug.status) }}</span>
                     <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="severityBadgeClass(detailBug.severity)">{{ severityLabel(detailBug.severity) }}</span>
-                    <span v-if="detailBug.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivado</span>
+                    <span v-if="detailBug.is_archived" class="rounded-full bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivado</span>
                     <span v-if="detailBug.is_recurring" class="rounded-full bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-purple-600 dark:text-purple-400">Recurrente</span>
                   </div>
                   <p v-if="detailBug.is_archived && detailBug.archived_at" class="mb-1 text-[10px] text-green-light/60">
@@ -682,9 +682,9 @@ function statusBadgeClass(s) {
     fixing: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     qa: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
     resolved: 'bg-emerald-500/15 text-text-brand',
-    not_reproducible: 'bg-gray-500/15 text-text-muted',
-    wont_fix: 'bg-gray-500/15 text-text-muted',
-    duplicate: 'bg-gray-500/15 text-text-muted',
+    not_reproducible: 'bg-surface-raised text-text-muted',
+    wont_fix: 'bg-surface-raised text-text-muted',
+    duplicate: 'bg-surface-raised text-text-muted',
   }
   return map[s] || map.reported
 }
@@ -703,7 +703,7 @@ function severityBadgeClass(sev) {
     critical: 'bg-red-500/15 text-red-600 dark:text-red-400',
     high: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     medium: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-    low: 'bg-gray-500/15 text-text-muted',
+    low: 'bg-surface-raised text-text-muted',
   }
   return map[sev] || map.medium
 }

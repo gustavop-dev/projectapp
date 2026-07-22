@@ -118,7 +118,7 @@
                     <div class="flex flex-wrap items-center gap-1.5">
                       <p class="truncate font-medium text-text-default">{{ cr.title }}</p>
                       <span v-if="cr.is_urgent" class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-600 dark:text-red-400">Urgente</span>
-                      <span v-if="cr.is_archived" class="rounded-full bg-gray-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivada</span>
+                      <span v-if="cr.is_archived" class="rounded-full bg-surface-raised px-1.5 py-0.5 text-[9px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivada</span>
                       <span v-if="cr.linked_requirement_id" class="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-text-brand">Convertida</span>
                     </div>
                     <p v-if="cr.source_requirement" class="mt-0.5 line-clamp-1 text-[10px] text-teal-600 dark:text-teal-300">
@@ -179,7 +179,7 @@
               <div class="flex flex-wrap items-center gap-1.5">
                 <p class="font-medium text-text-default">{{ cr.title }}</p>
                 <span v-if="cr.is_urgent" class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-600 dark:text-red-400">Urgente</span>
-                <span v-if="cr.is_archived" class="rounded-full bg-gray-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivada</span>
+                <span v-if="cr.is_archived" class="rounded-full bg-surface-raised px-1.5 py-0.5 text-[9px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivada</span>
                 <span v-if="cr.linked_requirement_id" class="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-text-brand">Convertida</span>
               </div>
               <p v-if="cr.source_requirement" class="mt-0.5 line-clamp-1 text-[10px] text-teal-600 dark:text-teal-300">Sobre: {{ cr.source_requirement.title }}</p>
@@ -377,7 +377,7 @@
                   <div class="mb-2 flex flex-wrap items-center gap-2">
                     <span class="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase" :class="statusBadgeClass(detailCR.status)">{{ statusLabel(detailCR.status) }}</span>
                     <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="priorityBadgeClass(detailCR.suggested_priority)">{{ priorityLabel(detailCR.suggested_priority) }}</span>
-                    <span v-if="detailCR.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivado</span>
+                    <span v-if="detailCR.is_archived" class="rounded-full bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivado</span>
                     <span v-if="detailCR.is_urgent" class="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-red-600 dark:text-red-400">Urgente</span>
                   </div>
                   <p v-if="detailCR.is_archived && detailCR.archived_at" class="mb-1 text-[10px] text-green-light/60">
@@ -685,7 +685,7 @@ function statusBadgeClass(s) {
     approved: 'bg-emerald-500/15 text-text-brand',
     rejected: 'bg-red-500/15 text-red-600 dark:text-red-400',
     needs_clarification: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
-    out_of_scope: 'bg-gray-500/15 text-text-muted',
+    out_of_scope: 'bg-surface-raised text-text-muted',
   }
   return map[s] || map.pending
 }
@@ -707,7 +707,7 @@ function priorityBadgeClass(p) {
     critical: 'bg-red-500/15 text-red-600 dark:text-red-400',
     high: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     medium: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-    low: 'bg-gray-500/15 text-text-muted',
+    low: 'bg-surface-raised text-text-muted',
   }
   return map[p] || map.medium
 }

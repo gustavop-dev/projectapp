@@ -83,7 +83,7 @@
                 <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="categoryBadgeClass(d.category)">
                   {{ categoryLabel(d.category) }}
                 </span>
-                <span v-if="d.is_archived" class="ml-1 rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">
+                <span v-if="d.is_archived" class="ml-1 rounded-full bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">
                   Archivado
                 </span>
               </td>
@@ -119,7 +119,7 @@
           </div>
           <div class="mt-3 flex flex-wrap items-center gap-2">
             <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="categoryBadgeClass(d.category)">{{ categoryLabel(d.category) }}</span>
-            <span v-if="d.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivado</span>
+            <span v-if="d.is_archived" class="rounded-full bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">Archivado</span>
             <span class="text-[10px] text-green-light/60">{{ formatBytes(d.file_size) }} · v{{ d.current_version }}</span>
           </div>
           <div class="mt-2 flex items-center justify-between gap-2 text-xs text-green-light/70">
@@ -222,7 +222,7 @@
                   <div class="mb-2 flex flex-wrap items-center gap-2">
                     <span class="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase" :class="categoryBadgeClass(detailItem.category)">{{ categoryLabel(detailItem.category) }}</span>
                     <span class="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-green-light dark:bg-white/10">v{{ detailItem.current_version }}</span>
-                    <span v-if="detailItem.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">
+                    <span v-if="detailItem.is_archived" class="rounded-full bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle">
                       Archivado
                     </span>
                   </div>
@@ -441,9 +441,9 @@ function categoryIconBg(cat) {
   const map = {
     designs: 'bg-purple-500/10', documents: 'bg-blue-500/10',
     contract: 'bg-teal-500/10', amendment: 'bg-orange-500/10', legal_annex: 'bg-indigo-500/10',
-    other: 'bg-gray-500/10',
+    other: 'bg-surface-raised',
   }
-  return map[cat] || 'bg-gray-500/10'
+  return map[cat] || 'bg-surface-raised'
 }
 function categoryIcon(cat) {
   const map = {
@@ -459,7 +459,7 @@ function categoryBadgeClass(cat) {
     contract: 'bg-teal-500/15 text-teal-600 dark:text-teal-400',
     amendment: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
     legal_annex: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400',
-    other: 'bg-gray-500/15 text-text-muted',
+    other: 'bg-surface-raised text-text-muted',
   }
   return map[cat] || map.other
 }
