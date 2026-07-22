@@ -2765,7 +2765,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-rename` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-rename.spec.js` |
 | `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
 | `admin-document-folder-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-manage.spec.js` |
-| `admin-document-tags-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-tags-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-tags-manage.spec.js` |
 | `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-document-drag-organize` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
@@ -3818,8 +3818,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Routes:** `/panel/documents`
 - **API:** `POST /api/document-tags/create/`, `PATCH /api/document-tags/<id>/update/`, `DELETE /api/document-tags/<id>/delete/`
 - **Description:** Admin manages tags in `TagManagerModal`: create tag with name and color, rename, delete with confirm. Tag chip filtering is covered by `admin-document-folders`; tag CRUD is not.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-document-tags-manage.spec.js` (create + rename + delete confirm/dismiss; added 2026-07-22)
 
 #### FLOW: `admin-document-duplicate`
 
@@ -3941,7 +3941,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-rename` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-rename.spec.js` |
 | `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
 | `admin-document-folder-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-manage.spec.js` |
-| `admin-document-tags-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-tags-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-tags-manage.spec.js` |
 | `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-document-drag-organize` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |

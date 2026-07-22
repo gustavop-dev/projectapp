@@ -1,5 +1,5 @@
 {
-  "version": "2.53.0",
+  "version": "2.54.0",
   "lastUpdated": "2026-07-22",
   "flows": {
     "layout-navbar-navigation": {
@@ -2224,8 +2224,8 @@
       ],
       "priority": "P2",
       "description": "Admin manages tags in TagManagerModal: create tag with name and color (POST /api/document-tags/create/), rename (PATCH /api/document-tags/:id/update/), delete with confirm (DELETE /api/document-tags/:id/delete/). Tag chip filtering is covered by admin-document-folders; tag CRUD is not.",
-      "expectedSpecs": 0,
-      "knownGaps": "No E2E spec for tag CRUD. Registered 2026-07-16 audit."
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 3): create with color, inline rename, delete behind native confirm + dismissed branch over mocked API."
     },
     "admin-document-duplicate": {
       "name": "Admin Document Duplicate",
