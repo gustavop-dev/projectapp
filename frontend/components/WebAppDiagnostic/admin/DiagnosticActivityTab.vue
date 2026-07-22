@@ -28,7 +28,7 @@
       <div class="text-xs font-medium text-text-subtle uppercase tracking-wide mb-3">
         Historial
       </div>
-      <div v-if="!logs.length" class="text-sm text-gray-400 italic">
+      <div v-if="!logs.length" class="text-sm text-text-subtle italic">
         Sin actividad registrada todavía.
       </div>
       <ol v-else class="relative border-l border-border-default pl-6 space-y-4">
