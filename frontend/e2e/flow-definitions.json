@@ -1,5 +1,5 @@
 {
-  "version": "2.51.0",
+  "version": "2.52.0",
   "lastUpdated": "2026-07-22",
   "flows": {
     "layout-navbar-navigation": {
@@ -2191,8 +2191,8 @@
       ],
       "priority": "P2",
       "description": "Admin renames a document from the actions sheet: 'Renombrar' opens RenameDocumentModal with the current title, saving sends PATCH /api/documents/:id/update/ and the list refreshes with the new title.",
-      "expectedSpecs": 0,
-      "knownGaps": "No E2E spec yet. Registered 2026-07-16 audit."
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): happy path + cancel/error branches over mocked API."
     },
     "admin-document-delete": {
       "name": "Admin Document Delete",
@@ -2202,8 +2202,8 @@
       ],
       "priority": "P2",
       "description": "Admin deletes a document from the actions sheet: 'Eliminar' opens ConfirmModal; confirming sends DELETE /api/documents/:id/delete/ and removes the row/card; cancelling keeps it. Current list spec only asserts the button is visible.",
-      "expectedSpecs": 0,
-      "knownGaps": "Only button visibility asserted in admin-document-list.spec.js; confirm/cancel paths untested. Registered 2026-07-16 audit."
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): happy path + cancel/error branches over mocked API."
     },
     "admin-document-folder-manage": {
       "name": "Admin Document Folder Management",

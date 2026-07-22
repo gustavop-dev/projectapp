@@ -2762,8 +2762,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
 | `admin-document-move-folder` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-move-folder.spec.js` |
 | `admin-document-send-email` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-send-email.spec.js` |
-| `admin-document-rename` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
-| `admin-document-delete` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-rename` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-rename.spec.js` |
+| `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
 | `admin-document-folder-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
 | `admin-document-tags-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
 | `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
@@ -3785,8 +3785,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Routes:** `/panel/documents`
 - **API:** `PATCH /api/documents/<id>/update/`
 - **Description:** Admin renames a document from the actions sheet via `RenameDocumentModal`: the input opens prefilled with the current title; saving PATCHes the document and the list shows the new title.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-document-rename.spec.js` (prefill + PATCH payload + inline-error branch; added 2026-07-22)
 
 #### FLOW: `admin-document-delete`
 
@@ -3795,9 +3795,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Priority:** P2
 - **Routes:** `/panel/documents`
 - **API:** `DELETE /api/documents/<id>/delete/`
-- **Description:** Admin deletes a document from the actions sheet: "Eliminar" opens a ConfirmModal; confirming deletes and removes the row/card, cancelling keeps it. The list spec only asserts the button is visible.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+- **Description:** Admin deletes a document from the actions sheet: "Eliminar" opens a ConfirmModal; confirming deletes and removes the row/card, cancelling keeps it.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-document-delete.spec.js` (confirm + cancel + error-toast branches; added 2026-07-22)
 
 #### FLOW: `admin-document-folder-manage`
 
@@ -3938,8 +3938,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
 | `admin-document-move-folder` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-move-folder.spec.js` |
 | `admin-document-send-email` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-send-email.spec.js` |
-| `admin-document-rename` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
-| `admin-document-delete` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
+| `admin-document-rename` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-rename.spec.js` |
+| `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
 | `admin-document-folder-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
 | `admin-document-tags-manage` | admin | admin | P2 | ❌ Missing | — (spec not yet written) |
 | `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
