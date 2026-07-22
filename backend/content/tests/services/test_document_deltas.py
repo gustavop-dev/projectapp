@@ -53,7 +53,7 @@ class TestThemeThreading:
         c.save()
         assert buf.getvalue()[:4] == b'%PDF'
 
-    def test_professional_default_equals_legacy_constants(self):
+    def test_professional_default_header_and_section_colors_match_legacy(self):
         # The whole point of theme=None: proposals render byte-identical.
         t = PROFESSIONAL_THEME
         assert t.header_bar_color == u.ESMERALD
@@ -61,12 +61,18 @@ class TestThemeThreading:
         assert t.section_index_color == u.GREEN_LIGHT
         assert t.section_title_color == u.ESMERALD
         assert t.section_rule_color == u.LEMON
+
+    def test_professional_default_table_colors_match_legacy(self):
+        t = PROFESSIONAL_THEME
         assert t.table_header_bg == u.ESMERALD
         assert t.table_header_text == u.WHITE
         assert t.table_stripe_bg == u.ESMERALD_LIGHT
         assert t.table_row_bg == u.WHITE
         assert t.table_body_text == u.ESMERALD_80
         assert t.table_border_color == u.GRAY_300
+
+    def test_professional_default_quote_code_and_rule_colors_match_legacy(self):
+        t = PROFESSIONAL_THEME
         assert t.quote_bg == u.BONE
         assert t.quote_accent == u.LEMON
         assert t.quote_text == u.ESMERALD

@@ -301,7 +301,7 @@ class TestGetDefaultSections:
         assert ai['is_invite'] is True
         assert ai['price_percent'] == 0
 
-    def test_reports_alerts_module_has_5_items_and_default_not_selected(self):
+    def test_reports_alerts_module_is_priced_calculator_module(self):
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         reports = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'reports_alerts_module')
@@ -309,6 +309,11 @@ class TestGetDefaultSections:
         assert reports['is_calculator_module'] is True
         assert reports['default_selected'] is False
         assert reports['price_percent'] == 20
+
+    def test_reports_alerts_module_offers_whatsapp_not_telegram(self):
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        reports = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'reports_alerts_module')
         assert 'WhatsApp' in reports['title']
         # Telegram is no longer offered as a notification channel.
         assert 'Telegram' not in reports['title']
@@ -317,19 +322,25 @@ class TestGetDefaultSections:
         assert all('Telegram' not in n for n in item_names)
 
     def test_behavior_tracking_module_is_priced_calculator_module(self):
-        """Verify behavior_tracking_module: calculator module at 30%, not invite, closed scope copy."""
+        """Verify behavior_tracking_module: calculator module at 30%, not invite."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         bt = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'behavior_tracking_module')
-        assert bt['icon'] == '👣'
-        assert 'Rastreo' in bt['title']
-        assert bt['is_visible'] is True
         assert bt['is_calculator_module'] is True
         assert bt['default_selected'] is False
         assert bt['selected'] is False
         assert bt['price_percent'] == 30
         assert bt.get('is_invite', False) is False
         assert 'invite_note' not in bt
+
+    def test_behavior_tracking_module_copy_and_items(self):
+        """Verify behavior_tracking_module presentation: icon, title, closed scope copy."""
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        bt = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'behavior_tracking_module')
+        assert bt['icon'] == '👣'
+        assert 'Rastreo' in bt['title']
+        assert bt['is_visible'] is True
         assert len(bt['items']) == 7
         assert 'hasta 15 vistas' in bt['description']
 

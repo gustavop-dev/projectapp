@@ -50,7 +50,7 @@ class TestAdjustCarlosCommand:
 
     def test_apply_leaves_carlos_at_half_the_pocket(self):
         _seed()  # carlos net 1,000,000 / pocket 1,000,000 -> target 500,000
-        output = _run()
+        _run()
         expense = ExpenseRecord.objects.get()
         assert expense.concept == CONCEPT
         assert expense.ledger == 'carlos'
@@ -58,6 +58,10 @@ class TestAdjustCarlosCommand:
         assert expense.total_amount == Decimal('500000.00')
         assert expense.carlos_amount == Decimal('500000.00')
         assert expense.source_ref == DEFAULT_SOURCE_REF
+
+    def test_apply_updates_partner_net_and_reports_the_target(self):
+        _seed()
+        output = _run()
         summary = accounting_service.dashboard_summary(today_bogota().year)
         assert summary['partners']['carlos']['net'] == Decimal('500000.00')
         assert 'mitad del bolsillo' in output

@@ -326,9 +326,7 @@ class TestExpensePocketSync:
 
 @pytest.mark.django_db
 class TestPocketToRecordSync:
-    def test_pocket_in_creates_liquid_pocket_income_with_half_split(
-        self, superuser,
-    ):
+    def test_pocket_in_creates_liquid_pocket_income(self, superuser):
         movement = create_movement(
             superuser, direction='in', concept='Anticipo cliente',
             amount='1000000.00',
@@ -339,6 +337,13 @@ class TestPocketToRecordSync:
         assert income.destination == IncomeRecord.Destination.POCKET
         assert income.period_date == date(2026, 4, 1)
         assert income.concept == 'Anticipo cliente'
+
+    def test_pocket_in_mirror_splits_half_and_links_source(self, superuser):
+        movement = create_movement(
+            superuser, direction='in', concept='Anticipo cliente',
+            amount='1000000.00',
+        )
+        income = movement.income_record
         assert income.gustavo_amount == Decimal('500000.00')
         assert income.carlos_amount == Decimal('500000.00')
         assert income.source_ref == f'pocket:{movement.pk}'

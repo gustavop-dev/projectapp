@@ -290,10 +290,9 @@ class TestPreviewComposedEmail:
         response = api_client.post(url, {}, format='json')
         assert response.status_code == 401
 
-    def test_returns_real_branded_template_html(self, admin_client):
-        url = reverse('preview-composed-email')
-        response = admin_client.post(
-            url,
+    def _preview(self, admin_client):
+        return admin_client.post(
+            reverse('preview-composed-email'),
             {
                 'subject': 'Asunto de prueba',
                 'greeting': 'Hola Carlos',
@@ -303,12 +302,18 @@ class TestPreviewComposedEmail:
             },
             format='json',
         )
+
+    def test_returns_real_branded_template_html(self, admin_client):
+        response = self._preview(admin_client)
         assert response.status_code == 200
         html = response.data['html_preview']
         assert response.data['subject'] == 'Asunto de prueba'
         assert 'Hola Carlos' in html
         assert 'Contenido de la sección.' in html
         assert 'contrato.pdf' in html
+
+    def test_preview_renders_the_elegant_footer(self, admin_client):
+        html = self._preview(admin_client).data['html_preview']
         # Elegant footer: dark contact card + social + copyright.
         assert 'team@projectapp.co' in html
         assert 'background:#001713' in html
