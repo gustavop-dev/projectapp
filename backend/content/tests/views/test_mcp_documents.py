@@ -279,3 +279,150 @@ class TestDocumentsConnectorPanel:
         tool_names = [t['name'] for t in docs['tools']]
         assert 'create_document' in tool_names
         assert 'list_folders' in tool_names
+
+
+@pytest.mark.django_db
+class TestDocumentsMcpHandlerBranches:
+    def test_list_documents_unknown_folder_errors(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        _, token = documents_connector
+        response = _call(api_client, token, 'list_documents', {'folder_id': 999999})
+        assert response.data['result']['isError'] is True
+
+    def test_rename_folder_requires_name(self, api_client, documents_connector):
+        folder = DocumentFolder.objects.create(name='Vieja')
+        _, token = documents_connector
+        response = _call(api_client, token, 'rename_folder', {
+            'folder_id': folder.id, 'name': '  ',
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_list_documents_invalid_page_errors(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        _, token = documents_connector
+        response = _call(api_client, token, 'list_documents', {'page': 'xx'})
+        assert response.data['result']['isError'] is True
+
+    def test_list_documents_filters_root_only(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        folder = DocumentFolder.objects.create(name='Contratos')
+        _make_doc(markdown_doc_type, title='Raíz')
+        _make_doc(markdown_doc_type, title='Guardado', folder=folder)
+        _, token = documents_connector
+        response = _call(api_client, token, 'list_documents', {'folder_id': 'none'})
+        text = response.data['result']['content'][0]['text']
+        assert 'Raíz' in text
+        assert 'Guardado' not in text
+
+    def test_list_documents_filters_by_folder(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        folder = DocumentFolder.objects.create(name='Contratos')
+        _make_doc(markdown_doc_type, title='Raíz')
+        _make_doc(markdown_doc_type, title='Guardado', folder=folder)
+        _, token = documents_connector
+        response = _call(api_client, token, 'list_documents', {'folder_id': folder.id})
+        text = response.data['result']['content'][0]['text']
+        assert 'Guardado' in text
+        assert 'Raíz' not in text
+
+    def test_create_document_invalid_language_errors(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        _, token = documents_connector
+        response = _call(api_client, token, 'create_document', {
+            'title': 'Doc', 'markdown': '# Hola', 'language': 'fr',
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_update_document_rejects_empty_title(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(markdown_doc_type)
+        _, token = documents_connector
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id, 'title': '  ',
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_update_document_changes_client_name(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(markdown_doc_type)
+        _, token = documents_connector
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id, 'client_name': 'ACME Corp',
+        })
+        assert response.data['result']['isError'] is False
+        doc.refresh_from_db()
+        assert doc.client_name == 'ACME Corp'
+
+    def test_update_document_changes_language(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(markdown_doc_type)
+        _, token = documents_connector
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id, 'language': 'en',
+        })
+        assert response.data['result']['isError'] is False
+        doc.refresh_from_db()
+        assert doc.language == 'en'
+
+    def test_update_document_invalid_language_errors(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(markdown_doc_type)
+        _, token = documents_connector
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id, 'language': 'fr',
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_update_document_changes_status(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(markdown_doc_type)
+        _, token = documents_connector
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id, 'status': 'published',
+        })
+        assert response.data['result']['isError'] is False
+        doc.refresh_from_db()
+        assert doc.status == 'published'
+
+    def test_update_document_invalid_status_errors(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(markdown_doc_type)
+        _, token = documents_connector
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id, 'status': 'limbo',
+        })
+        assert response.data['result']['isError'] is True
+
+    def test_update_document_moves_to_folder(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        folder = DocumentFolder.objects.create(name='Destino')
+        doc = _make_doc(markdown_doc_type)
+        _, token = documents_connector
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id, 'folder_id': folder.id,
+        })
+        assert response.data['result']['isError'] is False
+        doc.refresh_from_db()
+        assert doc.folder_id == folder.id
+
+    def test_append_rejects_non_string_separator(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(markdown_doc_type)
+        _, token = documents_connector
+        response = _call(api_client, token, 'append_document', {
+            'document_id': doc.id, 'markdown': 'Más texto', 'separator': 7,
+        })
+        assert response.data['result']['isError'] is True
