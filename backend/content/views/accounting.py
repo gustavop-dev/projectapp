@@ -510,6 +510,18 @@ def accounting_dashboard(request):
     return Response(accounting_service.dashboard_summary(year))
 
 
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def accounting_stats(request):
+    """Descriptive statistics feeding the analytics modals."""
+    year_param = request.query_params.get('year') or ''
+    try:
+        year = int(year_param) if year_param else today_bogota().year
+    except (TypeError, ValueError):
+        return error_response("El parámetro 'year' debe ser un año válido.")
+    return Response(accounting_service.year_descriptive_stats(year))
+
+
 # ── Incomes ──
 
 @api_view(['GET'])
