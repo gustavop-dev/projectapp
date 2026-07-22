@@ -59,8 +59,8 @@ Before writing any E2E test, consult:
 4. Consult quality standards
 5. Implement tests
 6. Run only new/modified tests
-7. Validate quality: `python scripts/test_quality_gate.py --files e2e/path/to/spec.spec.ts`
-8. Regenerate coverage: `node frontend/scripts/generate-coverage.js`
+7. Validate quality: `python3 scripts/test_quality_gate.py --repo-root . --include-file frontend/e2e/path/to/spec.spec.js --frontend-unit-dir test`
+8. Regenerate coverage: `node scripts/regenerate-flow-coverage.mjs` (from `frontend/`)
 
 ---
 
