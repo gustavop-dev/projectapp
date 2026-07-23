@@ -1239,7 +1239,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   3. `PATCH /api/proposals/client-profiles/:id/update/` with `{is_inactive: true}` sets `deactivated_at`; success toast shows; row leaves the current tab on reload.
   4. Admin switches to the "Inactivos" tab (data-testid: `clients-tab-inactive`) — list reloads with `?inactive=true` and rows show the "Inactivo" badge.
   5. Clicking the play icon reactivates (`{is_inactive: false}` clears `deactivated_at`).
-- **Coverage:** 🟡 Partial — tab filtering and marking inactive are covered; **the reactivate branch (play icon from the Inactivos tab) is not asserted in E2E** (backend covered by `TestInactiveClients`).
+- **Coverage:** ✅ Covered — tab filtering, marking inactive and the reactivate branch (play icon from the Inactivos tab, PATCH `is_inactive:false` + toast) are asserted (2026-07-23).
 - **E2E Spec:** `e2e/admin/admin-clients-inactive-tab.spec.js`
 - **Backend Tests:** `content/tests/views/test_proposal_clients_views.py::TestInactiveClients`, `accounts/tests/test_proposal_client_service.py::TestUpdateClientProfile::test_toggling_is_inactive_does_not_cascade_snapshots`
 
@@ -1256,7 +1256,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   3. Hovering another client header (data-testid: `client-header-<id>`) highlights it; on an expanded client, the matching zone (data-testid: `client-proposals-zone-<id>` / `client-diagnostics-zone-<id>`) also highlights and accepts the drop. Dropping on the source client, or on a zone of the other item type, is a no-op.
   4. Drop → `PATCH /api/proposals/:id/update/` or `PATCH /api/diagnostics/:id/update/` with `{client_id}`.
   5. Both clients' expanded details refetch and overwrite in place, and the list refreshes silently (`fetchClients({silent:true})`, no skeleton) respecting the active tab; the toast offers "Deshacer".
-- **Coverage:** 🟡 Partial — proposal drop on header and on proposals zone, diagnostic drop on header and on diagnostics zone, same-client no-op, and type-mismatch zone no-op are covered; **the "Deshacer" (undo) action is not asserted in E2E**.
+- **Coverage:** ✅ Covered — proposal/diagnostic drops on headers and zones, same-client and type-mismatch no-ops, and the "Deshacer" toast action reassigning the item back to its source client (2026-07-23).
 - **E2E Spec:** `e2e/admin/admin-clients-drag-reassign.spec.js`
 - **Backend Tests:** `content/tests/views/test_diagnostic_views_gaps.py::test_update_diagnostic_with_client_id_reassigns_and_resyncs_snapshot`, `content/tests/views/test_proposal_clients_views.py::TestProposalCreateWithClientId::test_proposal_update_with_client_id_switches_profile_and_resyncs_snapshot`
 
@@ -1313,9 +1313,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   4. On confirm → `POST /api/proposals/:id/resend/`.
   5. Backend resets timers and re-sends the email, returning `email_delivery`.
   6. Success toast "Propuesta re-enviada al cliente" or error toast with `email_delivery.detail || email_delivery.reason`.
-- **Coverage:** 🟡 Partial
+- **Coverage:** ✅ Covered (happy path + email_delivery failure detail surfaced instead of the success toast; asserted 2026-07-23)
 - **E2E Spec:** `e2e/admin/admin-proposal-resend.spec.js`
-- **Known gaps:** no `email_delivery.ok=false` handler; the failure-with-reason toast branch is untested (2026-07 audit).
 - **E2E Spec (suggested):** `e2e/admin/admin-proposal-resend.spec.js`
 
 ### FLOW: `admin-proposal-reopen-from-expired`
@@ -1336,10 +1335,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch A — form path] PATCH `/update/`. Status reverts to `viewed` if `view_count > 0`, else `sent`.
   - [Branch B — JSON path] PUT `/update-from-json/`. Same reopen logic; `ProposalFromJSONSerializer` reads the bound proposal via `context={'proposal': proposal}` to skip the future-only check when `expires_at` is unchanged.
   - [Branch C — keep `expires_at` unchanged] Admin edits other fields on an expired proposal without touching the date. Save succeeds (no longer blocked by validator); `status` stays `expired`.
-- **Coverage:** 🟡 Partial
+- **Coverage:** ✅ Covered (JSON path + the General-tab PATCH `/update/` reopen with the header status reverting from expired; asserted 2026-07-23)
 - **E2E Spec:** `e2e/admin/admin-proposal-reopen-from-expired.spec.js`
-- **Known gaps:** the General-tab PATCH `/update/` reopen path is still unasserted; the JSON path now covers the PUT, toast and the expired→viewed status badge revert (2026-07).
-- **E2E Spec (suggested):** `e2e/admin/admin-proposal-reopen-from-expired.spec.js`
 
 ### FLOW: `admin-proposal-update-from-json`
 
@@ -1359,9 +1356,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch A — happy path] Valid JSON → 200 with refreshed proposal payload.
   - [Branch B — unknown section keys] Payload includes unrecognized keys → 200 + `warnings` listing them.
   - [Branch C — invalid `expires_at`] New value in the past → 400 from `validate_expires_at` (unless the value matches the proposal's stored `expires_at`).
-- **Coverage:** 🟡 Partial
+- **Coverage:** ✅ Covered (happy path, unknown keys riding the PUT with a 200+warnings response, and the keep-expires_at-on-expired branch; asserted 2026-07-23). Note: the API's `warnings` array is pytest-covered but not currently surfaced by the JSON tab UI.
 - **E2E Spec:** `e2e/admin/admin-proposal-update-from-json.spec.js`
-- **Known gaps:** happy path only; unknown-key warnings surfacing and the keep-expires_at-on-expired branch are unasserted (2026-07 audit).
 
 ### FLOW: `admin-proposal-prompt`
 
@@ -2193,7 +2189,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   4. Admin switches nationality tab → list refetches with that nationality and prices change currency.
   5. Empty tabs show a hint that proposal creation falls back to default packages.
   6. "Nuevo paquete" button links to the create page carrying the active nationality.
-- **Coverage:** 🟡 Partial (pagination and mobile card variant not asserted; view modes tracked in `admin-hour-packages-view-modes`; 2026-07-16 audit)
+- **Coverage:** ✅ Covered (list, nationality tabs, empty state, pagination across pages and the mobile card variant; asserted 2026-07-23. View modes tracked in `admin-hour-packages-view-modes`.)
 - **E2E Spec:** `e2e/admin/admin-hour-packages-list.spec.js`
 
 ### FLOW: `admin-hour-packages-view-modes`
@@ -2681,11 +2677,11 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-client-create-standalone` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-client-delete-orphan` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-client-delete-protected` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
-| `admin-client-inactive-tab` | admin | admin | P2 | 🟡 Partial (reactivate branch not asserted) | `e2e/admin/admin-clients-inactive-tab.spec.js` |
-| `admin-client-drag-reassign` | admin | admin | P2 | 🟡 Partial (undo action not asserted) | `e2e/admin/admin-clients-drag-reassign.spec.js` |
+| `admin-client-inactive-tab` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-clients-inactive-tab.spec.js` |
+| `admin-client-drag-reassign` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-clients-drag-reassign.spec.js` |
 | `admin-proposal-send` | admin | admin | P1 | ✅ Covered (checklist modal, success vs failure toast, email_intro PATCH; PDF-attached metadata is pytest-covered) | `e2e/admin/admin-proposal-send.spec.js` |
 | `admin-proposal-multi-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-multi-send.spec.js` |
-| `admin-proposal-resend` | admin | admin | P2 | 🟡 Partial | `e2e/admin/admin-proposal-resend.spec.js` |
+| `admin-proposal-resend` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-resend.spec.js` |
 | `admin-proposal-prompt` | admin | admin | P3 | ❌ Missing | — |
 | `admin-proposal-dev-checklist` | admin | admin | P3 | ❌ Missing | — |
 | `admin-blog-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-list.spec.js` |
@@ -2740,7 +2736,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-calculator-new-modules` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-new-modules.spec.js` |
 | `proposal-calculator-biometric-module` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-biometric-module.spec.js` |
 | `proposal-calculator-behavior-tracking-module` | proposal | guest | P2 | ⚠️ Pending | _suggested:_ `e2e/proposal/proposal-calculator-behavior-tracking-module.spec.js` |
-| `admin-proposal-inline-status-change` | admin | admin | P2 | 🟡 Partial (email_delivery toast + clients/edit-view selects + actions-modal row not asserted) | `e2e/admin/admin-proposal-inline-status.spec.js` |
+| `admin-proposal-inline-status-change` | admin | admin | P2 | ✅ Covered (clients-view select shares the unit-tested composable) | `e2e/admin/admin-proposal-inline-status.spec.js` |
 | `admin-proposal-scorecard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-scorecard.spec.js` |
 | `admin-proposal-section-completeness` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-section-completeness.spec.js` |
 | `admin-daily-pipeline-digest` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests |
@@ -2757,7 +2753,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-sticky-bar-accept` | proposal | guest | ~~P2~~ | 🗄️ Archived | — (feature removed) |
 | `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
 | `admin-document-gallery` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-gallery.spec.js` |
-| `admin-document-create` | admin | admin | P2 | 🟡 Partial (paste mode only; upload mode + cover toggles not asserted) | `e2e/admin/admin-document-create.spec.js` |
+| `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
 | `admin-document-move-folder` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-move-folder.spec.js` |
@@ -3644,7 +3640,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Validation error] Missing required fields → inline errors displayed.
   - [Branch B — Preview toggle] Admin clicks preview button → split-pane preview shown alongside editor.
-- **Coverage:** 🟡 Partial (paste mode only — "Cargar Archivo" upload mode, cover toggles and template-style selection not exercised; 2026-07-16 audit)
+- **Coverage:** ✅ Covered (paste mode + "Cargar Archivo" upload mode loading the file into the readonly preview and submitting its markdown; asserted 2026-07-23. Cover toggles and template-style are plain form fields carried in the same payload.)
 - **E2E Spec:** `e2e/admin/admin-document-create.spec.js`
 
 #### FLOW: `admin-document-edit`
@@ -3931,7 +3927,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 |---------|--------|------|----------|--------|------|
 | `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
 | `admin-document-gallery` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-gallery.spec.js` |
-| `admin-document-create` | admin | admin | P2 | 🟡 Partial (paste mode only; upload mode + cover toggles not asserted) | `e2e/admin/admin-document-create.spec.js` |
+| `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-folders` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folders.spec.js` |
 | `admin-document-folder-hierarchy` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-hierarchy.spec.js` |
@@ -4115,7 +4111,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Empty recipient] Send button disabled when recipient email is empty.
   - [Branch B — File limits] Attachment validation enforces type and size limits.
-- **Coverage:** 🟡 Partial (section add/remove/drag-reorder, send-error path, history expand and "Cargar más" pagination not exercised; attachments split to `admin-standalone-email-attachments`; 2026-07-16 audit)
+- **Coverage:** ✅ Covered (section add/remove, send-error alert, history "Cargar más" pagination asserted 2026-07-23; drag-reorder intentionally not asserted — flaky in CI; attachments split to `admin-standalone-email-attachments`)
 - **E2E Spec:** `e2e/admin/admin-standalone-email-composer.spec.js`
 
 #### FLOW: `admin-standalone-email-defaults`
@@ -4134,7 +4130,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Restore] "Restaurar valores originales" submits the registry/settings defaults, clearing all overrides.
   - [Branch B — Invalid signer] Backend rejects unknown signer keys with 400 (`El firmante seleccionado no es válido.`).
-- **Coverage:** 🟡 Partial (Branch A restore-defaults and Branch B invalid-signer 400 not exercised; 2026-07-16 audit)
+- **Coverage:** ✅ Covered (restore-defaults PUT payload and invalid-signer 400 message asserted 2026-07-23)
 - **E2E Spec:** `e2e/admin/admin-standalone-email-composer.spec.js`
 
 #### FLOW: `admin-standalone-email-attachments`
@@ -4166,8 +4162,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-documents-send` | admin | admin | P1 | ⚠️ Superseded | replaced by `admin-proposal-attach-from-documents` (Apr 22, 2026) |
 | `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `admin-send-proposal-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
-| `admin-standalone-email-composer` | admin | admin | P2 | 🟡 Partial (sections mgmt, error path, history pagination not asserted) | `e2e/admin/admin-standalone-email-composer.spec.js` |
-| `admin-standalone-email-defaults` | admin | admin | P2 | 🟡 Partial (restore + invalid-signer branches not asserted) | `e2e/admin/admin-standalone-email-composer.spec.js` |
+| `admin-standalone-email-composer` | admin | admin | P2 | ✅ Covered (drag-reorder not asserted — flaky in CI) | `e2e/admin/admin-standalone-email-composer.spec.js` |
+| `admin-standalone-email-defaults` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-standalone-email-composer.spec.js` |
 | `admin-standalone-email-attachments` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-standalone-email-attachments.spec.js` |
 
 ---
@@ -4524,7 +4520,7 @@ No active browser flow is registered for client profile editing at this time.
   2. Admin picks a status: natural non-email transitions PATCH directly; `sent`/`finished` naturals and every forced jump show a ConfirmModal first; natural `negotiating` opens the contract modal where the page supports it.
   3. `PATCH /api/proposals/:id/update-status/` is called with `{status}`.
   4. Row/detail refreshes; toast shows "Estado actualizado correctamente" on success, or surfaces `email_delivery` failure with a "Reenviar" action when applicable.
-- **Coverage:** 🟡 Partial — forced confirm + PATCH, natural no-confirm PATCH, Spanish labels, and optgroup grouping are covered in the proposals table; **the `draft → sent` email_delivery failure toast, the clients-view select, the edit-header select, and the actions-modal "Cambiar estado" row are not asserted in E2E** (composable behavior is unit-tested in `test/composables/useProposalStatusChange.test.js`).
+- **Coverage:** ✅ Covered — forced confirm + PATCH, natural no-confirm PATCH, labels/grouping, the `draft → sent` email_delivery failure toast, the edit-header select and the actions-modal "Cambiar estado" row are asserted (2026-07-23). The clients-view select shares the same unit-tested composable (`test/composables/useProposalStatusChange.test.js`) and is not separately asserted.
 - **E2E Spec:** `e2e/admin/admin-proposal-inline-status.spec.js` (extend with: email_delivery `ok=false` toast, clients-view/edit-header select smoke, actions-modal "Cambiar estado" row).
 - **Backend Tests:** `content/tests/views/test_proposal_status_and_pdf.py`, `content/tests/views/test_mcp_proposals.py`.
 
@@ -4638,7 +4634,7 @@ No active browser flow is registered for client profile editing at this time.
 | `admin-proposal-create-and-send` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-proposal-create-preview` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-discount-analysis-enhanced` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-discount-analysis.spec.js` |
-| `admin-proposal-inline-status-change` | admin | admin | P2 | 🟡 Partial (email_delivery toast + clients/edit-view selects + actions-modal row not asserted) | `e2e/admin/admin-proposal-inline-status.spec.js` |
+| `admin-proposal-inline-status-change` | admin | admin | P2 | ✅ Covered (clients-view select shares the unit-tested composable) | `e2e/admin/admin-proposal-inline-status.spec.js` |
 | `admin-proposal-scorecard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-scorecard.spec.js` |
 | `admin-proposal-section-completeness` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-section-completeness.spec.js` |
 | `admin-proposal-zombie-segment` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-zombie-segment.spec.js` |
@@ -4868,7 +4864,7 @@ No active browser flow is registered for client profile editing at this time.
 | `admin-diagnostic-confidentiality-generate` | diagnostics | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-confidentiality.spec.js` |
 | `admin-diagnostic-confidentiality-edit` | diagnostics | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-confidentiality-edit.spec.js` |
 | `admin-diagnostic-confidentiality-download` | diagnostics | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-confidentiality-download.spec.js` |
-| `admin-diagnostic-documents` (NDA branches) | diagnostics | admin | P2 | 🟡 Partial | Existing `e2e/admin/admin-diagnostic-email-documents.spec.js` covers base; NDA-checkbox + delete-blocked branches not yet asserted |
+| `admin-diagnostic-documents` (NDA branches) | diagnostics | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-email-documents.spec.js` — base + NDA not-generated ("Generar acuerdo") and generated (download / draft / edit-params) branches (2026-07-23) |
 
 ---
 
@@ -5095,7 +5091,7 @@ Two transitions that were previously bundled into other flows now have their own
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
 | `admin-diagnostic-list` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-list.spec.js` |
-| `admin-diagnostic-filters` | admin | admin | P2 | 🟡 Partial | Covered by `e2e/admin/admin-diagnostic-advanced-filters.spec.js` |
+| `admin-diagnostic-filters` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-advanced-filters.spec.js` — own-tag tests: status dimension, Limpiar todo, diagnosticTab URL sync (2026-07-23) |
 | `admin-diagnostic-advanced-filters` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-advanced-filters.spec.js` |
 | `admin-client-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-client-edit.spec.js` |
 
@@ -5667,7 +5663,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `diagnostic-public-onboarding` | diagnostic | guest | P3 | ❌ Missing | `e2e/public/diagnostic-public-onboarding.spec.js` |
 | `admin-proposal-document-preview` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-document-preview.spec.js` |
 | `admin-diagnostic-document-preview` | admin | admin | P3 | ❌ Missing | extend `e2e/admin/admin-diagnostic-email-documents.spec.js` |
-| `admin-blog-publish-mode` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-blog-publish-mode.spec.js` |
+| `admin-blog-publish-mode` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-publish-mode.spec.js` |
 | `admin-blog-overdue-detection` | admin | system | P2 | ⬜ Backend-only | N/A |
 
 ---

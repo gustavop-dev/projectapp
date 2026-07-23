@@ -119,4 +119,23 @@ test.describe('Admin Clients Inactive Tab', () => {
     await expect(page.getByText('"Carlos López" marcado como inactivo.')).toBeVisible();
     expect(updates).toEqual([{ clientId: 101, body: { is_inactive: true } }]);
   });
+
+  test('play toggle from the Inactivos tab reactivates the client', {
+    tag: [...ADMIN_CLIENT_INACTIVE_TAB, '@role:admin'],
+  }, async ({ page }) => {
+    const updates = [];
+    await setupMock(page, { onUpdate: (clientId, body) => updates.push({ clientId, body }) });
+    await gotoClients(page);
+
+    const inactiveRequest = page.waitForRequest((req) => req.url().includes('inactive=true'));
+    await page.getByTestId('clients-tab-inactive').click();
+    await inactiveRequest;
+    await expect(page.getByText('Dora Dormida')).toBeVisible();
+
+    await page.getByTestId('client-toggle-inactive-104').click();
+
+    await expect(page.getByText('"Dora Dormida" reactivado.')).toBeVisible();
+    expect(updates).toEqual([{ clientId: 104, body: { is_inactive: false } }]);
+  });
 });
+

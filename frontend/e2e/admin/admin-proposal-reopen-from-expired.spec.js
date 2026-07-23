@@ -108,4 +108,42 @@ test.describe('Admin Proposal Reopen From Expired', () => {
     // expired → viewed once the future expires_at is applied.
     await expect(statusSelect).toHaveValue('viewed', { timeout: 10000 });
   });
+
+  test('General tab date change PATCHes /update/ and reopens the status', {
+    tag: [...ADMIN_PROPOSAL_REOPEN_FROM_EXPIRED, '@role:admin'],
+  }, async ({ page }) => {
+    let patchBody = null;
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockExpiredProposal) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/update/` && method === 'PATCH') {
+        patchBody = route.request().postDataJSON();
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...mockExpiredProposal, expires_at: futureDate, status: 'viewed' }),
+        };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`, { waitUntil: 'domcontentloaded' });
+
+    const dateInput = page.locator('input[type="datetime-local"]').first();
+    await expect(dateInput).toBeVisible({ timeout: 15000 });
+    await dateInput.fill(futureDate.slice(0, 16));
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes(`proposals/${PROPOSAL_ID}/update/`)),
+      page.getByRole('button', { name: 'Guardar Cambios' }).click(),
+    ]);
+
+    expect(patchBody.expires_at).toContain(futureDate.slice(0, 10));
+    // The response status rides back into the header select: no longer expired.
+    await expect(page.getByRole('combobox').first()).toHaveValue('viewed');
+  });
 });
+

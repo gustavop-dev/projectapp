@@ -80,4 +80,47 @@ test.describe('Admin Hour Packages List', () => {
 
     await expect(page.getByText('Sin paquetes para esta nacionalidad')).toBeVisible();
   });
+
+  test('paginates when the list exceeds one page', {
+    tag: [...ADMIN_HOUR_PACKAGES_LIST, '@role:admin'],
+  }, async ({ page }) => {
+    const many = Array.from({ length: 14 }, (_, i) => ({
+      id: 100 + i,
+      nationality: 'COL',
+      currency: 'COP',
+      name_es: `Paquete ${String(i + 1).padStart(2, '0')}`,
+      name_en: `Pack ${i + 1}`,
+      hours: 10 + i,
+      hourly_rate: '90000.00',
+      discount_percent: 0,
+      is_active: true,
+      order: i + 1,
+      updated_at: '2026-07-01T10:00:00Z',
+    }));
+    await setupMock(page, { col: many });
+    await page.goto('/panel/hour-packages', { waitUntil: 'domcontentloaded' });
+
+    const table = page.getByRole('table');
+    await expect(table.getByText('Paquete 01')).toBeVisible({ timeout: 20_000 });
+    // pageSize is 10 → the 11th package lives on page 2.
+    await expect(table.getByText('Paquete 11')).toBeHidden();
+
+    await page.getByRole('button', { name: 'Siguiente' }).click();
+
+    await expect(table.getByText('Paquete 11')).toBeVisible();
+    await expect(table.getByText('Paquete 01')).toBeHidden();
+  });
+
+  test('mobile viewport renders the card variant instead of the table', {
+    tag: [...ADMIN_HOUR_PACKAGES_LIST, '@role:admin'],
+  }, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await setupMock(page);
+    await page.goto('/panel/hour-packages', { waitUntil: 'domcontentloaded' });
+
+    // The table is hidden below the sm breakpoint; the card list takes over.
+    await expect(page.getByRole('table')).toBeHidden({ timeout: 20_000 });
+    await expect(page.getByText('Paquete Ágil').first()).toBeVisible();
+  });
 });
+

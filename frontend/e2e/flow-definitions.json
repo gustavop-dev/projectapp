@@ -1,5 +1,5 @@
 {
-  "version": "2.57.0",
+  "version": "2.58.0",
   "lastUpdated": "2026-07-23",
   "flows": {
     "layout-navbar-navigation": {
@@ -2592,10 +2592,8 @@
       ],
       "priority": "P2",
       "description": "Filter diagnostics using saved tabs with localStorage persistence and URL sync (?tab=<tabId>). Filter dimensions: statuses (multi-select), investmentMin/Max, createdAfter/Before. Tab bar supports add/rename/delete (max 12 tabs).",
-      "expectedSpecs": 0,
-      "knownGaps": [
-        "Covered by admin-diagnostic-advanced-filters.spec.js (4 tests: default view, filter toggle, tab creation, search)."
-      ]
+      "expectedSpecs": 1,
+      "knownGaps": "Own-tag tests added 2026-07-23 (round 6): status dimension filtering, Limpiar todo reset and diagnosticTab URL sync, inside admin-diagnostic-advanced-filters.spec.js."
     },
     "admin-diagnostic-advanced-filters": {
       "name": "Admin Diagnostic Advanced Filters",

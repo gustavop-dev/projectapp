@@ -79,4 +79,41 @@ test.describe('Admin Proposal Resend', () => {
     expect(resendCalled).toBe(true);
     await expect(page.getByText('Propuesta re-enviada al cliente')).toBeVisible({ timeout: 5000 });
   });
+
+  test('failed delivery surfaces the email_delivery detail instead of success', {
+    tag: [...ADMIN_PROPOSAL_RESEND, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockSentProposal) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/resend/` && method === 'POST') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            ...mockSentProposal,
+            email_delivery: { ok: false, reason: 'send_failed', detail: 'El servidor SMTP rechazó el correo.' },
+          }),
+        };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.getByTestId('proposal-actions-menu').click();
+    await page.getByTestId('proposal-action-resend').click();
+    await expect(page.getByRole('heading', { name: 'Re-enviar propuesta' })).toBeVisible({ timeout: 5000 });
+
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes(`proposals/${PROPOSAL_ID}/resend/`)),
+      page.getByTestId('confirm-modal-confirm').click(),
+    ]);
+
+    await expect(page.getByText('El servidor SMTP rechazó el correo.').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Propuesta re-enviada al cliente')).toBeHidden();
+  });
 });
