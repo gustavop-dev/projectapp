@@ -14,9 +14,10 @@ const mockProposals = [
   { id: 1, title: 'Proposal A', client_name: 'Client A', status: 'viewed', client_email: 'a@test.com', total_investment: '5000000', currency: 'COP', available_transitions: ['negotiating', 'rejected'] },
   { id: 2, title: 'Proposal B', client_name: 'Client B', status: 'sent', client_email: 'b@test.com', total_investment: '3000000', currency: 'COP' },
   { id: 3, title: 'Proposal C', client_name: 'Client C', status: 'accepted', client_email: 'c@test.com', total_investment: '8000000', currency: 'COP', available_transitions: ['finished'] },
+  { id: 4, title: 'Proposal D', client_name: 'Client D', status: 'draft', client_email: 'd@test.com', total_investment: '2000000', currency: 'COP', available_transitions: ['sent'] },
 ];
 
-function setupMock(page, { onStatusUpdate = null } = {}) {
+function setupMock(page, { onStatusUpdate = null, emailDelivery = null } = {}) {
   return mockApi(page, async ({ apiPath, route }) => {
     if (apiPath === 'auth/check/') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
@@ -38,7 +39,7 @@ function setupMock(page, { onStatusUpdate = null } = {}) {
       return {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ ...source, status: body.status, available_transitions: [] }),
+        body: JSON.stringify({ ...source, status: body.status, available_transitions: [], ...(emailDelivery ? { email_delivery: emailDelivery } : {}) }),
       };
     }
     return null;
@@ -125,4 +126,73 @@ test.describe('Admin Proposal Inline Status Change', () => {
     const naturalLabels = await statusSelect.locator('optgroup[label="Flujo normal"] option').allTextContents();
     expect(naturalLabels).toEqual(['Finalizada']);
   });
+
+  test('draft to sent surfaces the email_delivery failure toast', {
+    tag: [...ADMIN_PROPOSAL_INLINE_STATUS_CHANGE, '@role:admin'],
+  }, async ({ page }) => {
+    await setupMock(page, {
+      emailDelivery: { ok: false, reason: 'placeholder_email', detail: 'El cliente no tiene un email real configurado.' },
+    });
+    await gotoProposals(page);
+
+    const row = page.getByRole('row').filter({ hasText: 'Proposal D' });
+    await row.getByRole('combobox').selectOption('sent');
+    // draft → sent is natural but always confirms ("Enviar propuesta").
+    await expect(page.getByText('Enviar propuesta')).toBeVisible();
+    await Promise.all([
+      page.waitForResponse((resp) => resp.url().includes('update-status')),
+      page.getByTestId('confirm-modal-confirm').click(),
+    ]);
+
+    await expect(page.getByText('El cliente no tiene un email real configurado.').first()).toBeVisible();
+  });
+
+  test('actions modal exposes the Cambiar estado row with the same select', {
+    tag: [...ADMIN_PROPOSAL_INLINE_STATUS_CHANGE, '@role:admin'],
+  }, async ({ page }) => {
+    const updates = [];
+    await setupMock(page, { onStatusUpdate: (id, body) => updates.push({ id, body }) });
+    await gotoProposals(page);
+
+    // quality: allow-fragile-selector (table actions button has no testid, last SVG button in row is the actions trigger)
+    await page.getByRole('row').filter({ hasText: 'Proposal A' }).locator('button:has(svg)').last().click();
+    const modalRow = page.locator('div.fixed').filter({ hasText: 'Cambiar estado' });
+    await expect(modalRow.first()).toBeVisible();
+
+    await Promise.all([
+      page.waitForResponse((resp) => resp.url().includes('update-status')),
+      modalRow.getByRole('combobox').first().selectOption('rejected'),
+    ]);
+    expect(updates).toEqual([{ id: 1, body: { status: 'rejected' } }]);
+  });
+
+  test('edit page header select PATCHes the status inline', {
+    tag: [...ADMIN_PROPOSAL_INLINE_STATUS_CHANGE, '@role:admin'],
+  }, async ({ page }) => {
+    const updates = [];
+    await mockApi(page, async ({ apiPath, route }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === 'proposals/1/detail/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockProposals[0], sections: [], requirement_groups: [], expires_at: new Date(Date.now() + 30 * 86400000).toISOString() }) };
+      }
+      if (apiPath === 'proposals/1/update-status/') {
+        const body = JSON.parse(route.request().postData() || '{}');
+        updates.push(body);
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockProposals[0], status: body.status, available_transitions: [] }) };
+      }
+      return null;
+    });
+    await page.goto('/panel/proposals/1/edit', { waitUntil: 'domcontentloaded' });
+
+    const headerSelect = page.getByRole('combobox').first();
+    await expect(headerSelect).toBeVisible({ timeout: 15000 });
+    await Promise.all([
+      page.waitForResponse((resp) => resp.url().includes('update-status')),
+      headerSelect.selectOption('rejected'),
+    ]);
+    expect(updates).toEqual([{ status: 'rejected' }]);
+  });
 });
+

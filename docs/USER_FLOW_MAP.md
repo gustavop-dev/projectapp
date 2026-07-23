@@ -1313,9 +1313,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   4. On confirm → `POST /api/proposals/:id/resend/`.
   5. Backend resets timers and re-sends the email, returning `email_delivery`.
   6. Success toast "Propuesta re-enviada al cliente" or error toast with `email_delivery.detail || email_delivery.reason`.
-- **Coverage:** 🟡 Partial
+- **Coverage:** ✅ Covered (happy path + email_delivery failure detail surfaced instead of the success toast; asserted 2026-07-23)
 - **E2E Spec:** `e2e/admin/admin-proposal-resend.spec.js`
-- **Known gaps:** no `email_delivery.ok=false` handler; the failure-with-reason toast branch is untested (2026-07 audit).
 - **E2E Spec (suggested):** `e2e/admin/admin-proposal-resend.spec.js`
 
 ### FLOW: `admin-proposal-reopen-from-expired`
@@ -2685,7 +2684,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-client-drag-reassign` | admin | admin | P2 | 🟡 Partial (undo action not asserted) | `e2e/admin/admin-clients-drag-reassign.spec.js` |
 | `admin-proposal-send` | admin | admin | P1 | ✅ Covered (checklist modal, success vs failure toast, email_intro PATCH; PDF-attached metadata is pytest-covered) | `e2e/admin/admin-proposal-send.spec.js` |
 | `admin-proposal-multi-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-multi-send.spec.js` |
-| `admin-proposal-resend` | admin | admin | P2 | 🟡 Partial | `e2e/admin/admin-proposal-resend.spec.js` |
+| `admin-proposal-resend` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-resend.spec.js` |
 | `admin-proposal-prompt` | admin | admin | P3 | ❌ Missing | — |
 | `admin-proposal-dev-checklist` | admin | admin | P3 | ❌ Missing | — |
 | `admin-blog-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-list.spec.js` |
@@ -2740,7 +2739,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-calculator-new-modules` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-new-modules.spec.js` |
 | `proposal-calculator-biometric-module` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-biometric-module.spec.js` |
 | `proposal-calculator-behavior-tracking-module` | proposal | guest | P2 | ⚠️ Pending | _suggested:_ `e2e/proposal/proposal-calculator-behavior-tracking-module.spec.js` |
-| `admin-proposal-inline-status-change` | admin | admin | P2 | 🟡 Partial (email_delivery toast + clients/edit-view selects + actions-modal row not asserted) | `e2e/admin/admin-proposal-inline-status.spec.js` |
+| `admin-proposal-inline-status-change` | admin | admin | P2 | ✅ Covered (clients-view select shares the unit-tested composable) | `e2e/admin/admin-proposal-inline-status.spec.js` |
 | `admin-proposal-scorecard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-scorecard.spec.js` |
 | `admin-proposal-section-completeness` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-section-completeness.spec.js` |
 | `admin-daily-pipeline-digest` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests |
@@ -4524,7 +4523,7 @@ No active browser flow is registered for client profile editing at this time.
   2. Admin picks a status: natural non-email transitions PATCH directly; `sent`/`finished` naturals and every forced jump show a ConfirmModal first; natural `negotiating` opens the contract modal where the page supports it.
   3. `PATCH /api/proposals/:id/update-status/` is called with `{status}`.
   4. Row/detail refreshes; toast shows "Estado actualizado correctamente" on success, or surfaces `email_delivery` failure with a "Reenviar" action when applicable.
-- **Coverage:** 🟡 Partial — forced confirm + PATCH, natural no-confirm PATCH, Spanish labels, and optgroup grouping are covered in the proposals table; **the `draft → sent` email_delivery failure toast, the clients-view select, the edit-header select, and the actions-modal "Cambiar estado" row are not asserted in E2E** (composable behavior is unit-tested in `test/composables/useProposalStatusChange.test.js`).
+- **Coverage:** ✅ Covered — forced confirm + PATCH, natural no-confirm PATCH, labels/grouping, the `draft → sent` email_delivery failure toast, the edit-header select and the actions-modal "Cambiar estado" row are asserted (2026-07-23). The clients-view select shares the same unit-tested composable (`test/composables/useProposalStatusChange.test.js`) and is not separately asserted.
 - **E2E Spec:** `e2e/admin/admin-proposal-inline-status.spec.js` (extend with: email_delivery `ok=false` toast, clients-view/edit-header select smoke, actions-modal "Cambiar estado" row).
 - **Backend Tests:** `content/tests/views/test_proposal_status_and_pdf.py`, `content/tests/views/test_mcp_proposals.py`.
 
@@ -4638,7 +4637,7 @@ No active browser flow is registered for client profile editing at this time.
 | `admin-proposal-create-and-send` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-proposal-create-preview` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-discount-analysis-enhanced` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-discount-analysis.spec.js` |
-| `admin-proposal-inline-status-change` | admin | admin | P2 | 🟡 Partial (email_delivery toast + clients/edit-view selects + actions-modal row not asserted) | `e2e/admin/admin-proposal-inline-status.spec.js` |
+| `admin-proposal-inline-status-change` | admin | admin | P2 | ✅ Covered (clients-view select shares the unit-tested composable) | `e2e/admin/admin-proposal-inline-status.spec.js` |
 | `admin-proposal-scorecard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-scorecard.spec.js` |
 | `admin-proposal-section-completeness` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-section-completeness.spec.js` |
 | `admin-proposal-zombie-segment` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-zombie-segment.spec.js` |
