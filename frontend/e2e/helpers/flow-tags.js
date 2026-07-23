@@ -63,6 +63,7 @@ export const PROPOSAL_ENGAGEMENT_TRACKING = ['@flow:proposal-engagement-tracking
 
 // ── Admin (new) ──
 export const ADMIN_PROPOSAL_DUPLICATE = ['@flow:admin-proposal-duplicate', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_PROMPT = ['@flow:admin-proposal-prompt', '@module:admin', '@priority:P3'];
 export const ADMIN_PROPOSAL_COMMENT = ['@flow:admin-proposal-comment', '@module:admin', '@priority:P3'];
 export const ADMIN_PROPOSAL_ANALYTICS = ['@flow:admin-proposal-analytics', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_DASHBOARD = ['@flow:admin-proposal-dashboard', '@module:admin', '@priority:P2'];

@@ -2682,7 +2682,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-send` | admin | admin | P1 | ✅ Covered (checklist modal, success vs failure toast, email_intro PATCH; PDF-attached metadata is pytest-covered) | `e2e/admin/admin-proposal-send.spec.js` |
 | `admin-proposal-multi-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-multi-send.spec.js` |
 | `admin-proposal-resend` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-resend.spec.js` |
-| `admin-proposal-prompt` | admin | admin | P3 | ❌ Missing | — |
+| `admin-proposal-prompt` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-prompt.spec.js` |
 | `admin-proposal-dev-checklist` | admin | admin | P3 | ❌ Missing | — |
 | `admin-blog-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-list.spec.js` |
 | `admin-blog-calendar` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-calendar.spec.js` |
