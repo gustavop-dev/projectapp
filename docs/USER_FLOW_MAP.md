@@ -5663,7 +5663,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `diagnostic-public-onboarding` | diagnostic | guest | P3 | ❌ Missing | `e2e/public/diagnostic-public-onboarding.spec.js` |
 | `admin-proposal-document-preview` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-document-preview.spec.js` |
 | `admin-diagnostic-document-preview` | admin | admin | P3 | ❌ Missing | extend `e2e/admin/admin-diagnostic-email-documents.spec.js` |
-| `admin-blog-publish-mode` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-blog-publish-mode.spec.js` |
+| `admin-blog-publish-mode` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-publish-mode.spec.js` |
 | `admin-blog-overdue-detection` | admin | system | P2 | ⬜ Backend-only | N/A |
 
 ---
