@@ -1239,7 +1239,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   3. `PATCH /api/proposals/client-profiles/:id/update/` with `{is_inactive: true}` sets `deactivated_at`; success toast shows; row leaves the current tab on reload.
   4. Admin switches to the "Inactivos" tab (data-testid: `clients-tab-inactive`) — list reloads with `?inactive=true` and rows show the "Inactivo" badge.
   5. Clicking the play icon reactivates (`{is_inactive: false}` clears `deactivated_at`).
-- **Coverage:** 🟡 Partial — tab filtering and marking inactive are covered; **the reactivate branch (play icon from the Inactivos tab) is not asserted in E2E** (backend covered by `TestInactiveClients`).
+- **Coverage:** ✅ Covered — tab filtering, marking inactive and the reactivate branch (play icon from the Inactivos tab, PATCH `is_inactive:false` + toast) are asserted (2026-07-23).
 - **E2E Spec:** `e2e/admin/admin-clients-inactive-tab.spec.js`
 - **Backend Tests:** `content/tests/views/test_proposal_clients_views.py::TestInactiveClients`, `accounts/tests/test_proposal_client_service.py::TestUpdateClientProfile::test_toggling_is_inactive_does_not_cascade_snapshots`
 
@@ -1256,7 +1256,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   3. Hovering another client header (data-testid: `client-header-<id>`) highlights it; on an expanded client, the matching zone (data-testid: `client-proposals-zone-<id>` / `client-diagnostics-zone-<id>`) also highlights and accepts the drop. Dropping on the source client, or on a zone of the other item type, is a no-op.
   4. Drop → `PATCH /api/proposals/:id/update/` or `PATCH /api/diagnostics/:id/update/` with `{client_id}`.
   5. Both clients' expanded details refetch and overwrite in place, and the list refreshes silently (`fetchClients({silent:true})`, no skeleton) respecting the active tab; the toast offers "Deshacer".
-- **Coverage:** 🟡 Partial — proposal drop on header and on proposals zone, diagnostic drop on header and on diagnostics zone, same-client no-op, and type-mismatch zone no-op are covered; **the "Deshacer" (undo) action is not asserted in E2E**.
+- **Coverage:** ✅ Covered — proposal/diagnostic drops on headers and zones, same-client and type-mismatch no-ops, and the "Deshacer" toast action reassigning the item back to its source client (2026-07-23).
 - **E2E Spec:** `e2e/admin/admin-clients-drag-reassign.spec.js`
 - **Backend Tests:** `content/tests/views/test_diagnostic_views_gaps.py::test_update_diagnostic_with_client_id_reassigns_and_resyncs_snapshot`, `content/tests/views/test_proposal_clients_views.py::TestProposalCreateWithClientId::test_proposal_update_with_client_id_switches_profile_and_resyncs_snapshot`
 
@@ -2677,8 +2677,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-client-create-standalone` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-client-delete-orphan` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-client-delete-protected` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
-| `admin-client-inactive-tab` | admin | admin | P2 | 🟡 Partial (reactivate branch not asserted) | `e2e/admin/admin-clients-inactive-tab.spec.js` |
-| `admin-client-drag-reassign` | admin | admin | P2 | 🟡 Partial (undo action not asserted) | `e2e/admin/admin-clients-drag-reassign.spec.js` |
+| `admin-client-inactive-tab` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-clients-inactive-tab.spec.js` |
+| `admin-client-drag-reassign` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-clients-drag-reassign.spec.js` |
 | `admin-proposal-send` | admin | admin | P1 | ✅ Covered (checklist modal, success vs failure toast, email_intro PATCH; PDF-attached metadata is pytest-covered) | `e2e/admin/admin-proposal-send.spec.js` |
 | `admin-proposal-multi-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-multi-send.spec.js` |
 | `admin-proposal-resend` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-resend.spec.js` |

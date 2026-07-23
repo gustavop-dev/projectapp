@@ -245,4 +245,24 @@ test.describe('Admin Clients Drag Reassign', () => {
     await expect(page.getByText('movido a')).not.toBeVisible();
     expect(updates).toEqual([]);
   });
+
+  test('the Deshacer action on the toast reassigns the item back', {
+    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin'],
+  }, async ({ page }) => {
+    const updates = [];
+    await setupMock(page, { onProposalUpdate: (id, body) => updates.push({ id, body }) });
+    await gotoClientsAndExpandCarlos(page);
+
+    await dragRowTo(page, 'client-proposal-row-1', 'client-header-102');
+    await expect(page.getByText('"Propuesta Alpha" movido a Ana Martínez.')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Deshacer' }).click();
+
+    await expect(page.getByText('"Propuesta Alpha" movido a Carlos López.')).toBeVisible();
+    expect(updates).toEqual([
+      { id: 1, body: { client_id: 102 } },
+      { id: 1, body: { client_id: 101 } },
+    ]);
+  });
 });
+
