@@ -2189,7 +2189,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   4. Admin switches nationality tab → list refetches with that nationality and prices change currency.
   5. Empty tabs show a hint that proposal creation falls back to default packages.
   6. "Nuevo paquete" button links to the create page carrying the active nationality.
-- **Coverage:** 🟡 Partial (pagination and mobile card variant not asserted; view modes tracked in `admin-hour-packages-view-modes`; 2026-07-16 audit)
+- **Coverage:** ✅ Covered (list, nationality tabs, empty state, pagination across pages and the mobile card variant; asserted 2026-07-23. View modes tracked in `admin-hour-packages-view-modes`.)
 - **E2E Spec:** `e2e/admin/admin-hour-packages-list.spec.js`
 
 ### FLOW: `admin-hour-packages-view-modes`
