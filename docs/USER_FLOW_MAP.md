@@ -2793,7 +2793,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `platform-profile-edit` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-profile.spec.js` |
 | `platform-hosting-subscription` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-hosting-subscription.spec.js` |
 | `platform-hosting-card-setup` | platform | platform-client | P1 | ✅ Covered | `e2e/platform/platform-hosting-card-setup.spec.js` |
-| `platform-hosting-card-delete` | platform | platform-client | P2 | ❌ Missing | _none_ |
+| `platform-hosting-card-delete` | platform | platform-client | P2 | ✅ Covered | `e2e/platform/platform-hosting-card-delete.spec.js` |
 | `platform-change-requests` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-change-requests.spec.js` |
 | `platform-bug-reports` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-bug-reports.spec.js` |
 | `platform-deliverables` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-deliverables.spec.js` |
@@ -3294,8 +3294,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — No card] Endpoint returns 400 when there is no stored card to remove.
   - [Branch B — Wompi delete fails] The card is still cleared locally (best-effort); the client sees success.
-- **Coverage:** ❌ Missing (backend + store unit-tested)
-- **E2E Spec:** _none — needs `e2e/platform/platform-hosting-card-delete.spec.js`_
+- **Coverage:** ✅ Covered (confirm + cancel + error branches; backend + store also unit-tested)
+- **E2E Spec:** `e2e/platform/platform-hosting-card-delete.spec.js` (added 2026-07-23)
 
 ### 8.9 Notifications
 
@@ -3539,7 +3539,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `platform-kanban-board` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-kanban-board.spec.js` |
 | `platform-hosting-subscription` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-hosting-subscription.spec.js` |
 | `platform-hosting-card-setup` | platform | platform-client | P1 | ✅ Covered | `e2e/platform/platform-hosting-card-setup.spec.js` |
-| `platform-hosting-card-delete` | platform | platform-client | P2 | ❌ Missing | _none_ |
+| `platform-hosting-card-delete` | platform | platform-client | P2 | ✅ Covered | `e2e/platform/platform-hosting-card-delete.spec.js` |
 | `platform-dashboard` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-dashboard.spec.js` |
 | `platform-sidebar-navigation` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-sidebar.spec.js` |
 | `platform-project-list` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-project-list.spec.js` |
@@ -3829,8 +3829,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Routes:** `/panel/documents`
 - **API:** `POST /api/documents/<id>/duplicate/`
 - **Description:** Admin duplicates a document from the actions sheet; the copy appears in the list.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** — (spec not yet written; registered 2026-07-16 audit)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-hosting-card-delete.spec.js` (confirm + cancel + error; added 2026-07-23)
 
 #### FLOW: `admin-document-drag-organize`
 
