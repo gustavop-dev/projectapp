@@ -5963,8 +5963,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-hosting-cycles` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js` |
 | `admin-accounting-hosting-inline-edit` | admin | superuser | P3 | ❌ Missing | — |
 | `admin-accounting-settings-reset-tabs` | admin | superuser | P3 | ❌ Missing | — |
-| `admin-accounting-list-error-retry` | admin | superuser | P3 | ❌ Missing | — |
-| `admin-accounting-empty-state-cta` | admin | superuser | P4 | ❌ Missing | — |
+| `admin-accounting-list-error-retry` | admin | superuser | P3 | ✅ Covered | `e2e/admin/admin-accounting-error-retry.spec.js` |
+| `admin-accounting-empty-state-cta` | admin | superuser | P4 | ✅ Covered | `e2e/admin/admin-accounting-empty-state.spec.js` |
 
 ---
 
