@@ -1,4 +1,5 @@
 """Tests for diagnostic attachments + email composer endpoints."""
+import pytest
 
 import json
 
@@ -221,3 +222,39 @@ def test_email_history_filters_by_diagnostic_uuid(
     assert resp.status_code == 200
     assert resp.data['total'] == 1
     assert resp.data['results'][0]['subject'] == 'A'
+
+
+@pytest.mark.django_db
+class TestSendAttachmentsBranches:
+    def test_returns_error_without_client_email(self, diagnostic):
+        from content.services.diagnostic_documents_service import send_attachments_to_client
+
+        diagnostic.client.user.email = ''
+        diagnostic.client.user.save(update_fields=['email'])
+        ok, error = send_attachments_to_client(diagnostic, [])
+        assert ok is False
+        assert 'email del cliente' in error
+
+    def test_returns_error_without_attachable_files(self, diagnostic):
+        from content.services.diagnostic_documents_service import send_attachments_to_client
+
+        ok, error = send_attachments_to_client(diagnostic, [])
+        assert ok is False
+        assert 'adjuntar los documentos' in error
+
+    def test_send_failure_returns_user_facing_error(self, diagnostic):
+        from unittest.mock import patch
+
+        from django.core.mail import EmailMultiAlternatives
+
+        from content.services.diagnostic_documents_service import send_attachments_to_client
+
+        with patch.object(
+            EmailMultiAlternatives, 'send', side_effect=Exception('SMTP down'),
+        ):
+            ok, error = send_attachments_to_client(
+                diagnostic, [],
+                extra_files=[('acuerdo.pdf', b'%PDF-1.4', 'application/pdf')],
+            )
+        assert ok is False
+        assert 'Error al enviar' in error

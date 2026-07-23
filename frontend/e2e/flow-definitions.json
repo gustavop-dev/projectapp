@@ -1,6 +1,6 @@
 {
-  "version": "2.56.0",
-  "lastUpdated": "2026-07-22",
+  "version": "2.57.0",
+  "lastUpdated": "2026-07-23",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1628,10 +1628,8 @@
       ],
       "priority": "P2",
       "description": "From the project payments page, when a card is on file, the client sees an 'Eliminar tarjeta' button next to 'Cambiar tarjeta'. Clicking it opens a confirmation modal warning that automatic billing will be disabled. On confirm, DELETE /api/accounts/projects/:id/subscription/card/remove/ best-effort deletes the Wompi payment source and clears the stored card fields on the subscription, so has_payment_source becomes false and the 'Activa el cobro automático / Registrar tarjeta' state reappears. The button is hidden for admins and for archived subscriptions.",
-      "expectedSpecs": 0,
-      "knownGaps": [
-        "No dedicated Playwright spec yet. Backend behavior is unit-tested (accounts/tests/test_card_delete_and_team_email.py: TestCardDelete) and the store action deletePaymentMethod is unit-tested (frontend/test/stores/platform-payments.test.js)."
-      ]
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-23 (QA campaign round 5): confirm delete restoring the register state, cancel without API call, and the in-modal error branch over mocked API."
     },
     "platform-notifications": {
       "name": "Platform Notifications",

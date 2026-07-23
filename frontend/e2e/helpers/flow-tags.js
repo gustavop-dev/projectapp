@@ -172,6 +172,7 @@ export const PLATFORM_BUG_REPORTS = ['@flow:platform-bug-reports', '@module:plat
 export const PLATFORM_DELIVERABLES = ['@flow:platform-deliverables', '@module:platform', '@priority:P2'];
 export const PLATFORM_HOSTING_SUBSCRIPTION = ['@flow:platform-hosting-subscription', '@module:platform', '@priority:P1'];
 export const PLATFORM_HOSTING_CARD_SETUP = ['@flow:platform-hosting-card-setup', '@module:platform', '@priority:P1'];
+export const PLATFORM_HOSTING_CARD_DELETE = ['@flow:platform-hosting-card-delete', '@module:platform', '@priority:P2'];
 export const PLATFORM_NOTIFICATIONS = ['@flow:platform-notifications', '@module:platform', '@priority:P2'];
 export const PLATFORM_KANBAN_JSON_UPLOAD = ['@flow:platform-kanban-json-upload', '@module:platform', '@priority:P2'];
 export const PLATFORM_REQUIREMENT_CLIENT_REVIEW = ['@flow:platform-requirement-client-review', '@module:platform', '@priority:P2'];
