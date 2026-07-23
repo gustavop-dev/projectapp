@@ -201,3 +201,33 @@ class TestTeamPaymentEmailSend:
         assert '$900.000 COP' in msg.subject
         assert '$900.000 COP' in msg.body
         assert 'Mié, 1 abr 2026 — Mar, 30 jun 2026' in msg.body
+
+
+class TestTeamPaymentEmailBranches:
+    def test_skips_without_team_email_configured(self, payment, settings):
+        from accounts.services.payment_notifications import send_payment_status_team_email
+
+        settings.TEAM_PAYMENTS_EMAIL = ''
+        mail.outbox = []
+        ok = send_payment_status_team_email(payment.id, Payment.STATUS_PAID, 'webhook')
+        assert ok is False
+        assert len(mail.outbox) == 0
+
+    def test_returns_false_for_unknown_payment(self, team_email):
+        from accounts.services.payment_notifications import send_payment_status_team_email
+
+        mail.outbox = []
+        ok = send_payment_status_team_email(999999, Payment.STATUS_PAID, 'webhook')
+        assert ok is False
+        assert len(mail.outbox) == 0
+
+    def test_send_failure_is_swallowed(self, payment, team_email):
+        from django.core.mail import EmailMultiAlternatives
+
+        from accounts.services.payment_notifications import send_payment_status_team_email
+
+        with patch.object(
+            EmailMultiAlternatives, 'send', side_effect=Exception('SMTP down'),
+        ):
+            ok = send_payment_status_team_email(payment.id, Payment.STATUS_PAID, 'webhook')
+        assert ok is False

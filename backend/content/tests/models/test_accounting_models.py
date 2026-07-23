@@ -175,3 +175,53 @@ class TestSimpleReprs:
             debt_amount=Decimal('4150954.00'),
         )
         assert 'T.C 0064' in str(snapshot)
+
+
+@pytest.mark.django_db
+class TestAttributedTo:
+    def test_personal_ledger_record_is_attributed_to_its_owner(self, make_income):
+        income = make_income(
+            ledger='gustavo',
+            total_amount=Decimal('100.00'),
+            gustavo_amount=Decimal('100.00'),
+            carlos_amount=Decimal('0.00'),
+        )
+        assert income.partner_attribution == 'gustavo'
+
+    def test_company_record_fully_assigned_to_a_partner_is_a_draw(self, make_income):
+        income = make_income(
+            total_amount=Decimal('100.00'),
+            gustavo_amount=Decimal('0.00'),
+            carlos_amount=Decimal('100.00'),
+        )
+        assert income.partner_attribution == 'carlos'
+
+    def test_company_record_with_split_stays_company(self, make_income):
+        income = make_income(
+            total_amount=Decimal('100.00'),
+            gustavo_amount=Decimal('50.00'),
+            carlos_amount=Decimal('50.00'),
+        )
+        assert income.partner_attribution == 'company'
+
+    def test_clean_rejects_personal_record_not_fully_owned(self, make_income):
+        income = make_income(
+            ledger='gustavo',
+            total_amount=Decimal('100.00'),
+            gustavo_amount=Decimal('60.00'),
+            carlos_amount=Decimal('0.00'),
+        )
+        with pytest.raises(ValidationError) as exc_info:
+            income.full_clean()
+        assert '100%' in str(exc_info.value)
+
+    def test_clean_rejects_personal_record_with_other_partner_amount(self, make_income):
+        income = make_income(
+            ledger='carlos',
+            total_amount=Decimal('100.00'),
+            gustavo_amount=Decimal('10.00'),
+            carlos_amount=Decimal('90.00'),
+        )
+        with pytest.raises(ValidationError) as exc_info:
+            income.full_clean()
+        assert '100%' in str(exc_info.value)
