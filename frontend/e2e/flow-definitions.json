@@ -1,5 +1,5 @@
 {
-  "version": "2.58.0",
+  "version": "2.59.0",
   "lastUpdated": "2026-07-23",
   "flows": {
     "layout-navbar-navigation": {
@@ -2231,8 +2231,8 @@
       ],
       "priority": "P3",
       "description": "Admin duplicates a document from the actions sheet: 'Duplicar' sends POST /api/documents/:id/duplicate/ and the copy appears in the list.",
-      "expectedSpecs": 0,
-      "knownGaps": "No E2E spec yet. Registered 2026-07-16 audit."
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-23 (round 7): duplicate POST with the copy appearing in the refreshed list, plus the error-toast branch."
     },
     "admin-document-drag-organize": {
       "name": "Admin Document Drag Organize",

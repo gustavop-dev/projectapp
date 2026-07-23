@@ -2762,7 +2762,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
 | `admin-document-folder-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-manage.spec.js` |
 | `admin-document-tags-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-tags-manage.spec.js` |
-| `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
+| `admin-document-duplicate` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-document-duplicate.spec.js` |
 | `admin-document-drag-organize` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
 | `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
@@ -3938,7 +3938,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
 | `admin-document-folder-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-manage.spec.js` |
 | `admin-document-tags-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-tags-manage.spec.js` |
-| `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
+| `admin-document-duplicate` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-document-duplicate.spec.js` |
 | `admin-document-drag-organize` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
 | `admin-diagnostic-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-create.spec.js` |
