@@ -293,3 +293,140 @@ test.describe('Admin Standalone Email Composer', () => {
     await expect(page.getByPlaceholder('correo@ejemplo.com')).not.toBeVisible();
   });
 });
+
+test.describe('Admin Standalone Email Composer — gaps', () => {
+  test.setTimeout(60_000);
+
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-admin-token',
+      userAuth: { id: 8700, role: 'admin', is_staff: true },
+    });
+  });
+
+  test('adds a new content section from the add button', {
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+  }, async ({ page }) => {
+    await setupMocks(page);
+    await page.goto('/panel/emails');
+
+    const sections = page.getByPlaceholder('Escribe el contenido de esta sección...');
+    await expect(sections).toHaveCount(1);
+    await page.getByRole('button', { name: /Agregar sección/i }).click();
+    await expect(sections).toHaveCount(2);
+  });
+
+  test('removes an extra section from its delete button', {
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+  }, async ({ page }) => {
+    await setupMocks(page);
+    await page.goto('/panel/emails');
+
+    await page.getByRole('button', { name: /Agregar sección/i }).click();
+    const sections = page.getByPlaceholder('Escribe el contenido de esta sección...');
+    await expect(sections).toHaveCount(2);
+    await sections.first().fill('Se queda');
+    await sections.nth(1).fill('Se va');
+
+    // The per-section delete button (svg-only) renders in the block header
+    // when there is more than one section; it is the block's last button.
+    await page.locator('div.bg-surface-muted').filter({ hasText: 'Sección 2' })
+      .getByRole('button').last().click();
+    await expect(sections).toHaveCount(1);
+    await expect(sections.first()).toHaveValue('Se queda');
+  });
+
+  test('shows the send error and keeps the form when the POST fails', {
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'emails/defaults/' && method === 'GET') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDefaults) };
+      if (apiPath.startsWith('emails/history')) return { status: 200, contentType: 'application/json', body: JSON.stringify(mockHistoryEmpty) };
+      if (apiPath === 'emails/send/' && method === 'POST') return { status: 500, contentType: 'application/json', body: '{}' };
+      return null;
+    });
+    await page.goto('/panel/emails');
+
+    await page.getByPlaceholder('correo@ejemplo.com').fill('cliente@acme.com');
+    await page.getByPlaceholder('Asunto del correo').fill('Fallo');
+    await page.getByPlaceholder('Escribe el contenido de esta sección...').first().fill('Contenido');
+    await page.getByRole('button', { name: /enviar correo/i }).click();
+
+    await expect(page.getByRole('alert').getByText(/Error al enviar el correo/i)).toBeVisible();
+    await expect(page.getByPlaceholder('Asunto del correo')).toHaveValue('Fallo');
+  });
+
+  test('history "Cargar más" fetches and appends the next page', {
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+  }, async ({ page }) => {
+    const pageOne = { ...mockHistoryWithEntries, has_next: true, total: 3 };
+    const pageTwo = {
+      results: [{
+        id: 3, subject: 'Tercera entrada', recipient: 'extra@example.com',
+        status: 'sent', sent_at: '2026-03-01T08:00:00Z',
+        metadata: { greeting: 'Hola', sections: ['Página dos.'], footer: '', attachment_names: [] },
+      }],
+      total: 3, page: 2, has_next: false,
+    };
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'emails/defaults/' && method === 'GET') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDefaults) };
+      if (apiPath.startsWith('emails/history') && method === 'GET') {
+        const body = route.request().url().includes('page=2') ? pageTwo : pageOne;
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(body) };
+      }
+      return null;
+    });
+    await page.goto('/panel/emails?tab=history');
+
+    await expect(page.getByText('Bienvenido al proyecto')).toBeVisible();
+    await page.getByRole('button', { name: 'Cargar más' }).click();
+
+    await expect(page.getByText('Tercera entrada')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cargar más' })).toBeHidden();
+  });
+
+  test('restore defaults submits the original registry values', {
+    tag: [...ADMIN_STANDALONE_EMAIL_DEFAULTS, '@role:admin'],
+  }, async ({ page }) => {
+    let putBody = null;
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'emails/defaults/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockDefaults, is_customized: true, config: { ...mockDefaults.config, greeting: 'Hola custom' } }) };
+      }
+      if (apiPath === 'emails/defaults/' && method === 'PUT') {
+        putBody = route.request().postDataJSON();
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDefaults) };
+      }
+      if (apiPath.startsWith('emails/history')) return { status: 200, contentType: 'application/json', body: JSON.stringify(mockHistoryEmpty) };
+      return null;
+    });
+    await page.goto('/panel/emails?tab=defaults');
+
+    await page.getByRole('button', { name: /Restaurar valores originales/i }).click();
+
+    await expect.poll(() => putBody).not.toBeNull();
+    expect(putBody.greeting).toBe('Hola {client_name}');
+  });
+
+  test('invalid signer surfaces the backend 400 message', {
+    tag: [...ADMIN_STANDALONE_EMAIL_DEFAULTS, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'emails/defaults/' && method === 'GET') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDefaults) };
+      if (apiPath === 'emails/defaults/' && method === 'PUT') {
+        return { status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'El firmante seleccionado no es válido.' }) };
+      }
+      if (apiPath.startsWith('emails/history')) return { status: 200, contentType: 'application/json', body: JSON.stringify(mockHistoryEmpty) };
+      return null;
+    });
+    await page.goto('/panel/emails?tab=defaults');
+
+    await page.getByRole('button', { name: /Guardar valores/i }).click();
+
+    await expect(page.getByText('El firmante seleccionado no es válido.')).toBeVisible();
+  });
+});

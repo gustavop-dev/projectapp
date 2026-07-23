@@ -4115,7 +4115,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Empty recipient] Send button disabled when recipient email is empty.
   - [Branch B — File limits] Attachment validation enforces type and size limits.
-- **Coverage:** 🟡 Partial (section add/remove/drag-reorder, send-error path, history expand and "Cargar más" pagination not exercised; attachments split to `admin-standalone-email-attachments`; 2026-07-16 audit)
+- **Coverage:** ✅ Covered (section add/remove, send-error alert, history "Cargar más" pagination asserted 2026-07-23; drag-reorder intentionally not asserted — flaky in CI; attachments split to `admin-standalone-email-attachments`)
 - **E2E Spec:** `e2e/admin/admin-standalone-email-composer.spec.js`
 
 #### FLOW: `admin-standalone-email-defaults`
@@ -4134,7 +4134,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Restore] "Restaurar valores originales" submits the registry/settings defaults, clearing all overrides.
   - [Branch B — Invalid signer] Backend rejects unknown signer keys with 400 (`El firmante seleccionado no es válido.`).
-- **Coverage:** 🟡 Partial (Branch A restore-defaults and Branch B invalid-signer 400 not exercised; 2026-07-16 audit)
+- **Coverage:** ✅ Covered (restore-defaults PUT payload and invalid-signer 400 message asserted 2026-07-23)
 - **E2E Spec:** `e2e/admin/admin-standalone-email-composer.spec.js`
 
 #### FLOW: `admin-standalone-email-attachments`
@@ -4166,8 +4166,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-documents-send` | admin | admin | P1 | ⚠️ Superseded | replaced by `admin-proposal-attach-from-documents` (Apr 22, 2026) |
 | `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `admin-send-proposal-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
-| `admin-standalone-email-composer` | admin | admin | P2 | 🟡 Partial (sections mgmt, error path, history pagination not asserted) | `e2e/admin/admin-standalone-email-composer.spec.js` |
-| `admin-standalone-email-defaults` | admin | admin | P2 | 🟡 Partial (restore + invalid-signer branches not asserted) | `e2e/admin/admin-standalone-email-composer.spec.js` |
+| `admin-standalone-email-composer` | admin | admin | P2 | ✅ Covered (drag-reorder not asserted — flaky in CI) | `e2e/admin/admin-standalone-email-composer.spec.js` |
+| `admin-standalone-email-defaults` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-standalone-email-composer.spec.js` |
 | `admin-standalone-email-attachments` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-standalone-email-attachments.spec.js` |
 
 ---
