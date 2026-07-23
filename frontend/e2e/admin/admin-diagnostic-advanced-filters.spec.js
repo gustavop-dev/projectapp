@@ -7,7 +7,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_DIAGNOSTIC_ADVANCED_FILTERS } from '../helpers/flow-tags.js';
+import { ADMIN_DIAGNOSTIC_ADVANCED_FILTERS, ADMIN_DIAGNOSTIC_FILTERS } from '../helpers/flow-tags.js';
 
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
 
@@ -156,4 +156,53 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
     await expect(page.getByText('Beta Inc')).not.toBeVisible();
     await expect(page.getByText('Gamma LLC')).not.toBeVisible();
   });
+
+  test('status dimension filters the list and shows an active chip', {
+    tag: [...ADMIN_DIAGNOSTIC_FILTERS, '@role:admin'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    await page.goto('/panel/diagnostics', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Diagnósticos de aplicaciones' })).toBeVisible({ timeout: 20_000 });
+
+    await page.getByRole('button', { name: 'Filtros', exact: true }).click();
+    await page.getByRole('button', { name: 'Estado', exact: true }).click();
+    await page.getByRole('option', { name: 'Borrador' }).or(page.getByText('Borrador', { exact: true })).first().click();
+
+    await expect(page.getByText('Beta Inc')).toBeVisible();
+    await expect(page.getByText('Alpha Corp')).not.toBeVisible();
+  });
+
+  test('Limpiar todo resets the active dimensions', {
+    tag: [...ADMIN_DIAGNOSTIC_FILTERS, '@role:admin'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    await page.goto('/panel/diagnostics', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Diagnósticos de aplicaciones' })).toBeVisible({ timeout: 20_000 });
+
+    await page.getByRole('button', { name: 'Filtros', exact: true }).click();
+    await page.getByRole('button', { name: 'Estado', exact: true }).click();
+    await page.getByText('Borrador', { exact: true }).first().click();
+    await expect(page.getByText('Alpha Corp')).not.toBeVisible();
+
+    await page.getByRole('button', { name: 'Limpiar todo' }).click();
+
+    await expect(page.getByText('Alpha Corp')).toBeVisible();
+    await expect(page.getByText('Gamma LLC')).toBeVisible();
+  });
+
+  test('saved tab selection syncs diagnosticTab into the URL', {
+    tag: [...ADMIN_DIAGNOSTIC_FILTERS, '@role:admin'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    await page.goto('/panel/diagnostics', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Diagnósticos de aplicaciones' })).toBeVisible({ timeout: 20_000 });
+
+    await page.getByTestId('filter-tabs-create').click();
+    await page.getByTestId('filter-tabs-input').fill('En negociación');
+    await page.getByTestId('filter-tabs-confirm').click();
+    await expect(page.getByRole('button', { name: 'En negociación' })).toBeVisible({ timeout: 5_000 });
+
+    await expect(page).toHaveURL(/[?&]diagnosticTab=/);
+  });
 });
+

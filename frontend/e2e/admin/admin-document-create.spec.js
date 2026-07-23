@@ -70,4 +70,56 @@ test.describe('Admin Document Create', () => {
     await page.getByRole('button', { name: /Crear|Guardar/i }).click();
     await page.waitForURL(/\/panel\/documents/, { timeout: 15000 });
   });
+
+  test('upload mode loads the file content into the readonly preview', {
+    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      return null;
+    });
+    await page.goto('/panel/documents/create');
+
+    await page.getByRole('button', { name: /Cargar Archivo/i }).click();
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'contrato.md',
+      mimeType: 'text/markdown',
+      buffer: Buffer.from('# Contrato\n\nCuerpo del contrato.'),
+    });
+
+    await expect(page.getByText('contrato.md')).toBeVisible();
+    await expect(page.getByPlaceholder('El contenido del archivo aparecerá aquí...'))
+      .toHaveValue(/Cuerpo del contrato/);
+  });
+
+  test('upload mode submits the loaded markdown and redirects to the list', {
+    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin'],
+  }, async ({ page }) => {
+    let postBody = null;
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/create-from-markdown/' && method === 'POST') {
+        postBody = route.request().postDataJSON();
+        return { status: 201, contentType: 'application/json', body: JSON.stringify(createdDocument) };
+      }
+      if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify([createdDocument]) };
+      return null;
+    });
+    await page.goto('/panel/documents/create');
+
+    await page.getByLabel(/T[ií]tulo/i).fill('Doc desde archivo');
+    await page.getByRole('button', { name: /Cargar Archivo/i }).click();
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'anexo.md',
+      mimeType: 'text/markdown',
+      buffer: Buffer.from('# Anexo\n\nContenido del anexo.'),
+    });
+    await expect(page.getByText('anexo.md')).toBeVisible();
+
+    await page.getByRole('button', { name: /Crear|Guardar/i }).click();
+    await page.waitForURL(/\/panel\/documents/, { timeout: 15000 });
+    expect(postBody.markdown).toContain('Contenido del anexo.');
+  });
 });
+

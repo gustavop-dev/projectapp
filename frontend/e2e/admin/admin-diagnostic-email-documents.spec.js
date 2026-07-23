@@ -203,4 +203,40 @@ test.describe('Admin Diagnostic — Documentos tab', () => {
     await expect(page.getByRole('heading', { name: 'Documentos', exact: true })).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole('heading', { name: 'Documentos adjuntos' })).toBeVisible();
   });
+
+  test('NDA row offers "Generar acuerdo" when none has been generated', {
+    tag: [...ADMIN_DIAGNOSTIC_DOCUMENTS, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, baseHandler(buildDiagnostic({ attachments: [] })));
+    await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
+    await page.getByRole('tab', { name: 'Documentos' }).click();
+
+    await expect(page.getByText('Acuerdo de confidencialidad')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('PDF · No generado')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Generar acuerdo' })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Descargar PDF/ })).toBeHidden();
+  });
+
+  test('a generated NDA exposes download, draft and edit-params actions', {
+    tag: [...ADMIN_DIAGNOSTIC_DOCUMENTS, '@role:admin'],
+  }, async ({ page }) => {
+    const ndaAttachment = {
+      id: 77,
+      file_name: 'acuerdo-confidencialidad.pdf',
+      document_type: 'confidentiality_agreement',
+      is_generated: true,
+      created_at: '2026-05-02T10:00:00Z',
+      file_url: '/media/diagnostics/acuerdo.pdf',
+    };
+    await mockApi(page, baseHandler(buildDiagnostic({ attachments: [ndaAttachment] })));
+    await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
+    await page.getByRole('tab', { name: 'Documentos' }).click();
+
+    await expect(page.getByText('Acuerdo de confidencialidad')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('link', { name: /Descargar PDF/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Borrador' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Editar parámetros' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Generar acuerdo' })).toBeHidden();
+  });
 });
+

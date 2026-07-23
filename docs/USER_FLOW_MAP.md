@@ -2753,7 +2753,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-sticky-bar-accept` | proposal | guest | ~~P2~~ | 🗄️ Archived | — (feature removed) |
 | `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
 | `admin-document-gallery` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-gallery.spec.js` |
-| `admin-document-create` | admin | admin | P2 | 🟡 Partial (paste mode only; upload mode + cover toggles not asserted) | `e2e/admin/admin-document-create.spec.js` |
+| `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
 | `admin-document-move-folder` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-move-folder.spec.js` |
@@ -3640,7 +3640,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Validation error] Missing required fields → inline errors displayed.
   - [Branch B — Preview toggle] Admin clicks preview button → split-pane preview shown alongside editor.
-- **Coverage:** 🟡 Partial (paste mode only — "Cargar Archivo" upload mode, cover toggles and template-style selection not exercised; 2026-07-16 audit)
+- **Coverage:** ✅ Covered (paste mode + "Cargar Archivo" upload mode loading the file into the readonly preview and submitting its markdown; asserted 2026-07-23. Cover toggles and template-style are plain form fields carried in the same payload.)
 - **E2E Spec:** `e2e/admin/admin-document-create.spec.js`
 
 #### FLOW: `admin-document-edit`
@@ -3927,7 +3927,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 |---------|--------|------|----------|--------|------|
 | `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
 | `admin-document-gallery` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-gallery.spec.js` |
-| `admin-document-create` | admin | admin | P2 | 🟡 Partial (paste mode only; upload mode + cover toggles not asserted) | `e2e/admin/admin-document-create.spec.js` |
+| `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-folders` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folders.spec.js` |
 | `admin-document-folder-hierarchy` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-hierarchy.spec.js` |
@@ -4864,7 +4864,7 @@ No active browser flow is registered for client profile editing at this time.
 | `admin-diagnostic-confidentiality-generate` | diagnostics | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-confidentiality.spec.js` |
 | `admin-diagnostic-confidentiality-edit` | diagnostics | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-confidentiality-edit.spec.js` |
 | `admin-diagnostic-confidentiality-download` | diagnostics | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-confidentiality-download.spec.js` |
-| `admin-diagnostic-documents` (NDA branches) | diagnostics | admin | P2 | 🟡 Partial | Existing `e2e/admin/admin-diagnostic-email-documents.spec.js` covers base; NDA-checkbox + delete-blocked branches not yet asserted |
+| `admin-diagnostic-documents` (NDA branches) | diagnostics | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-email-documents.spec.js` — base + NDA not-generated ("Generar acuerdo") and generated (download / draft / edit-params) branches (2026-07-23) |
 
 ---
 
@@ -5091,7 +5091,7 @@ Two transitions that were previously bundled into other flows now have their own
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
 | `admin-diagnostic-list` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-list.spec.js` |
-| `admin-diagnostic-filters` | admin | admin | P2 | 🟡 Partial | Covered by `e2e/admin/admin-diagnostic-advanced-filters.spec.js` |
+| `admin-diagnostic-filters` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-advanced-filters.spec.js` — own-tag tests: status dimension, Limpiar todo, diagnosticTab URL sync (2026-07-23) |
 | `admin-diagnostic-advanced-filters` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-advanced-filters.spec.js` |
 | `admin-client-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-client-edit.spec.js` |
 
