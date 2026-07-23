@@ -43,6 +43,7 @@ def test_set_access_token_requires_a_configured_key(settings):
     token = LinkedInToken.load()
     with pytest.raises(ValueError, match='LINKEDIN_ENCRYPTION_KEY'):
         token.set_access_token('secreto')
+    assert token.access_token_encrypted == ''
 
 
 def test_set_refresh_token_rejects_an_invalid_key(settings):
@@ -50,6 +51,7 @@ def test_set_refresh_token_rejects_an_invalid_key(settings):
     token = LinkedInToken.load()
     with pytest.raises(ValueError, match='LINKEDIN_ENCRYPTION_KEY'):
         token.set_refresh_token('refresco')
+    assert token.refresh_token_encrypted == ''
 
 
 def test_get_access_token_none_without_key(fernet_key, settings):
@@ -87,6 +89,7 @@ def test_is_refresh_expired_true_without_date_and_false_in_the_future(fernet_key
     assert token.is_refresh_expired is False
 
 
+@freeze_time('2026-01-15 12:00:00')
 def test_clear_wipes_every_stored_field(fernet_key):
     token = LinkedInToken.load()
     token.set_access_token('a')
