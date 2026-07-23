@@ -1,5 +1,5 @@
 {
-  "version": "2.58.0",
+  "version": "2.60.0",
   "lastUpdated": "2026-07-23",
   "flows": {
     "layout-navbar-navigation": {
@@ -2231,8 +2231,8 @@
       ],
       "priority": "P3",
       "description": "Admin duplicates a document from the actions sheet: 'Duplicar' sends POST /api/documents/:id/duplicate/ and the copy appears in the list.",
-      "expectedSpecs": 0,
-      "knownGaps": "No E2E spec yet. Registered 2026-07-16 audit."
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-23 (round 7): duplicate POST with the copy appearing in the refreshed list, plus the error-toast branch."
     },
     "admin-document-drag-organize": {
       "name": "Admin Document Drag Organize",
@@ -3145,10 +3145,8 @@
       ],
       "priority": "P3",
       "description": "Admin copies, edits, downloads and resets the commercial and technical proposal-generation prompts from the Prompt tab (localStorage-persisted; parallel of admin-diagnostic-prompt).",
-      "expectedSpecs": 0,
-      "knownGaps": [
-        "No spec yet (2026-07 audit): copy/download/reset actions for both prompts are untested."
-      ]
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-07-23 (round 7): action bar, edit->save revealing the reset action, cancel discarding the draft."
     },
     "admin-proposal-dev-checklist": {
       "name": "Admin Proposal Dev Checklist Tab",

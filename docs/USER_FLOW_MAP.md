@@ -2682,7 +2682,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-send` | admin | admin | P1 | ✅ Covered (checklist modal, success vs failure toast, email_intro PATCH; PDF-attached metadata is pytest-covered) | `e2e/admin/admin-proposal-send.spec.js` |
 | `admin-proposal-multi-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-multi-send.spec.js` |
 | `admin-proposal-resend` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-resend.spec.js` |
-| `admin-proposal-prompt` | admin | admin | P3 | ❌ Missing | — |
+| `admin-proposal-prompt` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-prompt.spec.js` |
 | `admin-proposal-dev-checklist` | admin | admin | P3 | ❌ Missing | — |
 | `admin-blog-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-list.spec.js` |
 | `admin-blog-calendar` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-calendar.spec.js` |
@@ -2762,7 +2762,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
 | `admin-document-folder-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-manage.spec.js` |
 | `admin-document-tags-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-tags-manage.spec.js` |
-| `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
+| `admin-document-duplicate` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-document-duplicate.spec.js` |
 | `admin-document-drag-organize` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
 | `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
@@ -3938,7 +3938,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
 | `admin-document-folder-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-manage.spec.js` |
 | `admin-document-tags-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-tags-manage.spec.js` |
-| `admin-document-duplicate` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
+| `admin-document-duplicate` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-document-duplicate.spec.js` |
 | `admin-document-drag-organize` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
 | `admin-diagnostic-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-create.spec.js` |
@@ -5963,8 +5963,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-hosting-cycles` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js` |
 | `admin-accounting-hosting-inline-edit` | admin | superuser | P3 | ❌ Missing | — |
 | `admin-accounting-settings-reset-tabs` | admin | superuser | P3 | ❌ Missing | — |
-| `admin-accounting-list-error-retry` | admin | superuser | P3 | ❌ Missing | — |
-| `admin-accounting-empty-state-cta` | admin | superuser | P4 | ❌ Missing | — |
+| `admin-accounting-list-error-retry` | admin | superuser | P3 | ✅ Covered | `e2e/admin/admin-accounting-error-retry.spec.js` |
+| `admin-accounting-empty-state-cta` | admin | superuser | P4 | ✅ Covered | `e2e/admin/admin-accounting-empty-state.spec.js` |
 
 ---
 
