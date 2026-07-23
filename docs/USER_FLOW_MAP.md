@@ -1335,10 +1335,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch A — form path] PATCH `/update/`. Status reverts to `viewed` if `view_count > 0`, else `sent`.
   - [Branch B — JSON path] PUT `/update-from-json/`. Same reopen logic; `ProposalFromJSONSerializer` reads the bound proposal via `context={'proposal': proposal}` to skip the future-only check when `expires_at` is unchanged.
   - [Branch C — keep `expires_at` unchanged] Admin edits other fields on an expired proposal without touching the date. Save succeeds (no longer blocked by validator); `status` stays `expired`.
-- **Coverage:** 🟡 Partial
+- **Coverage:** ✅ Covered (JSON path + the General-tab PATCH `/update/` reopen with the header status reverting from expired; asserted 2026-07-23)
 - **E2E Spec:** `e2e/admin/admin-proposal-reopen-from-expired.spec.js`
-- **Known gaps:** the General-tab PATCH `/update/` reopen path is still unasserted; the JSON path now covers the PUT, toast and the expired→viewed status badge revert (2026-07).
-- **E2E Spec (suggested):** `e2e/admin/admin-proposal-reopen-from-expired.spec.js`
 
 ### FLOW: `admin-proposal-update-from-json`
 
@@ -1358,9 +1356,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch A — happy path] Valid JSON → 200 with refreshed proposal payload.
   - [Branch B — unknown section keys] Payload includes unrecognized keys → 200 + `warnings` listing them.
   - [Branch C — invalid `expires_at`] New value in the past → 400 from `validate_expires_at` (unless the value matches the proposal's stored `expires_at`).
-- **Coverage:** 🟡 Partial
+- **Coverage:** ✅ Covered (happy path, unknown keys riding the PUT with a 200+warnings response, and the keep-expires_at-on-expired branch; asserted 2026-07-23). Note: the API's `warnings` array is pytest-covered but not currently surfaced by the JSON tab UI.
 - **E2E Spec:** `e2e/admin/admin-proposal-update-from-json.spec.js`
-- **Known gaps:** happy path only; unknown-key warnings surfacing and the keep-expires_at-on-expired branch are unasserted (2026-07 audit).
 
 ### FLOW: `admin-proposal-prompt`
 

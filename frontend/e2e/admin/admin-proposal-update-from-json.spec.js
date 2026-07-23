@@ -98,4 +98,84 @@ test.describe('Admin Proposal Update From JSON', () => {
     expect(updateCalled).toBe(true);
     await expect(page.getByText('Propuesta actualizada desde JSON.')).toBeVisible({ timeout: 5000 });
   });
+
+  test('unknown section keys ride the PUT and the flow still succeeds', {
+    tag: [...ADMIN_PROPOSAL_UPDATE_FROM_JSON, '@role:admin'],
+  }, async ({ page }) => {
+    let putBody = null;
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDraftProposal) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/update-from-json/` && method === 'PUT') {
+        putBody = route.request().postDataJSON();
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...mockDraftProposal, warnings: ['Claves de sección ignoradas: seccionInventada.'] }),
+        };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.getByRole('tab', { name: 'JSON' }).click();
+    const textarea = page.getByTestId('proposal-import-json-textarea');
+    await textarea.fill(JSON.stringify({
+      general: { clientName: 'Updated Client' },
+      seccionInventada: { x: 1 },
+    }));
+    await textarea.dispatchEvent('input');
+    await page.getByRole('button', { name: 'Aplicar JSON' }).click();
+    await expect(page.getByRole('heading', { name: 'Aplicar JSON' })).toBeVisible();
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('update-from-json')),
+      page.getByTestId('confirm-modal-confirm').click(),
+    ]);
+
+    // The backend answers 200 + warnings (pytest-covered); the tab keeps the
+    // success toast — the warnings array is not currently surfaced in this UI.
+    await expect(page.getByText('Propuesta actualizada desde JSON.')).toBeVisible({ timeout: 5000 });
+    expect(putBody.sections?.seccionInventada ?? putBody.seccionInventada).toBeDefined();
+  });
+
+  test('re-importing over an expired proposal without touching expires_at succeeds', {
+    tag: [...ADMIN_PROPOSAL_UPDATE_FROM_JSON, '@role:admin'],
+  }, async ({ page }) => {
+    const pastDate = new Date(Date.now() - 10 * 86400000).toISOString();
+    const expired = { ...mockDraftProposal, status: 'expired', expires_at: pastDate };
+    let updateCalled = false;
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(expired) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/update-from-json/` && method === 'PUT') {
+        updateCalled = true;
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...expired, client_name: 'Updated Client' }) };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.getByRole('tab', { name: 'JSON' }).click();
+    const textarea = page.getByTestId('proposal-import-json-textarea');
+    await textarea.fill(JSON.stringify({ general: { clientName: 'Updated Client' } }));
+    await textarea.dispatchEvent('input');
+    await page.getByRole('button', { name: 'Aplicar JSON' }).click();
+    await expect(page.getByRole('heading', { name: 'Aplicar JSON' })).toBeVisible();
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('update-from-json')),
+      page.getByTestId('confirm-modal-confirm').click(),
+    ]);
+
+    expect(updateCalled).toBe(true);
+    await expect(page.getByText('Propuesta actualizada desde JSON.')).toBeVisible({ timeout: 5000 });
+  });
 });
+
