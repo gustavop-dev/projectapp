@@ -676,3 +676,17 @@ The gate has two semantic-rules modes and they are **not** a superset relationsh
 - **Any ERROR fails the gate** regardless of the overall score; warnings/info only lower the score (score ≥80 green, ≥60 yellow).
 - **File-scoped runs** use `--include-file <path>` — cheap way to gate only the specs touched in a batch.
 - Watch for `forbidden_token` in test **names** (not just bodies) and `no_assertions` on tests whose assertion lives inside a helper — use plain asserts in the test body.
+
+## 22. Test-audit (Round 8, 2026-07-24): `duplicate_coverage` is a naming signal, not a merge signal; the backend gate is `content`-only
+
+The first whole-corpus `test-audit` (report: `docs/audits/test-audit-2026-07-24.md`) produced two findings worth keeping. Note this corpus is literally the one behind the `test-audit` skill's example table (301 no-interaction E2E / 72 junk-only flows / 146 duplicate unit / 164 weak assertions — measured identically here).
+
+### `duplicate_coverage` findings are overwhelmingly false-positives-for-merge
+The `duplicate_coverage` detector matches on **test name + structural shape**, blind to the enclosing `describe` block. All 147 findings here were unmergeable:
+- **115 same-file** were the *same generic name* (`"handles error"`, `"sets error on failure"`, `"does nothing when el is null"`) reused across **different** `describe` blocks — i.e. different store actions / different composables (`useDiagnosticCommercialPrompt` vs `useDiagnosticTechnicalPrompt`). Merging deletes real coverage of a distinct subject. The correct fix is **rename to a single-purpose name** (prefix with the action), never merge.
+- **32 cross-file** were structurally identical tests for **different components** (`DiagnosticPricingForm` vs `DiagnosticRadiographyForm`, `PrivacyPolicy` vs `TermsAndConditions`) — parallel coverage, **keep**.
+
+Rule of thumb: before actioning any `duplicate_coverage` finding, resolve each test's enclosing `describe`; only two tests in the **same** describe with identical bodies are a true duplicate. Same name + different describe = rename; same shape + different SUT = keep (or `test.each` if truly one subject with a value table).
+
+### The quality gate's backend suite scans only the `content` app
+`.testquality.yml` sets `backend_app_name: content`, and CI (`test-quality-gate.yml`) runs the gate with no `--backend-app` override, so **`accounts`, `projectapp`, and top-level `backend/tests/` are ungated in CI**. The audit found 72 error-level findings in `accounts` (67 `misplaced_file` — test files outside the `models/services/views/...` folders `py_allowed_folders` expects) that CI has never seen. To audit the full backend, run the gate once per app: `python3 scripts/test_quality_gate.py --suite backend --backend-app accounts` (repeat for `projectapp`).
