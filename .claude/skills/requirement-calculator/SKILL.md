@@ -81,7 +81,7 @@ Escribe el resultado en un archivo temporal del scratchpad. **Markdown puro** �
 ```markdown
 # Estimate: <nombre corto del requerimiento> — <DDMMYYYY>
 
-> **ProjectApp · Calculadora de Requerimientos** — estimación por funcionalidad para implementación web, precios en COP sin IVA.
+> **ProjectApp · Calculadora de Requerimientos** — estimación por funcionalidad para implementación web, precios en COP más IVA.
 
 ## 1. Resumen
 <1–2 líneas reinterpretando el requerimiento en lenguaje de negocio.>
@@ -153,7 +153,7 @@ Cierra el turno con:
 - **Web por defecto**; PWA `+30%` y app nativa `+60%` solo si el requerimiento lo declara (excluyentes entre sí).
 - La tabla final **nunca** contiene filas `XL`: siempre se muestran descompuestas.
 - Cada fila **cita la señal literal** del catálogo que fijó su nivel.
-- El precio **siempre** es rango, en COP sin IVA; la aritmética se valida antes de escribir el documento.
+- El precio **siempre** es rango, en COP **más IVA** — se presenta con la marca `+ IVA`, nunca con IVA incluido; la aritmética se valida antes de escribir el documento.
 - La fecha del título viene de `date +%d%m%Y`, jamás asumida.
 - El documento se crea **siempre** (aunque haya condición de bloqueo, el análisis queda guardado con sus supuestos).
 - Máximo una ronda de preguntas; después, supuestos declarados con su impacto.

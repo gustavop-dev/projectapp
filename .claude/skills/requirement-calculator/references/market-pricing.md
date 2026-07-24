@@ -6,7 +6,7 @@
 
 - **Implementación web por defecto.** La calculadora está calibrada para web. La plataforma solo entra como modificador excluyente: web = sin recargo · PWA = `+30%` · app móvil nativa (iOS/Android + tiendas) = `+60%` (aplicado al final, `×1,6` sobre el resultado ya modificado).
 - **Desarrollo desde cero (greenfield)** salvo que la descripción declare que se extiende algo existente.
-- **Cliente PYME colombiano.** Precios en **COP, sin IVA**.
+- **Cliente PYME colombiano.** Precios en **COP, más IVA**: el valor cotizado **no incluye IVA** y se presenta siempre con la marca `+ IVA` (p. ej. `$7.000.000 + IVA`). IVA colombiano vigente: **19%**. Nunca cotizar un valor con IVA incluido sin declararlo, ni omitir la marca en las tablas de inversión.
 - **Tarifa de venta blended de referencia: ≈ $18.750 COP/hora** (≈ US$5,4 a TRM ≈ $3.443/USD). *Recalibrada el 02/07/2026:* la calibración anterior (≈ $75.000/h) producía precios justos para un mercado desarrollado (≈ EE.UU.), no para la realidad colombiana; por directriz del dueño los rangos se dividieron **÷4**.
 - **Killer: $20.000.000 COP** — una propuesta (la **suma** de los requerimientos, no un ítem suelto) por encima de ese techo tiende a ser rechazada. Obligatorio fragmentar.
 - **Granularidad:** se estima funcionalidad por funcionalidad; el proyecto es la suma.
@@ -90,7 +90,7 @@ Anticiparlas siempre: no para cobrarlas de una, sino para ordenarlas en fases/ve
 
 ## Supuestos que siempre se declaran
 
-Precios en COP sin IVA · implementación web (PWA/nativa solo si se declara, con su recargo) · desarrollo desde cero · tarifa blended ≈ $18.750/h (recalibración colombiana 02/07/2026) · no incluye infraestructura recurrente, licencias de terceros ni migración de datos legados salvo mención explícita · estimación sujeta a refinamiento tras análisis detallado.
+Precios en COP **más IVA** (presentados como `+ IVA`; IVA vigente 19%) · implementación web (PWA/nativa solo si se declara, con su recargo) · desarrollo desde cero · tarifa blended ≈ $18.750/h (recalibración colombiana 02/07/2026) · no incluye infraestructura recurrente, licencias de terceros ni migración de datos legados salvo mención explícita · estimación sujeta a refinamiento tras análisis detallado.
 
 ---
 

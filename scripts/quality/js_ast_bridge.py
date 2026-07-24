@@ -181,6 +181,27 @@ class JSASTBridge:
     def is_available(self) -> bool:
         """Check if the bridge is usable."""
         return self._check_node() and self._check_parser()
+
+    def unavailable_reason(self) -> str:
+        """
+        Explain which precondition is missing, for an actionable gate message.
+
+        A generic "bridge not available" used to be a WARNING, so an entire
+        frontend suite could go unanalyzed while the gate still reported PASSED.
+        It is now an ERROR, which makes naming the exact missing piece necessary:
+        the operator has to know whether to install Node or run npm install.
+        """
+        if not self._check_node():
+            return "Node.js not found in PATH nor under ~/.nvm/versions/node/*/bin/node"
+        if not self.parser_script.exists():
+            return f"AST parser script missing at {self.parser_script}"
+        babel = self.repo_root / "frontend" / "node_modules" / "@babel" / "parser"
+        if not babel.exists():
+            return (
+                "@babel/parser not installed - run `npm install` in frontend/ "
+                "(frontend/node_modules is absent on hosts that prune dev deps)"
+            )
+        return "unknown reason"
     
     def parse_file(self, file_path: Path, is_e2e: bool = False) -> JSFileResult:
         """
