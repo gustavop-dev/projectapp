@@ -59,6 +59,7 @@ test.describe('Admin Proposal Contract Download', () => {
   test('shows download and draft links when contract exists', {
     tag: [...ADMIN_PROPOSAL_CONTRACT_DOWNLOAD, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — asserts the download/draft anchors render with the correct backend href once a contract exists; the links open a new tab against the real, unmocked backend route, which page-scoped route interception cannot cover)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
@@ -84,6 +85,7 @@ test.describe('Admin Proposal Contract Download', () => {
   test('shows "No generado" when no contract exists', {
     tag: [...ADMIN_PROPOSAL_CONTRACT_DOWNLOAD, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — asserts the empty-contract placeholder text renders when proposal_documents has no contract entry; no action to drive, this is the absence-of-data state)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
@@ -101,6 +103,7 @@ test.describe('Admin Proposal Contract Download', () => {
   test('contract creation date shown when contract exists', {
     tag: [...ADMIN_PROPOSAL_CONTRACT_DOWNLOAD, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — asserts the "Generado el <date>" text is derived from contractDoc.created_at; catches the date formatter or field mapping silently breaking)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {

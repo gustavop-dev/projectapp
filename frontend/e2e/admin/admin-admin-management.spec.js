@@ -35,6 +35,7 @@ test.describe('Admin User Management', () => {
   test('renders admin list with name, email, status badges and action buttons', {
     tag: [...ADMIN_ADMIN_MANAGEMENT, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (renders the seeded admin list from a mocked GET; no action changes it)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath.startsWith('accounts/admins/')) return { status: 200, contentType: 'application/json', body: JSON.stringify(mockAdmins) };
@@ -52,6 +53,7 @@ test.describe('Admin User Management', () => {
   test('shows status filter tabs: Todos, Activos, Pendientes, Inactivos', {
     tag: [...ADMIN_ADMIN_MANAGEMENT, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (asserts the static filter-tab labels render; no action is required to reveal them)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath.startsWith('accounts/admins/')) return { status: 200, contentType: 'application/json', body: JSON.stringify(mockAdmins) };
@@ -76,12 +78,14 @@ test.describe('Admin User Management', () => {
     await page.waitForResponse(res => res.url().includes('/api/accounts/admins/'));
 
     await page.getByRole('button', { name: /Agregar Administrador/i }).click();
-    await expect(page.getByText('Se le enviará un email con credenciales temporales')).toBeVisible({ timeout: 5000 });
+    const dialog = page.getByRole('dialog', { name: 'Agregar Administrador' });
+    await expect(dialog).toContainText('Se le enviará un email con credenciales temporales', { timeout: 5000 });
   });
 
   test('shows empty state when no admins exist', {
     tag: [...ADMIN_ADMIN_MANAGEMENT, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (asserts the empty-list render for a zero-admin GET response; no action is involved)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath.startsWith('accounts/admins/')) return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };

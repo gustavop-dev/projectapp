@@ -27,7 +27,7 @@ test.describe('Admin Impersonate User', () => {
     await setAuthLocalStorage(page, { token: 'e2e-token', userAuth: { id: 8700, role: 'admin', is_staff: true } });
   });
 
-  test('"Login with this user" opens the impersonation tab and lands on the platform dashboard', {
+  test('clicking the impersonation button opens a new tab and lands authenticated on the platform dashboard', {
     tag: [...ADMIN_IMPERSONATE_USER, '@role:admin'],
   }, async ({ page, context }) => {
     // Routes registered on the context (not just `page`) so the popup tab

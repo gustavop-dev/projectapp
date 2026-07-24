@@ -76,6 +76,7 @@ test.describe('Admin Proposal Contract Edit', () => {
   test('edit button visible when contract exists', {
     tag: [...ADMIN_PROPOSAL_CONTRACT_EDIT, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — asserts the "Editar parámetros" button renders once contract_params exist; the click and resulting modal state are exercised by the next two tests)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
@@ -111,16 +112,19 @@ test.describe('Admin Proposal Contract Edit', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.getByRole('button', { name: /Editar parámetros/i }).click();
 
-    // Modal title should say "Editar"
-    await expect(page.getByText('Editar contrato de desarrollo')).toBeVisible();
+    // Modal title should say "Editar" (edit mode), not "Generar" (create mode)
+    await expect(page.getByRole('heading', { name: 'Editar contrato de desarrollo' })).toHaveText('Editar contrato de desarrollo');
     // Submit button should say "Actualizar"
     await expect(page.getByRole('button', { name: /Actualizar contrato/i })).toBeVisible();
+    // Existing contract_params values pre-fill the form (client_cedula has no
+    // fallback in resetForm(), so a blank value here would mean the modal
+    // ignored initialParams and only seeded company defaults)
+    await expect(page.getByPlaceholder('Ej: 1.234.567.890')).toHaveValue(mockProposal.contract_params.client_cedula);
   });
 
   test('submit calls contract update API', {
     tag: [...ADMIN_PROPOSAL_CONTRACT_EDIT, '@role:admin'],
   }, async ({ page }) => {
-    let updateCalled = false;
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
@@ -130,7 +134,6 @@ test.describe('Admin Proposal Contract Edit', () => {
         return { status: 200, contentType: 'application/json', body: JSON.stringify(companySettings) };
       }
       if (apiPath === `proposals/${PROPOSAL_ID}/contract/update/` && method === 'PATCH') {
-        updateCalled = true;
         return { status: 200, contentType: 'application/json', body: JSON.stringify({ id: 10, document_type: 'contract' }) };
       }
       return null;
@@ -140,12 +143,18 @@ test.describe('Admin Proposal Contract Edit', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.getByRole('button', { name: /Editar parámetros/i }).click();
 
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+
     await Promise.all([
       page.waitForResponse(r =>
         r.url().includes(`proposals/${PROPOSAL_ID}/contract/update/`) && r.status() === 200
       ),
       page.getByRole('button', { name: /Actualizar contrato/i }).click(),
     ]);
-    expect(updateCalled).toBe(true);
+
+    // Modal only closes once ContractParamsModal's client-side validation
+    // passes and it emits 'confirm'; a broken submit handler would leave it open.
+    await expect(dialog).not.toBeVisible();
   });
 });

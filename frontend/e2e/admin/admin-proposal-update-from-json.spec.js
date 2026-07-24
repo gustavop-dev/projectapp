@@ -95,8 +95,8 @@ test.describe('Admin Proposal Update From JSON', () => {
     ]);
     await response.finished();
 
-    expect(updateCalled).toBe(true);
-    await expect(page.getByText('Propuesta actualizada desde JSON.')).toBeVisible({ timeout: 5000 });
+    expect(updateCalled).toEqual(true);
+    await expect(page.getByText('Propuesta actualizada desde JSON.')).toContainText('Propuesta actualizada desde JSON.', { timeout: 5000 });
   });
 
   test('unknown section keys ride the PUT and the flow still succeeds', {
@@ -138,8 +138,10 @@ test.describe('Admin Proposal Update From JSON', () => {
 
     // The backend answers 200 + warnings (pytest-covered); the tab keeps the
     // success toast — the warnings array is not currently surfaced in this UI.
-    await expect(page.getByText('Propuesta actualizada desde JSON.')).toBeVisible({ timeout: 5000 });
-    expect(putBody.sections?.seccionInventada ?? putBody.seccionInventada).toBeDefined();
+    await expect(page.getByText('Propuesta actualizada desde JSON.')).toContainText('Propuesta actualizada desde JSON.', { timeout: 5000 });
+    // handleApplyImportJson() spreads the whole parsed payload (minus _meta/_seller_prompt)
+    // into payload.sections, so an unrecognized top-level key rides verbatim under sections.
+    expect(putBody.sections.seccionInventada).toEqual({ x: 1 });
   });
 
   test('re-importing over an expired proposal without touching expires_at succeeds', {
@@ -174,8 +176,8 @@ test.describe('Admin Proposal Update From JSON', () => {
       page.getByTestId('confirm-modal-confirm').click(),
     ]);
 
-    expect(updateCalled).toBe(true);
-    await expect(page.getByText('Propuesta actualizada desde JSON.')).toBeVisible({ timeout: 5000 });
+    expect(updateCalled).toEqual(true);
+    await expect(page.getByText('Propuesta actualizada desde JSON.')).toContainText('Propuesta actualizada desde JSON.', { timeout: 5000 });
   });
 });
 

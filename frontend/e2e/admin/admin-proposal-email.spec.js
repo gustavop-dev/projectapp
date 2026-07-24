@@ -61,6 +61,20 @@ function emailApiRoutes(proposal) {
   };
 }
 
+// Extends `emailApiRoutes` with the composer's POST .../{basePath}/send/ endpoint,
+// so tests can drive the actual send action instead of only checking tab/render state.
+function emailApiRoutesWithSend(proposal, sendBasePath, onSend) {
+  const base = emailApiRoutes(proposal);
+  return async (ctx) => {
+    const { apiPath, method } = ctx;
+    if (apiPath === `proposals/${PROPOSAL_ID}/${sendBasePath}/send/` && method === 'POST') {
+      onSend();
+      return { status: 200, contentType: 'application/json', body: JSON.stringify({ id: 501 }) };
+    }
+    return base(ctx);
+  };
+}
+
 test.describe('Admin Proposal Email — Branded', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, {
@@ -72,6 +86,7 @@ test.describe('Admin Proposal Email — Branded', () => {
   test('branded email tab is visible for negotiating proposal', {
     tag: [...ADMIN_SEND_BRANDED_EMAIL, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (checks the Correos tab's status-gated visibility for a negotiating proposal; the send action itself is driven in the dedicated send test below)
     test.setTimeout(60_000);
     const proposal = makeProposal({ status: 'negotiating' });
     await mockApi(page, emailApiRoutes(proposal));
@@ -96,10 +111,39 @@ test.describe('Admin Proposal Email — Branded', () => {
     await correosTab.click();
 
     await expect(page.locator('input[placeholder*="Asunto"]')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('Secciones del correo')).toBeVisible();
+    await expect(page.getByText('Secciones del correo')).toContainText('Secciones del correo');
     // Scope to the composer's add-section button: the proposal Sections tab also
     // renders an "＋ Agregar sección" control, so match the composer's exact name.
     await expect(page.getByRole('button', { name: 'Agregar sección', exact: true })).toBeVisible();
+  });
+
+  test('sending branded email calls POST branded-email/send/ and shows success toast', {
+    tag: [...ADMIN_SEND_BRANDED_EMAIL, '@role:admin'],
+  }, async ({ page }) => {
+    test.setTimeout(60_000);
+    const proposal = makeProposal({ status: 'negotiating' });
+    let sendCalled = false;
+    await mockApi(page, emailApiRoutesWithSend(proposal, 'branded-email', () => { sendCalled = true; }));
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+
+    const correosTab = page.getByRole('tab', { name: /Correos/i });
+    await expect(correosTab).toBeVisible({ timeout: 15000 });
+    await correosTab.click();
+
+    // Switch from the default "Seguimiento" (proposal) mode to "General" (branded).
+    await page.getByRole('button', { name: 'General' }).click();
+
+    await page.getByPlaceholder('Asunto del correo').fill('Aviso general de la propuesta');
+    await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Contenido del correo de marca.');
+
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes(`proposals/${PROPOSAL_ID}/branded-email/send/`)),
+      page.getByRole('button', { name: 'Enviar correo' }).click(),
+    ]);
+
+    expect(sendCalled).toEqual(true);
+    await expect(page.getByText('Correo enviado correctamente.')).toContainText('Correo enviado correctamente.', { timeout: 5000 });
   });
 });
 
@@ -114,6 +158,7 @@ test.describe('Admin Proposal Email — Proposal Mode', () => {
   test('proposal email tab is visible for sent proposal', {
     tag: [...ADMIN_SEND_PROPOSAL_EMAIL, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (checks the Correos tab's status-gated visibility for a sent proposal; the send action itself is driven in the dedicated send test below)
     test.setTimeout(60_000);
     const proposal = makeProposal({ status: 'sent' });
     await mockApi(page, emailApiRoutes(proposal));
@@ -127,6 +172,7 @@ test.describe('Admin Proposal Email — Proposal Mode', () => {
   test('proposal email tab is not visible for draft proposal', {
     tag: [...ADMIN_SEND_PROPOSAL_EMAIL, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (checks the Correos tab stays hidden for a draft proposal; permission/display check — there is no send action to drive before the tab exists)
     test.setTimeout(60_000);
     const proposal = makeProposal({ status: 'draft' });
     await mockApi(page, emailApiRoutes(proposal));
@@ -138,5 +184,32 @@ test.describe('Admin Proposal Email — Proposal Mode', () => {
 
     const correosTab = page.getByRole('tab', { name: /Correos/i });
     await expect(correosTab).toHaveCount(0);
+  });
+
+  test('sending proposal follow-up email calls POST proposal-email/send/ and shows success toast', {
+    tag: [...ADMIN_SEND_PROPOSAL_EMAIL, '@role:admin'],
+  }, async ({ page }) => {
+    test.setTimeout(60_000);
+    const proposal = makeProposal({ status: 'sent' });
+    let sendCalled = false;
+    await mockApi(page, emailApiRoutesWithSend(proposal, 'proposal-email', () => { sendCalled = true; }));
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+
+    const correosTab = page.getByRole('tab', { name: /Correos/i });
+    await expect(correosTab).toBeVisible({ timeout: 15000 });
+    await correosTab.click();
+
+    // Default mode is "Seguimiento" (proposal-email) — no mode switch needed.
+    await page.getByPlaceholder('Asunto del correo').fill('Seguimiento de tu propuesta');
+    await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Quedamos atentos a tu decisión.');
+
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes(`proposals/${PROPOSAL_ID}/proposal-email/send/`)),
+      page.getByRole('button', { name: 'Enviar correo' }).click(),
+    ]);
+
+    expect(sendCalled).toEqual(true);
+    await expect(page.getByText('Correo enviado correctamente.')).toContainText('Correo enviado correctamente.', { timeout: 5000 });
   });
 });

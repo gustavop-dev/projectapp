@@ -106,6 +106,7 @@ test.describe('Admin LinkedIn module', () => {
   test('shows disconnected state with connect button', {
     tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (renders the disconnected state from a mocked GET; no action toggles it)
     await setupPageMock(page, { linkedinStatus: disconnectedStatus, posts: [] });
     await gotoModule(page);
 
@@ -116,6 +117,7 @@ test.describe('Admin LinkedIn module', () => {
   test('shows connected profile with token expiry date', {
     tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (renders the connected profile from a mocked GET; no action changes it)
     await setupPageMock(page);
     await gotoModule(page);
 
@@ -126,6 +128,7 @@ test.describe('Admin LinkedIn module', () => {
   test('renders posts list with status chip', {
     tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (renders the seeded posts list from a mocked GET; no action changes it)
     await setupPageMock(page);
     await gotoModule(page);
 
@@ -145,6 +148,8 @@ test.describe('Admin LinkedIn module', () => {
 
     await expect(page.getByText('Post guardado.')).toBeVisible();
     await expect(page.getByText('Nuevo post desde E2E')).toBeVisible();
+    // Save closes the create modal — proves the save actually completed, not just that the click fired.
+    await expect(page.getByRole('heading', { name: 'Nuevo post' })).not.toBeVisible();
   });
 
   test('publish now with confirm flips post to published', {
@@ -160,6 +165,8 @@ test.describe('Admin LinkedIn module', () => {
     await expect(page.getByText('Publicado en LinkedIn correctamente.')).toBeVisible();
     // Scope to tbody: "Publicado" also matches the table column header
     await expect(page.locator('tbody').getByText('Publicado', { exact: true })).toBeVisible();
+    // The row's previous "Borrador" chip must be gone — proves the row actually flipped state.
+    await expect(page.locator('tbody').getByText('Borrador', { exact: true })).not.toBeVisible();
   });
 
   test('publish API failure surfaces inline error', {
@@ -178,5 +185,7 @@ test.describe('Admin LinkedIn module', () => {
     await page.getByRole('button', { name: 'Publicar', exact: true }).click();
 
     await expect(page.getByText(/LinkedIn API error/)).toBeVisible();
+    // The failure must not have flipped the row — it stays in "Borrador", never reaches "Publicado".
+    await expect(page.locator('tbody').getByText('Publicado', { exact: true })).not.toBeVisible();
   });
 });

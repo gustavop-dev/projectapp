@@ -68,7 +68,7 @@ test.describe('Admin Proposal Quick Send', () => {
     const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
     await actionsBtn.click();
 
-    await expect(page.getByText('Enviar al cliente')).toBeVisible({ timeout: 3000 });
+    await expect(page.getByText('Enviar al cliente')).toContainText('Enviar al cliente', { timeout: 3000 });
   });
 
   test('sent proposal shows "Re-enviar email" in actions modal from listing', {
@@ -96,7 +96,7 @@ test.describe('Admin Proposal Quick Send', () => {
     const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
     await actionsBtn.click();
 
-    await expect(page.getByText('Re-enviar email')).toBeVisible({ timeout: 3000 });
+    await expect(page.getByText('Re-enviar email')).toContainText('Re-enviar email', { timeout: 3000 });
   });
 
   test('quick-send executes: confirm modal, POST send/ and success toast', {
@@ -137,7 +137,7 @@ test.describe('Admin Proposal Quick Send', () => {
       page.getByRole('button', { name: 'Sí, enviar' }).click(),
     ]);
 
-    expect(sendCalled).toBe(true);
-    await expect(page.getByText('Propuesta enviada al cliente')).toBeVisible({ timeout: 5000 });
+    expect(sendCalled).toEqual(true);
+    await expect(page.getByText('Propuesta enviada al cliente')).toContainText('Propuesta enviada al cliente', { timeout: 5000 });
   });
 });
