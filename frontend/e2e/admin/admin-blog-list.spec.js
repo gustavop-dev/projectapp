@@ -32,6 +32,7 @@ test.describe('Admin Blog List', () => {
   test('renders blog post list with new fields', {
     tag: [...ADMIN_BLOG_LIST, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — blog list renders posts with their fields; the list's interaction is covered by the calendar-link test)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath.startsWith('blog/admin/')) return { status: 200, contentType: 'application/json', body: JSON.stringify(paginatedResponse) };
@@ -47,6 +48,7 @@ test.describe('Admin Blog List', () => {
   test('shows pagination controls when total pages exceeds 1', {
     tag: [...ADMIN_BLOG_LIST, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — pagination controls render when total pages exceed 1)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath.startsWith('blog/admin/')) return { status: 200, contentType: 'application/json', body: JSON.stringify(multiPageResponse) };
@@ -61,9 +63,10 @@ test.describe('Admin Blog List', () => {
     await expect(pagination.getByRole('button', { name: /Página siguiente/i })).toBeVisible();
   });
 
-  test('calendar link navigates to calendar page', {
+  test('the calendar link navigates to the blog calendar', {
     tag: [...ADMIN_BLOG_LIST, '@role:admin'],
   }, async ({ page }) => {
+    // Fails if the blog calendar link stops routing to the calendar page.
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath.startsWith('blog/admin/')) return { status: 200, contentType: 'application/json', body: JSON.stringify(paginatedResponse) };
@@ -71,10 +74,9 @@ test.describe('Admin Blog List', () => {
     });
     await page.goto('/panel/blog');
 
-    // Exact match: the Spanish sidebar has a 'Calendario del blog' link, so
-    // scope to the page's own 'Calendario' button.
-    const calendarLink = page.getByRole('link', { name: 'Calendario', exact: true });
-    await expect(calendarLink).toBeVisible();
-    await expect(calendarLink).toHaveAttribute('href', /\/panel\/blog\/calendar/);
+    // Exact match: the Spanish sidebar also has a 'Calendario del blog' link.
+    await page.getByRole('link', { name: 'Calendario', exact: true }).click();
+
+    await expect(page).toHaveURL(/\/panel\/blog\/calendar/);
   });
 });
