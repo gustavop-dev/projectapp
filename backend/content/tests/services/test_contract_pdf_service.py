@@ -319,6 +319,92 @@ class TestDefaultTemplateIntegrity:
         result = self.template.content_markdown.format(**params)
         assert '{' not in result or '{{' in self.template.content_markdown
 
+    def test_has_source_code_delivery_clause(self):
+        """Source code and repository access are withheld until the contract is fully paid."""
+        md = self.template.content_markdown
+        assert '## CLÁUSULA NOVENA — ENTREGA DEL CÓDIGO FUENTE Y ACCESO A REPOSITORIOS' in md
+        assert 'condicionados al pago íntegro del cien por ciento (100%)' in md
+        # Both payment structures the clause has to survive.
+        assert '### Parágrafo Segundo — Proyectos de Fase Única' in md
+        assert '### Parágrafo Tercero — Proyectos Ejecutados por Fases' in md
+
+    def test_has_scope_limitation_paragraph(self):
+        """Anything outside the documented scope is not a commitment to implement."""
+        md = self.template.content_markdown
+        assert '### Parágrafo Décimo — Alcance del Trabajo Contratado' in md
+        assert 'no constituye, por sí sola, un compromiso de implementación' in md
+        # It belongs to Cláusula Segunda, so it must precede Cláusula Tercera.
+        assert md.index('### Parágrafo Décimo — Alcance del Trabajo Contratado') < md.index(
+            '## CLÁUSULA TERCERA — PRECIO Y FORMA DE PAGO'
+        )
+
+    def test_delivery_obligations_point_at_the_payment_condition(self):
+        """The two provisions that used to promise unconditional delivery now defer to it."""
+        md = self.template.content_markdown
+        assert (
+            'demás entregables definidos en el Documento Propuesta Comercial, sujeta a '
+            'la condición establecida en la CLÁUSULA NOVENA.'
+        ) in md
+        assert (
+            'conforme a lo establecido en el Documento Propuesta Comercial, en los '
+            'términos y bajo la condición establecida en la CLÁUSULA NOVENA.'
+        ) in md
+
+    def test_ip_assignment_is_conditioned_on_full_payment(self):
+        """The old unconditional transfer wording must be gone, not merely supplemented."""
+        md = self.template.content_markdown
+        assert 'se transfieren de manera permanente desde el momento de la entrega' not in md
+        assert 'conforme a la condición suspensiva establecida en la CLÁUSULA NOVENA' in md
+        assert '### Parágrafo Tercero — Licencia Temporal de Uso' in md
+
+
+# ---------------------------------------------------------------------------
+# Clause numbering integrity — guards the v5 renumbering
+# ---------------------------------------------------------------------------
+
+_BASE_ORDINALS = [
+    'PRIMERA', 'SEGUNDA', 'TERCERA', 'CUARTA', 'QUINTA',
+    'SEXTA', 'SÉPTIMA', 'OCTAVA', 'NOVENA',
+]
+ORDINAL_TO_NUMBER = {name: i for i, name in enumerate(_BASE_ORDINALS, start=1)}
+ORDINAL_TO_NUMBER['DÉCIMA'] = 10
+ORDINAL_TO_NUMBER.update({
+    f'DÉCIMA {name}': 10 + i for i, name in enumerate(_BASE_ORDINALS, start=1)
+})
+ORDINAL_TO_NUMBER['VIGÉSIMA'] = 20
+
+_HEADING_RE = re.compile(r'^## CLÁUSULA ((?:DÉCIMA )?[A-ZÁÉÍÓÚ]+) —', re.MULTILINE)
+_REFERENCE_RE = re.compile(r'CLÁUSULA ((?:DÉCIMA )?[A-ZÁÉÍÓÚ]+)')
+
+
+class TestClauseNumbering:
+    """A half-applied renumbering only shows up when a human reads the PDF; catch it here."""
+
+    @pytest.fixture(autouse=True)
+    def _load_default_template(self):
+        from content.models import ContractTemplate
+        tpl = ContractTemplate.get_default()
+        assert tpl is not None, 'No default ContractTemplate in DB'
+        self.markdown = tpl.content_markdown
+
+    def test_clause_ordinals_run_from_one_without_gaps(self):
+        ordinals = _HEADING_RE.findall(self.markdown)
+        unknown = [o for o in ordinals if o not in ORDINAL_TO_NUMBER]
+        assert not unknown, f'Unrecognized clause ordinals: {unknown}'
+        numbers = [ORDINAL_TO_NUMBER[o] for o in ordinals]
+        assert numbers == list(range(1, len(numbers) + 1)), (
+            f'Clause headings are not sequential: {numbers}'
+        )
+
+    def test_every_cross_reference_points_at_an_existing_clause(self):
+        declared = {ORDINAL_TO_NUMBER[o] for o in _HEADING_RE.findall(self.markdown)}
+        referenced = set()
+        for ordinal in _REFERENCE_RE.findall(self.markdown):
+            assert ordinal in ORDINAL_TO_NUMBER, f'Malformed clause reference: {ordinal}'
+            referenced.add(ORDINAL_TO_NUMBER[ordinal])
+        dangling = referenced - declared
+        assert not dangling, f'References to clauses that do not exist: {sorted(dangling)}'
+
 
 # ---------------------------------------------------------------------------
 # _render_block — all block types
