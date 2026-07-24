@@ -112,6 +112,7 @@ test.describe('Admin Dashboard', () => {
   test('renders pulse, radar and module sections for a superuser payload', {
     tag: [...ADMIN_DASHBOARD, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (dashboard-composition smoke; the dashboard's interactions are covered by the stats-modal, quick-create and error-retry tests)
     await mockDashboard(page, summaryFixture);
     await page.goto('/panel', { waitUntil: 'domcontentloaded' });
     await page.waitForResponse((res) => res.url().includes('/api/panel/dashboard/'));
@@ -169,6 +170,7 @@ test.describe('Admin Dashboard', () => {
   test('renders the pipeline pulse tile with value and count', {
     tag: [...ADMIN_DASHBOARD_PIPELINE_VALUE, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display flow — the pipeline tile renders its value/count from the dashboard payload)
     await mockDashboard(page, summaryFixture);
     await page.goto('/panel', { waitUntil: 'domcontentloaded' });
     await page.waitForResponse((res) => res.url().includes('/api/panel/dashboard/'));
@@ -180,6 +182,7 @@ test.describe('Admin Dashboard', () => {
   test('pipeline tile shows a dash when pipeline_value is null', {
     tag: [...ADMIN_DASHBOARD_PIPELINE_VALUE, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display flow — asserts the null-value dash rendering via toHaveText)
     const noPipeline = {
       ...summaryFixture,
       proposals: { ...summaryFixture.proposals, pipeline_value: null, pipeline_count: 0 },
@@ -196,6 +199,7 @@ test.describe('Admin Dashboard', () => {
   test('hides the finance section for staff without finance data', {
     tag: [...ADMIN_DASHBOARD_FINANCE_GATE, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (permission-gated display — asserts the finance section is withheld for non-superuser staff, by absence)
     const staffAuth = {
       status: 200,
       contentType: 'application/json',
@@ -218,6 +222,7 @@ test.describe('Admin Dashboard', () => {
   test('attention radar lists items with severity copy and module links', {
     tag: [...ADMIN_DASHBOARD_ATTENTION_RADAR, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display flow — asserts the radar renders each attention item's copy and module link from the payload)
     await mockDashboard(page, summaryFixture);
     await page.goto('/panel', { waitUntil: 'domcontentloaded' });
     await page.waitForResponse((res) => res.url().includes('/api/panel/dashboard/'));
@@ -233,6 +238,7 @@ test.describe('Admin Dashboard', () => {
   test('shows the positive empty radar when nothing needs attention', {
     tag: [...ADMIN_DASHBOARD_ATTENTION_RADAR, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display flow — asserts the empty-radar state when the attention payload is empty)
     await mockDashboard(page, { ...summaryFixture, attention: [] });
     await page.goto('/panel', { waitUntil: 'domcontentloaded' });
     await page.waitForResponse((res) => res.url().includes('/api/panel/dashboard/'));
@@ -276,6 +282,7 @@ test.describe('Admin Dashboard', () => {
     await page.getByRole('button', { name: 'Crear' }).click();
 
     const menu = page.getByRole('menu');
+    await expect(menu.getByRole('menuitem')).toHaveCount(4);
     await expect(menu.getByRole('menuitem', { name: 'Propuesta' })).toHaveAttribute(
       'href', /\/panel\/proposals\/create/,
     );

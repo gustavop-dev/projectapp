@@ -75,6 +75,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
   test('edit page renders all navigation tabs', {
     tag: [...ADMIN_DIAGNOSTIC_SEND_INITIAL, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (edit-page render smoke; the send-initial action is covered by the send test below)
     const diagnostic = buildMockDiagnostic({ status: 'negotiating' });
     await mockApi(page, buildHandler(diagnostic));
 
@@ -145,6 +146,8 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await page.getByTestId('scorecard-send-btn').click();
 
     await expect(() => expect(sendCalled).toBe(true)).toPass({ timeout: 5000 });
+    // the scorecard modal dismisses once the send resolves
+    await expect(page.getByTestId('diagnostic-scorecard-modal')).not.toBeVisible();
   });
 
   test('"Marcar en análisis" button POSTs to mark-in-analysis/ when initial has been sent', {
@@ -230,5 +233,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await page.getByTestId('scorecard-send-btn').click();
 
     await expect(() => expect(called).toBe(true)).toPass({ timeout: 5000 });
+    // the scorecard modal dismisses once the send resolves
+    await expect(page.getByTestId('diagnostic-scorecard-modal')).not.toBeVisible();
   });
 });

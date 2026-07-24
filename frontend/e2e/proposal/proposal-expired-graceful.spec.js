@@ -75,6 +75,7 @@ test.describe('Expired Proposal Graceful Page', () => {
   test('renders expired message with client name', {
     tag: [...PROPOSAL_EXPIRED_GRACEFUL, '@role:guest'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display flow — the client views the expired proposal; there is no in-page action, the render is asserted by concrete content)
     await setup410Mock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
 
@@ -84,6 +85,7 @@ test.describe('Expired Proposal Graceful Page', () => {
   test('renders proposal title in description', {
     tag: [...PROPOSAL_EXPIRED_GRACEFUL, '@role:guest'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display flow — expired proposal view; render asserted by concrete content)
     await setup410Mock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
 
@@ -93,6 +95,7 @@ test.describe('Expired Proposal Graceful Page', () => {
   test('shows WhatsApp reactivation button', {
     tag: [...PROPOSAL_EXPIRED_GRACEFUL, '@role:guest'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display flow — expired proposal view; the reactivation CTA is asserted by its href)
     await setup410Mock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
 
@@ -107,6 +110,7 @@ test.describe('Expired Proposal Graceful Page', () => {
   test('shows email contact button', {
     tag: [...PROPOSAL_EXPIRED_GRACEFUL, '@role:guest'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display flow — expired proposal view; the email CTA is asserted by its mailto href)
     await setup410Mock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
 
@@ -120,6 +124,7 @@ test.describe('Expired Proposal Graceful Page', () => {
   test('does not render main proposal sections on 410', {
     tag: [...PROPOSAL_EXPIRED_GRACEFUL, '@role:guest'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display flow — asserts the 410 state suppresses the live proposal, by absence)
     await setup410Mock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
 
@@ -133,6 +138,7 @@ test.describe('Expired Proposal Graceful Page', () => {
   test('200 + expired_meta renders the full proposal under a persistent banner with the index toggle offset below it', {
     tag: [...PROPOSAL_EXPIRED_GRACEFUL, '@role:guest'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display flow — asserts the 200+expired_meta variant renders the full proposal under a persistent banner)
     await setup200ExpiredMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
 
@@ -140,6 +146,7 @@ test.describe('Expired Proposal Graceful Page', () => {
     await expect(page.getByText(/Esta propuesta expiró/)).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/Gustavo te envíe una versión actualizada/)).toBeVisible();
     // The full proposal renders (the 410 page would not mount .proposal-wrapper).
+    // quality: allow-fragile-selector (the proposal viewer root has no testid; its presence distinguishes the full render from the 410 fallback)
     await expect(page.locator('.proposal-wrapper')).toBeVisible();
 
     // The index toggle drops below the banner (bannerActive → top-28 sm:top-20, no overlap).
