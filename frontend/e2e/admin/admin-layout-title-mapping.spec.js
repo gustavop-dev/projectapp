@@ -29,6 +29,7 @@ test.describe('Admin Layout — Browser Tab Title', () => {
   test('shows "Dashboard" on /panel — exact match guard prevents prefix leakage', {
     tag: [...ADMIN_LAYOUT_TITLE_MAPPING, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (asserts the title-mapping rule for this route; no action changes the mapping)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       return null;
@@ -40,6 +41,7 @@ test.describe('Admin Layout — Browser Tab Title', () => {
   test('shows "Propuestas" on /panel/proposals', {
     tag: [...ADMIN_LAYOUT_TITLE_MAPPING, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (asserts the title-mapping rule for this route; no action changes the mapping)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       return null;
@@ -51,6 +53,7 @@ test.describe('Admin Layout — Browser Tab Title', () => {
   test('shows "Nueva prop." on /panel/proposals/create — more-specific route beats /panel/proposals prefix', {
     tag: [...ADMIN_LAYOUT_TITLE_MAPPING, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (asserts the title-mapping rule for this route; no action changes the mapping)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       return null;
@@ -62,6 +65,7 @@ test.describe('Admin Layout — Browser Tab Title', () => {
   test('shows "Edit. propuesta" on /panel/proposals/:id/edit — dynamic regex route', {
     tag: [...ADMIN_LAYOUT_TITLE_MAPPING, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (asserts the title-mapping rule for this route; no action changes the mapping)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       return null;
@@ -73,6 +77,7 @@ test.describe('Admin Layout — Browser Tab Title', () => {
   test('shows "Calendario" on /panel/blog/calendar — nested route beats /panel/blog prefix', {
     tag: [...ADMIN_LAYOUT_TITLE_MAPPING, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (asserts the title-mapping rule for this route; no action changes the mapping)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       return null;

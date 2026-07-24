@@ -45,6 +45,7 @@ test.describe('Admin Diagnostic Create', () => {
   test('create page renders client search input and language select', {
     tag: [...ADMIN_DIAGNOSTIC_CREATE, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (form-render smoke; the create interaction is covered by the enable-after-select and submit-redirect tests below)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authOk;
       return null;
@@ -56,17 +57,26 @@ test.describe('Admin Diagnostic Create', () => {
     await expect(page.locator('select')).toBeVisible();
   });
 
-  test('submit button is disabled until a client is selected', {
+  test('the submit button enables after a client is selected', {
     tag: [...ADMIN_DIAGNOSTIC_CREATE, '@role:admin'],
   }, async ({ page }) => {
+    // Fails if selecting a client stops enabling the "Crear diagnóstico" button.
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authOk;
+      if (apiPath.includes('client-profiles/search')) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([mockClientResult]) };
+      }
       return null;
     });
 
     await page.goto('/panel/diagnostics/create');
-    await expect(page.getByRole('heading', { name: /nuevo diagnóstico/i })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('button', { name: /crear diagnóstico/i })).toBeDisabled();
+    const submitBtn = page.getByRole('button', { name: /crear diagnóstico/i });
+    await expect(submitBtn).toBeDisabled();
+
+    await page.getByPlaceholder(/buscar/i).fill('Acme');
+    await page.getByText('Acme Corp').first().click();
+
+    await expect(submitBtn).not.toBeDisabled();
   });
 
   test('selecting a client from search results enables submit and redirects to edit', {
@@ -104,6 +114,6 @@ test.describe('Admin Diagnostic Create', () => {
     await submitBtn.click();
 
     await expect(() => expect(createCalled).toBe(true)).toPass({ timeout: 5000 });
-    await page.waitForURL(/\/panel\/diagnostics\/42\/edit/, { timeout: 15000 });
+    await expect(page).toHaveURL(/\/panel\/diagnostics\/42\/edit/, { timeout: 15000 });
   });
 });

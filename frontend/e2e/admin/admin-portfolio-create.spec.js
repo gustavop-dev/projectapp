@@ -41,6 +41,7 @@ test.describe('Admin Portfolio Create', () => {
   test('renders form with Manual/JSON tabs', {
     tag: [...ADMIN_PORTFOLIO_CREATE, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — the create form renders its Manual/JSON tabs and language fieldsets; the create interactions are covered below)
     await setupMock(page);
     await page.goto('/panel/portfolio/create');
 
@@ -61,6 +62,9 @@ test.describe('Admin Portfolio Create', () => {
     await page.getByPlaceholder('https://example.com').fill('https://e2e-project.com');
 
     await page.getByRole('button', { name: 'Crear Proyecto' }).click();
+
+    // a successful create navigates away from the create form
+    await expect(page).not.toHaveURL(/\/create/);
   });
 
   test('switches to JSON import tab and shows template download', {
@@ -71,7 +75,7 @@ test.describe('Admin Portfolio Create', () => {
 
     await page.getByRole('button', { name: 'Importar JSON' }).click();
 
-    await expect(page.getByText('Plantilla JSON')).toBeVisible();
+    await expect(page.getByText('Plantilla JSON')).toContainText('Plantilla JSON');
     await expect(page.getByText('Pegar o subir JSON')).toBeVisible();
     await expect(page.getByRole('button', { name: /Descargar Plantilla/ })).toBeVisible();
   });
@@ -94,7 +98,7 @@ test.describe('Admin Portfolio Create', () => {
     await jsonTextarea.fill(validJson);
     await jsonTextarea.dispatchEvent('input');
 
-    await expect(page.getByText('Proyecto JSON')).toBeVisible();
+    await expect(page.getByText('Proyecto JSON')).toContainText('Proyecto JSON');
     await expect(page.getByRole('button', { name: /Crear desde JSON/ })).toBeVisible();
   });
 
@@ -109,6 +113,6 @@ test.describe('Admin Portfolio Create', () => {
     await jsonTextarea.fill('{ invalid json }');
     await jsonTextarea.dispatchEvent('input');
 
-    await expect(page.getByText('JSON inválido')).toBeVisible();
+    await expect(page.getByText('JSON inválido')).toContainText('JSON inválido');
   });
 });

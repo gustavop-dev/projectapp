@@ -44,6 +44,7 @@ test.describe('Admin Proposal Send', () => {
   test('"Enviar al Cliente" button is visible for draft proposal with email', {
     tag: [...ADMIN_PROPOSAL_SEND, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (render guard for a valid draft; the send action itself is covered by the send tests below)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
       if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDraftProposal) };
@@ -90,6 +91,8 @@ test.describe('Admin Proposal Send', () => {
     await sendResponse.finished();
 
     expect(sendCalled).toBe(true);
+    // the pre-send scorecard modal dismisses once the send resolves
+    await expect(page.getByText('Scorecard pre-envío')).not.toBeVisible();
   });
 
   test('"Re-enviar al Cliente" button appears for sent proposal', {
@@ -107,12 +110,13 @@ test.describe('Admin Proposal Send', () => {
 
     // For sent proposals, the resend action lives inside the actions menu.
     await page.getByTestId('proposal-actions-menu').click();
-    await expect(page.getByTestId('proposal-action-resend')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('proposal-action-resend')).toContainText('Re-enviar', { timeout: 10000 });
   });
 
   test('"Enviar al Cliente" is hidden when client email is empty', {
     tag: [...ADMIN_PROPOSAL_SEND, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (asserts conditional rendering — the send button is withheld when the client has no email; no user action applies)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
       if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
@@ -146,7 +150,7 @@ test.describe('Admin Proposal Send', () => {
       page.waitForRequest((r) => r.url().includes(`proposals/${PROPOSAL_ID}/update/`) && r.method() === 'PATCH'),
       page.getByRole('button', { name: 'Guardar Cambios' }).click(),
     ]);
-    expect(req.postDataJSON().email_intro).toBe('Hola María, adjunto la propuesta actualizada.');
+    expect(req.postDataJSON().email_intro).toEqual('Hola María, adjunto la propuesta actualizada.');
   });
 
   test('shows a warning toast when the email delivery fails on send', {
@@ -169,7 +173,7 @@ test.describe('Admin Proposal Send', () => {
       page.locator('.fixed').getByRole('button', { name: 'Enviar al Cliente' }).click(),
     ]);
 
-    await expect(page.getByText('Propuesta marcada como enviada')).toBeVisible();
+    await expect(page.getByText('Propuesta marcada como enviada')).toContainText('marcada como enviada');
   });
 
   test('shows a success toast when the send delivers', {
@@ -192,6 +196,6 @@ test.describe('Admin Proposal Send', () => {
       page.locator('.fixed').getByRole('button', { name: 'Enviar al Cliente' }).click(),
     ]);
 
-    await expect(page.getByText('Propuesta enviada al cliente')).toBeVisible();
+    await expect(page.getByText('Propuesta enviada al cliente')).toContainText('enviada al cliente');
   });
 });

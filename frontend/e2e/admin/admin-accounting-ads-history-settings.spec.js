@@ -155,6 +155,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
   test('ads list shows the accumulated column', {
     tag: [...ADMIN_ACCOUNTING_ADS, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — ads list renders rows with the accumulated column; the create interaction is covered below)
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/ads', { waitUntil: 'domcontentloaded' });
 
@@ -181,11 +182,13 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     await expect(
       page.getByRole('heading', { name: 'Nuevo gasto en Ads' }),
     ).toBeVisible();
+    // quality: allow-fragile-selector (the ads modal's inputs have no testids; positional/attribute select is intentional)
     await page.locator('form input[type="date"]').fill('2026-07-01');
+    // quality: allow-fragile-selector (numeric input has no testid; positional select is intentional)
     await page.locator('form input[inputmode="numeric"]').first().fill('120000');
     await page.getByTestId('ad-spend-form-submit').click();
 
-    await expect(page.getByText('Gasto en Ads creado')).toBeVisible();
+    await expect(page.getByText('Gasto en Ads creado')).toContainText('Gasto en Ads creado');
     const create = calls.find((call) => call.method === 'POST');
     expect(create.body.spend_date).toBe('2026-07-01');
   });
@@ -211,6 +214,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
   test('history entity filter refires the fetch with entity_type', {
     tag: [...ADMIN_ACCOUNTING_HISTORY, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-render-only (contract test — asserts the entity filter refires the fetch with entity_type=expense; the mock returns a fixed dataset so there is no distinct rendered result to assert)
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
     await page.goto('/panel/accounting/history', { waitUntil: 'domcontentloaded' });
@@ -226,6 +230,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
   test('history shows the server-side pagination summary', {
     tag: [...ADMIN_ACCOUNTING_HISTORY, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — history renders the server-side pagination summary)
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/history', { waitUntil: 'domcontentloaded' });
 
@@ -292,6 +297,8 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     await page.getByTestId('settings-recipient-input-0').fill('no-es-un-email');
     await page.getByTestId('settings-save-button').click();
 
+    // the invalid email is rejected client-side: the value stays put and no PATCH fires
+    await expect(page.getByTestId('settings-recipient-input-0')).toHaveValue('no-es-un-email');
     expect(calls.some((call) => call.method === 'PATCH')).toBe(false);
   });
 });

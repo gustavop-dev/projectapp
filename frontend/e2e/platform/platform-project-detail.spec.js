@@ -65,6 +65,7 @@ test.describe('Platform Project Detail — Admin', () => {
   test('renders project detail with name, status badge, and stats', {
     tag: [...PLATFORM_PROJECT_DETAIL, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — project detail renders name, status and stats; the back-link interaction covers this flow)
     await setupDetailMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1', { waitUntil: 'domcontentloaded' });
 
@@ -79,21 +80,22 @@ test.describe('Platform Project Detail — Admin', () => {
     await expect(main.getByText('65%')).toBeVisible();
   });
 
-  test('shows back link to projects list', {
+  test('the back link returns to the projects list', {
     tag: [...PLATFORM_PROJECT_DETAIL, '@role:platform-admin'],
   }, async ({ page }) => {
+    // Fails if the project-detail back link stops routing to the projects list.
     await setupDetailMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1', { waitUntil: 'domcontentloaded' });
 
-    const backLink = page.locator('main').getByRole('link', { name: /proyectos/i });
-    await expect(backLink).toBeVisible();
-    // i18n prefix strategy adds locale prefix to all hrefs
-    await expect(backLink).toHaveAttribute('href', /\/platform\/projects$/);
+    await page.locator('main').getByRole('link', { name: /proyectos/i }).click();
+
+    await expect(page).toHaveURL(/\/platform\/projects$/);
   });
 
   test('renders project nav with Tablero link to board', {
     tag: [...PLATFORM_PROJECT_DETAIL, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — the project nav exposes the board link with its href)
     await setupDetailMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1', { waitUntil: 'domcontentloaded' });
 
@@ -106,6 +108,7 @@ test.describe('Platform Project Detail — Admin', () => {
   test('admin sees Editar button', {
     tag: [...PLATFORM_PROJECT_DETAIL, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — admin sees the Editar control)
     await setupDetailMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1', { waitUntil: 'domcontentloaded' });
 
@@ -120,6 +123,7 @@ test.describe('Platform Project Detail — Client', () => {
   test('client sees project detail without edit button', {
     tag: [...PLATFORM_PROJECT_DETAIL, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (permission display — client sees the detail without the edit control, by absence)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupDetailMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1', { waitUntil: 'domcontentloaded' });

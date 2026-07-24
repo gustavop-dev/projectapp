@@ -83,6 +83,7 @@ test.describe('Platform Change Requests — Client', () => {
   test('renders change request list with status tabs', {
     tag: [...PLATFORM_CHANGE_REQUESTS, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display list — asserts the change requests render with their titles; the create interaction is covered below)
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/changes', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: /solicitudes de cambio/i }).waitFor({ state: 'visible', timeout: 30000 });
@@ -103,6 +104,9 @@ test.describe('Platform Change Requests — Client', () => {
     // A change request now requires a source requirement — pick the first option.
     await page.locator('select[required]').selectOption({ index: 1 });
     await page.getByRole('button', { name: /crear solicitud/i }).click();
+
+    // On a successful submit the create form closes.
+    await expect(page.getByPlaceholder('¿Qué cambio necesitas?')).not.toBeVisible();
   });
 });
 
@@ -112,6 +116,7 @@ test.describe('Platform Change Requests — Admin', () => {
   test('admin sees change requests and can evaluate', {
     tag: [...PLATFORM_CHANGE_REQUESTS, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — admin view of the change-request list)
     await setPlatformAuth(page, { user: mockPlatformAdmin });
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/changes', { waitUntil: 'domcontentloaded' });
@@ -166,6 +171,7 @@ test.describe('Platform Change Requests — /platform/changes redirect', () => {
   test('client visiting /platform/changes is redirected to projects', {
     tag: [...PLATFORM_CHANGE_REQUESTS, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (redirect behavior — the removed /platform/changes route redirects to projects, asserted by URL)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupUnifiedChangesMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/changes', { waitUntil: 'domcontentloaded' });

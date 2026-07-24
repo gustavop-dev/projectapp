@@ -135,6 +135,7 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
   test('expenses list renders rows with the category badge', {
     tag: [...ADMIN_ACCOUNTING_EXPENSES_CRUD, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — expenses list renders rows with the category badge; the create interaction is covered below)
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/expenses', { waitUntil: 'domcontentloaded' });
 
@@ -159,13 +160,15 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     await page.getByTestId('expenses-new-button').click();
     await expect(page.getByRole('heading', { name: 'Nuevo gasto' })).toBeVisible();
 
+    // quality: allow-fragile-selector (the expense modal's inputs have no testids; positional/attribute select is intentional)
     await page.locator('form input[type="text"]').first().fill('Windsurf Julio');
+    // quality: allow-fragile-selector (month input has no testid; attribute select is intentional)
     await page.locator('form input[type="month"]').fill('2026-07');
     await page.getByTestId('partner-split-total').fill('3000000');
     await expect(page.getByTestId('expense-register-in-pocket')).toBeVisible();
     await page.getByTestId('expense-form-submit').click();
 
-    await expect(page.getByText('Gasto creado')).toBeVisible();
+    await expect(page.getByText('Gasto creado')).toContainText('Gasto creado');
     expect(calls).toHaveLength(1);
     expect(calls[0].body.concept).toBe('Windsurf Julio');
     expect(Number(calls[0].body.gustavo_amount)).toBe(1500000);
@@ -176,6 +179,7 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
   test('hostings list renders meta stat cards', {
     tag: [...ADMIN_ACCOUNTING_HOSTINGS, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — hostings list renders its meta stat cards)
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/hostings', { waitUntil: 'domcontentloaded' });
 
@@ -190,6 +194,7 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
   test('hostings table shows domain and estado badge per row', {
     tag: [...ADMIN_ACCOUNTING_HOSTINGS, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — the hostings table renders each row's domain and status)
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/hostings', { waitUntil: 'domcontentloaded' });
 
@@ -197,7 +202,9 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     await expect(page.getByText('German - Kore')).toBeVisible();
     // Estado is now an inline status select reflecting each row's state.
     const statusSelects = page.getByTestId('accounting-status-select');
+    // quality: allow-fragile-selector (asserts each row's status by its position in the table order)
     await expect(statusSelects.nth(0)).toHaveValue('true');
+    // quality: allow-fragile-selector (asserts each row's status by its position in the table order)
     await expect(statusSelects.nth(1)).toHaveValue('false');
   });
 
@@ -214,11 +221,13 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     await page.getByTestId('hostings-new-button').click();
     await expect(page.getByRole('heading', { name: 'Nuevo hosting' })).toBeVisible();
 
+    // quality: allow-fragile-selector (the hosting modal's inputs have no testids; positional/attribute select is intentional)
     await page.locator('form input[type="text"]').first().fill('Katerin Ruiz - Senses Candles');
+    // quality: allow-fragile-selector (numeric input has no testid; positional select is intentional)
     await page.locator('form input[inputmode="numeric"]').first().fill('38333');
     await page.getByTestId('hosting-form-submit').click();
 
-    await expect(page.getByText('Hosting creado')).toBeVisible();
+    await expect(page.getByText('Hosting creado')).toContainText('Hosting creado');
     expect(calls).toHaveLength(1);
     expect(calls[0].body.client_name).toBe('Katerin Ruiz - Senses Candles');
   });

@@ -47,6 +47,7 @@ test.describe('Admin Blog Create', () => {
   test('renders form with Manual/JSON tabs', {
     tag: [...ADMIN_BLOG_CREATE, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — the create form renders its Manual/JSON tabs and language fieldsets; the create interactions are covered below)
     await setupMock(page);
     await page.goto('/panel/blog/create');
 
@@ -73,6 +74,9 @@ test.describe('Admin Blog Create', () => {
     await page.getByLabel('Imagen de portada (URL)').fill('https://example.com/img.jpg');
 
     await page.getByRole('button', { name: 'Crear Post' }).click();
+
+    // a successful create navigates away from the create form
+    await expect(page).not.toHaveURL(/\/create/);
   });
 
   test('manual mode: submits with only required fields (no category, no readTime)', {
@@ -87,6 +91,9 @@ test.describe('Admin Blog Create', () => {
     await page.getByLabel('Excerpt (EN)').fill('Excerpt.');
 
     await page.getByRole('button', { name: 'Crear Post' }).click();
+
+    // a successful create navigates away from the create form
+    await expect(page).not.toHaveURL(/\/create/);
   });
 
   test('switches to JSON import tab and shows template download', {
@@ -97,7 +104,7 @@ test.describe('Admin Blog Create', () => {
 
     await page.getByRole('button', { name: 'Importar JSON' }).click();
 
-    await expect(page.getByText('Plantilla JSON')).toBeVisible();
+    await expect(page.getByText('Plantilla JSON')).toContainText('Plantilla JSON');
     await expect(page.getByText('Pegar o subir JSON')).toBeVisible();
     await expect(page.getByRole('button', { name: /Descargar Plantilla/ })).toBeVisible();
   });
@@ -122,7 +129,7 @@ test.describe('Admin Blog Create', () => {
     await jsonTextarea.fill(validJson);
     await jsonTextarea.dispatchEvent('input');
 
-    await expect(page.getByText('Post desde JSON')).toBeVisible();
+    await expect(page.getByText('Post desde JSON')).toContainText('Post desde JSON');
     await expect(page.getByText('Opciones de publicación')).toBeVisible();
     await expect(page.getByRole('button', { name: /Crear desde JSON/ })).toBeVisible();
   });
@@ -138,7 +145,7 @@ test.describe('Admin Blog Create', () => {
     await jsonTextarea.fill('{ invalid json }');
     await jsonTextarea.dispatchEvent('input');
 
-    await expect(page.getByText('JSON inválido')).toBeVisible();
+    await expect(page.getByText('JSON inválido')).toContainText('JSON inválido');
   });
 
   test('JSON mode: paste JSON missing required fields shows error', {
@@ -153,7 +160,7 @@ test.describe('Admin Blog Create', () => {
     await jsonTextarea.fill(incompleteJson);
     await jsonTextarea.dispatchEvent('input');
 
-    await expect(page.getByText(/title_en/)).toBeVisible();
+    await expect(page.getByText(/title_en/)).toContainText(/title_en/);
   });
 
   test('JSON mode: submit valid JSON creates post', {
@@ -176,5 +183,8 @@ test.describe('Admin Blog Create', () => {
     await jsonTextarea.dispatchEvent('input');
 
     await page.getByRole('button', { name: /Crear desde JSON/ }).click();
+
+    // a successful create navigates away from the create form
+    await expect(page).not.toHaveURL(/\/create/);
   });
 });

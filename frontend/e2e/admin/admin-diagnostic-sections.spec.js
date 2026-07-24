@@ -148,6 +148,8 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
     await page.getByRole('button', { name: /registrar/i }).click();
 
     await expect(() => expect(logged?.description).toBe('Primer seguimiento')).toPass({ timeout: 5000 });
+    // The panel-wide notification host renders confirmations in a role="alert" toast.
+    await expect(page.getByRole('alert')).toContainText('Actividad registrada.', { timeout: 5000 });
   });
 
   test('Analytics tab shows view-count KPI card', {

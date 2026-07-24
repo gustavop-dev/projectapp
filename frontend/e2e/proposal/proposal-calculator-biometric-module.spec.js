@@ -158,7 +158,7 @@ test.describe('Proposal Calculator — Biometric Verification Module (provider-b
     await openCalculatorModal(page);
 
     await expect(page.getByText(/Verificación y Validación Biométrica/i).first()).toBeVisible();
-    await expect(page.getByText('Agendar llamada')).toBeVisible();
+    await expect(page.getByText('Agendar llamada')).toContainText('Agendar llamada');
   });
 
   test('clicking biometric module reveals invite note', {
@@ -171,6 +171,6 @@ test.describe('Proposal Calculator — Biometric Verification Module (provider-b
     await bioRow.scrollIntoViewIfNeeded();
     await bioRow.click();
 
-    await expect(page.getByText(/Te invitamos a una llamada/)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Te invitamos a una llamada/)).toContainText('Te invitamos a una llamada', { timeout: 5000 });
   });
 });

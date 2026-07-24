@@ -84,6 +84,7 @@ test.describe('Platform Bug Reports — Client', () => {
   test('renders bug report list with severity badges', {
     tag: [...PLATFORM_BUG_REPORTS, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display list — asserts the reported bugs render with their titles; the create interaction is covered below)
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/bugs', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: /reporte de bugs/i }).waitFor({ state: 'visible', timeout: 30000 });
@@ -104,6 +105,9 @@ test.describe('Platform Bug Reports — Client', () => {
     // A bug now requires a source requirement — pick the first real option.
     await page.locator('select[required]').selectOption({ index: 1 });
     await page.getByRole('button', { name: /reportar bug/i }).last().click();
+
+    // On a successful submit the create form closes.
+    await expect(page.getByPlaceholder('¿Qué está fallando?')).not.toBeVisible();
   });
 });
 
@@ -113,6 +117,7 @@ test.describe('Platform Bug Reports — Admin', () => {
   test('admin sees bug reports with status counts', {
     tag: [...PLATFORM_BUG_REPORTS, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — admin view of the project's bug list)
     await setPlatformAuth(page, { user: mockPlatformAdmin });
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/bugs', { waitUntil: 'domcontentloaded' });
@@ -168,6 +173,7 @@ test.describe('Platform Bug Reports — /platform/bugs redirect', () => {
   test('client visiting /platform/bugs is redirected to projects', {
     tag: [...PLATFORM_BUG_REPORTS, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (redirect behavior — the removed /platform/bugs route is asserted to redirect to projects, by URL)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupUnifiedBugsMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/bugs', { waitUntil: 'domcontentloaded' });

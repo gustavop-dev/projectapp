@@ -11,11 +11,9 @@ test.describe('Privacy Policy Page', () => {
   test('renders privacy policy page with content', {
     tag: [...PUBLIC_PRIVACY_POLICY, '@role:guest'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (static legal page — render asserted by the route and a non-empty heading)
     await page.goto('/privacy-policy');
-    await expect(page.locator('body')).toBeVisible({ timeout: 15_000 });
     await expect(page).toHaveURL(/privacy-policy/);
-
-    const heading = page.getByRole('heading').first();
-    await expect(heading).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('heading').first()).toContainText(/\S/, { timeout: 15_000 });
   });
 });

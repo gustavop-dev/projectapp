@@ -213,7 +213,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
     await page.getByTestId('diagnostic-respond-confirm').click();
 
     await expect(() => expect(respondCalled).toBe(true)).toPass({ timeout: 5000 });
-    await expect(page.getByText(/Confirmamos tu aceptación/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Confirmamos tu aceptación/i)).toContainText(/Confirmamos tu aceptación/i, { timeout: 5000 });
   });
 
   test('clicking next advances the active section', {

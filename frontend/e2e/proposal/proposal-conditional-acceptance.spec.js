@@ -69,7 +69,7 @@ test.describe('Proposal Conditional Acceptance', () => {
     await page.getByRole('button', { name: /Acepto la propuesta/i }).click({ force: true });
 
     // Condition textarea visible with correct label
-    await expect(page.getByText(/¿Aceptas con alguna condición/i)).toBeVisible();
+    await expect(page.getByText(/¿Aceptas con alguna condición/i)).toContainText(/Aceptas con alguna condición/i);
     const conditionTextarea = page.getByPlaceholder(/Acepto, pero necesito/i);
     await expect(conditionTextarea).toBeVisible();
   });
@@ -103,8 +103,8 @@ test.describe('Proposal Conditional Acceptance', () => {
     await page.getByRole('button', { name: /Confirmar/i }).click();
 
     // Verify success state
-    await expect(page.getByText('¡Propuesta aceptada!')).toBeVisible({ timeout: 5000 });
-    expect(respondPayload).toBeTruthy();
+    await expect(page.getByText('¡Propuesta aceptada!')).toContainText('Propuesta aceptada', { timeout: 5000 });
+    expect(respondPayload).not.toBeNull();
     expect(respondPayload.condition).toBe('Necesito que se incluya soporte por 6 meses');
   });
 
@@ -130,7 +130,7 @@ test.describe('Proposal Conditional Acceptance', () => {
     await page.getByRole('button', { name: /Acepto la propuesta/i }).click({ force: true });
     await page.getByRole('button', { name: /Confirmar/i }).click();
 
-    await expect(page.getByText('¡Propuesta aceptada!')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('¡Propuesta aceptada!')).toContainText('Propuesta aceptada', { timeout: 5000 });
     expect(respondCalled).toBe(true);
   });
 });

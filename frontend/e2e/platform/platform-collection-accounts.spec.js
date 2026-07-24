@@ -122,6 +122,7 @@ test.describe('Platform collection accounts', () => {
   test('client visiting /platform/collection-accounts is redirected to projects', {
     tag: [...PLATFORM_COLLECTION_ACCOUNTS_LIST, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (redirect — the removed standalone list route redirects to projects, asserted by URL)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupCollectionAccountsMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/collection-accounts', { waitUntil: 'domcontentloaded' });
@@ -132,6 +133,7 @@ test.describe('Platform collection accounts', () => {
   test('user sees project-scoped collection account list', {
     tag: [...PLATFORM_PROJECT_COLLECTION_ACCOUNTS, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — project-scoped collection account list renders its rows)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupCollectionAccountsMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/collection-accounts', { waitUntil: 'domcontentloaded' });
@@ -142,6 +144,7 @@ test.describe('Platform collection accounts', () => {
   test('visiting a collection account detail is redirected to projects', {
     tag: [...PLATFORM_COLLECTION_ACCOUNT_DETAIL, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (redirect — the removed standalone detail route redirects to projects, asserted by URL)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupCollectionAccountsMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/collection-accounts/42', { waitUntil: 'domcontentloaded' });

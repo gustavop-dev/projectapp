@@ -13,18 +13,22 @@ import { ADMIN_EMAIL_DELIVERABILITY } from '../helpers/flow-tags.js';
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
 
 const mockDeliverabilityData = {
-  total_sent: 42,
-  total_delivered: 40,
-  total_bounced: 2,
-  open_rate: 71.4,
-  logs: [
+  total_emails_30d: 42,
+  success_rate: 95.2,
+  sent_count: 40,
+  failed_count: 2,
+  by_template: [
+    { template_key: 'proposal_sent', total: 30, sent: 29, failed: 1, success_rate: 96.7 },
+    { template_key: 'proposal_reminder', total: 12, sent: 11, failed: 1, success_rate: 91.7 },
+  ],
+  daily_trend: [
+    { date: '2026-03-18', total: 5, failed: 0 },
+    { date: '2026-03-19', total: 8, failed: 1 },
+  ],
+  recent_failures: [
     {
-      id: 1, proposal_title: 'Propuesta E-commerce', recipient: 'client@example.com',
-      event_type: 'delivered', sent_at: '2026-03-20T10:00:00Z',
-    },
-    {
-      id: 2, proposal_title: 'Propuesta App Móvil', recipient: 'app@example.com',
-      event_type: 'bounced', sent_at: '2026-03-18T09:00:00Z',
+      template_key: 'proposal_sent', recipient: 'client@example.com',
+      status: 'bounced', sent_at: '2026-03-18T09:00:00Z', error_message: 'Mailbox full',
     },
   ],
 };
@@ -37,6 +41,7 @@ test.describe('Admin Email Deliverability Dashboard', () => {
   test('renders deliverability dashboard with stats and email log', {
     tag: [...ADMIN_EMAIL_DELIVERABILITY, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (dashboard is populated straight from a GET on load; no action changes what renders)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath.startsWith('proposals/email-deliverability/') || apiPath.startsWith('email-deliverability/')) {
@@ -46,13 +51,18 @@ test.describe('Admin Email Deliverability Dashboard', () => {
     });
     await page.goto('/panel/proposals/email-deliverability');
 
-    await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
+    // Concrete KPI value from the fixture — catches a broken/renamed stats prop.
+    await expect(page.getByText('42', { exact: true }).first()).toBeVisible({ timeout: 15000 });
+    // Per-template row from the fixture — catches the log table failing to render real rows.
+    // (also matches the recent-failures entry for the same template, hence .first())
+    await expect(page.getByText('proposal_sent', { exact: true }).first()).toBeVisible();
     await expect(page).toHaveURL(/email-deliverability/);
   });
 
   test('page is accessible and renders heading', {
     tag: [...ADMIN_EMAIL_DELIVERABILITY, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (accessibility/heading-structure check on load; no action changes the heading)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath.startsWith('proposals/email-deliverability/') || apiPath.startsWith('email-deliverability/')) {
@@ -63,6 +73,6 @@ test.describe('Admin Email Deliverability Dashboard', () => {
     await page.goto('/panel/proposals/email-deliverability');
 
     const heading = page.getByRole('heading').first();
-    await expect(heading).toBeVisible({ timeout: 15000 });
+    await expect(heading).toContainText('Email Deliverability', { timeout: 15000 });
   });
 });

@@ -64,6 +64,7 @@ test.describe('Admin Proposal Documents Manage', () => {
   test('additional documents section renders with existing docs', {
     tag: [...ADMIN_PROPOSAL_DOCUMENTS_MANAGE, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — asserts the additional-docs list renders type badge and title link from proposal_documents; upload/delete actions are exercised by the tests below)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
@@ -83,13 +84,21 @@ test.describe('Admin Proposal Documents Manage', () => {
     await expect(page.getByRole('link', { name: 'Otrosí No. 1' })).toBeVisible();
   });
 
-  test('upload form visible with title, type, and file inputs', {
+  test('uploads a document and it appears in the attached list', {
     tag: [...ADMIN_PROPOSAL_DOCUMENTS_MANAGE, '@role:admin'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ apiPath }) => {
+    let documents = [generatedContractDoc, additionalDoc];
+    const uploadedDoc = { id: 30, document_type: 'amendment', document_type_display: 'Otrosí',
+      title: 'Otrosí No. 2', file: '/media/docs/otrosi-2.pdf', is_generated: false, created_at: '2026-04-05T09:00:00Z' };
+
+    await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
-        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockProposal, proposal_documents: documents }) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/documents/upload/` && method === 'POST') {
+        documents = [...documents, uploadedDoc];
+        return { status: 201, contentType: 'application/json', body: JSON.stringify(uploadedDoc) };
       }
       return null;
     });
@@ -97,17 +106,26 @@ test.describe('Admin Proposal Documents Manage', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
     await page.waitForLoadState('domcontentloaded');
 
-    // Upload section text
-    await expect(page.getByText(/Subir documento/i)).toBeVisible();
-    // Title input
-    await expect(page.getByPlaceholder(/Ej: Anexo técnico/i)).toBeVisible();
-    // Upload button
-    await expect(page.getByRole('button', { name: /Subir$/i })).toBeVisible();
+    const additionalSection = page.locator('section').filter({ hasText: 'Documentos adjuntos' });
+    await additionalSection.getByPlaceholder(/Ej: Anexo técnico/i).fill('Otrosí No. 2');
+    await additionalSection.getByRole('combobox').selectOption('amendment');
+    await additionalSection.locator('input[type="file"]').setInputFiles({
+      name: 'otrosi-2.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 fake'),
+    });
+
+    const uploadResponse = page.waitForResponse((r) =>
+      r.url().includes(`proposals/${PROPOSAL_ID}/documents/upload/`) && r.status() === 201);
+    await additionalSection.getByRole('button', { name: /Subir$/i }).click();
+    await uploadResponse;
+
+    await expect(page.getByRole('alert')).toContainText('Documento subido.');
+    await expect(additionalSection.getByRole('link', { name: 'Otrosí No. 2' })).toBeVisible();
   });
 
   test('delete button visible on non-generated documents only', {
     tag: [...ADMIN_PROPOSAL_DOCUMENTS_MANAGE, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (permission display — asserts exactly one delete button renders, for the non-generated doc only; generated contract docs must not offer delete. The click-through delete is exercised by the test below)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
@@ -125,9 +143,49 @@ test.describe('Admin Proposal Documents Manage', () => {
     await expect(deleteButtons).toHaveCount(1);
   });
 
+  test('deleting an additional document removes it from the attached list', {
+    tag: [...ADMIN_PROPOSAL_DOCUMENTS_MANAGE, '@role:admin'],
+  }, async ({ page }) => {
+    let documents = [generatedContractDoc, additionalDoc];
+
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...mockProposal, proposal_documents: documents }),
+        };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/documents/${additionalDoc.id}/delete/` && method === 'DELETE') {
+        documents = documents.filter((doc) => doc.id !== additionalDoc.id);
+        return { status: 204, contentType: 'application/json', body: '' };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
+
+    const additionalSection = page.locator('section').filter({ hasText: 'Documentos adjuntos' });
+    await expect(additionalSection.getByRole('link', { name: 'Otrosí No. 1' })).toBeVisible();
+
+    const deleteButton = additionalSection.locator('button').filter({ has: page.locator('svg path[d*="M19 7l"]') });
+    await Promise.all([
+      page.waitForResponse((r) =>
+        r.url().includes(`proposals/${PROPOSAL_ID}/documents/${additionalDoc.id}/delete/`) && r.status() === 204
+      ),
+      deleteButton.click(),
+    ]);
+
+    await expect(page.getByRole('alert')).toContainText('Documento eliminado.');
+    await expect(additionalSection.getByRole('link', { name: 'Otrosí No. 1' })).toHaveCount(0);
+  });
+
   test('shows empty state when no additional documents', {
     tag: [...ADMIN_PROPOSAL_DOCUMENTS_MANAGE, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — asserts the empty-state copy renders when proposal_documents has no non-contract entries)
     const proposalNoAdditional = {
       ...mockProposal,
       proposal_documents: [generatedContractDoc],

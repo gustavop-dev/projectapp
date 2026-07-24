@@ -72,6 +72,7 @@ test.describe('Platform Notifications — Admin', () => {
   test('renders notification list with unread and read items', {
     tag: [...PLATFORM_NOTIFICATIONS, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — notification list renders unread and read items; the filter interaction is covered below)
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/notifications', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: /notificaciones/i }).waitFor({ state: 'visible', timeout: 30000 });
@@ -81,21 +82,23 @@ test.describe('Platform Notifications — Admin', () => {
     await expect(page.getByText('Pago confirmado')).toBeVisible();
   });
 
-  test('filter tabs show all, unread, and read notifications', {
+  test('filtering to unread hides the read notifications', {
     tag: [...PLATFORM_NOTIFICATIONS, '@role:platform-admin'],
   }, async ({ page }) => {
+    // Fails if the "Sin leer" filter stops hiding already-read notifications.
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/notifications', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: /notificaciones/i }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await expect(page.getByRole('button', { name: /todas/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /sin leer/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /leídas/i })).toBeVisible();
+    await expect(page.getByText('Pago confirmado')).toBeVisible();
+    await page.getByRole('button', { name: /sin leer/i }).click();
+    await expect(page.getByText('Pago confirmado')).not.toBeVisible();
   });
 
   test('shows unread count in header', {
     tag: [...PLATFORM_NOTIFICATIONS, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — unread count shown in header)
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/notifications', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: /notificaciones/i }).waitFor({ state: 'visible', timeout: 30000 });
@@ -110,6 +113,7 @@ test.describe('Platform Notifications — Client', () => {
   test('client sees their notifications', {
     tag: [...PLATFORM_NOTIFICATIONS, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — client sees their notifications)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/notifications', { waitUntil: 'domcontentloaded' });

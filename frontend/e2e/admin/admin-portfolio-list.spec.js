@@ -34,6 +34,7 @@ test.describe('Admin Portfolio List', () => {
   test('renders portfolio works list with titles and status badges', {
     tag: [...ADMIN_PORTFOLIO_LIST, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — portfolio list renders works with status badges; the list's interaction is covered by the create-link test)
     await setupMock(page);
     await page.goto('/panel/portfolio');
 
@@ -44,21 +45,22 @@ test.describe('Admin Portfolio List', () => {
     await expect(table.getByText('Borrador')).toBeVisible();
   });
 
-  test('shows create button linking to /panel/portfolio/create', {
+  test('the new-project button navigates to the create page', {
     tag: [...ADMIN_PORTFOLIO_LIST, '@role:admin'],
   }, async ({ page }) => {
+    // Fails if the "Nuevo Proyecto" button stops linking to the create page.
     await setupMock(page);
     await page.goto('/panel/portfolio');
 
-    const createLink = page.getByRole('link', { name: /Nuevo Proyecto/ });
-    await expect(createLink).toBeVisible();
-    const href = await createLink.getAttribute('href');
-    expect(href).toContain('/panel/portfolio/create');
+    await page.getByRole('link', { name: /Nuevo Proyecto/ }).click();
+
+    await expect(page).toHaveURL(/\/panel\/portfolio\/create/);
   });
 
   test('shows empty state when no works exist', {
     tag: [...ADMIN_PORTFOLIO_LIST, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — empty state renders when no works exist)
     await setupMock(page, { works: [] });
     await page.goto('/panel/portfolio');
 

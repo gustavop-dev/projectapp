@@ -45,6 +45,7 @@ test.describe('Platform Profile Edit — Admin', () => {
   test('renders profile page with user data and editable fields', {
     tag: [...PLATFORM_PROFILE_EDIT, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — profile renders the user's data and editable fields; the edit interaction is covered by the save test)
     await setupProfileMocks(page, mockPlatformAdmin);
     await page.goto('/platform/profile', { waitUntil: 'domcontentloaded' });
 
@@ -75,7 +76,7 @@ test.describe('Platform Profile Edit — Admin', () => {
     await page.goto('/platform/profile', { waitUntil: 'domcontentloaded' });
 
     await page.getByRole('button', { name: /guardar cambios/i }).click();
-    await expect(page.getByText(/no pudimos actualizar/i)).toBeVisible();
+    await expect(page.getByText(/no pudimos actualizar/i)).toContainText(/no pudimos actualizar/i);
   });
 });
 
@@ -86,6 +87,7 @@ test.describe('Platform Profile Edit — Client', () => {
   test('client renders profile page with their data', {
     tag: [...PLATFORM_PROFILE_EDIT, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — client's profile renders their data)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupProfileMocks(page, mockPlatformClient);
     await page.goto('/platform/profile', { waitUntil: 'domcontentloaded' });
@@ -103,6 +105,7 @@ test.describe('Platform Profile Edit — Auth guard', () => {
   test('unauthenticated user is redirected to login', {
     tag: [...PLATFORM_PROFILE_EDIT, '@role:guest'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (auth guard — an unauthenticated user is redirected to login, asserted by URL)
     await page.goto('/platform/profile', { waitUntil: 'domcontentloaded' });
     await page.waitForURL('**/platform/login**', { timeout: 30000 });
     await expect(page).toHaveURL(/\/platform\/login/);

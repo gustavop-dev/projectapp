@@ -251,6 +251,7 @@ test.describe('Admin Accounting Statements', () => {
   test('the grid marks months before statements_since as No aplica', {
     tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — the 12-month grid marks pre-statements_since months as "No aplica" and shows each statement's status)
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoStatements(page);
 
@@ -286,7 +287,7 @@ test.describe('Admin Accounting Statements', () => {
     await page.locator('input[step="0.01"]').fill('120000');
     await page.getByTestId('tx-save').click();
 
-    await expect(page.getByTestId('statement-tx-99')).toBeVisible();
+    await expect(page.getByTestId('statement-tx-99')).toContainText('COMPRA EXITO CALLE 80');
     const batchCall = calls.find(
       (call) => call.apiPath === 'accounting/statements/2/transactions/batch/',
     );
@@ -349,6 +350,7 @@ test.describe('Admin Accounting Card Catalog', () => {
   test('lists the catalog rows with their cupo', {
     tag: [...ADMIN_ACCOUNTING_CARD_CATALOG, '@role:admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — the catalog lists card rows with their cupo; the create/edit/delete interactions are covered below)
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoSettings(page);
 
@@ -368,7 +370,7 @@ test.describe('Admin Accounting Card Catalog', () => {
     await page.getByTestId('card-catalog-limit-draft-1').fill('5000000');
     await page.getByTestId('card-catalog-save-draft-1').click();
 
-    await expect(page.getByText('Tarjeta agregada.')).toBeVisible();
+    await expect(page.getByText('Tarjeta agregada.')).toContainText('Tarjeta agregada');
     const createCall = calls.find(
       (call) => call.apiPath === 'accounting/credit-cards/create/',
     );
@@ -385,7 +387,7 @@ test.describe('Admin Accounting Card Catalog', () => {
     await page.getByTestId('card-catalog-limit-card-1').fill('9000000');
     await page.getByTestId('card-catalog-save-card-1').click();
 
-    await expect(page.getByText('Tarjeta actualizada.')).toBeVisible();
+    await expect(page.getByText('Tarjeta actualizada.')).toContainText('Tarjeta actualizada');
     const updateCall = calls.find(
       (call) => call.apiPath === 'accounting/credit-cards/1/update/',
     );
@@ -402,7 +404,7 @@ test.describe('Admin Accounting Card Catalog', () => {
     await page.getByTestId('card-catalog-delete-card-1').click();
     await page.getByTestId('confirm-modal-confirm').click();
 
-    await expect(page.getByText('No se pudo eliminar la tarjeta')).toBeVisible();
+    await expect(page.getByText('No se pudo eliminar la tarjeta')).toContainText('No se pudo eliminar la tarjeta');
     expect(calls).toContainEqual({
       apiPath: 'accounting/credit-cards/1/delete/',
       method: 'DELETE',
