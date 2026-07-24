@@ -72,6 +72,7 @@ test.describe('Platform Kanban JSON Upload — Admin', () => {
   test('admin sees Ejemplo and Importar JSON buttons on the board', {
     tag: [...PLATFORM_KANBAN_JSON_UPLOAD, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (control-visibility smoke; the JSON-import workflow interaction is covered by the example-download test below)
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
@@ -83,6 +84,7 @@ test.describe('Platform Kanban JSON Upload — Admin', () => {
   test('clicking Ejemplo triggers a file download', {
     tag: [...PLATFORM_KANBAN_JSON_UPLOAD, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: disable flow_tag_mismatch (drives the JSON-import workflow via the example-template download; the file upload itself is not E2E-driven — the import uses a hidden native file input)
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
@@ -100,6 +102,7 @@ test.describe('Platform Kanban JSON Upload — Client', () => {
   test('client does not see JSON upload buttons', {
     tag: [...PLATFORM_KANBAN_JSON_UPLOAD, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (permission display — asserts the client role does not see the import controls, by absence)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
