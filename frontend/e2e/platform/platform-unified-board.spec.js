@@ -46,6 +46,7 @@ test.describe('Platform Board Route', () => {
   test('admin visiting /platform/board is redirected to projects', {
     tag: [...PLATFORM_UNIFIED_BOARD, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (redirect — the removed unified board redirects authenticated admins to projects, asserted by URL)
     await setPlatformAuth(page, { user: mockPlatformAdmin });
     await setupBoardRedirectMocks(page, mockPlatformAdmin);
     await page.goto('/platform/board', { waitUntil: 'domcontentloaded' });
@@ -57,6 +58,7 @@ test.describe('Platform Board Route', () => {
   test('client visiting /platform/board is redirected to projects', {
     tag: [...PLATFORM_UNIFIED_BOARD, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (redirect — redirects authenticated clients to projects, asserted by URL)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupBoardRedirectMocks(page, mockPlatformClient);
     await page.goto('/platform/board', { waitUntil: 'domcontentloaded' });
@@ -68,6 +70,7 @@ test.describe('Platform Board Route', () => {
   test('unauthenticated user is redirected to login', {
     tag: [...PLATFORM_UNIFIED_BOARD, '@role:guest'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (redirect — redirects unauthenticated users to login, asserted by URL)
     await page.goto('/platform/board', { waitUntil: 'domcontentloaded' });
     await page.waitForURL('**/platform/login**', { timeout: 30000 });
     await expect(page).toHaveURL(/\/platform\/login/);

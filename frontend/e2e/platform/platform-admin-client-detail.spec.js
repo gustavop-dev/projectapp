@@ -71,6 +71,7 @@ test.describe('Platform Admin Client Detail', () => {
   test('renders client detail page with profile card and edit form', {
     tag: [...PLATFORM_ADMIN_CLIENT_DETAIL, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — client detail renders the profile card; the back-link interaction covers this flow)
     await setupClientDetailMocks(page);
     await page.goto('/platform/clients/9002', { waitUntil: 'domcontentloaded' });
 
@@ -79,22 +80,23 @@ test.describe('Platform Admin Client Detail', () => {
     await expect(page.getByText('ACME Corp')).toBeVisible();
   });
 
-  test('shows back link to clients list', {
+  test('the back link returns to the clients list', {
     tag: [...PLATFORM_ADMIN_CLIENT_DETAIL, '@role:platform-admin'],
   }, async ({ page }) => {
+    // Fails if the client-detail back link stops routing to the clients list.
     await setupClientDetailMocks(page);
     await page.goto('/platform/clients/9002', { waitUntil: 'domcontentloaded' });
 
-    // Scope to main to avoid matching sidebar 'Clientes' link
-    const backLink = page.locator('main').getByRole('link', { name: /clientes/i });
-    await expect(backLink).toBeVisible();
-    // i18n prefix strategy adds locale prefix to all hrefs
-    await expect(backLink).toHaveAttribute('href', /\/platform\/clients$/);
+    // Scope to main to avoid matching the sidebar 'Clientes' link.
+    await page.locator('main').getByRole('link', { name: /clientes/i }).click();
+
+    await expect(page).toHaveURL(/\/platform\/clients$/);
   });
 
   test('shows not found message for invalid client ID', {
     tag: [...PLATFORM_ADMIN_CLIENT_DETAIL, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — not-found state renders for an invalid client id)
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(mockPlatformAdmin);
       if (apiPath === 'accounts/clients/9999/' && method === 'GET') {
@@ -114,6 +116,7 @@ test.describe('Platform Admin Client Detail', () => {
   test('shows action buttons for admin operations', {
     tag: [...PLATFORM_ADMIN_CLIENT_DETAIL, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — admin action controls render on the detail page)
     await setupClientDetailMocks(page);
     await page.goto('/platform/clients/9002', { waitUntil: 'domcontentloaded' });
 
@@ -128,6 +131,7 @@ test.describe('Platform Admin Client Detail — Access Guard', () => {
   test('client role is redirected away from client detail page', {
     tag: [...PLATFORM_ADMIN_CLIENT_DETAIL, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (access guard — client role redirected to dashboard, asserted by URL)
     await setPlatformAuth(page, { user: mockPlatformClient });
 
     await mockApi(page, async ({ apiPath, method }) => {

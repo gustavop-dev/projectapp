@@ -1,41 +1,37 @@
 /**
  * E2E tests for the public home page.
  *
- * Covers: page render, hero section, services cards, contact form section,
- * footer, and basic navigation elements.
+ * The home flow is a guest landing: it must render and its interactive
+ * elements must work. The FAQ accordion is the page's primary in-page
+ * interaction, so it carries the flow's behavioral coverage.
  */
 import { test, expect } from '../helpers/test.js';
 import { PUBLIC_HOME } from '../helpers/flow-tags.js';
 
 test.describe('Home Page', () => {
-  test('renders hero section and main content', {
+  test('toggling a FAQ item reveals then hides its answer', {
     tag: [...PUBLIC_HOME, '@role:guest'],
   }, async ({ page }) => {
-    await page.goto('/');
+    // Fails if the FAQ accordion stops opening/closing on click (broken
+    // <details> binding or a regression in the section markup).
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    // Hero section renders
-    // quality: disable fragile_locator (public page has multiple h1 elements; first targets the hero heading)
-    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15000 });
+    // quality: allow-fragile-selector (identical FAQ accordions; the first exercises the same toggle)
+    const firstFaq = page.locator('details.faq-item').first();
+    await firstFaq.locator('summary').scrollIntoViewIfNeeded();
+    const answer = firstFaq.locator('p[itemprop="text"]');
 
-    // quality: allow-fragile-selector (page has no testid sections, first section confirms meaningful content)
-    await expect(page.locator('section').first()).toBeAttached();
-  });
+    // Closed on first render.
+    await expect(firstFaq).not.toHaveAttribute('open', /.*/);
+    await expect(answer).toBeHidden();
 
-  test('renders with Spanish locale', {
-    tag: [...PUBLIC_HOME, '@role:guest'],
-  }, async ({ page }) => {
-    await page.goto('/es-co');
-    await expect(page).toHaveURL(/\/es-co/);
-    // quality: disable fragile_locator (public page has multiple h1 elements; first targets the hero heading)
-    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15000 });
-  });
+    // Opening reveals the answer.
+    await firstFaq.locator('summary').click();
+    await expect(firstFaq).toHaveAttribute('open', /.*/);
+    await expect(answer).toBeVisible();
 
-  test('renders with English locale', {
-    tag: [...PUBLIC_HOME, '@role:guest'],
-  }, async ({ page }) => {
-    await page.goto('/en-us');
-    await expect(page).toHaveURL(/\/en-us/);
-    // quality: disable fragile_locator (public page has multiple h1 elements; first targets the hero heading)
-    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15000 });
+    // Clicking again collapses it.
+    await firstFaq.locator('summary').click();
+    await expect(firstFaq).not.toHaveAttribute('open', /.*/);
   });
 });

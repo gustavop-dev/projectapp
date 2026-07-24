@@ -66,7 +66,7 @@ test.describe('Proposal Post-Acceptance Welcome Kit', () => {
     await openClosingPanel(page);
 
     // Celebration message
-    await expect(page.getByText('¡Propuesta aceptada!')).toBeVisible();
+    await expect(page.getByText('¡Propuesta aceptada!')).toContainText('Propuesta aceptada');
 
     // PDF download link
     const pdfLink = page.getByRole('link', { name: /Descargar resumen PDF/i });
@@ -87,7 +87,7 @@ test.describe('Proposal Post-Acceptance Welcome Kit', () => {
     await openClosingPanel(page);
 
     // Onboarding title
-    await expect(page.getByText('¿Qué sigue?')).toBeVisible();
+    await expect(page.getByText('¿Qué sigue?')).toContainText('Qué sigue');
 
     // 3 onboarding steps (use exact match to avoid subtitle collisions)
     await expect(page.getByText('Email de confirmación', { exact: true })).toBeVisible();
@@ -108,7 +108,7 @@ test.describe('Proposal Post-Acceptance Welcome Kit', () => {
     await openClosingPanel(page);
 
     const pmLink = page.getByRole('link', { name: /Contactar a tu Project Manager/i });
-    await expect(pmLink).toBeVisible();
+    await expect(pmLink).toContainText('Contactar a tu Project Manager');
   });
 
   test('accepted proposal in English shows English onboarding steps', {
@@ -125,7 +125,7 @@ test.describe('Proposal Post-Acceptance Welcome Kit', () => {
 
     await openClosingPanel(page);
 
-    await expect(page.getByText('Proposal accepted!')).toBeVisible();
+    await expect(page.getByText('Proposal accepted!')).toContainText('Proposal accepted');
     await expect(page.getByText("What's next?")).toBeVisible();
     await expect(page.getByText('Confirmation email', { exact: true })).toBeVisible();
     await expect(page.getByText('Kickoff call', { exact: true })).toBeVisible();

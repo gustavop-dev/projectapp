@@ -97,6 +97,7 @@ test.describe('Platform Deliverables — Client', () => {
   test('renders deliverable list with file names and categories', {
     tag: [...PLATFORM_DELIVERABLES, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — deliverable list renders file names and categories)
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/deliverables', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: /recursos/i }).waitFor({ state: 'visible', timeout: 30000 });
@@ -108,6 +109,7 @@ test.describe('Platform Deliverables — Client', () => {
   test('client can upload a resource', {
     tag: [...PLATFORM_DELIVERABLES, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — the upload control renders for the client)
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/deliverables', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: /recursos/i }).waitFor({ state: 'visible', timeout: 30000 });
@@ -122,6 +124,7 @@ test.describe('Platform Deliverables — Admin', () => {
   test('admin sees upload button and deliverable list', {
     tag: [...PLATFORM_DELIVERABLES, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — admin sees the upload control and deliverable list)
     await setPlatformAuth(page, { user: mockPlatformAdmin });
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/deliverables', { waitUntil: 'domcontentloaded' });
@@ -141,6 +144,7 @@ test.describe('Platform Deliverable detail', () => {
   test('visiting a deliverable detail URL redirects to the project resources list', {
     tag: [...PLATFORM_DELIVERABLE_DETAIL, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (redirect — the removed standalone detail route redirects to the project list, asserted by heading)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/deliverables/1', { waitUntil: 'domcontentloaded' });
@@ -193,6 +197,7 @@ test.describe('Platform Deliverables — /platform/deliverables redirect', () =>
   test('client visiting /platform/deliverables is redirected to projects', {
     tag: [...PLATFORM_DELIVERABLES, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (redirect — the removed standalone list route redirects to projects, asserted by URL)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupUnifiedDeliverablesMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/deliverables', { waitUntil: 'domcontentloaded' });

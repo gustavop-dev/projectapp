@@ -1,17 +1,25 @@
 /**
- * E2E tests for admin login flow.
+ * E2E tests for the admin login entry point.
  *
- * Covers: login page render, redirect to Django admin.
+ * Admin authentication is Django-native: /panel/login is a static hand-off
+ * page whose only job is to link out to the Django admin. There is no SPA
+ * credential form to drive, so this flow is a declared abstention beyond the
+ * hand-off link (see docs/USER_FLOW_MAP.md -> admin-login).
  */
 import { test, expect } from '../helpers/test.js';
 import { ADMIN_LOGIN } from '../helpers/flow-tags.js';
 
 test.describe('Admin Login', () => {
-  test('renders login page with Django Admin link', {
+  test('the login page hands off to the Django admin', {
     tag: [...ADMIN_LOGIN, '@role:admin'],
   }, async ({ page }) => {
-    await page.goto('/panel/login');
+    // quality: allow-no-interaction (admin login is Django-native — /panel/login only
+    // links out to /admin/, there is no SPA credential form to exercise; declared
+    // abstention recorded in docs/USER_FLOW_MAP.md)
+    // Fails if the hand-off link to the Django admin is removed or its href drifts.
+    await page.goto('/panel/login', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.locator('a[href="/admin/"]')).toBeVisible({ timeout: 15_000 });
+    const adminLink = page.getByRole('link', { name: /Django Admin/i });
+    await expect(adminLink).toHaveAttribute('href', '/admin/');
   });
 });
