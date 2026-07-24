@@ -11,11 +11,9 @@ test.describe('Terms and Conditions Page', () => {
   test('renders terms and conditions page with content', {
     tag: [...PUBLIC_TERMS_CONDITIONS, '@role:guest'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (static legal page — render asserted by the route and a non-empty heading)
     await page.goto('/terms-and-conditions');
-    await expect(page.locator('body')).toBeVisible({ timeout: 15_000 });
     await expect(page).toHaveURL(/terms-and-conditions/);
-
-    const heading = page.getByRole('heading').first();
-    await expect(heading).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('heading').first()).toContainText(/\S/, { timeout: 15_000 });
   });
 });

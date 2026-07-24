@@ -2,26 +2,18 @@
  * E2E tests for public landing software development page.
  *
  * @flow:public-landing-software
- * Covers: page renders hero section and CTA, body is accessible, URL matches.
+ * Covers: page renders hero section, URL matches.
  */
 import { test, expect } from '../helpers/test.js';
 import { PUBLIC_LANDING_SOFTWARE } from '../helpers/flow-tags.js';
 
 test.describe('Landing Software Development', () => {
-  test('renders landing software page', {
+  test('renders the landing software page with its heading', {
     tag: [...PUBLIC_LANDING_SOFTWARE, '@role:guest'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (marketing landing page — render asserted by the route and a non-empty heading)
     await page.goto('/landing-software');
-    await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
     await expect(page).toHaveURL(/landing-software/);
-  });
-
-  test('page has visible heading', {
-    tag: [...PUBLIC_LANDING_SOFTWARE, '@role:guest'],
-  }, async ({ page }) => {
-    await page.goto('/landing-software');
-
-    const heading = page.getByRole('heading').first();
-    await expect(heading).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading').first()).toContainText(/\S/, { timeout: 15000 });
   });
 });
