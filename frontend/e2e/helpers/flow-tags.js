@@ -381,3 +381,7 @@ export const ADMIN_PROPOSAL_DISCOUNT_OFFER_SEND = ['@flow:admin-proposal-discoun
 
 // ── LinkedIn content module /panel/linkedin (Jul 4, 2026) ──
 export const ADMIN_LINKEDIN_MODULE = ['@flow:admin-linkedin-module', '@module:admin', '@priority:P2'];
+
+// ── Proposal — Resolved-status notice suppression + client-row proposal delete (Jul 25, 2026) ──
+export const PROPOSAL_RESOLVED_NOTICE_SUPPRESSION = ['@flow:proposal-resolved-notice-suppression', '@module:proposal', '@priority:P2'];
+export const ADMIN_PROPOSAL_DELETE_FROM_CLIENT = ['@flow:admin-proposal-delete-from-client', '@module:admin', '@priority:P2'];

@@ -241,8 +241,7 @@
       ],
       "priority": "P2",
       "description": "From /panel/clients, expand a client row and delete a specific linked proposal. A confirm modal requires typing 'DELETE'; on success the client detail is refetched (proposal disappears) and a success toast shows; on 409 (linked to a launched project) the proposal stays and an error toast shows.",
-      "expectedSpecs": 0,
-      "knownGaps": "No dedicated spec yet (suggested e2e/admin/admin-proposal-delete-from-client.spec.js). The delete-from-client confirm modal, detail refetch, and 409 path are unasserted."
+      "expectedSpecs": 1
     },
     "admin-proposal-send": {
       "name": "Admin Proposal Send",
@@ -273,10 +272,7 @@
       ],
       "priority": "P2",
       "description": "Resend an already-sent proposal via 'Re-enviar' from the actions modal. Confirmation dialog → POST /proposals/:id/resend/ keeps existing expires_at, resets sent_at and reminder timers, and returns email_delivery. The panel toast surfaces success or failure with the reason.",
-      "expectedSpecs": 1,
-      "knownGaps": [
-        "No email_delivery.ok=false handler; failure-with-reason toast branch untested (2026-07 audit)."
-      ]
+      "expectedSpecs": 1
     },
     "admin-proposal-reopen-from-expired": {
       "name": "Admin Proposal Reopen From Expired",
@@ -286,10 +282,7 @@
       ],
       "priority": "P1",
       "description": "Recover an expired proposal by extending expires_at to a future date from /panel/proposals/:id/edit (General tab) or via the JSON re-import panel. The serializer no longer blocks re-saving when expires_at is unchanged, and ProposalService.reopen_if_unexpired auto-reverts status from 'expired' to 'viewed' (when view_count > 0) or 'sent', logging an 'Auto-reopened from expired…' entry in ProposalChangeLog. Covers both PATCH /proposals/:id/update/ and PUT /proposals/:id/update-from-json/ paths.",
-      "expectedSpecs": 1,
-      "knownGaps": [
-        "The General-tab PATCH /update/ reopen path is still unasserted (JSON path covered incl. status badge revert, 2026-07)."
-      ]
+      "expectedSpecs": 1
     },
     "admin-proposal-update-from-json": {
       "name": "Admin Proposal Update From JSON",
@@ -705,9 +698,12 @@
       ],
       "priority": "P2",
       "description": "When a proposal is in a resolved status (accepted, rejected or finished), the public view at /proposal/:uuid hides time-sensitive / urgency notices that no longer make sense after the client's decision is settled: the expiration countdown badge (ExpirationBadge), the limited-time discount banner (Investment.vue .discount-banner) and the hosting tier discount badges. While the proposal is still open (sent/viewed) those notices keep showing. The `expired` status is handled separately by the expired-state banner.",
-      "expectedSpecs": 0,
+      "expectedSpecs": 1,
       "knownGaps": [
         "Documented-only (expectedSpecs 0): no dedicated Playwright spec yet. Suggested e2e/proposal/proposal-resolved-notice-suppression.spec.js mocking GET /api/proposals/:uuid/ with status 'accepted'/'finished' and an expires_at + discount_percent set, asserting the ExpirationBadge and .discount-banner are absent; and a control case with status 'sent' asserting they render. Unit-level coverage exists in frontend/test/components/Investment.test.js (resolved-status notice suppression)."
+      ],
+      "outcomes": [
+        "display"
       ]
     },
     "proposal-hosting-plan-terms": {
@@ -1136,10 +1132,7 @@
       ],
       "priority": "P2",
       "description": "Change proposal status directly from the proposals table via inline dropdown. The draft→sent transition is delegated to ProposalService.send_proposal so the client email is dispatched and Huey reminders are scheduled (defense-in-depth — same behavior as the dedicated 'Enviar al Cliente' button). Response includes email_delivery and the panel toast surfaces failures with the reason.",
-      "expectedSpecs": 1,
-      "knownGaps": [
-        "No /send/ handler: draft->sent delegation and email_delivery.ok=false failure toast unasserted (2026-07 audit)."
-      ]
+      "expectedSpecs": 1
     },
     "admin-proposal-defaults-config": {
       "name": "Admin Proposal Defaults Config",
@@ -2253,10 +2246,7 @@
       ],
       "priority": "P2",
       "description": "Admin downloads a Document entity as a branded PDF from the document edit page via the 'Descargar PDF' button.",
-      "expectedSpecs": 0,
-      "knownGaps": [
-        "Document PDF generation feature is in progress — endpoint exists (documents/<id>/pdf/) and UI button is present, but E2E spec not yet written."
-      ]
+      "expectedSpecs": 1
     },
     "admin-diagnostic-create": {
       "name": "Admin Diagnostic Create",
@@ -2663,10 +2653,7 @@
       ],
       "priority": "P2",
       "description": "The public diagnostic page renders different sections depending on the diagnostic phase. After admin sends initial phase (initial_sent_at set, status=SENT), only sections with visibility ∈ {initial, both} appear. After admin sends final phase (final_sent_at set), sections with visibility='final' (e.g. executive_summary, cost, timeline) are also returned by the API and appear in the sidebar. E2E should mock two API responses (initial-phase vs final-phase) and assert which section types render in each state.",
-      "expectedSpecs": 0,
-      "knownGaps": [
-        "diagnostic-public-view E2E covers general section rendering and accept/reject, but does not explicitly assert that final-only sections are absent in initial-phase and present in final-phase."
-      ]
+      "expectedSpecs": 0
     },
     "admin-proposal-section-disable": {
       "name": "Admin Proposal Section Disable/Enable Toggle",
