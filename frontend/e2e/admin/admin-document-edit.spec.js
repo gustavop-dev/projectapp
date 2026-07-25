@@ -142,7 +142,10 @@ test.describe('Admin Document Edit', () => {
     await page.goto('/panel/documents/1/edit');
 
     await page.getByRole('button', { name: /Descargar PDF/i }).click();
-    const amigableOption = page.getByRole('button', { name: 'Descargar · Amigable', exact: true });
+    // BaseDropdown items are HeadlessUI <MenuItem>s: it renders as="template" and
+    // spreads role="menuitem" onto the <button>, which overrides the implicit
+    // button role — so the a11y role here is menuitem, not button.
+    const amigableOption = page.getByRole('menuitem', { name: 'Descargar · Amigable', exact: true });
     await expect(amigableOption).toBeVisible();
 
     // The dropdown item is a dead button until this actually reaches the network —
