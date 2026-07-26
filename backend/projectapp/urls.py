@@ -1,3 +1,5 @@
+import os
+
 from django.conf import settings
 from django.http import HttpResponseNotFound, JsonResponse
 from django.urls import path, include, re_path
@@ -9,7 +11,15 @@ from content.views.blog import serve_sitemap_xml
 
 
 def health_check(request):
-    return JsonResponse({"status": "ok", "project": "projectapp"})
+    # 'project'/'environment' let external probes verify WHO answered: a shared
+    # codebase means the project name alone cannot tell prod from staging
+    # (measured: /qa pilot #3). DJANGO_ENV is read through settings because
+    # python-decouple resolves it from backend/.env, which os.getenv cannot see.
+    return JsonResponse({
+        "status": "ok",
+        "project": "projectapp",
+        "environment": getattr(settings, "DJANGO_ENV", os.getenv("DJANGO_ENV", "development")),
+    })
 
 
 def oauth_discovery_not_found(request, *args, **kwargs):
