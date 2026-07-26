@@ -87,6 +87,7 @@ test.describe('Proposal Section Onboarding', () => {
   test('first visit shows onboarding overlay with step 1', {
     tag: [...PROPOSAL_SECTION_ONBOARDING, '@role:guest'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (state-on-page-load test: first-visit overlay / localStorage suppression — the navigation IS the trigger; interactive coverage lives in the other 4 tests of this file)
     // Do NOT set proposal_onboarding_seen — simulate first visit
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
@@ -158,6 +159,7 @@ test.describe('Proposal Section Onboarding', () => {
   test('repeat visit does NOT show onboarding overlay', {
     tag: [...PROPOSAL_SECTION_ONBOARDING, '@role:guest'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (state-on-page-load test: first-visit overlay / localStorage suppression — the navigation IS the trigger; interactive coverage lives in the other 4 tests of this file)
     // Set localStorage to simulate repeat visit
     await page.addInitScript(() => {
       localStorage.setItem('proposal_onboarding_seen', 'true');

@@ -12,6 +12,7 @@ import {
   ADMIN_CLIENT_CREATE_STANDALONE,
   ADMIN_CLIENT_DELETE_ORPHAN,
   ADMIN_CLIENT_DELETE_PROTECTED,
+  ADMIN_PROPOSAL_DELETE_FROM_CLIENT,
 } from '../helpers/flow-tags.js';
 
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
@@ -127,6 +128,7 @@ function setupMock(page, {
   details = mockClientDetails,
   onDelete = null,
   onCreate = null,
+  onProposalDelete = null,
 } = {}) {
   return mockApi(page, async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') return authCheck;
@@ -175,6 +177,7 @@ function setupMock(page, {
     const proposalDeleteMatch = apiPath.match(/^proposals\/(\d+)\/delete\/$/);
     if (proposalDeleteMatch && method === 'DELETE') {
       const proposalId = Number(proposalDeleteMatch[1]);
+      if (onProposalDelete) return onProposalDelete(route, proposalId);
       for (const detail of Object.values(details)) {
         if (Array.isArray(detail.proposals)) {
           detail.proposals = detail.proposals.filter((p) => p.id !== proposalId);
@@ -492,7 +495,7 @@ test.describe('Admin Clients — Delete proposal/diagnostic from a client row', 
   }
 
   test('deletes a proposal from the row after typing DELETE', {
-    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin'],
+    tag: [...ADMIN_MINI_CRM_CLIENTS, ...ADMIN_PROPOSAL_DELETE_FROM_CLIENT, '@outcome:success', '@role:admin'],
   }, async ({ page }) => {
     // Clone so the mutation done by the delete handler does not leak across tests.
     await setupMock(page, { details: JSON.parse(JSON.stringify(mockClientDetails)) });
@@ -509,6 +512,35 @@ test.describe('Admin Clients — Delete proposal/diagnostic from a client row', 
     await expect(page.getByRole('link', { name: 'Propuesta Alpha' })).not.toBeVisible({ timeout: 5_000 });
     // Sibling proposals remain.
     await expect(page.getByRole('link', { name: 'Propuesta Beta' })).toBeVisible();
+  });
+
+  test('a 409 (project-linked) delete from the client row surfaces the backend error and keeps the proposal', {
+    tag: [...ADMIN_MINI_CRM_CLIENTS, ...ADMIN_PROPOSAL_DELETE_FROM_CLIENT, '@outcome:error', '@role:admin'],
+  }, async ({ page }) => {
+    // Clone so the (unused, in this 409 branch) mutation path never leaks across tests.
+    await setupMock(page, {
+      details: JSON.parse(JSON.stringify(mockClientDetails)),
+      onProposalDelete: () => ({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'La propuesta está vinculada a un proyecto lanzado.' }),
+      }),
+    });
+    await gotoClients(page);
+    await expandCarlos(page);
+
+    await page.getByTestId('client-proposal-delete-1').click();
+
+    const confirmBtn = page.getByRole('button', { name: 'Eliminar', exact: true });
+    await expect(confirmBtn).toBeVisible({ timeout: 5_000 });
+    await page.getByTestId('confirm-type-input').fill('DELETE');
+    await confirmBtn.click();
+
+    await expect(page.getByText('La propuesta está vinculada a un proyecto lanzado.')).toBeVisible({ timeout: 5_000 });
+    // Delete failed server-side (ProjectPhase on_delete=PROTECT) — the client-detail
+    // path must NOT drop the row optimistically, unlike a naive handler that ignores
+    // result.success and refetches/removes regardless of the API outcome.
+    await expect(page.getByRole('link', { name: 'Propuesta Alpha' })).toBeVisible();
   });
 
   test('deletes a diagnostic from the row after typing DELETE', {

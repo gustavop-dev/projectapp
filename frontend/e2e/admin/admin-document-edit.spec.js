@@ -11,7 +11,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_DOCUMENT_EDIT } from '../helpers/flow-tags.js';
+import { ADMIN_DOCUMENT_EDIT, ADMIN_DOCUMENT_PDF_DOWNLOAD } from '../helpers/flow-tags.js';
 
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
 
@@ -121,6 +121,46 @@ test.describe('Admin Document Edit', () => {
     await page.getByRole('button', { name: /Descargar PDF/i }).click();
     await expect(page.getByText(/Descargar · Amigable/i)).toBeVisible();
     await expect(page.getByText(/Descargar · Profesional/i)).toBeVisible();
+  });
+
+  test('clicking "Descargar · Amigable" fires the PDF request for the friendly template', {
+    tag: [...ADMIN_DOCUMENT_PDF_DOWNLOAD, '@outcome:success', '@role:admin'],
+  }, async ({ page }) => {
+    const documentWithMarkdown = {
+      ...mockDocument,
+      content_markdown: '# Contrato\n\nEste es el contenido del contrato.',
+      template_style: 'friendly',
+    };
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/1/detail/') return { status: 200, contentType: 'application/json', body: JSON.stringify(documentWithMarkdown) };
+      if (apiPath === 'documents/1/pdf/' && method === 'GET') {
+        return { status: 200, contentType: 'application/pdf', body: '%PDF-1.4 test' };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents/1/edit');
+
+    await page.getByRole('button', { name: /Descargar PDF/i }).click();
+    // BaseDropdown items are HeadlessUI <MenuItem>s: it renders as="template" and
+    // spreads role="menuitem" onto the <button>, which overrides the implicit
+    // button role — so the a11y role here is menuitem, not button.
+    const amigableOption = page.getByRole('menuitem', { name: 'Descargar · Amigable', exact: true });
+    await expect(amigableOption).toBeVisible();
+
+    // The dropdown item is a dead button until this actually reaches the network —
+    // bug this catches: wrong/missing template param, or the click never firing the
+    // request at all (previously only the visible labels were asserted, never a click).
+    const pdfResponse = page.waitForResponse(
+      (res) => res.url().includes('/api/documents/1/pdf/') && res.request().method() === 'GET',
+    );
+    await amigableOption.click();
+    const res = await pdfResponse;
+
+    expect(res.status()).toBe(200);
+    expect(res.url()).toContain('template=friendly');
+    const ct = res.headers()['content-type'] || '';
+    expect(ct).toMatch(/pdf/i);
   });
 
   test('pastes clipboard content into the markdown textarea', {
