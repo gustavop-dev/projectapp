@@ -172,29 +172,110 @@
             class="hover:bg-surface-raised transition-colors"
             :data-testid="`statement-tx-${tx.id}`"
           >
-            <td class="px-5 py-3 text-sm text-text-muted whitespace-nowrap">{{ tx.transaction_date }}</td>
-            <td class="px-5 py-3 text-xs text-text-subtle max-w-[220px] truncate" :title="tx.raw_description">
-              {{ tx.raw_description }}
-            </td>
-            <td class="px-5 py-3 text-sm">
-              <span v-if="tx.merchant_name" class="text-text-default">{{ tx.merchant_name }}</span>
-              <span
-                v-else
-                class="text-xs px-2 py-0.5 rounded-full font-medium bg-warning-soft text-warning-strong"
+            <td
+              class="px-5 py-3 text-sm text-text-muted whitespace-nowrap"
+              :data-testid="`tx-cell-transaction_date-${tx.id}`"
+            >
+              <AccountingInlineCell
+                v-if="!isProcessed"
+                type="date"
+                :value="tx.transaction_date"
+                :saving="inlineSavingKey === `${tx.id}:transaction_date`"
+                @save="$emit('inline-save', tx, 'transaction_date', $event)"
               >
-                Sin identificar
-              </span>
+                {{ tx.transaction_date }}
+              </AccountingInlineCell>
+              <template v-else>{{ tx.transaction_date }}</template>
             </td>
-            <td class="px-5 py-3 text-sm text-text-muted">{{ tx.category_label }}</td>
-            <td class="px-5 py-3 text-sm text-text-muted">{{ tx.installment_label || '—' }}</td>
+            <td
+              class="px-5 py-3 text-xs text-text-subtle max-w-[220px]"
+              :title="tx.raw_description"
+              :data-testid="`tx-cell-raw_description-${tx.id}`"
+            >
+              <AccountingInlineCell
+                v-if="!isProcessed"
+                :value="tx.raw_description"
+                :saving="inlineSavingKey === `${tx.id}:raw_description`"
+                @save="$emit('inline-save', tx, 'raw_description', $event)"
+              >
+                <span class="block truncate">{{ tx.raw_description }}</span>
+              </AccountingInlineCell>
+              <span v-else class="block truncate">{{ tx.raw_description }}</span>
+            </td>
+            <td class="px-5 py-3 text-sm" :data-testid="`tx-cell-merchant_name-${tx.id}`">
+              <AccountingInlineCell
+                v-if="!isProcessed"
+                :value="tx.merchant_name || ''"
+                :saving="inlineSavingKey === `${tx.id}:merchant_name`"
+                @save="$emit('inline-save', tx, 'merchant_name', $event)"
+              >
+                <span v-if="tx.merchant_name" class="text-text-default">{{ tx.merchant_name }}</span>
+                <span
+                  v-else
+                  class="text-xs px-2 py-0.5 rounded-full font-medium bg-warning-soft text-warning-strong"
+                >
+                  Sin identificar
+                </span>
+              </AccountingInlineCell>
+              <template v-else>
+                <span v-if="tx.merchant_name" class="text-text-default">{{ tx.merchant_name }}</span>
+                <span
+                  v-else
+                  class="text-xs px-2 py-0.5 rounded-full font-medium bg-warning-soft text-warning-strong"
+                >
+                  Sin identificar
+                </span>
+              </template>
+            </td>
+            <td class="px-5 py-3 text-sm text-text-muted" :data-testid="`tx-cell-category-${tx.id}`">
+              <AccountingInlineCell
+                v-if="!isProcessed"
+                type="select"
+                :value="tx.category"
+                :options="categoryOptions"
+                :saving="inlineSavingKey === `${tx.id}:category`"
+                @save="$emit('inline-save', tx, 'category', $event)"
+              >
+                {{ tx.category_label }}
+              </AccountingInlineCell>
+              <template v-else>{{ tx.category_label }}</template>
+            </td>
+            <td class="px-5 py-3 text-sm text-text-muted" :data-testid="`tx-cell-installment_label-${tx.id}`">
+              <AccountingInlineCell
+                v-if="!isProcessed"
+                :value="tx.installment_label || ''"
+                :saving="inlineSavingKey === `${tx.id}:installment_label`"
+                @save="$emit('inline-save', tx, 'installment_label', $event)"
+              >
+                {{ tx.installment_label || '—' }}
+              </AccountingInlineCell>
+              <template v-else>{{ tx.installment_label || '—' }}</template>
+            </td>
             <td
               class="px-5 py-3 text-sm font-medium text-right whitespace-nowrap"
               :class="Number(tx.amount) < 0 ? 'text-success-strong' : 'text-text-default'"
+              :data-testid="`tx-cell-amount-${tx.id}`"
             >
-              {{ money(tx.amount) }}
-              <span v-if="tx.original_currency" class="block text-[10px] font-normal text-text-subtle">
-                {{ tx.original_amount }} {{ tx.original_currency }}
-              </span>
+              <!-- Negative amounts (refunds) stay modal-only: the currency
+                   input strips the sign and a blur would flip it. -->
+              <AccountingInlineCell
+                v-if="!isProcessed && Number(tx.amount) >= 0"
+                type="money"
+                :value="tx.amount"
+                :saving="inlineSavingKey === `${tx.id}:amount`"
+                @save="$emit('inline-save', tx, 'amount', $event)"
+              >
+                {{ money(tx.amount) }}
+                <span v-if="tx.original_currency" class="block text-[10px] font-normal text-text-subtle">
+                  {{ tx.original_amount }} {{ tx.original_currency }}
+                </span>
+              </AccountingInlineCell>
+              <template v-else>
+                {{ money(tx.amount) }}
+                <span v-if="tx.original_currency" class="block text-[10px] font-normal text-text-subtle">
+                  {{ tx.original_amount }} {{ tx.original_currency }}
+                </span>
+              </template>
             </td>
             <td v-if="!isProcessed" class="px-5 py-3 text-right whitespace-nowrap">
               <button
@@ -219,6 +300,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
+import AccountingInlineCell from '~/components/accounting/AccountingInlineCell.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import { formatMoney } from '~/utils/formatMoney';
@@ -227,11 +309,15 @@ import { formatDate as formatDateBase } from '~/utils/formatDate';
 const props = defineProps({
   statement: { type: Object, required: true },
   isUpdating: { type: Boolean, default: false },
+  /** Category choices for the inline select: [{ value, label }]. */
+  categoryOptions: { type: Array, default: () => [] },
+  /** `${txId}:${field}` of the cell whose PATCH is in flight. */
+  inlineSavingKey: { type: String, default: null },
 });
 
 const emit = defineEmits([
   'finalize', 'reopen', 'delete', 'edit-tx', 'delete-tx',
-  'edit-header', 'add-tx', 'upload-pdf', 'delete-pdf',
+  'edit-header', 'add-tx', 'upload-pdf', 'delete-pdf', 'inline-save',
 ]);
 
 const pdfInput = ref(null);

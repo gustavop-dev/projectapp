@@ -19,10 +19,22 @@
       @keydown.esc="cancel"
       @blur="commit"
     />
+    <BaseSelect
+      v-else-if="type === 'select'"
+      ref="inputRef"
+      v-model="draft"
+      :options="options"
+      size="sm"
+      :disabled="saving"
+      @update:model-value="commit"
+      @keydown.esc="cancel"
+      @blur="commit"
+    />
     <BaseInput
       v-else
       ref="inputRef"
       v-model="draft"
+      :type="type === 'date' ? 'date' : 'text'"
       size="sm"
       :disabled="saving"
       @keydown.enter.prevent="commit"
@@ -36,16 +48,20 @@
 import { nextTick, ref } from 'vue';
 import BaseCurrencyInput from '~/components/base/BaseCurrencyInput.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
+import BaseSelect from '~/components/base/BaseSelect.vue';
 
 /**
  * Double-click-to-edit table cell. Enter/blur saves (emits `save` only when
- * the value changed), Esc cancels. On a failed PATCH the parent leaves the
- * row untouched, so re-rendering falls back to the old value for free.
- * Custom display markup goes in the default slot.
+ * the value changed), Esc cancels; a select commits as soon as an option is
+ * picked (choosing one is the intent). On a failed PATCH the parent leaves
+ * the row untouched, so re-rendering falls back to the old value for free.
+ * Custom display markup goes in the default slot — for selects it shows the
+ * label while `value`/`save` carry the option value.
  */
 const props = defineProps({
   value: { type: [String, Number], default: '' },
-  type: { type: String, default: 'text' }, // 'text' | 'money'
+  type: { type: String, default: 'text' }, // 'text' | 'money' | 'date' | 'select'
+  options: { type: Array, default: () => [] }, // [{ value, label }], select only
   saving: { type: Boolean, default: false },
 });
 
