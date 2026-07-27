@@ -106,16 +106,6 @@ function buildHandler({
   };
 }
 
-async function openFilterPanel(page) {
-  // The toggle carries an active-filter count, so match loosely.
-  await page.getByRole('button', { name: /Filtros/ }).click();
-}
-
-// Column headers share names with filter options, so scope to the panel.
-function filterPanel(page) {
-  return page.getByTestId('accounting-filter-panel');
-}
-
 async function gotoIncomes(page) {
   await page.goto('/panel/accounting/incomes', { waitUntil: 'domcontentloaded' });
   await expect(
@@ -338,7 +328,7 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await expect(page.getByTestId('income-payment-11')).toContainText('600.000');
   });
 
-  test('hides written-off income until the Pérdidas filter is used', {
+  test('shows written-off income in Todos and isolates it with the Perdidos tab', {
     tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({
@@ -348,16 +338,16 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     }));
     await gotoIncomes(page);
 
-    // "Todos" is the working set: the lost row is out.
+    // "Todos" really shows everything, written-off rows included.
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
-    await expect(page.getByTestId('accounting-row-12')).toHaveCount(0);
+    await expect(page.getByTestId('accounting-row-12')).toBeVisible();
+    await expect(page.getByTestId('incomes-total-lost')).toContainText('460.000');
 
-    await openFilterPanel(page);
-    await filterPanel(page).getByRole('tab', { name: 'Pérdidas' }).click();
+    // The builtin quick tab isolates the lost rows.
+    await page.getByTestId('filter-tabs-tab-lost').click();
 
     await expect(page.getByTestId('accounting-row-12')).toBeVisible();
     await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
-    await expect(page.getByTestId('incomes-total-lost')).toContainText('460.000');
   });
 
   test('liquidating prefills the pending amount and keeps the expected row', {
@@ -433,9 +423,7 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await mockApi(page, buildHandler({ rows: [lostRow()], calls: [] }));
     await gotoIncomes(page);
 
-    await openFilterPanel(page);
-    await filterPanel(page).getByRole('tab', { name: 'Pérdidas' }).click();
-
+    // Lost rows are visible in the default "Todos" view.
     await expect(page.getByTestId('accounting-row-12')).toBeVisible();
     await expect(page.getByTestId('income-liquidate-12')).toHaveCount(0);
     await expect(page.getByTestId('income-write-off-12')).toHaveCount(0);

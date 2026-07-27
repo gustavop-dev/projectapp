@@ -121,6 +121,10 @@ export function useAccountingFilters({
   defaults = {},
   matchers = {},
   searchFields = [],
+  // Fixed quick-filter tabs rendered before the saved ones. Items are
+  // `{ id, name, filters }` with non-numeric string ids ('lost'); they are
+  // never persisted server-side and cannot be renamed or deleted.
+  builtinTabs = [],
 } = {}) {
   const route = useRoute();
   const router = useRouter();
@@ -145,6 +149,12 @@ export function useAccountingFilters({
 
   const tabs = useSavedFilterTabs(viewName);
   const { savedTabs, isTabLimitReached } = tabs;
+
+  const builtinById = new Map(builtinTabs.map((t) => [String(t.id), t]));
+  const displayTabs = computed(() => [
+    ...builtinTabs.map((t) => ({ id: t.id, name: t.name, builtin: true })),
+    ...savedTabs.value,
+  ]);
 
   // Debounced free-text search: pages bind their search box to
   // `searchInput`; the actual `currentFilters.search` value (which drives
@@ -195,7 +205,10 @@ export function useAccountingFilters({
   watch(
     currentFilters,
     () => {
-      if (activeTabId.value !== 'all') {
+      if (
+        activeTabId.value !== 'all'
+        && !builtinById.has(String(activeTabId.value))
+      ) {
         tabs.updateTabFilters(numericTabId(activeTabId.value), cloneFilters(currentFilters));
       }
     },
@@ -203,13 +216,17 @@ export function useAccountingFilters({
   );
 
   onMounted(async () => {
+    // Builtin tabs restore locally — no server round-trip, and being quick
+    // filters they never pop the filter panel open.
+    const builtin = builtinById.get(String(activeTabId.value));
+    if (builtin) loadTabFilters(currentFilters, builtin);
     try {
       await tabs.loadTabs();
     } catch {
       // Saved tabs must never break local filtering.
       return;
     }
-    if (activeTabId.value !== 'all') {
+    if (activeTabId.value !== 'all' && !builtin) {
       const tab = savedTabs.value.find((t) => String(t.id) === String(activeTabId.value));
       if (tab) {
         loadTabFilters(currentFilters, tab);
@@ -279,6 +296,12 @@ export function useAccountingFilters({
   }
 
   function selectTab(tabId) {
+    const builtin = builtinById.get(String(tabId));
+    if (builtin) {
+      activeTabId.value = builtin.id;
+      loadTabFilters(currentFilters, builtin);
+      return;
+    }
     activeTabId.value = tabId;
     if (tabId === 'all') {
       Object.assign(currentFilters, freshFilters());
@@ -311,6 +334,7 @@ export function useAccountingFilters({
     currentFilters,
     searchInput,
     savedTabs,
+    displayTabs,
     activeTabId,
     isFilterPanelOpen,
     hasActiveFilters,

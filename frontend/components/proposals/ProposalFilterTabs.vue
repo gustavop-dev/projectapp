@@ -50,8 +50,9 @@
         >
           {{ tab.name }}
         </button>
-        <!-- Tab context menu trigger -->
+        <!-- Tab context menu trigger (builtin tabs can't be renamed/deleted) -->
         <button
+          v-if="!tab.builtin"
           type="button"
           :data-testid="`filter-tabs-menu-${tab.id}`"
           class="p-0.5 rounded text-text-subtle hover:text-text-muted opacity-0 group-hover:opacity-100 transition-opacity -ml-1 mr-1"
@@ -63,7 +64,7 @@
         </button>
         <!-- Dropdown menu -->
         <div
-          v-if="openMenuId === tab.id"
+          v-if="!tab.builtin && openMenuId === tab.id"
           class="absolute top-full left-0 mt-1 z-50 bg-surface border border-border-default rounded-lg shadow-lg py-1 min-w-[140px]"
         >
           <button

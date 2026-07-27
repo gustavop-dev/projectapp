@@ -50,9 +50,9 @@
       />
     </div>
 
-    <!-- Saved filter tabs -->
+    <!-- Quick + saved filter tabs -->
     <ProposalFilterTabs
-      :tabs="savedTabs"
+      :tabs="displayTabs"
       :active-tab-id="filterTabId"
       :is-tab-limit-reached="isTabLimitReached"
       @select="selectFilterTab"
@@ -330,7 +330,7 @@ matchPartner.keys = ['partner'];
 const {
   currentFilters,
   searchInput,
-  savedTabs,
+  displayTabs,
   activeTabId: filterTabId,
   isFilterPanelOpen,
   hasActiveFilters,
@@ -344,6 +344,7 @@ const {
   renameTab: renameFilterTab,
 } = useAccountingFilters({
   viewName: 'accounting_income',
+  builtinTabs: [{ id: 'lost', name: 'Perdidos', filters: { kind: 'lost' } }],
   defaults: {
     periodAfter: '',
     periodBefore: '',
@@ -412,29 +413,15 @@ const EXPORT_MAPPING = {
   search: 'q',
 };
 
-const exportParams = computed(() => {
-  const params = buildExportParams(currentFilters, EXPORT_MAPPING);
-  // Mirror the "Todos" rule: without this the CSV would carry the
-  // written-off rows the table is hiding. The server ORs comma lists.
-  if (!currentFilters.kind) params.kind = 'expected,liquid';
-  return params;
-});
+const exportParams = computed(() =>
+  buildExportParams(currentFilters, EXPORT_MAPPING),
+);
 
 // -------------------------------------------------------------------
 // Data + CRUD controller (modal, delete confirm, pagination)
 // -------------------------------------------------------------------
 
-// Written-off income is money we already know is gone, so it stays out of
-// the working set until asked for by name. This has to happen before
-// applyFilters: that helper skips any matcher still sitting on its default,
-// so a `kind: ''` rule inside it would never run.
-const workingSet = computed(() =>
-  currentFilters.kind
-    ? store.incomes
-    : store.incomes.filter((record) => record.kind !== 'lost'),
-);
-
-const filteredRecords = computed(() => applyFilters(workingSet.value));
+const filteredRecords = computed(() => applyFilters(store.incomes));
 
 const {
   isModalOpen,
