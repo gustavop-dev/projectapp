@@ -41,7 +41,7 @@ test.describe('Admin Hour Packages List', () => {
   });
 
   test('renders COL packages with COP prices by default', {
-    tag: [...ADMIN_HOUR_PACKAGES_LIST, '@role:admin'],
+    tag: [...ADMIN_HOUR_PACKAGES_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/hour-packages');
@@ -54,7 +54,7 @@ test.describe('Admin Hour Packages List', () => {
   });
 
   test('switching to the EXT tab shows USD prices for that country', {
-    tag: [...ADMIN_HOUR_PACKAGES_LIST, '@role:admin'],
+    tag: [...ADMIN_HOUR_PACKAGES_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/hour-packages');
@@ -71,7 +71,7 @@ test.describe('Admin Hour Packages List', () => {
   });
 
   test('shows empty state for a nationality without packages', {
-    tag: [...ADMIN_HOUR_PACKAGES_LIST, '@role:admin'],
+    tag: [...ADMIN_HOUR_PACKAGES_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/hour-packages');
@@ -82,7 +82,7 @@ test.describe('Admin Hour Packages List', () => {
   });
 
   test('paginates when the list exceeds one page', {
-    tag: [...ADMIN_HOUR_PACKAGES_LIST, '@role:admin'],
+    tag: [...ADMIN_HOUR_PACKAGES_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const many = Array.from({ length: 14 }, (_, i) => ({
       id: 100 + i,
@@ -112,7 +112,7 @@ test.describe('Admin Hour Packages List', () => {
   });
 
   test('mobile viewport renders the card variant instead of the table', {
-    tag: [...ADMIN_HOUR_PACKAGES_LIST, '@role:admin'],
+    tag: [...ADMIN_HOUR_PACKAGES_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await setupMock(page);

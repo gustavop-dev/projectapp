@@ -156,7 +156,7 @@ test.describe('Admin Clients Drag Reassign', () => {
   });
 
   test('dropping a proposal on another client PATCHes client_id and notifies', {
-    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin'],
+    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const updates = [];
     await setupMock(page, { onProposalUpdate: (id, body) => updates.push({ id, body }) });
@@ -169,7 +169,7 @@ test.describe('Admin Clients Drag Reassign', () => {
   });
 
   test('dropping a proposal on another client proposals zone PATCHes client_id', {
-    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin'],
+    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const updates = [];
     await setupMock(page, { onProposalUpdate: (id, body) => updates.push({ id, body }) });
@@ -184,7 +184,7 @@ test.describe('Admin Clients Drag Reassign', () => {
   });
 
   test('dropping a diagnostic on another client diagnostics zone PATCHes client_id', {
-    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin'],
+    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const updates = [];
     await setupMock(page, { onDiagnosticUpdate: (id, body) => updates.push({ id, body }) });
@@ -199,7 +199,7 @@ test.describe('Admin Clients Drag Reassign', () => {
   });
 
   test('dropping a diagnostic on a proposals zone issues no PATCH', {
-    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin'],
+    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const updates = [];
     await setupMock(page, {
@@ -217,7 +217,7 @@ test.describe('Admin Clients Drag Reassign', () => {
   });
 
   test('dropping a diagnostic on another client PATCHes client_id', {
-    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin'],
+    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const updates = [];
     await setupMock(page, { onDiagnosticUpdate: (id, body) => updates.push({ id, body }) });
@@ -231,7 +231,7 @@ test.describe('Admin Clients Drag Reassign', () => {
   });
 
   test('dropping on the source client issues no PATCH', {
-    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin'],
+    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const updates = [];
     await setupMock(page, {
@@ -247,7 +247,7 @@ test.describe('Admin Clients Drag Reassign', () => {
   });
 
   test('the Deshacer action on the toast reassigns the item back', {
-    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin'],
+    tag: [...ADMIN_CLIENT_DRAG_REASSIGN, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const updates = [];
     await setupMock(page, { onProposalUpdate: (id, body) => updates.push({ id, body }) });

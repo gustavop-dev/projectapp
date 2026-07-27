@@ -39,7 +39,7 @@ test.describe('Admin Portfolio Create', () => {
   });
 
   test('renders form with Manual/JSON tabs', {
-    tag: [...ADMIN_PORTFOLIO_CREATE, '@role:admin'],
+    tag: [...ADMIN_PORTFOLIO_CREATE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the create form renders its Manual/JSON tabs and language fieldsets; the create interactions are covered below)
     await setupMock(page);
@@ -52,7 +52,7 @@ test.describe('Admin Portfolio Create', () => {
   });
 
   test('manual mode: fills fields and submits successfully', {
-    tag: [...ADMIN_PORTFOLIO_CREATE, '@role:admin'],
+    tag: [...ADMIN_PORTFOLIO_CREATE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio/create');
@@ -68,7 +68,7 @@ test.describe('Admin Portfolio Create', () => {
   });
 
   test('switches to JSON import tab and shows template download', {
-    tag: [...ADMIN_PORTFOLIO_CREATE, '@role:admin'],
+    tag: [...ADMIN_PORTFOLIO_CREATE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio/create');
@@ -81,7 +81,7 @@ test.describe('Admin Portfolio Create', () => {
   });
 
   test('JSON mode: paste valid JSON shows preview and submit button', {
-    tag: [...ADMIN_PORTFOLIO_CREATE, '@role:admin'],
+    tag: [...ADMIN_PORTFOLIO_CREATE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio/create');
@@ -103,7 +103,7 @@ test.describe('Admin Portfolio Create', () => {
   });
 
   test('JSON mode: paste invalid JSON shows error', {
-    tag: [...ADMIN_PORTFOLIO_CREATE, '@role:admin'],
+    tag: [...ADMIN_PORTFOLIO_CREATE, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio/create');

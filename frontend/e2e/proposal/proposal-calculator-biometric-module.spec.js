@@ -162,7 +162,7 @@ test.describe('Proposal Calculator — Biometric Verification Module (provider-b
   });
 
   test('clicking biometric module reveals invite note', {
-    tag: [...PROPOSAL_CALCULATOR_BIOMETRIC_MODULE, '@role:guest'],
+    tag: [...PROPOSAL_CALCULATOR_BIOMETRIC_MODULE, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await openCalculatorModal(page);

@@ -85,7 +85,7 @@ test.describe('Proposal Functional Requirements Modal', () => {
   });
 
   test('clicking a group card opens detail modal with items', {
-    tag: [...PROPOSAL_FUNCTIONAL_REQUIREMENTS_MODAL, '@role:guest'],
+    tag: [...PROPOSAL_FUNCTIONAL_REQUIREMENTS_MODAL, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === `proposals/${MOCK_UUID}/`) {

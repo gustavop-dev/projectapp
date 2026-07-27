@@ -10,7 +10,7 @@ import { PUBLIC_HOME } from '../helpers/flow-tags.js';
 
 test.describe('Home Page', () => {
   test('toggling a FAQ item reveals then hides its answer', {
-    tag: [...PUBLIC_HOME, '@role:guest'],
+    tag: ['@outcome:display', ...PUBLIC_HOME, '@role:guest'],
   }, async ({ page }) => {
     // Fails if the FAQ accordion stops opening/closing on click (broken
     // <details> binding or a regression in the section markup).

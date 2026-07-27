@@ -153,7 +153,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
   });
 
   test('ads list shows the accumulated column', {
-    tag: [...ADMIN_ACCOUNTING_ADS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_ADS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — ads list renders rows with the accumulated column; the create interaction is covered below)
     await mockApi(page, buildHandler({ calls: [] }));
@@ -169,7 +169,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
   });
 
   test('creates an ads spend through the modal', {
-    tag: [...ADMIN_ACCOUNTING_ADS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_ADS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
@@ -194,7 +194,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
   });
 
   test('history renders audit rows and expands the field diff', {
-    tag: [...ADMIN_ACCOUNTING_HISTORY, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_HISTORY, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/history', { waitUntil: 'domcontentloaded' });
@@ -212,7 +212,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
   });
 
   test('history entity filter refires the fetch with entity_type', {
-    tag: [...ADMIN_ACCOUNTING_HISTORY, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_HISTORY, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-render-only (contract test — asserts the entity filter refires the fetch with entity_type=expense; the mock returns a fixed dataset so there is no distinct rendered result to assert)
     const calls = [];
@@ -228,7 +228,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
   });
 
   test('history shows the server-side pagination summary', {
-    tag: [...ADMIN_ACCOUNTING_HISTORY, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_HISTORY, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — history renders the server-side pagination summary)
     await mockApi(page, buildHandler({ calls: [] }));
@@ -240,7 +240,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
   });
 
   test('settings adds a recipient and saves both emails', {
-    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:display', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
@@ -266,7 +266,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
   });
 
   test('settings persists the card-debt reminder toggle', {
-    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
@@ -285,7 +285,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
   });
 
   test('settings blocks saving an invalid email', {
-    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));

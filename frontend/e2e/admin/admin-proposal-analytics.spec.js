@@ -88,7 +88,7 @@ test.describe('Admin Proposal Analytics', () => {
   });
 
   test('analytics tab renders summary cards with metrics', {
-    tag: [...ADMIN_PROPOSAL_ANALYTICS, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ANALYTICS, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
@@ -99,7 +99,7 @@ test.describe('Admin Proposal Analytics', () => {
   });
 
   test('analytics tab shows comparison badges', {
-    tag: [...ADMIN_PROPOSAL_ANALYTICS, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ANALYTICS, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
@@ -109,7 +109,7 @@ test.describe('Admin Proposal Analytics', () => {
   });
 
   test('analytics tab shows CSV export button', {
-    tag: [...ADMIN_PROPOSAL_ANALYTICS, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ANALYTICS, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
@@ -119,7 +119,7 @@ test.describe('Admin Proposal Analytics', () => {
   });
 
   test('analytics tab renders engagement score with color-coded level', {
-    tag: [...ADMIN_PROPOSAL_ENGAGEMENT_SCORE, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ENGAGEMENT_SCORE, '@role:admin'],
   }, async ({ page }) => {
     const analyticsWithScore = { ...mockAnalytics, engagement_score: 75 };
     await mockApi(page, async ({ apiPath }) => {
@@ -137,7 +137,7 @@ test.describe('Admin Proposal Analytics', () => {
   });
 
   test('engagement score shows low engagement warning when score is below 40', {
-    tag: [...ADMIN_PROPOSAL_ENGAGEMENT_SCORE, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ENGAGEMENT_SCORE, '@role:admin'],
   }, async ({ page }) => {
     const analyticsLowScore = { ...mockAnalytics, engagement_score: 20 };
     await mockApi(page, async ({ apiPath }) => {

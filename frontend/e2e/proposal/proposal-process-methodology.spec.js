@@ -49,7 +49,7 @@ test.describe('Proposal Process & Methodology', () => {
   });
 
   test('renders 5-step pipeline with correct step titles', {
-    tag: [...PROPOSAL_PROCESS_METHODOLOGY, '@role:client'],
+    tag: [...PROPOSAL_PROCESS_METHODOLOGY, '@role:client', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);

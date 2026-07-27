@@ -56,7 +56,7 @@ test.describe('Admin Diagnostic Bulk Actions', () => {
   });
 
   test('deleting selected diagnostics POSTs to bulk-action/ after confirmation', {
-    tag: [...ADMIN_DIAGNOSTIC_BULK_ACTIONS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_BULK_ACTIONS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let bulkPayload = null;
 
@@ -97,7 +97,7 @@ test.describe('Admin Diagnostic Bulk Actions', () => {
   });
 
   test('"Cancelar" clears the selection and hides the bulk-actions bar', {
-    tag: [...ADMIN_DIAGNOSTIC_BULK_ACTIONS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_BULK_ACTIONS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;

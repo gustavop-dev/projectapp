@@ -100,7 +100,7 @@ test.describe('Admin Diagnostic — Generar NDA', () => {
   });
 
   test('submits ConfidentialityParamsModal and switches section to generated state', {
-    tag: [...ADMIN_DIAGNOSTIC_CONFIDENTIALITY_GENERATE, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_CONFIDENTIALITY_GENERATE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let capturedPayload = null;
     const generatedAttachment = {
@@ -172,7 +172,7 @@ test.describe('Admin Diagnostic — Generar NDA', () => {
   });
 
   test('surfaces server error when POST /confidentiality/params/ returns 400', {
-    tag: [...ADMIN_DIAGNOSTIC_CONFIDENTIALITY_GENERATE, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_CONFIDENTIALITY_GENERATE, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === `diagnostics/${DIAG_ID}/confidentiality/params/` && method === 'POST') {

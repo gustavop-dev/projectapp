@@ -82,7 +82,7 @@ test.describe('Admin Unified Defaults Shell', () => {
   });
 
   test('defaults to proposal mode on direct navigation', {
-    tag: [...ADMIN_DEFAULTS_UNIFIED, '@role:admin'],
+    tag: [...ADMIN_DEFAULTS_UNIFIED, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async (info) => buildHandler(info));
     await page.goto('/panel/defaults', { waitUntil: 'domcontentloaded' });
@@ -103,7 +103,7 @@ test.describe('Admin Unified Defaults Shell', () => {
   });
 
   test('clicking Diagnóstico switch updates URL to ?mode=diagnostic', {
-    tag: [...ADMIN_DEFAULTS_UNIFIED, '@role:admin'],
+    tag: [...ADMIN_DEFAULTS_UNIFIED, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async (info) => buildHandler(info));
     await page.goto('/panel/defaults', { waitUntil: 'domcontentloaded' });
@@ -116,7 +116,7 @@ test.describe('Admin Unified Defaults Shell', () => {
   });
 
   test('direct navigation to ?mode=diagnostic activates diagnostic mode', {
-    tag: [...ADMIN_DEFAULTS_UNIFIED, '@role:admin'],
+    tag: [...ADMIN_DEFAULTS_UNIFIED, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async (info) => buildHandler(info));
     await page.goto('/panel/defaults?mode=diagnostic', { waitUntil: 'domcontentloaded' });
@@ -127,7 +127,7 @@ test.describe('Admin Unified Defaults Shell', () => {
   });
 
   test('back link shows "Volver a Propuestas" in proposal mode', {
-    tag: [...ADMIN_DEFAULTS_UNIFIED, '@role:admin'],
+    tag: [...ADMIN_DEFAULTS_UNIFIED, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async (info) => buildHandler(info));
     await page.goto('/panel/defaults', { waitUntil: 'domcontentloaded' });
@@ -136,7 +136,7 @@ test.describe('Admin Unified Defaults Shell', () => {
   });
 
   test('back link shows "Volver a Diagnósticos" in diagnostic mode', {
-    tag: [...ADMIN_DEFAULTS_UNIFIED, '@role:admin'],
+    tag: [...ADMIN_DEFAULTS_UNIFIED, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async (info) => buildHandler(info));
     await page.goto('/panel/defaults?mode=diagnostic', { waitUntil: 'domcontentloaded' });
@@ -145,7 +145,7 @@ test.describe('Admin Unified Defaults Shell', () => {
   });
 
   test('/panel/proposals/defaults redirects to /panel/defaults?mode=proposal', {
-    tag: [...ADMIN_DEFAULTS_UNIFIED, '@role:admin'],
+    tag: [...ADMIN_DEFAULTS_UNIFIED, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async (info) => buildHandler(info));
     await page.goto('/panel/proposals/defaults', { waitUntil: 'domcontentloaded' });
@@ -155,7 +155,7 @@ test.describe('Admin Unified Defaults Shell', () => {
   });
 
   test('/panel/diagnostics/defaults redirects to /panel/defaults?mode=diagnostic', {
-    tag: [...ADMIN_DEFAULTS_UNIFIED, '@role:admin'],
+    tag: [...ADMIN_DEFAULTS_UNIFIED, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async (info) => buildHandler(info));
     await page.goto('/panel/diagnostics/defaults', { waitUntil: 'domcontentloaded' });

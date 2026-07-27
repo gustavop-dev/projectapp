@@ -39,7 +39,7 @@ test.describe('Proposal Countdown Realtime', () => {
   });
 
   test('shows HH:MM countdown when proposal expires within 48 hours', {
-    tag: [...PROPOSAL_COUNTDOWN_REALTIME, '@role:client'],
+    tag: [...PROPOSAL_COUNTDOWN_REALTIME, '@role:client', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the real-time countdown badge renders HH:MM when expiry is within 48h; a passive timer has no user action)
     // Set expiry 12 hours from now

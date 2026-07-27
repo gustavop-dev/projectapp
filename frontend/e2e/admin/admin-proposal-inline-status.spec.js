@@ -128,7 +128,7 @@ test.describe('Admin Proposal Inline Status Change', () => {
   });
 
   test('draft to sent surfaces the email_delivery failure toast', {
-    tag: [...ADMIN_PROPOSAL_INLINE_STATUS_CHANGE, '@role:admin'],
+    tag: ['@outcome:failure', ...ADMIN_PROPOSAL_INLINE_STATUS_CHANGE, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page, {
       emailDelivery: { ok: false, reason: 'placeholder_email', detail: 'El cliente no tiene un email real configurado.' },

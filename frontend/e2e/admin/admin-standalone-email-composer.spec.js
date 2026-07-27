@@ -115,7 +115,7 @@ test.describe('Admin Standalone Email Composer', () => {
   });
 
   test('renders email composer page with form fields', {
-    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMocks(page);
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
@@ -126,7 +126,7 @@ test.describe('Admin Standalone Email Composer', () => {
   });
 
   test('send button is disabled when required fields are empty', {
-    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMocks(page);
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
@@ -137,7 +137,7 @@ test.describe('Admin Standalone Email Composer', () => {
   });
 
   test('enables send button when recipient, subject, and section are filled', {
-    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMocks(page);
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
@@ -152,7 +152,7 @@ test.describe('Admin Standalone Email Composer', () => {
   });
 
   test('sends email and shows success message', {
-    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMocks(page);
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
@@ -172,7 +172,7 @@ test.describe('Admin Standalone Email Composer', () => {
   });
 
   test('preview tab fetches the server-rendered template into an iframe', {
-    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMocks(page);
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
@@ -194,7 +194,7 @@ test.describe('Admin Standalone Email Composer', () => {
   });
 
   test('markdown toggle sends the section flagged as markdown', {
-    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMocks(page);
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
@@ -217,7 +217,7 @@ test.describe('Admin Standalone Email Composer', () => {
   });
 
   test('renders email history with entries in the Historial tab', {
-    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMocks(page, { history: mockHistoryWithEntries });
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
@@ -231,7 +231,7 @@ test.describe('Admin Standalone Email Composer', () => {
   });
 
   test('shows empty history state in the Historial tab', {
-    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMocks(page, { history: mockHistoryEmpty });
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
@@ -244,7 +244,7 @@ test.describe('Admin Standalone Email Composer', () => {
   });
 
   test('defaults tab shows the config form prefilled from the API', {
-    tag: [...ADMIN_STANDALONE_EMAIL_DEFAULTS, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_DEFAULTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMocks(page);
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
@@ -259,7 +259,7 @@ test.describe('Admin Standalone Email Composer', () => {
   });
 
   test('saving defaults sends a PUT with greeting, footer and signer', {
-    tag: [...ADMIN_STANDALONE_EMAIL_DEFAULTS, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_DEFAULTS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMocks(page);
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
@@ -305,7 +305,7 @@ test.describe('Admin Standalone Email Composer — gaps', () => {
   });
 
   test('adds a new content section from the add button', {
-    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMocks(page);
     await page.goto('/panel/emails');
@@ -317,7 +317,7 @@ test.describe('Admin Standalone Email Composer — gaps', () => {
   });
 
   test('removes an extra section from its delete button', {
-    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMocks(page);
     await page.goto('/panel/emails');
@@ -337,7 +337,7 @@ test.describe('Admin Standalone Email Composer — gaps', () => {
   });
 
   test('shows the send error and keeps the form when the POST fails', {
-    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -358,7 +358,7 @@ test.describe('Admin Standalone Email Composer — gaps', () => {
   });
 
   test('history "Cargar más" fetches and appends the next page', {
-    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const pageOne = { ...mockHistoryWithEntries, has_next: true, total: 3 };
     const pageTwo = {
@@ -388,7 +388,7 @@ test.describe('Admin Standalone Email Composer — gaps', () => {
   });
 
   test('restore defaults submits the original registry values', {
-    tag: [...ADMIN_STANDALONE_EMAIL_DEFAULTS, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_DEFAULTS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let putBody = null;
     await mockApi(page, async ({ route, apiPath, method }) => {
@@ -412,7 +412,7 @@ test.describe('Admin Standalone Email Composer — gaps', () => {
   });
 
   test('invalid signer surfaces the backend 400 message', {
-    tag: [...ADMIN_STANDALONE_EMAIL_DEFAULTS, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_DEFAULTS, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'auth/check/') return authCheck;

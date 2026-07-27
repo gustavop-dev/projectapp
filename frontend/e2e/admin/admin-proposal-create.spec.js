@@ -203,7 +203,7 @@ test.describe('Admin Proposal Create from JSON', () => {
   });
 
   test('pasting JSON without general key shows validation error', {
-    tag: [...ADMIN_PROPOSAL_CREATE_FROM_JSON, '@role:admin'],
+    tag: ['@outcome:error', ...ADMIN_PROPOSAL_CREATE_FROM_JSON, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -221,7 +221,7 @@ test.describe('Admin Proposal Create from JSON', () => {
   });
 
   test('pasting invalid JSON shows syntax error', {
-    tag: [...ADMIN_PROPOSAL_CREATE_FROM_JSON, '@role:admin'],
+    tag: ['@outcome:error', ...ADMIN_PROPOSAL_CREATE_FROM_JSON, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -397,7 +397,7 @@ test.describe('Admin Proposal Create Preview', () => {
   const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
 
   test('post-creation modal shows three action options', {
-    tag: [...ADMIN_PROPOSAL_CREATE_PREVIEW, '@role:admin'],
+    tag: ['@outcome:success', '@outcome:display', ...ADMIN_PROPOSAL_CREATE_PREVIEW, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -431,7 +431,7 @@ test.describe('Admin Proposal Create Preview', () => {
   });
 
   test('post-creation modal shows "Enviar al Cliente" when client data is complete', {
-    tag: [...ADMIN_PROPOSAL_CREATE_PREVIEW, '@role:admin'],
+    tag: ['@outcome:success', '@outcome:display', ...ADMIN_PROPOSAL_CREATE_PREVIEW, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;

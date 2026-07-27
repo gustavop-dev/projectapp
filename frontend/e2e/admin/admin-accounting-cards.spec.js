@@ -110,7 +110,7 @@ test.describe('Admin Accounting Cards', () => {
   });
 
   test('defaults the card filter to the registered catalog cards', {
-    tag: [...ADMIN_ACCOUNTING_CARDS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_CARDS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // T.C 0655 exists only in old snapshots — not in the catalog.
     await mockApi(page, buildHandler({
@@ -139,7 +139,7 @@ test.describe('Admin Accounting Cards', () => {
   });
 
   test('card filter options combine the catalog and historical names', {
-    tag: [...ADMIN_ACCOUNTING_CARDS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_CARDS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({
       rows: [snapshotRow({ card_name: 'T.C 0655' })],
@@ -172,7 +172,7 @@ test.describe('Admin Accounting Cards', () => {
   });
 
   test('a saved tab in the URL wins over the default card filter', {
-    tag: [...ADMIN_ACCOUNTING_CARDS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_CARDS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({
       rows: [
@@ -198,7 +198,7 @@ test.describe('Admin Accounting Cards', () => {
   });
 
   test('creates a snapshot with today as the default date', {
-    tag: [...ADMIN_ACCOUNTING_CARDS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_CARDS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ rows: [], calls }));
@@ -227,7 +227,7 @@ test.describe('Admin Accounting Cards', () => {
   });
 
   test('edit prefills and PATCHes; delete asks for confirmation', {
-    tag: [...ADMIN_ACCOUNTING_CARDS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_CARDS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ rows: [snapshotRow()], calls }));

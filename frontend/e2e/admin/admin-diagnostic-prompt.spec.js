@@ -71,7 +71,7 @@ test.describe('Admin Diagnostic — Prompt editor tab', () => {
   });
 
   test('Prompt tab shows commercial/technical sub-tabs with action buttons', {
-    tag: [...ADMIN_DIAGNOSTIC_PROMPT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_PROMPT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -91,7 +91,7 @@ test.describe('Admin Diagnostic — Prompt editor tab', () => {
   });
 
   test('Editar switches to edit mode with Guardar/Cancelar buttons and editable textarea', {
-    tag: [...ADMIN_DIAGNOSTIC_PROMPT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_PROMPT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -106,7 +106,7 @@ test.describe('Admin Diagnostic — Prompt editor tab', () => {
   });
 
   test('saves a custom prompt and shows "Restaurar original" button', {
-    tag: [...ADMIN_DIAGNOSTIC_PROMPT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_PROMPT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -127,7 +127,7 @@ test.describe('Admin Diagnostic — Prompt editor tab', () => {
   });
 
   test('Restaurar original reverts custom prompt and hides "Restaurar original"', {
-    tag: [...ADMIN_DIAGNOSTIC_PROMPT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_PROMPT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     // Seed a custom prompt via localStorage before navigation.
     await page.addInitScript(() => {
@@ -148,7 +148,7 @@ test.describe('Admin Diagnostic — Prompt editor tab', () => {
   });
 
   test('Detalle técnico sub-tab shows its own prompt editor', {
-    tag: [...ADMIN_DIAGNOSTIC_PROMPT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_PROMPT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);

@@ -9,7 +9,7 @@ import { PUBLIC_LANDING_APPS } from '../helpers/flow-tags.js';
 
 test.describe('Landing App Development', () => {
   test('renders the landing apps page with its heading', {
-    tag: [...PUBLIC_LANDING_APPS, '@role:guest'],
+    tag: ['@outcome:display', ...PUBLIC_LANDING_APPS, '@role:guest'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (marketing landing page — render asserted by the route and a non-empty heading)
     await page.goto('/landing-apps');

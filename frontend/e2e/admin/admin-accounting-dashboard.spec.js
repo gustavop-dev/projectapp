@@ -196,7 +196,7 @@ test.describe('Admin Accounting Dashboard', () => {
   });
 
   test('renders stat cards with the summary totals', {
-    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
@@ -223,7 +223,7 @@ test.describe('Admin Accounting Dashboard', () => {
   });
 
   test('expected-month card opens the read-only detail modal', {
-    tag: [...ADMIN_ACCOUNTING_EXPECTED_DETAIL, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_EXPECTED_DETAIL, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
@@ -248,7 +248,7 @@ test.describe('Admin Accounting Dashboard', () => {
   });
 
   test('liquid-income card opens the stats modal with tabbed charts', {
-    tag: [...ADMIN_ACCOUNTING_STATS_MODALS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_STATS_MODALS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
@@ -277,7 +277,7 @@ test.describe('Admin Accounting Dashboard', () => {
   });
 
   test('renders the 12-month breakdown with a totals row', {
-    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
@@ -292,7 +292,7 @@ test.describe('Admin Accounting Dashboard', () => {
   });
 
   test('renders the evolution charts and reacts to the month range', {
-    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
@@ -311,7 +311,7 @@ test.describe('Admin Accounting Dashboard', () => {
   });
 
   test('links to the cards history from the Tarjetas table', {
-    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
@@ -322,7 +322,7 @@ test.describe('Admin Accounting Dashboard', () => {
   });
 
   test('subnav pill navigates to the incomes subview', {
-    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
@@ -337,7 +337,7 @@ test.describe('Admin Accounting Dashboard', () => {
   });
 
   test('sidebar shows the Accounting section for superusers', {
-    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
@@ -353,7 +353,7 @@ test.describe('Admin Accounting Dashboard', () => {
   });
 
   test('staff non-superuser is redirected to /panel and sees no Accounting section', {
-    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ isSuperuser: false }));
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });

@@ -101,7 +101,7 @@ test.describe('Admin Email Templates Config', () => {
   });
 
   test('renders page title and category filter buttons', {
-    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
+    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
@@ -118,7 +118,7 @@ test.describe('Admin Email Templates Config', () => {
   });
 
   test('renders all template rows in the list', {
-    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
+    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
@@ -131,7 +131,7 @@ test.describe('Admin Email Templates Config', () => {
   });
 
   test('filters templates by category', {
-    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
+    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
@@ -146,7 +146,7 @@ test.describe('Admin Email Templates Config', () => {
   });
 
   test('shows customized badge for overridden templates', {
-    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
+    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
@@ -156,7 +156,7 @@ test.describe('Admin Email Templates Config', () => {
   });
 
   test('expands template and shows editable fields with variables', {
-    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
+    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
@@ -180,7 +180,7 @@ test.describe('Admin Email Templates Config', () => {
   });
 
   test('expanded template shows status toggle and action buttons', {
-    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
+    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
@@ -202,7 +202,7 @@ test.describe('Admin Email Templates Config', () => {
   });
 
   test('opens preview modal with rendered HTML', {
-    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
+    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
@@ -230,7 +230,7 @@ test.describe('Admin Email Templates Config', () => {
   });
 
   test('shows reset confirmation modal', {
-    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
+    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=emails');
@@ -252,7 +252,7 @@ test.describe('Admin Email Templates Config', () => {
   });
 
   test('back link navigates to proposals list', {
-    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
+    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method: _method }) => {
       if (apiPath === 'auth/check/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };

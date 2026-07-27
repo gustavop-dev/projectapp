@@ -77,7 +77,7 @@ test.describe('Admin Diagnostic — JSON export tab', () => {
   });
 
   test('JSON tab shows read-only textarea with serialised diagnostic', {
-    tag: [...ADMIN_DIAGNOSTIC_JSON_EXPORT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_JSON_EXPORT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -93,7 +93,7 @@ test.describe('Admin Diagnostic — JSON export tab', () => {
   });
 
   test('action buttons Actualizar, Copiar, and Descargar are present', {
-    tag: [...ADMIN_DIAGNOSTIC_JSON_EXPORT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_JSON_EXPORT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -107,7 +107,7 @@ test.describe('Admin Diagnostic — JSON export tab', () => {
   });
 
   test('Actualizar refetches the diagnostic detail and updates the textarea', {
-    tag: [...ADMIN_DIAGNOSTIC_JSON_EXPORT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_JSON_EXPORT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     let callCount = 0;
     await setupMock(page, {

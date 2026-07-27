@@ -85,7 +85,7 @@ test.describe('Platform Project List — Admin', () => {
   });
 
   test('renders project list with cards showing name, status, and progress', {
-    tag: [...PLATFORM_PROJECT_LIST, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_PROJECT_LIST, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupProjectMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
@@ -99,7 +99,7 @@ test.describe('Platform Project List — Admin', () => {
   });
 
   test('shows status filter tabs for admin', {
-    tag: [...PLATFORM_PROJECT_LIST, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_PROJECT_LIST, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupProjectMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
@@ -111,7 +111,7 @@ test.describe('Platform Project List — Admin', () => {
   });
 
   test('shows Nuevo proyecto button for admin', {
-    tag: [...PLATFORM_PROJECT_LIST, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_PROJECT_LIST, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupProjectMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
@@ -120,7 +120,7 @@ test.describe('Platform Project List — Admin', () => {
   });
 
   test('shows empty state when no projects exist', {
-    tag: [...PLATFORM_PROJECT_LIST, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_PROJECT_LIST, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupProjectMocks(page, { user: mockPlatformAdmin, projects: [] });
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
@@ -148,7 +148,7 @@ test.describe('Platform Project List — Client', () => {
   test.setTimeout(60_000);
 
   test('client sees project list without create button and filters', {
-    tag: [...PLATFORM_PROJECT_LIST, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_PROJECT_LIST, '@role:platform-client'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupProjectMocks(page, { user: mockPlatformClient });
@@ -160,7 +160,7 @@ test.describe('Platform Project List — Client', () => {
   });
 
   test('client sees empty state message when no projects assigned', {
-    tag: [...PLATFORM_PROJECT_LIST, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_PROJECT_LIST, '@role:platform-client'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupProjectMocks(page, { user: mockPlatformClient, projects: [] });

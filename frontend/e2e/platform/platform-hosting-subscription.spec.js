@@ -146,7 +146,7 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
   });
 
   test('client sees hosting plan selection when no subscription exists', {
-    tag: [...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocksNoSubscription(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
@@ -194,7 +194,7 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
   });
 
   test('active subscription shows auto-renewal up-to-date card', {
-    tag: [...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocksWithSubscription(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
@@ -210,7 +210,7 @@ test.describe('Platform Hosting Subscription — Admin view', () => {
   test.setTimeout(60_000);
 
   test('admin sees waiting message when no subscription exists', {
-    tag: [...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-admin'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformAdmin });
     await setupMocksNoSubscription(page, { user: mockPlatformAdmin });
@@ -222,7 +222,7 @@ test.describe('Platform Hosting Subscription — Admin view', () => {
   });
 
   test('admin sees subscription status when active', {
-    tag: [...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-admin'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformAdmin });
     await setupMocksWithSubscription(page, { user: mockPlatformAdmin });

@@ -133,7 +133,7 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
   });
 
   test('expenses list renders rows with the category badge', {
-    tag: [...ADMIN_ACCOUNTING_EXPENSES_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_EXPENSES_CRUD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — expenses list renders rows with the category badge; the create interaction is covered below)
     await mockApi(page, buildHandler({ calls: [] }));
@@ -148,7 +148,7 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
   });
 
   test('creates an expense through the modal', {
-    tag: [...ADMIN_ACCOUNTING_EXPENSES_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_EXPENSES_CRUD, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
@@ -177,7 +177,7 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
   });
 
   test('hostings list renders meta stat cards', {
-    tag: [...ADMIN_ACCOUNTING_HOSTINGS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_HOSTINGS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — hostings list renders its meta stat cards)
     await mockApi(page, buildHandler({ calls: [] }));
@@ -192,7 +192,7 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
   });
 
   test('hostings table shows domain and estado badge per row', {
-    tag: [...ADMIN_ACCOUNTING_HOSTINGS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_HOSTINGS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the hostings table renders each row's domain and status)
     await mockApi(page, buildHandler({ calls: [] }));
@@ -209,7 +209,7 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
   });
 
   test('creates a hosting through the modal', {
-    tag: [...ADMIN_ACCOUNTING_HOSTINGS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_HOSTINGS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));

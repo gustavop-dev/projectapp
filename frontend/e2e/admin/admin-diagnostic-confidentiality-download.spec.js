@@ -81,7 +81,7 @@ test.describe('Admin Diagnostic — NDA Download Links', () => {
   });
 
   test('shows Descargar and Borrador links when NDA has been generated', {
-    tag: [...ADMIN_DIAGNOSTIC_CONFIDENTIALITY_DOWNLOAD, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_CONFIDENTIALITY_DOWNLOAD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page, buildDiagnostic({ withNda: true }));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -100,7 +100,7 @@ test.describe('Admin Diagnostic — NDA Download Links', () => {
   });
 
   test('shows "No generado" and "Generar acuerdo" CTA when no NDA exists', {
-    tag: [...ADMIN_DIAGNOSTIC_CONFIDENTIALITY_DOWNLOAD, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_CONFIDENTIALITY_DOWNLOAD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page, buildDiagnostic({ withNda: false }));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);

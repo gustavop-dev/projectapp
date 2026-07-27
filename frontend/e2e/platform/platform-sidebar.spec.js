@@ -43,7 +43,7 @@ test.describe('Platform Sidebar — Admin', () => {
   });
 
   test('renders sidebar with admin navigation links', {
-    tag: [...PLATFORM_SIDEBAR_NAVIGATION, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_SIDEBAR_NAVIGATION, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupSidebarMocks(page, mockPlatformAdmin);
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
@@ -54,7 +54,7 @@ test.describe('Platform Sidebar — Admin', () => {
   });
 
   test('sidebar shows user display name and initials', {
-    tag: [...PLATFORM_SIDEBAR_NAVIGATION, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_SIDEBAR_NAVIGATION, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupSidebarMocks(page, mockPlatformAdmin);
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });

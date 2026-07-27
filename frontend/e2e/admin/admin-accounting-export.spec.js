@@ -101,7 +101,7 @@ test.describe('Admin Accounting Export', () => {
   });
 
   test('exports the incomes CSV with the active filters as params', {
-    tag: [...ADMIN_ACCOUNTING_EXPORT, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_EXPORT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const exportCalls = [];
     await mockApi(page, buildHandler({ exportCalls }));

@@ -44,7 +44,7 @@ test.describe('Batch Actions on Proposals', () => {
   });
 
   test('action bar is hidden when no proposals selected', {
-    tag: [...ADMIN_PROPOSAL_BATCH_ACTIONS, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_BATCH_ACTIONS, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
@@ -57,7 +57,7 @@ test.describe('Batch Actions on Proposals', () => {
   });
 
   test('selecting a checkbox shows the bulk action bar', {
-    tag: [...ADMIN_PROPOSAL_BATCH_ACTIONS, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_BATCH_ACTIONS, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
@@ -72,7 +72,7 @@ test.describe('Batch Actions on Proposals', () => {
   });
 
   test('bulk action bar shows resend, expire, delete, and cancel buttons', {
-    tag: [...ADMIN_PROPOSAL_BATCH_ACTIONS, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_BATCH_ACTIONS, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
@@ -92,7 +92,7 @@ test.describe('Batch Actions on Proposals', () => {
   });
 
   test('cancel button clears selection and hides action bar', {
-    tag: [...ADMIN_PROPOSAL_BATCH_ACTIONS, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_BATCH_ACTIONS, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
@@ -111,7 +111,7 @@ test.describe('Batch Actions on Proposals', () => {
   });
 
   test('select-all header checkbox selects all visible rows', {
-    tag: [...ADMIN_PROPOSAL_BATCH_ACTIONS, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_BATCH_ACTIONS, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');

@@ -112,7 +112,7 @@ test.describe('Platform Kanban Card Comments — Admin', () => {
   });
 
   test('card detail modal shows existing comments with author names', {
-    tag: [...PLATFORM_KANBAN_CARD_COMMENTS, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_KANBAN_CARD_COMMENTS, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupCommentMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
@@ -125,7 +125,7 @@ test.describe('Platform Kanban Card Comments — Admin', () => {
   });
 
   test('admin sees internal comment badge', {
-    tag: [...PLATFORM_KANBAN_CARD_COMMENTS, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_KANBAN_CARD_COMMENTS, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupCommentMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
@@ -153,7 +153,7 @@ test.describe('Platform Kanban Card Comments — Admin', () => {
   });
 
   test('admin sees internal comment checkbox', {
-    tag: [...PLATFORM_KANBAN_CARD_COMMENTS, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_KANBAN_CARD_COMMENTS, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupCommentMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });

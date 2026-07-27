@@ -68,7 +68,7 @@ test.describe('Admin Diagnostic — JSON tab (import)', () => {
   });
 
   test('pasting valid JSON renders the preview card and enables Aplicar', {
-    tag: [...ADMIN_DIAGNOSTIC_JSON_IMPORT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_JSON_IMPORT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authOk;
@@ -90,7 +90,7 @@ test.describe('Admin Diagnostic — JSON tab (import)', () => {
   });
 
   test('invalid JSON shows an error message and hides the Aplicar button', {
-    tag: [...ADMIN_DIAGNOSTIC_JSON_IMPORT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_JSON_IMPORT, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authOk;
@@ -111,7 +111,7 @@ test.describe('Admin Diagnostic — JSON tab (import)', () => {
   });
 
   test('clicking "Aplicar JSON" issues PATCH /update/ and POST /sections/bulk-update/', {
-    tag: [...ADMIN_DIAGNOSTIC_JSON_IMPORT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_JSON_IMPORT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let updateBody = null;
     let bulkBody = null;
@@ -166,7 +166,7 @@ test.describe('Admin Diagnostic — JSON tab (import)', () => {
   });
 
   test('server error on bulk-update surfaces as inline error message', {
-    tag: [...ADMIN_DIAGNOSTIC_JSON_IMPORT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_JSON_IMPORT, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'auth/check/') return authOk;
@@ -192,7 +192,7 @@ test.describe('Admin Diagnostic — JSON tab (import)', () => {
   });
 
   test('legacy ?tab= URLs resolve to the new tab ids', {
-    tag: [...ADMIN_DIAGNOSTIC_JSON_IMPORT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_JSON_IMPORT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authOk;

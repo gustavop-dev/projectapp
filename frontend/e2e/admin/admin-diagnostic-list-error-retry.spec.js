@@ -43,7 +43,7 @@ test.describe('Admin Diagnostic List — load error & retry', () => {
   });
 
   test('shows the error state on a failed load and recovers on retry', {
-    tag: [...ADMIN_DIAGNOSTIC_LIST_ERROR_RETRY, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_LIST_ERROR_RETRY, '@role:admin', '@outcome:failure', '@outcome:display'],
   }, async ({ page }) => {
     let listCalls = 0;
 

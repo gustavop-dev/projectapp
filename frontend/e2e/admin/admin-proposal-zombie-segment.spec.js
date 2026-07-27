@@ -41,7 +41,7 @@ test.describe('Admin Proposal Zombie Segment', () => {
   });
 
   test('renders zombie section with dark theme when zombie alerts exist', {
-    tag: [...ADMIN_PROPOSAL_ZOMBIE_SEGMENT, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ZOMBIE_SEGMENT, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
@@ -51,7 +51,7 @@ test.describe('Admin Proposal Zombie Segment', () => {
   });
 
   test('zombie section is collapsed by default and expands on click', {
-    tag: [...ADMIN_PROPOSAL_ZOMBIE_SEGMENT, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ZOMBIE_SEGMENT, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
@@ -69,7 +69,7 @@ test.describe('Admin Proposal Zombie Segment', () => {
   });
 
   test('zombie section is hidden when no zombie alerts exist', {
-    tag: [...ADMIN_PROPOSAL_ZOMBIE_SEGMENT, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ZOMBIE_SEGMENT, '@role:admin'],
   }, async ({ page }) => {
     const noZombieAlerts = [
       { id: 3, alert_type: 'not_viewed', title: 'Active Prop', client_name: 'Client C', message: 'Not viewed' },

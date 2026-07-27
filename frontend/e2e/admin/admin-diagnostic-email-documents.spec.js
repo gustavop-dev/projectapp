@@ -92,7 +92,7 @@ test.describe('Admin Diagnostic — Correos tab', () => {
   });
 
   test('Correos tab is visible on the edit page', {
-    tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -100,7 +100,7 @@ test.describe('Admin Diagnostic — Correos tab', () => {
   });
 
   test('email composer renders recipient, subject, and sections fields', {
-    tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -114,7 +114,7 @@ test.describe('Admin Diagnostic — Correos tab', () => {
   });
 
   test('email defaults populate recipient and subject on mount', {
-    tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -126,7 +126,7 @@ test.describe('Admin Diagnostic — Correos tab', () => {
   });
 
   test('email history section renders after tab loads', {
-    tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -137,7 +137,7 @@ test.describe('Admin Diagnostic — Correos tab', () => {
   });
 
   test('send button is disabled when sections textarea is empty', {
-    tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -148,7 +148,7 @@ test.describe('Admin Diagnostic — Correos tab', () => {
   });
 
   test('POST to email/send/ is called when form is filled and send is clicked', {
-    tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let sendCalled = false;
     await mockApi(page, async ({ apiPath, method }) => {
@@ -185,7 +185,7 @@ test.describe('Admin Diagnostic — Documentos tab', () => {
   });
 
   test('Documentos tab is visible on the edit page', {
-    tag: [...ADMIN_DIAGNOSTIC_DOCUMENTS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_DOCUMENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -193,7 +193,7 @@ test.describe('Admin Diagnostic — Documentos tab', () => {
   });
 
   test('documents tab renders Documentos list and uploader', {
-    tag: [...ADMIN_DIAGNOSTIC_DOCUMENTS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_DOCUMENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -205,7 +205,7 @@ test.describe('Admin Diagnostic — Documentos tab', () => {
   });
 
   test('NDA row offers "Generar acuerdo" when none has been generated', {
-    tag: [...ADMIN_DIAGNOSTIC_DOCUMENTS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_DOCUMENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic({ attachments: [] })));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -218,7 +218,7 @@ test.describe('Admin Diagnostic — Documentos tab', () => {
   });
 
   test('a generated NDA exposes download, draft and edit-params actions', {
-    tag: [...ADMIN_DIAGNOSTIC_DOCUMENTS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_DOCUMENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const ndaAttachment = {
       id: 77,

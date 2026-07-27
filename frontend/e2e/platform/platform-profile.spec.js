@@ -43,7 +43,7 @@ test.describe('Platform Profile Edit — Admin', () => {
   });
 
   test('renders profile page with user data and editable fields', {
-    tag: [...PLATFORM_PROFILE_EDIT, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_PROFILE_EDIT, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — profile renders the user's data and editable fields; the edit interaction is covered by the save test)
     await setupProfileMocks(page, mockPlatformAdmin);
@@ -56,7 +56,7 @@ test.describe('Platform Profile Edit — Admin', () => {
   });
 
   test('shows validation error on API failure', {
-    tag: [...PLATFORM_PROFILE_EDIT, '@role:platform-admin'],
+    tag: ['@outcome:error', ...PLATFORM_PROFILE_EDIT, '@role:platform-admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(mockPlatformAdmin);
@@ -85,7 +85,7 @@ test.describe('Platform Profile Edit — Client', () => {
   test.setTimeout(60_000);
 
   test('client renders profile page with their data', {
-    tag: [...PLATFORM_PROFILE_EDIT, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_PROFILE_EDIT, '@role:platform-client'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — client's profile renders their data)
     await setPlatformAuth(page, { user: mockPlatformClient });

@@ -82,7 +82,7 @@ test.describe('Platform Bug Reports — Client', () => {
   });
 
   test('renders bug report list with severity badges', {
-    tag: [...PLATFORM_BUG_REPORTS, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_BUG_REPORTS, '@role:platform-client'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display list — asserts the reported bugs render with their titles; the create interaction is covered below)
     await setupMocks(page, { user: mockPlatformClient });
@@ -115,7 +115,7 @@ test.describe('Platform Bug Reports — Admin', () => {
   test.setTimeout(60_000);
 
   test('admin sees bug reports with status counts', {
-    tag: [...PLATFORM_BUG_REPORTS, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_BUG_REPORTS, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — admin view of the project's bug list)
     await setPlatformAuth(page, { user: mockPlatformAdmin });

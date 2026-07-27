@@ -1,6 +1,6 @@
 {
   "version": "2.60.0",
-  "lastUpdated": "2026-07-23",
+  "lastUpdated": "2026-07-27",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -10,7 +10,10 @@
       ],
       "priority": "P2",
       "description": "Navigate between pages using the fixed top navbar.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "layout-locale-switch": {
       "name": "Locale Switch",
@@ -20,7 +23,10 @@
       ],
       "priority": "P2",
       "description": "Switch the application language between English and Spanish.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "layout-footer-navigation": {
       "name": "Footer Navigation",
@@ -30,7 +36,10 @@
       ],
       "priority": "P3",
       "description": "Navigate using footer links and social media links.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "public-home": {
       "name": "Home Page",
@@ -40,7 +49,10 @@
       ],
       "priority": "P1",
       "description": "View the public home/landing page with hero, services, study cases and contact.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "public-portfolio": {
       "name": "Portfolio Works",
@@ -50,7 +62,10 @@
       ],
       "priority": "P2",
       "description": "Browse portfolio works and project showcases.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "public-portfolio-detail": {
       "name": "Portfolio Case Study Detail",
@@ -60,7 +75,11 @@
       ],
       "priority": "P2",
       "description": "View a single portfolio case study with cover image, content sections, share button, and back navigation.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "failure"
+      ]
     },
     "public-about-us": {
       "name": "About Us (archived)",
@@ -81,7 +100,10 @@
       ],
       "priority": "P2",
       "description": "View the web design landing page (marketing/conversion page).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "public-contact-submit": {
       "name": "Contact Form Submit",
@@ -91,7 +113,10 @@
       ],
       "priority": "P1",
       "description": "Submit a contact form to reach the company.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "blog-list": {
       "name": "Blog Listing",
@@ -101,7 +126,10 @@
       ],
       "priority": "P2",
       "description": "Browse the blog listing with search, category filters, featured hero post, and responsive grid/mobile cards.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "blog-detail": {
       "name": "Blog Post Detail",
@@ -111,7 +139,11 @@
       ],
       "priority": "P2",
       "description": "Read a blog post with structured JSON content (sections, timelines, lists, subsections) or HTML fallback, sources, share, related posts.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "failure"
+      ]
     },
     "proposal-view": {
       "name": "Proposal View",
@@ -121,7 +153,11 @@
       ],
       "priority": "P1",
       "description": "View a business proposal shared via unique UUID link with horizontal scroll.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "failure"
+      ]
     },
     "proposal-respond": {
       "name": "Proposal Respond",
@@ -131,7 +167,10 @@
       ],
       "priority": "P1",
       "description": "Client responds to (accepts/rejects) a business proposal. Acceptance auto-provisions the client's platform project (scope items + Kanban cards) via async onboarding; see platform-proposal-auto-onboarding.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-download-pdf": {
       "name": "Proposal PDF Download",
@@ -144,6 +183,9 @@
       "expectedSpecs": 1,
       "knownGaps": [
         "Production may return 501 if PDF generation is disabled; E2E covers the UI path when the API succeeds."
+      ],
+      "outcomes": [
+        "success"
       ]
     },
     "admin-login": {
@@ -154,7 +196,10 @@
       ],
       "priority": "P1",
       "description": "Admin authenticates to access the management panel.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-impersonate-user": {
       "name": "Impersonate User (Login with this user)",
@@ -164,7 +209,11 @@
       ],
       "priority": "P2",
       "description": "A superuser clicks \"Login with this user\" (in /panel/admins/ or the Django admin user page) and lands authenticated on /platform via the /platform/admin-login callback, which swaps a short-lived single-use exchange code for the session tokens.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-dashboard": {
       "name": "Admin Dashboard",
@@ -174,7 +223,10 @@
       ],
       "priority": "P2",
       "description": "View the redesigned global admin dashboard: pulse KPIs (liquid utility, active pipeline, attention count), attention radar, and finance / proposals / operations sections fed by GET /api/panel/dashboard/.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-styleguide": {
       "name": "Admin Styleguide",
@@ -184,7 +236,10 @@
       ],
       "priority": "P3",
       "description": "Visual regression tests for the design system styleguide page (light and dark mode snapshots).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-list": {
       "name": "Admin Proposal List",
@@ -194,7 +249,10 @@
       ],
       "priority": "P1",
       "description": "View the list of all business proposals.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-create": {
       "name": "Admin Proposal Create",
@@ -208,6 +266,10 @@
       "knownGaps": [
         "Hosting defaults seeding on mount (hosting_percent + hosting_discount_* from GET proposals/defaults, 2026-07) is not asserted.",
         "JSON-tab total_investment now uses BaseCurrencyInput (live thousand separators); formatting behavior not asserted."
+      ],
+      "outcomes": [
+        "success",
+        "error"
       ]
     },
     "admin-proposal-edit": {
@@ -221,6 +283,10 @@
       "expectedSpecs": 1,
       "knownGaps": [
         "Automations toggle switched to positive polarity (ON = automations running, 2026-07); knob position/aria-checked not asserted and the toggle lacks a data-testid."
+      ],
+      "outcomes": [
+        "success",
+        "error"
       ]
     },
     "admin-proposal-delete": {
@@ -231,7 +297,11 @@
       ],
       "priority": "P2",
       "description": "Delete an existing business proposal from /panel/proposals. A confirm modal requires typing 'DELETE'; on success the list refreshes and a success toast shows; on 409 (proposal linked to a launched project via ProjectPhase on_delete=PROTECT) the proposal stays and an error toast surfaces the backend message.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-proposal-delete-from-client": {
       "name": "Admin Proposal Delete From Client",
@@ -241,7 +311,11 @@
       ],
       "priority": "P2",
       "description": "From /panel/clients, expand a client row and delete a specific linked proposal. A confirm modal requires typing 'DELETE'; on success the client detail is refetched (proposal disappears) and a success toast shows; on 409 (linked to a launched project) the proposal stays and an error toast shows.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-proposal-send": {
       "name": "Admin Proposal Send",
@@ -252,7 +326,11 @@
       "priority": "P1",
       "description": "Send a proposal to a client via email from the proposals list (actions modal) or from the edit page. The email body now interpolates the editable email_intro field from the proposal and the commercial PDF is attached automatically. Backend returns email_delivery: {ok, reason, detail}; when ok=false, the panel surfaces a red toast with the reason (placeholder_email, template_disabled, send_failed) instead of generic success.",
       "expectedSpecs": 1,
-      "knownGaps": "The server-side PDF-attachment side effect on send is backend-only and not asserted at the UI layer."
+      "knownGaps": "The server-side PDF-attachment side effect on send is backend-only and not asserted at the UI layer.",
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "admin-proposal-multi-send": {
       "name": "Admin Proposal Multi Send",
@@ -262,7 +340,11 @@
       ],
       "priority": "P1",
       "description": "From /panel/proposals/:id/edit click the lightning-bolt button → ProposalActionsModal → 'Enviar varias propuestas como un solo correo'. The ProposalMultiSendModal opens showing all proposals of the same client grouped by status (Borradores / Enviadas-Vistas-Negociación / Expiradas). The current proposal is pre-selected and locked. Admin selects ≥2 proposals (max 10) and clicks 'Enviar N propuestas' → POST /api/proposals/:id/send-multi/ sends a single email with one PDF attachment per proposal and applies per-proposal side effects (draft→sent + reminders, expired→reopen + extend expires_at, sent/viewed/negotiating→resend timers). Success shows a toast with the count.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "admin-proposal-resend": {
       "name": "Admin Proposal Resend",
@@ -272,7 +354,11 @@
       ],
       "priority": "P2",
       "description": "Resend an already-sent proposal via 'Re-enviar' from the actions modal. Confirmation dialog → POST /proposals/:id/resend/ keeps existing expires_at, resets sent_at and reminder timers, and returns email_delivery. The panel toast surfaces success or failure with the reason.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "admin-proposal-reopen-from-expired": {
       "name": "Admin Proposal Reopen From Expired",
@@ -282,7 +368,11 @@
       ],
       "priority": "P1",
       "description": "Recover an expired proposal by extending expires_at to a future date from /panel/proposals/:id/edit (General tab) or via the JSON re-import panel. The serializer no longer blocks re-saving when expires_at is unchanged, and ProposalService.reopen_if_unexpired auto-reverts status from 'expired' to 'viewed' (when view_count > 0) or 'sent', logging an 'Auto-reopened from expired…' entry in ProposalChangeLog. Covers both PATCH /proposals/:id/update/ and PUT /proposals/:id/update-from-json/ paths.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-proposal-update-from-json": {
       "name": "Admin Proposal Update From JSON",
@@ -295,6 +385,10 @@
       "expectedSpecs": 1,
       "knownGaps": [
         "Happy path only; unknown-key warnings surfacing and keep-expires_at-on-expired branch unasserted (2026-07 audit)."
+      ],
+      "outcomes": [
+        "success",
+        "error"
       ]
     },
     "admin-blog-list": {
@@ -305,7 +399,10 @@
       ],
       "priority": "P2",
       "description": "View the list of all blog posts (admin view with both languages).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-blog-create": {
       "name": "Admin Blog Create (Manual)",
@@ -315,7 +412,12 @@
       ],
       "priority": "P2",
       "description": "Create a new bilingual blog post via manual form with category, readTime, featured, SEO fields.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-blog-create-from-json": {
       "name": "Admin Blog Create (JSON Import)",
@@ -325,7 +427,12 @@
       ],
       "priority": "P2",
       "description": "Create a blog post by importing a structured JSON payload with content_json sections, template download, validation, and preview.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-blog-edit": {
       "name": "Admin Blog Edit",
@@ -335,7 +442,12 @@
       ],
       "priority": "P2",
       "description": "Edit an existing blog post including new fields: category, readTime, isFeatured, content_json, SEO meta.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-proposal-section-edit-form": {
       "name": "Admin Proposal Section Edit (Form)",
@@ -348,6 +460,10 @@
       "expectedSpecs": 1,
       "knownGaps": [
         "commercial_conditions and value_added_modules section editors are not exercised; their money fields (hourlyRate, min_price_usd/cop) now use BaseCurrencyInput (2026-07)."
+      ],
+      "outcomes": [
+        "success",
+        "error"
       ]
     },
     "admin-proposal-section-edit-paste": {
@@ -358,7 +474,11 @@
       ],
       "priority": "P1",
       "description": "Bulk-fill proposal section fields by pasting text and processing it into structured form data.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-proposal-section-reorder": {
       "name": "Admin Proposal Section Reorder",
@@ -368,7 +488,11 @@
       ],
       "priority": "P2",
       "description": "Reorder commercial sections via drag & drop in the Secciones tab (vuedraggable handle per row); the permuted order slots POST to /api/proposals/:id/reorder-sections/ with snap-back on failure.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "admin-proposal-functional-requirements-form": {
       "name": "Admin Functional Requirements (Form)",
@@ -378,7 +502,11 @@
       ],
       "priority": "P1",
       "description": "Manage requirement groups and items using the structured form interface.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-proposal-functional-requirements-paste": {
       "name": "Admin Functional Requirements (Paste Content)",
@@ -388,7 +516,11 @@
       ],
       "priority": "P1",
       "description": "Bulk-fill requirement group items by pasting formatted text.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-blog-delete": {
       "name": "Admin Blog Delete",
@@ -398,7 +530,10 @@
       ],
       "priority": "P3",
       "description": "Delete an existing blog post.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-share": {
       "name": "Proposal Share",
@@ -411,6 +546,9 @@
       "expectedSpecs": 1,
       "knownGaps": [
         "Only asserts button visibility + modal open; tracked share-link creation POST/copied URL unasserted (2026-07 audit)."
+      ],
+      "outcomes": [
+        "success"
       ]
     },
     "proposal-engagement-tracking": {
@@ -424,6 +562,9 @@
       "expectedSpecs": 1,
       "knownGaps": [
         "Only nav button visibility; the section engagement POST is never asserted (2026-07 audit)."
+      ],
+      "outcomes": [
+        "success"
       ]
     },
     "admin-proposal-duplicate": {
@@ -434,7 +575,10 @@
       ],
       "priority": "P2",
       "description": "Duplicate an existing proposal to create a new draft copy.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-proposal-comment": {
       "name": "Admin Proposal Comment",
@@ -444,7 +588,10 @@
       ],
       "priority": "P3",
       "description": "Add internal comments to a proposal for team collaboration.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-proposal-analytics": {
       "name": "Admin Proposal Analytics",
@@ -454,7 +601,10 @@
       ],
       "priority": "P2",
       "description": "View detailed analytics for a single proposal: funnel, heatmap, sessions, CSV export.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-dashboard": {
       "name": "Admin Proposal Dashboard",
@@ -464,7 +614,10 @@
       ],
       "priority": "P2",
       "description": "View global KPI dashboard for all proposals: conversion rate, trends, rejection reasons.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-mini-crm-clients": {
       "name": "Admin Mini-CRM Clients",
@@ -474,7 +627,10 @@
       ],
       "priority": "P2",
       "description": "View client list with search, tab filtering (Todos/Activos/Huérfanos), expand client to see linked proposals, and empty state. The global panel refresh button invalidates the per-client detail cache and refetches expanded rows so renamed/reassigned proposals appear.",
-      "expectedSpecs": 3
+      "expectedSpecs": 3,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-portfolio-list": {
       "name": "Admin Portfolio List",
@@ -484,7 +640,10 @@
       ],
       "priority": "P2",
       "description": "View the list of all portfolio works with status, edit/duplicate/delete actions.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-portfolio-create": {
       "name": "Admin Portfolio Create",
@@ -494,7 +653,12 @@
       ],
       "priority": "P2",
       "description": "Create a new portfolio work via manual form or JSON import.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-portfolio-edit": {
       "name": "Admin Portfolio Edit",
@@ -504,7 +668,12 @@
       ],
       "priority": "P2",
       "description": "Edit an existing portfolio work including bilingual fields, cover image, content JSON, and SEO.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-portfolio-delete": {
       "name": "Admin Portfolio Delete",
@@ -514,7 +683,11 @@
       ],
       "priority": "P2",
       "description": "Delete an existing portfolio work.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success"
+      ]
     },
     "admin-hour-packages-list": {
       "name": "Admin Hour Packages List",
@@ -525,7 +698,10 @@
       "priority": "P2",
       "description": "View the hour-package catalog filtered by nationality tabs (COL/EXT/USA) with derived currency and computed totals.",
       "expectedSpecs": 1,
-      "knownGaps": "Spec does not assert view-mode toggle (tracked in admin-hour-packages-view-modes), pagination, or the mobile card variant (2026-07-16 audit)."
+      "knownGaps": "Spec does not assert view-mode toggle (tracked in admin-hour-packages-view-modes), pagination, or the mobile card variant (2026-07-16 audit).",
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-hour-packages-create": {
       "name": "Admin Hour Packages Create",
@@ -535,7 +711,12 @@
       ],
       "priority": "P2",
       "description": "Create an hour package with nationality, bilingual names, hours, rate and discount; currency derives from nationality.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-hour-packages-edit": {
       "name": "Admin Hour Packages Edit",
@@ -545,7 +726,12 @@
       ],
       "priority": "P2",
       "description": "Edit an existing hour package and verify the computed effective rate/total preview.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-hour-packages-delete": {
       "name": "Admin Hour Packages Delete",
@@ -555,7 +741,11 @@
       ],
       "priority": "P2",
       "description": "Delete an hour package with confirmation modal.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "proposal-view-navigation": {
       "name": "Proposal View Navigation",
@@ -565,7 +755,10 @@
       ],
       "priority": "P1",
       "description": "Navigate between proposal sections using prev/next buttons and ProposalIndex panel.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-view-onboarding": {
       "name": "Proposal View Onboarding",
@@ -575,7 +768,10 @@
       ],
       "priority": "P3",
       "description": "First-visit tutorial overlay with step-by-step tooltips and reading time popup.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-create-from-json": {
       "name": "Admin Proposal Create (JSON Import)",
@@ -585,7 +781,11 @@
       ],
       "priority": "P1",
       "description": "Create a proposal by importing a pre-filled JSON payload with all 12 section content_json values.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-blog-calendar": {
       "name": "Admin Blog Calendar",
@@ -595,7 +795,10 @@
       ],
       "priority": "P2",
       "description": "Weekly calendar view showing scheduled, published, and draft blog posts.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-manual-alerts": {
       "name": "Admin Proposal Manual Alerts",
@@ -605,7 +808,10 @@
       ],
       "priority": "P2",
       "description": "Create, view, and dismiss manual seller alerts/reminders for proposals.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-proposal-win-rate-dashboard": {
       "name": "Admin Proposal Win Rate Dashboard",
@@ -615,7 +821,10 @@
       ],
       "priority": "P2",
       "description": "Dashboard win rate segmented by project type, market type, and combination.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-engagement-score": {
       "name": "Admin Proposal Engagement Score",
@@ -625,7 +834,10 @@
       ],
       "priority": "P2",
       "description": "Engagement score (0-100) per proposal in analytics tab with color-coded level and recommendation.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-metrics-manual": {
       "name": "Admin Proposal Metrics Manual",
@@ -635,7 +847,10 @@
       ],
       "priority": "P3",
       "description": "Floating ? button opens slide-over with searchable metric definitions.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-welcome-back": {
       "name": "Proposal Welcome Back",
@@ -645,7 +860,11 @@
       ],
       "priority": "P2",
       "description": "Returning client sees welcome-back overlay with name and last visited section.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "display"
+      ]
     },
     "proposal-process-methodology": {
       "name": "Proposal Process & Methodology",
@@ -655,7 +874,10 @@
       ],
       "priority": "P2",
       "description": "5-step visual pipeline section (Discovery → Diseño → Desarrollo → QA → Lanzamiento).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-pre-expiration-discount-suggestion": {
       "name": "Pre-Expiration Discount Suggestion",
@@ -678,7 +900,10 @@
       ],
       "priority": "P2",
       "description": "Dark-themed collapsible zombie alerts section for stale draft/sent proposals.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-countdown-realtime": {
       "name": "Proposal Countdown Realtime",
@@ -688,7 +913,10 @@
       ],
       "priority": "P3",
       "description": "HH:MM countdown timer when proposal expires within 48 hours.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-resolved-notice-suppression": {
       "name": "Proposal Resolved Notice Suppression",
@@ -717,6 +945,9 @@
       "expectedSpecs": 0,
       "knownGaps": [
         "Documented-only (expectedSpecs 0): no dedicated Playwright spec yet. Suggested e2e/proposal/proposal-hosting-plan-terms.spec.js mocking GET /api/proposals/:uuid/ with a hostingPlan carrying the annual tier + renewalNote + freeMonths, asserting the three tiers (annual 40%), the free-month bucket render (ES and EN), and that the 'Renovaciones' block does NOT render in the web view (it is PDF-only). Unit coverage exists in frontend/test/components/Investment.test.js (hosting: annual tier, free month, renewal). PDF rendering (backend/content/services/proposal_pdf_service.py) has no automated assertion."
+      ],
+      "outcomes": [
+        "display"
       ]
     },
     "admin-proposal-create-and-send": {
@@ -727,7 +958,11 @@
       ],
       "priority": "P2",
       "description": "Create and send proposal in one step when client data is complete.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-proposal-create-preview": {
       "name": "Admin Proposal Create Preview",
@@ -737,7 +972,11 @@
       ],
       "priority": "P2",
       "description": "Post-creation interstitial modal with preview, send, and edit options.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "display"
+      ]
     },
     "admin-seller-inactivity-escalation": {
       "name": "Admin Seller Inactivity Escalation",
@@ -760,7 +999,10 @@
       ],
       "priority": "P2",
       "description": "Pipeline pulse tile on /panel showing the active pipeline value and count from the consolidated panel/dashboard/ payload; shows a dash when null.",
-      "expectedSpecs": 2
+      "expectedSpecs": 2,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-dashboard-finance-gate": {
       "name": "Admin Dashboard Finance Gate",
@@ -770,7 +1012,10 @@
       ],
       "priority": "P1",
       "description": "Finance pulse tile and section render only when the payload carries finance data (superuser); staff receive finance: null and see no financial KPIs.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-dashboard-attention-radar": {
       "name": "Admin Dashboard Attention Radar",
@@ -780,7 +1025,10 @@
       ],
       "priority": "P1",
       "description": "Cross-module attention radar on /panel: overdue collection accounts, failed emails, overdue tasks, stale proposals and upcoming recurring payments with severity accents and deep-links; positive empty state when clear.",
-      "expectedSpecs": 2
+      "expectedSpecs": 2,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-dashboard-error-retry": {
       "name": "Admin Dashboard Error Retry",
@@ -790,7 +1038,11 @@
       ],
       "priority": "P1",
       "description": "A failed panel/dashboard/ load shows the global error state; the Reintentar button refetches and restores the dashboard.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "failure",
+        "display"
+      ]
     },
     "admin-dashboard-quick-create": {
       "name": "Admin Dashboard Quick Create",
@@ -800,7 +1052,11 @@
       ],
       "priority": "P3",
       "description": "Dashboard header \"+ Crear\" dropdown navigates to create a proposal, document, task or expense.",
-      "expectedSpecs": 2
+      "expectedSpecs": 2,
+      "outcomes": [
+        "display",
+        "success"
+      ]
     },
     "admin-dashboard-stats-modals": {
       "name": "Admin Dashboard Stats Modals",
@@ -810,7 +1066,10 @@
       ],
       "priority": "P2",
       "description": "Admin clicks the pulse tiles on /panel to open descriptive-statistics modals. The Pipeline activo tile opens the proposals modal, which lazily fetches GET /api/proposals/dashboard/ once per modal lifetime (heavy endpoint, cached in a local ref, never fetched on dashboard load) and offers tabs Tendencia (stacked trend chart), Embudo (horizontal funnel by status), Valor por etapa (avg value per stage) and Conversión (monthly conversion line + radial close rate). The superuser-gated Utilidad líquida tile opens the finance modal computed client-side from the finance block: Evolución (expected/liquid/expenses area), Utilidad (monthly utility bars + margin strip) and Deuda y compromisos (credit utilization radial + debt/pocket/recurring strip).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-rejection-optional-reason": {
       "name": "Proposal Rejection Optional Reason",
@@ -820,7 +1079,10 @@
       ],
       "priority": "P2",
       "description": "Rejection reason is optional with nudge text encouraging feedback.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-calculator-timeline": {
       "name": "Proposal Calculator Dynamic Timeline",
@@ -830,7 +1092,10 @@
       ],
       "priority": "P1",
       "description": "Investment calculator shows dynamic timeline changes: deselecting investment modules reduces weeks, selecting calculator modules adds ~1 week each.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-discount-analysis-enhanced": {
       "name": "Admin Discount Analysis Enhanced",
@@ -840,7 +1105,10 @@
       ],
       "priority": "P3",
       "description": "Enhanced discount card with sample sizes, avg discount %, and delta warning.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-negotiate": {
       "name": "Proposal Negotiate (Accept with Changes)",
@@ -850,7 +1118,10 @@
       ],
       "priority": "P1",
       "description": "Client clicks 'Aceptar con cambios' → negotiate modal → required comment → submit → negotiating success state.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-investment-calculator": {
       "name": "Proposal Investment Calculator",
@@ -860,7 +1131,10 @@
       ],
       "priority": "P1",
       "description": "Client opens calculator modal, toggles optional modules, sees dynamic total/timeline, confirms selection.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-proposal-actions-modal": {
       "name": "Admin Proposal Actions Modal",
@@ -870,7 +1144,10 @@
       ],
       "priority": "P1",
       "description": "Admin opens actions modal from listing with edit, preview, send/resend, copy, WhatsApp, duplicate, toggle, delete actions.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-comment-from-closing": {
       "name": "Proposal Comment from Closing",
@@ -880,7 +1157,10 @@
       ],
       "priority": "P2",
       "description": "Client submits written comments from the closing panel via comment modal.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-rejection-smart-recovery": {
       "name": "Proposal Rejection Smart Recovery",
@@ -890,7 +1170,10 @@
       ],
       "priority": "P2",
       "description": "After rejection, context-specific recovery cards render based on rejection reason with appropriate CTAs.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-functional-requirements-modal": {
       "name": "Proposal Functional Requirements Modal",
@@ -900,7 +1183,10 @@
       ],
       "priority": "P2",
       "description": "Client clicks requirement group card to open detail modal showing items with icons and descriptions. Items with linked technical requirements show a 'Ver requerimientos (N)' link that opens a nested modal listing each requirement title, priority and description (detailed and executive modes; hidden on legacy proposals without item ids).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-calculator-modules": {
       "name": "Proposal Calculator Modules (PWA, AI, Reports)",
@@ -910,7 +1196,10 @@
       ],
       "priority": "P1",
       "description": "Calculator modal displays modules in order: PWA (40%), AI (invite-only), Smart Conversions (invite-only), Electronic Invoicing (60%), International Payments (20%), Regional Payments (20%), Email Marketing (10%), Reports & Alerts (20%, default selected), Multi-idioma (15%). Info badge at top of modal. Selecting modules adds ~1 week to timeline.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-expired-graceful": {
       "name": "Proposal Expired Graceful",
@@ -920,7 +1209,10 @@
       ],
       "priority": "P1",
       "description": "Expired proposal returns 410 with partial data; frontend renders ProposalExpired with client name, WhatsApp CTA, and email contact.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "failure"
+      ]
     },
     "admin-proposal-batch-actions": {
       "name": "Admin Proposal Batch Actions",
@@ -930,7 +1222,11 @@
       ],
       "priority": "P2",
       "description": "Select multiple proposals via checkboxes and perform batch actions (re-send, expire, delete) with sticky action bar.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "display"
+      ]
     },
     "admin-proposal-quick-send": {
       "name": "Admin Proposal Quick Send",
@@ -940,7 +1236,11 @@
       ],
       "priority": "P2",
       "description": "Send or re-send a proposal directly from the proposals list without entering edit page.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "admin-proposal-quick-log": {
       "name": "Admin Proposal Quick Log Activity",
@@ -950,7 +1250,10 @@
       ],
       "priority": "P2",
       "description": "Register a seller activity (call, meeting, follow-up, note) directly from the proposals list via quick-log modal.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-proposal-json-import-warnings": {
       "name": "Admin Proposal JSON Import Warnings",
@@ -963,6 +1266,9 @@
       "expectedSpecs": 1,
       "knownGaps": [
         "Covered within admin-proposal-create.spec.js"
+      ],
+      "outcomes": [
+        "success"
       ]
     },
     "admin-proposal-json-import-client-picker": {
@@ -973,7 +1279,10 @@
       ],
       "priority": "P2",
       "description": "In the 'Datos de la propuesta' form of JSON-import mode (/panel/proposals/create), the client name pre-fills from the imported JSON and a ClientAutocomplete lets the seller link an existing client (sends client_id, shows the (#id) hint, syncs sections.general.clientName) or create a new one inline.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-summary-kpis": {
       "name": "Proposal Summary KPIs",
@@ -983,7 +1292,10 @@
       ],
       "priority": "P2",
       "description": "Proposal Summary section displays personalized KPI cards with value, label, and source citation.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-roi-projection": {
       "name": "Proposal ROI Projection",
@@ -993,7 +1305,10 @@
       ],
       "priority": "P1",
       "description": "ROI Projection section renders KPI cards (visualizations, MRR, payback, ad reach), per-scenario blocks (cons/realistic/optimistic) with metrics and emphasis flag for totals, and a closing CTA note. The section sits between conversion_strategy and investment so the sponsor sees quantified business outcomes before the price. Web-only (no PDF renderer). Each existing proposal received a disabled empty row via migration 0118; admins enable + populate per-proposal.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-calculator-new-modules": {
       "name": "Proposal Calculator New Default Modules",
@@ -1003,7 +1318,10 @@
       ],
       "priority": "P2",
       "description": "Calculator displays Email Marketing (10%), i18n (15%), Gift Cards (20%) modules. KPI Dashboard removed from calculator (included by default like Analytics).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-calculator-biometric-module": {
       "name": "Proposal Calculator Biometric Verification Module",
@@ -1013,7 +1331,10 @@
       ],
       "priority": "P2",
       "description": "Calculator displays the biometric_verification_module as a provider-billed integration: appears with 'Agendar llamada' label instead of a price (is_invite=true, price_percent=0), and clicking the row reveals the invite_note. Sibling modules QR generator (25%) and AI content generator with editorial calendar (30%) are catalog-level only and structurally covered by existing calculator-modules and calculator-new-modules flows.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-calculator-behavior-tracking-module": {
       "name": "Proposal Calculator Behavior Tracking Module",
@@ -1023,7 +1344,10 @@
       ],
       "priority": "P2",
       "description": "Calculator displays behavior_tracking_module as a priced add-on (30% of base investment, not selected by default): first-party session/view tracking, interest map, journey funnel, built-in behavior panel (up to 8 KPIs / 4 charts), device breakdown and 12-month retention. Selecting it adds base*30% to the effective total; the technical document epic linked via module-behavior_tracking_module is gated by the selection.",
-      "expectedSpecs": 0
+      "expectedSpecs": 0,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-calculator-integrations": {
       "name": "Proposal Calculator Integration Modules",
@@ -1033,7 +1357,10 @@
       ],
       "priority": "P2",
       "description": "Calculator displays integration groups as toggleable modules: International Payments (20%), Regional Payments (20%), Electronic Invoicing (60%), Conversion Tracking (invite-only, 0%).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-discount-multi-section": {
       "name": "Proposal Discount Multi-Section",
@@ -1043,7 +1370,10 @@
       ],
       "priority": "P2",
       "description": "Discount badge visible in Investment banner, Calculator footer, and ProposalClosing special price badge.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-log-activity": {
       "name": "Admin Proposal Log Activity (Edit Page)",
@@ -1053,7 +1383,12 @@
       ],
       "priority": "P2",
       "description": "Admin logs seller activity from proposal edit page Activity tab.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure",
+        "display"
+      ]
     },
     "admin-proposal-engagement-decay-alert": {
       "name": "Admin Proposal Engagement Decay Alert",
@@ -1102,7 +1437,10 @@
       ],
       "priority": "P3",
       "description": "Onboarding tooltip steps render correctly on mobile viewport with navigation buttons.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-og-meta-personalized": {
       "name": "Proposal OG Meta Personalized",
@@ -1112,7 +1450,10 @@
       ],
       "priority": "P3",
       "description": "Personalized Open Graph meta tags for WhatsApp/social media previews.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-dashboard-auto-refresh": {
       "name": "Admin Proposal Dashboard Auto-Refresh",
@@ -1122,7 +1463,10 @@
       ],
       "priority": "P3",
       "description": "Dashboard KPI panel auto-refreshes every 60s with manual refresh button and last-updated label.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-inline-status-change": {
       "name": "Admin Proposal Inline Status Change",
@@ -1132,7 +1476,11 @@
       ],
       "priority": "P2",
       "description": "Change proposal status directly from the proposals table via inline dropdown. The draft→sent transition is delegated to ProposalService.send_proposal so the client email is dispatched and Huey reminders are scheduled (defense-in-depth — same behavior as the dedicated 'Enviar al Cliente' button). Response includes email_delivery and the panel toast surfaces failures with the reason.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "admin-proposal-defaults-config": {
       "name": "Admin Proposal Defaults Config",
@@ -1142,7 +1490,11 @@
       ],
       "priority": "P2",
       "description": "Manage default section configurations for new proposals (ES/EN), with save and reset-to-hardcoded.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "display"
+      ]
     },
     "admin-email-templates-config": {
       "name": "Admin Email Templates Config",
@@ -1152,7 +1504,12 @@
       ],
       "priority": "P2",
       "description": "Manage email template text customization with category filter, inline editing, HTML preview, active toggle, and reset to defaults.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-proposal-scorecard": {
       "name": "Admin Proposal Pre-Send Scorecard",
@@ -1162,7 +1519,10 @@
       ],
       "priority": "P2",
       "description": "View a 1-10 completeness scorecard with blockers before sending a proposal.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-section-completeness": {
       "name": "Admin Proposal Section Completeness",
@@ -1175,6 +1535,9 @@
       "expectedSpecs": 1,
       "knownGaps": [
         "Both tests assert only the label; percentage value and color-coding never asserted (2026-07 audit)."
+      ],
+      "outcomes": [
+        "display"
       ]
     },
     "admin-daily-pipeline-digest": {
@@ -1250,7 +1613,10 @@
       ],
       "priority": "P2",
       "description": "Calculator modal sorts groups with pre-selected modules to the top so the client sees included modules first.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-calculator-micro-feedback": {
       "name": "Proposal Calculator Micro-Feedback",
@@ -1260,7 +1626,10 @@
       ],
       "priority": "P2",
       "description": "Transient +/- price badge when toggling calculator modules with prices.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-calculator-reopen-after-nav": {
       "name": "Proposal Calculator Reopen After Nav",
@@ -1270,7 +1639,10 @@
       ],
       "priority": "P1",
       "description": "Calculator module selections persist across section navigation but reset on hard reload: deselection + confirm remains after navigating away and back; a browser reload re-fetches backend state.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-payment-plan-closing": {
       "name": "Proposal Payment Plan in Closing",
@@ -1280,7 +1652,10 @@
       ],
       "priority": "P2",
       "description": "Display payment plan milestones near the accept button in the closing section.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-post-acceptance-welcome": {
       "name": "Proposal Post-Acceptance Welcome Kit",
@@ -1290,7 +1665,10 @@
       ],
       "priority": "P1",
       "description": "After acceptance: PDF download, onboarding timeline, and PM WhatsApp contact.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-structured-negotiation": {
       "name": "Proposal Structured Negotiation Modal",
@@ -1300,7 +1678,10 @@
       ],
       "priority": "P2",
       "description": "Negotiate modal with structured checkbox reasons and tab toggle for adjust vs comment.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-conditional-acceptance": {
       "name": "Proposal Conditional Acceptance",
@@ -1310,7 +1691,10 @@
       ],
       "priority": "P2",
       "description": "Accept with an optional condition note (Acepto, pero...).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-section-onboarding": {
       "name": "Proposal Section Onboarding",
@@ -1320,7 +1704,10 @@
       ],
       "priority": "P3",
       "description": "Per-section spotlight onboarding tutorials (Investment, Requirements, Executive Investment) that trigger on first visit to each section.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-executive-to-detailed": {
       "name": "Proposal Executive to Detailed View Switch",
@@ -1330,7 +1717,10 @@
       ],
       "priority": "P2",
       "description": "Client switches from executive view to full detailed proposal via 'Ver Propuesta Completa' button with branded transition overlay.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-technical-view": {
       "name": "Proposal Technical View Mode",
@@ -1340,7 +1730,10 @@
       ],
       "priority": "P2",
       "description": "Client opens public proposal with ?mode=technical to read the technical document (synthetic panels from technical_document) plus closing.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "platform-login": {
       "name": "Platform Login",
@@ -1351,7 +1744,11 @@
       ],
       "priority": "P1",
       "description": "Client or admin authenticates via JWT login form. Routes to /platform/verify (first login), /platform/complete-profile (profile incomplete), or /platform/dashboard (onboarded).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "platform-verify-onboarding": {
       "name": "Platform Verify & Onboarding",
@@ -1362,7 +1759,11 @@
       ],
       "priority": "P1",
       "description": "First-login OTP verification with 6-digit code input, new password set, and role-aware redirect: clients land on /platform/documents, admins on the dashboard (via complete-profile when pending).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "platform-client-document-portal": {
       "name": "Platform Client Document Portal",
@@ -1372,7 +1773,11 @@
       ],
       "priority": "P1",
       "description": "Client lands on /platform/documents after first login: main contract plus annexes render and each can be downloaded as PDF.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "display"
+      ]
     },
     "platform-client-email-validation": {
       "name": "Platform Client Email Validation",
@@ -1382,7 +1787,11 @@
       ],
       "priority": "P1",
       "description": "Client validates their account email via a 6-digit OTP sent from the documents portal before signing is unlocked.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "platform-client-document-sign": {
       "name": "Platform Client Document Sign",
@@ -1392,7 +1801,11 @@
       ],
       "priority": "P1",
       "description": "Client accepts/signs the main document via click-to-accept (gated on a verified email); the signature is recorded and the team is notified.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "platform-complete-profile": {
       "name": "Platform Complete Profile",
@@ -1403,7 +1816,11 @@
       ],
       "priority": "P1",
       "description": "Mandatory profile completion form with company, phone, cedula, date of birth, gender, education level, and optional avatar upload. Middleware gates dashboard access until completed.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "platform-kanban-board": {
       "name": "Platform Kanban Board",
@@ -1414,7 +1831,11 @@
       ],
       "priority": "P1",
       "description": "3-column kanban board (Por hacer, En progreso, En revisión) with collapsible Completados checklist. HTML5 drag & drop between columns, checkmark to complete, card detail modal with comments and history timeline. Cards are labeled and filterable by their proposal scope item (vista/componente/funcionalidad) with an 'Sin agrupar' bucket. Admin has full control; client can only approve in_review cards.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "display"
+      ]
     },
     "platform-proposal-auto-onboarding": {
       "name": "Proposal Acceptance Auto-Onboarding",
@@ -1446,7 +1867,11 @@
       ],
       "priority": "P2",
       "description": "Left sidebar layout with collapsible navigation (Principal, Proyectos, Administración sections), mobile hamburger drawer, theme toggle (light/dark), profile link, and logout.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "display"
+      ]
     },
     "platform-project-list": {
       "name": "Platform Project List",
@@ -1457,7 +1882,11 @@
       ],
       "priority": "P2",
       "description": "Admin sees all projects with status filters (Todos/Activos/Pausados/Completados/Archivados) and create button. Client sees only their assigned projects. Card grid with progress bars and estimated dates.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "display"
+      ]
     },
     "platform-project-detail": {
       "name": "Platform Project Detail",
@@ -1468,7 +1897,11 @@
       ],
       "priority": "P2",
       "description": "Project detail hub with stats row (progress, client, dates), module cards (Tablero active, others 'Próximamente'), and admin edit modal for name, description, status, dates.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "display"
+      ]
     },
     "platform-unified-board": {
       "name": "Platform Unified Board",
@@ -1479,7 +1912,7 @@
       ],
       "priority": "P2",
       "description": "Cross-project view showing active requirement cards (todo/in_progress/in_review) grouped by project with summary pills and links to per-project boards.",
-      "expectedSpecs": 1
+      "expectedSpecs": 0
     },
     "platform-admin-client-list": {
       "name": "Platform Admin Client List",
@@ -1489,7 +1922,12 @@
       ],
       "priority": "P2",
       "description": "Admin-only client management table with invite modal (create + send credentials), status filters (Todos/Onboarded/Pendientes/Inactivos), search, resend invite, and deactivate actions.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "display"
+      ]
     },
     "platform-admin-client-detail": {
       "name": "Platform Admin Client Detail",
@@ -1499,7 +1937,13 @@
       ],
       "priority": "P2",
       "description": "Admin-only client detail page with profile card, edit form (name, company, phone, active toggle), quick actions (resend invite, deactivate/reactivate).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "failure",
+        "display"
+      ]
     },
     "platform-profile-edit": {
       "name": "Platform Profile Edit",
@@ -1510,7 +1954,12 @@
       ],
       "priority": "P2",
       "description": "View and update personal profile fields (name, company, phone, cedula, DOB, gender, education) with avatar display and role badge.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "display"
+      ]
     },
     "platform-admin-project-create": {
       "name": "Platform Admin Project Create",
@@ -1520,7 +1969,11 @@
       ],
       "priority": "P3",
       "description": "Admin creates a new project via modal form with name, description, client selector, start date, and estimated end date.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "platform-kanban-card-comments": {
       "name": "Platform Kanban Card Comments",
@@ -1531,7 +1984,11 @@
       ],
       "priority": "P3",
       "description": "Add public or internal (admin-only) comments on requirement cards via the card detail modal. Internal comments marked with amber border and 'Interno' label.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "display"
+      ]
     },
     "proposal-view-paste-rendering": {
       "name": "Proposal View Paste Mode Rendering",
@@ -1541,7 +1998,10 @@
       ],
       "priority": "P2",
       "description": "Client views paste-mode sections rendered as RawContentSection with markdown in a styled card, while form-mode sections render structured Vue components.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "proposal-sticky-bar-accept": {
       "name": "Proposal Sticky Bar Accept (ARCHIVED)",
@@ -1565,7 +2025,11 @@
       ],
       "priority": "P2",
       "description": "Client creates change requests for a project. Admin evaluates (approve/reject/needs clarification) with estimated cost and time. Both roles can comment. Per-project view at /platform/projects/:id/changes and unified cross-project view at /platform/changes.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "display"
+      ]
     },
     "platform-bug-reports": {
       "name": "Platform Bug Reports",
@@ -1576,7 +2040,11 @@
       ],
       "priority": "P2",
       "description": "Both roles report bugs with severity, steps to reproduce, expected/actual behavior, device/browser, screenshot. Admin evaluates with status changes and responses. Per-project view at /platform/projects/:id/bugs and unified cross-project view at /platform/bugs.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "display"
+      ]
     },
     "platform-deliverables": {
       "name": "Platform Deliverables",
@@ -1587,7 +2055,12 @@
       ],
       "priority": "P2",
       "description": "Admin uploads deliverables (designs, documents, APKs, credentials) with version history. Client downloads files. Per-project view at /platform/projects/:id/deliverables and unified cross-project view at /platform/deliverables.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "display"
+      ]
     },
     "platform-hosting-subscription": {
       "name": "Platform Hosting Subscription",
@@ -1601,6 +2074,11 @@
       "expectedSpecs": 1,
       "knownGaps": [
         "The free-month gift (first charge deferred to the 1st, >= 1 month free) and always-bill-on-the-1st alignment are backend date rules, unit-tested in accounts/tests/test_hosting_multiphase.py (TestFirstBillingDate, TestAnnualPlan); no dedicated UI assertion. The annual pill select + recompute + activate is now covered."
+      ],
+      "outcomes": [
+        "success",
+        "error",
+        "display"
       ]
     },
     "platform-hosting-card-setup": {
@@ -1611,7 +2089,11 @@
       ],
       "priority": "P1",
       "description": "Client registers a card once for automatic hosting billing. From the project payments page the client opens the card modal, enters card data, and the card is tokenized into a Wompi payment source. When the card requires 3D Secure, an authentication flow runs (browser-info/fingerprint hidden iframes, then a visible bank challenge iframe) polled every 2s until the source is AVAILABLE. On success the card is stored on the subscription and the first open payment is charged. The same flow handles 'Cambiar tarjeta'. A failed payment can be retried manually with the stored card. E2E mocks Wompi + 3DS (the challenge iframe is :srcdoc, no live sandbox): the AVAILABLE happy path and the PENDING → 3DS challenge path.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "platform-hosting-card-delete": {
       "name": "Platform Hosting Card Delete",
@@ -1622,7 +2104,11 @@
       "priority": "P2",
       "description": "From the project payments page, when a card is on file, the client sees an 'Eliminar tarjeta' button next to 'Cambiar tarjeta'. Clicking it opens a confirmation modal warning that automatic billing will be disabled. On confirm, DELETE /api/accounts/projects/:id/subscription/card/remove/ best-effort deletes the Wompi payment source and clears the stored card fields on the subscription, so has_payment_source becomes false and the 'Activa el cobro automático / Registrar tarjeta' state reappears. The button is hidden for admins and for archived subscriptions.",
       "expectedSpecs": 1,
-      "knownGaps": "Spec added 2026-07-23 (QA campaign round 5): confirm delete restoring the register state, cancel without API call, and the in-modal error branch over mocked API."
+      "knownGaps": "Spec added 2026-07-23 (QA campaign round 5): confirm delete restoring the register state, cancel without API call, and the in-modal error branch over mocked API.",
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "platform-notifications": {
       "name": "Platform Notifications",
@@ -1633,7 +2119,11 @@
       ],
       "priority": "P2",
       "description": "In-app notification center with unread count badge in sidebar, filter tabs (all/unread/read), mark-all-read, and click-to-navigate deep links to the relevant project module (board, changes, bugs, deliverables).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "display"
+      ]
     },
     "platform-kanban-json-upload": {
       "name": "Platform Kanban JSON Upload",
@@ -1643,7 +2133,12 @@
       ],
       "priority": "P2",
       "description": "Admin bulk-creates requirements by uploading a JSON file. Includes downloadable example template. Each requirement has title, description, configuration (roles/permissions), and flow (user flow). POST /api/accounts/projects/:projectId/deliverables/:deliverableId/requirements/bulk/.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "display"
+      ]
     },
     "platform-requirement-client-review": {
       "name": "Platform Requirement Client Review",
@@ -1653,7 +2148,11 @@
       ],
       "priority": "P2",
       "description": "Client reviews completed requirements from the Kanban board. Clicking a done card shows three options: Approve (marks as accepted), Request Change (navigates to change requests with pre-filled data), or Report Bug (navigates to bugs with pre-filled data).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "display"
+      ]
     },
     "admin-document-list": {
       "name": "Admin Document List",
@@ -1663,7 +2162,10 @@
       ],
       "priority": "P2",
       "description": "View the list of admin documents with title, status, client association. Per-row actions are collapsed into a single 'Acciones' (kebab) icon that opens the DocumentActionsSheet modal listing each action with its own icon: edit content, rename, move to folder, send by email, download PDF, copy markdown, duplicate, delete. The same single-icon + modal pattern is used on every breakpoint (centered modal on desktop, bottom-sheet on mobile). Navigate to create or edit pages. Each document persists a template style (Amigable/Profesional, field template_style); the DocumentActionsSheet download action is split into two rows, 'Descargar PDF · Amigable' and 'Descargar PDF · Profesional', so either PDF style can be generated without opening the editor.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-document-gallery": {
       "name": "Admin Document Gallery View",
@@ -1673,7 +2175,10 @@
       ],
       "priority": "P2",
       "description": "Toggle between list and gallery views on /panel/documents via the 'Lista'/'Galería' segmented control (data-testid doc-view-list / doc-view-grid). Gallery renders one card per document with a sanitized markdown mini-preview (content_excerpt), status badge overlay, client + date, up to 2 tag chips with a +N tooltip, and the same kebab 'Acciones' opening DocumentActionsSheet. Subfolder cards render first with dashed borders and act as drag-and-drop targets. The chosen mode persists in localStorage (projectapp-documents-view-mode); default is 'list'. On mobile the gallery grid is always the view. Same as the list view, the DocumentActionsSheet 'Acciones' modal offers both 'Descargar PDF · Amigable' and 'Descargar PDF · Profesional' rows, matching each document's persisted template style.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-document-create": {
       "name": "Admin Document Create",
@@ -1684,7 +2189,12 @@
       "priority": "P2",
       "description": "Create a new admin document via Markdown paste mode or file upload mode, with title, optional client association, and live preview.",
       "expectedSpecs": 1,
-      "knownGaps": "Spec covers paste mode only; \"Cargar Archivo\" upload mode (POST /api/documents/upload-markdown/), cover toggles and template-style selection untested (2026-07-16 audit)."
+      "knownGaps": "Spec covers paste mode only; \"Cargar Archivo\" upload mode (POST /api/documents/upload-markdown/), cover toggles and template-style selection untested (2026-07-16 audit).",
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-document-edit": {
       "name": "Admin Document Edit",
@@ -1694,7 +2204,12 @@
       ],
       "priority": "P2",
       "description": "Edit an existing admin document, change content, update status, download as PDF, and copy/paste the markdown content via the toolbar buttons above the textarea. A 'Amigable'/'Profesional' segmented switch (data-testid doc-style-friendly / doc-style-professional) above the markdown preview selects the document's persisted template_style and re-themes the live preview (class markdown-preview--professional toggles on the preview root). The 'Descargar PDF' split button offers both 'Descargar · Amigable' and 'Descargar · Profesional' so either PDF style can be downloaded regardless of the switch's current position.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-document-folders": {
       "name": "Admin Document Folders and Tags",
@@ -1704,7 +2219,10 @@
       ],
       "priority": "P2",
       "description": "Organize admin documents with folders and tags: root-folder sidebar navigation, tag filter chips, and folder/tag management modals. In the folder manager modal, the 'Nueva carpeta' form's 'Dentro de:' parent selector defaults to the currently active folder, so creating a folder while standing inside a child folder pre-selects that folder as the parent (still changeable to any folder or root).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-document-folder-hierarchy": {
       "name": "Admin Document Folder Hierarchy",
@@ -1714,7 +2232,10 @@
       ],
       "priority": "P2",
       "description": "Navigate nested document folders: root-only sidebar, subfolder rows inside the table, breadcrumb navigation above the table, and drag-to-nest re-parenting of folders.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-admin-management": {
       "name": "Admin User Management",
@@ -1724,7 +2245,12 @@
       ],
       "priority": "P3",
       "description": "Manage admin users: list with status filters (All/Active/Inactive), invite new admin via modal, view and deactivate existing admins.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-email-deliverability": {
       "name": "Admin Email Deliverability Dashboard",
@@ -1734,7 +2260,10 @@
       ],
       "priority": "P3",
       "description": "Dashboard tracking email send/delivery/bounce rates for all proposal-related automated emails. Accessible from /panel/proposals/email-deliverability.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-view-map": {
       "name": "Admin View Map",
@@ -1748,6 +2277,10 @@
       "knownGaps": [
         "Configuración default-filters autosave (debounced PATCH + toast) and default-filters application on open are unit-covered only (2026-07 audit).",
         "Saved-tab CRUD (create/rename/delete) unasserted on view_map; shared ProposalFilterTabs component is exercised in proposals specs (2026-07 audit)."
+      ],
+      "outcomes": [
+        "display",
+        "success"
       ]
     },
     "public-landing-software": {
@@ -1758,7 +2291,10 @@
       ],
       "priority": "P3",
       "description": "View the custom software development landing page with hero, features, CTA, and contact form section.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "public-landing-apps": {
       "name": "Landing App Development",
@@ -1768,7 +2304,10 @@
       ],
       "priority": "P3",
       "description": "View the mobile app development landing page with hero, features, CTA, and contact form section.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "platform-collection-accounts-list": {
       "name": "Platform Collection Accounts List",
@@ -1779,7 +2318,7 @@
       ],
       "priority": "P2",
       "description": "Browse collection accounts at /platform/collection-accounts: table, filters (admin), new draft (admin), Open links to detail.",
-      "expectedSpecs": 1
+      "expectedSpecs": 0
     },
     "platform-collection-account-detail": {
       "name": "Platform Collection Account Detail",
@@ -1790,7 +2329,7 @@
       ],
       "priority": "P2",
       "description": "View a single collection account: amounts, line items, Download PDF; admin Issue / Mark paid / Cancel when applicable.",
-      "expectedSpecs": 1
+      "expectedSpecs": 0
     },
     "platform-project-collection-accounts": {
       "name": "Platform Project Collection Accounts",
@@ -1801,7 +2340,10 @@
       ],
       "priority": "P2",
       "description": "List collection accounts scoped to a project at /platform/projects/:id/collection-accounts with links to detail.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "platform-deliverable-detail": {
       "name": "Platform Deliverable Detail",
@@ -1812,7 +2354,7 @@
       ],
       "priority": "P2",
       "description": "View deliverable detail at /platform/projects/:id/deliverables/:deliverableId: linked proposal PDFs, main file, epic, board link; admin attachment upload.",
-      "expectedSpecs": 1
+      "expectedSpecs": 0
     },
     "admin-proposal-contract-generate": {
       "name": "Admin Proposal Contract Generate",
@@ -1822,7 +2364,10 @@
       ],
       "priority": "P1",
       "description": "Admin generates a development contract from the proposal edit Documents tab. Two modes: 'Contrato por defecto' (fill contractor/client params form with auto-populated company settings) or 'Contrato personalizado' (paste/upload custom Markdown). Submit calls save-and-negotiate API. Visible only when proposal status is negotiating/accepted/rejected.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-proposal-contract-edit": {
       "name": "Admin Proposal Contract Edit",
@@ -1832,7 +2377,10 @@
       ],
       "priority": "P2",
       "description": "Admin edits an existing contract's parameters via 'Editar parámetros' button in the Documents tab. Modal opens pre-filled with saved params. Submit calls contract update API.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-proposal-contract-download": {
       "name": "Admin Proposal Contract Download",
@@ -1842,7 +2390,10 @@
       ],
       "priority": "P2",
       "description": "Admin downloads contract PDF (final version) or draft PDF from the Documents tab. Download links visible only when contract has been generated.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-documents-manage": {
       "name": "Admin Proposal Documents Manage",
@@ -1852,7 +2403,10 @@
       ],
       "priority": "P2",
       "description": "Admin uploads additional documents (otrosí, legal annex, client document, other with custom label) to a proposal via the Documents tab. Lists existing documents with type badges. Delete non-generated documents.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-proposal-document-preview": {
       "name": "Admin Proposal Document Preview",
@@ -1862,7 +2416,10 @@
       ],
       "priority": "P3",
       "description": "From the Documents tab of the proposal edit page, admin clicks the eye icon next to a document. A modal opens previewing the file inline — PDF (rendered in iframe) or image (via <img> tag), gated by frontend/utils/filePreview.js (isPdfUrl / isImageUrl / canPreviewFile). Non-previewable files (Word/Excel/etc.) keep only the existing download action. Modal is dismissed via close button or backdrop click.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-documents-send": {
       "name": "Admin Proposal Documents Send (SUPERSEDED)",
@@ -1885,7 +2442,12 @@
       ],
       "priority": "P2",
       "description": "Admin sends a branded marketing email from the Correos tab of a proposal in negotiating/accepted/rejected status. Composer with draggable sections (per-section Markdown toggle), file attachments, server-rendered preview of the real branded template (POST /api/emails/preview/ with proposal_id, sandboxed iframe), paginated history. Endpoints: POST /api/proposals/:id/branded-email/send/, GET /api/proposals/:id/branded-email/defaults/, GET /api/proposals/:id/branded-email/history/.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
+      ]
     },
     "admin-send-proposal-email": {
       "name": "Admin Send Proposal Email (Sent+)",
@@ -1895,7 +2457,12 @@
       ],
       "priority": "P2",
       "description": "Admin sends a proposal email from the Enviar correo tab once the proposal is sent or beyond. Each send writes ProposalChangeLog with EMAIL_SENT change type and updates last_activity_at. Reuses the same composer UI as branded email via mode prop (per-section Markdown toggle + server-rendered preview via POST /api/emails/preview/). Endpoints: POST /api/proposals/:id/proposal-email/send/, GET /api/proposals/:id/proposal-email/defaults/, GET /api/proposals/:id/proposal-email/history/, POST /api/proposals/:id/proposal-email/markdown-attachment/.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
+      ]
     },
     "admin-proposal-attach-from-documents": {
       "name": "Admin Proposal — Adjuntar desde Documentos",
@@ -1905,7 +2472,10 @@
       ],
       "priority": "P1",
       "description": "From the Correos tab of the proposal edit page, admin clicks 'Adjuntar desde Documentos'. A modal opens listing all available documents: contract PDF + draft (if contract exists), commercial PDF, technical PDF, and any uploaded proposal_documents. Admin selects one or more items and clicks 'Adjuntar (N)'. Selected refs appear as emerald badges below the attachments block. On send, the POST body includes a doc_refs JSON field with the resolved refs. Sending is handled by admin-send-branded-email / admin-send-proposal-email; this flow covers only the selection UX.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-diagnostic-attach-from-documents": {
       "name": "Admin Diagnostic — Adjuntar desde Documentos",
@@ -1915,7 +2485,11 @@
       ],
       "priority": "P2",
       "description": "From the Correos tab of the diagnostic edit page, admin clicks 'Adjuntar desde Documentos'. A modal opens listing: NDA final + draft (if NDA generated), the 3 static MD templates fetched from GET /api/diagnostic-templates/, and any uploaded diagnostic attachments. Admin selects and confirms. Selected refs appear as emerald badges in the composer. On send, POST body includes doc_refs. This flow covers only the selection UX.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success"
+      ]
     },
     "platform-project-data-model": {
       "name": "Platform Project Data Model",
@@ -1926,7 +2500,12 @@
       ],
       "priority": "P2",
       "description": "Admin uploads a JSON data model for a project (copy/download template, file upload or paste, validate, submit). Both roles see the entity table (name, description, keyFields, relationship). Empty state and error/retry state.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "display"
+      ]
     },
     "public-privacy-policy": {
       "name": "Privacy Policy Page",
@@ -1936,7 +2515,10 @@
       ],
       "priority": "P4",
       "description": "View the public privacy policy page with localized content (ES/EN).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "public-terms-conditions": {
       "name": "Terms and Conditions Page",
@@ -1946,7 +2528,10 @@
       ],
       "priority": "P4",
       "description": "View the public terms and conditions page with localized content (ES/EN).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-blog-linkedin-connect": {
       "name": "Admin Blog LinkedIn Connect",
@@ -1959,6 +2544,11 @@
       "expectedSpecs": 1,
       "knownGaps": [
         "OAuth popup requires real LinkedIn credentials — E2E should mock the callback URL and API endpoints"
+      ],
+      "outcomes": [
+        "display",
+        "success",
+        "error"
       ]
     },
     "admin-blog-linkedin-publish": {
@@ -1969,7 +2559,12 @@
       ],
       "priority": "P2",
       "description": "Admin fills LinkedIn summary (EN preferred or ES, ≤1300 chars), selects language (defaults to English — US market focus), clicks 'Publicar en LinkedIn' → POST /api/blog/admin/:id/publish-linkedin/. Success message renders. Publish button disabled when summary is empty. Last publish timestamp shown after success.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
+      ]
     },
     "admin-blog-publish-mode": {
       "name": "Admin Blog Publish Mode",
@@ -1980,7 +2575,11 @@
       "priority": "P2",
       "description": "From the blog edit page, admin selects how the post should be published via three radio options: 'Borrador' (draft), 'Publicar ahora' (immediate), or 'Programar' (scheduled). Selecting 'Programar' reveals a datetime input for publish_scheduled_for. If the STORED schedule (published_at at hydration time) is in the past, an amber overdue banner ([data-test='scheduled-overdue-banner']) warns that the safety-net Huey task will publish on the next run; the banner is not live input validation. The mode is computed by frontend/utils/blogPublishMode.js (resolveBlogPublishMode → { mode, scheduledIso, overdue }) and submitted to the blog update endpoint.",
       "expectedSpecs": 1,
-      "knownGaps": "Spec added 2026-07-22 (QA campaign round 4): draft/schedule reveal, past-date overdue banner, scheduled hydration and the publish-now PATCH payload over mocked API."
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 4): draft/schedule reveal, past-date overdue banner, scheduled hydration and the publish-now PATCH payload over mocked API.",
+      "outcomes": [
+        "display",
+        "success"
+      ]
     },
     "admin-blog-overdue-detection": {
       "name": "Admin Blog Overdue Schedule Safety-Net",
@@ -2004,7 +2603,12 @@
       "priority": "P2",
       "description": "Admin composes and sends branded emails from /panel/emails (not tied to a proposal). Page-level tabs (Redactar / Historial / Valores por defecto, deep-linked via ?tab=). Redactar: draggable sections with per-section Markdown toggle, file attachments, server-rendered preview of the real branded template (POST /api/emails/preview/, sandboxed iframe). Historial: paginated email history. Uses standalone endpoints: emails/send/, emails/preview/, emails/defaults/, emails/history/.",
       "expectedSpecs": 1,
-      "knownGaps": "Spec does not exercise: add/remove/drag-reorder sections, send-error path, history entry expand/collapse, \"Cargar más\" pagination. Attachments split out to admin-standalone-email-attachments (2026-07-16 audit)."
+      "knownGaps": "Spec does not exercise: add/remove/drag-reorder sections, send-error path, history entry expand/collapse, \"Cargar más\" pagination. Attachments split out to admin-standalone-email-attachments (2026-07-16 audit).",
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
+      ]
     },
     "admin-standalone-email-defaults": {
       "name": "Admin Standalone Email Defaults Config",
@@ -2015,7 +2619,12 @@
       "priority": "P2",
       "description": "Admin configures the standalone email composer defaults from the 'Valores por defecto' tab of /panel/emails (deep-linkable via ?tab=defaults): default greeting (with {client_name}/{title} variables), default footer and default signer. Saved via PUT /api/emails/defaults/ into EmailTemplateConfig('branded_email').content_overrides; 'Restaurar valores originales' submits registry/settings defaults which clears the overrides. The configured signer is used for standalone sends and previews (proposal emails keep their per-proposal signer).",
       "expectedSpecs": 1,
-      "knownGaps": "Spec does not exercise Branch A (\"Restaurar valores originales\") nor Branch B (invalid signer 400) (2026-07-16 audit)."
+      "knownGaps": "Spec does not exercise Branch A (\"Restaurar valores originales\") nor Branch B (invalid signer 400) (2026-07-16 audit).",
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-standalone-email-attachments": {
       "name": "Admin Standalone Email Attachments",
@@ -2026,7 +2635,11 @@
       "priority": "P2",
       "description": "Admin attaches files to a standalone email from /panel/emails: multiple file input (.pdf/.doc/.docx/.xls/.xlsx/.png/.jpg), client-side type and size validation via validateEmailAttachments (~/utils/emailAttachments), per-file remove button, and multipart POST /api/emails/send/ including the attachments. Documented as Branch B of admin-standalone-email-composer but never exercised by its spec.",
       "expectedSpecs": 1,
-      "knownGaps": "Spec added 2026-07-22 (QA campaign round 3): valid upload sent in multipart POST, type-validation rejection and per-file remove over mocked API."
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 3): valid upload sent in multipart POST, type-validation rejection and per-file remove over mocked API.",
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-proposal-advanced-filters": {
       "name": "Admin Proposal Advanced Filters",
@@ -2036,7 +2649,10 @@
       ],
       "priority": "P2",
       "description": "Filter proposals using custom saved tabs, status/type/market dropdowns, date range, and text search. Tab bar with add/rename/delete, URL deep-linking via ?tab=<tabId>.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-project-schedule": {
       "name": "Admin Proposal Project Schedule (Cronograma)",
@@ -2046,7 +2662,11 @@
       ],
       "priority": "P1",
       "description": "Admin sets per-stage start/end dates (design, development) for an accepted proposal in the Cronograma tab, sees proportional status badges, and marks stages as completed to silence deadline alerts.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-client-create-standalone": {
       "name": "Admin Client Create Standalone",
@@ -2056,7 +2676,11 @@
       ],
       "priority": "P2",
       "description": "Create a new client profile from /panel/clients via the modal form, with and without email.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-client-delete-orphan": {
       "name": "Admin Client Delete Orphan",
@@ -2066,7 +2690,11 @@
       ],
       "priority": "P2",
       "description": "Delete an orphan client (zero proposals + zero projects) via the trash icon and confirm modal.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success"
+      ]
     },
     "admin-client-delete-protected": {
       "name": "Admin Client Delete Protected",
@@ -2076,7 +2704,10 @@
       ],
       "priority": "P2",
       "description": "Verify that active clients (with proposals or projects) do not expose the delete trash icon.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "error"
+      ]
     },
     "admin-client-inactive-tab": {
       "name": "Admin Client Inactive Tab",
@@ -2086,7 +2717,12 @@
       ],
       "priority": "P2",
       "description": "Inactivos tab lists only manually deactivated clients (inactive=true) and the pause/play toggle marks a client inactive or reactivates it.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
+      ]
     },
     "admin-client-drag-reassign": {
       "name": "Admin Client Drag Reassign",
@@ -2096,7 +2732,11 @@
       ],
       "priority": "P2",
       "description": "Drag a proposal or diagnostic row from an expanded client and drop it on another client card header or its matching proposals/diagnostics zone to reassign it (PATCH client_id) with an undo notification; details and list refresh silently in place.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "admin-proposal-client-autocomplete": {
       "name": "Admin Proposal Client Autocomplete",
@@ -2106,7 +2746,10 @@
       ],
       "priority": "P1",
       "description": "Client picker autocomplete in proposal create/edit: type to search, select a client to auto-fill snapshot fields, fallback \"Crear nuevo\" when no match.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-client-no-email": {
       "name": "Admin Proposal Client No Email",
@@ -2116,7 +2759,10 @@
       ],
       "priority": "P2",
       "description": "Create a proposal without a client email — backend generates a placeholder email and all automations are paused for that client.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-proposal-update-client": {
       "name": "Admin Proposal Update Client",
@@ -2126,7 +2772,11 @@
       ],
       "priority": "P2",
       "description": "Change the linked client on an existing proposal from the proposal edit page (/panel/proposals/:id/edit). Admin selects a different client via the autocomplete and saves; snapshot fields update to reflect the new client.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-kanban-tasks": {
       "name": "Admin Kanban Tasks",
@@ -2136,7 +2786,12 @@
       ],
       "priority": "P2",
       "description": "Internal Kanban task board at /panel/tasks (alias /panel/tareas redirects here). Admin can create, edit, move across TO DO/In Progress/Blocked/Done columns, and delete tasks.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
+      ]
     },
     "admin-task-deadline-notification": {
       "name": "Admin Task Deadline Notification",
@@ -2159,7 +2814,12 @@
       ],
       "priority": "P1",
       "description": "Admin moves a document to a different folder (or removes it from any folder) via MoveFolderModal from the documents page. PATCHes documents/{id}/update/ with folder_id.",
-      "expectedSpecs": 3
+      "expectedSpecs": 3,
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
+      ]
     },
     "admin-document-send-email": {
       "name": "Admin Document Send Email",
@@ -2170,7 +2830,11 @@
       "priority": "P1",
       "description": "Admin sends a branded email with document PDFs attached from the documents list: actions sheet -> 'Enviar por correo' opens SendDocumentEmailModal (recipient, subject, greeting, ordered sections, footer, extra document PDFs picker, Edit/Preview tabs) -> POST /api/emails/send/ with document_ids. Functional successor of the superseded admin-proposal-documents-send flow.",
       "expectedSpecs": 1,
-      "knownGaps": "Spec added 2026-07-22 (QA campaign): happy path, 429 rate-limited and generic-error branches over mocked API."
+      "knownGaps": "Spec added 2026-07-22 (QA campaign): happy path, 429 rate-limited and generic-error branches over mocked API.",
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "admin-document-rename": {
       "name": "Admin Document Rename",
@@ -2181,7 +2845,11 @@
       "priority": "P2",
       "description": "Admin renames a document from the actions sheet: 'Renombrar' opens RenameDocumentModal with the current title, saving sends PATCH /api/documents/:id/update/ and the list refreshes with the new title.",
       "expectedSpecs": 1,
-      "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): happy path + cancel/error branches over mocked API."
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): happy path + cancel/error branches over mocked API.",
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "admin-document-delete": {
       "name": "Admin Document Delete",
@@ -2192,7 +2860,11 @@
       "priority": "P2",
       "description": "Admin deletes a document from the actions sheet: 'Eliminar' opens ConfirmModal; confirming sends DELETE /api/documents/:id/delete/ and removes the row/card; cancelling keeps it. Current list spec only asserts the button is visible.",
       "expectedSpecs": 1,
-      "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): happy path + cancel/error branches over mocked API."
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): happy path + cancel/error branches over mocked API.",
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "admin-document-folder-manage": {
       "name": "Admin Document Folder Management",
@@ -2203,7 +2875,12 @@
       "priority": "P2",
       "description": "Admin manages folders in FolderManagerModal: create folder with parent selector (POST /api/document-folders/create/), inline rename (PATCH /api/document-folders/:id/update/), delete with confirmation (DELETE /api/document-folders/:id/delete/) and drag-reorder (POST /api/document-folders/reorder/). Existing admin-document-folders spec only covers parent pre-selection on create.",
       "expectedSpecs": 1,
-      "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): create/rename/delete + documents-blocking branch over mocked API. Drag-reorder intentionally not asserted (flaky in CI)."
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): create/rename/delete + documents-blocking branch over mocked API. Drag-reorder intentionally not asserted (flaky in CI).",
+      "outcomes": [
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "admin-document-tags-manage": {
       "name": "Admin Document Tags Management",
@@ -2214,7 +2891,11 @@
       "priority": "P2",
       "description": "Admin manages tags in TagManagerModal: create tag with name and color (POST /api/document-tags/create/), rename (PATCH /api/document-tags/:id/update/), delete with confirm (DELETE /api/document-tags/:id/delete/). Tag chip filtering is covered by admin-document-folders; tag CRUD is not.",
       "expectedSpecs": 1,
-      "knownGaps": "Spec added 2026-07-22 (QA campaign round 3): create with color, inline rename, delete behind native confirm + dismissed branch over mocked API."
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 3): create with color, inline rename, delete behind native confirm + dismissed branch over mocked API.",
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "admin-document-duplicate": {
       "name": "Admin Document Duplicate",
@@ -2225,7 +2906,11 @@
       "priority": "P3",
       "description": "Admin duplicates a document from the actions sheet: 'Duplicar' sends POST /api/documents/:id/duplicate/ and the copy appears in the list.",
       "expectedSpecs": 1,
-      "knownGaps": "Spec added 2026-07-23 (round 7): duplicate POST with the copy appearing in the refreshed list, plus the error-toast branch."
+      "knownGaps": "Spec added 2026-07-23 (round 7): duplicate POST with the copy appearing in the refreshed list, plus the error-toast branch.",
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "admin-document-drag-organize": {
       "name": "Admin Document Drag Organize",
@@ -2236,7 +2921,10 @@
       "priority": "P3",
       "description": "Admin organizes by drag-and-drop: dragging a document card/row onto a sidebar folder moves it (PATCH /api/documents/:id/update/ folder_id), and dragging a folder onto a breadcrumb/sidebar folder re-parents it (PATCH /api/document-folders/:id/update/). The modal-based move path is covered by admin-document-move-folder; the drag path is not.",
       "expectedSpecs": 0,
-      "knownGaps": "Drag interactions untested (fragile in Playwright; needs dispatchEvent-based DnD). Registered 2026-07-16 audit."
+      "knownGaps": "Drag interactions untested (fragile in Playwright; needs dispatchEvent-based DnD). Registered 2026-07-16 audit.",
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-document-pdf-download": {
       "name": "Admin Document PDF Download",
@@ -2246,7 +2934,11 @@
       ],
       "priority": "P2",
       "description": "Admin downloads a Document entity as a branded PDF from the document edit page via the 'Descargar PDF' button.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "admin-diagnostic-create": {
       "name": "Admin Diagnostic Create",
@@ -2256,7 +2948,11 @@
       ],
       "priority": "P1",
       "description": "Admin creates a new WebAppDiagnostic from /panel/diagnostics/create: searches for a client via autocomplete, selects language, submits → redirected to edit page with 8 JSON sections seeded from the default template.",
-      "expectedSpecs": 3
+      "expectedSpecs": 3,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-diagnostic-send-initial": {
       "name": "Admin Diagnostic Send Initial",
@@ -2266,7 +2962,11 @@
       ],
       "priority": "P1",
       "description": "Admin sends the initial-phase diagnostic from the edit page via 'Enviar envío inicial' — POST /api/diagnostics/:id/send-initial/, stamps `initial_sent_at`, status moves DRAFT → SENT. Public view then exposes only sections with visibility ∈ {initial, both}. The follow-up SENT → NEGOTIATING transition is its own flow (`admin-diagnostic-mark-in-analysis`). Since the Jul 2026 UX redesign the send opens a pre-send scorecard modal (GET /api/diagnostics/:id/scorecard/): blockers disable the send button and the backend refuses to transition while blockers remain (400 scorecard_blockers).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-diagnostic-mark-in-analysis": {
       "name": "Admin Diagnostic Mark In Analysis",
@@ -2276,7 +2976,10 @@
       ],
       "priority": "P1",
       "description": "Admin clicks 'Marcar en análisis' on a SENT diagnostic to acknowledge that the client authorized continuing — opens a ConfirmModal and POSTs /api/diagnostics/:id/mark-in-analysis/, transitioning SENT → NEGOTIATING. The button is only available after `initial_sent_at` is set; afterwards the 'Enviar diagnóstico final' action becomes the next user step.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-diagnostic-send-final": {
       "name": "Admin Diagnostic Send Final",
@@ -2286,7 +2989,11 @@
       ],
       "priority": "P1",
       "description": "Admin sends the final-phase diagnostic from NEGOTIATING via 'Enviar diagnóstico final' (SENT again, final_sent_at stamped). Public view now also exposes sections with visibility ∈ {final}. Gated by the same pre-send scorecard modal as send-initial.",
-      "expectedSpecs": 2
+      "expectedSpecs": 2,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "diagnostic-public-view": {
       "name": "Diagnostic Public View",
@@ -2296,7 +3003,11 @@
       ],
       "priority": "P1",
       "description": "Client accesses the public diagnostic page via UUID link and navigates the JSON-driven section components (Purpose/Radiography/Categories/DeliveryStructure/ExecutiveSummary/Cost/Timeline/Scope). Initial-phase view hides `final`-only sections. Per-section dwell time is tracked via /api/diagnostics/public/<uuid>/track-section/. Accept/Reject is a separate flow (`diagnostic-public-respond`). Since the Jul 2026 redesign the page opens with a personalized cover ('Comenzar recorrido' starts the tour) and sections swap with a directional slide.",
-      "expectedSpecs": 2
+      "expectedSpecs": 2,
+      "outcomes": [
+        "display",
+        "failure"
+      ]
     },
     "diagnostic-public-respond": {
       "name": "Diagnostic Public Respond",
@@ -2306,7 +3017,11 @@
       ],
       "priority": "P1",
       "description": "On a final-phase SENT public diagnostic, the client clicks 'Aceptar propuesta' or 'Rechazar' in the footer — POST /api/diagnostics/public/<uuid>/respond/ with `decision` ('accept'|'reject'), the page swaps to the acceptance/rejection confirmation footer, and the backend transitions the diagnostic to ACCEPTED or REJECTED. The CTA only appears on the last section (or once the cost section was visited) and asks for confirmation before POSTing, with an explicit sending state.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "diagnostic-public-pdf-download": {
       "name": "Diagnostic Public PDF Download",
@@ -2319,6 +3034,9 @@
       "expectedSpecs": 1,
       "knownGaps": [
         "Production PDF is generated by ReportLab on the fly; E2E mocks a 200 PDF response and validates the UI path."
+      ],
+      "outcomes": [
+        "success"
       ]
     },
     "diagnostic-public-share": {
@@ -2329,7 +3047,10 @@
       ],
       "priority": "P2",
       "description": "Client clicks the floating share button on the public diagnostic page; a modal opens with the current URL and a 'Copiar enlace' action. Optionally uses Web Share API if available.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "diagnostic-public-dark-mode": {
       "name": "Diagnostic Public Dark Mode Toggle",
@@ -2339,7 +3060,10 @@
       ],
       "priority": "P3",
       "description": "Client toggles dark/light mode via the fixed bottom-left button; the [data-diagnostic-wrapper] element receives data-theme='dark'. Preference persists to localStorage['diagnostic-dark-mode'] and is restored on next page load.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "diagnostic-public-onboarding": {
       "name": "Diagnostic Public Onboarding",
@@ -2362,7 +3086,12 @@
       ],
       "priority": "P1",
       "description": "Admin edits the 8 JSON sections from the Secciones tab of the diagnostic edit page. Each section type has a typed form (paragraphs, severity levels, 14-category findings, radiography table, timeline rows, etc.). Changes are debounced and PATCHed to /sections/<id>/update/. The tab also exposes a completeness indicator (% + colored progress bar counting enabled sections with non-empty content_json) and a per-section 'Restaurar contenido por defecto' action (POST /sections/<id>/reset/). Raw-JSON read + bulk apply moved to the JSON tab — see admin-diagnostic-json-export / admin-diagnostic-json-import.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
+      ]
     },
     "admin-diagnostic-activity": {
       "name": "Admin Diagnostic Activity Timeline",
@@ -2372,7 +3101,10 @@
       ],
       "priority": "P2",
       "description": "Admin records notes / call / meeting / followup events from the Actividad tab (POST /activity/create/). Timeline shows auto-logged events (created, status change, section updated, email sent, accepted, rejected) alongside manual notes.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-diagnostic-analytics": {
       "name": "Admin Diagnostic Analytics Dashboard",
@@ -2382,7 +3114,11 @@
       ],
       "priority": "P2",
       "description": "Admin reviews full analytics parity with proposal analytics tab: engagement score (0–100 color-coded), summary KPIs (total views, unique sessions, first view, reading time, coverage, last visit), comparison with global averages, funnel with drop-off %, device breakdown (desktop/mobile/tablet), suggested actions, skipped sections, section heatmap, engagement table, activity timeline, sessions history, and CSV export button. Data sourced from DiagnosticViewEvent + DiagnosticSectionView + DiagnosticChangeLog.",
-      "expectedSpecs": 2
+      "expectedSpecs": 2,
+      "outcomes": [
+        "display",
+        "failure"
+      ]
     },
     "admin-diagnostic-engagement-score": {
       "name": "Admin Diagnostic Engagement Score",
@@ -2392,7 +3128,10 @@
       ],
       "priority": "P2",
       "description": "Engagement score card renders with correct color-coded level label: Alto engagement (≥70), Engagement moderado (40–69), Bajo engagement (<40). Card hidden when engagement_score is null.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-diagnostic-prompt": {
       "name": "Admin Diagnostic Prompt Editor",
@@ -2402,7 +3141,10 @@
       ],
       "priority": "P2",
       "description": "Admin copies / edits / downloads the two diagnostic prompts (commercial and technical) from the Prompt tab. State is persisted in localStorage per browser via usePromptState({storageKey, defaultPrompt}).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-diagnostic-email": {
       "name": "Admin Diagnostic Email Composer",
@@ -2412,7 +3154,12 @@
       ],
       "priority": "P2",
       "description": "Admin sends a follow-up branded email from the Correos tab of the diagnostic edit page. Composer includes recipient, subject, draggable body sections (per-section Markdown toggle), footer, optional attachments, and a server-rendered preview of the real branded template (POST /api/emails/preview/). NDA branch: checking 'Adjuntar acuerdo de confidencialidad' appends attach_confidentiality:1 to the FormData and the backend generates and attaches the confidentiality PDF. History lists previous sends (sections stored as legacy strings or {text, markdown} objects).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-diagnostic-documents": {
       "name": "Admin Diagnostic Attachment Management",
@@ -2425,6 +3172,12 @@
       "expectedSpecs": 1,
       "knownGaps": [
         "is_generated delete-blocked branch is backend-only (UI offers no delete button for generated NDAs); covered by backend tests, not E2E."
+      ],
+      "outcomes": [
+        "display",
+        "success",
+        "error",
+        "failure"
       ]
     },
     "admin-diagnostic-document-preview": {
@@ -2448,7 +3201,12 @@
       ],
       "priority": "P1",
       "description": "Admin defines one or more manual date-based email alerts per task from the TaskFormModal Alertas section. Supports add (date + optional note), list with sent/pending badge, and delete. Alerts fire via Huey daily at 08:10.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
+      ]
     },
     "admin-diagnostic-edit": {
       "name": "Admin Diagnostic Edit",
@@ -2458,7 +3216,11 @@
       ],
       "priority": "P2",
       "description": "Admin edits top-level metadata of an existing WebAppDiagnostic from the General tab: title, client (via ClientAutocomplete) + client-snapshot fields (name/email/phone/company) + propagate-to-profile checkbox, language, investment amount + currency, payment terms (initial/final pct), duration label, and size category. Changes are saved via PATCH /api/diagnostics/:id/update/. Radiografía data is edited as a regular section from the Secciones tab. Section content is edited separately under admin-diagnostic-sections; full-JSON round-trip lives under admin-diagnostic-json-export / admin-diagnostic-json-import.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-diagnostic-delete": {
       "name": "Admin Diagnostic Delete",
@@ -2468,7 +3230,10 @@
       ],
       "priority": "P2",
       "description": "Admin deletes an existing WebAppDiagnostic from the diagnostics list or edit page via confirm modal. DELETE /api/diagnostics/:id/delete/.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-diagnostic-confidentiality-generate": {
       "name": "Admin Diagnostic NDA Generate",
@@ -2478,7 +3243,11 @@
       ],
       "priority": "P1",
       "description": "Admin generates the Acuerdo de Confidencialidad (NDA) PDF from the Documentos tab of the diagnostic edit page. Section displays 'No generado' with a 'Generar acuerdo' CTA when no NDA exists. CTA opens ConfidentialityParamsModal with 12 fields (cliente: nombre/NIT/representante/email; consultor: nombre/NIT/email — defaults to Project App SAS / team@projectapp.co; acuerdo: ciudad — default Medellín, día/mes/año, cláusula penal — default 50 SMMLV). Submit posts to POST /api/diagnostics/:id/confidentiality/params/, which validates via ConfidentialityParamsSerializer, persists to diagnostic.confidentiality_params, and creates a DiagnosticAttachment with document_type='confidentiality_agreement' and is_generated=true. Section then shows 'Generado el {fecha}' with Descargar / Borrador / Editar parámetros buttons.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-diagnostic-confidentiality-edit": {
       "name": "Admin Diagnostic NDA Edit Params",
@@ -2488,7 +3257,11 @@
       ],
       "priority": "P2",
       "description": "Admin re-opens the ConfidentialityParamsModal via 'Editar parámetros' on a diagnostic that already has a generated NDA. Form pre-fills from diagnostic.confidentiality_params. Admin modifies one or more fields and submits — the existing DiagnosticAttachment file is replaced in place (same row id, file.delete + file.save, single .save() call). Section header still shows 'Generado el {fecha}' with the updated timestamp.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-diagnostic-confidentiality-download": {
       "name": "Admin Diagnostic NDA Download",
@@ -2498,7 +3271,10 @@
       ],
       "priority": "P2",
       "description": "Admin downloads the generated Acuerdo de Confidencialidad from the Documentos tab. 'Descargar' link → GET /api/diagnostics/:id/confidentiality/pdf/ (FileResponse, streams the saved PDF with placeholders filled from confidentiality_params). 'Borrador' link → GET /api/diagnostics/:id/confidentiality/draft-pdf/ (renders fresh with all placeholders forced to XXX-XXX-XXX and applies BORRADOR watermark). When no NDA exists, neither link is present and the section shows 'No generado' with 'Generar acuerdo' CTA.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-diagnostic-json-export": {
       "name": "Admin Diagnostic JSON Export",
@@ -2508,7 +3284,10 @@
       ],
       "priority": "P2",
       "description": "Admin opens the JSON tab of /panel/diagnostics/:id/edit. A read-only textarea renders the full diagnostic serialized as JSON (metadata + sections). Actualizar refetches /detail/ from the server; Copiar writes the current text to the clipboard; Descargar streams a {slug}.json Blob download. The string is lazy-computed from store.current so it rebuilds only when the tab is rendered.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-diagnostic-json-import": {
       "name": "Admin Diagnostic JSON Import",
@@ -2518,7 +3297,11 @@
       ],
       "priority": "P2",
       "description": "Admin imports a JSON blob from the JSON tab of /panel/diagnostics/:id/edit, either by pasting into the textarea or uploading a .json file (FileReader → textarea). Parse runs on every input; validation requires a root object with an array `sections`. A preview strip shows client name, section count, and formatted investment. Aplicar JSON runs PATCH /update/ for metadata first, then POST /sections/bulk-update/; success emits an inline toast and resyncs the pricing/radiography forms. Errors surface inline and abort the apply.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-diagnostic-defaults-config": {
       "name": "Admin Diagnostic Defaults Config",
@@ -2528,7 +3311,13 @@
       ],
       "priority": "P2",
       "description": "Admin manages the per-language default config applied to new WebAppDiagnostic rows from /panel/diagnostics/defaults/. The General tab edits language, currency, default investment amount, default duration label, payment percentages (auto-synced to sum 100, default 60/40), and reminder/urgency/expiration days. Save PUTs /api/diagnostics/defaults/?lang= and the response is applied directly (no refetch). Reset opens a ConfirmModal and POSTs /defaults/reset/ to delete the row, falling back to the hardcoded seed. Sections, Plantillas de Email (link), Prompt (placeholder) and JSON tabs render from the same config payload.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "admin-proposal-diagnostic-templates": {
       "name": "Proposal — Documentos Tab",
@@ -2538,7 +3327,10 @@
       ],
       "priority": "P2",
       "description": "Admin views the 'Documentos' tab on the proposal edit page. Tab is visible for proposals in sent|viewed|negotiating|accepted|rejected status. Shows a unified document list (Contrato de desarrollo, Propuesta comercial PDF, Detalle técnico PDF) plus a 'Documentos adjuntos' section with upload form. Does NOT show 'Enviar documentos al cliente' (that section was removed Apr 22 2026 — sending is done from the Correos tab).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-diagnostic-markdown-attachment": {
       "name": "Diagnostic Email — Markdown to PDF Attachment",
@@ -2548,7 +3340,12 @@
       ],
       "priority": "P2",
       "description": "When a diagnostic is in 'negotiating' status, admin sees a 'Crear documento desde markdown' button in the Correos tab. Clicking it opens MarkdownAttachmentModal, which takes a title, a markdown textarea, and three cover-toggle checkboxes. A 'Plantillas base' row provides three copy-to-clipboard buttons (Diagnóstico de Aplicación / Diagnóstico Técnico / Anexo) that fetch GET /api/diagnostic-templates/:slug/ on first click and write the markdown to the clipboard; subsequent clicks use an in-memory cache. The Vista previa button is disabled until both title and markdown are filled; clicking it POSTs to POST /api/diagnostics/:id/email/markdown-attachment/ (returns an inline PDF). The PDF is rendered in an iframe for review. Clicking Adjuntar converts the blob to a File and emits @attach — appending it to the email attachments list with a success toast.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
+      ]
     },
     "proposal-value-added-modules": {
       "name": "Proposal Value Added Modules",
@@ -2562,6 +3359,9 @@
       "knownGaps": [
         "Terms modal now renders **bold** via renderInlineBold (2026-07); bold output not asserted (mock terms carry no ** markers).",
         "Canonical card order admin>manual>kpi_dashboard>analytics>ai_automation (2026-07) not asserted."
+      ],
+      "outcomes": [
+        "display"
       ]
     },
     "admin-diagnostic-list": {
@@ -2572,7 +3372,10 @@
       ],
       "priority": "P1",
       "description": "Admin views the list of all WebAppDiagnostics, searches by client name or title, and navigates to create or edit flows.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-diagnostic-filters": {
       "name": "Admin Diagnostic Filters",
@@ -2583,7 +3386,10 @@
       "priority": "P2",
       "description": "Filter diagnostics using saved tabs with localStorage persistence and URL sync (?tab=<tabId>). Filter dimensions: statuses (multi-select), investmentMin/Max, createdAfter/Before. Tab bar supports add/rename/delete (max 12 tabs).",
       "expectedSpecs": 1,
-      "knownGaps": "Own-tag tests added 2026-07-23 (round 6): status dimension filtering, Limpiar todo reset and diagnosticTab URL sync, inside admin-diagnostic-advanced-filters.spec.js."
+      "knownGaps": "Own-tag tests added 2026-07-23 (round 6): status dimension filtering, Limpiar todo reset and diagnosticTab URL sync, inside admin-diagnostic-advanced-filters.spec.js.",
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-diagnostic-advanced-filters": {
       "name": "Admin Diagnostic Advanced Filters",
@@ -2593,7 +3399,11 @@
       ],
       "priority": "P2",
       "description": "Admin filters diagnostics from /panel/diagnostics via DiagnosticFilterPanel + ProposalFilterTabs. Default view shows all diagnostics. 'Filtros' toggle opens/closes the filter panel (Estados dimension visible). '+' button creates a named saved-filter tab (persisted to localStorage). Search input filters the card list by title client-side.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success"
+      ]
     },
     "admin-client-edit": {
       "name": "Admin Client Edit",
@@ -2603,7 +3413,12 @@
       ],
       "priority": "P2",
       "description": "Admin edits an existing client profile from /panel/clients by clicking the edit (pencil) icon on a client row. The edit modal opens pre-filled with the client's name, email, phone, and company. Admin modifies fields and submits — PUT /api/proposals/client-profiles/:id/update/ — modal closes on success. A 400 response surfaces validation errors and keeps the modal open.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-defaults-unified": {
       "name": "Admin Unified Defaults Shell",
@@ -2613,7 +3428,10 @@
       ],
       "priority": "P2",
       "description": "Admin navigates to /panel/defaults — a unified shell page with a Propuesta/Diagnóstico mode switch. Default mode is proposal. Clicking Diagnóstico updates the URL to ?mode=diagnostic and renders DiagnosticDefaultsPanel. Direct navigation to ?mode=diagnostic lands in diagnostic mode. The back link label changes by mode (Volver a Propuestas / Volver a Diagnósticos). Old routes /panel/proposals/defaults and /panel/diagnostics/defaults redirect here preserving the ?tab= param.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-layout-title-mapping": {
       "name": "Admin Layout Browser Tab Title",
@@ -2623,7 +3441,10 @@
       ],
       "priority": "P3",
       "description": "Browser tab title in admin.vue updates reactively to show 'Project App (ViewName)' based on the current route. Covers: exact match (dashboard), static prefix match, more-specific route priority, and dynamic regex routes (/panel/proposals/:id/edit → 'Edit. propuesta').",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "platform-layout-title-mapping": {
       "name": "Platform Layout Browser Tab Title",
@@ -2633,7 +3454,10 @@
       ],
       "priority": "P3",
       "description": "Browser tab title in platform.vue updates reactively to show 'Project App (ViewName)'. Covers: static route (dashboard, projects), dynamic project base route (/platform/projects/:id → 'Proyecto'), and nested dynamic route ordering (/platform/projects/:id/board → 'Tablero' beats project base regex).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-platform-handoff": {
       "name": "Admin Proposal → Platform Handoff",
@@ -2643,7 +3467,11 @@
       ],
       "priority": "P1",
       "description": "After a proposal is accepted, admin clicks 'Lanzar a plataforma' from the actions modal — POST /api/proposals/:id/launch-to-platform/ — which creates a PlatformProject linked to the proposal and sends the client a platform invitation email with an OTP. Admin sees a 'Ver en plataforma' action in the proposal actions panel. Client then starts the platform onboarding flow (platform-login → platform-verify-onboarding → platform-complete-profile).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "diagnostic-public-phase-visibility": {
       "name": "Diagnostic Public Phase Visibility",
@@ -2666,6 +3494,9 @@
       "expectedSpecs": 1,
       "knownGaps": [
         "Admin side covered; no assertion that a disabled section disappears from the public view (2026-07 audit)."
+      ],
+      "outcomes": [
+        "success"
       ]
     },
     "admin-proposal-section-sync": {
@@ -2676,7 +3507,10 @@
       ],
       "priority": "P2",
       "description": "Admin uses the SyncPreviewModal on the proposal edit page to preview a server-computed diff between the current section's content_json and the canonical default, then applies the sync to overwrite. Backend endpoints: GET /api/proposals/sections/:id/sync-preview/ and POST /api/proposals/sections/:id/apply-sync/. UI lives at frontend/components/BusinessProposal/admin/SyncPreviewModal.vue (mounted in pages/panel/proposals/[id]/edit.vue).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-magic-link-request": {
       "name": "Proposal Magic Link Request (Expired)",
@@ -2686,7 +3520,10 @@
       ],
       "priority": "P1",
       "description": "Guest who lands on an expired proposal submits their email to receive a fresh magic-link via the form in ProposalExpired.vue. Calls POST /api/proposals/request-link/ with { email } and shows a neutral confirmation message ('Si tenemos propuestas asociadas a ese email, recibirás un enlace en breve.') regardless of backend outcome to avoid leaking which emails are clients. Out of scope of proposal-expired-graceful (which covers the expired-state UI).",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "proposal-slug-access": {
       "name": "Proposal Slug Access",
@@ -2696,7 +3533,11 @@
       ],
       "priority": "P1",
       "description": "Client accesses a proposal via its human-friendly slug URL (/proposal/<slug>/). The store detects non-UUID identifiers and routes the request to the by-slug API endpoint. UUID-based access must still work for backward compatibility. Unknown slugs must render the 404/not-found state.",
-      "expectedSpecs": 3
+      "expectedSpecs": 3,
+      "outcomes": [
+        "display",
+        "failure"
+      ]
     },
     "admin-proposal-slug-edit": {
       "name": "Admin Proposal Slug Edit",
@@ -2706,7 +3547,11 @@
       ],
       "priority": "P1",
       "description": "Admin sets or regenerates the human-friendly slug (URL personalizada) for a proposal from the General tab. Includes format validation (lowercase/numbers/hyphens), uniqueness error on 400, and one-click regeneration from client name. PATCH /api/proposals/:id/update/ with { slug }.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-proposal-defaults-slug-pattern": {
       "name": "Admin Proposal Defaults — Slug Pattern",
@@ -2716,7 +3561,10 @@
       ],
       "priority": "P2",
       "description": "Admin configures the default slug pattern used when new proposals are created (e.g. {client_name}, {client_name}-{year}). Live preview shows the slugified result. Saved to ProposalDefaultConfig.default_slug_pattern via PUT /api/proposals/defaults/.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "platform-access-view": {
       "name": "Platform Access View",
@@ -2736,7 +3584,10 @@
       ],
       "priority": "P1",
       "description": "Superuser opens /panel/accounting and sees the financial overview fed by GET /api/accounting/dashboard/?year=: expected vs liquid income, expenses, utilities and monthly breakdown computed from the company ledger only (personal-ledger records excluded), pocket balance, per-partner cards (Gustavo/Carlos combine company participation + personal ledger; ProjectApp (Empresa) shows the full company ledger totals), operative cost cards and latest card snapshots. The hero Utilidad líquida card embeds a full-width 'Utilidad por mes' ApexCharts line with axes and money tooltips (replaced the corner sparkline). The subnav orders Bolsillo second, after Resumen. Includes the superuser gate: staff non-superusers are redirected to /panel and the Accounting sidebar section is hidden. Includes the Evolución section: two ApexCharts (expected vs liquid vs expenses per month, and card-debt evolution from snapshots) driven by the year selector plus a client-side month-range filter, a link to the cards history and the year persisted as a query param.",
-      "expectedSpecs": 7
+      "expectedSpecs": 7,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-accounting-expected-detail": {
       "name": "Admin Accounting Expected Income Detail",
@@ -2746,7 +3597,10 @@
       ],
       "priority": "P2",
       "description": "Superuser clicks the 'Pendiente por cobrar · {mes}' stat card on /panel/accounting and a read-only modal opens with the company expected incomes of the real current month (GET /api/accounting/incomes/?kind=expected&ledger=company&date_from&date_to derived from expected_current_month.period, not the year selector). The table lists concepto, período, total, abonado (paid_amount), pendiente (pending_amount, per-row clamped) and payment status pill, with a footer whose Pendiente sum equals the card total. Cerrar closes the modal; no actions on rows.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-accounting-stats-modals": {
       "name": "Admin Accounting Stats Modals",
@@ -2756,7 +3610,10 @@
       ],
       "priority": "P2",
       "description": "Superuser opens descriptive-statistics modals from the accounting Resumen: the Ingresos líquidos, Gastos {year} and Deuda tarjetas stat cards are clickable buttons and the hero Utilidad card exposes an Estadísticas button. Each modal is a StatsModal (BaseModal 5xl + BaseTabs) with tabbed ApexCharts views: Ingresos (evolución esperado vs líquido, % de cobro radial+mensual, top conceptos), Gastos (evolución con promedio, distribución Negocio/Personal, recurrente vs variable, top conceptos), Utilidad (evolución, márgenes, socios) and Tarjetas (evolución de deuda, uso del cupo por tarjeta, histórico de cortes). Income/expense tabs feed from GET /api/accounting/stats/?year= (lazy, cached per year in the accounting store, reset on year change); utility/cards tabs compute client-side from the dashboard summary and card snapshots.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-accounting-income-crud": {
       "name": "Admin Accounting Income CRUD",
@@ -2766,7 +3623,12 @@
       ],
       "priority": "P1",
       "description": "Superuser manages income records at /panel/accounting/incomes: create via modal with automatic 50/50 partner split (editable), ledger selector (Contabilidad: Empresa / Personal Gustavo / Personal Carlos — personal hides the split and pocket destination and uses a single Valor field), edit with prefill (PATCH /api/accounting/incomes/:id/update/), delete with ConfirmModal (DELETE .../delete/), HTML5 required validation and backend error toasts via usePanelNotify. Each list also exposes column sorting (asc/desc/off) on key columns. Expected rows carry a fulfilment state computed from their linked liquid records (Pagado green tint / Parcial amber tint with the outstanding amount / Pendiente untinted) and two extra row actions: 'Liquidar', which opens a modal prefilled with the pending amount (destination defaults to Bolsillo ProjectApp; the payment period is a month by default with a 'Registrar el día exacto de pago' toggle switching to a full date) and POSTs a liquid record linked via expected_income (the expected row survives, so partial payments accumulate), and 'Marcar como perdido', offered only on rows with no payments yet, which PATCHes kind=lost. Written-off income is a third kind, hidden under the 'Todos' filter and reachable via the 'Pérdidas' segment, with its own total chip and a 'Perdido (año)' KPI.",
-      "expectedSpecs": 14
+      "expectedSpecs": 14,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-accounting-filters": {
       "name": "Admin Accounting Filters",
@@ -2776,7 +3638,10 @@
       ],
       "priority": "P1",
       "description": "Superuser filters the incomes list client-side: period date range, total amount min/max, kind segmented (Esperado/Líquido), partner segmented (Gustavo/Carlos/ProjectApp), ledger segmented (Todas/Empresa/Personal Gustavo/Personal Carlos), free-text search with debounce, active-filter count badge and reset. Powered by useAccountingFilters + AccountingFilterPanel. The revamped panel adds live-updating range dropdowns (debounced input), removable applied-filter chips, a filtered results counter and <mark> highlighting of search occurrences in the table.",
-      "expectedSpecs": 10
+      "expectedSpecs": 10,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-accounting-expenses-crud": {
       "name": "Admin Accounting Expenses CRUD",
@@ -2786,7 +3651,12 @@
       ],
       "priority": "P2",
       "description": "Superuser manages expense records at /panel/accounting/expenses with category (Negocio/Personal) and ledger (Contabilidad) badges, partner split (hidden for personal-ledger expenses, which use a single Valor field) and the same modal CRUD + filters pattern as incomes. Money inputs live-format es-CO thousands separators (BaseCurrencyInput). Since Jul 2026 the modal has a 'Registrar egreso en bolsillo' toggle (on by default): on creates/keeps a linked pocket OUT movement (bidirectional sync, edits/deletes mirror/cascade), off covers paper adjustments and expenses that never touched the pocket; a personal-ledger expense with the toggle on is stored as a company draw (ledger company, full split to the owner, warning hint in the modal) so pocket money always counts against company utility; on edit the toggle can link/unlink deliberately.",
-      "expectedSpecs": 2
+      "expectedSpecs": 2,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-accounting-hostings": {
       "name": "Admin Accounting Hostings",
@@ -2796,7 +3666,12 @@
       ],
       "priority": "P2",
       "description": "Superuser manages the client hosting registry at /panel/accounting/hostings: list with an inline estado select (Activo/Inactivo, PATCHes on change with snap-back), validity, 4 KPI cards (active count, monthly income, expiring in 30 days, historic total paid from list meta) and modal CRUD with per-modality payment defaults plus client billing contact fields (email, contact name, identification). Ciclos/total pagado are read-only in the form (computed from the cycle history).",
-      "expectedSpecs": 3
+      "expectedSpecs": 3,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-accounting-pocket": {
       "name": "Admin Accounting Pocket Ledger",
@@ -2806,7 +3681,12 @@
       ],
       "priority": "P2",
       "description": "Superuser manages the ProjectApp pocket ledger at /panel/accounting/pocket: balance card from list meta, running-balance column (default view newest-first). The pocket is the money entry point: creating a movement also creates its linked income (IN) or expense (OUT). For IN the Contabilidad segmented is company-only; for OUT the selector is relabeled 'Atribuir a' (Empresa/Gustavo/Carlos) because pocket money is company money: every OUT mirrors a company-ledger expense that counts against liquid utility — Empresa splits 50/50, a partner option registers a draw fully assigned to that partner (category personal). Linked movements open the edit modal with the direction locked and the attribution prefilled (derived from the split); edits mirror into the linked record and deletes cascade both ways (confirm warns about the cascade). Unlinked historical movements keep plain CRUD.",
-      "expectedSpecs": 4
+      "expectedSpecs": 4,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-accounting-recurring": {
       "name": "Admin Accounting Recurring Payments",
@@ -2816,7 +3696,12 @@
       ],
       "priority": "P2",
       "description": "Superuser manages recurring operational costs at /panel/accounting/recurring: monthly COP total card, monthly USD cost card (computed with the configurable exchange rate from settings), breakdowns by frequency and payment method, and modal CRUD where the COP-equivalent field only applies to USD payments.",
-      "expectedSpecs": 3
+      "expectedSpecs": 3,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-accounting-history": {
       "name": "Admin Accounting History",
@@ -2826,7 +3711,10 @@
       ],
       "priority": "P2",
       "description": "Superuser audits every accounting change at /panel/accounting/history: server-paginated log (GET /api/accounting/change-logs/, 20 per page) with entity/action/actor/date filters and expandable field-level old→new diffs per entry.",
-      "expectedSpecs": 3
+      "expectedSpecs": 3,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-accounting-settings": {
       "name": "Admin Accounting Settings",
@@ -2836,7 +3724,13 @@
       ],
       "priority": "P2",
       "description": "Superuser configures accounting email notifications at /panel/accounting/settings: recipient list (add/remove emails with validation) and global enable toggle, saved via PATCH /api/accounting/settings/update/ (audited). Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá, re-alert every 2 days until the snapshot is registered), the statement reminder toggle (every 8 days at 9:05 Bogotá while the previous month's statement of an active catalog card is missing, draft or lacks its PDF), the 'Catálogo de tarjetas' section (see admin-accounting-card-catalog), the hosting expiry notices toggle (15/7 days before valid_to, then every 5 days until the cuenta de cobro is sent) and the USD exchange rate used by the recurring USD KPI.",
-      "expectedSpecs": 3
+      "expectedSpecs": 3,
+      "outcomes": [
+        "display",
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "admin-accounting-ads": {
       "name": "Admin Accounting Ads Log",
@@ -2846,7 +3740,12 @@
       ],
       "priority": "P3",
       "description": "Superuser tracks advertising spend at /panel/accounting/ads: chronological list with a computed running accumulated column (calculated over the full history), origin-card and platform filters, saved filter tabs (accounting_ads view with seeded defaults) and modal CRUD.",
-      "expectedSpecs": 2
+      "expectedSpecs": 2,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-accounting-hosting-billing": {
       "name": "Admin Accounting Hosting — Enviar Cuenta de Cobro",
@@ -2856,7 +3755,12 @@
       ],
       "priority": "P1",
       "description": "Superuser sends a client the cuenta de cobro from a hosting row at /panel/accounting/hostings: the paper-plane action (disabled without client email) opens a ConfirmModal previewing amount/recipient, POSTs /api/accounting/hostings/:id/send-collection-account/ which issues the Document (public number, one line item for the next modality period, issuer default payment methods), emails the client the branded message with the PDF attached and stamps billing_requested_at (pauses the expiry notices; a 'Cobro enviado' badge appears). Partial failure (email down) keeps the document issued and warns to re-send from Cobros.",
-      "expectedSpecs": 3
+      "expectedSpecs": 3,
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
+      ]
     },
     "admin-accounting-collections": {
       "name": "Admin Accounting Cobros Monitor",
@@ -2866,7 +3770,12 @@
       ],
       "priority": "P2",
       "description": "Superuser monitors all cuentas de cobro at /panel/accounting/collections: status counters (emitidas/pagadas/vencidas/anuladas with totals), segmented status filter, table with número/origen/cliente/total/emisión/vence/estado (Vencida tint via is_overdue) and row actions: download PDF, resend to client, mark paid, cancel (cancelling a hosting-linked account resumes its expiry notices).",
-      "expectedSpecs": 5
+      "expectedSpecs": 5,
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
+      ]
     },
     "admin-accounting-hosting-cycles": {
       "name": "Admin Accounting Hosting Cycle Payments",
@@ -2876,7 +3785,13 @@
       ],
       "priority": "P2",
       "description": "Superuser registers hosting cycle payments from the clock action at /panel/accounting/hostings: the modal shows the cycle history (modality + amount snapshotted per paid period, consolidated 'histórico' backfill rows flagged) and a register form prefilled from the contract (amount = payment_per_cycle, modality, paid_at = today) with an 'Extender vigencia' toggle (on by default: valid_to advances one modality period, re-arming the expiry notices). total_paid/cycles_count recompute from the history; deleting a cycle recalculates but never rolls back valid_to.",
-      "expectedSpecs": 3
+      "expectedSpecs": 3,
+      "outcomes": [
+        "display",
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "admin-accounting-hosting-inline-edit": {
       "name": "Admin Accounting Hosting Inline Edit",
@@ -2906,7 +3821,11 @@
       ],
       "priority": "P2",
       "description": "Superuser manages MCP connectors at /panel/mcps: each connector is a collapsible accordion row (name, connection-status badge, active toggle) that expands inline to reveal connection status, recent activity and the tool catalog in nested sub-accordions; generates/rotates the connector token (one-time URL modal with copy, GET /api/mcp-connectors/ + POST /api/mcp-connectors/<slug>/generate-token/), and toggles is_active. Includes the superuser gate: staff non-superusers are redirected to /panel.",
-      "expectedSpecs": 4
+      "expectedSpecs": 4,
+      "outcomes": [
+        "display",
+        "success"
+      ]
     },
     "admin-accounting-cards": {
       "name": "Admin Accounting Card Snapshots",
@@ -2916,7 +3835,12 @@
       ],
       "priority": "P2",
       "description": "Superuser manages weekly credit-card balance snapshots at /panel/accounting/cards: list with latest-debt-per-card chip, filters (date range, debt range, card multi-select), create via modal (date defaults to today, card picked from a dropdown fed by the CreditCard catalog; the Deuda input is gone — debt is server-computed as cupo − disponible and previewed in the form, which blocks disponible > cupo), edit prefill (legacy names outside the catalog injected as an extra option) and delete with ConfirmModal. Registering a snapshot dated on/after the cycle Friday silences the weekly card-debt email reminder. The card filter defaults to the active catalog cards as removable chips (clearing them surfaces historical names); its options are the union of catalog and snapshot names, and a saved tab in the URL wins over the preselection.",
-      "expectedSpecs": 5
+      "expectedSpecs": 5,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-accounting-export": {
       "name": "Admin Accounting Export",
@@ -2926,7 +3850,10 @@
       ],
       "priority": "P2",
       "description": "Superuser exports accounting data: every list view has an Exportar dropdown (CSV / Excel .xlsx) that calls GET /api/accounting/export/ with the active filters mapped to server query params, and the dashboard has an Exportar Excel button that downloads the full workbook (summary sheet + one sheet per section) from /api/accounting/export/workbook/?year=.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-accounting-list-error-retry": {
       "name": "Admin Accounting Lists — Load Error & Retry",
@@ -2936,7 +3863,11 @@
       ],
       "priority": "P3",
       "description": "When a GET /api/accounting/<entity>/ (or dashboard/, change-logs/, settings/) fails, the page replaces the table/summary with AccountingErrorState (data-testid=accounting-error-retry): a Spanish danger alert plus a Reintentar button that re-fires the page's load function. CRUD errors keep using toasts and never hide the table. Mirrors admin-diagnostic-list-error-retry.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "failure",
+        "display"
+      ]
     },
     "admin-accounting-empty-state-cta": {
       "name": "Admin Accounting Lists — Empty State CTA",
@@ -2946,7 +3877,10 @@
       ],
       "priority": "P4",
       "description": "With zero records, accounting lists render BaseEmptyState with a primary 'Nuevo <entidad>' action that opens the create modal; with active filters and zero matches the action becomes 'Limpiar filtros' and resets the filter panel.",
-      "expectedSpecs": 2
+      "expectedSpecs": 2,
+      "outcomes": [
+        "display"
+      ]
     },
     "admin-proposal-discount-offer-send": {
       "name": "Admin Proposal Discount Offer Send",
@@ -2956,7 +3890,11 @@
       ],
       "priority": "P2",
       "description": "From /panel/proposals/:id/edit the seller opens the actions menu and picks 'Enviar oferta de descuento' — only shown when discount_percent > 0 and the client has an email. A modal renders the server-side email preview (POST /api/proposals/:id/email-preview/, template proposal_urgency); confirming sends the offer (POST /api/proposals/:id/discount-offer/send/ → ProposalEmailService.send_urgency_email force=True) and shows a success toast. Never auto-sent.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "platform-password-reset": {
       "name": "Platform Password Reset",
@@ -2966,7 +3904,11 @@
       ],
       "priority": "P1",
       "description": "Client recovers access from /platform/login → 'Olvidé mi contraseña': requests a reset code (POST /api/accounts/password-reset/request/), enters the 6-digit code (POST /api/accounts/password-reset/verify-code/) and sets a new password (POST /api/accounts/password-reset/confirm/), then returns to login. Public platform pages: forgot-password, verify-code, reset-password.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-client-first-login-notification": {
       "name": "Admin Client First-Login Notification",
@@ -3012,6 +3954,11 @@
       "expectedSpecs": 1,
       "knownGaps": [
         "Scheduled auto-publish is a server-side Huey task — covered by backend tests, not browser E2E"
+      ],
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
       ]
     },
     "admin-diagnostic-list-error-retry": {
@@ -3022,7 +3969,11 @@
       ],
       "priority": "P3",
       "description": "When GET /api/diagnostics/ fails, the list page shows a dedicated error state (data-testid=diagnostics-error-state) with the normalized Spanish error message and a 'Reintentar' button that re-fires the fetch; an error notification is also raised via usePanelNotify. Distinct from the empty state. Covered by e2e/admin/admin-diagnostic-list-error-retry.spec.js.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "failure",
+        "display"
+      ]
     },
     "admin-diagnostic-bulk-actions": {
       "name": "Admin Diagnostic Bulk Actions",
@@ -3032,7 +3983,10 @@
       ],
       "priority": "P2",
       "description": "Admin selects diagnostics via row/header checkboxes in /panel/diagnostics; a batch bar appears with 'Finalizar aceptados' and 'Eliminar' (confirm modal), calling POST /api/diagnostics/bulk-action/ with {ids, action} and refreshing the list with a result notification. Covered by e2e/admin/admin-diagnostic-bulk-actions.spec.js.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-proposal-section-dirty-guard": {
       "name": "Admin Proposal Section Dirty Guard",
@@ -3042,7 +3996,10 @@
       ],
       "priority": "P2",
       "description": "Unsaved-changes protection in the proposal section editor: editing a section shows a \"Sin guardar\" badge; collapsing a dirty section, navigating away, reloading or hitting the panel refresh button asks for confirmation before discarding edits.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-proposal-section-add-delete": {
       "name": "Admin Proposal Section Add/Delete",
@@ -3052,7 +4009,11 @@
       ],
       "priority": "P2",
       "description": "Admin adds a missing section type from the \"Agregar sección\" modal (seeded server-side from language defaults via POST /api/proposals/:id/sections/create/) and deletes sections via the per-row trash action (DELETE /api/proposals/sections/:id/delete/), including the backend guard for functional requirements with a confirmed calculator selection.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "admin-accounting-statements": {
       "name": "Admin Accounting — Credit Card Statements",
@@ -3062,7 +4023,12 @@
       ],
       "priority": "P2",
       "description": "Superuser reviews the monthly credit-card statement ledger at /panel/accounting/statements: backend-driven year options (from the catalog's statements_since; months before it show 'No aplica') + card filters over a 12-month grid (Procesado/Borrador/Pendiente chips per card), inline statement detail (totals stat cards, category bars, transactions table flagging unidentified lines, 'Documento del extracto' PDF block with upload/view/replace/delete), finalize with forced-close confirm on total mismatch (POST /api/accounting/statements/:id/finalize/), reopen, delete, header edit modal and manual add-transaction on drafts, per-line edit/delete on drafts, collapsible learned merchant aliases with delete, and a 'Copiar prompt' button for the MCP chat kick-off. Statements are normally created from the claude.ai chat via the accounting MCP connector (create_statement).",
-      "expectedSpecs": 5
+      "expectedSpecs": 5,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-accounting-card-catalog": {
       "name": "Admin Accounting — Credit Card Catalog",
@@ -3072,7 +4038,12 @@
       ],
       "priority": "P2",
       "description": "Superuser manages the CreditCard catalog from the 'Catálogo de tarjetas' section at /panel/accounting/settings: per-row name, cupo (credit_limit), 'extractos desde' month and active toggle, with per-row save (POST /api/accounting/credit-cards/create/ or PATCH .../update/) and delete with confirm (DELETE .../delete/ returns credit_card_referenced when snapshots/statements reference the name — deactivate instead). The catalog feeds the Tarjetas form dropdown, the server-side debt computation (cupo − disponible) and the Extractos year/month range; changes are audited as the credit_card entity.",
-      "expectedSpecs": 4
+      "expectedSpecs": 4,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ]
     },
     "admin-hour-packages-view-modes": {
       "name": "Admin Hour Packages — View Modes",
@@ -3122,7 +4093,10 @@
       ],
       "priority": "P2",
       "description": "After rejecting with \"not the right time\", the client clicks the reminder CTA which POSTs proposals/:uuid/schedule-followup/ and flips to a scheduled-confirmation state.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-proposal-prompt": {
       "name": "Admin Proposal Prompt Tab",
@@ -3133,7 +4107,10 @@
       "priority": "P3",
       "description": "Admin copies, edits, downloads and resets the commercial and technical proposal-generation prompts from the Prompt tab (localStorage-persisted; parallel of admin-diagnostic-prompt).",
       "expectedSpecs": 1,
-      "knownGaps": "Spec added 2026-07-23 (round 7): action bar, edit->save revealing the reset action, cancel discarding the draft."
+      "knownGaps": "Spec added 2026-07-23 (round 7): action bar, edit->save revealing the reset action, cancel discarding the draft.",
+      "outcomes": [
+        "success"
+      ]
     },
     "admin-proposal-dev-checklist": {
       "name": "Admin Proposal Dev Checklist Tab",

@@ -81,7 +81,7 @@ test.describe('Admin Proposal Resend', () => {
   });
 
   test('failed delivery surfaces the email_delivery detail instead of success', {
-    tag: [...ADMIN_PROPOSAL_RESEND, '@role:admin'],
+    tag: ['@outcome:failure', ...ADMIN_PROPOSAL_RESEND, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'auth/check/') {

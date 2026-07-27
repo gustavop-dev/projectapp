@@ -51,7 +51,7 @@ test.describe('Admin Document Send Email', () => {
   });
 
   test('sends the branded email with the document preselected', {
-    tag: [...ADMIN_DOCUMENT_SEND_EMAIL, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_SEND_EMAIL, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let sendBody = null;
     await mockApi(page, async ({ route, apiPath, method }) => {
@@ -76,7 +76,7 @@ test.describe('Admin Document Send Email', () => {
   });
 
   test('shows the rate-limited message when the backend answers 429', {
-    tag: [...ADMIN_DOCUMENT_SEND_EMAIL, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_SEND_EMAIL, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'emails/send/' && method === 'POST') {
@@ -94,7 +94,7 @@ test.describe('Admin Document Send Email', () => {
   });
 
   test('keeps the modal open with an inline error on send failure', {
-    tag: [...ADMIN_DOCUMENT_SEND_EMAIL, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_SEND_EMAIL, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'emails/send/' && method === 'POST') {

@@ -47,7 +47,7 @@ test.describe('Admin Blog Publish Mode', () => {
   });
 
   test('schedule mode reveals the datetime input hidden for drafts', {
-    tag: [...ADMIN_BLOG_PUBLISH_MODE, '@role:admin'],
+    tag: [...ADMIN_BLOG_PUBLISH_MODE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => baseRoutes(apiPath, basePost));
     await page.goto('/panel/blog/9/edit', { waitUntil: 'domcontentloaded' });
@@ -61,7 +61,7 @@ test.describe('Admin Blog Publish Mode', () => {
   });
 
   test('shows the overdue banner for a post scheduled in the past', {
-    tag: [...ADMIN_BLOG_PUBLISH_MODE, '@role:admin'],
+    tag: [...ADMIN_BLOG_PUBLISH_MODE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // The banner reflects the STORED schedule at hydration time (a post
     // waiting for the Huey safety-net), not live input validation.
@@ -74,7 +74,7 @@ test.describe('Admin Blog Publish Mode', () => {
   });
 
   test('hydrates a future-scheduled post into schedule mode', {
-    tag: [...ADMIN_BLOG_PUBLISH_MODE, '@role:admin'],
+    tag: [...ADMIN_BLOG_PUBLISH_MODE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const scheduled = { ...basePost, published_at: '2030-06-01T15:30:00Z' };
     await mockApi(page, async ({ apiPath }) => baseRoutes(apiPath, scheduled));
@@ -86,7 +86,7 @@ test.describe('Admin Blog Publish Mode', () => {
   });
 
   test('saving in "Publicar ahora" submits is_published without a schedule', {
-    tag: [...ADMIN_BLOG_PUBLISH_MODE, '@role:admin'],
+    tag: [...ADMIN_BLOG_PUBLISH_MODE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let patchBody = null;
     await mockApi(page, async ({ route, apiPath, method }) => {

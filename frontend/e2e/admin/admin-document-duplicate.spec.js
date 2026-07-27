@@ -41,7 +41,7 @@ test.describe('Admin Document Duplicate', () => {
   });
 
   test('duplicating posts to the endpoint and shows the copy in the list', {
-    tag: [...ADMIN_DOCUMENT_DUPLICATE, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_DUPLICATE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const state = { duplicated: false };
     await mockApi(page, async ({ apiPath, method }) => {
@@ -59,7 +59,7 @@ test.describe('Admin Document Duplicate', () => {
   });
 
   test('shows the error toast when the duplicate fails', {
-    tag: [...ADMIN_DOCUMENT_DUPLICATE, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_DUPLICATE, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'documents/1/duplicate/' && method === 'POST') {

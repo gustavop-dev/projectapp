@@ -29,7 +29,7 @@ test.describe('Admin Document List', () => {
   });
 
   test('renders document list with title, status and action buttons', {
-    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -46,7 +46,7 @@ test.describe('Admin Document List', () => {
   });
 
   test('shows empty state when no documents exist', {
-    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -59,7 +59,7 @@ test.describe('Admin Document List', () => {
   });
 
   test('Nuevo Documento button links to create page', {
-    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -75,7 +75,7 @@ test.describe('Admin Document List', () => {
   });
 
   test('row actions collapse into a single icon that opens the actions modal', {
-    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -97,7 +97,7 @@ test.describe('Admin Document List', () => {
   });
 
   test('edit action from the actions modal navigates to the editor', {
-    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;

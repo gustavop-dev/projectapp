@@ -91,7 +91,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
   });
 
   test('"Enviar envío inicial" button POSTs to send-initial/ in DRAFT state', {
-    tag: [...ADMIN_DIAGNOSTIC_SEND_INITIAL, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_SEND_INITIAL, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const diagnostic = buildMockDiagnostic({ status: 'draft' });
     let sendCalled = false;
@@ -151,7 +151,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
   });
 
   test('"Marcar en análisis" button POSTs to mark-in-analysis/ when initial has been sent', {
-    tag: [...ADMIN_DIAGNOSTIC_MARK_IN_ANALYSIS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_MARK_IN_ANALYSIS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const diagnostic = buildMockDiagnostic({
       status: 'sent',
@@ -186,7 +186,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
   });
 
   test('"Enviar diagnóstico final" button POSTs to send-final/ in NEGOTIATING state', {
-    tag: [...ADMIN_DIAGNOSTIC_SEND_FINAL, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_SEND_FINAL, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const diagnostic = buildMockDiagnostic({ status: 'negotiating' });
     let called = false;

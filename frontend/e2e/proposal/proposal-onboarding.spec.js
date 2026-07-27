@@ -66,7 +66,7 @@ test.describe('Proposal Onboarding', () => {
   });
 
   test('clicking Omitir dismisses onboarding', {
-    tag: [...PROPOSAL_VIEW_ONBOARDING, '@role:client'],
+    tag: [...PROPOSAL_VIEW_ONBOARDING, '@role:client', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);

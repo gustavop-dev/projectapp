@@ -50,7 +50,7 @@ test.describe('Admin Proposal Dashboard', () => {
   });
 
   test('renders KPI cards with dashboard metrics', {
-    tag: [...ADMIN_PROPOSAL_DASHBOARD, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DASHBOARD, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
@@ -65,7 +65,7 @@ test.describe('Admin Proposal Dashboard', () => {
   });
 
   test('displays status distribution bars', {
-    tag: [...ADMIN_PROPOSAL_DASHBOARD, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DASHBOARD, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
@@ -83,7 +83,7 @@ test.describe('Admin Proposal Dashboard', () => {
   });
 
   test('displays top rejection reasons', {
-    tag: [...ADMIN_PROPOSAL_DASHBOARD, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DASHBOARD, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
@@ -99,7 +99,7 @@ test.describe('Admin Proposal Dashboard', () => {
   });
 
   test('toggle button shows and hides dashboard', {
-    tag: [...ADMIN_PROPOSAL_DASHBOARD, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DASHBOARD, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');

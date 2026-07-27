@@ -59,7 +59,7 @@ test.describe('Admin Document Gallery', () => {
   });
 
   test('toggles to gallery view and renders document cards with previews', {
-    tag: [...ADMIN_DOCUMENT_GALLERY, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_GALLERY, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockDocumentsApi(page);
     await page.goto('/panel/documents');
@@ -82,7 +82,7 @@ test.describe('Admin Document Gallery', () => {
   });
 
   test('persists the chosen view across reloads via localStorage', {
-    tag: [...ADMIN_DOCUMENT_GALLERY, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_GALLERY, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockDocumentsApi(page);
     await page.goto('/panel/documents');
@@ -102,7 +102,7 @@ test.describe('Admin Document Gallery', () => {
   });
 
   test('opens the actions sheet from a card kebab', {
-    tag: [...ADMIN_DOCUMENT_GALLERY, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_GALLERY, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockDocumentsApi(page);
     await page.goto('/panel/documents');
@@ -116,7 +116,7 @@ test.describe('Admin Document Gallery', () => {
   });
 
   test('switches back to list view and shows the table again', {
-    tag: [...ADMIN_DOCUMENT_GALLERY, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_GALLERY, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockDocumentsApi(page);
     await page.goto('/panel/documents');

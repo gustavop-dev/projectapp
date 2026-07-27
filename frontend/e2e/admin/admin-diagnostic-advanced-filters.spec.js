@@ -94,7 +94,7 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
   });
 
   test('default view shows all diagnostics with no filters active', {
-    tag: [...ADMIN_DIAGNOSTIC_ADVANCED_FILTERS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ADVANCED_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/diagnostics', { waitUntil: 'domcontentloaded' });
@@ -106,7 +106,7 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
   });
 
   test('filter toggle button opens filter panel with dimensions', {
-    tag: [...ADMIN_DIAGNOSTIC_ADVANCED_FILTERS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ADVANCED_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/diagnostics', { waitUntil: 'domcontentloaded' });
@@ -126,7 +126,7 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
   });
 
   test('create a new saved filter tab from the + button', {
-    tag: [...ADMIN_DIAGNOSTIC_ADVANCED_FILTERS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ADVANCED_FILTERS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/diagnostics', { waitUntil: 'domcontentloaded' });
@@ -145,7 +145,7 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
   });
 
   test('search input filters diagnostics by title', {
-    tag: [...ADMIN_DIAGNOSTIC_ADVANCED_FILTERS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ADVANCED_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/diagnostics', { waitUntil: 'domcontentloaded' });
@@ -158,7 +158,7 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
   });
 
   test('status dimension filters the list and shows an active chip', {
-    tag: [...ADMIN_DIAGNOSTIC_FILTERS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/diagnostics', { waitUntil: 'domcontentloaded' });
@@ -173,7 +173,7 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
   });
 
   test('Limpiar todo resets the active dimensions', {
-    tag: [...ADMIN_DIAGNOSTIC_FILTERS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/diagnostics', { waitUntil: 'domcontentloaded' });
@@ -191,7 +191,7 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
   });
 
   test('saved tab selection syncs diagnosticTab into the URL', {
-    tag: [...ADMIN_DIAGNOSTIC_FILTERS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/diagnostics', { waitUntil: 'domcontentloaded' });

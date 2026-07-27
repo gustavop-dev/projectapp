@@ -40,7 +40,7 @@ test.describe('Admin Hour Packages Delete', () => {
   });
 
   test('confirming the modal deletes the package and removes the row', {
-    tag: [...ADMIN_HOUR_PACKAGES_DELETE, '@role:admin'],
+    tag: [...ADMIN_HOUR_PACKAGES_DELETE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const { wasDeleteCalled } = setupMock(page);
     await page.goto('/panel/hour-packages');

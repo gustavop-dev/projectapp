@@ -72,7 +72,7 @@ test.describe('Platform Data Model — Admin', () => {
   });
 
   test('renders upload card with template buttons', {
-    tag: [...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
@@ -84,7 +84,7 @@ test.describe('Platform Data Model — Admin', () => {
   });
 
   test('renders entity table with rows loaded from API', {
-    tag: [...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
@@ -97,7 +97,7 @@ test.describe('Platform Data Model — Admin', () => {
   });
 
   test('shows parse error when JSON has no entities key', {
-    tag: [...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-admin'],
+    tag: ['@outcome:error', ...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
@@ -109,7 +109,7 @@ test.describe('Platform Data Model — Admin', () => {
   });
 
   test('shows parse error when JSON is syntactically invalid', {
-    tag: [...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-admin'],
+    tag: ['@outcome:error', ...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
@@ -155,7 +155,7 @@ test.describe('Platform Data Model — Admin', () => {
   });
 
   test('shows empty state with admin hint when no entities exist', {
-    tag: [...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformAdmin, entities: [] });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
@@ -196,7 +196,7 @@ test.describe('Platform Data Model — Admin', () => {
   });
 
   test('shows error message when upload returns server error', {
-    tag: [...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-admin'],
+    tag: ['@outcome:error', ...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(mockPlatformAdmin);
@@ -251,7 +251,7 @@ test.describe('Platform Data Model — Client', () => {
   });
 
   test('client sees entity table when entities exist', {
-    tag: [...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
@@ -262,7 +262,7 @@ test.describe('Platform Data Model — Client', () => {
   });
 
   test('client sees empty state without admin hint when no entities exist', {
-    tag: [...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformClient, entities: [] });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });

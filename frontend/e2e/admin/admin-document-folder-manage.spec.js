@@ -38,7 +38,7 @@ test.describe('Admin Document Folder Manage', () => {
   });
 
   test('creates a root folder from the manager form', {
-    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let createBody = null;
     await mockApi(page, async ({ route, apiPath, method }) => {
@@ -58,7 +58,7 @@ test.describe('Admin Document Folder Manage', () => {
   });
 
   test('renames a folder through the inline edit panel', {
-    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let patchBody = null;
     await mockApi(page, async ({ route, apiPath, method }) => {
@@ -81,7 +81,7 @@ test.describe('Admin Document Folder Manage', () => {
   });
 
   test('deletes an empty folder after the destructive confirmation', {
-    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let deleteCalled = false;
     await mockApi(page, async ({ apiPath, method }) => {
@@ -101,7 +101,7 @@ test.describe('Admin Document Folder Manage', () => {
   });
 
   test('blocks deleting a folder that still holds documents', {
-    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     let deleteCalled = false;
     await mockApi(page, async ({ apiPath, method }) => {

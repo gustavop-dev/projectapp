@@ -33,7 +33,7 @@ test.describe('Admin Hour Packages Create', () => {
   });
 
   test('preselects nationality from query param and shows derived currency', {
-    tag: [...ADMIN_HOUR_PACKAGES_CREATE, '@role:admin'],
+    tag: [...ADMIN_HOUR_PACKAGES_CREATE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/hour-packages/create?nationality=EXT');
@@ -43,7 +43,7 @@ test.describe('Admin Hour Packages Create', () => {
   });
 
   test('fills the form, shows the computed preview and submits', {
-    tag: [...ADMIN_HOUR_PACKAGES_CREATE, '@role:admin'],
+    tag: [...ADMIN_HOUR_PACKAGES_CREATE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/hour-packages/create?nationality=EXT');
@@ -63,7 +63,7 @@ test.describe('Admin Hour Packages Create', () => {
   });
 
   test('shows per-field backend validation errors', {
-    tag: [...ADMIN_HOUR_PACKAGES_CREATE, '@role:admin'],
+    tag: [...ADMIN_HOUR_PACKAGES_CREATE, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await setupMock(page, {
       createStatus: 400,

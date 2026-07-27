@@ -243,7 +243,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
   });
 
   test('save failure keeps the editor open and shows an error notification', {
-    tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
+    tag: ['@outcome:error', ...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
   }, async ({ page }) => {
     const baseHandler = buildMockHandler(null);
     await mockApi(page, (ctx) => {

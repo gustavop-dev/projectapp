@@ -47,7 +47,7 @@ test.describe('Admin Proposal Win Rate Dashboard', () => {
   });
 
   test('renders win rate bars by project type', {
-    tag: [...ADMIN_PROPOSAL_WIN_RATE_DASHBOARD, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_WIN_RATE_DASHBOARD, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
@@ -60,7 +60,7 @@ test.describe('Admin Proposal Win Rate Dashboard', () => {
   });
 
   test('renders win rate bars by market type', {
-    tag: [...ADMIN_PROPOSAL_WIN_RATE_DASHBOARD, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_WIN_RATE_DASHBOARD, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
@@ -73,7 +73,7 @@ test.describe('Admin Proposal Win Rate Dashboard', () => {
   });
 
   test('renders win rate combination table', {
-    tag: [...ADMIN_PROPOSAL_WIN_RATE_DASHBOARD, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_WIN_RATE_DASHBOARD, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');

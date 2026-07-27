@@ -104,7 +104,7 @@ test.describe('Admin LinkedIn module', () => {
   });
 
   test('shows disconnected state with connect button', {
-    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin'],
+    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (renders the disconnected state from a mocked GET; no action toggles it)
     await setupPageMock(page, { linkedinStatus: disconnectedStatus, posts: [] });
@@ -115,7 +115,7 @@ test.describe('Admin LinkedIn module', () => {
   });
 
   test('shows connected profile with token expiry date', {
-    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin'],
+    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (renders the connected profile from a mocked GET; no action changes it)
     await setupPageMock(page);
@@ -126,7 +126,7 @@ test.describe('Admin LinkedIn module', () => {
   });
 
   test('renders posts list with status chip', {
-    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin'],
+    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (renders the seeded posts list from a mocked GET; no action changes it)
     await setupPageMock(page);
@@ -137,7 +137,7 @@ test.describe('Admin LinkedIn module', () => {
   });
 
   test('create modal saves a draft and refreshes the list', {
-    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin'],
+    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupPageMock(page, { posts: [] });
     await gotoModule(page);
@@ -153,7 +153,7 @@ test.describe('Admin LinkedIn module', () => {
   });
 
   test('publish now with confirm flips post to published', {
-    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin'],
+    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupPageMock(page);
     await gotoModule(page);
@@ -170,7 +170,7 @@ test.describe('Admin LinkedIn module', () => {
   });
 
   test('publish API failure surfaces inline error', {
-    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin'],
+    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
     await setupPageMock(page, {
       publishResponse: {

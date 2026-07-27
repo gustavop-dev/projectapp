@@ -84,7 +84,7 @@ test.describe('Admin Proposal Scorecard', () => {
   });
 
   test('passing scorecard renders score badge, checks, and enables the confirm button', {
-    tag: [...ADMIN_PROPOSAL_SCORECARD, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_SCORECARD, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ scorecard: mockScorecardPass }));
 
@@ -107,7 +107,7 @@ test.describe('Admin Proposal Scorecard', () => {
   });
 
   test('scorecard with blockers disables sending and tags the blockers', {
-    tag: [...ADMIN_PROPOSAL_SCORECARD, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_SCORECARD, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ scorecard: mockScorecardFail }));
 

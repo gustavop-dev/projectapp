@@ -45,7 +45,7 @@ test.describe('Admin Proposal Section Completeness', () => {
   });
 
   test('shows completeness indicator on sections tab', {
-    tag: [...ADMIN_PROPOSAL_SECTION_COMPLETENESS, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_SECTION_COMPLETENESS, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') {
@@ -71,7 +71,7 @@ test.describe('Admin Proposal Section Completeness', () => {
   });
 
   test('partial content shows lower completeness percentage', {
-    tag: [...ADMIN_PROPOSAL_SECTION_COMPLETENESS, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_SECTION_COMPLETENESS, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') {

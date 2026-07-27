@@ -77,7 +77,7 @@ test.describe('Proposal View', () => {
   });
 
   test('clicking next navigation button advances to second section', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposalTwoSections));
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
@@ -158,8 +158,9 @@ test.describe('Proposal View', () => {
   });
 
   test('shows 404 state for non-existent proposal', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW, '@role:guest', '@outcome:failure'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (deep-link entry / no-interaction landing state — a client can only arrive on a broken/removed proposal link, there is no in-app click path to a 404; the failure surface is asserted by concrete '404' content, matching the precedent in proposal-slug-access.spec.js)
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === `proposals/${MOCK_UUID}/`) {
         return {

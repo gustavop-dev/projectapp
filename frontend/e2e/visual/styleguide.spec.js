@@ -99,7 +99,7 @@ test.describe('design system styleguide visual regression', () => {
   });
 
   test('light mode', {
-    tag: ['@flow:admin-styleguide', '@module:admin', '@priority:P3', '@role:admin', '@visual'],
+    tag: ['@flow:admin-styleguide', '@module:admin', '@priority:P3', '@role:admin', '@visual', '@outcome:display'],
   }, async ({ page }) => {
     await seedTheme(page, 'light');
     await page.goto(STYLEGUIDE_URL);
@@ -122,7 +122,7 @@ test.describe('design system styleguide visual regression', () => {
   });
 
   test('dark mode', {
-    tag: ['@flow:admin-styleguide', '@module:admin', '@priority:P3', '@role:admin', '@visual'],
+    tag: ['@flow:admin-styleguide', '@module:admin', '@priority:P3', '@role:admin', '@visual', '@outcome:display'],
   }, async ({ page }) => {
     // Start from light so the layout toggle click is the explicit user
     // gesture exercising `useDarkMode().toggle()`.

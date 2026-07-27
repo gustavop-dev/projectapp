@@ -67,7 +67,7 @@ test.describe('Admin Client Edit Modal', () => {
   });
 
   test('opens edit modal pre-filled with client data on edit button click', {
-    tag: [...ADMIN_CLIENT_EDIT, '@role:admin'],
+    tag: [...ADMIN_CLIENT_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/clients', { waitUntil: 'domcontentloaded' });
@@ -83,7 +83,7 @@ test.describe('Admin Client Edit Modal', () => {
   });
 
   test('submits updated name and closes modal on success', {
-    tag: [...ADMIN_CLIENT_EDIT, '@role:admin'],
+    tag: [...ADMIN_CLIENT_EDIT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let capturedPayload = null;
     await setupMock(page, {
@@ -112,7 +112,7 @@ test.describe('Admin Client Edit Modal', () => {
   });
 
   test('surfaces server error when update returns 400', {
-    tag: [...ADMIN_CLIENT_EDIT, '@role:admin'],
+    tag: [...ADMIN_CLIENT_EDIT, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await setupMock(page, {
       onUpdate: () => ({

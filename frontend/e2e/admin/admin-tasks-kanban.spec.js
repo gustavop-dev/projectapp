@@ -35,7 +35,7 @@ test.describe('Admin Kanban Tasks', () => {
   });
 
   test('renders four columns and creates a task in TO DO', {
-    tag: [...ADMIN_KANBAN_TASKS, '@role:admin'],
+    tag: [...ADMIN_KANBAN_TASKS, '@role:admin', '@outcome:display', '@outcome:success'],
   }, async ({ page }) => {
     let tasksState = board();
     let nextId = 100;
@@ -85,7 +85,7 @@ test.describe('Admin Kanban Tasks', () => {
   });
 
   test('edits an existing task title', {
-    tag: [...ADMIN_KANBAN_TASKS, '@role:admin'],
+    tag: [...ADMIN_KANBAN_TASKS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const existing = {
       id: 1, title: 'Old title', description: '', status: 'todo',
@@ -134,7 +134,7 @@ test.describe('Admin Kanban Tasks', () => {
   });
 
   test('creates a task with description, priority and due_date — all sent in POST body', {
-    tag: [...ADMIN_KANBAN_TASKS, '@role:admin'],
+    tag: [...ADMIN_KANBAN_TASKS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let postBody = null;
 

@@ -47,7 +47,7 @@ test.describe('Admin View Map', () => {
   });
 
   test('renders the view map with grouped route inventory', {
-    tag: [...ADMIN_VIEW_MAP, '@role:admin'],
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -63,7 +63,7 @@ test.describe('Admin View Map', () => {
   });
 
   test('search filters results and clearing search restores the catalog', {
-    tag: [...ADMIN_VIEW_MAP, '@role:admin'],
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -86,7 +86,7 @@ test.describe('Admin View Map', () => {
   });
 
   test('map mode drills down into a module and back', {
-    tag: [...ADMIN_VIEW_MAP, '@role:admin'],
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -111,7 +111,7 @@ test.describe('Admin View Map', () => {
   });
 
   test('direct link opens map mode with a module preselected', {
-    tag: [...ADMIN_VIEW_MAP, '@role:admin'],
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -125,7 +125,7 @@ test.describe('Admin View Map', () => {
   });
 
   test('copy reference button shows copied feedback', {
-    tag: [...ADMIN_VIEW_MAP, '@role:admin'],
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     await mockApi(page, async ({ apiPath }) => {
@@ -144,7 +144,7 @@ test.describe('Admin View Map', () => {
   });
 
   test('seeded filter tabs render and selecting Dashboards filters the catalog', {
-    tag: [...ADMIN_VIEW_MAP, '@role:admin'],
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -167,7 +167,7 @@ test.describe('Admin View Map', () => {
   });
 
   test('configured default view mode opens the page in map mode', {
-    tag: [...ADMIN_VIEW_MAP, '@role:admin'],
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -182,7 +182,7 @@ test.describe('Admin View Map', () => {
   });
 
   test('?viewMode=list wins over the configured map default', {
-    tag: [...ADMIN_VIEW_MAP, '@role:admin'],
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -197,7 +197,7 @@ test.describe('Admin View Map', () => {
   });
 
   test('config tab saves the default view mode and shows a toast', {
-    tag: [...ADMIN_VIEW_MAP, '@role:admin'],
+    tag: [...ADMIN_VIEW_MAP, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let patchBody = null;
     await mockApi(page, async ({ route, apiPath, method }) => {

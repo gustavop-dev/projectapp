@@ -126,7 +126,7 @@ test.describe('Platform Complete Profile', () => {
   });
 
   test('shows error on API failure', {
-    tag: [...PLATFORM_COMPLETE_PROFILE, '@role:platform-client'],
+    tag: ['@outcome:error', ...PLATFORM_COMPLETE_PROFILE, '@role:platform-client'],
   }, async ({ page }) => {
     await setPlatformAuth(page, { user: mockPlatformClientIncompleteProfile });
 

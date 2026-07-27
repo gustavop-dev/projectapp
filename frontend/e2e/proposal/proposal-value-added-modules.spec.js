@@ -97,7 +97,7 @@ test.describe('Proposal Value Added Modules', () => {
   });
 
   test('renders module cards with titles and free badge', {
-    tag: [...PROPOSAL_VALUE_ADDED_MODULES, '@role:client'],
+    tag: [...PROPOSAL_VALUE_ADDED_MODULES, '@role:client', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);

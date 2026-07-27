@@ -106,7 +106,7 @@ test.describe('Proposal technical view mode', () => {
   });
 
   test('mode=technical hides requirement linked to unselected module', {
-    tag: [...PROPOSAL_TECHNICAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_TECHNICAL_VIEW, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     test.setTimeout(60_000);
     await mockApi(page, buildMockHandler());

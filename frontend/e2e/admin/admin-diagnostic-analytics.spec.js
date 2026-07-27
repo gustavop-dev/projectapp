@@ -101,7 +101,7 @@ test.describe('Admin Diagnostic Analytics', () => {
   });
 
   test('analytics tab shows CSV button and summary KPI cards', {
-    tag: [...ADMIN_DIAGNOSTIC_ANALYTICS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ANALYTICS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -114,7 +114,7 @@ test.describe('Admin Diagnostic Analytics', () => {
   });
 
   test('analytics tab shows engagement score with high-engagement label', {
-    tag: [...ADMIN_DIAGNOSTIC_ENGAGEMENT_SCORE, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ENGAGEMENT_SCORE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page, { engagement_score: 75 });
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -126,7 +126,7 @@ test.describe('Admin Diagnostic Analytics', () => {
   });
 
   test('analytics tab shows low-engagement warning when score is below 40', {
-    tag: [...ADMIN_DIAGNOSTIC_ENGAGEMENT_SCORE, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ENGAGEMENT_SCORE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page, { engagement_score: 18 });
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -137,7 +137,7 @@ test.describe('Admin Diagnostic Analytics', () => {
   });
 
   test('analytics tab renders funnel rows when funnel data is present', {
-    tag: [...ADMIN_DIAGNOSTIC_ANALYTICS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ANALYTICS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -149,7 +149,7 @@ test.describe('Admin Diagnostic Analytics', () => {
   });
 
   test('analytics tab renders device breakdown section', {
-    tag: [...ADMIN_DIAGNOSTIC_ANALYTICS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ANALYTICS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);

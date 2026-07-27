@@ -27,7 +27,7 @@ test.describe('Admin Document Edit', () => {
   });
 
   test('renders edit form pre-filled with existing document data', {
-    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -40,7 +40,7 @@ test.describe('Admin Document Edit', () => {
   });
 
   test('back link navigates to documents list', {
-    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -55,7 +55,7 @@ test.describe('Admin Document Edit', () => {
   });
 
   test('saving changes calls PATCH API and shows success feedback', {
-    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let patchCalled = false;
     await mockApi(page, async ({ apiPath, method }) => {

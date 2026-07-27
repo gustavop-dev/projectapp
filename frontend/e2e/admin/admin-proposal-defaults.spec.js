@@ -66,7 +66,7 @@ test.describe('Admin Proposal Defaults Config', () => {
   });
 
   test('renders defaults page with sections list', {
-    tag: [...ADMIN_PROPOSAL_DEFAULTS_CONFIG, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DEFAULTS_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=sections');
@@ -86,7 +86,7 @@ test.describe('Admin Proposal Defaults Config', () => {
   });
 
   test('expands section and shows SectionEditor', {
-    tag: [...ADMIN_PROPOSAL_DEFAULTS_CONFIG, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DEFAULTS_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=sections');
@@ -100,7 +100,7 @@ test.describe('Admin Proposal Defaults Config', () => {
   });
 
   test('save button is disabled when no changes', {
-    tag: [...ADMIN_PROPOSAL_DEFAULTS_CONFIG, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DEFAULTS_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=sections');
@@ -110,7 +110,7 @@ test.describe('Admin Proposal Defaults Config', () => {
   });
 
   test('shows reset confirmation modal', {
-    tag: [...ADMIN_PROPOSAL_DEFAULTS_CONFIG, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DEFAULTS_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
     await page.goto('/panel/proposals/defaults?tab=sections');
@@ -125,7 +125,7 @@ test.describe('Admin Proposal Defaults Config', () => {
   });
 
   test('back link navigates to proposals list', {
-    tag: [...ADMIN_PROPOSAL_DEFAULTS_CONFIG, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DEFAULTS_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method: _method }) => {
       if (apiPath === 'auth/check/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };

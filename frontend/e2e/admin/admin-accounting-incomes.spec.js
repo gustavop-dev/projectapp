@@ -132,7 +132,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
   });
 
   test('renders the mocked income rows', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({
@@ -147,7 +147,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
   });
 
   test('creates an income with automatic 50/50 split', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ rows: [], calls }));
@@ -169,7 +169,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
   });
 
   test('creates a personal-ledger income with a single value field', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ rows: [], calls }));
@@ -196,7 +196,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
   });
 
   test('empty required fields block the POST via HTML5 validation', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ rows: [], calls }));
@@ -211,7 +211,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
   });
 
   test('edit prefills the record and PATCHes the change', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     const rows = [incomeRow()];
@@ -232,7 +232,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
   });
 
   test('delete asks for confirmation and removes the row', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ rows: [incomeRow()], calls }));
@@ -248,7 +248,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
   });
 
   test('cancelling the confirmation fires no DELETE', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ rows: [incomeRow()], calls }));
@@ -263,7 +263,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
   });
 
   test('a 400 on create surfaces the backend error and keeps the modal open', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ rows: [], calls, createStatus: 400 }));
@@ -320,7 +320,7 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
   });
 
   test('tints paid and partial rows and shows what is still missing', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({
       rows: [incomeRow(), paidRow(), partialRow()],
@@ -339,7 +339,7 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
   });
 
   test('hides written-off income until the Pérdidas filter is used', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({
       rows: [incomeRow(), lostRow()],
@@ -361,7 +361,7 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
   });
 
   test('liquidating prefills the pending amount and keeps the expected row', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     const listFetches = { count: 0 };
@@ -395,7 +395,7 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
   });
 
   test('writes off a pending expected income', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ rows: [incomeRow()], calls }));
@@ -412,7 +412,7 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
   });
 
   test('offers no write-off on an already collected income', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // The server rejects writing off a row with liquidations, so the
     // action must not be offered for paid or partial rows.
@@ -427,7 +427,7 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
   });
 
   test('shows no row actions on a written-off income', {
-    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ rows: [lostRow()], calls: [] }));
     await gotoIncomes(page);

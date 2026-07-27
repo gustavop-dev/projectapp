@@ -64,7 +64,7 @@ test.describe('Admin Proposal Actions Modal', () => {
   });
 
   test('clicking actions button opens modal with proposal title', {
-    tag: [...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler([mockDraftProposal]));
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
@@ -80,7 +80,7 @@ test.describe('Admin Proposal Actions Modal', () => {
   });
 
   test('draft proposal shows edit, preview, send, copy, whatsapp, duplicate, toggle, delete actions', {
-    tag: [...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler([mockDraftProposal]));
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
@@ -103,7 +103,7 @@ test.describe('Admin Proposal Actions Modal', () => {
   });
 
   test('sent proposal shows resend instead of send', {
-    tag: [...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler([mockSentProposal]));
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
@@ -120,7 +120,7 @@ test.describe('Admin Proposal Actions Modal', () => {
   });
 
   test('closing modal by clicking backdrop', {
-    tag: [...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler([mockDraftProposal]));
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
@@ -193,7 +193,7 @@ test.describe('Proposal Actions Modal — edit page launch action', () => {
   });
 
   test('launch-to-platform action is available while the proposal is negotiating', {
-    tag: [...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
   }, async ({ page }) => {
     const proposal = mockEditProposal({ status: 'negotiating' });
     await setupEditMocks(page, proposal);

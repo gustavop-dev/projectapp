@@ -63,7 +63,7 @@ test.describe('Platform Project Detail — Admin', () => {
   });
 
   test('renders project detail with name, status badge, and stats', {
-    tag: [...PLATFORM_PROJECT_DETAIL, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_PROJECT_DETAIL, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — project detail renders name, status and stats; the back-link interaction covers this flow)
     await setupDetailMocks(page, { user: mockPlatformAdmin });
@@ -93,7 +93,7 @@ test.describe('Platform Project Detail — Admin', () => {
   });
 
   test('renders project nav with Tablero link to board', {
-    tag: [...PLATFORM_PROJECT_DETAIL, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_PROJECT_DETAIL, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the project nav exposes the board link with its href)
     await setupDetailMocks(page, { user: mockPlatformAdmin });
@@ -106,7 +106,7 @@ test.describe('Platform Project Detail — Admin', () => {
   });
 
   test('admin sees Editar button', {
-    tag: [...PLATFORM_PROJECT_DETAIL, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_PROJECT_DETAIL, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — admin sees the Editar control)
     await setupDetailMocks(page, { user: mockPlatformAdmin });

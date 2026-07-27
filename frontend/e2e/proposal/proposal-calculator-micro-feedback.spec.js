@@ -95,7 +95,7 @@ test.describe('Proposal Calculator Micro-Feedback', () => {
   });
 
   test('toggling a calculator module shows the transient +/- price badge', {
-    tag: [...PROPOSAL_CALCULATOR_MICRO_FEEDBACK, '@role:guest'],
+    tag: [...PROPOSAL_CALCULATOR_MICRO_FEEDBACK, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === `proposals/${MOCK_UUID}/`) {

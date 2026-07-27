@@ -75,7 +75,7 @@ test.describe('Admin Document Folder Hierarchy', () => {
   }
 
   test('sidebar shows only root folders', {
-    tag: [...ADMIN_DOCUMENT_FOLDER_HIERARCHY, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_FOLDER_HIERARCHY, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, route }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -99,7 +99,7 @@ test.describe('Admin Document Folder Hierarchy', () => {
   });
 
   test('entering a folder reveals subfolder rows and the breadcrumb', {
-    tag: [...ADMIN_DOCUMENT_FOLDER_HIERARCHY, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_FOLDER_HIERARCHY, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, route }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -127,7 +127,7 @@ test.describe('Admin Document Folder Hierarchy', () => {
   });
 
   test('navigates into a subfolder and back via the breadcrumb', {
-    tag: [...ADMIN_DOCUMENT_FOLDER_HIERARCHY, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_FOLDER_HIERARCHY, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const requestedUrls = [];
 

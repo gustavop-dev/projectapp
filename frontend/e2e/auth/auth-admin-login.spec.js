@@ -11,7 +11,7 @@ import { ADMIN_LOGIN } from '../helpers/flow-tags.js';
 
 test.describe('Admin Login', () => {
   test('the login page hands off to the Django admin', {
-    tag: [...ADMIN_LOGIN, '@role:admin'],
+    tag: [...ADMIN_LOGIN, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (admin login is Django-native — /panel/login only
     // links out to /admin/, there is no SPA credential form to exercise; declared

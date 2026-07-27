@@ -94,7 +94,7 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
   });
 
   test('Sections tab lists all 8 seeded sections', {
-    tag: [...ADMIN_DIAGNOSTIC_SECTIONS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_SECTIONS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authOk;
@@ -116,7 +116,7 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
   });
 
   test('Actividad tab logs a note via POST /activity/create/', {
-    tag: [...ADMIN_DIAGNOSTIC_ACTIVITY, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ACTIVITY, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let logged = null;
     await mockApi(page, async ({ route, apiPath, method }) => {
@@ -153,7 +153,7 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
   });
 
   test('Analytics tab shows view-count KPI card', {
-    tag: [...ADMIN_DIAGNOSTIC_ANALYTICS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ANALYTICS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authOk;

@@ -28,7 +28,7 @@ test.describe('Admin Impersonate User', () => {
   });
 
   test('clicking the impersonation button opens a new tab and lands authenticated on the platform dashboard', {
-    tag: [...ADMIN_IMPERSONATE_USER, '@role:admin'],
+    tag: [...ADMIN_IMPERSONATE_USER, '@role:admin', '@outcome:success'],
   }, async ({ page, context }) => {
     // Routes registered on the context (not just `page`) so the popup tab
     // opened by window.open() is mocked too — context-level routes apply to

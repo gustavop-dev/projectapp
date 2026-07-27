@@ -69,7 +69,7 @@ test.describe('Admin Task — Alertas section', () => {
   });
 
   test('Alertas section is visible when editing a task', {
-    tag: [...ADMIN_TASK_ALERT_MANAGEMENT, '@role:admin'],
+    tag: [...ADMIN_TASK_ALERT_MANAGEMENT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler([]));
 
@@ -85,7 +85,7 @@ test.describe('Admin Task — Alertas section', () => {
   });
 
   test('adding an alert calls POST and alert appears with Pendiente badge', {
-    tag: [...ADMIN_TASK_ALERT_MANAGEMENT, '@role:admin'],
+    tag: [...ADMIN_TASK_ALERT_MANAGEMENT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let alertsState = [];
     let nextAlertId = 1;
@@ -127,7 +127,7 @@ test.describe('Admin Task — Alertas section', () => {
   });
 
   test('deleting an alert calls DELETE and removes it from the list', {
-    tag: [...ADMIN_TASK_ALERT_MANAGEMENT, '@role:admin'],
+    tag: [...ADMIN_TASK_ALERT_MANAGEMENT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const alert = {
       id: 77,
@@ -173,7 +173,7 @@ test.describe('Admin Task — Alertas section', () => {
   });
 
   test('sent alert shows Enviada badge', {
-    tag: [...ADMIN_TASK_ALERT_MANAGEMENT, '@role:admin'],
+    tag: [...ADMIN_TASK_ALERT_MANAGEMENT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const sentAlert = {
       id: 88,

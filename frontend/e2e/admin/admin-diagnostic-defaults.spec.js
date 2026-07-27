@@ -106,7 +106,7 @@ test.describe('Admin Diagnostic Defaults Config', () => {
   });
 
   test('renders General tab with the 60/40 hardcoded fallback', {
-    tag: [...ADMIN_DIAGNOSTIC_DEFAULTS_CONFIG, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_DEFAULTS_CONFIG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async (info) => buildHandler(info));
     await page.goto('/panel/diagnostics/defaults', { waitUntil: 'domcontentloaded' });
@@ -122,7 +122,7 @@ test.describe('Admin Diagnostic Defaults Config', () => {
   });
 
   test('auto-syncs payment percentages to sum 100', {
-    tag: [...ADMIN_DIAGNOSTIC_DEFAULTS_CONFIG, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_DEFAULTS_CONFIG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async (info) => buildHandler(info));
     await page.goto('/panel/diagnostics/defaults', { waitUntil: 'domcontentloaded' });
@@ -137,7 +137,7 @@ test.describe('Admin Diagnostic Defaults Config', () => {
   });
 
   test('save button persists edits and applies the response', {
-    tag: [...ADMIN_DIAGNOSTIC_DEFAULTS_CONFIG, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_DEFAULTS_CONFIG, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let getCalls = 0;
     await mockApi(page, async (info) => {
@@ -162,7 +162,7 @@ test.describe('Admin Diagnostic Defaults Config', () => {
   });
 
   test('reset opens the confirm modal', {
-    tag: [...ADMIN_DIAGNOSTIC_DEFAULTS_CONFIG, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_DEFAULTS_CONFIG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async (info) => buildHandler(info));
     await page.goto('/panel/diagnostics/defaults', { waitUntil: 'domcontentloaded' });
@@ -176,7 +176,7 @@ test.describe('Admin Diagnostic Defaults Config', () => {
   });
 
   test('back link navigates to diagnostics list', {
-    tag: [...ADMIN_DIAGNOSTIC_DEFAULTS_CONFIG, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_DEFAULTS_CONFIG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async (info) => buildHandler(info));
     await page.goto('/panel/diagnostics/defaults', { waitUntil: 'domcontentloaded' });

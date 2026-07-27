@@ -50,7 +50,7 @@ test.describe('Admin Proposal Activity Log', () => {
   });
 
   test('activity tab shows log form and existing timeline entries', {
-    tag: [...ADMIN_PROPOSAL_ACTIVITY_LOG, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ACTIVITY_LOG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;

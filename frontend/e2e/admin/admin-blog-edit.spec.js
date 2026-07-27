@@ -64,7 +64,7 @@ test.describe('Admin Blog Edit', () => {
   });
 
   test('loads existing post and populates all fields', {
-    tag: [...ADMIN_BLOG_EDIT, '@role:admin'],
+    tag: [...ADMIN_BLOG_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the edit form loads and populates its fields; the edit interaction is covered by the save tests)
     await setupMock(page);
@@ -78,7 +78,7 @@ test.describe('Admin Blog Edit', () => {
   });
 
   test('edits title and saves successfully', {
-    tag: [...ADMIN_BLOG_EDIT, '@role:admin'],
+    tag: [...ADMIN_BLOG_EDIT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/1/edit');
@@ -90,7 +90,7 @@ test.describe('Admin Blog Edit', () => {
   });
 
   test('edits category and readTime', {
-    tag: [...ADMIN_BLOG_EDIT, '@role:admin'],
+    tag: [...ADMIN_BLOG_EDIT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/1/edit');
@@ -103,7 +103,7 @@ test.describe('Admin Blog Edit', () => {
   });
 
   test('SEO section shows meta fields', {
-    tag: [...ADMIN_BLOG_EDIT, '@role:admin'],
+    tag: [...ADMIN_BLOG_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the SEO section renders its meta fields populated from the post)
     await setupMock(page);
@@ -114,7 +114,7 @@ test.describe('Admin Blog Edit', () => {
   });
 
   test('view-in-blog link has correct href', {
-    tag: [...ADMIN_BLOG_EDIT, '@role:admin'],
+    tag: [...ADMIN_BLOG_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the view-in-blog link renders with the post's public href)
     await setupMock(page);
@@ -126,7 +126,7 @@ test.describe('Admin Blog Edit', () => {
   });
 
   test('shows content_json_es populated in textarea', {
-    tag: [...ADMIN_BLOG_EDIT, '@role:admin'],
+    tag: [...ADMIN_BLOG_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the content_json textarea is populated from the post)
     await setupMock(page);
@@ -139,7 +139,7 @@ test.describe('Admin Blog Edit', () => {
   });
 
   test('shows sources from existing post', {
-    tag: [...ADMIN_BLOG_EDIT, '@role:admin'],
+    tag: [...ADMIN_BLOG_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — existing sources render populated from the post)
     await setupMock(page);

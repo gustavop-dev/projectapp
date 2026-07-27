@@ -45,7 +45,7 @@ test.describe('Admin Blog Create', () => {
   });
 
   test('renders form with Manual/JSON tabs', {
-    tag: [...ADMIN_BLOG_CREATE, '@role:admin'],
+    tag: [...ADMIN_BLOG_CREATE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the create form renders its Manual/JSON tabs and language fieldsets; the create interactions are covered below)
     await setupMock(page);
@@ -58,7 +58,7 @@ test.describe('Admin Blog Create', () => {
   });
 
   test('manual mode: fills all fields and submits successfully', {
-    tag: [...ADMIN_BLOG_CREATE, '@role:admin'],
+    tag: [...ADMIN_BLOG_CREATE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/create');
@@ -80,7 +80,7 @@ test.describe('Admin Blog Create', () => {
   });
 
   test('manual mode: submits with only required fields (no category, no readTime)', {
-    tag: [...ADMIN_BLOG_CREATE, '@role:admin'],
+    tag: [...ADMIN_BLOG_CREATE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/create');
@@ -97,7 +97,7 @@ test.describe('Admin Blog Create', () => {
   });
 
   test('switches to JSON import tab and shows template download', {
-    tag: [...ADMIN_BLOG_CREATE_FROM_JSON, '@role:admin'],
+    tag: [...ADMIN_BLOG_CREATE_FROM_JSON, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/create');
@@ -110,7 +110,7 @@ test.describe('Admin Blog Create', () => {
   });
 
   test('JSON mode: paste valid JSON shows preview and metadata form', {
-    tag: [...ADMIN_BLOG_CREATE_FROM_JSON, '@role:admin'],
+    tag: [...ADMIN_BLOG_CREATE_FROM_JSON, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/create');
@@ -135,7 +135,7 @@ test.describe('Admin Blog Create', () => {
   });
 
   test('JSON mode: paste invalid JSON shows error', {
-    tag: [...ADMIN_BLOG_CREATE_FROM_JSON, '@role:admin'],
+    tag: [...ADMIN_BLOG_CREATE_FROM_JSON, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/create');
@@ -149,7 +149,7 @@ test.describe('Admin Blog Create', () => {
   });
 
   test('JSON mode: paste JSON missing required fields shows error', {
-    tag: [...ADMIN_BLOG_CREATE_FROM_JSON, '@role:admin'],
+    tag: [...ADMIN_BLOG_CREATE_FROM_JSON, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/create');
@@ -164,7 +164,7 @@ test.describe('Admin Blog Create', () => {
   });
 
   test('JSON mode: submit valid JSON creates post', {
-    tag: [...ADMIN_BLOG_CREATE_FROM_JSON, '@role:admin'],
+    tag: [...ADMIN_BLOG_CREATE_FROM_JSON, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/create');

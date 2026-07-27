@@ -101,7 +101,7 @@ test.describe('Admin Diagnostic — Edit page', () => {
   });
 
   test('PATCH to update/ is called when General form is saved', {
-    tag: [...ADMIN_DIAGNOSTIC_EDIT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_EDIT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let patchCalled = false;
 
@@ -160,7 +160,7 @@ test.describe('Admin Diagnostic — Delete flow', () => {
   });
 
   test('confirming delete calls DELETE and removes diagnostic from list', {
-    tag: [...ADMIN_DIAGNOSTIC_DELETE, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_DELETE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const diagnostic = buildDiagnostic();
     let deleteCalled = false;
